@@ -1,71 +1,71 @@
-# Kompleksitetsdeteksjon og analysemønstre
+# Complexity detection and analysis patterns
 
-## Klassifisering
+## Classification
 
-| Faktor | LAV | MIDDELS | HØY |
-|--------|-----|---------|-----|
-| Antall filer | 1-2 | 3-10 | 10+ |
-| Operasjon | fjern/erstatt/rett | refaktorer/forbedre | migrer/oppgrader |
-| Keywords | spesifikk fil nevnt | én komponent/modul | "alle", "migrer", "hele" |
-| API-påvirkning | ingen | mindre endringer | nye/endrede kontrakter |
+| Factor | LOW | MEDIUM | HIGH |
+|--------|-----|--------|------|
+| Number of files | 1-2 | 3-10 | 10+ |
+| Operation | remove/replace/fix | refactor/improve | migrate/upgrade |
+| Keywords | specific file mentioned | one component/module | "all", "migrate", "entire" |
+| API impact | none | minor changes | new/changed contracts |
 
-Se workflows-reglene § Kompleksitetsdeteksjon for detaljer.
+See the workflows rules § Complexity detection for details.
 
-## Analyse per nivå
+## Analysis per level
 
-### LAV (Quick Fix, < 15 min analyse)
+### LOW (Quick Fix, < 15 min analysis)
 
-1. Finn den ene filen
-2. Les filen, identifiser linjenummer
-3. Sjekk om tester finnes
-4. Dokumenter funn (< 80 linjer i 2-analysis.md)
+1. Find the single file
+2. Read the file, identify line numbers
+3. Check whether tests exist
+4. Document the findings (< 80 lines in 2-analysis.md)
 
-### MIDDELS (Komponentanalyse, 20-45 min)
+### MEDIUM (Component analysis, 20-45 min)
 
-1. Finn hovedfilen
-2. Les og identifiser avhengigheter (imports/exports)
-3. Finn relaterte filer (tester, brukere av komponenten)
-4. Sjekk API-påvirkning (bruk API mapping guide)
-5. Dokumenter alle påvirkede filer med fil:linje (100-200 linjer)
+1. Find the main file
+2. Read it and identify dependencies (imports/exports)
+3. Find related files (tests, consumers of the component)
+4. Check API impact (use the API mapping guide)
+5. Document all affected files with file:line (100-200 lines)
 
-### HØY (Bred analyse, 1-3 timer)
+### HIGH (Broad analysis, 1-3 hours)
 
-1. Søk bredt etter patterns i kodebasen
-2. Kategoriser filer: LAV/MIDDELS/HØY kompleksitet per fil
-3. Analyser ripple effects og API-påvirkning
-4. Lag fasebasert migreringsplan (pilot → batch 1 → batch 2 → komplekse)
-5. Dokumenter med kategorisering og migrasjonsplan (200-400 linjer)
+1. Search broadly for patterns in the codebase
+2. Categorize files: LOW/MEDIUM/HIGH complexity per file
+3. Analyze ripple effects and API impact
+4. Create a phase-based migration plan (pilot → batch 1 → batch 2 → complex)
+5. Document with categorization and migration plan (200-400 lines)
 
-## Eksempel: Forventet output (MIDDELS)
+## Example: Expected output (MEDIUM)
 
 ```text
-Kodebase-analyse fullført for XX-slug
+Codebase analysis completed for XX-slug
 
-Funn:
-- Kompleksitet: MIDDELS (15 filer påvirkes)
-- Type: Refaktorering
-- Risikonivå: Lav
+Findings:
+- Complexity: MEDIUM (15 files affected)
+- Type: Refactoring
+- Risk level: Low
 
-Påvirkede filer (kategorisert):
-LAV kompleksitet (8 filer):
-- src/forms/SimpleForm.tsx:12 (< 10 felt, basic validation)
-- src/forms/ContactForm.tsx:45 (enkelt skjema)
+Affected files (categorized):
+LOW complexity (8 files):
+- src/forms/SimpleForm.tsx:12 (< 10 fields, basic validation)
+- src/forms/ContactForm.tsx:45 (simple form)
 
-MIDDELS kompleksitet (5 filer):
-- src/forms/UserProfileForm.tsx:120 (15 felt, sync validation)
+MEDIUM complexity (5 files):
+- src/forms/UserProfileForm.tsx:120 (15 fields, sync validation)
 - src/forms/AddressForm.tsx:89 (custom components)
 
-HØY kompleksitet (2 filer):
+HIGH complexity (2 files):
 - src/forms/WizardForm.tsx:234 (multi-step, FieldArray)
 - src/forms/DynamicForm.tsx:456 (async validation)
 
-Implementeringsplan opprettet:
-- Fase 1: Pilot (3-5 enkle former) - 1-2 dager
-- Fase 2: Batch 1 (LAV kompleksitet) - 3-5 dager
-- Fase 3: Batch 2 (MIDDELS kompleksitet) - 5-7 dager
-- Fase 4: Komplekse former - 2-3 dager
+Implementation plan created:
+- Phase 1: Pilot (3-5 simple forms) - 1-2 days
+- Phase 2: Batch 1 (LOW complexity) - 3-5 days
+- Phase 3: Batch 2 (MEDIUM complexity) - 5-7 days
+- Phase 4: Complex forms - 2-3 days
 
-Filer oppdatert:
+Files updated:
 - reports/XX-slug/2-analysis.md
 - reports/XX-slug/3-solution.md
 - reports/XX-slug/4-status.md

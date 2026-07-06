@@ -84,7 +84,7 @@ def extract_headings(content: str) -> List[Tuple[int, str, str]]:
         if in_code_block:
             continue
 
-        if re.match(r'^##\s*Innholdsfortegnelse', line, re.IGNORECASE):
+        if re.match(r'^##\s*(Innholdsfortegnelse|Table of contents)', line, re.IGNORECASE):
             continue
 
         h2_match = re.match(r'^##\s+(.+)$', line)
@@ -107,7 +107,7 @@ def generate_toc(headings: List[Tuple[int, str, str]]) -> str:
     if not headings:
         return ""
 
-    lines = ["## Innholdsfortegnelse", ""]
+    lines = ["## Table of contents", ""]
 
     for level, text, slug in headings:
         if level == 2:
@@ -123,7 +123,7 @@ def generate_toc(headings: List[Tuple[int, str, str]]) -> str:
 
 
 def find_first_real_h2(content: str) -> int:
-    """Find position of first h2 that is NOT 'Innholdsfortegnelse'."""
+    """Find position of first h2 that is NOT the TOC heading."""
     lines = content.split('\n')
     pos = 0
     in_code_block = False
@@ -133,7 +133,7 @@ def find_first_real_h2(content: str) -> int:
             in_code_block = not in_code_block
 
         if not in_code_block:
-            if re.match(r'^##\s+', line) and not re.match(r'^##\s*Innholdsfortegnelse', line, re.IGNORECASE):
+            if re.match(r'^##\s+', line) and not re.match(r'^##\s*(Innholdsfortegnelse|Table of contents)', line, re.IGNORECASE):
                 return pos
 
         pos += len(line) + 1
@@ -197,13 +197,13 @@ def update_file(filepath: Path) -> Tuple[bool, List[str]]:
     # 1. Remove emojis from headings
     new_content = remove_emojis_from_headings(content)
     if new_content != content:
-        changes.append("Fjernet emojis fra overskrifter")
+        changes.append("Removed emojis from headings")
         content = new_content
 
     # 2. Fix code blocks
     new_content = fix_code_blocks(content)
     if new_content != content:
-        changes.append("La til språk-spesifikasjon på kodeblokker")
+        changes.append("Added language specifier to code blocks")
         content = new_content
 
     # 3. Extract headings and generate TOC
@@ -226,13 +226,13 @@ def update_file(filepath: Path) -> Tuple[bool, List[str]]:
                 new_content = re.sub(r'\n{4,}', '\n\n\n', new_content)
 
                 if new_content != content:
-                    changes.append("Oppdatert 2-nivå innholdsfortegnelse")
+                    changes.append("Updated 2-level table of contents")
                     content = new_content
 
     # 4. Fix list numbering
     new_content = fix_list_numbering(content)
     if new_content != content:
-        changes.append("Fikset liste-nummerering")
+        changes.append("Fixed list numbering")
         content = new_content
 
     # Write if changed
@@ -262,12 +262,12 @@ def create_readme(report_dir: Path) -> bool:
 
     readme_content = f"""# {title}
 
-**Innholdsfortegnelse:**
+**Table of contents:**
 
-1. [Beskrivelse](1-description.md) - Bakgrunn og mål
-2. [Analyse](2-analysis.md) - Teknisk analyse
-3. [Løsning](3-solution.md) - Implementeringsplan
-4. [Status](4-status.md) - Fremdriftssporing
+1. [Description](1-description.md) - Background and goals
+2. [Analysis](2-analysis.md) - Technical analysis
+3. [Solution](3-solution.md) - Implementation plan
+4. [Status](4-status.md) - Progress tracking
 
 ---
 """
@@ -306,7 +306,7 @@ def process_report_dir(report_dir: Path) -> dict:
     # Create 0-README.md if missing
     if create_readme(report_dir):
         result["readme_created"] = True
-        result["changes"].append("Opprettet 0-README.md")
+        result["changes"].append("Created 0-README.md")
 
     # Process each standard file
     files_to_process = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
@@ -362,12 +362,12 @@ def main():
             if result["readme_renamed"]:
                 total_readmes_renamed += 1
         else:
-            print(f"⏭️  {result['name']}: ingen endringer")
+            print(f"⏭️  {result['name']}: no changes")
 
-    print(f"\n📊 Oppsummering:")
-    print(f"   - Filer oppdatert: {total_files}")
-    print(f"   - README opprettet: {total_readmes_created}")
-    print(f"   - README renamed: {total_readmes_renamed}")
+    print(f"\n📊 Summary:")
+    print(f"   - Files updated: {total_files}")
+    print(f"   - READMEs created: {total_readmes_created}")
+    print(f"   - READMEs renamed: {total_readmes_renamed}")
 
 
 if __name__ == "__main__":

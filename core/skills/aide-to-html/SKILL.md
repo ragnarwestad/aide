@@ -1,122 +1,122 @@
 ---
 name: aide-to-html
 description: >-
-  Generer HTML fra JIRA eller TODO dokumentasjon.
-  Use when: skal eksportere dokumentasjon til HTML, skal generere lesbar rapport.
-  Do NOT use for: PDF-generering (bruk aide-to-pdf), oppretting av dokumentasjon (bruk aide-create)
+  Generate HTML from JIRA or TODO documentation.
+  Use when: exporting documentation to HTML, generating a readable report.
+  Do NOT use for: PDF generation (use aide-to-pdf), creating documentation (use aide-create)
 disable-model-invocation: true
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---
 
-Du skal hjelpe brukeren med å **generere HTML** fra JIRA eller TODO dokumentasjon.
+You will help the user **generate HTML** from JIRA or TODO documentation.
 
 ## Input
 
-Brukeren har kjørt:
+The user has run:
 ```bash
 /aide-to-html <ISSUE_ID>
 ```
 
-**Eksempler:**
-- `/aide-to-html PROJ-7637` - JIRA-sak
-- `/aide-to-html 17-fikse-validering` - TODO-plan
+**Examples:**
+- `/aide-to-html PROJ-7637` - JIRA issue
+- `/aide-to-html 17-fix-validation` - TODO plan
 - `/aide-to-html TODO-28` - TODO shorthand
 
-## Din oppgave
+## Your task
 
-1. **Valider input:**
-   - Hvis input matcher `PROJ-<tall>`: JIRA-sak (nøkkelen er en del av sluggen)
-   - Hvis input er kun et tall (`NN`): nummer-shorthand
-   - Alt annet: full mappe-ID (`NN-slug`)
-   - Hvis ingen input: Spør brukeren om nummer eller full ID
+1. **Validate input:**
+   - If the input matches `PROJ-<number>`: JIRA issue (the key is part of the slug)
+   - If the input is a number only (`NN`): number shorthand
+   - Anything else: full directory ID (`NN-slug`)
+   - If no input: Ask the user for a number or full ID
 
-2. **Bestem REPORTS_ROOT:**
+2. **Determine REPORTS_ROOT:**
    ```bash
-   # Sjekk environment variable først
+   # Check the environment variable first
    if [ -n "$AIDE_REPORTS_PATH" ]; then
      REPORTS_ROOT="$AIDE_REPORTS_PATH"
    else
-     # Fallback - anta reports/ finnes i current working directory
+     # Fallback - assume reports/ exists in the current working directory
      REPORTS_ROOT="reports"
    fi
    ```
 
-3. **Resolve til full mappe-ID** (flat struktur: alt ligger som `<NN>-slug/` direkte under REPORTS_ROOT):
+3. **Resolve to the full directory ID** (flat structure: everything lives as `<NN>-slug/` directly under REPORTS_ROOT):
    ```bash
    if echo "$INPUT" | grep -qE '^PROJ-[0-9]+$'; then
-     # JIRA: finn mappa som inneholder nøkkelen
+     # JIRA: find the directory containing the key
      DIR=$(find "$REPORTS_ROOT" -maxdepth 1 -type d -name "*${INPUT}*" | head -1 | xargs basename)
    elif echo "$INPUT" | grep -qE '^[0-9]+$'; then
-     # Nummer-shorthand: finn <NN>-*
+     # Number shorthand: find <NN>-*
      NN=$(printf '%02d' "$INPUT")
      DIR=$(find "$REPORTS_ROOT" -maxdepth 1 -type d -name "${NN}-*" | head -1 | xargs basename)
    else
-     # Anta full mappe-ID
+     # Assume full directory ID
      DIR="$INPUT"
    fi
 
    if [ -z "$DIR" ] || [ ! -d "$REPORTS_ROOT/$DIR" ]; then
-     echo "Fant ingen sak for: $INPUT"
+     echo "Found no issue for: $INPUT"
      exit 1
    fi
-   # Eksempel: 27 → finner 27-steg-ts-konvertering-analyse
+   # Example: 27 → finds 27-step-ts-conversion-analysis
    ```
 
-4. **Sjekk at dokumentasjon eksisterer:**
-   - `$REPORTS_ROOT/<NN-slug>/` (flat struktur for både JIRA og TODO)
-   - Hvis ikke: Informer at brukeren må kjøre `/aide-create` først
+4. **Check that documentation exists:**
+   - `$REPORTS_ROOT/<NN-slug>/` (flat structure for both JIRA and TODO)
+   - If not: Inform the user that they must run `/aide-create` first
 
-5. **Generer HTML:**
+5. **Generate HTML:**
    ```bash
-   # Pass den resolverte mappe-ID-en (full NN-slug) til scriptet
+   # Pass the resolved directory ID (full NN-slug) to the script
    aide-generate-html "$DIR"
    ```
 
-   **VIKTIG:** `aide-generate-html` scriptet trenger også å respektere `AIDE_REPORTS_PATH`!
+   **IMPORTANT:** The `aide-generate-html` script also needs to respect `AIDE_REPORTS_PATH`!
 
-   Scriptet vil:
-   - Kombinere alle markdown-filer (1-description, 2-analysis, 3-solution, 4-status)
-   - Konvertere markdown til HTML
-   - Legge til sticky navigasjon i header
-   - Style med moderne CSS
+   The script will:
+   - Combine all markdown files (1-description, 2-analysis, 3-solution, 4-status)
+   - Convert markdown to HTML
+   - Add sticky navigation in the header
+   - Style with modern CSS
    - Output: `$REPORTS_ROOT/<NN-slug>/<NN-slug>.html`
 
-6. **Gi brukeren resultatet:**
-   - Vis path til HTML-filen
-   - Forklar hvordan åpne den: `open <path>`
+6. **Give the user the result:**
+   - Show the path to the HTML file
+   - Explain how to open it: `open <path>`
 
-## Feilhåndtering
+## Error handling
 
-**Hvis `npx` ikke er installert:**
+**If `npx` is not installed:**
 ```text
-npx er ikke installert
+npx is not installed
 
-Installer Node.js som inkluderer npx
+Install Node.js, which includes npx
 ```
 
-**Hvis dokumentasjon ikke eksisterer:**
+**If documentation does not exist:**
 ```text
-Kunne ikke finne dokumentasjon for <ISSUE_ID>
+Could not find documentation for <ISSUE_ID>
 
-Har du kjørt opprett-kommandoen først?
+Have you run the create command first?
 
 /aide-create <ISSUE_ID>
 /aide-analyze <ISSUE_ID>
 ```
 
-## Fordeler med HTML
+## Benefits of HTML
 
-- Fungerende navigasjonslenker (garantert)
-- Sticky header med navigasjon
-- Bedre styling-kontroll
-- Søkbar i nettleser (Cmd+F)
-- Responsiv (fungerer på mobil)
-- Lettere og raskere enn PDF
+- Working navigation links (guaranteed)
+- Sticky header with navigation
+- Better styling control
+- Searchable in the browser (Cmd+F)
+- Responsive (works on mobile)
+- Lighter and faster than PDF
 
-## Notater
+## Notes
 
-- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-create`
-- **Output-lokasjon:** Samme mappe som markdown-filene (holder alt samlet)
-- **AIDE_REPORTS_PATH:** Scriptet respekterer environment variable hvis satt
-- **Styling:** Modern, ren design med sticky navigasjon
+- **Automatic JIRA/TODO detection:** Same logic as `/aide-create`
+- **Output location:** Same directory as the markdown files (keeps everything together)
+- **AIDE_REPORTS_PATH:** The script respects the environment variable if set
+- **Styling:** Modern, clean design with sticky navigation

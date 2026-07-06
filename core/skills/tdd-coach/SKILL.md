@@ -1,139 +1,139 @@
 ---
 name: tdd-coach
 description: >-
-  Test-Driven Development metodikk.
-  Use when: skal implementere ny funksjonalitet, skal refaktorere eksisterende kode, skal sikre høy testdekning.
-  Do NOT use for: oppgaveanalyse og planlegging (bruk task-workflow-assistant), kodebase-utforskning uten implementering
+  Test-Driven Development methodology.
+  Use when: implementing new functionality, refactoring existing code, ensuring high test coverage.
+  Do NOT use for: task analysis and planning (use task-workflow-assistant), codebase exploration without implementation
 effort: high
 ---
 
 # Tdd Coach
 
-## Når å bruke denne skill
+## When to use this skill
 
-- Du skal implementere ny funksjonalitet
-- Du skal refaktorere eksisterende kode
-- Du skal sikre høy testdekning
-- Du skal følge TDD-syklusen
-
----
-
-## Grunnregler (gjelder ALLE faser)
-
-1. Skriv minst mulig kode som tilfredsstiller krav og får testene til å passere
-2. Foretrekk enkle løsninger fremfor smarte — tre like linjer er bedre enn en prematur abstraksjon
-3. Ikke legg til feilhåndtering, validering eller abstraksjoner for scenarioer som ikke dekkes av krav eller tester
-4. Ikke legg til docstrings, kommentarer eller type annotations utover det oppgaven krever
-5. Behandle kravene som maksimalt scope og testene som akseptansekriterier — oppfyll begge, stopp
-6. Ikke rør kode som ikke er relatert til oppgaven — ingen drive-by refactors eller tilfeldige oppryddinger
-7. Følg eksisterende mønstre i kodebasen — ingen nye konvensjoner
+- You are implementing new functionality
+- You are refactoring existing code
+- You need to ensure high test coverage
+- You are following the TDD cycle
 
 ---
 
-## TDD-syklusen
+## Ground rules (apply to ALL phases)
+
+1. Write the least amount of code that satisfies the requirements and makes the tests pass
+2. Prefer simple solutions over clever ones — three similar lines are better than a premature abstraction
+3. Do not add error handling, validation, or abstractions for scenarios not covered by requirements or tests
+4. Do not add docstrings, comments, or type annotations beyond what the task requires
+5. Treat the requirements as the maximum scope and the tests as acceptance criteria — satisfy both, then stop
+6. Do not touch code unrelated to the task — no drive-by refactors or incidental cleanups
+7. Follow existing patterns in the codebase — no new conventions
+
+---
+
+## The TDD cycle
 
 ### 1. RED PHASE
 
-**Skriv tester først (basert på krav)**
+**Write tests first (based on requirements)**
 
 ```bash
-# Steg 1: Les eksisterende tester for å forstå mønstre og fixtures
-# Steg 2: Skriv tester som verifiserer kravene
-# Steg 3: Kjør tester
-pnpm test -- --run <testfil>
-# Steg 4: Verifiser at tester FEILER på assertions (ikke på importfeil)
-# Steg 5: Stopp og be om bekreftelse
+# Step 1: Read existing tests to understand patterns and fixtures
+# Step 2: Write tests that verify the requirements
+# Step 3: Run the tests
+pnpm test -- --run <test-file>
+# Step 4: Verify that tests FAIL on assertions (not on import errors)
+# Step 5: Stop and ask for confirmation
 ```
 
-**Regler for RED:**
+**Rules for RED:**
 
-- Skriv minimale, fokuserte tester med én assertion per test der det er praktisk
-- Bruk eksisterende testmønstre og fixtures fra prosjektet
-- Ikke skriv implementasjonskode
-- Ikke skriv hjelpefunksjoner eller testabstraksjoner utover det som trengs
-- Mock manglende moduler om nødvendig slik at tester feiler på assertions, ikke importfeil
+- Write minimal, focused tests with one assertion per test where practical
+- Use existing test patterns and fixtures from the project
+- Do not write implementation code
+- Do not write helper functions or test abstractions beyond what is needed
+- Mock missing modules if necessary so tests fail on assertions, not import errors
 
 ### 2. GREEN PHASE
 
-**Implementer minimalt for å få testene til å passere**
+**Implement minimally to make the tests pass**
 
 ```bash
-# Steg 1: Les testene for å forstå forventet oppførsel
-# Steg 2: Implementer minste mulige kode
-# Steg 3: Kjør tester etter hvert steg
-pnpm test -- --run <testfil>
-# Steg 4: Verifiser at alle tester PASSERER
-# Steg 5: Stopp og be om bekreftelse
+# Step 1: Read the tests to understand the expected behavior
+# Step 2: Implement the least possible code
+# Step 3: Run the tests after each step
+pnpm test -- --run <test-file>
+# Step 4: Verify that all tests PASS
+# Step 5: Stop and ask for confirmation
 ```
 
-**Regler for GREEN:**
+**Rules for GREEN:**
 
-- Skriv kun koden som trengs for å passere testene
-- Ikke legg til features, feilhåndtering eller abstraksjoner som ikke testes
-- Ikke refaktorer eksisterende kode med mindre en test krever det
-- Skriv enkel, direkte kode uten smarte triks
+- Write only the code needed to pass the tests
+- Do not add features, error handling, or abstractions that are not tested
+- Do not refactor existing code unless a test requires it
+- Write simple, direct code without clever tricks
 
-### 3. KVALITETSPORT
+### 3. QUALITY GATE
 
-**Automatiserte sjekker som MÅ passere før REFACTOR**
+**Automated checks that MUST pass before REFACTOR**
 
 ```bash
 # Frontend
-pnpm test -- --run          # Alle tester passerer
-npx tsc --noEmit            # TypeScript-sjekk
+pnpm test -- --run          # All tests pass
+npx tsc --noEmit            # TypeScript check
 pnpm run eslint             # Linting
 
 # Backend
-./gradlew test              # Alle tester passerer
+./gradlew test              # All tests pass
 ./gradlew ktlintCheck       # Kotlin linting
 ```
 
-Alle sjekker må passere. Hvis noe feiler, fiks det i GREEN-fasen før du går videre.
+All checks must pass. If anything fails, fix it in the GREEN phase before moving on.
 
 ### 4. REFACTOR PHASE
 
-**Forbedre koden (uten å endre oppførsel)**
+**Improve the code (without changing behavior)**
 
 ```bash
-# Steg 1: Refaktorer kode
-# Steg 2: Kjør alle tester og kvalitetssjekker på nytt
-# Steg 3: Verifiser at alt fortsatt passerer
+# Step 1: Refactor the code
+# Step 2: Rerun all tests and quality checks
+# Step 3: Verify that everything still passes
 ```
 
-**Regler for REFACTOR:**
+**Rules for REFACTOR:**
 
-- Fjern duplisering og forbedre lesbarhet
-- Ikke legg til features eller feilhåndtering som ikke dekkes av tester
-- Ikke refaktorer for hypotetiske fremtidige behov
-- Ikke legg til dokumentasjon, kommentarer eller type hints utover det som trengs
-- Ikke foreslå ytelsesoptimaliseringer uten bevis på problem
-- Ikke foreslå "nice to have"-forbedringer
+- Remove duplication and improve readability
+- Do not add features or error handling not covered by tests
+- Do not refactor for hypothetical future needs
+- Do not add documentation, comments, or type hints beyond what is needed
+- Do not suggest performance optimizations without evidence of a problem
+- Do not suggest "nice to have" improvements
 
 ---
 
-## Testing-standarder
+## Testing standards
 
 ### Frontend (React/TypeScript)
 
 - ✅ **Vitest** + **React Testing Library**
-- ✅ `describe` + `it` struktur
-- ✅ Mock eksterne avhengigheter
+- ✅ `describe` + `it` structure
+- ✅ Mock external dependencies
 - ✅ Test happy path, edge cases, errors
-- ✅ Målsetning: 80% coverage
+- ✅ Target: 80% coverage
 
 ### Backend (Kotlin/Spring Boot)
 
 - ✅ **JUnit 5** + **MockK**
 - ✅ `@Test` annotations
-- ✅ Mock eksterne dependencies
+- ✅ Mock external dependencies
 - ✅ Test domain logic, repository, controller
-- ✅ Målsetning: 80% coverage
+- ✅ Target: 80% coverage
 
 ### E2E Tests
 
 - ✅ **Playwright** for frontend E2E
-- ✅ Test kritiske brukerflyter
-- ✅ Kjør før deployment
+- ✅ Test critical user flows
+- ✅ Run before deployment
 
 ---
 
@@ -191,8 +191,8 @@ it('should handle API errors', async () => {
 
 ---
 
-## Referanser
+## References
 
-- `testing-reglene` - Fullstendig testing-regelverk
-- `workflows-reglene` - TDD-workflow i kontekst av JIRA/TODO
-- Frontend kodestandard
+- `the testing rules` - Complete testing ruleset
+- `the workflow rules` - The TDD workflow in the context of JIRA/TODO
+- Frontend coding standard

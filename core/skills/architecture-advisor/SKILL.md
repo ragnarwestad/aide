@@ -1,26 +1,26 @@
 ---
 name: architecture-advisor
 description: >-
-  Arkitektur-vurderinger og refaktoreringsbeslutninger.
-  Use when: vurderer arkitektur-endringer, skal refaktorere større kodedeler, skal introdusere nye design patterns.
-  Do NOT use for: enkle bug fixes, små kodeendringer i én fil, ren implementering uten arkitekturbeslutninger
+  Architecture assessments and refactoring decisions.
+  Use when: evaluating architecture changes, refactoring larger parts of the codebase, introducing new design patterns.
+  Do NOT use for: simple bug fixes, small code changes in a single file, pure implementation without architecture decisions
 effort: xhigh
 ---
 
 # Architecture Advisor
 
-## Når å bruke denne skill
+## When to use this skill
 
-- Du vurderer arkitektur-endringer
-- Du skal refaktorere større kodedeler
-- Du skal introdusere nye design patterns
-- Du skal evaluere code smells
+- You are evaluating architecture changes
+- You are refactoring larger parts of the codebase
+- You are introducing new design patterns
+- You are evaluating code smells
 
 ---
 
 ## Layered Architecture
 
-**Standard lag i både frontend og backend:**
+**Standard layers in both frontend and backend:**
 
 ```text
 Presentation Layer (UI/API)
@@ -32,10 +32,10 @@ Data Access Layer (Repositories)
 Database/External APIs
 ```
 
-**Prinsipper:**
-- ✅ Klar separasjon av ansvar
-- ✅ Hver lag kommuniserer kun med laget under
-- ✅ Business logic i eget lag (IKKE i controllers eller repositories)
+**Principles:**
+- ✅ Clear separation of concerns
+- ✅ Each layer communicates only with the layer below
+- ✅ Business logic in its own layer (NOT in controllers or repositories)
 
 ---
 
@@ -61,7 +61,7 @@ class UserService(private val repository: UserRepository) {
 }
 ```
 
-### Factory Pattern (Objektoppretting)
+### Factory Pattern (Object creation)
 
 ```typescript
 class ComponentFactory {
@@ -75,7 +75,7 @@ class ComponentFactory {
 }
 ```
 
-### Strategy Pattern (Valgbare algoritmer)
+### Strategy Pattern (Interchangeable algorithms)
 
 ```typescript
 interface ValidationStrategy {
@@ -93,48 +93,48 @@ class EmailValidator implements ValidationStrategy {
 
 ## Refactoring Strategies
 
-### 1. Start med tester (sikkerhetsnett)
+### 1. Start with tests (safety net)
 
 ```bash
-# ALLTID før refaktorering:
+# ALWAYS before refactoring:
 pnpm test -- --run
-# Verifiser at alle tester passerer
+# Verify that all tests pass
 ```
 
-### 2. Små, inkrementelle endringer
+### 2. Small, incremental changes
 
-- ❌ Ikke refaktorer hele filen på en gang
-- ✅ Refaktorer én funksjon/klasse av gangen
-- ✅ Kjør tester etter hver endring
+- ❌ Do not refactor the entire file at once
+- ✅ Refactor one function/class at a time
+- ✅ Run tests after every change
 
-### 3. Verifiser etter hvert steg
+### 3. Verify after each step
 
 ```bash
-# Etter hver refaktorering:
-pnpm test -- --run           # Tester
+# After each refactoring:
+pnpm test -- --run           # Tests
 npx tsc --noEmit             # TypeScript
 pnpm run eslint              # Linting
 ```
 
-### 4. Aldri endre oppførsel under refaktorering
+### 4. Never change behavior during refactoring
 
-- Refaktorering = samme output, bedre kode
-- Ny funksjonalitet = separat commit
+- Refactoring = same output, better code
+- New functionality = separate commit
 
 ---
 
-## Code Smells å unngå
+## Code Smells to avoid
 
-### God Functions (> 50 linjer)
+### God Functions (> 50 lines)
 
 **Problem:**
 ```typescript
 function processUser(user: User) {
-  // 200 linjer kode...
+  // 200 lines of code...
 }
 ```
 
-**Løsning:**
+**Solution:**
 ```typescript
 function processUser(user: User) {
   validateUser(user);
@@ -144,7 +144,7 @@ function processUser(user: User) {
 }
 ```
 
-### Duplisert kode
+### Duplicated code
 
 **Problem:**
 ```typescript
@@ -157,14 +157,14 @@ const fullName = user.firstName + ' ' + user.lastName;
 const fullName = user.firstName + ' ' + user.lastName;
 ```
 
-**Løsning:**
+**Solution:**
 ```typescript
-// I utils/userUtils.ts
+// In utils/userUtils.ts
 export const getFullName = (user: User) =>
   `${user.firstName} ${user.lastName}`;
 ```
 
-### For mange avhengigheter
+### Too many dependencies
 
 **Problem:**
 ```kotlin
@@ -174,25 +174,25 @@ class UserService(
   private val repo3: Repo3,
   private val service1: Service1,
   private val service2: Service2,
-  // ... 10 flere
+  // ... 10 more
 )
 ```
 
-**Løsning:**
-- Split i mindre services
-- Bruk facade pattern
-- Vurder om all logikk hører hjemme her
+**Solution:**
+- Split into smaller services
+- Use the facade pattern
+- Consider whether all the logic belongs here
 
-### Mangel på abstraksjon
+### Lack of abstraction
 
 **Problem:**
 ```typescript
 if (user.role === 'admin' || user.role === 'superadmin') {
-  // ... 50 steder i koden
+  // ... 50 places in the code
 }
 ```
 
-**Løsning:**
+**Solution:**
 ```typescript
 const isAdmin = (user: User) =>
   ['admin', 'superadmin'].includes(user.role);
@@ -204,7 +204,7 @@ if (isAdmin(user)) {
 
 ---
 
-## Referanser
+## References
 
 - Backend patterns
-- Frontend kodestandard
+- Frontend coding standard

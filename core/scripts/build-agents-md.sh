@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# build-agents-md.sh — Bygger core/AGENTS.md fra felles intro + felles regler
+# build-agents-md.sh — Builds core/AGENTS.md from the shared intro + shared rules
 #
-# Kilder:
-#   core/agents-intro.md   (kort, verktøy-nøytral intro)
-#   core/rules/*.md         (felles regler — én kilde for alle AI-verktøy)
+# Sources:
+#   core/agents-intro.md   (short, tool-neutral intro)
+#   core/rules/*.md         (shared rules — one source for all AI tools)
 #
 # Output:
-#   core/AGENTS.md          (Copilot installerer som copilot-instructions.md, Codex som ~/.codex/AGENTS.md)
+#   core/AGENTS.md          (Copilot installs it as copilot-instructions.md, Codex as ~/.codex/AGENTS.md)
 
 set -e
 
@@ -17,16 +17,16 @@ RULES_DIR="$WORKSPACE_ROOT/core/rules"
 INTRO="$WORKSPACE_ROOT/core/agents-intro.md"
 OUTPUT="$WORKSPACE_ROOT/core/AGENTS.md"
 
-# Rekkefølge for regler (viktigst først)
+# Order of the rules (most important first)
 RULE_FILES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting report-structure communication"
 
-# Verifiser kilder
+# Verify sources
 if [ ! -f "$INTRO" ]; then
-  echo "❌ Mangler: core/agents-intro.md"
+  echo "❌ Missing: core/agents-intro.md"
   exit 1
 fi
 
-# Bygg AGENTS.md
+# Build AGENTS.md
 cat "$INTRO" > "$OUTPUT"
 
 for rule in $RULE_FILES; do
@@ -39,5 +39,5 @@ for rule in $RULE_FILES; do
 done
 
 LINES=$(wc -l < "$OUTPUT" | tr -d ' ')
-echo "✅ Bygget: core/AGENTS.md ($LINES linjer)"
-echo "   Intro + $(echo $RULE_FILES | wc -w | tr -d ' ') regelfiler fra core/rules/"
+echo "✅ Built: core/AGENTS.md ($LINES lines)"
+echo "   Intro + $(echo $RULE_FILES | wc -w | tr -d ' ') rule files from core/rules/"

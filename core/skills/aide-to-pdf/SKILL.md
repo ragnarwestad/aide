@@ -1,115 +1,115 @@
 ---
 name: aide-to-pdf
 description: >-
-  Generer PDF fra JIRA eller TODO dokumentasjon.
-  Use when: skal eksportere dokumentasjon til PDF, skal generere utskriftsvennlig rapport.
-  Do NOT use for: HTML-generering (bruk aide-to-html), oppretting av dokumentasjon (bruk aide-create)
+  Generate PDF from JIRA or TODO documentation.
+  Use when: exporting documentation to PDF, generating a print-friendly report.
+  Do NOT use for: HTML generation (use aide-to-html), creating documentation (use aide-create)
 disable-model-invocation: true
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---
 
-Du skal hjelpe brukeren med å **generere PDF** fra JIRA eller TODO dokumentasjon.
+You will help the user **generate a PDF** from JIRA or TODO documentation.
 
 ## Input
 
-Brukeren har kjørt:
+The user has run:
 ```bash
 /aide-to-pdf <ISSUE_ID>
 ```
 
-**Eksempler:**
-- `/aide-to-pdf PROJ-7637` - JIRA-sak
-- `/aide-to-pdf 17-fikse-validering` - TODO-plan
+**Examples:**
+- `/aide-to-pdf PROJ-7637` - JIRA issue
+- `/aide-to-pdf 17-fix-validation` - TODO plan
 
-## Din oppgave
+## Your task
 
-1. **Valider input:**
-   - Hvis input matcher `PROJ-<tall>`: JIRA-sak (nøkkelen er en del av sluggen)
-   - Hvis input er kun et tall (`NN`): nummer-shorthand
-   - Alt annet: full mappe-ID (`NN-slug`)
-   - Hvis ingen input: Spør brukeren om nummer eller full ID
+1. **Validate input:**
+   - If the input matches `PROJ-<number>`: JIRA issue (the key is part of the slug)
+   - If the input is a number only (`NN`): number shorthand
+   - Anything else: full directory ID (`NN-slug`)
+   - If no input: Ask the user for a number or full ID
 
-2. **Bestem REPORTS_ROOT:**
+2. **Determine REPORTS_ROOT:**
    ```bash
-   # Sjekk environment variable først
+   # Check the environment variable first
    if [ -n "$AIDE_REPORTS_PATH" ]; then
      REPORTS_ROOT="$AIDE_REPORTS_PATH"
    else
-     # Fallback - anta reports/ finnes i current working directory
+     # Fallback - assume reports/ exists in the current working directory
      REPORTS_ROOT="reports"
    fi
    ```
 
-3. **Resolve til full mappe-ID** (flat struktur: alt ligger som `<NN>-slug/` direkte under REPORTS_ROOT):
+3. **Resolve to the full directory ID** (flat structure: everything lives as `<NN>-slug/` directly under REPORTS_ROOT):
    ```bash
    if echo "$INPUT" | grep -qE '^PROJ-[0-9]+$'; then
-     # JIRA: finn mappa som inneholder nøkkelen
+     # JIRA: find the directory containing the key
      DIR=$(find "$REPORTS_ROOT" -maxdepth 1 -type d -name "*${INPUT}*" | head -1 | xargs basename)
    elif echo "$INPUT" | grep -qE '^[0-9]+$'; then
-     # Nummer-shorthand: finn <NN>-*
+     # Number shorthand: find <NN>-*
      NN=$(printf '%02d' "$INPUT")
      DIR=$(find "$REPORTS_ROOT" -maxdepth 1 -type d -name "${NN}-*" | head -1 | xargs basename)
    else
-     # Anta full mappe-ID
+     # Assume full directory ID
      DIR="$INPUT"
    fi
 
    if [ -z "$DIR" ] || [ ! -d "$REPORTS_ROOT/$DIR" ]; then
-     echo "Fant ingen sak for: $INPUT"
+     echo "Found no issue for: $INPUT"
      exit 1
    fi
-   # Eksempel: 27 → finner 27-steg-ts-konvertering-analyse
+   # Example: 27 → finds 27-step-ts-conversion-analysis
    ```
 
-4. **Sjekk at dokumentasjon eksisterer:**
-   - `$REPORTS_ROOT/<NN-slug>/` (flat struktur for både JIRA og TODO)
-   - Hvis ikke: Informer at brukeren må kjøre `/aide-create` først
+4. **Check that documentation exists:**
+   - `$REPORTS_ROOT/<NN-slug>/` (flat structure for both JIRA and TODO)
+   - If not: Inform the user that they must run `/aide-create` first
 
-5. **Generer PDF:**
+5. **Generate PDF:**
    ```bash
-   # Pass den resolverte mappe-ID-en (full NN-slug) til scriptet
+   # Pass the resolved directory ID (full NN-slug) to the script
    aide-generate-pdf "$DIR"
    ```
 
-   **VIKTIG:** `aide-generate-pdf` scriptet trenger også å respektere `AIDE_REPORTS_PATH`!
+   **IMPORTANT:** The `aide-generate-pdf` script also needs to respect `AIDE_REPORTS_PATH`!
 
-   Scriptet vil:
-   - Kombinere alle markdown-filer (1-description, 2-analysis, 3-solution, 4-status)
-   - Legge til forside med metadata
-   - Konvertere til PDF med sidehode/sidefot
+   The script will:
+   - Combine all markdown files (1-description, 2-analysis, 3-solution, 4-status)
+   - Add a cover page with metadata
+   - Convert to PDF with header/footer
    - Output: `$REPORTS_ROOT/<NN-slug>/<NN-slug>.pdf`
 
-6. **Gi brukeren resultatet:**
-   - Vis path til PDF-filen
-   - Forklar hvordan åpne den: `open <path>`
+6. **Give the user the result:**
+   - Show the path to the PDF file
+   - Explain how to open it: `open <path>`
 
-## Feilhåndtering
+## Error handling
 
-**Hvis `md-to-pdf` ikke er installert:**
+**If `md-to-pdf` is not installed:**
 ```text
-md-to-pdf er ikke installert
+md-to-pdf is not installed
 
-Installer med:
+Install with:
 npm install -g md-to-pdf
 
-Eller kjør fra prosjektet:
+Or run from the project:
 npx md-to-pdf
 ```
 
-**Hvis dokumentasjon ikke eksisterer:**
+**If documentation does not exist:**
 ```text
-Kunne ikke finne dokumentasjon for <ISSUE_ID>
+Could not find documentation for <ISSUE_ID>
 
-Har du kjørt opprett-kommandoen først?
+Have you run the create command first?
 
 /aide-create <ISSUE_ID>
 /aide-analyze <ISSUE_ID>
 ```
 
-## Notater
+## Notes
 
-- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-create`
-- **Output-lokasjon:** Samme mappe som markdown-filene (holder alt samlet)
-- **AIDE_REPORTS_PATH:** Scriptet respekterer environment variable hvis satt
-- **Styling:** PDF inkluderer sidehode med issue-nummer og sidefot med sidetall
+- **Automatic JIRA/TODO detection:** Same logic as `/aide-create`
+- **Output location:** Same directory as the markdown files (keeps everything together)
+- **AIDE_REPORTS_PATH:** The script respects the environment variable if set
+- **Styling:** The PDF includes a header with the issue number and a footer with page numbers

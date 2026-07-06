@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 
-# aide-generate-html - Generer HTML fra JIRA eller TODO dokumentasjon
-# Kombinerer alle markdown-filer til et samlet HTML-dokument med navigasjon
+# aide-generate-html - Generate HTML from JIRA or TODO documentation
+# Combines all markdown files into a single HTML document with navigation
 
 set -e
 
-# Farger for output
+# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Hjelpetekst
+# Help text
 if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-  echo "📄 Bruk: aide-generate-html <ISSUE_ID>"
+  echo "📄 Usage: aide-generate-html <ISSUE_ID>"
   echo ""
-  echo "Eksempler:"
-  echo "  generate-html PROJ-7637                        # JIRA (nøkkel i sluggen)"
-  echo "  generate-html 27                                  # nummer-shorthand"
-  echo "  generate-html 27-steg-ts-konvertering-analyse     # full mappe-ID"
+  echo "Examples:"
+  echo "  generate-html PROJ-7637                        # JIRA (key in the slug)"
+  echo "  generate-html 27                                  # number shorthand"
+  echo "  generate-html 27-step-ts-conversion-analysis      # full folder ID"
   echo ""
   echo "Environment variables:"
-  echo "  AIDE_REPORTS_PATH    - Path til reports (valgfri)"
-  echo "  (Fallback: relativ til script-lokasjon)"
+  echo "  AIDE_REPORTS_PATH    - Path to reports (optional)"
+  echo "  (Fallback: relative to script location)"
   echo ""
   echo "Output: <docs-folder>/<ISSUE_ID>.html"
   exit 0
@@ -30,7 +30,7 @@ fi
 
 ISSUE_ID="$1"
 
-# Delte hjelpefunksjoner (reports-root, resolusjon, doc-type, display-name)
+# Shared helper functions (reports-root, resolution, doc-type, display-name)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$SCRIPT_DIR/_aide-report-lib.sh"
 
@@ -38,54 +38,54 @@ REPORTS_ROOT="$(aide_reports_root)"
 FULL_ID="$(aide_resolve_report "$ISSUE_ID" "$REPORTS_ROOT")"
 DOCS_DIR="$REPORTS_ROOT/$FULL_ID"
 
-# Sjekk at vi fant noe
+# Check that we found something
 if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
-  echo -e "${RED}❌ Feil: Fant ingen dokumentasjon for: $ISSUE_ID${NC}"
+  echo -e "${RED}❌ Error: No documentation found for: $ISSUE_ID${NC}"
   echo ""
-  echo "Søkte i: $REPORTS_ROOT"
+  echo "Searched in: $REPORTS_ROOT"
   echo ""
   echo "Tips:"
-  echo "  - Har du kjørt /aide-create først?"
-  echo "  - Sjekk at AIDE_REPORTS_PATH er riktig satt"
+  echo "  - Have you run /aide-create first?"
+  echo "  - Check that AIDE_REPORTS_PATH is set correctly"
   echo ""
-  echo "Tilgjengelige mapper:"
+  echo "Available folders:"
   ls -1 "$REPORTS_ROOT" | grep -E "^[0-9]+-" | head -10
   exit 1
 fi
 
-# Oppdater ISSUE_ID til full ID for filnavn
+# Update ISSUE_ID to full ID for the file name
 ISSUE_ID="$FULL_ID"
 DOC_TYPE="$(aide_doc_type "$FULL_ID")"
 
-# Sjekk at pandoc er installert
+# Check that pandoc is installed
 if ! command -v pandoc &> /dev/null; then
-  echo -e "${RED}❌ Feil: pandoc er ikke installert${NC}"
+  echo -e "${RED}❌ Error: pandoc is not installed${NC}"
   echo ""
-  echo "Installer med:"
+  echo "Install with:"
   echo "  brew install pandoc"
   exit 1
 fi
 
-echo -e "${GREEN}📄 Genererer HTML for $DOC_TYPE: $ISSUE_ID${NC}"
+echo -e "${GREEN}📄 Generating HTML for $DOC_TYPE: $ISSUE_ID${NC}"
 echo ""
 
-# Få lesbart navn for tittel
+# Get readable name for the title
 DISPLAY_NAME=$(get_display_name "$ISSUE_ID")
 OUTPUT_HTML="$DOCS_DIR/$ISSUE_ID.html"
 
-# Opprett midlertidig kombinert markdown-fil
+# Create temporary combined markdown file
 TEMP_MD="$(mktemp /tmp/combined-${ISSUE_ID}-XXXXXX.md)"
 
-# Cleanup-funksjon som alltid kjøres
+# Cleanup function that always runs
 cleanup() {
   rm -f "$TEMP_MD"
 }
 trap cleanup EXIT
 
-# Start med tom fil
+# Start with an empty file
 > "$TEMP_MD"
 
-# Funksjon for å legge til seksjon
+# Function to add a section
 add_section() {
   local file="$1"
   local title="$2"
@@ -95,48 +95,48 @@ add_section() {
     cat "$DOCS_DIR/$file" >> "$TEMP_MD"
     echo "" >> "$TEMP_MD"
   else
-    echo -e "${YELLOW}  ⏭️  Hopper over $title (filen finnes ikke)${NC}"
+    echo -e "${YELLOW}  ⏭️  Skipping $title (file does not exist)${NC}"
   fi
 }
 
-# Legg til alle seksjoner (hopp over README)
-add_section "1-description.md" "Beskrivelse"
-add_section "2-analysis.md" "Analyse"
-add_section "3-solution.md" "Løsning"
+# Add all sections (skip the README)
+add_section "1-description.md" "Description"
+add_section "2-analysis.md" "Analysis"
+add_section "3-solution.md" "Solution"
 add_section "4-status.md" "Status"
 
 echo ""
-echo -e "${GREEN}📄 Konverterer til HTML...${NC}"
+echo -e "${GREEN}📄 Converting to HTML...${NC}"
 
-# Fjern TODO-prefix fra hovedoverskrifter for bedre ID-generering
-# f.eks. "# {{domain}}-aide-test-strategi - Analyse" → "# Analyse"
+# Remove TODO prefix from main headings for better ID generation
+# e.g. "# {{domain}}-aide-test-strategy - Analysis" → "# Analysis"
 sed -i '' 's/^# .*- \(.*\)$/# \1/' "$TEMP_MD"
 
-# FJERNET: Vi vil nå ha 2-nivå TOC
+# REMOVED: We now want a 2-level TOC
 # sed -i '' '/^  - /d' "$TEMP_MD"
 
-# Erstatt checkboxes med emoji (ikke klikkbare)
-# - [ ] → vanlig bullet
+# Replace checkboxes with emoji (not clickable)
+# - [ ] → regular bullet
 # - [x] → ✅
 sed -i '' 's/- \[ \] /- /g' "$TEMP_MD"
 sed -i '' 's/- \[x\] /- ✅ /g' "$TEMP_MD"
 sed -i '' 's/- \[X\] /- ✅ /g' "$TEMP_MD"
 
-# Fiks feilaktig kodeblokk-avslutning (```text brukt i stedet for ```)
-# Dette er en vanlig feil der noen skriver ```text som avslutning
+# Fix incorrect code block termination (```text used instead of ```)
+# This is a common mistake where someone writes ```text as the closing fence
 sed -i '' 's/^```text$/```/g' "$TEMP_MD"
 sed -i '' 's/^   ```text$/   ```/g' "$TEMP_MD"
 
-# Konverter markdown til HTML med Pandoc (genererer automatisk IDs på alle headings)
+# Convert markdown to HTML with Pandoc (automatically generates IDs on all headings)
 TEMP_HTML="$(mktemp /tmp/html-${ISSUE_ID}-XXXXXX.html)"
 
-# Pandoc genererer automatisk IDs basert på heading-tekst
-# --standalone=false: kun body HTML (ikke fullt dokument)
+# Pandoc automatically generates IDs based on heading text
+# --standalone=false: body HTML only (not a full document)
 # --from=gfm: GitHub Flavored Markdown
 # --to=html: HTML output
 pandoc "$TEMP_MD" --from=gfm --to=html --standalone=false > "$TEMP_HTML" 2>/dev/null
 
-# Lag fullstendig HTML med styling og navigasjon
+# Build the complete HTML with styling and navigation
 cat > "$OUTPUT_HTML" << 'EOF'
 <!DOCTYPE html>
 <html lang="no">
@@ -213,7 +213,7 @@ cat > "$OUTPUT_HTML" << 'EOF'
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    /* Kompenser for sticky header ved anchor-navigasjon */
+    /* Compensate for the sticky header during anchor navigation */
     h1, h2, h3, h4, h5, h6 {
       scroll-margin-top: 100px;
     }
@@ -288,7 +288,7 @@ cat > "$OUTPUT_HTML" << 'EOF'
       margin-bottom: 0.5rem;
     }
 
-    /* Ekstra luft før siste element i en seksjon */
+    /* Extra spacing before the last element in a section */
     p:last-child, ul:last-child, ol:last-child {
       margin-bottom: 0;
     }
@@ -353,9 +353,9 @@ cat > "$OUTPUT_HTML" << 'EOF'
     <div class="header-content">
       <h1 class="doc-title">TITLE_PLACEHOLDER</h1>
       <nav>
-        <a href="#beskrivelse">Beskrivelse</a>
-        <a href="#analyse">Analyse</a>
-        <a href="#løsning">Løsning</a>
+        <a href="#description">Description</a>
+        <a href="#analysis">Analysis</a>
+        <a href="#solution">Solution</a>
         <a href="#status">Status</a>
       </nav>
     </div>
@@ -368,10 +368,10 @@ CONTENT_PLACEHOLDER
 </html>
 EOF
 
-# Erstatt placeholders med riktig innhold
+# Replace placeholders with the right content
 sed -i '' "s/TITLE_PLACEHOLDER/$DISPLAY_NAME/g" "$OUTPUT_HTML"
 
-# Sett inn HTML-innhold ved å splitte og konkatenere (unngår sed/perl escaping-problemer)
+# Insert the HTML content by splitting and concatenating (avoids sed/perl escaping problems)
 {
   sed -n '1,/CONTENT_PLACEHOLDER/p' "$OUTPUT_HTML" | sed '$d'
   cat "$TEMP_HTML"
@@ -382,7 +382,7 @@ sed -i '' "s/TITLE_PLACEHOLDER/$DISPLAY_NAME/g" "$OUTPUT_HTML"
 rm -f "$TEMP_HTML"
 
 echo ""
-echo -e "${GREEN}✅ HTML generert: $OUTPUT_HTML${NC}"
+echo -e "${GREEN}✅ HTML generated: $OUTPUT_HTML${NC}"
 echo ""
-echo "Åpne med:"
+echo "Open with:"
 echo "  open \"$OUTPUT_HTML\""

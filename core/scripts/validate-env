@@ -1,17 +1,17 @@
 #!/bin/bash
-# validate-env - Validerer påkrevde miljøvariabler for {{domain}}-aide
+# validate-env - Validates required environment variables for {{domain}}-aide
 #
-# Bruk:
-#   validate-env           # Sjekk alle variabler
-#   validate-env --quiet   # Stille modus (kun feilkoder)
-#   validate-env --fix     # Vis fikse-instruksjoner
+# Usage:
+#   validate-env           # Check all variables
+#   validate-env --quiet   # Quiet mode (exit codes only)
+#   validate-env --fix     # Show fix instructions
 
-# Ikke bruk set -e fordi (( var++ )) returnerer 1 når var=0
+# Do not use set -e because (( var++ )) returns 1 when var=0
 
 QUIET=false
 FIX=false
 
-# Parse argumenter
+# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --quiet|-q)
@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Farger
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -37,14 +37,14 @@ NC='\033[0m' # No Color
 errors=0
 warnings=0
 
-# Funksjon for å sjekke påkrevd variabel
+# Function to check a required variable
 check_required() {
     local var_name=$1
     local description=$2
 
     if [ -z "${!var_name}" ]; then
         if [ "$QUIET" = false ]; then
-            echo -e "${RED}❌ $var_name er ikke satt${NC}"
+            echo -e "${RED}❌ $var_name is not set${NC}"
             echo "   $description"
         fi
         ((errors++))
@@ -55,14 +55,14 @@ check_required() {
     fi
 }
 
-# Funksjon for å sjekke valgfri variabel
+# Function to check an optional variable
 check_optional() {
     local var_name=$1
     local description=$2
 
     if [ -z "${!var_name}" ]; then
         if [ "$QUIET" = false ]; then
-            echo -e "${YELLOW}⚠️  $var_name er ikke satt (valgfri)${NC}"
+            echo -e "${YELLOW}⚠️  $var_name is not set (optional)${NC}"
             echo "   $description"
         fi
         ((warnings++))
@@ -73,14 +73,14 @@ check_optional() {
     fi
 }
 
-# Funksjon for å sjekke at path eksisterer
+# Function to check that a path exists
 check_path_exists() {
     local var_name=$1
     local path="${!var_name}"
 
     if [ -n "$path" ] && [ ! -d "$path" ]; then
         if [ "$QUIET" = false ]; then
-            echo -e "${RED}   ⚠️  Path eksisterer ikke: $path${NC}"
+            echo -e "${RED}   ⚠️  Path does not exist: $path${NC}"
         fi
         ((warnings++))
     fi
@@ -88,67 +88,67 @@ check_path_exists() {
 
 if [ "$QUIET" = false ]; then
     echo "========================================"
-    echo "Miljøvariabel-validering for {{domain}}-aide"
+    echo "Environment variable validation for {{domain}}-aide"
     echo "========================================"
     echo ""
-    echo "📋 Påkrevde variabler:"
+    echo "📋 Required variables:"
     echo ""
 fi
 
-# Påkrevde variabler
-check_required "{{DOMAIN}}_AIDE_INSTALLATION_PATH" "Path til {{domain}}-aide workspace-roten"
+# Required variables
+check_required "{{DOMAIN}}_AIDE_INSTALLATION_PATH" "Path to the {{domain}}-aide workspace root"
 check_path_exists "{{DOMAIN}}_AIDE_INSTALLATION_PATH"
 
 if [ "$QUIET" = false ]; then
     echo ""
-    echo "📋 Valgfrie variabler:"
+    echo "📋 Optional variables:"
     echo ""
 fi
 
-# Valgfrie variabler
-check_optional "{{DOMAIN}}_AIDE_REPORTS_PATH" "Ekstern path for reports (JIRA/TODO dokumentasjon)"
+# Optional variables
+check_optional "{{DOMAIN}}_AIDE_REPORTS_PATH" "External path for reports (JIRA/TODO documentation)"
 check_path_exists "{{DOMAIN}}_AIDE_REPORTS_PATH"
 
-check_optional "OPENAI_API_KEY" "API-nøkkel for OpenAI Codex"
-check_optional "ANTHROPIC_API_KEY" "API-nøkkel for Claude"
+check_optional "OPENAI_API_KEY" "API key for OpenAI Codex"
+check_optional "ANTHROPIC_API_KEY" "API key for Claude"
 
 if [ "$QUIET" = false ]; then
     echo ""
     echo "========================================"
 
     if [ $errors -gt 0 ]; then
-        echo -e "${RED}❌ $errors feil funnet${NC}"
+        echo -e "${RED}❌ $errors errors found${NC}"
     fi
 
     if [ $warnings -gt 0 ]; then
-        echo -e "${YELLOW}⚠️  $warnings advarsler${NC}"
+        echo -e "${YELLOW}⚠️  $warnings warnings${NC}"
     fi
 
     if [ $errors -eq 0 ] && [ $warnings -eq 0 ]; then
-        echo -e "${GREEN}✅ Alle variabler er korrekt satt${NC}"
+        echo -e "${GREEN}✅ All variables are set correctly${NC}"
     fi
     echo "========================================"
 fi
 
-# Vis fikse-instruksjoner hvis --fix
+# Show fix instructions if --fix
 if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
     echo ""
-    echo "🔧 For å fikse, legg til i ~/.zshrc eller ~/.bashrc:"
+    echo "🔧 To fix, add to ~/.zshrc or ~/.bashrc:"
     echo ""
-    echo "# {{domain}}-aide miljøvariabler"
+    echo "# {{domain}}-aide environment variables"
 
     if [ -z "${{DOMAIN}}_AIDE_INSTALLATION_PATH" ]; then
         echo "export {{DOMAIN}}_AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/{{domain}}-aide\""
     fi
 
     echo ""
-    echo "# Valgfritt: Ekstern reports-path"
+    echo "# Optional: External reports path"
     echo "# export {{DOMAIN}}_AIDE_REPORTS_PATH=\"/Users/\$(whoami)/Documents/{{domain}}-reports\""
     echo ""
-    echo "Kjør deretter: source ~/.zshrc"
+    echo "Then run: source ~/.zshrc"
 fi
 
-# Exit med feilkode kun hvis påkrevde variabler mangler
+# Exit with an error code only if required variables are missing
 if [ $errors -gt 0 ]; then
     exit 1
 else

@@ -1,17 +1,17 @@
 #!/bin/bash
-# Oppdaterer alle AI-verktøy installert via mise
-# Kan kjøres manuelt eller via cron (se .claude/rules/development.md)
+# Upgrades all AI tools installed via mise
+# Can be run manually or via cron (see .claude/rules/development.md)
 
 export PATH="$HOME/.local/bin:$PATH"
 
-echo "Oppdaterer AI-verktøy via mise..."
+echo "Upgrading AI tools via mise..."
 mise upgrade gemini npm:@github/copilot npm:@openai/codex npm:@jetbrains/junie-cli opencode
 
 echo ""
-echo "Oppdaterer Claude Code (ikke mise-styrt)..."
+echo "Upgrading Claude Code (not managed by mise)..."
 claude update
 
 echo ""
-echo "Installerte versjoner:"
+echo "Installed versions:"
 mise ls | grep -E "gemini|copilot|codex|junie|opencode"
 claude --version

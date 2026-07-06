@@ -1,48 +1,48 @@
-# {{TITLE_FORMATTED}} - Beskrivelse
+# {{TITLE_FORMATTED}} - Description
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Sporingsinfo](#sporingsinfo)
-- [Beskrivelse](#beskrivelse)
-- [Omfang](#omfang)
-  - [Berørte filer/komponenter](#berørte-filerkomponenter)
-  - [Estimert arbeidsinnsats](#estimert-arbeidsinnsats)
-  - [Påvirkede systemer](#påvirkede-systemer)
-- [Akseptansekriterier](#akseptansekriterier)
-
----
-
-## Sporingsinfo
-
-- **Oppgave:** `{{FOLDER_NAME}}/`
-- **Opprettet:** `{{CREATED_DATE}}`
+- [Tracking info](#tracking-info)
+- [Description](#description)
+- [Scope](#scope)
+  - [Affected files/components](#affected-filescomponents)
+  - [Estimated effort](#estimated-effort)
+  - [Affected systems](#affected-systems)
+- [Acceptance criteria](#acceptance-criteria)
 
 ---
 
-## Beskrivelse
+## Tracking info
+
+- **Task:** `{{FOLDER_NAME}}/`
+- **Created:** `{{CREATED_DATE}}`
+
+---
+
+## Description
 
 {{DESCRIPTION}}
 
-_(Dette feltet kan redigeres manuelt for å legge til ekstra kontekst eller presiseringer og vil ikke bli overskrevet av aide-kommandoer)_
+_(This field can be edited manually to add extra context or clarifications and will not be overwritten by aide commands)_
 
 ---
 
-## Omfang
+## Scope
 
-**Berørte filer/komponenter:** [fylles av `/aide-analyze`]
+**Affected files/components:** [filled in by `/aide-analyze`]
 
-**Estimert arbeidsinnsats:** [fylles av `/aide-analyze`]
+**Estimated effort:** [filled in by `/aide-analyze`]
 
-**Påvirkede systemer:** [fylles av `/aide-analyze`]
+**Affected systems:** [filled in by `/aide-analyze`]
 
-## Akseptansekriterier
+## Acceptance criteria
 
-[Fylles av `/aide-analyze` basert på kodebase-analyse]
+[Filled in by `/aide-analyze` based on codebase analysis]
 
 ---
 
-## Relaterte dokumenter
+## Related documents
 
-- [2-analysis.md](./2-analysis.md) - Analyse og kartlegging
-- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD
-- [4-status.md](./4-status.md) - Fremdriftssporing
+- [2-analysis.md](./2-analysis.md) - Analysis and mapping
+- [3-solution.md](./3-solution.md) - Implementation plan with TDD
+- [4-status.md](./4-status.md) - Progress tracking

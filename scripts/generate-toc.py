@@ -42,7 +42,7 @@ def extract_headings(content: str) -> list:
             continue
 
         # Skip TOC section headings
-        if re.match(r'^##\s*Innholdsfortegnelse', line, re.IGNORECASE):
+        if re.match(r'^##\s*(Innholdsfortegnelse|Table of contents)', line, re.IGNORECASE):
             continue
 
         # Match h2 and h3
@@ -64,7 +64,7 @@ def generate_toc(headings: list) -> str:
     if not headings:
         return ""
 
-    lines = ["## Innholdsfortegnelse", ""]
+    lines = ["## Table of contents", ""]
 
     for level, text, slug in headings:
         if level == 2:
@@ -80,7 +80,7 @@ def generate_toc(headings: list) -> str:
 
 
 def find_first_real_h2(content: str) -> int:
-    """Find position of first h2 that is NOT 'Innholdsfortegnelse'."""
+    """Find position of first h2 that is NOT the TOC heading."""
     lines = content.split('\n')
     pos = 0
     in_code_block = False
@@ -90,8 +90,8 @@ def find_first_real_h2(content: str) -> int:
             in_code_block = not in_code_block
 
         if not in_code_block:
-            # Check for h2 that is NOT Innholdsfortegnelse
-            if re.match(r'^##\s+', line) and not re.match(r'^##\s*Innholdsfortegnelse', line, re.IGNORECASE):
+            # Check for h2 that is NOT the TOC heading
+            if re.match(r'^##\s+', line) and not re.match(r'^##\s*(Innholdsfortegnelse|Table of contents)', line, re.IGNORECASE):
                 return pos
 
         pos += len(line) + 1  # +1 for newline

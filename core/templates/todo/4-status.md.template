@@ -1,107 +1,107 @@
 # {{TITLE_FORMATTED}} - Status
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Sporingsinfo](#sporingsinfo)
-- [Fase 1: RED - Skriv tester](#fase-1-red---skriv-tester)
-  - [Oppgaver](#oppgaver)
-- [Fase 2: GREEN - Implementer](#fase-2-green---implementer)
-  - [Oppgaver](#oppgaver-1)
-- [Fase 3: GREEN - Verifiser tester](#fase-3-green---verifiser-tester)
-  - [Oppgaver](#oppgaver-2)
-- [Fase 4: REFACTOR - Test-suite](#fase-4-refactor---test-suite)
-  - [Oppgaver](#oppgaver-3)
-- [Notasjon](#notasjon)
+- [Tracking info](#tracking-info)
+- [Phase 1: RED - Write tests](#phase-1-red---write-tests)
+  - [Tasks](#tasks)
+- [Phase 2: GREEN - Implement](#phase-2-green---implement)
+  - [Tasks](#tasks-1)
+- [Phase 3: GREEN - Verify tests](#phase-3-green---verify-tests)
+  - [Tasks](#tasks-2)
+- [Phase 4: REFACTOR - Test suite](#phase-4-refactor---test-suite)
+  - [Tasks](#tasks-3)
+- [Notation](#notation)
 
 ---
 
-## Sporingsinfo
+## Tracking info
 
-- **Oppgave:** `{{FOLDER_NAME}}/`
-- **Total fremgang:** 0% (0 av X fullført)
-- **Estimat:** [X timer/dager]
-- **Sist oppdatert:** `{{UPDATE_DATE}}`
+- **Task:** `{{FOLDER_NAME}}/`
+- **Total progress:** 0% (0 of X completed)
+- **Estimate:** [X hours/days]
+- **Last updated:** `{{UPDATE_DATE}}`
 
-<!-- Agent skal legge til repos her etter analyse:
-**Repositories brukt under analyse:**
+<!-- Agent should add repos here after analysis:
+**Repositories used during analysis:**
 - **repo-name:** `branch` @ `commit`
 -->
 
 ---
 
-## Fase 1: RED - Skriv tester
+## Phase 1: RED - Write tests
 
-**Status:** ⬜ Ikke startet
+**Status:** ⬜ Not started
 
-### Oppgaver
+### Tasks
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Opprett testfil | ⬜ | |
-| Skriv test for [funksjonalitet 1] | ⬜ | |
-| Skriv test for [funksjonalitet 2] | ⬜ | |
-| Kjør tester og verifiser RED | ⬜ | |
-
----
-
-## Fase 2: GREEN - Implementer
-
-**Status:** ⬜ Ikke startet
-
-### Oppgaver
-
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Implementer i [fil1.tsx] | ⬜ | |
-| Implementer i [fil2.tsx] | ⬜ | |
-| Oppdater typer hvis nødvendig | ⬜ | |
+| Task | Status | Notes |
+|------|--------|-------|
+| Create test file | ⬜ | |
+| Write test for [functionality 1] | ⬜ | |
+| Write test for [functionality 2] | ⬜ | |
+| Run tests and verify RED | ⬜ | |
 
 ---
 
-## Fase 3: GREEN - Verifiser tester
+## Phase 2: GREEN - Implement
 
-**Status:** ⬜ Ikke startet
+**Status:** ⬜ Not started
 
-### Oppgaver
+### Tasks
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Kjør enhetstester | ⬜ | |
-| Verifiser at alle tester passerer | ⬜ | |
-| Kjør integrasjonstester | ⬜ | |
-
----
-
-## Fase 4: REFACTOR - Test-suite
-
-**Status:** ⬜ Ikke startet
-
-### Oppgaver
-
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Kjør full test-suite | ⬜ | |
-| Sjekk for regresjoner | ⬜ | |
-| Kjør linting | ⬜ | |
-| Oppdater snapshot-tester | ⬜ | |
-| Manuell testing | ⬜ | |
+| Task | Status | Notes |
+|------|--------|-------|
+| Implement in [file1.tsx] | ⬜ | |
+| Implement in [file2.tsx] | ⬜ | |
+| Update types if necessary | ⬜ | |
 
 ---
 
-## Notasjon
+## Phase 3: GREEN - Verify tests
 
-| Symbol | Betydning |
-|--------|-----------|
-| ⬜ | Ikke startet |
-| 🔄 | Under arbeid |
-| ✅ | Fullført |
-| ❌ | Blokkert |
-| ⚠️ | Venter på avklaring |
+**Status:** ⬜ Not started
+
+### Tasks
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Run unit tests | ⬜ | |
+| Verify that all tests pass | ⬜ | |
+| Run integration tests | ⬜ | |
 
 ---
 
-## Relaterte dokumenter
+## Phase 4: REFACTOR - Test suite
 
-- [1-description.md](./1-description.md) - Sporingsinfo og akseptansekriterier
-- [2-analysis.md](./2-analysis.md) - Analyse og kartlegging
-- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD
+**Status:** ⬜ Not started
+
+### Tasks
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Run the full test suite | ⬜ | |
+| Check for regressions | ⬜ | |
+| Run linting | ⬜ | |
+| Update snapshot tests | ⬜ | |
+| Manual testing | ⬜ | |
+
+---
+
+## Notation
+
+| Symbol | Meaning |
+|--------|---------|
+| ⬜ | Not started |
+| 🔄 | In progress |
+| ✅ | Completed |
+| ❌ | Blocked |
+| ⚠️ | Awaiting clarification |
+
+---
+
+## Related documents
+
+- [1-description.md](./1-description.md) - Tracking info and acceptance criteria
+- [2-analysis.md](./2-analysis.md) - Analysis and mapping
+- [3-solution.md](./3-solution.md) - Implementation plan with TDD

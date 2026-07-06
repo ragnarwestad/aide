@@ -1,109 +1,109 @@
-# {{TITLE_FORMATTED}} - Analyse
+# {{TITLE_FORMATTED}} - Analysis
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Sporingsinfo](#sporingsinfo)
-- [Omfang](#omfang)
-  - [Kartlegging](#kartlegging)
-  - [Berørte filer/komponenter](#berørte-filerkomponenter)
-- [Kompleksitet](#kompleksitet)
-  - [Faktorer](#faktorer)
-  - [Estimat](#estimat)
-- [Funn](#funn)
-  - [Kodebase-analyse](#kodebase-analyse)
-  - [Berørte komponenter](#berørte-komponenter)
-  - [Mønstre og anti-mønstre](#mønstre-og-anti-mønstre)
-  - [Test-dekning](#test-dekning)
-  - [API-avhengigheter](#api-avhengigheter)
-- [Risikoanalyse](#risikoanalyse)
+- [Tracking info](#tracking-info)
+- [Scope](#scope)
+  - [Mapping](#mapping)
+  - [Affected files/components](#affected-filescomponents)
+- [Complexity](#complexity)
+  - [Factors](#factors)
+  - [Estimate](#estimate)
+- [Findings](#findings)
+  - [Codebase analysis](#codebase-analysis)
+  - [Affected components](#affected-components)
+  - [Patterns and anti-patterns](#patterns-and-anti-patterns)
+  - [Test coverage](#test-coverage)
+  - [API dependencies](#api-dependencies)
+- [Risk analysis](#risk-analysis)
 
 ---
 
-## Sporingsinfo
+## Tracking info
 
 - **TODO:** `todo/{{FOLDER_NAME}}/`
-- **Sist analysert:** `{{ANALYSIS_DATE}}`
+- **Last analyzed:** `{{ANALYSIS_DATE}}`
 
-<!-- Agent skal legge til repos her etter analyse:
-**Repositories brukt under analyse:**
+<!-- Agent should add repos here after analysis:
+**Repositories used during analysis:**
 - **repo-name:** `branch` @ `commit`
 -->
 
 ---
 
-## Omfang
+## Scope
 
-**Antall berørte filer/komponenter:** [fylles av analyse]
+**Number of affected files/components:** [filled in by analysis]
 
-**Kartlegging:**
+**Mapping:**
 
-[Hvordan analysen ble utført - søkeord, metoder, verktøy brukt]
+[How the analysis was performed - search terms, methods, tools used]
 
-**Berørte filer/komponenter:**
+**Affected files/components:**
 
-1. `fil/path.tsx:123-145` - [beskrivelse av endring]
-2. `fil/path2.tsx:67` - [beskrivelse av endring]
+1. `file/path.tsx:123-145` - [description of change]
+2. `file/path2.tsx:67` - [description of change]
 
-## Kompleksitet
+## Complexity
 
-### [Høy/Middels/Lav kompleksitet]
+### [High/Medium/Low complexity]
 
-[Detaljert beskrivelse av kompleksitet basert på antall filer, avhengigheter, etc.]
+[Detailed description of complexity based on number of files, dependencies, etc.]
 
-**Faktorer:**
-- [liste over kompleksitetsfaktorer]
+**Factors:**
+- [list of complexity factors]
 
-**Estimat:**
-- **Manuell utvikling:** [X timer/dager]
-- **AI-assistert utvikling:** [Y timer/dager] (Z% raskere)
+**Estimate:**
+- **Manual development:** [X hours/days]
+- **AI-assisted development:** [Y hours/days] (Z% faster)
 
-## Funn
+## Findings
 
-### Kodebase-analyse
+### Codebase analysis
 
-[Detaljerte funn fra Explore agent eller annen analysemetode]
+[Detailed findings from Explore agent or other analysis method]
 
-### Berørte komponenter
+### Affected components
 
-[Detaljert beskrivelse per fil med konkrete linjenummer og hva som må endres]
+[Detailed description per file with concrete line numbers and what must be changed]
 
-### Mønstre og anti-mønstre
+### Patterns and anti-patterns
 
-[Identifiserte mønstre i kodebasen - både gode og dårlige]
+[Identified patterns in the codebase - both good and bad]
 
-### Test-dekning
+### Test coverage
 
-**Eksisterende tester:**
-- [liste over relevante tester som eksisterer]
+**Existing tests:**
+- [list of relevant tests that exist]
 
-**Manglende tester:**
-- [gaps i test-dekning som må fylles]
+**Missing tests:**
+- [gaps in test coverage that must be filled]
 
-### API-avhengigheter
+### API dependencies
 
-[API-endpoints hvis relevant, se core/api-mapping/ for detaljer]
+[API endpoints if relevant, see core/api-mapping/ for details]
 
-**Brukte endpoints:**
-- `GET /api/endpoint` - [beskrivelse]
+**Endpoints used:**
+- `GET /api/endpoint` - [description]
 
-## Risikoanalyse
+## Risk analysis
 
-### [Høy/Middels/Lav risiko]
+### [High/Medium/Low risk]
 
-**[Risiko 1 navn]**
-- **Konsekvens:** [hva kan gå galt]
-- **Sannsynlighet:** [Høy/Middels/Lav]
-- **Mitigering:** [hvordan redusere risiko]
+**[Risk 1 name]**
+- **Consequence:** [what can go wrong]
+- **Likelihood:** [High/Medium/Low]
+- **Mitigation:** [how to reduce the risk]
 
-**[Risiko 2 navn]**
-- **Konsekvens:** [hva kan gå galt]
-- **Sannsynlighet:** [Høy/Middels/Lav]
-- **Mitigering:** [hvordan redusere risiko]
+**[Risk 2 name]**
+- **Consequence:** [what can go wrong]
+- **Likelihood:** [High/Medium/Low]
+- **Mitigation:** [how to reduce the risk]
 
 ---
 
-## Relaterte dokumenter
+## Related documents
 
-- [1-description.md](./1-description.md) - Sporingsinfo og akseptansekriterier
-- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD
-- [4-status.md](./4-status.md) - Fremdriftssporing
+- [1-description.md](./1-description.md) - Tracking info and acceptance criteria
+- [3-solution.md](./3-solution.md) - Implementation plan with TDD
+- [4-status.md](./4-status.md) - Progress tracking

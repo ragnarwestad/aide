@@ -1,19 +1,19 @@
-# {{TITLE_FORMATTED}} - Løsning
+# {{TITLE_FORMATTED}} - Solution
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Sporingsinfo](#sporingsinfo)
-- [Tilnærminger](#tilnærminger)
-  - [Tilnærming 1: [Navn] (anbefalt)](#tilnærming-1-navn-anbefalt)
-  - [Tilnærming 2: [Navn]](#tilnærming-2-navn)
-- [Anbefalt løsning](#anbefalt-løsning)
-  - [Før/Etter eksempler](#føretter-eksempler)
-- [Implementeringsplan](#implementeringsplan)
-  - [TDD-tilnærming (Red-Green-Refactor)](#tdd-tilnærming-red-green-refactor)
-  - [Fase 1: Skriv tester som identifiserer problemet (RED)](#fase-1-skriv-tester-som-identifiserer-problemet-red)
-  - [Fase 2: Implementer løsningen (GREEN)](#fase-2-implementer-løsningen-green)
-  - [Fase 3: Verifiser at testene passerer (GREEN)](#fase-3-verifiser-at-testene-passerer-green)
-  - [Fase 4: Kjør full test-suite (REFACTOR)](#fase-4-kjør-full-test-suite-refactor)
+- [Tracking info](#tracking-info)
+- [Approaches](#approaches)
+  - [Approach 1: [Name] (recommended)](#approach-1-name-recommended)
+  - [Approach 2: [Name]](#approach-2-name)
+- [Recommended solution](#recommended-solution)
+  - [Before/After examples](#beforeafter-examples)
+- [Implementation plan](#implementation-plan)
+  - [TDD approach (Red-Green-Refactor)](#tdd-approach-red-green-refactor)
+  - [Phase 1: Write tests that identify the problem (RED)](#phase-1-write-tests-that-identify-the-problem-red)
+  - [Phase 2: Implement the solution (GREEN)](#phase-2-implement-the-solution-green)
+  - [Phase 3: Verify that the tests pass (GREEN)](#phase-3-verify-that-the-tests-pass-green)
+  - [Phase 4: Run the full test suite (REFACTOR)](#phase-4-run-the-full-test-suite-refactor)
 - [Testing](#testing)
   - [Unit tests](#unit-tests)
   - [Integration tests](#integration-tests)
@@ -22,121 +22,121 @@
 
 ---
 
-## Sporingsinfo
+## Tracking info
 
 - **TODO:** `todo/{{FOLDER_NAME}}/`
-- **Sist oppdatert:** `{{UPDATE_DATE}}`
+- **Last updated:** `{{UPDATE_DATE}}`
 
-<!-- Agent skal legge til repos her etter analyse:
-**Repositories brukt under analyse:**
+<!-- Agent should add repos here after analysis:
+**Repositories used during analysis:**
 - **repo-name:** `branch` @ `commit`
 -->
 
 ---
 
-## Tilnærminger
+## Approaches
 
-### Tilnærming 1: [Navn] (anbefalt)
+### Approach 1: [Name] (recommended)
 
-[Beskrivelse av tilnærming 1]
+[Description of approach 1]
 
-**Fordeler:**
-- [fordel 1]
-- [fordel 2]
+**Advantages:**
+- [advantage 1]
+- [advantage 2]
 
-**Ulemper:**
-- [ulempe 1]
-- [ulempe 2]
+**Disadvantages:**
+- [disadvantage 1]
+- [disadvantage 2]
 
-**Estimat:** [X timer/dager]
+**Estimate:** [X hours/days]
 
-### Tilnærming 2: [Navn]
+### Approach 2: [Name]
 
-[Beskrivelse av tilnærming 2 hvis relevant]
+[Description of approach 2 if relevant]
 
-**Fordeler:**
-- [fordel 1]
+**Advantages:**
+- [advantage 1]
 
-**Ulemper:**
-- [ulempe 1]
+**Disadvantages:**
+- [disadvantage 1]
 
-**Estimat:** [X timer/dager]
-
----
-
-## Anbefalt løsning
-
-**Tilnærming 1: [Navn]**
-
-[Detaljert beskrivelse av hvorfor denne tilnærmingen er anbefalt]
-
-### Før/Etter eksempler
-
-**Før:**
-```tsx
-// fil/path.tsx:123
-[gammel kode som viser problemet]
-```
-
-**Etter:**
-```tsx
-// fil/path.tsx:123
-[ny kode som løser problemet]
-```
-
-**Hvorfor:** [forklaring av endringen]
+**Estimate:** [X hours/days]
 
 ---
 
-## Implementeringsplan
+## Recommended solution
 
-### TDD-tilnærming (Red-Green-Refactor)
+**Approach 1: [Name]**
 
-Implementeringen følger Test-Driven Development prinsippene for å sikre kvalitet og forhindre regresjoner.
+[Detailed description of why this approach is recommended]
 
-### Fase 1: Skriv tester som identifiserer problemet (RED)
+### Before/After examples
 
-**Mål:** Bevise at problemet eksisterer ved å skrive tester som feiler.
-
-- [ ] Opprett testfil: `[path].test.tsx`
-- [ ] Skriv test som demonstrerer feilen/manglende funksjonalitet
-- [ ] Kjør test og verifiser at den feiler (RED)
-
-**Detaljer:**
+**Before:**
 ```tsx
-// Eksempel test som skal feile
-test('should [beskrivelse]', () => {
+// file/path.tsx:123
+[old code showing the problem]
+```
+
+**After:**
+```tsx
+// file/path.tsx:123
+[new code solving the problem]
+```
+
+**Why:** [explanation of the change]
+
+---
+
+## Implementation plan
+
+### TDD approach (Red-Green-Refactor)
+
+The implementation follows Test-Driven Development principles to ensure quality and prevent regressions.
+
+### Phase 1: Write tests that identify the problem (RED)
+
+**Goal:** Prove that the problem exists by writing tests that fail.
+
+- [ ] Create test file: `[path].test.tsx`
+- [ ] Write a test that demonstrates the bug/missing functionality
+- [ ] Run the test and verify that it fails (RED)
+
+**Details:**
+```tsx
+// Example test that should fail
+test('should [description]', () => {
   // Arrange
   // Act
-  // Assert - skal feile fordi funksjonalitet mangler
+  // Assert - should fail because functionality is missing
 });
 ```
 
-### Fase 2: Implementer løsningen (GREEN)
+### Phase 2: Implement the solution (GREEN)
 
-**Mål:** Implementere minimal kode for å få testene til å passere.
+**Goal:** Implement minimal code to make the tests pass.
 
-- [ ] Implementer endringer i `[fil1.tsx]`
-- [ ] Implementer endringer i `[fil2.tsx]`
-- [ ] Kjør tester og verifiser at de passerer (GREEN)
+- [ ] Implement changes in `[file1.tsx]`
+- [ ] Implement changes in `[file2.tsx]`
+- [ ] Run tests and verify that they pass (GREEN)
 
-**Detaljer:**
-[Beskrivelse av implementeringen med kodeeksempler]
+**Details:**
+[Description of the implementation with code examples]
 
-### Fase 3: Verifiser at testene passerer (GREEN)
+### Phase 3: Verify that the tests pass (GREEN)
 
-- [ ] Kjør enhetstester: `pnpm test -- --run [filnavn]`
-- [ ] Kjør integrasjonstester hvis relevante
-- [ ] Verifiser at alle nye tester er grønne
+- [ ] Run unit tests: `pnpm test -- --run [filename]`
+- [ ] Run integration tests if relevant
+- [ ] Verify that all new tests are green
 
-### Fase 4: Kjør full test-suite (REFACTOR)
+### Phase 4: Run the full test suite (REFACTOR)
 
-**Mål:** Sikre at ingen eksisterende funksjonalitet ble ødelagt.
+**Goal:** Ensure that no existing functionality was broken.
 
-- [ ] Kjør full test-suite: `pnpm test -- --run`
-- [ ] Sjekk for regresjoner
-- [ ] Oppdater snapshot-tester hvis nødvendig
-- [ ] Kjør linting: `pnpm run lint`
+- [ ] Run the full test suite: `pnpm test -- --run`
+- [ ] Check for regressions
+- [ ] Update snapshot tests if necessary
+- [ ] Run linting: `pnpm run lint`
 
 ---
 
@@ -144,64 +144,64 @@ test('should [beskrivelse]', () => {
 
 ### Unit tests
 
-**Testningstrategi:**
-[Beskrivelse av hvilke unit tests som trengs]
+**Testing strategy:**
+[Description of which unit tests are needed]
 
-**Eksempel:**
+**Example:**
 ```tsx
 describe('[Component/Function]', () => {
   test('happy path', () => {
-    // Test normal oppførsel
+    // Test normal behavior
   });
 
   test('edge case', () => {
-    // Test kanttilfeller
+    // Test edge cases
   });
 
   test('error handling', () => {
-    // Test feilhåndtering
+    // Test error handling
   });
 });
 ```
 
 ### Integration tests
 
-**Testningstrategi:**
-[Beskrivelse av hvilke integrasjonstester som trengs]
+**Testing strategy:**
+[Description of which integration tests are needed]
 
 ### E2E tests
 
-**Testningstrategi:**
-[Beskrivelse av hvilke e2e-tester som trengs]
+**Testing strategy:**
+[Description of which e2e tests are needed]
 
 ### Manual testing
 
-**Hva må testes manuelt:**
+**What must be tested manually:**
 
-#### Test-case 1: [Happy path]
+#### Test case 1: [Happy path]
 
-**Steg:**
-1. [steg 1]
-2. [steg 2]
-3. [steg 3]
+**Steps:**
+1. [step 1]
+2. [step 2]
+3. [step 3]
 
-**Forventet resultat:**
-- ✅ [forventet resultat 1]
-- ✅ [forventet resultat 2]
+**Expected result:**
+- ✅ [expected result 1]
+- ✅ [expected result 2]
 
-#### Test-case 2: [Edge case]
+#### Test case 2: [Edge case]
 
-**Steg:**
-1. [steg 1]
-2. [steg 2]
+**Steps:**
+1. [step 1]
+2. [step 2]
 
-**Forventet resultat:**
-- ✅ [forventet resultat]
+**Expected result:**
+- ✅ [expected result]
 
 ---
 
-## Relaterte dokumenter
+## Related documents
 
-- [1-description.md](./1-description.md) - Sporingsinfo og akseptansekriterier
-- [2-analysis.md](./2-analysis.md) - Analyse og kartlegging
-- [4-status.md](./4-status.md) - Fremdriftssporing
+- [1-description.md](./1-description.md) - Tracking info and acceptance criteria
+- [2-analysis.md](./2-analysis.md) - Analysis and mapping
+- [4-status.md](./4-status.md) - Progress tracking

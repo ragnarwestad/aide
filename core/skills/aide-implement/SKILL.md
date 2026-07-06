@@ -1,106 +1,106 @@
 ---
 name: aide-implement
 description: >-
-  Implementer løsningen for en JIRA-sak eller TODO-plan med Test-Driven
-  Development (RED → GREEN → REFACTOR). Leser eksisterende analyse og plan,
-  skriver tester først, implementerer, og kjører kvalitetssjekk.
-  Use when: skal implementere løsning med TDD, har ferdig analyse og
-  implementeringsplan, skal kode basert på 3-solution.md.
-  Do NOT use for: oppretting (bruk aide-create),
-  analyse (bruk aide-analyze), rene tester uten implementering (bruk aide-make-tests).
+  Implement the solution for a JIRA issue or TODO plan with Test-Driven
+  Development (RED → GREEN → REFACTOR). Reads the existing analysis and plan,
+  writes tests first, implements, and runs the quality check.
+  Use when: implementing a solution with TDD, having a completed analysis and
+  implementation plan, coding based on 3-solution.md.
+  Do NOT use for: creation (use aide-create),
+  analysis (use aide-analyze), tests only without implementation (use aide-make-tests).
 disable-model-invocation: true
-argument-hint: "[PROJ-XXXX eller oppgavenummer]"
+argument-hint: "[PROJ-XXXX or task number]"
 effort: high
 ---
 
-Implementer løsningen for en JIRA-sak eller TODO-plan med TDD.
+Implement the solution for a JIRA issue or TODO plan with TDD.
 
-**Input:** $ARGUMENTS (alle argumenter etter kommandoen)
+**Input:** $ARGUMENTS (all arguments after the command)
 
-## Smart deteksjon
+## Smart detection
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** Hvis første ord starter med `PROJ-`
-- Eksempel: `/aide-implement PROJ-7890`
+**JIRA mode:** If the first word starts with `PROJ-`
+- Example: `/aide-implement PROJ-7890`
 
-**TODO mode:** Hvis første ord er et nummer eller starter med `TODO-`
-- Eksempel: `/aide-implement 55` eller `/aide-implement TODO-01`
+**TODO mode:** If the first word is a number or starts with `TODO-`
+- Example: `/aide-implement 55` or `/aide-implement TODO-01`
 
-**Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
+**Error handling:** If the argument is missing or has an invalid format, show:
 
 ```text
-Mangler argument
+Missing argument
 
-Bruk:
-/aide-implement PROJ-XXXX     # For JIRA-sak
-/aide-implement 55               # For oppgave (nummer)
-/aide-implement TODO-01           # For TODO-plan
+Usage:
+/aide-implement PROJ-XXXX     # For JIRA issue
+/aide-implement 55               # For task (number)
+/aide-implement TODO-01           # For TODO plan
 ```
 
 ---
 
 ## Workflow
 
-### Forberedelse
+### Preparation
 
-1. Les `reports/XX-slug/2-analysis.md` (påvirkede filer)
-2. Les `reports/XX-slug/3-solution.md` (implementeringsplan)
-3. Les relevant kodestandard (frontend eller backend)
+1. Read `reports/XX-slug/2-analysis.md` (affected files)
+2. Read `reports/XX-slug/3-solution.md` (implementation plan)
+3. Read the relevant coding standard (frontend or backend)
 
-### Fase 1: RED — Skriv tester som feiler
+### Phase 1: RED — Write failing tests
 
-1. Les "Steg 0" fra 3-solution.md
-2. Opprett testfiler
-3. Kjør tester — verifiser at de FEILER
-4. **STOPP** — be bruker om bekreftelse før GREEN
+1. Read "Step 0" from 3-solution.md
+2. Create test files
+3. Run the tests — verify that they FAIL
+4. **STOP** — ask the user for confirmation before GREEN
 
-### Fase 2: GREEN — Implementer til tester passerer
+### Phase 2: GREEN — Implement until tests pass
 
-1. Implementer hvert steg fra 3-solution.md
-2. Kjør tester etter hvert steg
-3. Verifiser at tester PASSERER
-4. **STOPP** — be bruker om bekreftelse før REFACTOR
+1. Implement each step from 3-solution.md
+2. Run the tests after each step
+3. Verify that the tests PASS
+4. **STOP** — ask the user for confirmation before REFACTOR
 
-### Fase 3: REFACTOR — Kvalitetssjekk
+### Phase 3: REFACTOR — Quality check
 
-1. Full test-suite (ingen regresjoner)
+1. Full test suite (no regressions)
 2. TypeScript check
 3. ESLint
-4. Bygg
-5. Oppdater 4-status.md
-6. Vis oppsummering — klar for commit
+4. Build
+5. Update 4-status.md
+6. Show a summary — ready for commit
 
-Se `references/tdd-phases.md` for detaljert workflow med kommandoer
-og forventet output per fase.
+See `references/tdd-phases.md` for the detailed workflow with commands
+and expected output per phase.
 
-VIKTIG:
-- **STOPP** ved hver faseovergang og be om bekreftelse
-- ALDRI hopp over tester
-- Følg kodestandard strengt
-- Kodeblokker avsluttes ALLTID med bare ` ``` `
+IMPORTANT:
+- **STOP** at every phase transition and ask for confirmation
+- NEVER skip tests
+- Follow the coding standard strictly
+- Code blocks ALWAYS end with just ` ``` `
 
 ---
 
-## Kvalitetssjekk (frontend)
+## Quality check (frontend)
 
 ```bash
-pnpm test -- --run    # Alle tester
+pnpm test -- --run    # All tests
 npx tsc --noEmit      # TypeScript check
 pnpm run eslint       # ESLint
-pnpm run build        # Bygg
+pnpm run build        # Build
 ```
 
-## Kvalitetssjekk (backend)
+## Quality check (backend)
 
 ```bash
-scripts/run-tests.sh -pl <modul> -Dtest=<TestKlasse>    # Enhetstester
-scripts/run-tests.sh -pl integrasjonstest -am --integration   # Integrasjonstester
+scripts/run-tests.sh -pl <module> -Dtest=<TestClass>    # Unit tests
+scripts/run-tests.sh -pl integrationtest -am --integration   # Integration tests
 ```
 
 ---
 
-## Etter implementering
+## After implementation
 
-1. Test manuelt (følg testplan fra 3-solution.md)
-2. Commit endringene
+1. Test manually (follow the test plan from 3-solution.md)
+2. Commit the changes

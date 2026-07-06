@@ -1,44 +1,44 @@
 ---
 name: aide-analyze
 description: >-
-  Analyser kodebasen for en JIRA-sak eller TODO-plan.
-  Detekterer kompleksitet (LAV/MIDDELS/HØY), kartlegger påvirkede filer med
-  fil:linje-referanser, og oppretter implementeringsplan med TDD.
-  Use when: skal analysere kodebase for en eksisterende oppgave,
-  skal fylle inn 2-analysis.md og 3-solution.md, trenger oversikt over
-  påvirkede filer og API-påvirkning.
-  Do NOT use for: oppretting av ny oppgave (bruk aide-create),
-  implementering (bruk aide-implement).
+  Analyze the codebase for a JIRA issue or TODO plan.
+  Detects complexity (LOW/MEDIUM/HIGH), maps affected files with
+  file:line references, and creates an implementation plan with TDD.
+  Use when: analyzing the codebase for an existing task,
+  filling in 2-analysis.md and 3-solution.md, needing an overview of
+  affected files and API impact.
+  Do NOT use for: creating a new task (use aide-create),
+  implementation (use aide-implement).
 disable-model-invocation: true
-argument-hint: "[PROJ-XXXX eller oppgavenummer]"
+argument-hint: "[PROJ-XXXX or task number]"
 effort: xhigh
 ---
 
-Analyser kodebasen for en JIRA-sak eller TODO-plan.
+Analyze the codebase for a JIRA issue or TODO plan.
 
-**Input:** $ARGUMENTS (alle argumenter etter kommandoen)
+**Input:** $ARGUMENTS (all arguments after the command)
 
-## Smart deteksjon
+## Smart detection
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** Hvis første ord starter med `PROJ-`
-- Eksempel: `/aide-analyze PROJ-7890`
+**JIRA mode:** If the first word starts with `PROJ-`
+- Example: `/aide-analyze PROJ-7890`
 
-**TODO mode:** Hvis første ord er et nummer eller starter med `TODO-`
-- Eksempel: `/aide-analyze 55` eller `/aide-analyze TODO-01`
+**TODO mode:** If the first word is a number or starts with `TODO-`
+- Example: `/aide-analyze 55` or `/aide-analyze TODO-01`
 
-**Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
+**Error handling:** If the argument is missing or has an invalid format, show:
 
 ```text
-Mangler argument
+Missing argument
 
-Bruk:
-/aide-analyze PROJ-XXXX     # For JIRA-sak
-/aide-analyze 55               # For oppgave (nummer)
-/aide-analyze TODO-01           # For TODO-plan
+Usage:
+/aide-analyze PROJ-XXXX     # For JIRA issue
+/aide-analyze 55               # For task (number)
+/aide-analyze TODO-01           # For TODO plan
 
-Eksempler:
+Examples:
 /aide-analyze PROJ-7890
 /aide-analyze 55
 ```
@@ -47,60 +47,60 @@ Eksempler:
 
 ## Workflow
 
-### Steg 1: Les beskrivelse
+### Step 1: Read the description
 
-- Les `reports/XX-slug/1-description.md`
-- Identifiser: Hva skal endres? Hvilket omfang? Migrering eller enkeltfiks?
+- Read `reports/XX-slug/1-description.md`
+- Identify: What should change? What is the scope? Migration or single fix?
 
-### Steg 2: Detekter kompleksitet
+### Step 2: Detect complexity
 
-Klassifiser som LAV/MIDDELS/HØY basert på antall filer, operasjonstype,
-og API-påvirkning. Se `references/complexity-and-analysis.md` for kriterier.
+Classify as LOW/MEDIUM/HIGH based on the number of files, operation type,
+and API impact. See `references/complexity-and-analysis.md` for the criteria.
 
-### Steg 3: Analyser kodebase
+### Step 3: Analyze the codebase
 
-Skaler analysen etter kompleksitet:
-- **LAV:** Finn filen, les den, sjekk tester. < 15 min.
-- **MIDDELS:** Finn avhengigheter, relaterte filer, API-påvirkning. 20-45 min.
-- **HØY:** Søk bredt, kategoriser filer, lag migreringsplan. 1-3 timer.
+Scale the analysis to the complexity:
+- **LOW:** Find the file, read it, check tests. < 15 min.
+- **MEDIUM:** Find dependencies, related files, API impact. 20-45 min.
+- **HIGH:** Search broadly, categorize files, create a migration plan. 1-3 hours.
 
-Se `references/complexity-and-analysis.md` for detaljerte steg per nivå.
+See `references/complexity-and-analysis.md` for detailed steps per level.
 
-### Steg 4: Oppdater 2-analysis.md
+### Step 4: Update 2-analysis.md
 
-Skriv til `reports/XX-slug/2-analysis.md`. Følg rapport-strukturen § 2-analysis.
-Inkluder: Sporingsinfo, påvirkede filer med fil:linje, kompleksitet,
-API-påvirkning, testdekning, risikoanalyse, estimat.
+Write to `reports/XX-slug/2-analysis.md`. Follow the report structure § 2-analysis.
+Include: Tracking info, affected files with file:line, complexity,
+API impact, test coverage, risk analysis, estimate.
 
-### Steg 5: Opprett implementeringsplan (3-solution.md)
+### Step 5: Create the implementation plan (3-solution.md)
 
-Skriv til `reports/XX-slug/3-solution.md`. Følg rapport-strukturen § 3-solution.
-Strukturer med TDD:
-- Steg 0: Skriv tester (RED phase)
-- Steg 1-N: Implementering (GREEN phase)
-- Testing-strategi (REFACTOR phase)
+Write to `reports/XX-slug/3-solution.md`. Follow the report structure § 3-solution.
+Structure it with TDD:
+- Step 0: Write tests (RED phase)
+- Step 1-N: Implementation (GREEN phase)
+- Testing strategy (REFACTOR phase)
 
-### Steg 6: Oppdater 4-status.md
+### Step 6: Update 4-status.md
 
-Skriv til `reports/XX-slug/4-status.md`. Følg rapport-strukturen § 4-status.
-- LAV: Enkel sjekkliste (< 30 linjer)
-- MIDDELS/HØY: Fasebasert tracking (50-100 linjer)
+Write to `reports/XX-slug/4-status.md`. Follow the report structure § 4-status.
+- LOW: Simple checklist (< 30 lines)
+- MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 
-### Steg 7: Bekreft
+### Step 7: Confirm
 
-Vis oppsummering med kompleksitet, antall påvirkede filer, og neste steg.
+Show a summary with complexity, number of affected files, and the next step.
 
-VIKTIG:
-- Bruk ALLTID fil:linje format for referanser
-- Vurder ALLTID API-påvirkning (frontend ↔ backend)
-- Match dokumentasjonens omfang til kompleksiteten
-- Kodeblokker avsluttes ALLTID med bare ` ``` `
+IMPORTANT:
+- ALWAYS use the file:line format for references
+- ALWAYS consider API impact (frontend ↔ backend)
+- Match the scope of the documentation to the complexity
+- Code blocks ALWAYS end with just ` ``` `
 
 ---
 
-## Neste steg
+## Next step
 
 ```text
-/aide-implement PROJ-XXXX   # For JIRA-sak
-/aide-implement 55              # For oppgave (nummer)
+/aide-implement PROJ-XXXX   # For JIRA issue
+/aide-implement 55              # For task (number)
 ```

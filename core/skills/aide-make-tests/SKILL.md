@@ -1,162 +1,161 @@
 ---
 name: aide-make-tests
 description: >-
-  Analyser en fil og opprett manglende enhetstester.
-  Use when: skal generere manglende tester for en spesifikk fil, skal øke testdekning.
-  Do NOT use for: TDD-implementering (bruk aide-implement), kode-review
+  Analyze a file and create missing unit tests.
+  Use when: generating missing tests for a specific file, increasing test coverage.
+  Do NOT use for: TDD implementation (use aide-implement), code review
 disable-model-invocation: true
-argument-hint: "[fil-path]"
+argument-hint: "[file-path]"
 effort: high
 ---
 
-Analyser en fil og opprett manglende enhetstester.
+Analyze a file and create missing unit tests.
 
-**Input:** $ARGUMENTS (fil-path som skal analyseres)
+**Input:** $ARGUMENTS (file path to analyze)
 
-## Argument-parsing
+## Argument parsing
 
 Parse `$ARGUMENTS`:
 
-**Fil-path modus:**
-- Eksempel: `/aide-make-tests src/utils/land.ts`
-- Analyser filen og opprett manglende tester
+**File-path mode:**
+- Example: `/aide-make-tests src/utils/country.ts`
+- Analyze the file and create missing tests
 
-**Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
+**Error handling:** If the argument is missing or has an invalid format, show:
+
 ```text
-Mangler fil-path
+Missing file path
 
-Bruk:
-/aide-make-tests <fil-path>
+Usage:
+/aide-make-tests <file-path>
 
-Eksempler:
-/aide-make-tests src/utils/land.ts
+Examples:
+/aide-make-tests src/utils/country.ts
 /aide-make-tests src/components/UserProfile.tsx
 /aide-make-tests src/api/userService.ts
 ```
 
 ---
 
-# Prompt: Lag manglende enhetstester
+# Prompt: Create missing unit tests
 
-**Formål:** Analyser en fil og opprett comprehensive enhetstester (tilsvarer `/aide-make-tests` i Claude Code)
+**Purpose:** Analyze a file and create comprehensive unit tests (equivalent to `/aide-make-tests` in Claude Code)
 
 ---
-
-
 
 ---
 
 ## Prompt
 
 ```text
-Analyser filen <fil-path> og opprett manglende enhetstester:
+Analyze the file <file-path> and create missing unit tests:
 
-STEG 1: ANALYSER FILEN
-- Les filen: <fil-path>
-- Identifiser alle eksporterte funksjoner
-- Sjekk eksisterende testfil (f.eks. <fil-path>.test.ts)
-- Identifiser gaps i testdekningen
+STEP 1: ANALYZE THE FILE
+- Read the file: <file-path>
+- Identify all exported functions
+- Check the existing test file (e.g. <file-path>.test.ts)
+- Identify gaps in the test coverage
 
-STEG 2: SKRIV COMPREHENSIVE TESTER
-For hver funksjon som mangler tester:
-- Happy path (normale scenarioer)
-- Edge cases (grensetilfeller)
-- Error cases (feilhåndtering)
+STEP 2: WRITE COMPREHENSIVE TESTS
+For each function that lacks tests:
+- Happy path (normal scenarios)
+- Edge cases (boundary conditions)
+- Error cases (error handling)
 
-STEG 3: KJØR TESTER OG VERIFISER
-- Kjør: pnpm test -- --run <testfil>
-- Verifiser at alle nye tester passerer
-- Fikse eventuelle feil
+STEP 3: RUN TESTS AND VERIFY
+- Run: pnpm test -- --run <test file>
+- Verify that all new tests pass
+- Fix any failures
 
-STEG 4: GENERER COVERAGE-RAPPORT
-- Kjør: pnpm test -- --coverage <fil-path>
-- Vis før/etter testdekning
-- Oppsummer antall tester opprettet
+STEP 4: GENERATE A COVERAGE REPORT
+- Run: pnpm test -- --coverage <file-path>
+- Show before/after test coverage
+- Summarize the number of tests created
 
-VIKTIG REGLER:
-- Følg frontend kodestandard for test-stil
-- Følg testing-reglene for TDD-prinsipper
-- Bruk Vitest for unit tests
-- Bruk React Testing Library for React-komponenter
-- Bruk MockK-lignende patterns for mocking
+IMPORTANT RULES:
+- Follow the frontend coding standard for test style
+- Follow the testing rules for TDD principles
+- Use Vitest for unit tests
+- Use React Testing Library for React components
+- Use MockK-like patterns for mocking
 
-STOPP OG BE OM BEKREFTELSE:
-- Etter testene er skrevet (før kjøring)
-- Etter testene er kjørt (før commit)
+STOP AND ASK FOR CONFIRMATION:
+- After the tests are written (before running them)
+- After the tests have run (before commit)
 
-Referanse:
-- testing-reglene
-- frontend kodestandard → Testing-seksjon
+Reference:
+- the testing rules
+- the frontend coding standard → Testing section
 ```
 
 ---
 
-## Eksempel
+## Example
 
 ```text
-Analyser filen src/utils/land.ts og opprett manglende enhetstester:
+Analyze the file src/utils/country.ts and create missing unit tests:
 
-[... følg stegene over ...]
+[... follow the steps above ...]
 ```
 
 ---
 
-## Forventet output
+## Expected output
 
 ```text
-Test-analyse fullført for src/utils/land.ts
+Test analysis completed for src/utils/country.ts
 
-Funksjoner analysert: 5
-- sortLand() - HAR tester
-- getLandByCode() - MANGLER tester
-- formatLandnavn() - MANGLER tester
-- isEULand() - HAR tester
-- getEULandListe() - MANGLER tester
+Functions analyzed: 5
+- sortCountries() - HAS tests
+- getCountryByCode() - MISSING tests
+- formatCountryName() - MISSING tests
+- isEUCountry() - HAS tests
+- getEUCountryList() - MISSING tests
 
-Nye tester opprettet: 15
-- getLandByCode() - 6 tester (happy path + edge cases + errors)
-- formatLandnavn() - 4 tester
-- getEULandListe() - 5 tester
+New tests created: 15
+- getCountryByCode() - 6 tests (happy path + edge cases + errors)
+- formatCountryName() - 4 tests
+- getEUCountryList() - 5 tests
 
-Test-resultat:
-  15/15 tester passerer
+Test result:
+  15/15 tests pass
 
 Coverage:
-  Før:  65% (11/17 funksjoner)
-  Etter: 95% (16/17 funksjoner)
-  Økning: +30%
+  Before: 65% (11/17 functions)
+  After:  95% (16/17 functions)
+  Increase: +30%
 
-Neste steg:
-Commit endringene med melding:
-"La til manglende enhetstester for land.ts
+Next step:
+Commit the changes with the message:
+"Added missing unit tests for country.ts
 
-- getLandByCode: 6 tester (happy path, edge cases, errors)
-- formatLandnavn: 4 tester
-- getEULandListe: 5 tester
-- Coverage økt fra 65% til 95%"
+- getCountryByCode: 6 tests (happy path, edge cases, errors)
+- formatCountryName: 4 tests
+- getEUCountryList: 5 tests
+- Coverage increased from 65% to 95%"
 ```
 
 ---
 
 ## Tips
 
-- Start med de enkleste funksjonene først
-- Bruk eksisterende tester som mal for stil
-- Test edge cases: null, undefined, tomme arrays, lange strenger
-- Mock eksterne avhengigheter (API-kall, localStorage, etc.)
-- Verifiser at tester faktisk feiler hvis koden endres (test the tests!)
-
+- Start with the simplest functions first
+- Use existing tests as a template for style
+- Test edge cases: null, undefined, empty arrays, long strings
+- Mock external dependencies (API calls, localStorage, etc.)
+- Verify that tests actually fail if the code changes (test the tests!)
 
 ---
 
-## Etter testgenerering
+## After test generation
 
-**Verifiser:**
+**Verify:**
+
 ```bash
-pnpm test -- --run <testfil>     # Kjør de nye testene
-pnpm test -- --coverage          # Se coverage-rapport
+pnpm test -- --run <test file>     # Run the new tests
+pnpm test -- --coverage            # See the coverage report
 ```
 
-**Neste steg:**
-- Commit testene med beskrivende melding
-- Vurder om flere filer trenger tester
+**Next steps:**
+- Commit the tests with a descriptive message
+- Consider whether more files need tests

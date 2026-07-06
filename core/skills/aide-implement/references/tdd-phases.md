@@ -1,96 +1,96 @@
-# TDD-faser: Detaljert workflow
+# TDD phases: Detailed workflow
 
-## Fase 1: RED — Skriv tester som feiler
+## Phase 1: RED — Write failing tests
 
-1. Les "Steg 0" fra 3-solution.md
-2. Identifiser alle tester som skal skrives
-3. Opprett testfiler (følg testing-reglene og frontend kodestandard)
-4. Kjør: `pnpm test -- --run <testfil>`
-5. Verifiser at tester FEILER (forventet!)
-6. **STOPP** — be bruker om bekreftelse
+1. Read "Step 0" from 3-solution.md
+2. Identify all tests to be written
+3. Create the test files (follow the testing rules and the frontend coding standard)
+4. Run: `pnpm test -- --run <test file>`
+5. Verify that the tests FAIL (expected!)
+6. **STOP** — ask the user for confirmation
 
-Vis:
-- Antall tester skrevet
-- Alle feiler som forventet
-- "Klar for GREEN phase?"
+Show:
+- Number of tests written
+- All fail as expected
+- "Ready for the GREEN phase?"
 
-## Fase 2: GREEN — Implementer til tester passerer
+## Phase 2: GREEN — Implement until tests pass
 
-For hvert steg i 3-solution.md:
+For each step in 3-solution.md:
 
-1. Les steget
-2. Implementer koden (følg kodestandard)
-3. Kjør: `pnpm test -- --run <testfil>`
-4. Verifiser at relevante tester PASSERER
-5. Gjenta for alle steg
+1. Read the step
+2. Implement the code (follow the coding standard)
+3. Run: `pnpm test -- --run <test file>`
+4. Verify that the relevant tests PASS
+5. Repeat for all steps
 
-Når alle steg er implementert:
-6. **STOPP** — be bruker om bekreftelse
+When all steps are implemented:
+6. **STOP** — ask the user for confirmation
 
-Vis:
-- Antall steg implementert
-- Alle tester passerer
-- "Klar for REFACTOR phase?"
+Show:
+- Number of steps implemented
+- All tests pass
+- "Ready for the REFACTOR phase?"
 
-## Fase 3: REFACTOR — Kvalitetssjekk og cleanup
+## Phase 3: REFACTOR — Quality check and cleanup
 
 ```bash
-# 1. Full test-suite (ingen regresjoner)
+# 1. Full test suite (no regressions)
 pnpm test -- --run
 
-# 2. TypeScript (ingen type-feil)
+# 2. TypeScript (no type errors)
 npx tsc --noEmit
 
-# 3. ESLint (ingen linting-feil)
+# 3. ESLint (no linting errors)
 pnpm run eslint
 
-# 4. Bygg (bygget lykkes)
+# 4. Build (the build succeeds)
 pnpm run build
 ```
 
-Etter alle sjekker:
-5. Oppdater `reports/XX-slug/4-status.md`
-6. Vis oppsummering og bekreft ferdig
+After all checks:
+5. Update `reports/XX-slug/4-status.md`
+6. Show a summary and confirm completion
 
-## Forventet output per fase
+## Expected output per phase
 
-### Etter RED:
+### After RED:
 
 ```text
-FASE 1: RED PHASE — FERDIG
+PHASE 1: RED PHASE — DONE
 
-Testfiler opprettet:
-- src/__tests__/UserProfile.test.tsx (3 testcases)
-- src/__tests__/UserForm.test.tsx (2 testcases)
+Test files created:
+- src/__tests__/UserProfile.test.tsx (3 test cases)
+- src/__tests__/UserForm.test.tsx (2 test cases)
 
-Status: 5/5 tester feiler (forventet i RED phase)
+Status: 5/5 tests fail (expected in the RED phase)
 
-STOPP: Klar for GREEN phase?
+STOP: Ready for the GREEN phase?
 ```
 
-### Etter GREEN:
+### After GREEN:
 
 ```text
-FASE 2: GREEN PHASE — FERDIG
+PHASE 2: GREEN PHASE — DONE
 
-Implementering fullført:
-- Steg 1: Lagt til validering i UserProfile.tsx:45
-- Steg 2: Lagt til felt i UserForm.tsx:120
+Implementation completed:
+- Step 1: Added validation in UserProfile.tsx:45
+- Step 2: Added field in UserForm.tsx:120
 
-Status: 7/7 tester passerer
+Status: 7/7 tests pass
 
-STOPP: Klar for REFACTOR phase?
+STOP: Ready for the REFACTOR phase?
 ```
 
-### Etter REFACTOR:
+### After REFACTOR:
 
 ```text
-FASE 3: REFACTOR PHASE — FERDIG
+PHASE 3: REFACTOR PHASE — DONE
 
-Full test-suite: 134 passed
+Full test suite: 134 passed
 TypeScript check: No errors
 ESLint: No errors
-Bygg: Success
+Build: Success
 
-IMPLEMENTERING FULLFØRT!
+IMPLEMENTATION COMPLETED!
 ```

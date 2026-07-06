@@ -1,147 +1,147 @@
 ---
 name: task-workflow-assistant
 description: >-
-  Strukturert analyse og planlegging av JIRA-saker og TODO-planer.
-  Use when: skal analysere en JIRA-sak, skal lage en TODO-plan, skal identifisere påvirkede filer.
-  Do NOT use for: ren kodeimplementering, TDD-syklus, kode-review
+  Structured analysis and planning of JIRA issues and TODO plans.
+  Use when: analyzing a JIRA issue, creating a TODO plan, identifying affected files.
+  Do NOT use for: pure code implementation, TDD cycle, code review
 effort: high
 ---
 
 # Task Workflow Assistant
 
-## Når å bruke denne skill
+## When to use this skill
 
-- Du skal analysere en JIRA-sak
-- Du skal lage en TODO-plan
-- Du skal identifisere påvirkede filer
-- Du skal estimere kompleksitet
+- You are analyzing a JIRA issue
+- You are creating a TODO plan
+- You are identifying affected files
+- You are estimating complexity
 
 ---
 
-## 4-fils struktur
+## 4-file structure
 
-### 1. beskrivelse.md
+### 1. description.md
 
-**Innhold:**
-- JIRA-data (tittel, beskrivelse, akseptansekriterier)
-- Omfang (hva skal gjøres, hva skal IKKE gjøres)
-- Forutsetninger og avhengigheter
+**Content:**
+- JIRA data (title, description, acceptance criteria)
+- Scope (what will be done, what will NOT be done)
+- Prerequisites and dependencies
 
-**Struktur:** Følg `rapport-strukturen` § 1-description
+**Structure:** Follow the `report structure` § 1-description
 
-### 2. analyse.md
+### 2. analysis.md
 
-**Innhold:**
-- Påvirkede filer (med **fil:linje** referanser)
-- Kompleksitet (enkel/middels/kompleks)
-- Risikoanalyse
-- API-påvirkning (frontend ↔ backend)
+**Content:**
+- Affected files (with **file:line** references)
+- Complexity (simple/medium/complex)
+- Risk analysis
+- API impact (frontend ↔ backend)
 
-**Struktur:** Følg `rapport-strukturen` § 2-analysis
+**Structure:** Follow the `report structure` § 2-analysis
 
-**Eksempel:**
+**Example:**
 ```markdown
-## Påvirkede filer
+## Affected files
 
 ### Frontend
-- `src/components/UserProfile.tsx:45` - Må oppdatere form-validering
-- `src/api/userApi.ts:12` - Må legge til nytt endpoint-kall
+- `src/components/UserProfile.tsx:45` - Must update form validation
+- `src/api/userApi.ts:12` - Must add new endpoint call
 
 ### Backend
-- `com/example/api/UserController.kt:78` - Må oppdatere DTO
-- `com/example/domain/User.kt:23` - Må legge til nytt felt
+- `com/example/api/UserController.kt:78` - Must update DTO
+- `com/example/domain/User.kt:23` - Must add new field
 ```
 
-### 3. løsning.md
+### 3. solution.md
 
-**Innhold:**
-- TDD-basert implementeringsplan
-- Steg 0: Skriv tester (RED phase)
-- Steg 1-N: Implementering (GREEN phase)
-- Testing-strategi (REFACTOR phase)
-- Hver steg: konkret, testbart, estimert tid
+**Content:**
+- TDD-based implementation plan
+- Step 0: Write tests (RED phase)
+- Steps 1-N: Implementation (GREEN phase)
+- Testing strategy (REFACTOR phase)
+- Each step: concrete, testable, with time estimate
 
-**Struktur:** Følg `rapport-strukturen` § 3-solution
+**Structure:** Follow the `report structure` § 3-solution
 
-**Eksempel:**
+**Example:**
 ```markdown
-## Implementeringsplan
+## Implementation plan
 
-### Steg 0: Skriv tester (RED phase)
-- [ ] `UserProfile.test.tsx` - Test ny validering (30 min)
-- [ ] `UserController.test.kt` - Test nytt endpoint (30 min)
+### Step 0: Write tests (RED phase)
+- [ ] `UserProfile.test.tsx` - Test new validation (30 min)
+- [ ] `UserController.test.kt` - Test new endpoint (30 min)
 
-### Steg 1: Implementer backend (GREEN phase)
-- [ ] Legg til felt i `User.kt` (15 min)
-- [ ] Oppdater `UserController.kt` (30 min)
-- [ ] Kjør tester - verifiser at de passerer (10 min)
+### Step 1: Implement backend (GREEN phase)
+- [ ] Add field to `User.kt` (15 min)
+- [ ] Update `UserController.kt` (30 min)
+- [ ] Run tests - verify that they pass (10 min)
 
-### Steg 2: Implementer frontend (GREEN phase)
-- [ ] Oppdater `UserProfile.tsx` (45 min)
-- [ ] Oppdater `userApi.ts` (15 min)
-- [ ] Kjør tester - verifiser at de passerer (10 min)
+### Step 2: Implement frontend (GREEN phase)
+- [ ] Update `UserProfile.tsx` (45 min)
+- [ ] Update `userApi.ts` (15 min)
+- [ ] Run tests - verify that they pass (10 min)
 
-### Steg 3: Refaktorering og kvalitetssikring (REFACTOR phase)
+### Step 3: Refactoring and quality assurance (REFACTOR phase)
 - [ ] TypeScript check: `npx tsc --noEmit` (5 min)
 - [ ] ESLint: `pnpm run eslint` (5 min)
-- [ ] Alle tester: `pnpm test -- --run` (10 min)
+- [ ] All tests: `pnpm test -- --run` (10 min)
 ```
 
 ### 4. status.md
 
-**Innhold:**
-- Fremdriftssporing
-- Utfordringer og løsninger
-- Tester (status, coverage)
-- Deployment-status
+**Content:**
+- Progress tracking
+- Challenges and solutions
+- Tests (status, coverage)
+- Deployment status
 
-**Struktur:** Følg `rapport-strukturen` § 4-status
+**Structure:** Follow the `report structure` § 4-status
 
 ---
 
-## Analyser impact
+## Analyze impact
 
 ### Frontend vs Backend
 
-Bruk API mapping til å identifisere:
-- Er dette en frontend-bug (parsing/visning)?
-- Er dette en backend-bug (data/logikk)?
-- Påvirker det begge lag?
+Use the API mapping to identify:
+- Is this a frontend bug (parsing/rendering)?
+- Is this a backend bug (data/logic)?
+- Does it affect both layers?
 
-### API-påvirkning
+### API impact
 
 ```markdown
-## API-påvirkning
+## API impact
 
-### Endret endpoint
-- `GET /api/user/{id}` → Response-format endret
-- Påvirkede frontend-filer:
+### Changed endpoint
+- `GET /api/user/{id}` → Response format changed
+- Affected frontend files:
   - `src/api/userApi.ts:12`
   - `src/components/UserProfile.tsx:45`
 ```
 
-### Kompleksitet
+### Complexity
 
-**Enkel:**
-- 1-2 filer påvirket
-- Ingen API-endringer
-- < 2 timer estimert arbeid
+**Simple:**
+- 1-2 files affected
+- No API changes
+- < 2 hours of estimated work
 
-**Middels:**
-- 3-5 filer påvirket
-- Mindre API-endringer
-- 2-8 timer estimert arbeid
+**Medium:**
+- 3-5 files affected
+- Minor API changes
+- 2-8 hours of estimated work
 
-**Kompleks:**
-- > 5 filer påvirket
-- Store API-endringer eller nye endpoints
-- > 8 timer estimert arbeid
-- Krever dypere resonnering (Extended Thinking)
+**Complex:**
+- > 5 files affected
+- Major API changes or new endpoints
+- > 8 hours of estimated work
+- Requires deeper reasoning (Extended Thinking)
 
 ---
 
-## Referanser
+## References
 
-- `workflows-reglene` - Komplett workflow-dokumentasjon
-- `dokumentasjonsstandarden` - 4-fils struktur-standard
+- `workflow rules` - Complete workflow documentation
+- `documentation standard` - 4-file structure standard
 - API mapping guide

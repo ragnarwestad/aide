@@ -1,10 +1,10 @@
-# Dokumentasjon
+# Documentation
 
-**Innholdsfortegnelse:**
+**Table of contents:**
 
-1. [Beskrivelse](1-description.md) - Sporingsinfo, mål, omfang, akseptansekriterier
-2. [Analyse](2-analysis.md) - Funn, kompleksitet, risikoanalyse
-3. [Løsning](3-solution.md) - Implementeringsplan med TDD
-4. [Status](4-status.md) - Fremdriftssporing
+1. [Description](1-description.md) - Tracking info, goals, scope, acceptance criteria
+2. [Analysis](2-analysis.md) - Findings, complexity, risk analysis
+3. [Solution](3-solution.md) - Implementation plan with TDD
+4. [Status](4-status.md) - Progress tracking
 
 ---

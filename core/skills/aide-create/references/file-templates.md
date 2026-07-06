@@ -1,62 +1,62 @@
-# Fil-templates for oppgavedokumentasjon
+# File templates for task documentation
 
-Plassholdere: TITLE=tittel, FOLDER=NN-slug, DATE=dagens dato, DESC=beskrivelse
+Placeholders: TITLE=title, FOLDER=NN-slug, DATE=today's date, DESC=description
 
 ## 0-README.md
 
 ```markdown
-# Dokumentasjon
+# Documentation
 
-**Innholdsfortegnelse:**
+**Table of contents:**
 
-1. [Beskrivelse](1-description.md) - Sporingsinfo, mål, omfang, akseptansekriterier
-2. [Analyse](2-analysis.md) - Funn, kompleksitet, risikoanalyse
-3. [Løsning](3-solution.md) - Implementeringsplan med TDD
-4. [Status](4-status.md) - Fremdriftssporing
+1. [Description](1-description.md) - Tracking info, goal, scope, acceptance criteria
+2. [Analysis](2-analysis.md) - Findings, complexity, risk analysis
+3. [Solution](3-solution.md) - Implementation plan with TDD
+4. [Status](4-status.md) - Progress tracking
 ```
 
-## 1-description.md (fyll inn alle felter)
+## 1-description.md (fill in all fields)
 
-Struktur - følg `rapport-strukturen` § 1-description:
+Structure - follow the report structure § 1-description:
 
-- `# TITLE - Beskrivelse`
-- TOC med: Sporingsinfo, Beskrivelse, Omfang, Akseptansekriterier
-- **Sporingsinfo:** Oppgave=`FOLDER/`, Opprettet=`DATE`
-- **Beskrivelse:** DESC + redigerbar-notis
-- **Omfang:** `[fylles av /aide-analyze]` for berørte filer, estimat, systemer
-- **Akseptansekriterier:** `[Fylles av /aide-analyze basert på kodebase-analyse]`
+- `# TITLE - Description`
+- TOC with: Tracking info, Description, Scope, Acceptance criteria
+- **Tracking info:** Task=`FOLDER/`, Created=`DATE`
+- **Description:** DESC + editable note
+- **Scope:** `[filled in by /aide-analyze]` for affected files, estimate, systems
+- **Acceptance criteria:** `[Filled in by /aide-analyze based on the codebase analysis]`
 
-## 2-analysis.md (placeholder - fylles av /aide-analyze)
+## 2-analysis.md (placeholder - filled in by /aide-analyze)
 
-Struktur - følg `rapport-strukturen` § 2-analysis:
+Structure - follow the report structure § 2-analysis:
 
-- `# TITLE - Analyse`
-- TOC med: Sporingsinfo, Omfang, Kompleksitet, Funn, Risikoanalyse
-- **Sporingsinfo:** Oppgave=`FOLDER/`, Sist analysert=`[ikke analysert ennå]`
-- **Omfang:** Placeholder for antall filer, kartlegging, berørte filer (nummerert liste)
-- **Kompleksitet:** Placeholder for nivå, faktorer, estimat (manuell + AI-assistert)
-- **Funn:** Seksjoner for kodebase-analyse, berørte komponenter, mønstre, test-dekning, API-avhengigheter
-- **Risikoanalyse:** Placeholder for risikoer med konsekvens/sannsynlighet/mitigering
+- `# TITLE - Analysis`
+- TOC with: Tracking info, Scope, Complexity, Findings, Risk analysis
+- **Tracking info:** Task=`FOLDER/`, Last analyzed=`[not analyzed yet]`
+- **Scope:** Placeholder for number of files, mapping, affected files (numbered list)
+- **Complexity:** Placeholder for level, factors, estimate (manual + AI-assisted)
+- **Findings:** Sections for codebase analysis, affected components, patterns, test coverage, API dependencies
+- **Risk analysis:** Placeholder for risks with consequence/probability/mitigation
 
-## 3-solution.md (placeholder - fylles av /aide-analyze)
+## 3-solution.md (placeholder - filled in by /aide-analyze)
 
-Struktur - følg `rapport-strukturen` § 3-solution:
+Structure - follow the report structure § 3-solution:
 
-- `# TITLE - Løsning`
-- TOC med: Sporingsinfo, Tilnærminger, Anbefalt løsning, Implementeringsplan, Testing
-- **Sporingsinfo:** Oppgave=`FOLDER/`, Sist oppdatert=`[ikke utarbeidet ennå]`
-- **Tilnærminger:** Placeholder for 2 tilnærminger med fordeler/ulemper/estimat
-- **Anbefalt løsning:** Placeholder med før/etter-eksempler (SEPARATE kodeblokker)
-- **Implementeringsplan:** TDD Red-Green-Refactor med 4 faser og checkbox-lister
-- **Testing:** Seksjoner for unit, integration, e2e, manual testing
+- `# TITLE - Solution`
+- TOC with: Tracking info, Approaches, Recommended solution, Implementation plan, Testing
+- **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`
+- **Approaches:** Placeholder for 2 approaches with pros/cons/estimate
+- **Recommended solution:** Placeholder with before/after examples (SEPARATE code blocks)
+- **Implementation plan:** TDD Red-Green-Refactor with 4 phases and checkbox lists
+- **Testing:** Sections for unit, integration, e2e, manual testing
 
-## 4-status.md (placeholder - fylles av /aide-analyze)
+## 4-status.md (placeholder - filled in by /aide-analyze)
 
-Struktur - følg `rapport-strukturen` § 4-status:
+Structure - follow the report structure § 4-status:
 
 - `# TITLE - Status`
-- Total fremgang: `0% (0 av X fullført)`, Estimat: `[X timer/dager]`
-- TOC med: Sporingsinfo, Fase 1-4, Notasjon
-- **Sporingsinfo:** Oppgave=`FOLDER/`, Sist oppdatert=`[ikke startet]`
-- **Fase 1-4:** RED/GREEN/GREEN/REFACTOR faser med tabeller (Oppgave|Status|Notater)
-- **Notasjon:** Ikke startet, Under arbeid, Fullført, Blokkert, Venter
+- Total progress: `0% (0 of X completed)`, Estimate: `[X hours/days]`
+- TOC with: Tracking info, Phase 1-4, Notation
+- **Tracking info:** Task=`FOLDER/`, Last updated=`[not started]`
+- **Phase 1-4:** RED/GREEN/GREEN/REFACTOR phases with tables (Task|Status|Notes)
+- **Notation:** Not started, In progress, Completed, Blocked, Waiting
