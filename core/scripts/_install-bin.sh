@@ -5,7 +5,7 @@
 # implementations/<ai>/install.sh and uninstall.sh sources this file and
 # calls install_common_bin / uninstall_common_bin — so the list lives in one place.
 #
-# AI-specific scripts (e.g. codex-aide-*) are handled by the individual
+# AI-specific scripts are handled by the individual
 # installer, not here.
 
 COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html mise-upgrade-ai-tools _aide-report-lib.sh"

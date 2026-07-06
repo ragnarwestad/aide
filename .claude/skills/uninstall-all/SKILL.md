@@ -1,7 +1,7 @@
 ---
 name: uninstall-all
 description: >-
-  Uninstall doc-aide for all AI tools (Claude Code, Copilot, Codex, Gemini).
+  Uninstall doc-aide for all AI tools (Claude Code, Copilot, Codex).
   Runs uninstall-all.sh, which calls each implementations/<ai>/uninstall.sh.
   Use when: removing doc-aide from the machine, cleaning up before a fresh install.
   Do NOT use for: installing (use /install-all). Just one AI? Run

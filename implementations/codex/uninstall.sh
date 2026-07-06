@@ -13,7 +13,7 @@ echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - Scripts from ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools, codex-aide-*)"
+echo "   - Scripts from ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools)"
 echo "   - ~/.codex/AGENTS.md"
 echo ""
 read -p "Are you sure you want to continue? [y/N]: " CONFIRM
@@ -33,14 +33,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 uninstall_common_bin
-
-# Codex-specific CLI wrappers (installed by install.sh)
-for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
-  if [ -f "$HOME/.local/bin/$script" ]; then
-    rm "$HOME/.local/bin/$script"
-    echo "   ✅ Removed: ~/.local/bin/$script"
-  fi
-done
 
 echo ""
 

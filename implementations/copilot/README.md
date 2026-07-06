@@ -33,8 +33,7 @@ implementations/copilot/
 ├── README.md                           # This file
 ├── INSTALL.md                          # Detailed installation guide
 ├── install.sh                          # Installation script (executable)
-├── uninstall.sh                        # Uninstallation script (executable)
-└── jetbrains/                          # Live Templates for JetBrains IDEs
+└── uninstall.sh                        # Uninstallation script (executable)
 ```
 
 **Reuses:**
@@ -177,41 +176,6 @@ Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
 | `/aide-react-class-to-func` | Convert React class to functional |
 
 Type the command in a `copilot` session, just like in Claude Code.
-
----
-
-### JetBrains IDE (IntelliJ, WebStorm, etc.)
-
-For JetBrains IDEs we use **Live Templates** that expand into full prompts.
-
-**Installation:**
-
-The setup script installs automatically to all JetBrains IDEs, or manually:
-
-```bash
-cp implementations/copilot/jetbrains/aide-templates.xml \
-   ~/Library/Application\ Support/JetBrains/<IDE>/templates/
-```
-
-**Usage:**
-
-1. Open a scratch file or code file (Live Templates only work in the editor)
-2. Type the abbreviation (e.g. `aide-review`) and press `Tab`
-3. The prompt expands
-4. Copy the text and paste it into Copilot Chat (Tools → GitHub Copilot → Chat)
-
-**Note:** JetBrains Copilot Chat does not support direct shortcuts like VS Code, so this is a workaround.
-
-**Available templates:**
-
-| Abbreviation             | Function                             |
-|--------------------------|--------------------------------------|
-| `aide-review`            | Code review before PR                |
-| `aide-create`           | Create JIRA documentation            |
-| `aide-analyze`          | Analyze codebase                     |
-| `aide-implement`               | Implement with TDD                   |
-| `aide-make-tests`        | Create missing tests                 |
-| `aide-react-class-to-func` | Convert React class to functional  |
 
 ---
 
@@ -413,7 +377,7 @@ copilot --yolo                            # Allow everything without prompts
 | **MCP servers** | ✅ | ✅ (built-in GitHub MCP) |
 | **Permanent permissions** | ✅ `settings.json` | ✅ `config.json` + CLI flags |
 | **Multi-step autonomy** | ✅ | ✅ |
-| **Models** | Claude Opus/Sonnet/Haiku | Claude, GPT, Gemini (optional) |
+| **Models** | Claude Opus/Sonnet/Haiku | Claude, GPT |
 | **Context window** | 200K tokens | Varies by model |
 | **IDE integration** | VS Code (via CLI) | VS Code (native) + CLI |
 
@@ -425,7 +389,6 @@ copilot --yolo                            # Allow everything without prompts
 | Claude Sonnet 4.6 | ✅ | ✅ |
 | Claude Haiku 4.5 | ✅ | ✅ |
 | GPT-5.5 | ❌ | ✅ |
-| Gemini 3.x | ❌ | ✅ |
 
 ### When to use what?
 

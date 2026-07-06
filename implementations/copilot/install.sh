@@ -76,60 +76,6 @@ else
   echo ""
 fi
 
-# 5. Install JetBrains Live Templates (optional)
-echo "5️⃣  JetBrains Live Templates..."
-
-JETBRAINS_TEMPLATES="$WORKSPACE_ROOT/implementations/copilot/jetbrains/aide-templates.xml"
-
-if [ -f "$JETBRAINS_TEMPLATES" ]; then
-  echo "   📦 Live Templates available for JetBrains IDEs"
-  echo ""
-
-  # Find installed JetBrains IDEs
-  JETBRAINS_DIR="$HOME/Library/Application Support/JetBrains"
-
-  if [ -d "$JETBRAINS_DIR" ]; then
-    FOUND_IDE=false
-    for ide_dir in "$JETBRAINS_DIR"/*/; do
-      if [ -d "$ide_dir" ]; then
-        ide_name=$(basename "$ide_dir")
-        templates_dir="$ide_dir/templates"
-
-        # Skip backup folders and other non-IDE folders
-        if [[ "$ide_name" == *"backup"* ]] || [[ "$ide_name" == "consentOptions" ]]; then
-          continue
-        fi
-
-        mkdir -p "$templates_dir"
-        cp "$JETBRAINS_TEMPLATES" "$templates_dir/aide-templates.xml"
-        echo "   ✅ Installed: $ide_name/templates/aide-templates.xml"
-        FOUND_IDE=true
-      fi
-    done
-
-    if [ "$FOUND_IDE" = false ]; then
-      echo "   ⚠️  No JetBrains IDEs found"
-      echo "   💡 Manual installation:"
-      echo "      cp $JETBRAINS_TEMPLATES ~/Library/Application Support/JetBrains/<IDE>/templates/"
-    fi
-  else
-    echo "   ⚠️  JetBrains folder not found"
-    echo "   💡 If you use a JetBrains IDE, copy manually:"
-    echo "      cp $JETBRAINS_TEMPLATES ~/Library/Application Support/JetBrains/<IDE>/templates/"
-  fi
-
-  echo ""
-  echo "   📋 Available Live Templates:"
-  echo "      aide-review    → Code review before PR"
-  echo "      aide-create   → Create JIRA documentation"
-  echo "      aide-analyze  → Analyze codebase"
-  echo "      aide-implement       → Implement with TDD"
-  echo "      aide-make-tests → Create missing tests"
-  echo "      aide-react-class-to-func → Convert React class"
-  echo ""
-  echo "   💡 Usage: Type the abbreviation in the editor and press Tab"
-fi
-
 echo ""
 echo "✅ Setup complete!"
 echo ""

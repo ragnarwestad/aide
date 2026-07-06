@@ -1,7 +1,7 @@
 # AI Dev Tools — News Log
 
-Living changelog for the four AI dev tools doc-aide supports:
-Claude Code, GitHub Copilot CLI, OpenAI Codex CLI and Gemini CLI.
+Living changelog for the three AI dev tools doc-aide supports:
+Claude Code, GitHub Copilot CLI and OpenAI Codex CLI.
 
 The log is the research feed that drives continuous improvement of doc-aide.
 It is further distilled into two documents:
@@ -48,7 +48,6 @@ Canonical changelog sources the skill fetches from (since the last review):
 | Claude Code | <https://github.com/anthropics/claude-code/releases> · <https://www.anthropic.com/news> |
 | GitHub Copilot CLI | <https://github.blog/changelog/label/copilot/> · <https://github.com/github/copilot-cli/releases> |
 | OpenAI Codex CLI | <https://github.com/openai/codex/releases> · <https://developers.openai.com/codex/changelog/> |
-| Gemini CLI | <https://geminicli.com/docs/changelogs/> · <https://github.com/google-gemini/gemini-cli/releases> |
 
 ---
 

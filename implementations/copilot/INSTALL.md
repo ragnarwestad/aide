@@ -103,7 +103,6 @@ cd doc-aide/implementations/copilot
    - `mise-upgrade-ai-tools` - Updates the AI CLIs
 2. ✅ Installs `AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
 3. ✅ Verifies PATH and the GitHub Copilot extension
-4. ✅ Installs JetBrains Live Templates (if a JetBrains IDE is found)
 
 **⚠️ NOTE:** `core/AGENTS.md` is already built (`core/scripts/build-agents-md.sh`) and committed. Regular users do not need to rebuild it.
 
@@ -237,7 +236,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 | **Plan mode** | ✅ Native | ✅ Native (Shift+Tab in the CLI) |
 | **IDE integration** | ⚠️ Via CLI | ✅ Native VS Code |
 | **Agent Mode** | ✅ Autonomous workflows | ✅ Autonomous workflows |
-| **Models** | The Claude family | Claude, GPT, Gemini |
+| **Models** | The Claude family | Claude, GPT |
 | **Setup** | ✅ `install.sh` | ✅ `install.sh` |
 
 **Conclusion:**

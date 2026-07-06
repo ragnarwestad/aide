@@ -1,7 +1,7 @@
 ---
 name: install-all
 description: >-
-  Install doc-aide for all AI tools (Claude Code, Copilot, Codex, Gemini).
+  Install doc-aide for all AI tools (Claude Code, Copilot, Codex).
   Runs install-all.sh, which calls each implementations/<ai>/install.sh.
   Use when: installing or updating doc-aide for all tools, having
   changed skills or rules and wanting to reinstall.
@@ -25,8 +25,7 @@ self-contained and sets up:
   (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
 - **Claude Code:** skills, agents, rules → `~/.claude/`, LSP plugins
 - **Copilot:** `AGENTS.md` → `~/.copilot/`, keybindings
-- **Codex:** CLI wrappers, custom instructions, MCP servers
-- **Gemini:** `GEMINI.md`, project config, MCP servers
+- **Codex:** custom instructions, MCP servers
 
 The shared scripts are copied by each installer — deliberately, so `implementations/<ai>/install.sh`
 alone provides everything that AI needs.

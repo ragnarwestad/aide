@@ -99,7 +99,6 @@ pytest
 pytest -m e2e
 
 # Run E2E for a specific implementation
-pytest -m "e2e and gemini"
 pytest -m "e2e and claude_code"
 pytest -m "e2e and copilot"
 pytest -m "e2e and codex"
@@ -117,7 +116,6 @@ pytest -m validation -v        # All validation tests
 pytest -m claude_code -v       # Claude Code-specific
 pytest -m codex -v             # Codex-specific
 pytest -m copilot -v           # Copilot-specific
-pytest -m gemini -v            # Gemini-specific
 ```
 
 **Available markers** (defined in `pytest.ini`):
@@ -132,7 +130,6 @@ pytest -m gemini -v            # Gemini-specific
 | `claude_code`     | Claude Code-specific tests                                     |
 | `codex`           | Codex-specific tests                                           |
 | `copilot`         | Copilot-specific tests                                         |
-| `gemini`          | Gemini-specific tests                                          |
 | `implementations` | Cross-implementation parity tests                              |
 
 ### Specific test file
@@ -160,8 +157,7 @@ tests/
 │   │   └── implementations/                  # Implementation-specific tests
 │   │       ├── claude-code/
 │   │       ├── codex/
-│   │       ├── copilot/
-│   │       └── gemini_impl/
+│   │       └── copilot/
 │   │
 │   ├── integration/                          # Integration tests
 │   │   └── claude_code/                      # Claude Code integration
@@ -368,7 +364,6 @@ pytest -m e2e
 
 # Per implementation
 pytest -m "e2e and claude_code"
-pytest -m "e2e and gemini"
 pytest -m "e2e and copilot"
 pytest -m "e2e and codex"
 ```
@@ -380,7 +375,6 @@ pytest -m "e2e and codex"
 | Claude Code | `-p`               | ✅ Works    | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
 | Copilot     | `-p`               | ✅ Works    | `copilot -p "prompt" --allow-all-tools`                 |
 | Codex       | `exec --full-auto` | ✅ Works    | `codex exec --full-auto --skip-git-repo-check "prompt"` |
-| Gemini      | `-p`               | ❌ Removed  | CLI hangs after the prompt, no E2E tests                |
 
 ### Claude Code
 
@@ -391,19 +385,6 @@ claude -p "prompt" --allowedTools "Bash,Read,Write"
 # With JSON output
 claude -p "prompt" --output-format json
 claude -p "prompt" --output-format stream-json
-```
-
-### Gemini CLI
-
-**⚠️ Note:** Gemini CLI does not support true headless mode. The CLI hangs after completing the prompt and does not exit
-automatically. E2E tests for Gemini are therefore skipped.
-
-```bash
-# Headless mode (hangs - do not use in automated tests)
-gemini -p "prompt"
-
-# YOLO mode (no confirmations, but still hangs)
-gemini -p "prompt" --yolo
 ```
 
 ### GitHub Copilot CLI
@@ -554,6 +535,5 @@ jobs:
 See the README for each implementation for CLI documentation and headless mode:
 
 - [Claude Code](../implementations/claude-code/README.md)
-- [Gemini CLI](../implementations/gemini/README.md)
 - [GitHub Copilot CLI](../implementations/copilot/README.md)
 - [OpenAI Codex CLI](../implementations/codex/README.md)

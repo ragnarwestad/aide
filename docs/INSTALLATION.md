@@ -182,7 +182,6 @@ In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh
 implementations/claude-code/install.sh
 implementations/copilot/install.sh
 implementations/codex/install.sh
-implementations/gemini/install.sh
 ```
 
 The sections below describe what each individual installer does.
@@ -281,7 +280,7 @@ The sections below describe what each individual installer does.
 
 1. **See the Codex implementation:**
     - **[../implementations/codex/README.md](../implementations/codex/README.md)** - Setup guide for Codex
-    - Run `implementations/codex/install.sh` (CLI wrappers + custom instructions)
+    - Run `implementations/codex/install.sh` (custom instructions + shared scripts)
 
 2. **Add new AI tools:**
     - Follow the same pattern as Codex/Copilot

@@ -378,7 +378,6 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
    - Claude Code: skills in `core/skills/`, rules in `core/rules/`, agents in `implementations/claude-code/agents/`
    - Copilot: `core/AGENTS.md` → `~/.copilot/copilot-instructions.md` (generated via `core/scripts/build-agents-md.sh`)
    - Codex: `core/AGENTS.md` → `~/.codex/AGENTS.md`, plus `implementations/codex/config.toml`
-   - Gemini: `implementations/gemini/settings.json`
    - New AI: the equivalent format for that tool
 4. **Create install.sh** following the pattern of the existing implementations
 5. **Test the workflow:** Create → Analyze → Implement → Verify

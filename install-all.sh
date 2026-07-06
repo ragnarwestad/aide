@@ -14,7 +14,7 @@ echo "🔧 doc-aide — installing all AI tools"
 echo "============================================="
 
 status=0
-for ai in claude-code copilot codex gemini; do
+for ai in claude-code copilot codex; do
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/implementations/$ai/install.sh"; then

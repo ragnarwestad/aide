@@ -14,7 +14,7 @@ You are in **doc-aide**. This is an AI tooling workspace for AI-assisted develop
 
 ### 1. Install VS Code extensions
 
-Open the workspace in VS Code - you will be prompted to install the recommended extensions (`.vscode/extensions.json`):
+Open the workspace in VS Code and install the recommended extensions:
 - GitHub Copilot
 - GitHub Copilot Chat
 - Markdown linting
@@ -23,7 +23,7 @@ Open the workspace in VS Code - you will be prompted to install the recommended 
 ### 2. Workspace Trust
 
 The first time you open the workspace in VS Code:
-1. Click "Trust Workspace" (required for tasks to work)
+1. Click "Trust Workspace"
 2. This gives Copilot access to all files in the workspace
 
 ### 3. Verify configuration
@@ -42,12 +42,6 @@ echo $AIDE_INSTALLATION_PATH
 echo $PATH | grep ".local/bin"
 # Should contain: ~/.local/bin
 ```
-
-### 4. Test tasks
-
-**Run a task:**
-1. `Cmd+Shift+P` / `Ctrl+Shift+P` → "Tasks: Run Task"
-2. Pick a task (e.g. "Test: Run all tests")
 
 ---
 
@@ -99,23 +93,6 @@ Copilot checks:
 
 ---
 
-## 🛠️ VS Code Tasks
-
-**Run a task:**
-1. `Cmd+Shift+P` / `Ctrl+Shift+P` → "Tasks: Run Task"
-2. Pick the task you want
-3. Follow the instructions in the terminal
-
-**Available tasks:**
-- `Aide: Create JIRA documentation` - Create document structure
-- `Test: Run all tests` - Full test suite
-- `Test: Run specific test file` - Run a single test file
-- `QA: TypeScript check` - Type checking
-- `QA: ESLint` - Linting
-- `QA: Full quality check` - All of the above in sequence
-
----
-
 ## 🤖 How to use Copilot in this workspace
 
 ### Agent Mode (recommended)
@@ -143,38 +120,6 @@ Instead of slash commands (like Claude Code), use natural language:
 | `/aide-create PROJ-7890` | "Create documentation for PROJ-7890" |
 | `/aide-analyze PROJ-7890` | "Analyze PROJ-7890" |
 | `/aide-implement PROJ-7890` | "Implement PROJ-7890 with TDD" |
-
-### Use Tasks for repetitive commands
-
-For commands you run often:
-1. `Cmd+Shift+P` → "Tasks: Run Task"
-2. Or set up keyboard shortcuts (see below)
-
----
-
-## ⌨️ Recommended keyboard shortcuts
-
-Add to your `keybindings.json` (File → Preferences → Keyboard Shortcuts → Open Keyboard Shortcuts JSON):
-
-```json
-[
-  {
-    "key": "cmd+k cmd+j",
-    "command": "workbench.action.tasks.runTask",
-    "args": "Aide: Create JIRA documentation"
-  },
-  {
-    "key": "cmd+k cmd+a",
-    "command": "workbench.action.tasks.runTask",
-    "args": "QA: Full quality check"
-  },
-  {
-    "key": "cmd+k cmd+t",
-    "command": "workbench.action.tasks.runTask",
-    "args": "Test: Run all tests"
-  }
-]
-```
 
 ---
 
@@ -230,11 +175,6 @@ If available via Copilot extensions:
 "Create tests for validateForm"
 ```
 
-**Via VS Code Tasks (Command Palette):**
-- `Tasks: Run Task` → "Aide: Create JIRA documentation"
-- `Tasks: Run Task` → "QA: Full quality check"
-- `Tasks: Run Task` → "Test: Run all tests"
-
 ---
 
 ## 🔗 Further reading
@@ -289,10 +229,10 @@ Enable Agent Mode in Copilot Chat:
 
 | Feature | Claude Code | Copilot (VS Code) |
 |---------|-------------|-------------------|
-| **Commands** | `/aide-create` | Natural language or Tasks |
+| **Commands** | `/aide-create` | Natural language |
 | **Instructions** | `CLAUDE.md` (auto-read) | `.github/copilot-instructions.md` |
 | **Permissions** | Fine-grained in settings.json | Workspace Trust (all-or-nothing) |
-| **Bash commands** | Direct execution (pre-approved) | Via Tasks or manual terminal |
+| **Bash commands** | Direct execution (pre-approved) | Manual terminal |
 | **Git commit** | Blocked (deny list) | Copilot cannot run it (must be done manually) |
 | **Agent Mode** | Built-in | Built-in (since 2024) |
 | **MCP support** | ✅ | ✅ (via extensions) |

@@ -11,7 +11,6 @@ Last verified: 2026-03-28
 - [Claude Code](#claude-code)
 - [GitHub Copilot](#github-copilot)
 - [OpenAI Codex CLI](#openai-codex-cli)
-- [Google Gemini CLI](#google-gemini-cli)
 - [Comparison](#comparison)
 - [Sources](#sources)
 
@@ -52,10 +51,9 @@ All tools have a project instruction file that is read automatically:
 | Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | Copilot | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
-| Gemini | `GEMINI.md` | `~/.gemini/GEMINI.md` |
 
 **Copilot also reads the others' files** (only in Coding Agent):
-`AGENTS.md`, `CLAUDE.md` and `GEMINI.md` in the repo root.
+`AGENTS.md` and `CLAUDE.md` in the repo root.
 
 ---
 
@@ -202,63 +200,36 @@ structured inter-agent messaging.
 
 ---
 
-## Google Gemini CLI
-
-**Docs:** <https://geminicli.com/docs/>
-**Repo:** <https://github.com/google-gemini/gemini-cli>
-
-### Configuration files
-
-| File | Path | Purpose |
-|-----|-----|--------|
-| GEMINI.md | Cwd and up to git root, `~/.gemini/GEMINI.md` | Instructions |
-| settings.json | `.gemini/settings.json`, `~/.gemini/settings.json` | Configuration |
-| Custom commands | `.gemini/commands/*.toml`, `~/.gemini/commands/*.toml` | Slash commands |
-| MCP | settings.json `mcpServers` section | MCP servers |
-
-### Custom commands
-
-TOML format (not Markdown). Supports shell execution (`!{command}`),
-file injection (`@{path}`), and user arguments (`{{args}}`).
-Subfolders provide namespacing: `git/commit.toml` → `/git:commit`.
-
-### GEMINI.md
-
-Concatenates all GEMINI.md files from cwd up to the git root plus global.
-Supports `@file.md` imports to include other files.
-
----
-
 ## Comparison
 
 ### Instructions and rules
 
-| Feature | Claude Code | Copilot | Codex | Gemini |
-|----------|:-----------:|:-------:|:-----:|:------:|
-| Project instructions | CLAUDE.md | copilot-instructions.md | AGENTS.md | GEMINI.md |
-| Path-specific rules | rules/ with paths | instructions/*.instructions.md | no | no |
-| Directory walk | yes | no (single file) | yes (root→cwd) | yes (cwd→root) |
-| Global instructions | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md | ~/.gemini/GEMINI.md |
-| File import | no | no | no | yes (@file.md) |
+| Feature | Claude Code | Copilot | Codex |
+|----------|:-----------:|:-------:|:-----:|
+| Project instructions | CLAUDE.md | copilot-instructions.md | AGENTS.md |
+| Path-specific rules | rules/ with paths | instructions/*.instructions.md | no |
+| Directory walk | yes | no (single file) | yes (root→cwd) |
+| Global instructions | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md |
+| File import | no | no | no |
 
 ### Skills and commands
 
-| Feature | Claude Code | Copilot | Codex | Gemini |
-|----------|:-----------:|:-------:|:-----:|:------:|
-| Skills (SKILL.md) | yes | yes | yes | no |
-| Custom commands | unified with skills (.md) | no | no | yes (.toml) |
-| Slash commands | /skill-name | /skill-name | /skill-name | /command-name |
-| Auto-activation | yes (description match) | yes | yes | no |
+| Feature | Claude Code | Copilot | Codex |
+|----------|:-----------:|:-------:|:-----:|
+| Skills (SKILL.md) | yes | yes | yes |
+| Custom commands | unified with skills (.md) | no | no |
+| Slash commands | /skill-name | /skill-name | /skill-name |
+| Auto-activation | yes (description match) | yes | yes |
 
 ### Configuration
 
-| Feature | Claude Code | Copilot | Codex | Gemini |
-|----------|:-----------:|:-------:|:-----:|:------:|
-| Config format | JSON | JSON | TOML | JSON |
-| Config path | .claude/ | .github/, .vscode/ | .codex/ | .gemini/ |
-| MCP servers | yes | yes (agents) | yes | yes |
-| Hooks | yes | no | yes (experimental) | no |
-| Agents/subagents | yes | yes (.github/agents/) | yes (v0.117+, plugins) | no |
+| Feature | Claude Code | Copilot | Codex |
+|----------|:-----------:|:-------:|:-----:|
+| Config format | JSON | JSON | TOML |
+| Config path | .claude/ | .github/, .vscode/ | .codex/ |
+| MCP servers | yes | yes (agents) | yes |
+| Hooks | yes | no | yes (experimental) |
+| Agents/subagents | yes | yes (.github/agents/) | yes (v0.117+, plugins) |
 
 ---
 
@@ -294,13 +265,3 @@ Supports `@file.md` imports to include other files.
 - MCP: <https://developers.openai.com/codex/mcp>
 - Hooks: <https://developers.openai.com/codex/hooks>
 - Repo: <https://github.com/openai/codex>
-
-### Google Gemini CLI
-
-- Docs: <https://geminicli.com/docs/>
-- Configuration: <https://geminicli.com/docs/reference/configuration/>
-- GEMINI.md: <https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html>
-- Custom commands: <https://geminicli.com/docs/cli/custom-commands/>
-- MCP: <https://geminicli.com/docs/tools/mcp-server/>
-- Extensions: <https://geminicli.com/docs/extensions/>
-- Repo: <https://github.com/google-gemini/gemini-cli>

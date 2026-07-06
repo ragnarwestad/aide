@@ -9,16 +9,16 @@ It is NOT an application in itself.
 
 **Role 1 — Development environment:** We only use Claude Code to work on
 this repo. The Claude Code config for this repo lives in `.claude/`.
-Other AI tools (Copilot, Codex, Gemini) are not used for development here.
+Other AI tools (Copilot, Codex) are not used for development here.
 
 **Role 2 — Product:** `implementations/` contains source code we build
 and install into other projects. There are implementations
-for Claude Code, Copilot, Codex and Gemini.
+for Claude Code, Copilot and Codex.
 
 **Implementation priority:**
-1. **Copilot** — most important
-2. **Claude Code** — second most important
-3. Codex and Gemini — lower priority
+1. **Claude Code** — most important
+2. **Copilot** — second most important
+3. Codex — lower priority
 
 ---
 

@@ -15,7 +15,6 @@ and which configuration files each tool reads.
 - [Claude Code](#claude-code)
 - [GitHub Copilot](#github-copilot)
 - [Codex CLI](#codex-cli)
-- [Gemini CLI](#gemini-cli)
 - [Installation into target projects](#installation-into-target-projects)
 - [See also](#see-also)
 
@@ -28,7 +27,6 @@ and which configuration files each tool reads.
 | Claude Code | 2.1.150 | 2026-05-23 | ✅ Supported |
 | GitHub Copilot CLI | v1.0.51 | 2026-05-23 | ✅ Supported |
 | Codex CLI | 0.133.0 | 2026-05-23 | ✅ Supported |
-| Gemini CLI | 0.43.0 | 2026-05-23 | ✅ Supported |
 
 Check installed versions:
 
@@ -36,7 +34,6 @@ Check installed versions:
 claude --version
 copilot --version
 codex --version
-gemini --version
 ```
 
 ---
@@ -48,19 +45,17 @@ gemini --version
 | Claude Code | Claude Opus 4.7 (also Fast mode and Auto on Max) |
 | GitHub Copilot CLI | `auto` (chooses itself); Claude and GPT-5.3-Codex available |
 | OpenAI Codex CLI | GPT-5.5 (recommended); GPT-5.4 mini for fast subagent tasks |
-| Gemini CLI | Gemini 3 (default); Gemini 3.5 Flash / 3.1 Flash-Lite for speed |
 
 Release dates and history are in the [news log](./AI_NEWS_LOG.md).
 Opus 4.7 has a known change: sampling parameters (`temperature` etc.) now return 400 errors.
 
 ## Cross-tool capabilities
 
-All four tools have skills, stable hooks, subagents and a plan/analysis mode.
+All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 - **Claude Code:** native binary, `/ultrareview` (cloud-based code review), `/code-review`, `/goal`, plugins from `.zip`/URL, conditional/defer hooks, Windows without Git Bash
 - **GitHub Copilot CLI:** BYOK + local models (`COPILOT_OFFLINE`), remote control of sessions, enterprise-managed plugins via a `.github-private` repo, `gh skill` for portable skills, `/security-review`, HTTP hooks
 - **OpenAI Codex CLI:** stable hooks, `/goal` workflows as the default, `codex marketplace add`, `codex doctor`, Amazon Bedrock support
-- **Gemini CLI:** subagents, `/memory inbox`, git worktree support, real-time voice mode, native sandboxing
 
 ## Open follow-up items
 
@@ -74,26 +69,22 @@ All four tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 Which files each tool reads automatically:
 
-| File/directory | Claude Code | Copilot | Codex | Gemini |
-|-----------|:-----------:|:-------:|:-----:|:------:|
-| `CLAUDE.md` | ✅ primary | ✅ read | ✅ read | — |
-| `AGENTS.md` | — | ✅ read | ✅ primary | — |
-| `GEMINI.md` | — | ✅ read | — | ✅ primary |
-| `.claude/rules/*.md` | ✅ auto-include | ✅ read | — | — |
-| `.claude/skills/` | ✅ native skills | ✅ read | — | — |
-| `.github/skills/` | — | ✅ native skills | — | — |
-| `~/.copilot/skills/` | — | ✅ global skills | — | — |
-| `.claude/commands/*.md` | ✅ slash commands | ✅ read | — | — |
-| `.claude/agents/*.md` | ✅ agents | ✅ read | — | — |
-| `.claude/settings.json` | ✅ MCP + hooks | — | — | — |
-| `.github/copilot-instructions.md` | — | ✅ primary | — | — |
-| `.github/instructions/**/*.instructions.md` | — | ✅ path-specific | — | — |
-| `~/.copilot/copilot-instructions.md` | — | ✅ global | — | — |
-| `~/.codex/AGENTS.md` | — | — | ✅ global | — |
-| `~/.codex/config.toml` | — | — | ✅ MCP | — |
-| `.gemini/commands/*.toml` | — | — | — | ✅ slash commands |
-| `~/.gemini/settings.json` | — | — | — | ✅ MCP |
-| `.vscode/tasks.json` | — | ✅ tasks | — | — |
+| File/directory | Claude Code | Copilot | Codex |
+|-----------|:-----------:|:-------:|:-----:|
+| `CLAUDE.md` | ✅ primary | ✅ read | ✅ read |
+| `AGENTS.md` | — | ✅ read | ✅ primary |
+| `.claude/rules/*.md` | ✅ auto-include | ✅ read | — |
+| `.claude/skills/` | ✅ native skills | ✅ read | — |
+| `.github/skills/` | — | ✅ native skills | — |
+| `~/.copilot/skills/` | — | ✅ global skills | — |
+| `.claude/commands/*.md` | ✅ slash commands | ✅ read | — |
+| `.claude/agents/*.md` | ✅ agents | ✅ read | — |
+| `.claude/settings.json` | ✅ MCP + hooks | — | — |
+| `.github/copilot-instructions.md` | — | ✅ primary | — |
+| `.github/instructions/**/*.instructions.md` | — | ✅ path-specific | — |
+| `~/.copilot/copilot-instructions.md` | — | ✅ global | — |
+| `~/.codex/AGENTS.md` | — | — | ✅ global |
+| `~/.codex/config.toml` | — | — | ✅ MCP |
 
 > ⚠️ **The Copilot `.claude/*` rows need re-verification.** The Copilot CLI stopped
 > loading agents/skills/commands from `~/.claude/`. Whether and how project-level `.claude/`
@@ -155,7 +146,6 @@ implementations/claude-code/
 | `~/.copilot/copilot-instructions.md` | Global user instructions |
 | `CLAUDE.md` | Also read (compatibility with Claude Code) |
 | `AGENTS.md` | Also read |
-| `GEMINI.md` | Also read |
 
 **Important:** Copilot additionally reads the `.claude/` structure:
 
@@ -179,16 +169,9 @@ implementations/claude-code/
 
 Since we already have skills in `.claude/skills/`, Copilot picks them up automatically — we do not need to duplicate them to `.github/skills/`.
 
-### Configuration
-
-| File | Description |
-|-----|-------------|
-| `.vscode/tasks.json` | VS Code tasks (available via the Command Palette) |
-
 ### Features
 
 - **Slash commands** — reads shared skills from `~/.claude/skills/` (e.g. `/aide-create`)
-- **VS Code tasks** — predefined tasks in the Command Palette
 - **Agent Mode** — can execute multi-step workflows autonomously
 - **MCP:** Support via the GitHub MCP server
 
@@ -202,9 +185,7 @@ Copilot reads automatically. The projects therefore need no Copilot config of th
 
 ```text
 implementations/copilot/
-├── install.sh / uninstall.sh ← installs core/AGENTS.md → ~/.copilot/copilot-instructions.md
-├── .vscode/tasks.json        ← VS Code tasks
-└── jetbrains/                ← JetBrains live templates
+└── install.sh / uninstall.sh ← installs core/AGENTS.md → ~/.copilot/copilot-instructions.md
 
 (The instruction file is generated to core/AGENTS.md by core/scripts/build-agents-md.sh)
 ```
@@ -230,8 +211,7 @@ implementations/copilot/
 
 ### Features
 
-- **No native slash commands** — uses `codex-aide-*` wrappers
-- **CLI wrappers** in `scripts/codex-aide-*` for common workflows
+- **No doc-aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
 - **MCP:** Support via `~/.codex/config.toml`
 - **Parallel execution** — can work on several tasks at once
 
@@ -240,48 +220,9 @@ implementations/copilot/
 ```text
 implementations/codex/
 ├── config.toml                 ← sandbox + MCP
-├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md + wrappers
-└── scripts/codex-aide-*        ← CLI wrappers
-```
-
----
-
-## Gemini CLI
-
-**Version:** 0.43.0 | **Last verified:** 2026-05-23
-
-### Instruction files (read automatically)
-
-| File | Description |
-|-----|-------------|
-| `GEMINI.md` (`~/.gemini/GEMINI.md`) | Primary instruction file (installed from `core/AGENTS.md`) |
-
-### Configuration
-
-| File | Description |
-|-----|-------------|
-| `~/.gemini/commands/*.toml` | Slash commands (TOML format) |
-| `~/.gemini/settings.json` | Global config: MCP servers, theme |
-
-### Features
-
-- **Slash commands** via `.toml` files (similar to Claude Code, but TOML format)
-- **1M token context window** — largest of all the tools
-- **Google Search grounding** — can search the web
-- **MCP:** Support via `~/.gemini/settings.json`
-- **Generous free quota:** 60 req/min, 1000 req/day
-
-### Implementation
-
-```text
-implementations/gemini/
-├── install.sh / uninstall.sh   ← global install: ~/.gemini/GEMINI.md + commands
-├── settings.json               ← Gemini config (MCP)
-├── .gemini/commands/*.toml     ← slash commands
+├── install.sh / uninstall.sh   ← global install: ~/.codex/AGENTS.md + shared scripts
 └── mcp/                        ← MCP setup docs
 ```
-
-(GEMINI.md comes from core/AGENTS.md — install.sh copies it to ~/.gemini/GEMINI.md)
 
 ---
 
@@ -296,7 +237,6 @@ When you install doc-aide into a target project (e.g. my-app):
 | Claude Code | `.claude/` (commands, rules, agents, skills), `CLAUDE.md` |
 | Copilot | `.github/copilot-instructions.md` **and** `.claude/` (commands, rules, agents) |
 | Codex | `~/.codex/AGENTS.md` (from `core/AGENTS.md`) |
-| Gemini | `GEMINI.md`, `.gemini/commands/` |
 
 ### Automated installation
 
@@ -309,9 +249,6 @@ implementations/copilot/install.sh
 
 # Codex
 implementations/codex/install.sh (if present)
-
-# Gemini
-implementations/gemini/install.sh (if present)
 ```
 
 ---
@@ -337,10 +274,6 @@ Check these when you update versions or wonder whether something has changed:
 
 - [Codex CLI — GitHub repo and README](https://github.com/openai/codex)
 
-### Gemini CLI
-
-- [Gemini CLI — GitHub repo and README](https://github.com/google-gemini/gemini-cli)
-
 ---
 
 ## See also
@@ -350,4 +283,3 @@ Check these when you update versions or wonder whether something has changed:
 - [implementations/claude-code/](../implementations/claude-code/) — Claude Code implementation
 - [implementations/copilot/](../implementations/copilot/) — Copilot implementation
 - [implementations/codex/](../implementations/codex/) — Codex implementation
-- [implementations/gemini/](../implementations/gemini/) — Gemini implementation

@@ -1,6 +1,6 @@
 # Doc Aide
 
-A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot, Codex and Gemini.
+A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot and Codex.
 
 ## Table of contents
 
@@ -40,7 +40,6 @@ Download the ready-made package for your AI tool:
 | Claude Code | `dist/doc-aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
 | GitHub Copilot | `dist/doc-aide-copilot.zip` | [INSTALL.md](implementations/copilot/INSTALL.md) |
 | Codex | `dist/doc-aide-codex.zip` | [README.md](implementations/codex/README.md) |
-| Gemini | `dist/doc-aide-gemini.zip` | [README.md](implementations/gemini/README.md) |
 
 Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
 

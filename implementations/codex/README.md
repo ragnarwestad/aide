@@ -6,7 +6,6 @@
 - [What is OpenAI Codex?](#what-is-openai-codex)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-  - [CLI wrappers](#step-3-install-the-cli-wrappers-recommended)
 - [Configuration](#configuration)
   - [MCP servers](#mcp-servers-model-context-protocol)
   - [Execpolicy](#execpolicy-command-control)
@@ -14,7 +13,7 @@
 - [Usage](#usage)
   - [JIRA workflow](#jira-workflow)
   - [TDD workflow](#tdd-workflow)
-- [Slash commands and wrappers](#slash-commands-and-wrappers)
+- [Slash commands](#slash-commands)
 - [Tips and tricks](#tips-and-tricks)
 - [Limitations](#limitations)
 - [Comparison with Claude Code](#comparison-with-claude-code)
@@ -30,11 +29,7 @@ This implementation lets you use the **OpenAI Codex CLI** to follow the same wor
 implementations/codex/
 ├── README.md                           # This file
 ├── config.toml                         # Codex config (sandbox, MCP)
-├── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + CLI wrappers
-└── scripts/
-    ├── codex-aide-create              # CLI wrapper for aide-create
-    ├── codex-aide-analyze             # CLI wrapper for aide-analyze
-    └── codex-aide-implement                  # CLI wrapper for aide-implement
+└── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md
 ```
 
 **Reuses:**
@@ -78,12 +73,6 @@ npm install -g @openai/codex-cli
 brew install openai/tap/codex
 ```
 
-### 3. IntelliJ plugin (optional)
-```text
-# Install "Codex Launcher" from the JetBrains Marketplace
-# https://plugins.jetbrains.com/plugin/28264-codex-launcher
-```
-
 ---
 
 ## Installation
@@ -110,38 +99,6 @@ cp core/AGENTS.md ~/.codex/AGENTS.md
 ```
 
 Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `AGENTS.md` via directory walk).
-
-### Step 3: Install the CLI wrappers (recommended)
-
-The CLI wrappers make it easy to start aide workflows without manually copying prompts:
-
-```bash
-# Copy the CLI wrappers to PATH
-cp implementations/codex/scripts/codex-aide-* ~/.local/bin/
-chmod +x ~/.local/bin/codex-aide-*
-```
-
-**Available commands:**
-
-| Command | Description |
-|----------|-------------|
-| `codex-aide-create <ID>` | Create the document structure for a JIRA issue or TODO |
-| `codex-aide-analyze <ID>` | Analyze the codebase and identify affected files |
-| `codex-aide-implement <ID>` | Implement the solution with TDD |
-
-**Examples:**
-
-```bash
-# JIRA workflow
-codex-aide-create PROJ-7890
-codex-aide-analyze PROJ-7890
-codex-aide-implement PROJ-7890
-
-# TODO workflow
-codex-aide-create todo-01-redux-migration
-codex-aide-analyze todo-01
-codex-aide-implement todo-01
-```
 
 ---
 
@@ -263,11 +220,6 @@ codex "Create structured documentation for JIRA issue PROJ-7890:
 6. Stage all new files in git"
 ```
 
-**Or use the CLI wrapper:**
-```bash
-codex-aide-create PROJ-7890
-```
-
 #### 2. Analyze the codebase
 
 **Instead of:** `/aide-analyze PROJ-7890` (Claude Code)
@@ -328,21 +280,10 @@ Codex supports the TDD cycle:
 
 ---
 
-## Slash commands and wrappers
+## Slash commands
 
-Codex reads the same skills as Claude Code (from `~/.agents/skills/`), and there
-are CLI wrappers for the most common workflows:
-
-| Wrapper | Purpose | Claude Code equivalent |
-|---------|--------|----------------------|
-| `codex-aide-create` | Create JIRA/TODO documentation | `/aide-create` |
-| `codex-aide-analyze` | Analyze the codebase | `/aide-analyze` |
-| `codex-aide-implement` | Implement with TDD | `/aide-implement` |
-
-**Usage:**
-```bash
-codex-aide-create PROJ-7890
-```
+Codex reads the same skills as Claude Code (from `~/.agents/skills/`), so the
+aide workflows are available as skills in a `codex` session.
 
 ---
 
@@ -393,12 +334,6 @@ codex --github myorg/my-app
 codex "Review PR #123 and check whether it follows the project coding standard"
 ```
 
-### 5. Use the IntelliJ plugin
-
-1. Install "Codex Launcher" from the Marketplace
-2. Right-click in the editor → "Open with Codex"
-3. Codex opens with file context
-
 ---
 
 ## Limitations
@@ -424,7 +359,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 - Rate limits (extra credits can be purchased)
 
 ### Workarounds:
-1. **Slash commands:** Use skills (`~/.agents/skills/`) or the `codex-aide-*` wrappers
+1. **Slash commands:** Use skills (`~/.agents/skills/`)
 2. **Auto-read CLAUDE.md → AGENTS.md:** Use `AGENTS.md` (installed globally as `~/.codex/AGENTS.md`)
 3. **Agents → Explicit prompts:** Ask Codex to follow specific workflows
 4. **Free → Paid:** Requires a subscription

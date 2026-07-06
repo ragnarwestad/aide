@@ -1,11 +1,11 @@
 ---
 name: check-news
 description: >-
-  Check AI tool news from Anthropic, GitHub, Google and OpenAI.
+  Check AI tool news from Anthropic, GitHub and OpenAI.
   Fetches changelogs and news from official sources, assesses relevance
   for doc-aide, and updates the news log.
   Use when: checking AI news, wanting to know what's new in
-  Claude Code/Copilot/Codex/Gemini, updating the news log.
+  Claude Code/Copilot/Codex, updating the news log.
   Do NOT use for: general questions about AI tools (use web search directly).
 disable-model-invocation: true
 ---
@@ -44,11 +44,6 @@ Check these sources for news **since the last review**:
 1. WebFetch: `https://github.com/openai/codex/releases`
 2. WebFetch: `https://developers.openai.com/codex/changelog/`
 
-### Google Gemini CLI
-
-1. WebFetch: `https://geminicli.com/docs/changelogs/`
-2. WebFetch: `https://github.com/google-gemini/gemini-cli/releases`
-
 ## Step 3: Filter and assess
 
 For each news item, assess:
@@ -84,11 +79,6 @@ Format — follow the existing pattern in the file:
 |------|---------|-------|-------|
 
 **OpenAI Codex CLI (period):**
-
-| Date | Version | News | Source |
-|------|---------|-------|-------|
-
-**Gemini CLI (period):**
 
 | Date | Version | News | Source |
 |------|---------|-------|-------|

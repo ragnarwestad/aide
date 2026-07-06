@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # install.sh - Installs OpenAI Codex configuration for the doc-aide workspace
-# This sets up custom instructions, CLI wrappers and JIRA scripts
+# This sets up custom instructions and shared CLI scripts
 
 set -e  # Exit on error
 
@@ -32,21 +32,8 @@ install_common_bin
 
 echo ""
 
-# 2. Install Codex CLI wrappers
-echo "2️⃣  Installing Codex CLI wrappers to ~/.local/bin/..."
-
-for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
-  if [ -f "$SCRIPT_DIR/scripts/$script" ]; then
-    cp "$SCRIPT_DIR/scripts/$script" ~/.local/bin/
-    chmod +x ~/.local/bin/$script
-    echo "   ✅ Installed: ~/.local/bin/$script"
-  fi
-done
-
-echo ""
-
-# 3. Install global Codex instructions (AGENTS.md)
-echo "3️⃣  Installing global Codex instructions..."
+# 2. Install global Codex instructions (AGENTS.md)
+echo "2️⃣  Installing global Codex instructions..."
 
 if [ ! -f "$WORKSPACE_ROOT/core/AGENTS.md" ]; then
   echo "   ❌ core/AGENTS.md not found!"
@@ -60,8 +47,8 @@ echo "   ✅ Installed: ~/.codex/AGENTS.md"
 
 echo ""
 
-# 4. Verify that ~/.local/bin is in PATH
-echo "4️⃣  Verifying PATH..."
+# 3. Verify that ~/.local/bin is in PATH
+echo "3️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
@@ -72,8 +59,8 @@ else
   echo ""
 fi
 
-# 5. Check if Codex CLI is installed
-echo "5️⃣  Checking Codex CLI..."
+# 4. Check if Codex CLI is installed
+echo "4️⃣  Checking Codex CLI..."
 
 if command -v codex &> /dev/null; then
   echo "   ✅ Codex CLI is installed: $(codex --version 2>/dev/null || echo 'version unknown')"
@@ -88,8 +75,8 @@ else
   echo ""
 fi
 
-# 6. Check if Browser Testing MCP is configured
-echo "6️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
+# 5. Check if Browser Testing MCP is configured
+echo "5️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
 
 CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
 BROWSER_MCP_INSTALLED=false
@@ -176,8 +163,8 @@ EOF
   fi
 fi
 
-# 7. Check if Context7 MCP is configured
-echo "7️⃣  Checking Context7 MCP (Up-to-date documentation)..."
+# 6. Check if Context7 MCP is configured
+echo "6️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 
 CONTEXT7_INSTALLED=false
 
@@ -254,19 +241,12 @@ echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed:"
-echo "   ~/.local/bin/codex-aide-create"
-echo "   ~/.local/bin/codex-aide-analyze"
-echo "   ~/.local/bin/codex-aide-implement"
+echo "   ~/.codex/AGENTS.md"
 echo ""
 echo "📝 Next steps:"
 echo "   1. Start Codex in a project:"
 echo "      cd $AIDE_PROJECTS_PATH/my-app"
 echo "      codex"
-echo ""
-echo "   3. Use the CLI wrappers:"
-echo "      codex-aide-create PROJ-7890"
-echo "      codex-aide-analyze PROJ-7890"
-echo "      codex-aide-implement PROJ-7890"
 echo ""
 echo "💡 Tips:"
 echo "   - Update configuration: Run ./install.sh again"

@@ -13,7 +13,6 @@ echo ""
 echo "⚠️  This will remove:"
 echo "   - Scripts from ~/.local/bin/ (aide-generate-pdf, aide-generate-html, mise-upgrade-ai-tools)"
 echo "   - ~/.copilot/copilot-instructions.md"
-echo "   - JetBrains Live Templates (aide-templates.xml)"
 echo ""
 read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -43,34 +42,6 @@ if [ -f "$HOME/.copilot/copilot-instructions.md" ]; then
   echo "   ✅ Removed: ~/.copilot/copilot-instructions.md"
 else
   echo "   ⏭️  Did not exist: ~/.copilot/copilot-instructions.md"
-fi
-
-echo ""
-
-# 3. Remove JetBrains Live Templates
-echo "3️⃣  Removing JetBrains Live Templates..."
-
-JETBRAINS_DIR="$HOME/Library/Application Support/JetBrains"
-
-if [ -d "$JETBRAINS_DIR" ]; then
-  for ide_dir in "$JETBRAINS_DIR"/*/; do
-    if [ -d "$ide_dir" ]; then
-      ide_name=$(basename "$ide_dir")
-      templates_file="$ide_dir/templates/aide-templates.xml"
-
-      # Skip backup folders
-      if [[ "$ide_name" == *"backup"* ]] || [[ "$ide_name" == "consentOptions" ]]; then
-        continue
-      fi
-
-      if [ -f "$templates_file" ]; then
-        rm "$templates_file"
-        echo "   ✅ Removed: $ide_name/templates/aide-templates.xml"
-      fi
-    fi
-  done
-else
-  echo "   ⏭️  JetBrains folder not found"
 fi
 
 echo ""

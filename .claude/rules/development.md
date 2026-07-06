@@ -13,9 +13,8 @@ core/
 
 implementations/     AI-specific adaptations — this is the PRODUCT
   claude-code/       agents/, settings.json, install.sh, uninstall.sh
-  copilot/           install.sh, uninstall.sh, jetbrains/
-  codex/             Codex config, mcp/, scripts/
-  gemini/            Gemini config, mcp/
+  copilot/           install.sh, uninstall.sh
+  codex/             Codex config, mcp/
 
 docs/                Documentation for developers (not read by AI tools)
 ```
@@ -25,7 +24,7 @@ docs/                Documentation for developers (not read by AI tools)
 Everything is installed **globally** — not per project. Projects may also
 have their own AI setup.
 
-**Entry point:** `./install-all.sh` (repo root) installs all four AIs by
+**Entry point:** `./install-all.sh` (repo root) installs all three AIs by
 running each `implementations/<ai>/install.sh`. The `/install-all` skill does the
 same. If you only want one AI, run its script directly (e.g.
 `implementations/codex/install.sh`).
@@ -58,22 +57,13 @@ is therefore copied multiple times during `install-all`, but maintained in only 
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.codex/AGENTS.md` |
 | `core/scripts/` | `~/.local/bin/` |
-| `implementations/codex/scripts/codex-aide-*` | `~/.local/bin/` |
-
-### Gemini (install.sh)
-
-| Source | Installed to |
-|-------|-----------------|
-| `core/AGENTS.md` | `~/.gemini/GEMINI.md` |
-| `core/scripts/` | `~/.local/bin/` |
-| `implementations/gemini/.gemini/commands/*.toml` | `~/.gemini/commands/` |
 
 ## Updating the AI tools
 
 The CLI tools are kept up to date automatically:
 
 - **Claude Code** updates itself (auto-update on by default).
-- **Copilot, Codex and Gemini** are managed by [mise](https://mise.jdx.dev/), pinned to
+- **Copilot and Codex** are managed by [mise](https://mise.jdx.dev/), pinned to
   `latest` in `~/.config/mise/config.toml`.
 
 `core/scripts/mise-upgrade-ai-tools` runs `mise upgrade` on the tools +
@@ -113,4 +103,4 @@ These MUST always mirror each other. When changing one, update the other.
 
 Shared scripts (`core/scripts/` → `~/.local/bin/`) are handled by
 `core/scripts/_install-bin.sh` — change the script list *there*, not in each installer.
-`install-all.sh` / `uninstall-all.sh` (repo root) run all four in sequence.
+`install-all.sh` / `uninstall-all.sh` (repo root) run all three in sequence.
