@@ -3,7 +3,7 @@ name: aide-to-html
 description: >-
   Generer HTML fra JIRA eller TODO dokumentasjon.
   Use when: skal eksportere dokumentasjon til HTML, skal generere lesbar rapport.
-  Do NOT use for: PDF-generering (bruk aide-to-pdf), oppretting av dokumentasjon (bruk aide-opprett)
+  Do NOT use for: PDF-generering (bruk aide-to-pdf), oppretting av dokumentasjon (bruk aide-create)
 disable-model-invocation: true
 argument-hint: "[ISSUE_ID]"
 effort: medium
@@ -65,7 +65,7 @@ Brukeren har kjørt:
 
 4. **Sjekk at dokumentasjon eksisterer:**
    - `$REPORTS_ROOT/<NN-slug>/` (flat struktur for både JIRA og TODO)
-   - Hvis ikke: Informer at brukeren må kjøre `/aide-opprett` først
+   - Hvis ikke: Informer at brukeren må kjøre `/aide-create` først
 
 5. **Generer HTML:**
    ```bash
@@ -76,7 +76,7 @@ Brukeren har kjørt:
    **VIKTIG:** `aide-generate-html` scriptet trenger også å respektere `AIDE_REPORTS_PATH`!
 
    Scriptet vil:
-   - Kombinere alle markdown-filer (1-beskrivelse, 2-analyse, 3-løsning, 4-status)
+   - Kombinere alle markdown-filer (1-description, 2-analysis, 3-solution, 4-status)
    - Konvertere markdown til HTML
    - Legge til sticky navigasjon i header
    - Style med moderne CSS
@@ -101,8 +101,8 @@ Kunne ikke finne dokumentasjon for <ISSUE_ID>
 
 Har du kjørt opprett-kommandoen først?
 
-/aide-opprett <ISSUE_ID>
-/aide-analyser <ISSUE_ID>
+/aide-create <ISSUE_ID>
+/aide-analyze <ISSUE_ID>
 ```
 
 ## Fordeler med HTML
@@ -116,7 +116,7 @@ Har du kjørt opprett-kommandoen først?
 
 ## Notater
 
-- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-opprett`
+- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-create`
 - **Output-lokasjon:** Samme mappe som markdown-filene (holder alt samlet)
 - **AIDE_REPORTS_PATH:** Scriptet respekterer environment variable hvis satt
 - **Styling:** Modern, ren design med sticky navigasjon

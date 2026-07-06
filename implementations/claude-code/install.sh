@@ -57,7 +57,7 @@ if [ -d "$IMPL_DIR/agents" ]; then
 fi
 
 # Generiske regler
-GENERIC_RULES="tools-and-scripts workflows llm-disiplin git testing documentation markdown-linting report-structure communication"
+GENERIC_RULES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting report-structure communication"
 for rule in $GENERIC_RULES; do
   if [ -f "$WORKSPACE_ROOT/core/rules/$rule.md" ]; then
     cp "$WORKSPACE_ROOT/core/rules/$rule.md" "$GLOBAL_CLAUDE/rules/"

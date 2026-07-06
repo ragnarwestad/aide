@@ -104,6 +104,6 @@
 
 ## Relaterte dokumenter
 
-- [1-beskrivelse.md](./1-beskrivelse.md) - Sporingsinfo og akseptansekriterier
-- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD
+- [1-description.md](./1-description.md) - Sporingsinfo og akseptansekriterier
+- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD
 - [4-status.md](./4-status.md) - Fremdriftssporing

@@ -131,7 +131,7 @@ Følg "Autonome workflows" fra custom instructions.
 Copilot vil da:
 1. Opprette dokumentstruktur
 2. Analysere kodebasen
-3. Oppdatere 2-analyse.md og 3-løsning.md
+3. Oppdatere 2-analysis.md og 3-solution.md
 4. Stage filer med git
 
 ### Natural Language Commands
@@ -140,9 +140,9 @@ I stedet for slash commands (som Claude Code), bruk natural language:
 
 | Claude Code | Copilot ekvivalent |
 |-------------|-------------------|
-| `/aide-opprett PROJ-7890` | "Opprett dokumentasjon for PROJ-7890" |
-| `/aide-analyser PROJ-7890` | "Analyser PROJ-7890" |
-| `/aide-løs PROJ-7890` | "Implementer PROJ-7890 med TDD" |
+| `/aide-create PROJ-7890` | "Opprett dokumentasjon for PROJ-7890" |
+| `/aide-analyze PROJ-7890` | "Analyser PROJ-7890" |
+| `/aide-implement PROJ-7890` | "Implementer PROJ-7890 med TDD" |
 
 ### Bruk Tasks for repetitive kommandoer
 
@@ -181,7 +181,7 @@ Legg til i din `keybindings.json` (File → Preferences → Keyboard Shortcuts �
 ## 📁 Dokumentasjonstruktur
 
 - **JIRA-tickets:** `reports/<NN>-{ISSUE_ID}-slug/`
-  - `1-beskrivelse.md`, `2-analyse.md`, `3-løsning.md`, `4-status.md`
+  - `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
   - **OBS:** Hvis `AIDE_REPORTS_PATH` er satt, skrives reports dit i stedet
 - **Todo-planer:** `reports/`
 - **Generiske workflows:** `core/rules/`
@@ -289,7 +289,7 @@ Aktivér Agent Mode i Copilot Chat:
 
 | Feature | Claude Code | Copilot (VS Code) |
 |---------|-------------|-------------------|
-| **Kommandoer** | `/aide-opprett` | Natural language eller Tasks |
+| **Kommandoer** | `/aide-create` | Natural language eller Tasks |
 | **Instruksjoner** | `CLAUDE.md` (auto-read) | `.github/copilot-instructions.md` |
 | **Permissions** | Fine-grained i settings.json | Workspace Trust (all-or-nothing) |
 | **Bash commands** | Direkte kjøring (pre-approved) | Via Tasks eller manual terminal |

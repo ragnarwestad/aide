@@ -250,8 +250,8 @@ def create_readme(report_dir: Path) -> bool:
     if readme_path.exists():
         return False
 
-    # Get title from 1-beskrivelse.md
-    beskrivelse_path = report_dir / "1-beskrivelse.md"
+    # Get title from 1-description.md
+    beskrivelse_path = report_dir / "1-description.md"
     title = report_dir.name
 
     if beskrivelse_path.exists():
@@ -264,9 +264,9 @@ def create_readme(report_dir: Path) -> bool:
 
 **Innholdsfortegnelse:**
 
-1. [Beskrivelse](1-beskrivelse.md) - Bakgrunn og mål
-2. [Analyse](2-analyse.md) - Teknisk analyse
-3. [Løsning](3-løsning.md) - Implementeringsplan
+1. [Beskrivelse](1-description.md) - Bakgrunn og mål
+2. [Analyse](2-analysis.md) - Teknisk analyse
+3. [Løsning](3-solution.md) - Implementeringsplan
 4. [Status](4-status.md) - Fremdriftssporing
 
 ---
@@ -309,7 +309,7 @@ def process_report_dir(report_dir: Path) -> dict:
         result["changes"].append("Opprettet 0-README.md")
 
     # Process each standard file
-    files_to_process = ["1-beskrivelse.md", "2-analyse.md", "3-løsning.md", "4-status.md"]
+    files_to_process = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
 
     for filename in files_to_process:
         filepath = report_dir / filename

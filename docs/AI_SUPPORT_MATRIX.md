@@ -187,7 +187,7 @@ Siden vi allerede har skills i `.claude/skills/` plukker Copilot dem opp automat
 
 ### Features
 
-- **Slash commands** — leser delte skills fra `~/.claude/skills/` (f.eks. `/aide-opprett`)
+- **Slash commands** — leser delte skills fra `~/.claude/skills/` (f.eks. `/aide-create`)
 - **VS Code tasks** — forhåndsdefinerte oppgaver i Command Palette
 - **Agent Mode** — kan utføre flerstegs workflows autonomt
 - **MCP:** Støtte via GitHub MCP-server

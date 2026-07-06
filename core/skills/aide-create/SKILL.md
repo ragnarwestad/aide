@@ -1,11 +1,11 @@
 ---
-name: aide-opprett
+name: aide-create
 description: >-
   Opprett dokumentstruktur for en JIRA-sak eller TODO-plan med 4-fils
   rapportstruktur (beskrivelse, analyse, løsning, status).
   Use when: skal opprette ny oppgave, ny JIRA-sak, ny TODO-plan,
   starter nytt arbeid som trenger dokumentasjon.
-  Do NOT use for: analyse (bruk aide-analyser), implementering (bruk aide-løs),
+  Do NOT use for: analyse (bruk aide-analyze), implementering (bruk aide-implement),
   kode-review.
 disable-model-invocation: true
 argument-hint: "[PROJ-XXXX eller TODO <beskrivelse>]"
@@ -21,15 +21,15 @@ Opprett dokumentstruktur for en JIRA-sak eller TODO-plan.
 Parse `$ARGUMENTS`:
 
 **JIRA mode:** Hvis første ord starter med `PROJ-`
-- Eksempel: `/aide-opprett PROJ-7890`
+- Eksempel: `/aide-create PROJ-7890`
 - Tittel: JIRA-nøkkel, beskrivelse: hent fra JIRA hvis mulig
 
 **TODO mode (med navn):** Hvis første ord starter med `TODO-` (men ikke kun `TODO`)
-- Eksempel: `/aide-opprett TODO-redux-form-migration Flytt alle forms`
+- Eksempel: `/aide-create TODO-redux-form-migration Flytt alle forms`
 - Tittel: `TODO-redux-form-migration`, beskrivelse: resten av argumentene
 
 **TODO mode (autogenerert):** Hvis første ord er kun `TODO`
-- Eksempel: `/aide-opprett TODO Flytt forms til React Hook Form`
+- Eksempel: `/aide-create TODO Flytt forms til React Hook Form`
 - Tittel: genereres automatisk fra beskrivelsen
 
 **Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
@@ -38,14 +38,14 @@ Parse `$ARGUMENTS`:
 Mangler argument
 
 Bruk:
-/aide-opprett PROJ-XXXX                    # For JIRA-sak
-/aide-opprett TODO-<navn> <beskrivelse>       # TODO med navn
-/aide-opprett TODO <beskrivelse>              # TODO autogenerert
+/aide-create PROJ-XXXX                    # For JIRA-sak
+/aide-create TODO-<navn> <beskrivelse>       # TODO med navn
+/aide-create TODO <beskrivelse>              # TODO autogenerert
 
 Eksempler:
-/aide-opprett PROJ-7890
-/aide-opprett TODO-redux-form-migration Flytt forms fra Redux Form
-/aide-opprett TODO Implementere dark mode
+/aide-create PROJ-7890
+/aide-create TODO-redux-form-migration Flytt forms fra Redux Form
+/aide-create TODO Implementere dark mode
 ```
 
 ---
@@ -75,7 +75,7 @@ Eksempler:
 ### Steg 4: Opprett katalog og 5 filer
 
 - Opprett katalog: `<reports-root>/NN-slug/`
-- Opprett filene med innhold fra `references/fil-templates.md`
+- Opprett filene med innhold fra `references/file-templates.md`
 - Erstatt plassholdere: TITLE, FOLDER, DATE, DESC
 
 ### Steg 5: Stage i git
@@ -92,12 +92,12 @@ Oppgave opprettet: 55-rydd-opp-i-console-log
 
 Filer opprettet:
 - reports/55-rydd-opp-i-console-log/0-README.md
-- reports/55-rydd-opp-i-console-log/1-beskrivelse.md (ferdig utfylt)
-- reports/55-rydd-opp-i-console-log/2-analyse.md (klar for analyse)
-- reports/55-rydd-opp-i-console-log/3-løsning.md (klar for løsning)
+- reports/55-rydd-opp-i-console-log/1-description.md (ferdig utfylt)
+- reports/55-rydd-opp-i-console-log/2-analysis.md (klar for analyse)
+- reports/55-rydd-opp-i-console-log/3-solution.md (klar for løsning)
 - reports/55-rydd-opp-i-console-log/4-status.md (klar for status)
 
-Neste steg: /aide-analyser 55
+Neste steg: /aide-analyze 55
 ```
 
 VIKTIG:
@@ -110,6 +110,6 @@ VIKTIG:
 ## Neste steg
 
 ```text
-/aide-analyser PROJ-XXXX   # For JIRA-sak
-/aide-analyser 55              # For TODO (bruk oppgavenummer)
+/aide-analyze PROJ-XXXX   # For JIRA-sak
+/aide-analyze 55              # For TODO (bruk oppgavenummer)
 ```

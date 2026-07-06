@@ -1,16 +1,16 @@
-# /aide-analyser - Analyser kodebase for JIRA/TODO
-# Bruk: /aide-analyser PROJ-1234
-# Eller: /aide-analyser todo-01
+# /aide-analyze - Analyser kodebase for JIRA/TODO
+# Bruk: /aide-analyze PROJ-1234
+# Eller: /aide-analyze todo-01
 
-description = "Analyser kodebasen og oppdater 2-analyse.md og 3-løsning.md"
+description = "Analyser kodebasen og oppdater 2-analysis.md og 3-solution.md"
 
 prompt = """
 Analyser kodebasen for: {{args}}
 
 STEG 0: FINN DOKUMENTASJON
-- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/1-beskrivelse.md
-- Hvis todo-*: Les todo/<TODO_ID>/1-beskrivelse.md
-- Hvis filen ikke finnes: Kjør /aide-opprett først
+- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/1-description.md
+- Hvis todo-*: Les todo/<TODO_ID>/1-description.md
+- Hvis filen ikke finnes: Kjør /aide-create først
 
 STEG 1: DETEKTER KOMPLEKSITET
 Les core/rules/workflows.md for kompleksitetsdeteksjon:
@@ -27,13 +27,13 @@ STEG 3: VURDER API-PÅVIRKNING
 - Dokumenter påvirkede endpoints
 
 STEG 4: OPPDATER DOKUMENTER
-Oppdater 2-analyse.md med:
+Oppdater 2-analysis.md med:
 - Påvirkede filer (fil:linje format)
 - Kompleksitetsvurdering
 - Risikoanalyse
 - API-påvirkning
 
-Oppdater 3-løsning.md med:
+Oppdater 3-solution.md med:
 - TDD-basert implementeringsplan
 - Steg 0: Skriv tester (RED)
 - Steg 1-N: Implementering (GREEN)
@@ -44,7 +44,7 @@ STEG 5: STAGE FILER
 
 STEG 6: BEKREFT
 - Vis oppsummering av funn
-- Neste steg: Kjør /aide-løs <ID>
+- Neste steg: Kjør /aide-implement <ID>
 
 VIKTIG:
 - Følg core/rules/workflows.md

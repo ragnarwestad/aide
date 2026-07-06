@@ -6,10 +6,10 @@ Skills lastes fra `~/.claude/skills/` — bruk `/`-syntax.
 
 Tilgjengelige skills:
 
-- `/aide-opprett` - Opprett JIRA/TODO-dokumentasjon
-- `/aide-analyser` - Analyser kodebase
-- `/aide-løs` - Implementer med TDD
-- `/aide-lag-tester` - Lag manglende tester
+- `/aide-create` - Opprett JIRA/TODO-dokumentasjon
+- `/aide-analyze` - Analyser kodebase
+- `/aide-implement` - Implementer med TDD
+- `/aide-make-tests` - Lag manglende tester
 - `/aide-react-class-to-func` - Konverter class til functional
 - `/tdd-coach` - Test-Driven Development metodikk
 - `/architecture-advisor` - Arkitektur-vurderinger

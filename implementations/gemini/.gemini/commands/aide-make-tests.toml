@@ -1,5 +1,5 @@
-# /aide-lag-tester - Lag manglende enhetstester
-# Bruk: /aide-lag-tester src/utils/land.ts
+# /aide-make-tests - Lag manglende enhetstester
+# Bruk: /aide-make-tests src/utils/land.ts
 
 description = "Analyser en fil og opprett manglende enhetstester"
 

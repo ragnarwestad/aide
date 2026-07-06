@@ -1,6 +1,6 @@
-# /aide-opprett - Opprett JIRA/TODO dokumentasjon
-# Bruk: /aide-opprett PROJ-7890
-# Eller: /aide-opprett todo-navn Beskrivelse av oppgaven
+# /aide-create - Opprett JIRA/TODO dokumentasjon
+# Bruk: /aide-create PROJ-7890
+# Eller: /aide-create todo-navn Beskrivelse av oppgaven
 
 description = "Opprett strukturert dokumentasjon for JIRA-sak eller TODO-plan"
 
@@ -15,18 +15,18 @@ STEG 0: DETEKTER TYPE
 FOR JIRA-SAK (PROJ-XXXX):
 1. Sjekk at AIDE_INSTALLATION_PATH er satt (stopp med feilmelding hvis ikke).
 2. Tildel neste ledige nummer, og opprett katalogen reports/<NN>-PROJ-XXXX-slug/
-   med filene fra malene i core/templates/todo/: 0-README.md, 1-beskrivelse.md,
-   2-analyse.md, 3-løsning.md, 4-status.md. Fyll inn JIRA-metadata i
-   1-beskrivelse.md (bruker limer inn JIRA-data).
+   med filene fra malene i core/templates/todo/: 0-README.md, 1-description.md,
+   2-analysis.md, 3-solution.md, 4-status.md. Fyll inn JIRA-metadata i
+   1-description.md (bruker limer inn JIRA-data).
 3. Verifiser at filene ble opprettet.
-4. Vis oppsummering. Neste steg: /aide-analyser <NN>
+4. Vis oppsummering. Neste steg: /aide-analyze <NN>
 
 FOR TODO-PLAN:
 1. Sjekk at AIDE_INSTALLATION_PATH er satt.
 2. Tildel neste ledige nummer, generer slug fra tittelen, og opprett
    reports/<NN>-slug/ med de samme filene fra malene i core/templates/todo/.
 3. Verifiser at filene ble opprettet.
-4. Vis oppsummering. Neste steg: /aide-analyser <NN>
+4. Vis oppsummering. Neste steg: /aide-analyze <NN>
 
 VIKTIG:
 - Følg core/rules/workflows.md

@@ -1,6 +1,6 @@
-# /aide-los - Implementer med TDD
-# Bruk: /aide-los PROJ-1234
-# Eller: /aide-los todo-01
+# /aide-implement - Implementer med TDD
+# Bruk: /aide-implement PROJ-1234
+# Eller: /aide-implement todo-01
 
 description = "Implementer løsningen med TDD (RED-GREEN-REFACTOR)"
 
@@ -8,13 +8,13 @@ prompt = """
 Implementer løsningen for: {{args}}
 
 STEG 0: LES DOKUMENTASJON
-- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/3-løsning.md
-- Hvis todo-*: Les todo/<TODO_ID>/3-løsning.md
-- Hvis filen er tom: Kjør /aide-analyser først
+- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/3-solution.md
+- Hvis todo-*: Les todo/<TODO_ID>/3-solution.md
+- Hvis filen er tom: Kjør /aide-analyze først
 
 FASE 1: RED (Skriv tester som feiler)
 
-1. Les implementeringsplanen i 3-løsning.md
+1. Les implementeringsplanen i 3-solution.md
 2. Opprett testfiler som beskrevet i "Steg 0: Skriv tester"
 3. Kjør testene: pnpm test -- --run <testfil>
 4. VERIFISER at testene FEILER (dette er forventet!)
@@ -22,7 +22,7 @@ FASE 1: RED (Skriv tester som feiler)
 
 FASE 2: GREEN (Implementer til tester passerer)
 
-1. Implementer koden steg for steg fra 3-løsning.md
+1. Implementer koden steg for steg fra 3-solution.md
 2. Etter HVERT steg:
    - Kjør: pnpm test -- --run <testfil>
    - Verifiser at testene passerer

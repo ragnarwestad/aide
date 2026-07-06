@@ -170,10 +170,10 @@ over `install.sh`:
 
 | Kommando | Funksjon |
 |----------|----------|
-| `/aide-opprett` | Opprett JIRA-dokumentasjon |
-| `/aide-analyser` | Analyser kodebase |
-| `/aide-løs` | Implementer med TDD |
-| `/aide-lag-tester` | Lag tester for fil |
+| `/aide-create` | Opprett JIRA-dokumentasjon |
+| `/aide-analyze` | Analyser kodebase |
+| `/aide-implement` | Implementer med TDD |
+| `/aide-make-tests` | Lag tester for fil |
 | `/aide-react-class-to-func` | Konverter React class til functional |
 
 Skriv kommandoen i en `copilot`-sesjon, akkurat som i Claude Code.
@@ -207,10 +207,10 @@ cp implementations/copilot/jetbrains/aide-templates.xml \
 | Forkortelse              | Funksjon                             |
 |--------------------------|--------------------------------------|
 | `aide-review`            | Code review før PR                   |
-| `aide-opprett`           | Opprett JIRA-dokumentasjon           |
-| `aide-analyser`          | Analyser kodebase                    |
-| `aide-løs`               | Implementer med TDD                  |
-| `aide-lag-tester`        | Lag manglende tester                 |
+| `aide-create`           | Opprett JIRA-dokumentasjon           |
+| `aide-analyze`          | Analyser kodebase                    |
+| `aide-implement`               | Implementer med TDD                  |
+| `aide-make-tests`        | Lag manglende tester                 |
 | `aide-react-class-to-func` | Konverter React class til functional |
 
 ---
@@ -219,7 +219,7 @@ cp implementations/copilot/jetbrains/aide-templates.xml \
 
 #### 1. Opprett JIRA-dokumentasjon
 
-**I stedet for:** `/aide-opprett PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
 
 **Med Copilot (Agent Mode):**
 
@@ -229,33 +229,33 @@ Opprett strukturert dokumentasjon for JIRA-sak PROJ-7890:
 1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
 2. Følg core/rules/documentation.md
 3. Bruk templates fra core/templates/todo/
-4. Fyll ut 1-beskrivelse.md med JIRA-metadata (bruker limer inn data)
-5. Opprett tomme filer: 2-analyse.md, 3-løsning.md, 4-status.md
+4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
+5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
 6. Stage alle nye filer i git
 ```
 
 #### 2. Analyser kodebase
 
-**I stedet for:** `/aide-analyser PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
 
 **Med Copilot (Agent Mode):**
 
 ```text
 Analyser kodebasen for JIRA-sak PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-beskrivelse.md
+1. Les reports/<NN>-PROJ-7890-slug/1-description.md
 2. Søk i kodebasen etter relevante filer
 3. Identifiser påvirkede komponenter (fil:linje)
 4. Sjekk API-påvirkning (frontend ↔ backend)
 5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analyse.md med funn
-7. Lag implementeringsplan i 3-løsning.md
+6. Oppdater 2-analysis.md med funn
+7. Lag implementeringsplan i 3-solution.md
 8. Følg core/rules/workflows.md struktur
 ```
 
 #### 3. Implementer med TDD
 
-**I stedet for:** `/aide-løs PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
 
 **Med Copilot (Agent Mode):**
 
@@ -263,14 +263,14 @@ Analyser kodebasen for JIRA-sak PROJ-7890:
 Implementer løsningen for PROJ-7890 med TDD:
 
 RED PHASE:
-1. Les 3-løsning.md → Steg 0: Skriv tester
+1. Les 3-solution.md → Steg 0: Skriv tester
 2. Opprett testfiler som beskrevet
 3. Kjør: pnpm test -- --run <testfil>
 4. Verifiser at tester FEILER
 5. Stopp og be om bekreftelse
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-løsning.md
+1. Implementer Steg 1-N fra 3-solution.md
 2. Kjør tester etter hvert steg
 3. Verifiser at alle tester PASSERER
 4. Stopp og be om bekreftelse
@@ -308,8 +308,8 @@ Analyser PROJ-7890
 ✅ **Bra:**
 ```text
 Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-beskrivelse.md, søk deretter i kodebasen,
-og oppdater 2-analyse.md med funn (fil:linje).
+Les først 1-description.md, søk deretter i kodebasen,
+og oppdater 2-analysis.md med funn (fil:linje).
 ```
 
 ### 2. Referer alltid til core/rules/
@@ -401,7 +401,7 @@ copilot --yolo                            # Tillat alt uten spørsmål
 
 | Feature | Claude Code | Copilot CLI |
 |---------|-------------|-------------|
-| **Kommandoer** | Slash commands (`/aide-opprett`) | Slash commands + natural language |
+| **Kommandoer** | Slash commands (`/aide-create`) | Slash commands + natural language |
 | **Instruksjoner** | CLAUDE.md (auto-read) | CLAUDE.md + copilot-instructions.md |
 | **Plan mode** | ✅ Native | ✅ Native (Shift+Tab) |
 | **Autopilot mode** | ✅ (via permissions) | ✅ Native (`--yolo`) |
@@ -475,7 +475,7 @@ copilot -p "Kjør alle tester og fiks feil" --yolo
 copilot -p "Si 'hello'"
 
 # Kjør aide-workflow headless
-copilot -p "/aide-opprett PROJ-TEST"
+copilot -p "/aide-create PROJ-TEST"
 ```
 
 ### Flagg-referanse

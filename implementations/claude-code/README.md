@@ -39,45 +39,45 @@ JIRA-integrasjonen lar deg automatisk:
 **Tilgjengelige skills:**
 ```bash
 # JIRA-arbeidsflyt (detekteres automatisk fra PROJ-* prefix)
-/aide-opprett PROJ-7637           # Opprett dokumentstruktur
-/aide-analyser PROJ-7637          # Analyser kodebase
-/aide-løs PROJ-7637               # Implementer med TDD
+/aide-create PROJ-7637           # Opprett dokumentstruktur
+/aide-analyze PROJ-7637          # Analyser kodebase
+/aide-implement PROJ-7637               # Implementer med TDD
 
 # TODO-arbeidsflyt (med todo- prefix)
-/aide-opprett todo-redux-form-migration Flytt forms fra Redux Form
+/aide-create todo-redux-form-migration Flytt forms fra Redux Form
 # → Genererer: todo-01-redux-form-migration
 
-/aide-opprett todo Flytt forms      # Autogenerert slug
+/aide-create todo Flytt forms      # Autogenerert slug
 # → Genererer: todo-01-flytt-forms
 
-/aide-analyser todo-01               # Analyser (shorthand - søker etter todo-01-*)
-/aide-løs todo-01                    # Implementer (shorthand)
+/aide-analyze todo-01               # Analyser (shorthand - søker etter todo-01-*)
+/aide-implement todo-01                    # Implementer (shorthand)
 
 # Utility
 /aide-to-pdf PROJ-7637            # Generer PDF-dokument
 ```
 
-**Resultat av /aide-opprett (JIRA mode):**
+**Resultat av /aide-create (JIRA mode):**
 - ✅ Dokumentstruktur opprettet i reports/<NN>-PROJ-7637-slug/
-- ✅ 1-beskrivelse.md fylt ut med JIRA-metadata + description
-- ✅ Tomme filer: 2-analyse.md, 3-løsning.md, 4-status.md
+- ✅ 1-description.md fylt ut med JIRA-metadata + description
+- ✅ Tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
 
-**Resultat av /aide-analyser:**
+**Resultat av /aide-analyze:**
 - ✅ Kodebase analysert (via @agent-jira-analyzer eller @agent-todo-analyzer)
 - ✅ Alle 4 dokumentfiler oppdatert med analyse og løsningsforslag
 - ✅ Konkrete filer og linjenummer identifisert
 
 **Arkitektur:**
 ```text
-/aide-opprett PROJ-7637 → Oppretter dokumentstruktur
+/aide-create PROJ-7637 → Oppretter dokumentstruktur
     ↓
-/aide-analyser PROJ-7637 → @agent-jira-analyzer
+/aide-analyze PROJ-7637 → @agent-jira-analyzer
     ↓
     Analyserer kodebase (Explore agent)
     ↓
     Oppdaterer dokumentasjon
     ↓
-/aide-løs PROJ-7637 → @agent-tdd-implementer
+/aide-implement PROJ-7637 → @agent-tdd-implementer
     ↓
     RED → GREEN → REFACTOR (med brukerbekreftelse)
 ```
@@ -150,28 +150,28 @@ Kjør `./install.sh` på nytt for å oppdatere etter endringer.
 
 3. **Kjør slash-kommandoen:**
    ```bash
-   /aide-opprett PROJ-7637
+   /aide-create PROJ-7637
    ```
 
 4. **Claude vil automatisk:**
    - Opprette dokumentstruktur: `../doc-aide/reports/<NN>-PROJ-7637-slug/`
-   - Fylle ut `1-beskrivelse.md` med JIRA-metadata
+   - Fylle ut `1-description.md` med JIRA-metadata
    - Gi deg en oppsummering
 
 5. **Analyser kodebasen:**
    ```bash
-   /aide-analyser PROJ-7637
+   /aide-analyze PROJ-7637
    ```
 
 6. **Les dokumentasjonen:**
    ```bash
-   cat ../doc-aide/reports/<NN>-PROJ-7637-slug/2-analyse.md
-   cat ../doc-aide/reports/<NN>-PROJ-7637-slug/3-løsning.md
+   cat ../doc-aide/reports/<NN>-PROJ-7637-slug/2-analysis.md
+   cat ../doc-aide/reports/<NN>-PROJ-7637-slug/3-solution.md
    ```
 
 7. **Implementer løsningen (valgfritt):**
    ```bash
-   /aide-løs PROJ-7637
+   /aide-implement PROJ-7637
    ```
 
 ### Starte arbeid på en TODO-plan
@@ -182,47 +182,47 @@ Kjør `./install.sh` på nytt for å oppdatere etter endringer.
 
    Med eksplisitt navn:
    ```bash
-   /aide-opprett todo-redux-form-migration Flytt alle forms fra Redux Form til React Hook Form
+   /aide-create todo-redux-form-migration Flytt alle forms fra Redux Form til React Hook Form
    ```
    → Genererer: `todo-01-redux-form-migration`
 
    Eller autogenerert fra beskrivelse:
    ```bash
-   /aide-opprett todo Flytt forms til React Hook Form
+   /aide-create todo Flytt forms til React Hook Form
    ```
    → Genererer: `todo-01-flytt-forms-til-react-hook-form`
 
 3. **Analyser (bruk shorthand):**
    ```bash
-   /aide-analyser todo-01
+   /aide-analyze todo-01
    ```
 
    Eller med full ID:
    ```bash
-   /aide-analyser todo-01-redux-form-migration
+   /aide-analyze todo-01-redux-form-migration
    ```
 
 4. **Implementer (bruk shorthand):**
    ```bash
-   /aide-løs todo-01
+   /aide-implement todo-01
    ```
 
 ---
 
 ## Feilsøking
 
-### Problem: `/aide-opprett` kommandoen ikke funnet
+### Problem: `/aide-create` kommandoen ikke funnet
 
 **Årsak:** Skill ikke lastet eller feil plassert
 
 **Løsning:**
-1. Sjekk at mappen eksisterer: `~/.claude/skills/aide-opprett/SKILL.md`
+1. Sjekk at mappen eksisterer: `~/.claude/skills/aide-create/SKILL.md`
 2. Restart Claude Code
 3. Prøv igjen
 
 ### Problem: Dokumentasjon eksisterer allerede
 
-**Dette er OK!** `/aide-opprett` kan kjøres på nytt for å oppdatere 1-beskrivelse.md.
+**Dette er OK!** `/aide-create` kan kjøres på nytt for å oppdatere 1-description.md.
 
 ### Problem: Claude spør om permissions selv om de er satt i settings.json
 
@@ -273,9 +273,9 @@ $AIDE_PROJECTS_PATH/
 └── .claude/                            # Delt konfigurasjon
     ├── settings.json                   # Permissions (absolutte stier)
     ├── skills/                         # Alle skills (ekspert + aide-* workflows)
-    │   ├── aide-opprett/SKILL.md
-    │   ├── aide-analyser/SKILL.md
-    │   ├── aide-løs/SKILL.md
+    │   ├── aide-create/SKILL.md
+    │   ├── aide-analyze/SKILL.md
+    │   ├── aide-implement/SKILL.md
     │   ├── tdd-coach/SKILL.md
     │   ├── my-app-expert/SKILL.md
     │   ├── my-api-expert/SKILL.md
@@ -305,10 +305,10 @@ my-docs/
 ```text
 doc-aide/reports/
 ├── PROJ-7637/
-│   ├── 1-beskrivelse.md     # Generert av /aide-opprett
-│   ├── 2-analyse.md         # Generert av /aide-analyser
-│   ├── 3-løsning.md         # Generert av /aide-analyser
-│   └── 4-status.md          # Generert av /aide-analyser
+│   ├── 1-description.md     # Generert av /aide-create
+│   ├── 2-analysis.md         # Generert av /aide-analyze
+│   ├── 3-solution.md         # Generert av /aide-analyze
+│   └── 4-status.md          # Generert av /aide-analyze
 └── PROJ-XXXX/
     └── [samme struktur]
 ```
@@ -319,17 +319,17 @@ doc-aide/reports/
 
 ### 1. Unified /aide-* skills
 
-**`/aide-opprett PROJ-XXXX`** (detekterer JIRA mode fra format)
+**`/aide-create PROJ-XXXX`** (detekterer JIRA mode fra format)
 1. Oppretter dokumentstruktur (4 filer)
-2. Fyller ut 1-beskrivelse.md med JIRA-metadata (brukeren limer inn JIRA-data manuelt)
+2. Fyller ut 1-description.md med JIRA-metadata (brukeren limer inn JIRA-data manuelt)
 
-**`/aide-analyser PROJ-XXXX`**
+**`/aide-analyze PROJ-XXXX`**
 1. Analyserer kodebase med Explore agent (@agent-jira-analyzer)
 2. Identifiserer berørte filer (med linjenummer)
 3. Oppdaterer alle 4 dokumentfiler
 
-**`/aide-løs PROJ-XXXX`**
-1. Leser 2-analyse.md og 3-løsning.md
+**`/aide-implement PROJ-XXXX`**
+1. Leser 2-analysis.md og 3-solution.md
 2. Implementerer med TDD (RED → GREEN → REFACTOR)
 3. Oppdaterer 4-status.md underveis
 
@@ -353,7 +353,7 @@ ls -lt ../doc-aide/reports/
 
 ```bash
 # Hvis kodebasen har endret seg siden sist analyse
-/aide-analyser PROJ-7890
+/aide-analyze PROJ-7890
 ```
 
 ---
@@ -362,21 +362,21 @@ ls -lt ../doc-aide/reports/
 
 ```bash
 # 1. Opprett dokumentasjon (auto-detekterer JIRA fra PROJ-format)
-/aide-opprett PROJ-7890
+/aide-create PROJ-7890
 
 # Claude henter saken og oppretter dokumentstruktur
 
 # 2. Analyser kodebase
-/aide-analyser PROJ-7890
+/aide-analyze PROJ-7890
 
 # Claude analyserer kodebase og oppdaterer dokumentasjon
 
 # 3. Les dokumentasjonen
-cat ../doc-aide/reports/<NN>-PROJ-7890-slug/2-analyse.md
-cat ../doc-aide/reports/<NN>-PROJ-7890-slug/3-løsning.md
+cat ../doc-aide/reports/<NN>-PROJ-7890-slug/2-analysis.md
+cat ../doc-aide/reports/<NN>-PROJ-7890-slug/3-solution.md
 
 # 4. Implementer løsning (valgfritt - TDD-assistert)
-/aide-løs PROJ-7890
+/aide-implement PROJ-7890
 
 # Eller kode manuelt basert på dokumentasjonen
 

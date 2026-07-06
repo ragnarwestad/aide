@@ -51,9 +51,9 @@ class TestRequiredPlaceholders:
         }
 
         # Act & Assert - Check beskrivelse template has required fields
-        beskrivelse_template = templates_dir / "1-beskrivelse.md.template"
+        beskrivelse_template = templates_dir / "1-description.md.template"
         if beskrivelse_template.exists():
             content = beskrivelse_template.read_text()
             for placeholder in required_placeholders:
                 assert placeholder in content, \
-                    f"1-beskrivelse.md.template should contain {placeholder}"
+                    f"1-description.md.template should contain {placeholder}"

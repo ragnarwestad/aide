@@ -1,5 +1,5 @@
 ---
-name: sjekk-nyheter
+name: check-news
 description: >-
   Sjekk AI-verktøy nyheter fra Anthropic, GitHub, Google og OpenAI.
   Henter changelogs og nyheter fra offisielle kilder, vurderer relevans

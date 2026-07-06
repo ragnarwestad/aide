@@ -35,7 +35,7 @@ source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 uninstall_common_bin
 
 # Codex-spesifikke CLI-wrappers (installeres av install.sh)
-for script in codex-aide-opprett codex-aide-analyser codex-aide-los; do
+for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
   if [ -f "$HOME/.local/bin/$script" ]; then
     rm "$HOME/.local/bin/$script"
     echo "   ✅ Fjernet: ~/.local/bin/$script"

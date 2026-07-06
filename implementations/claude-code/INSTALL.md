@@ -19,7 +19,7 @@ cd $AIDE_PROJECTS_PATH/my-app
 claude
 ```
 
-**Test:** Kjør `/aide-opprett PROJ-7637` i Claude Code.
+**Test:** Kjør `/aide-create PROJ-7637` i Claude Code.
 
 ---
 
@@ -117,12 +117,12 @@ Hvis du har JIRA MCP-server, kan den brukes i stedet for cookie-basert autentise
 
 | Kommando | Beskrivelse |
 |----------|-------------|
-| `/aide-opprett PROJ-XXXX` | Opprett JIRA-dokumentasjon |
-| `/aide-opprett todo-navn Beskrivelse` | Opprett TODO-plan |
-| `/aide-analyser PROJ-XXXX` | Analyser kodebase |
-| `/aide-løs PROJ-XXXX` | Implementer med TDD |
+| `/aide-create PROJ-XXXX` | Opprett JIRA-dokumentasjon |
+| `/aide-create todo-navn Beskrivelse` | Opprett TODO-plan |
+| `/aide-analyze PROJ-XXXX` | Analyser kodebase |
+| `/aide-implement PROJ-XXXX` | Implementer med TDD |
 | `/aide-react-class-to-func <fil>` | Konverter React class til functional |
-| `/aide-lag-tester <fil>` | Generer manglende tester |
+| `/aide-make-tests <fil>` | Generer manglende tester |
 
 ### Terminal-scripts
 
@@ -132,13 +132,13 @@ Hvis du har JIRA MCP-server, kan den brukes i stedet for cookie-basert autentise
 | `aide-generate-html` | Generer HTML fra rapport |
 | `mise-upgrade-ai-tools` | Oppdater AI-CLI-ene |
 
-Dokumentopprettelse skjer via slash-kommandoen `/aide-opprett` (ikke et terminal-script).
+Dokumentopprettelse skjer via slash-kommandoen `/aide-create` (ikke et terminal-script).
 
 ---
 
 ## Feilsøking
 
-### "/aide-opprett kommando ikke funnet"
+### "/aide-create kommando ikke funnet"
 
 ```bash
 # Verifiser at AIDE_PROJECTS_PATH er satt

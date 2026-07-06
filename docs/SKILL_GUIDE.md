@@ -55,7 +55,7 @@ my-skill/
 **Gode eksempler på dette:** e2e-test-skills med referansefiler for
 debugging-queries og enum-referanser i `references/`.
 
-**Våre skills som bør refaktoreres:** aide-opprett, aide-analyser, aide-løs
+**Våre skills som bør refaktoreres:** aide-create, aide-analyze, aide-implement
 har alt i SKILL.md (150-200 linjer). Detaljerte prompts bør flyttes til
 `references/`.
 
@@ -98,7 +98,7 @@ Mangler: trigger-fraser, "Do NOT use for", nøkkelfunksjoner.
 
 Vi har to hovedtyper med ulik struktur:
 
-### Workflow-skills (aide-opprett, tdd-coach)
+### Workflow-skills (aide-create, tdd-coach)
 
 Stegvise oppskrifter som Claude følger. Strukturen er:
 

@@ -25,7 +25,7 @@ for Claude Code, Copilot, Codex og Gemini.
 ## Viktige regler
 
 **aide-* er skills (slash commands), ikke CLI-scripts.**
-`/aide-opprett`, `/aide-analyser`, `/aide-løs` etc. kjøres inne i Claude Code eller Copilot.
+`/aide-create`, `/aide-analyze`, `/aide-implement` etc. kjøres inne i Claude Code eller Copilot.
 Kun `aide-generate-pdf` og `aide-generate-html` finnes som CLI-scripts (de kjører pandoc).
 
 Se `.claude/rules/development.md` for katalogstruktur, installasjonsoversikt

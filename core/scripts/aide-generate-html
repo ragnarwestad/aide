@@ -45,7 +45,7 @@ if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
   echo "Søkte i: $REPORTS_ROOT"
   echo ""
   echo "Tips:"
-  echo "  - Har du kjørt /aide-opprett først?"
+  echo "  - Har du kjørt /aide-create først?"
   echo "  - Sjekk at AIDE_REPORTS_PATH er riktig satt"
   echo ""
   echo "Tilgjengelige mapper:"
@@ -100,9 +100,9 @@ add_section() {
 }
 
 # Legg til alle seksjoner (hopp over README)
-add_section "1-beskrivelse.md" "Beskrivelse"
-add_section "2-analyse.md" "Analyse"
-add_section "3-løsning.md" "Løsning"
+add_section "1-description.md" "Beskrivelse"
+add_section "2-analysis.md" "Analyse"
+add_section "3-solution.md" "Løsning"
 add_section "4-status.md" "Status"
 
 echo ""

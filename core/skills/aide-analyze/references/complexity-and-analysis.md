@@ -18,7 +18,7 @@ Se workflows-reglene § Kompleksitetsdeteksjon for detaljer.
 1. Finn den ene filen
 2. Les filen, identifiser linjenummer
 3. Sjekk om tester finnes
-4. Dokumenter funn (< 80 linjer i 2-analyse.md)
+4. Dokumenter funn (< 80 linjer i 2-analysis.md)
 
 ### MIDDELS (Komponentanalyse, 20-45 min)
 
@@ -66,7 +66,7 @@ Implementeringsplan opprettet:
 - Fase 4: Komplekse former - 2-3 dager
 
 Filer oppdatert:
-- reports/XX-slug/2-analyse.md
-- reports/XX-slug/3-løsning.md
+- reports/XX-slug/2-analysis.md
+- reports/XX-slug/3-solution.md
 - reports/XX-slug/4-status.md
 ```

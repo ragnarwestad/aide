@@ -1,4 +1,4 @@
-"""Integration tests for /aide-analyser command.
+"""Integration tests for /aide-analyze command.
 
 Tests verify that the analysis phase produces correct output format
 with fil:linje references and proper complexity assessment.
@@ -12,14 +12,14 @@ class TestAideAnalyserJira:
     """Tests for JIRA analysis."""
 
     def test_analysis_updates_2_analyse_md(self, mock_workspace, monkeypatch):
-        """Verify that 2-analyse.md is updated with analysis results."""
+        """Verify that 2-analysis.md is updated with analysis results."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
 
         jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
-        # Create initial 2-analyse.md (empty template)
-        (jira_dir / "2-analyse.md").write_text("# Analyse\n\n<!-- TODO: Fyll ut -->\n")
+        # Create initial 2-analysis.md (empty template)
+        (jira_dir / "2-analysis.md").write_text("# Analyse\n\n<!-- TODO: Fyll ut -->\n")
 
         # Simulate analysis update
         analyse_content = """# Analyse: PROJ-1234
@@ -47,9 +47,9 @@ class TestAideAnalyserJira:
 - Risiko for regresjoner i eksisterende validering
 - API-endring kan påvirke andre consumers
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
 
-        content = (jira_dir / "2-analyse.md").read_text()
+        content = (jira_dir / "2-analysis.md").read_text()
 
         # Verify required sections
         assert "## Påvirkede filer" in content
@@ -70,9 +70,9 @@ class TestAideAnalyserJira:
 - `src/components/Test.tsx:45` - Description
 - `src/utils/helper.ts:123` - Description
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
 
-        content = (jira_dir / "2-analyse.md").read_text()
+        content = (jira_dir / "2-analysis.md").read_text()
 
         # Check for fil:linje pattern
         import re
@@ -98,9 +98,9 @@ class TestAideAnalyserJira:
 ### Backend
 - `com/example/Controller.kt:78`
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
 
-        content = (jira_dir / "2-analyse.md").read_text()
+        content = (jira_dir / "2-analysis.md").read_text()
 
         assert "### Frontend" in content
         assert "### Backend" in content
@@ -167,9 +167,9 @@ class TestAideAnalyserTodo:
 
 - Lav risiko
 """
-        (todo_dir / "2-analyse.md").write_text(analyse_content)
+        (todo_dir / "2-analysis.md").write_text(analyse_content)
 
-        content = (todo_dir / "2-analyse.md").read_text()
+        content = (todo_dir / "2-analysis.md").read_text()
 
         # Same required sections as JIRA
         assert "## Påvirkede filer" in content

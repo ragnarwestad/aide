@@ -18,7 +18,7 @@ INTRO="$WORKSPACE_ROOT/core/agents-intro.md"
 OUTPUT="$WORKSPACE_ROOT/core/AGENTS.md"
 
 # Rekkefølge for regler (viktigst først)
-RULE_FILES="tools-and-scripts workflows llm-disiplin git testing documentation markdown-linting report-structure communication"
+RULE_FILES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting report-structure communication"
 
 # Verifiser kilder
 if [ ! -f "$INTRO" ]; then

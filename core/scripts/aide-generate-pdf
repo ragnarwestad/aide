@@ -46,7 +46,7 @@ if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
   echo "Søkte i: $REPORTS_ROOT"
   echo ""
   echo "Tips:"
-  echo "  - Har du kjørt /aide-opprett først?"
+  echo "  - Har du kjørt /aide-create først?"
   echo "  - Sjekk at AIDE_REPORTS_PATH er riktig satt"
   echo ""
   echo "Tilgjengelige mapper:"
@@ -139,18 +139,18 @@ add_section() {
 
 # Legg til alle seksjoner
 add_readme  # Først README (uten ekstra heading)
-add_section "1-beskrivelse.md" "Beskrivelse"
-add_section "2-analyse.md" "Analyse"
-add_section "3-løsning.md" "Løsning"
+add_section "1-description.md" "Beskrivelse"
+add_section "2-analysis.md" "Analyse"
+add_section "3-solution.md" "Løsning"
 add_section "4-status.md" "Status"
 
 # Gjør kryssdokument-lenker om til interne anker (ellers åpnes de eksternt i PDF-en).
 # Lenker med #anker beholder ankeret; hel-fil-lenker mappes til seksjons-ankeret.
 sed -E \
   -e 's|\]\((\./)?[0-9]+-[^)#]*\.md#|](#|g' \
-  -e 's|\]\((\./)?1-beskrivelse\.md\)|](#beskrivelse)|g' \
-  -e 's|\]\((\./)?2-analyse\.md\)|](#analyse)|g' \
-  -e 's|\]\((\./)?3-løsning\.md\)|](#løsning)|g' \
+  -e 's|\]\((\./)?1-description\.md\)|](#beskrivelse)|g' \
+  -e 's|\]\((\./)?2-analysis\.md\)|](#analyse)|g' \
+  -e 's|\]\((\./)?3-solution\.md\)|](#løsning)|g' \
   -e 's|\]\((\./)?4-status\.md\)|](#status)|g' \
   "$TEMP_MD" > "${TEMP_MD}.linked" && mv "${TEMP_MD}.linked" "$TEMP_MD"
 

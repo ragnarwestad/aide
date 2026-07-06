@@ -1,4 +1,4 @@
-"""Integration tests for aide-analyser workflow.
+"""Integration tests for aide-analyze workflow.
 
 Tests verify that the analysis phase produces correct output format
 with fil:linje references and proper complexity assessment,
@@ -17,11 +17,11 @@ class TestAideAnalyserJira:
     """Tests for JIRA analysis documentation."""
 
     def test_analysis_updates_2_analyse_md(self, mock_workspace, monkeypatch):
-        """Verify that 2-analyse.md is updated with analysis results."""
+        """Verify that 2-analysis.md is updated with analysis results."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
         jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
-        (jira_dir / "2-analyse.md").write_text("# Analyse\n\n<!-- TODO: Fyll ut -->\n")
+        (jira_dir / "2-analysis.md").write_text("# Analyse\n\n<!-- TODO: Fyll ut -->\n")
 
         analyse_content = """# Analyse: PROJ-1234
 ## Påvirkede filer
@@ -34,8 +34,8 @@ class TestAideAnalyserJira:
 ## Risikoanalyse
 - Risiko for regresjoner
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
-        content = (jira_dir / "2-analyse.md").read_text()
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
+        content = (jira_dir / "2-analysis.md").read_text()
 
         assert "## Påvirkede filer" in content
         assert "## Kompleksitet" in content
@@ -51,8 +51,8 @@ class TestAideAnalyserJira:
 - `src/components/Test.tsx:45` - Description
 - `src/utils/helper.ts:123` - Description
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
-        content = (jira_dir / "2-analyse.md").read_text()
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
+        content = (jira_dir / "2-analysis.md").read_text()
 
         fil_linje_pattern = r"`[^`]+:\d+`"
         matches = re.findall(fil_linje_pattern, content)
@@ -70,8 +70,8 @@ class TestAideAnalyserJira:
 ### Backend
 - `com/example/Controller.kt:78`
 """
-        (jira_dir / "2-analyse.md").write_text(analyse_content)
-        content = (jira_dir / "2-analyse.md").read_text()
+        (jira_dir / "2-analysis.md").write_text(analyse_content)
+        content = (jira_dir / "2-analysis.md").read_text()
         assert "### Frontend" in content
         assert "### Backend" in content
 
@@ -94,8 +94,8 @@ class TestAideAnalyserTodo:
 ## Risikoanalyse
 - Lav risiko
 """
-        (todo_dir / "2-analyse.md").write_text(analyse_content)
-        content = (todo_dir / "2-analyse.md").read_text()
+        (todo_dir / "2-analysis.md").write_text(analyse_content)
+        content = (todo_dir / "2-analysis.md").read_text()
 
         assert "## Påvirkede filer" in content
         assert "## Kompleksitet" in content

@@ -1,13 +1,13 @@
 ---
-name: aide-løs
+name: aide-implement
 description: >-
   Implementer løsningen for en JIRA-sak eller TODO-plan med Test-Driven
   Development (RED → GREEN → REFACTOR). Leser eksisterende analyse og plan,
   skriver tester først, implementerer, og kjører kvalitetssjekk.
   Use when: skal implementere løsning med TDD, har ferdig analyse og
-  implementeringsplan, skal kode basert på 3-løsning.md.
-  Do NOT use for: oppretting (bruk aide-opprett),
-  analyse (bruk aide-analyser), rene tester uten implementering (bruk aide-lag-tester).
+  implementeringsplan, skal kode basert på 3-solution.md.
+  Do NOT use for: oppretting (bruk aide-create),
+  analyse (bruk aide-analyze), rene tester uten implementering (bruk aide-make-tests).
 disable-model-invocation: true
 argument-hint: "[PROJ-XXXX eller oppgavenummer]"
 effort: high
@@ -22,10 +22,10 @@ Implementer løsningen for en JIRA-sak eller TODO-plan med TDD.
 Parse `$ARGUMENTS`:
 
 **JIRA mode:** Hvis første ord starter med `PROJ-`
-- Eksempel: `/aide-løs PROJ-7890`
+- Eksempel: `/aide-implement PROJ-7890`
 
 **TODO mode:** Hvis første ord er et nummer eller starter med `TODO-`
-- Eksempel: `/aide-løs 55` eller `/aide-løs TODO-01`
+- Eksempel: `/aide-implement 55` eller `/aide-implement TODO-01`
 
 **Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
 
@@ -33,9 +33,9 @@ Parse `$ARGUMENTS`:
 Mangler argument
 
 Bruk:
-/aide-løs PROJ-XXXX     # For JIRA-sak
-/aide-løs 55               # For oppgave (nummer)
-/aide-løs TODO-01           # For TODO-plan
+/aide-implement PROJ-XXXX     # For JIRA-sak
+/aide-implement 55               # For oppgave (nummer)
+/aide-implement TODO-01           # For TODO-plan
 ```
 
 ---
@@ -44,20 +44,20 @@ Bruk:
 
 ### Forberedelse
 
-1. Les `reports/XX-slug/2-analyse.md` (påvirkede filer)
-2. Les `reports/XX-slug/3-løsning.md` (implementeringsplan)
+1. Les `reports/XX-slug/2-analysis.md` (påvirkede filer)
+2. Les `reports/XX-slug/3-solution.md` (implementeringsplan)
 3. Les relevant kodestandard (frontend eller backend)
 
 ### Fase 1: RED — Skriv tester som feiler
 
-1. Les "Steg 0" fra 3-løsning.md
+1. Les "Steg 0" fra 3-solution.md
 2. Opprett testfiler
 3. Kjør tester — verifiser at de FEILER
 4. **STOPP** — be bruker om bekreftelse før GREEN
 
 ### Fase 2: GREEN — Implementer til tester passerer
 
-1. Implementer hvert steg fra 3-løsning.md
+1. Implementer hvert steg fra 3-solution.md
 2. Kjør tester etter hvert steg
 3. Verifiser at tester PASSERER
 4. **STOPP** — be bruker om bekreftelse før REFACTOR
@@ -71,7 +71,7 @@ Bruk:
 5. Oppdater 4-status.md
 6. Vis oppsummering — klar for commit
 
-Se `references/tdd-faser.md` for detaljert workflow med kommandoer
+Se `references/tdd-phases.md` for detaljert workflow med kommandoer
 og forventet output per fase.
 
 VIKTIG:
@@ -102,5 +102,5 @@ scripts/run-tests.sh -pl integrasjonstest -am --integration   # Integrasjonstest
 
 ## Etter implementering
 
-1. Test manuelt (følg testplan fra 3-løsning.md)
+1. Test manuelt (følg testplan fra 3-solution.md)
 2. Commit endringene

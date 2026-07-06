@@ -132,7 +132,7 @@ cd doc-aide/implementations/copilot
 ### Steg 2: Slash commands
 
 Ingen ekstra oppsett. Copilot CLI leser de samme skills som Claude Code, så
-`/aide-opprett`, `/aide-analyser`, `/aide-løs` m.fl. virker native i en
+`/aide-create`, `/aide-analyze`, `/aide-implement` m.fl. virker native i en
 `copilot`-sesjon.
 
 ---
@@ -156,8 +156,8 @@ code .
 
 ```bash
 copilot
-/skills info aide-opprett
-# Skal vise: Location: /Users/<deg>/.claude/commands/aide-opprett.md
+/skills info aide-create
+# Skal vise: Location: /Users/<deg>/.claude/commands/aide-create.md
 ```
 
 ---
@@ -231,7 +231,7 @@ Se [README.md](./README.md#begrensninger) for fullstendig flagg-referanse.
 
 | Feature | Claude Code | Copilot CLI / VS Code |
 |---------|-------------|----------------------|
-| **Slash commands / Skills** | ✅ Native `/aide-opprett` | ✅ Native i CLI (leser `~/.claude/commands/` som skills) |
+| **Slash commands / Skills** | ✅ Native `/aide-create` | ✅ Native i CLI (leser `~/.claude/commands/` som skills) |
 | **Custom instructions** | ✅ Auto-read CLAUDE.md | ✅ Auto-read CLAUDE.md + copilot-instructions.md |
 | **Permissions** | ✅ Pre-approval via settings.json | ✅ config.json + CLI-flagg |
 | **Plan mode** | ✅ Native | ✅ Native (Shift+Tab i CLI) |

@@ -30,13 +30,13 @@ Den destilleres videre inn i to dokumenter:
 
 ## Vedlikehold
 
-Kjør `/sjekk-nyheter`-skillen for å oppdatere loggen. Den henter changelogs fra
+Kjør `/check-news`-skillen for å oppdatere loggen. Den henter changelogs fra
 kildene under, vurderer relevans for doc-aide, legger til en ny datert
 seksjon øverst i [Nyhetslogg](#nyhetslogg), og **flagger forslag** til endringer
 i `AI_SUPPORT_MATRIX.md` og `ai-tools-reference.md` som du godkjenner før de
 skrives.
 
-Skillen lever i `.claude/skills/sjekk-nyheter/SKILL.md` — den er repo-lokal og kjører
+Skillen lever i `.claude/skills/check-news/SKILL.md` — den er repo-lokal og kjører
 kun når du jobber i doc-aide.
 
 ### Kilder
@@ -126,7 +126,7 @@ Plattform: **Codex-app 26.519** (21. mai) — Appshots (send frontmost app-vindu
 
 **Relevans for doc-aide:**
 
-- ⚠️ **`/simplify` døpt om til `/code-review` (Claude Code v2.1.147)** — `core/rules/llm-disiplin.md:57` (og den genererte `implementations/copilot/AGENTS.md:537`) viser til «`/simplify`-skillen» for «Enkelhet først». Referansen til den innebygde skillen er nå utdatert. Bør verifiseres mot lokal Claude Code-versjon og oppdateres
+- ⚠️ **`/simplify` døpt om til `/code-review` (Claude Code v2.1.147)** — `core/rules/llm-discipline.md:57` (og den genererte `implementations/copilot/AGENTS.md:537`) viser til «`/simplify`-skillen» for «Enkelhet først». Referansen til den innebygde skillen er nå utdatert. Bør verifiseres mot lokal Claude Code-versjon og oppdateres
 - ⭐ **Plugins med rot-`SKILL.md` vises som skills (Claude Code v2.1.142) + unified `@`-mentions for skills (Codex v0.131)** — flere verktøy gjør skill-distribusjon enklere; relevant for hvordan doc-aide pakkes og distribueres
 - ⭐ **`/security-review` (Copilot v1.0.51) + `/code-review` (Claude Code)** — begge verktøy har nå innebygd review-kommando; supplerer `/ultrareview` fra forrige periode. Kan brukes på prosjektene
 - ✅ **`/memory` i Copilot CLI + Copilot Memory for Pro/Pro+** — minne-konvergensen fortsetter; alle verktøy modner persistent memory

@@ -89,7 +89,7 @@ crontab -e
 ```
 
 Matrisen (`docs/AI_SUPPORT_MATRIX.md`) speiler *sist verifiserte* versjoner og
-oppdateres manuelt via `/sjekk-nyheter` — ikke av cron-jobben.
+oppdateres manuelt via `/check-news` — ikke av cron-jobben.
 
 ## Legge til ny funksjonalitet
 

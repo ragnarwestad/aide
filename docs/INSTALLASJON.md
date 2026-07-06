@@ -218,7 +218,7 @@ Avsnittene under beskriver hva hver enkelt installer gjør.
 
 4. **Test oppsettet:**
    ```bash
-   /aide-opprett PROJ-7637
+   /aide-create PROJ-7637
    ```
 
 **Full dokumentasjon:**
@@ -227,7 +227,7 @@ Avsnittene under beskriver hva hver enkelt installer gjør.
 
 **Nøkkelfeatures:**
 
-- ✅ Slash commands (`/aide-opprett`, `/aide-analyser`, `/aide-løs`)
+- ✅ Slash commands (`/aide-create`, `/aide-analyze`, `/aide-implement`)
 - ✅ Spesialiserte agents (`@agent-jira-analyzer`, `@agent-tdd-implementer`)
 - ✅ Automatisk lesing av CLAUDE.md ved oppstart
 - ✅ 200K token context window
@@ -259,7 +259,7 @@ Avsnittene under beskriver hva hver enkelt installer gjør.
     - Konfigurer verktøy via tools-knappen
 
 4. **Test oppsettet:**
-    - I Copilot CLI: kjør `/aide-opprett PROJ-7637` (leser de samme skills som Claude Code)
+    - I Copilot CLI: kjør `/aide-create PROJ-7637` (leser de samme skills som Claude Code)
 
 **Full dokumentasjon:**
 
@@ -269,7 +269,7 @@ Avsnittene under beskriver hva hver enkelt installer gjør.
 
 - ✅ Agent Mode for autonome multi-step oppgaver
 - ✅ Custom instructions (`.github/copilot-instructions.md`)
-- ✅ Slash commands / skills (`/aide-opprett` m.fl. — samme som Claude Code)
+- ✅ Slash commands / skills (`/aide-create` m.fl. — samme som Claude Code)
 - ✅ Native VS Code-integrasjon (raskere enn Claude CLI)
 - ✅ Codebase analysis og test iteration
 
@@ -320,12 +320,12 @@ Uansett hvilket AI-verktøy du bruker, test at oppsettet fungerer:
 **Med Claude Code:**
 
 ```bash
-/aide-opprett PROJ-7637
+/aide-create PROJ-7637
 ```
 
 **Med Copilot:**
 
-- Kjør `/aide-opprett PROJ-7637` i Copilot CLI
+- Kjør `/aide-create PROJ-7637` i Copilot CLI
 
 **Med andre AI-verktøy:**
 
@@ -337,9 +337,9 @@ Uansett hvilket AI-verktøy du bruker, test at oppsettet fungerer:
 ```bash
 ls -la reports/<NN>-PROJ-7637-slug/
 # → README.md
-# → 1-beskrivelse.md (ferdig utfylt)
-# → 2-analyse.md (tom)
-# → 3-løsning.md (tom)
+# → 1-description.md (ferdig utfylt)
+# → 2-analysis.md (tom)
+# → 3-solution.md (tom)
 # → 4-status.md (tom)
 ```
 
@@ -350,22 +350,22 @@ Test at AI-verktøyet kan analysere kodebasen:
 **Med Claude Code:**
 
 ```bash
-/aide-analyser PROJ-7637
+/aide-analyze PROJ-7637
 ```
 
 **Med Copilot:**
 
-- Kjør `/aide-analyser PROJ-7637` i Copilot CLI
+- Kjør `/aide-analyze PROJ-7637` i Copilot CLI
 
 **Med andre AI-verktøy:**
 
-- Be om kodebase-analyse basert på `1-beskrivelse.md`
+- Be om kodebase-analyse basert på `1-description.md`
 - Følg struktur fra `core/rules/workflows.md`
 
 **Forventet resultat:**
 
-- `2-analyse.md` er ferdig utfylt med påvirkede filer (fil:linje)
-- `3-løsning.md` inneholder implementeringsplan med TDD-struktur
+- `2-analysis.md` er ferdig utfylt med påvirkede filer (fil:linje)
+- `3-solution.md` inneholder implementeringsplan med TDD-struktur
 - `4-status.md` viser initial status
 
 ---

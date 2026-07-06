@@ -1,9 +1,9 @@
 ---
-name: aide-lag-tester
+name: aide-make-tests
 description: >-
   Analyser en fil og opprett manglende enhetstester.
   Use when: skal generere manglende tester for en spesifikk fil, skal øke testdekning.
-  Do NOT use for: TDD-implementering (bruk aide-løs), kode-review
+  Do NOT use for: TDD-implementering (bruk aide-implement), kode-review
 disable-model-invocation: true
 argument-hint: "[fil-path]"
 effort: high
@@ -18,7 +18,7 @@ Analyser en fil og opprett manglende enhetstester.
 Parse `$ARGUMENTS`:
 
 **Fil-path modus:**
-- Eksempel: `/aide-lag-tester src/utils/land.ts`
+- Eksempel: `/aide-make-tests src/utils/land.ts`
 - Analyser filen og opprett manglende tester
 
 **Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
@@ -26,19 +26,19 @@ Parse `$ARGUMENTS`:
 Mangler fil-path
 
 Bruk:
-/aide-lag-tester <fil-path>
+/aide-make-tests <fil-path>
 
 Eksempler:
-/aide-lag-tester src/utils/land.ts
-/aide-lag-tester src/components/UserProfile.tsx
-/aide-lag-tester src/api/userService.ts
+/aide-make-tests src/utils/land.ts
+/aide-make-tests src/components/UserProfile.tsx
+/aide-make-tests src/api/userService.ts
 ```
 
 ---
 
 # Prompt: Lag manglende enhetstester
 
-**Formål:** Analyser en fil og opprett comprehensive enhetstester (tilsvarer `/aide-lag-tester` i Claude Code)
+**Formål:** Analyser en fil og opprett comprehensive enhetstester (tilsvarer `/aide-make-tests` i Claude Code)
 
 ---
 

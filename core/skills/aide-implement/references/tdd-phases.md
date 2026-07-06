@@ -2,7 +2,7 @@
 
 ## Fase 1: RED — Skriv tester som feiler
 
-1. Les "Steg 0" fra 3-løsning.md
+1. Les "Steg 0" fra 3-solution.md
 2. Identifiser alle tester som skal skrives
 3. Opprett testfiler (følg testing-reglene og frontend kodestandard)
 4. Kjør: `pnpm test -- --run <testfil>`
@@ -16,7 +16,7 @@ Vis:
 
 ## Fase 2: GREEN — Implementer til tester passerer
 
-For hvert steg i 3-løsning.md:
+For hvert steg i 3-solution.md:
 
 1. Les steget
 2. Implementer koden (følg kodestandard)

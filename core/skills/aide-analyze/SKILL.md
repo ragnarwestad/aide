@@ -1,14 +1,14 @@
 ---
-name: aide-analyser
+name: aide-analyze
 description: >-
   Analyser kodebasen for en JIRA-sak eller TODO-plan.
   Detekterer kompleksitet (LAV/MIDDELS/HØY), kartlegger påvirkede filer med
   fil:linje-referanser, og oppretter implementeringsplan med TDD.
   Use when: skal analysere kodebase for en eksisterende oppgave,
-  skal fylle inn 2-analyse.md og 3-løsning.md, trenger oversikt over
+  skal fylle inn 2-analysis.md og 3-solution.md, trenger oversikt over
   påvirkede filer og API-påvirkning.
-  Do NOT use for: oppretting av ny oppgave (bruk aide-opprett),
-  implementering (bruk aide-løs).
+  Do NOT use for: oppretting av ny oppgave (bruk aide-create),
+  implementering (bruk aide-implement).
 disable-model-invocation: true
 argument-hint: "[PROJ-XXXX eller oppgavenummer]"
 effort: xhigh
@@ -23,10 +23,10 @@ Analyser kodebasen for en JIRA-sak eller TODO-plan.
 Parse `$ARGUMENTS`:
 
 **JIRA mode:** Hvis første ord starter med `PROJ-`
-- Eksempel: `/aide-analyser PROJ-7890`
+- Eksempel: `/aide-analyze PROJ-7890`
 
 **TODO mode:** Hvis første ord er et nummer eller starter med `TODO-`
-- Eksempel: `/aide-analyser 55` eller `/aide-analyser TODO-01`
+- Eksempel: `/aide-analyze 55` eller `/aide-analyze TODO-01`
 
 **Feilhåndtering:** Hvis argument mangler eller ugyldig format, vis:
 
@@ -34,13 +34,13 @@ Parse `$ARGUMENTS`:
 Mangler argument
 
 Bruk:
-/aide-analyser PROJ-XXXX     # For JIRA-sak
-/aide-analyser 55               # For oppgave (nummer)
-/aide-analyser TODO-01           # For TODO-plan
+/aide-analyze PROJ-XXXX     # For JIRA-sak
+/aide-analyze 55               # For oppgave (nummer)
+/aide-analyze TODO-01           # For TODO-plan
 
 Eksempler:
-/aide-analyser PROJ-7890
-/aide-analyser 55
+/aide-analyze PROJ-7890
+/aide-analyze 55
 ```
 
 ---
@@ -49,13 +49,13 @@ Eksempler:
 
 ### Steg 1: Les beskrivelse
 
-- Les `reports/XX-slug/1-beskrivelse.md`
+- Les `reports/XX-slug/1-description.md`
 - Identifiser: Hva skal endres? Hvilket omfang? Migrering eller enkeltfiks?
 
 ### Steg 2: Detekter kompleksitet
 
 Klassifiser som LAV/MIDDELS/HØY basert på antall filer, operasjonstype,
-og API-påvirkning. Se `references/kompleksitet-og-analyse.md` for kriterier.
+og API-påvirkning. Se `references/complexity-and-analysis.md` for kriterier.
 
 ### Steg 3: Analyser kodebase
 
@@ -64,17 +64,17 @@ Skaler analysen etter kompleksitet:
 - **MIDDELS:** Finn avhengigheter, relaterte filer, API-påvirkning. 20-45 min.
 - **HØY:** Søk bredt, kategoriser filer, lag migreringsplan. 1-3 timer.
 
-Se `references/kompleksitet-og-analyse.md` for detaljerte steg per nivå.
+Se `references/complexity-and-analysis.md` for detaljerte steg per nivå.
 
-### Steg 4: Oppdater 2-analyse.md
+### Steg 4: Oppdater 2-analysis.md
 
-Skriv til `reports/XX-slug/2-analyse.md`. Følg rapport-strukturen § 2-analyse.
+Skriv til `reports/XX-slug/2-analysis.md`. Følg rapport-strukturen § 2-analysis.
 Inkluder: Sporingsinfo, påvirkede filer med fil:linje, kompleksitet,
 API-påvirkning, testdekning, risikoanalyse, estimat.
 
-### Steg 5: Opprett implementeringsplan (3-løsning.md)
+### Steg 5: Opprett implementeringsplan (3-solution.md)
 
-Skriv til `reports/XX-slug/3-løsning.md`. Følg rapport-strukturen § 3-løsning.
+Skriv til `reports/XX-slug/3-solution.md`. Følg rapport-strukturen § 3-solution.
 Strukturer med TDD:
 - Steg 0: Skriv tester (RED phase)
 - Steg 1-N: Implementering (GREEN phase)
@@ -101,6 +101,6 @@ VIKTIG:
 ## Neste steg
 
 ```text
-/aide-løs PROJ-XXXX   # For JIRA-sak
-/aide-løs 55              # For oppgave (nummer)
+/aide-implement PROJ-XXXX   # For JIRA-sak
+/aide-implement 55              # For oppgave (nummer)
 ```

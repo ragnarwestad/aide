@@ -16,10 +16,10 @@ Skills lastes fra `~/.claude/skills/` — bruk `/`-syntax.
 
 Tilgjengelige skills:
 
-- `/aide-opprett` - Opprett JIRA/TODO-dokumentasjon
-- `/aide-analyser` - Analyser kodebase
-- `/aide-løs` - Implementer med TDD
-- `/aide-lag-tester` - Lag manglende tester
+- `/aide-create` - Opprett JIRA/TODO-dokumentasjon
+- `/aide-analyze` - Analyser kodebase
+- `/aide-implement` - Implementer med TDD
+- `/aide-make-tests` - Lag manglende tester
 - `/aide-react-class-to-func` - Konverter class til functional
 - `/tdd-coach` - Test-Driven Development metodikk
 - `/architecture-advisor` - Arkitektur-vurderinger
@@ -226,24 +226,24 @@ Opprett - Analyser - Løs - Verifiser
 **Hva skal gjøres:**
 1. Henter saken fra JIRA API (validering)
 2. Tildeler neste ledige nummer og oppretter katalog: `reports/<NN>-PROJ-XXXX-slug/`
-3. Fyller ut `1-beskrivelse.md` med JIRA-metadata
-4. Oppretter tomme filer: `2-analyse.md`, `3-løsning.md`, `4-status.md`
+3. Fyller ut `1-description.md` med JIRA-metadata
+4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stager alle nye filer i git (automatisk)
 
 **Output:**
 ```text
 reports/05-PROJ-7894-class-to-functional/
 ├── 0-README.md            (leserekkefølge)
-├── 1-beskrivelse.md       (ferdig)
-├── 2-analyse.md           (⏳ tom)
-├── 3-løsning.md           (⏳ tom)
+├── 1-description.md       (ferdig)
+├── 2-analysis.md           (⏳ tom)
+├── 3-solution.md           (⏳ tom)
 └── 4-status.md            (⏳ tom)
 ```
 
 ### Fase 2: Analyser kodebase
 
 **Hva skal gjøres:**
-1. Leser `1-beskrivelse.md`
+1. Leser `1-description.md`
 2. **Detekter kompleksitetsnivå** (se [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon))
 3. Analyserer kodebase (konkrete filer + linjenummer)
 4. Identifiserer påvirkede prosjekter (frontend, backend, etc.)
@@ -255,7 +255,7 @@ reports/05-PROJ-7894-class-to-functional/
 ### Fase 3: Implementer løsning
 
 **Hva skal gjøres:**
-1. Leser `2-analyse.md` og `3-løsning.md`
+1. Leser `2-analysis.md` og `3-solution.md`
 2. Følger TDD-tilnærming:
    - **RED**: Skriver tester som beviser problemet (skal feile)
    - **GREEN**: Implementerer løsningen (testene skal passere)
@@ -287,17 +287,17 @@ Opprett - Analyser - Løs - Verifiser
 **Hva skal gjøres:**
 1. Tildeler nummer (neste ledige)
 2. Oppretter katalog: `reports/<NN>-slug-navn/`
-3. Fyller ut `1-beskrivelse.md` med metadata
-4. Oppretter tomme filer: `2-analyse.md`, `3-løsning.md`, `4-status.md`
+3. Fyller ut `1-description.md` med metadata
+4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stager alle nye filer i git (automatisk)
 
 **Output:**
 ```text
 reports/17-rydd-opp-i-console-log/
 ├── 0-README.md            (leserekkefølge)
-├── 1-beskrivelse.md       (ferdig)
-├── 2-analyse.md           (⏳ tom)
-├── 3-løsning.md           (⏳ tom)
+├── 1-description.md       (ferdig)
+├── 2-analysis.md           (⏳ tom)
+├── 3-solution.md           (⏳ tom)
 └── 4-status.md            (⏳ tom)
 ```
 
@@ -337,7 +337,7 @@ Samme som [JIRA-sak workflow](#jira-sak-workflow).
 2. Backend-endepunktet ligger i: `my-api/src/.../SakController.java:156`
 3. Vurdering: **Both**
 
-**Dokumenter i `2-analyse.md`:**
+**Dokumenter i `2-analysis.md`:**
 ```markdown
 ## Påvirkede prosjekter
 
@@ -358,7 +358,7 @@ Mange saker krever endringer i flere prosjekter.
 ### Workflow for tverrfaglige saker
 
 1. **Analyser** hvilke prosjekter som påvirkes
-2. **Dokumenter** i `2-analyse.md`:
+2. **Dokumenter** i `2-analysis.md`:
    - Liste over påvirkede filer (med linjenummer)
    - Avhengigheter mellom prosjekter
 3. **Implementer** i riktig rekkefølge:
@@ -1300,9 +1300,9 @@ paths:
 
 - [Oversikt](#oversikt)
 - [Filstruktur](#filstruktur)
-  - [1-beskrivelse](#1-beskrivelse)
-  - [2-analyse](#2-analyse)
-  - [3-løsning](#3-løsning)
+  - [1-description](#1-description)
+  - [2-analysis](#2-analysis)
+  - [3-solution](#3-solution)
   - [4-status](#4-status)
 - [Separasjon av innhold](#separasjon-av-innhold)
 - [Forskjeller JIRA vs TODO](#forskjeller-jira-vs-todo)
@@ -1317,23 +1317,23 @@ paths:
 
 ```text
 reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
-├── 1-beskrivelse.md        # (JIRA: PROJ-nøkkel inngår i sluggen)
-├── 2-analyse.md
-├── 3-løsning.md
+├── 1-description.md        # (JIRA: PROJ-nøkkel inngår i sluggen)
+├── 2-analysis.md
+├── 3-solution.md
 └── 4-status.md
 ```
 
 **Roller:**
-1. **1-beskrivelse.md** - Hovedinngang: Problem, omfang, akseptansekriterier
-2. **2-analyse.md** - Detaljert analyse: Funn, kompleksitet, risiko
-3. **3-løsning.md** - Implementasjonsplan med TDD-tilnærming
+1. **1-description.md** - Hovedinngang: Problem, omfang, akseptansekriterier
+2. **2-analysis.md** - Detaljert analyse: Funn, kompleksitet, risiko
+3. **3-solution.md** - Implementasjonsplan med TDD-tilnærming
 4. **4-status.md** - Levende dokument: Fremdrift og status
 
 ---
 
 ## Filstruktur
 
-### 1-beskrivelse
+### 1-description
 
 **Formål:** Gi oversikt over saken, omfanget og akseptansekriteriene.
 
@@ -1387,11 +1387,11 @@ reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
 - Metadata-tabell (JIRA/TODO-spesifikk)
 - Beskrivelse-seksjonen er redigerbar for manuell tilleggsinformasjon
 - Problem-seksjonen kopieres direkte (ikke skriv om)
-- Ingen kodeeksempler (de hører hjemme i 3-løsning.md)
+- Ingen kodeeksempler (de hører hjemme i 3-solution.md)
 
 ---
 
-### 2-analyse
+### 2-analysis
 
 **Formål:** Detaljert teknisk analyse av problemet.
 
@@ -1458,7 +1458,7 @@ reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
 
 ---
 
-### 3-løsning
+### 3-solution
 
 **Formål:** Implementeringsplan med TDD-tilnærming.
 
@@ -1535,8 +1535,8 @@ reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
 
 ## Referanser
 
-- 1-beskrivelse.md - Problembeskrivelse
-- 2-analyse.md - Analyse og funn
+- 1-description.md - Problembeskrivelse
+- 2-analysis.md - Analyse og funn
 ````
 
 **Nøkkelpunkter:**
@@ -1588,7 +1588,7 @@ reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
 
 **Nøkkelpunkter:**
 - Total fremgang øverst
-- Organisert i faser (matcher 3-løsning.md)
+- Organisert i faser (matcher 3-solution.md)
 - Tabellformat for oversiktlighet
 - Oppdateres kontinuerlig
 
@@ -1598,16 +1598,16 @@ reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
 
 | Innhold                    | Plassering        |
 |----------------------------|-------------------|
-| Problembeskrivelse         | 1-beskrivelse.md  |
-| Metadata                   | 1-beskrivelse.md  |
-| Akseptansekriterier        | 1-beskrivelse.md  |
-| Kartlegging/funn           | 2-analyse.md      |
-| Kompleksitetsanalyse       | 2-analyse.md      |
-| Risikoanalyse              | 2-analyse.md      |
-| Tilnærminger               | 3-løsning.md      |
-| Før/etter eksempler        | 3-løsning.md      |
-| Implementeringsplan        | 3-løsning.md      |
-| Testing-strategi           | 3-løsning.md      |
+| Problembeskrivelse         | 1-description.md  |
+| Metadata                   | 1-description.md  |
+| Akseptansekriterier        | 1-description.md  |
+| Kartlegging/funn           | 2-analysis.md      |
+| Kompleksitetsanalyse       | 2-analysis.md      |
+| Risikoanalyse              | 2-analysis.md      |
+| Tilnærminger               | 3-solution.md      |
+| Før/etter eksempler        | 3-solution.md      |
+| Implementeringsplan        | 3-solution.md      |
+| Testing-strategi           | 3-solution.md      |
 | Fremdrift                  | 4-status.md       |
 
 ---
@@ -1624,10 +1624,10 @@ JIRA-saker og TODO-planer har **identisk struktur**, men forskjeller i innhold:
 | **Metadata**    | JIRA-felt (type, status, etc.)| Nummer, dato          |
 
 **Felles:**
-- 4 filer: 1-beskrivelse.md, 2-analyse.md, 3-løsning.md, 4-status.md
+- 4 filer: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
 - Samme struktur og formattering
 - Samme notasjon (⬜ 🔄 ✅ ❌ ⚠️)
-- Samme TDD-tilnærming i 3-løsning.md
+- Samme TDD-tilnærming i 3-solution.md
 
 ---
 
@@ -1635,8 +1635,8 @@ JIRA-saker og TODO-planer har **identisk struktur**, men forskjeller i innhold:
 
 AI-verktøy oppretter dokumentasjon direkte basert på strukturen beskrevet i dette dokumentet.
 
-Kommandoen `/aide-opprett` oppretter 4-fils strukturen med riktige plassholdere.
-Kommandoen `/aide-analyser` fyller inn analyse, løsning og status.
+Kommandoen `/aide-create` oppretter 4-fils strukturen med riktige plassholdere.
+Kommandoen `/aide-analyze` fyller inn analyse, løsning og status.
 
 ---
 

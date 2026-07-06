@@ -32,10 +32,10 @@ implementations/gemini/
 ├── GEMINI.md                           # Custom instructions (kopieres til workspace)
 └── .gemini/
     └── commands/                       # Slash commands (TOML-format)
-        ├── aide-opprett.toml           # /aide-opprett
-        ├── aide-analyser.toml          # /aide-analyser
-        ├── aide-los.toml               # /aide-los
-        ├── aide-lag-tester.toml        # /aide-lag-tester
+        ├── aide-create.toml           # /aide-create
+        ├── aide-analyze.toml          # /aide-analyze
+        ├── aide-implement.toml               # /aide-implement
+        ├── aide-make-tests.toml        # /aide-make-tests
         └── aide-react-class-to-func.toml # /aide-react-class-to-func
 ```
 
@@ -197,10 +197,10 @@ Gemini CLI støtter slash commands via TOML-filer i `.gemini/commands/`.
 
 | Kommando | Beskrivelse |
 |----------|-------------|
-| `/aide-opprett <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO-plan |
-| `/aide-analyser <ID>` | Analyser kodebase og identifiser påvirkede filer |
-| `/aide-los <ID>` | Implementer løsning med TDD (RED-GREEN-REFACTOR) |
-| `/aide-lag-tester <fil>` | Lag manglende enhetstester for en fil |
+| `/aide-create <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO-plan |
+| `/aide-analyze <ID>` | Analyser kodebase og identifiser påvirkede filer |
+| `/aide-implement <ID>` | Implementer løsning med TDD (RED-GREEN-REFACTOR) |
+| `/aide-make-tests <fil>` | Lag manglende enhetstester for en fil |
 | `/aide-react-class-to-func <fil>` | Konverter React class til functional component |
 
 **Bruk:**
@@ -210,17 +210,17 @@ Gemini CLI støtter slash commands via TOML-filer i `.gemini/commands/`.
 gemini
 
 # Bruk slash commands
-> /aide-opprett PROJ-7890
-> /aide-analyser PROJ-7890
-> /aide-los PROJ-7890
+> /aide-create PROJ-7890
+> /aide-analyze PROJ-7890
+> /aide-implement PROJ-7890
 
 # TODO-arbeidsflyt
-> /aide-opprett todo-01
-> /aide-analyser todo-01
-> /aide-los todo-01
+> /aide-create todo-01
+> /aide-analyze todo-01
+> /aide-implement todo-01
 
 # Utility-kommandoer
-> /aide-lag-tester src/utils/land.ts
+> /aide-make-tests src/utils/land.ts
 > /aide-react-class-to-func src/components/UserProfile.tsx
 ```
 
@@ -237,7 +237,7 @@ cp -r implementations/gemini/.gemini ./
 
 #### 1. Opprett JIRA-dokumentasjon
 
-**I stedet for:** `/aide-opprett PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
 
 **Med Gemini CLI:**
 
@@ -251,8 +251,8 @@ gemini
 > 1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
 > 2. Følg core/rules/documentation.md
 > 3. Bruk templates fra core/templates/todo/
-> 4. Fyll ut 1-beskrivelse.md med JIRA-metadata (bruker limer inn data)
-> 5. Opprett tomme filer: 2-analyse.md, 3-løsning.md, 4-status.md
+> 4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
+> 5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
 > 6. Stage alle nye filer i git
 ```
 
@@ -263,26 +263,26 @@ gemini -p "Hent JIRA-sak PROJ-7890 og opprett dokumentasjon"
 
 #### 2. Analyser kodebase
 
-**I stedet for:** `/aide-analyser PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
 
 **Med Gemini CLI:**
 
 ```bash
 gemini -p "Analyser kodebasen for JIRA-sak PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-beskrivelse.md
+1. Les reports/<NN>-PROJ-7890-slug/1-description.md
 2. Søk i kodebasen etter relevante filer
 3. Identifiser påvirkede komponenter (fil:linje)
 4. Sjekk API-påvirkning (frontend ↔ backend)
 5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analyse.md med funn
-7. Lag implementeringsplan i 3-løsning.md
+6. Oppdater 2-analysis.md med funn
+7. Lag implementeringsplan i 3-solution.md
 8. Følg core/rules/workflows.md struktur"
 ```
 
 #### 3. Implementer med TDD
 
-**I stedet for:** `/aide-løs PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
 
 **Med Gemini CLI:**
 
@@ -290,14 +290,14 @@ gemini -p "Analyser kodebasen for JIRA-sak PROJ-7890:
 gemini -p "Implementer løsningen for PROJ-7890 med TDD:
 
 RED PHASE:
-1. Les 3-løsning.md -> Steg 0: Skriv tester
+1. Les 3-solution.md -> Steg 0: Skriv tester
 2. Opprett testfiler som beskrevet
 3. Kjør: pnpm test -- --run <testfil>
 4. Verifiser at tester FEILER
 5. Stopp og be om bekreftelse
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-løsning.md
+1. Implementer Steg 1-N fra 3-solution.md
 2. Kjør tester etter hvert steg
 3. Verifiser at alle tester PASSERER
 4. Stopp og be om bekreftelse
@@ -327,16 +327,16 @@ Slash commands ligger i `.gemini/commands/*.toml` og virker native i en `gemini`
 
 | Kommando | Formål |
 |----------|--------|
-| `/aide-opprett` | Opprett JIRA/TODO-dokumentasjon |
-| `/aide-analyser` | Analyser kodebase |
-| `/aide-los` | Implementer med TDD |
-| `/aide-lag-tester` | Lag manglende enhetstester |
+| `/aide-create` | Opprett JIRA/TODO-dokumentasjon |
+| `/aide-analyze` | Analyser kodebase |
+| `/aide-implement` | Implementer med TDD |
+| `/aide-make-tests` | Lag manglende enhetstester |
 | `/aide-react-class-to-func` | Konverter class til functional |
 
 **Bruk:**
 ```bash
 # I en gemini-sesjon:
-/aide-opprett PROJ-7890
+/aide-create PROJ-7890
 ```
 
 ---
@@ -406,8 +406,8 @@ gemini -p "Analyser PROJ-7890"
 **Bra:**
 ```bash
 gemini -p "Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-beskrivelse.md, søk deretter i kodebasen,
-og oppdater 2-analyse.md med funn (fil:linje)."
+Les først 1-description.md, søk deretter i kodebasen,
+og oppdater 2-analysis.md med funn (fil:linje)."
 ```
 
 ---
@@ -504,7 +504,7 @@ gemini -p "Kjør alle tester" -y
 gemini -p "Si 'hello'" -o json
 
 # Kjør aide-workflow headless
-gemini -p "/aide-opprett PROJ-TEST" -y
+gemini -p "/aide-create PROJ-TEST" -y
 ```
 
 ### Flagg for automatisering

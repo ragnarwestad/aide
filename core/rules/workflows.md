@@ -171,24 +171,24 @@ Opprett - Analyser - Løs - Verifiser
 **Hva skal gjøres:**
 1. Henter saken fra JIRA API (validering)
 2. Tildeler neste ledige nummer og oppretter katalog: `reports/<NN>-PROJ-XXXX-slug/`
-3. Fyller ut `1-beskrivelse.md` med JIRA-metadata
-4. Oppretter tomme filer: `2-analyse.md`, `3-løsning.md`, `4-status.md`
+3. Fyller ut `1-description.md` med JIRA-metadata
+4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stager alle nye filer i git (automatisk)
 
 **Output:**
 ```text
 reports/05-PROJ-7894-class-to-functional/
 ├── 0-README.md            (leserekkefølge)
-├── 1-beskrivelse.md       (ferdig)
-├── 2-analyse.md           (⏳ tom)
-├── 3-løsning.md           (⏳ tom)
+├── 1-description.md       (ferdig)
+├── 2-analysis.md           (⏳ tom)
+├── 3-solution.md           (⏳ tom)
 └── 4-status.md            (⏳ tom)
 ```
 
 ### Fase 2: Analyser kodebase
 
 **Hva skal gjøres:**
-1. Leser `1-beskrivelse.md`
+1. Leser `1-description.md`
 2. **Detekter kompleksitetsnivå** (se [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon))
 3. Analyserer kodebase (konkrete filer + linjenummer)
 4. Identifiserer påvirkede prosjekter (frontend, backend, etc.)
@@ -200,7 +200,7 @@ reports/05-PROJ-7894-class-to-functional/
 ### Fase 3: Implementer løsning
 
 **Hva skal gjøres:**
-1. Leser `2-analyse.md` og `3-løsning.md`
+1. Leser `2-analysis.md` og `3-solution.md`
 2. Følger TDD-tilnærming:
    - **RED**: Skriver tester som beviser problemet (skal feile)
    - **GREEN**: Implementerer løsningen (testene skal passere)
@@ -232,17 +232,17 @@ Opprett - Analyser - Løs - Verifiser
 **Hva skal gjøres:**
 1. Tildeler nummer (neste ledige)
 2. Oppretter katalog: `reports/<NN>-slug-navn/`
-3. Fyller ut `1-beskrivelse.md` med metadata
-4. Oppretter tomme filer: `2-analyse.md`, `3-løsning.md`, `4-status.md`
+3. Fyller ut `1-description.md` med metadata
+4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stager alle nye filer i git (automatisk)
 
 **Output:**
 ```text
 reports/17-rydd-opp-i-console-log/
 ├── 0-README.md            (leserekkefølge)
-├── 1-beskrivelse.md       (ferdig)
-├── 2-analyse.md           (⏳ tom)
-├── 3-løsning.md           (⏳ tom)
+├── 1-description.md       (ferdig)
+├── 2-analysis.md           (⏳ tom)
+├── 3-solution.md           (⏳ tom)
 └── 4-status.md            (⏳ tom)
 ```
 
@@ -282,7 +282,7 @@ Samme som [JIRA-sak workflow](#jira-sak-workflow).
 2. Backend-endepunktet ligger i: `my-api/src/.../SakController.java:156`
 3. Vurdering: **Both**
 
-**Dokumenter i `2-analyse.md`:**
+**Dokumenter i `2-analysis.md`:**
 ```markdown
 ## Påvirkede prosjekter
 
@@ -303,7 +303,7 @@ Mange saker krever endringer i flere prosjekter.
 ### Workflow for tverrfaglige saker
 
 1. **Analyser** hvilke prosjekter som påvirkes
-2. **Dokumenter** i `2-analyse.md`:
+2. **Dokumenter** i `2-analysis.md`:
    - Liste over påvirkede filer (med linjenummer)
    - Avhengigheter mellom prosjekter
 3. **Implementer** i riktig rekkefølge:

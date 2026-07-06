@@ -22,9 +22,9 @@ Du er **Task Analyzer Agent** - din jobb er å analysere kodebasen for JIRA-sake
 **Output:**
 - ✅ Kompleksitet detektert (LAV/MIDDELS/HØY)
 - ✅ Kodebase analysert (konkrete filer og linjenummer)
-- ✅ 1-beskrivelse.md oppdatert (kun JIRA) eller lest (TODO)
-- ✅ 2-analyse.md oppdatert
-- ✅ 3-løsning.md oppdatert
+- ✅ 1-description.md oppdatert (kun JIRA) eller lest (TODO)
+- ✅ 2-analysis.md oppdatert
+- ✅ 3-solution.md oppdatert
 - ✅ 4-status.md oppdatert
 - ✅ Kan kjøres på nytt (overskriver eksisterende dokumentasjon)
 
@@ -44,9 +44,9 @@ Du er **Task Analyzer Agent** - din jobb er å analysere kodebasen for JIRA-sake
 
 ### Hvis source type = "JIRA"
 
-1. **Les 1-beskrivelse.md** (brukeren har allerede fylt inn JIRA-data):
+1. **Les 1-description.md** (brukeren har allerede fylt inn JIRA-data):
    ```bash
-   Read ${PATH}/1-beskrivelse.md
+   Read ${PATH}/1-description.md
    ```
 
 2. **Ekstraher fra beskrivelsen:**
@@ -57,9 +57,9 @@ Du er **Task Analyzer Agent** - din jobb er å analysere kodebasen for JIRA-sake
 
 ### Hvis source type = "TODO"
 
-1. **Les eksisterende 1-beskrivelse.md:**
+1. **Les eksisterende 1-description.md:**
    ```bash
-   Read ${PATH}/1-beskrivelse.md
+   Read ${PATH}/1-description.md
    ```
 
 2. **Ekstraher beskrivelse:**
@@ -161,26 +161,26 @@ Read API endpoint mapping```
 
 ## 📝 Steg 4: Generer dokumentasjon
 
-### 2-analyse.md
+### 2-analysis.md
 
-**Følg `rapport-strukturen` § 2-analyse. Tilpass omfang til kompleksitet:**
+**Følg `rapport-strukturen` § 2-analysis. Tilpass omfang til kompleksitet:**
 - **LAV:** < 80 linjer (én fil, minimal analyse)
 - **MIDDELS:** 100-200 linjer (påvirkede filer, API-påvirkning, tester)
 - **HØY:** 200-400 linjer (kategorisering, migreringsplan, risikoanalyse)
 
 ```bash
-Write ${PATH}/2-analyse.md
+Write ${PATH}/2-analysis.md
 ```
 
-### 3-løsning.md
+### 3-solution.md
 
-**Følg `rapport-strukturen` § 3-løsning. Tilpass omfang til kompleksitet:**
+**Følg `rapport-strukturen` § 3-solution. Tilpass omfang til kompleksitet:**
 - **LAV:** < 60 linjer (enkel TDD-plan)
 - **MIDDELS:** 100-150 linjer (flerstegs TDD med API-endringer)
 - **HØY:** 150-250 linjer (fasebasert migreringsplan med TDD)
 
 ```bash
-Write ${PATH}/3-løsning.md
+Write ${PATH}/3-solution.md
 ```
 
 ### 4-status.md
@@ -206,9 +206,9 @@ Write ${PATH}/4-status.md
 
 📊 Kompleksitet: ${LAV/MIDDELS/HØY}
 📂 Oppdaterte filer:
-   - ${PATH}/1-beskrivelse.md ${(kun hvis JIRA)}
-   - ${PATH}/2-analyse.md (${LINJER} linjer)
-   - ${PATH}/3-løsning.md (${LINJER} linjer)
+   - ${PATH}/1-description.md ${(kun hvis JIRA)}
+   - ${PATH}/2-analysis.md (${LINJER} linjer)
+   - ${PATH}/3-solution.md (${LINJER} linjer)
    - ${PATH}/4-status.md (${LINJER} linjer)
 
 📝 Analyse-sammendrag:
@@ -217,7 +217,7 @@ Write ${PATH}/4-status.md
 - Risiko: ${LAV/MIDDELS/HØY}
 
 Neste steg:
-/aide-løs ${ID}  # Implementer løsningen med TDD
+/aide-implement ${ID}  # Implementer løsningen med TDD
 ```
 
 ---

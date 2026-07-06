@@ -65,7 +65,7 @@ echo ""
 echo "1️⃣  Installerer scripts til ~/.local/bin/..."
 mkdir -p ~/.local/bin
 
-for script in aide-generate-pdf aide-generate-html aide-opprett; do
+for script in aide-generate-pdf aide-generate-html aide-create; do
   if [ -f "$DIST_DIR/bin/$script" ]; then
     cp "$DIST_DIR/bin/$script" ~/.local/bin/
     chmod +x ~/.local/bin/$script
@@ -175,5 +175,5 @@ echo "   1. Start Claude Code:"
 echo "      cd $AIDE_PROJECTS_PATH/my-app && claude"
 echo ""
 echo "   2. Test:"
-echo "      /aide-opprett PROJ-7637"
+echo "      /aide-create PROJ-7637"
 echo ""

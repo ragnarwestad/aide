@@ -76,17 +76,17 @@ Dette prosjektet er inspirert av [Lakshman Oruganti's Generative AI Design Patte
 **Konsept:** LLM-er sender spesielle tokens for å kalle API-er med parametere. En postprocessor kjører funksjonen og returnerer resultater til modellen.
 
 **Vår implementasjon:**
-- Claude Code slash commands: `/aide-opprett`, `/aide-analyser`, `/aide-løs`
+- Claude Code slash commands: `/aide-create`, `/aide-analyze`, `/aide-implement`
 - AI-verktøy kaller scripts og leser JIRA-data fra bruker → Genererer dokumentasjon
 
 **Eksempel:**
 ```bash
 # Claude Code oppretter dokumentstruktur
-/aide-opprett PROJ-7890
+/aide-create PROJ-7890
   ↓
 Bruker limer inn JIRA-data  # Data kopieres manuelt fra JIRA-nettleseren
   ↓
-AI fyller ut 1-beskrivelse.md med metadata og problembeskrivelse
+AI fyller ut 1-description.md med metadata og problembeskrivelse
 ```
 
 **Hvorfor:** Gir AI-verktøy tilgang til eksterne systemer (git, kodebase) via tool calling.
@@ -179,8 +179,8 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 **Konsept:** AI evaluerer og forbedrer egne output.
 
 **Vår implementasjon:**
-- 4-fils dokumentstruktur: `1-beskrivelse.md`, `2-analyse.md`, `3-løsning.md`, `4-status.md`
-- AI kan kjøre `/aide-analyser` på nytt etter kodeendringer
+- 4-fils dokumentstruktur: `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
+- AI kan kjøre `/aide-analyze` på nytt etter kodeendringer
 - AI oppdaterer `4-status.md` underveis i implementering
 
 **Hvorfor:** Iterativ forbedring av analyse og plan gir bedre resultater enn one-shot generering.
@@ -201,7 +201,7 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 
 2. **Test-Driven Development**
    - Iterere mot et klart mål (test som skal passere)
-   - Allerede innebygd i `3-løsning.md` TDD-tilnærming
+   - Allerede innebygd i `3-solution.md` TDD-tilnærming
 
 3. **Visuell iterasjon**
    - Bruk screenshots og design mocks
@@ -245,7 +245,7 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
    - Implementert: Navnekonvensjoner i `KODESTANDARD.md`
 
 2. **Provide context through comments**
-   - Implementert: Før/etter eksempler i `3-løsning.md`
+   - Implementert: Før/etter eksempler i `3-solution.md`
 
 3. **Break down large functions**
    - Implementert: Refaktorering-retningslinjer i `KODESTANDARD.md`
@@ -314,15 +314,15 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 ### Hvorfor 4-fils dokumentstruktur?
 
 **Design-valg:**
-- `1-beskrivelse.md` - Problembeskrivelse (read-only etter opprettelse)
-- `2-analyse.md` - Kodebase-analyse (kan kjøres på nytt)
-- `3-løsning.md` - Implementeringsplan (iterativt forbedret)
+- `1-description.md` - Problembeskrivelse (read-only etter opprettelse)
+- `2-analysis.md` - Kodebase-analyse (kan kjøres på nytt)
+- `3-solution.md` - Implementeringsplan (iterativt forbedret)
 - `4-status.md` - Fremdriftssporing (oppdateres kontinuerlig)
 
 **Hvorfor 4 filer, ikke én stor fil?**
 1. **Separasjon av bekymringer:** Hver fil har ett ansvar
-2. **Re-entrancy:** `2-analyse.md` kan regenereres uten å overskrive `1-beskrivelse.md`
-3. **Lesbarhet:** Mennesker leser `1-beskrivelse.md` → `2-analyse.md` → `3-løsning.md`
+2. **Re-entrancy:** `2-analysis.md` kan regenereres uten å overskrive `1-description.md`
+3. **Lesbarhet:** Mennesker leser `1-description.md` → `2-analysis.md` → `3-solution.md`
 4. **AI-parsing:** AI kan lese én fil av gangen (reduserer token-bruk)
 
 **Inspirert av:** Software engineering best practices (Single Responsibility Principle)
@@ -330,9 +330,9 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 ### Hvorfor slash commands (Claude Code)?
 
 **Design-valg:**
-- `/aide-opprett PROJ-XXXX` - Opprett dokumentstruktur
-- `/aide-analyser PROJ-XXXX` - Analyser kodebase
-- `/aide-løs PROJ-XXXX` - Implementer løsning
+- `/aide-create PROJ-XXXX` - Opprett dokumentstruktur
+- `/aide-analyze PROJ-XXXX` - Analyser kodebase
+- `/aide-implement PROJ-XXXX` - Implementer løsning
 
 **Hvorfor slash commands, ikke naturlig språk?**
 1. **Presisjon:** Unngår tvetydighet (vs. "analyser denne saken")

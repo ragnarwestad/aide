@@ -22,9 +22,9 @@ def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
 
     # Assert all 4 files exist and are not empty
     expected_files = [
-        "1-beskrivelse.md",
-        "2-analyse.md",
-        "3-løsning.md",
+        "1-description.md",
+        "2-analysis.md",
+        "3-solution.md",
         "4-status.md"
     ]
 
@@ -33,8 +33,8 @@ def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
         assert file_path.exists(), f"{filename} should exist"
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
-    # Assert 1-beskrivelse.md has correct content
-    beskrivelse = reports_dir / "1-beskrivelse.md"
+    # Assert 1-description.md has correct content
+    beskrivelse = reports_dir / "1-description.md"
     content = beskrivelse.read_text()
 
     # Should contain issue key
@@ -65,9 +65,9 @@ def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-
 
     # Assert all 4 files exist and are not empty
     expected_files = [
-        "1-beskrivelse.md",
-        "2-analyse.md",
-        "3-løsning.md",
+        "1-description.md",
+        "2-analysis.md",
+        "3-solution.md",
         "4-status.md"
     ]
 
@@ -76,8 +76,8 @@ def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-
         assert file_path.exists(), f"{filename} should exist"
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
-    # Assert 1-beskrivelse.md has correct content
-    beskrivelse = reports_dir / "1-beskrivelse.md"
+    # Assert 1-description.md has correct content
+    beskrivelse = reports_dir / "1-description.md"
     content = beskrivelse.read_text()
 
     # Should contain TODO ID
@@ -91,7 +91,7 @@ def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-
     assert "{{DESCRIPTION}}" not in content, "Should not have unreplaced DESCRIPTION"
     assert "{{FOLDER_NAME}}" not in content, "Should not have unreplaced FOLDER_NAME"
 
-    # {{ANALYSIS_DATE}} and {{UPDATE_DATE}} are allowed - filled by aide-analyser
+    # {{ANALYSIS_DATE}} and {{UPDATE_DATE}} are allowed - filled by aide-analyze
 
 
 def assert_incremental_numbering(base_dir: Path, expected_numbers: list):

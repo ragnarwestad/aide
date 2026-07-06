@@ -35,7 +35,7 @@ echo ""
 # 2. Installer Codex CLI-wrappers
 echo "2️⃣  Installerer Codex CLI-wrappers til ~/.local/bin/..."
 
-for script in codex-aide-opprett codex-aide-analyser codex-aide-los; do
+for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
   if [ -f "$SCRIPT_DIR/scripts/$script" ]; then
     cp "$SCRIPT_DIR/scripts/$script" ~/.local/bin/
     chmod +x ~/.local/bin/$script
@@ -254,9 +254,9 @@ echo ""
 echo "✅ Setup fullført!"
 echo ""
 echo "📋 Installert:"
-echo "   ~/.local/bin/codex-aide-opprett"
-echo "   ~/.local/bin/codex-aide-analyser"
-echo "   ~/.local/bin/codex-aide-los"
+echo "   ~/.local/bin/codex-aide-create"
+echo "   ~/.local/bin/codex-aide-analyze"
+echo "   ~/.local/bin/codex-aide-implement"
 echo ""
 echo "📝 Neste steg:"
 echo "   1. Start Codex i et prosjekt:"
@@ -264,9 +264,9 @@ echo "      cd $AIDE_PROJECTS_PATH/my-app"
 echo "      codex"
 echo ""
 echo "   3. Bruk CLI-wrappers:"
-echo "      codex-aide-opprett PROJ-7890"
-echo "      codex-aide-analyser PROJ-7890"
-echo "      codex-aide-los PROJ-7890"
+echo "      codex-aide-create PROJ-7890"
+echo "      codex-aide-analyze PROJ-7890"
+echo "      codex-aide-implement PROJ-7890"
 echo ""
 echo "💡 Tips:"
 echo "   - Oppdater konfigurasjon: Kjør ./install.sh på nytt"

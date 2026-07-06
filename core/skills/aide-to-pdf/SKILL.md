@@ -3,7 +3,7 @@ name: aide-to-pdf
 description: >-
   Generer PDF fra JIRA eller TODO dokumentasjon.
   Use when: skal eksportere dokumentasjon til PDF, skal generere utskriftsvennlig rapport.
-  Do NOT use for: HTML-generering (bruk aide-to-html), oppretting av dokumentasjon (bruk aide-opprett)
+  Do NOT use for: HTML-generering (bruk aide-to-html), oppretting av dokumentasjon (bruk aide-create)
 disable-model-invocation: true
 argument-hint: "[ISSUE_ID]"
 effort: medium
@@ -64,7 +64,7 @@ Brukeren har kjørt:
 
 4. **Sjekk at dokumentasjon eksisterer:**
    - `$REPORTS_ROOT/<NN-slug>/` (flat struktur for både JIRA og TODO)
-   - Hvis ikke: Informer at brukeren må kjøre `/aide-opprett` først
+   - Hvis ikke: Informer at brukeren må kjøre `/aide-create` først
 
 5. **Generer PDF:**
    ```bash
@@ -75,7 +75,7 @@ Brukeren har kjørt:
    **VIKTIG:** `aide-generate-pdf` scriptet trenger også å respektere `AIDE_REPORTS_PATH`!
 
    Scriptet vil:
-   - Kombinere alle markdown-filer (1-beskrivelse, 2-analyse, 3-løsning, 4-status)
+   - Kombinere alle markdown-filer (1-description, 2-analysis, 3-solution, 4-status)
    - Legge til forside med metadata
    - Konvertere til PDF med sidehode/sidefot
    - Output: `$REPORTS_ROOT/<NN-slug>/<NN-slug>.pdf`
@@ -103,13 +103,13 @@ Kunne ikke finne dokumentasjon for <ISSUE_ID>
 
 Har du kjørt opprett-kommandoen først?
 
-/aide-opprett <ISSUE_ID>
-/aide-analyser <ISSUE_ID>
+/aide-create <ISSUE_ID>
+/aide-analyze <ISSUE_ID>
 ```
 
 ## Notater
 
-- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-opprett`
+- **Automatisk JIRA/TODO deteksjon:** Samme logikk som `/aide-create`
 - **Output-lokasjon:** Samme mappe som markdown-filene (holder alt samlet)
 - **AIDE_REPORTS_PATH:** Scriptet respekterer environment variable hvis satt
 - **Styling:** PDF inkluderer sidehode med issue-nummer og sidefot med sidetall

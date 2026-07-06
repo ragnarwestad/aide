@@ -9,26 +9,26 @@ Plassholdere: TITLE=tittel, FOLDER=NN-slug, DATE=dagens dato, DESC=beskrivelse
 
 **Innholdsfortegnelse:**
 
-1. [Beskrivelse](1-beskrivelse.md) - Sporingsinfo, mål, omfang, akseptansekriterier
-2. [Analyse](2-analyse.md) - Funn, kompleksitet, risikoanalyse
-3. [Løsning](3-løsning.md) - Implementeringsplan med TDD
+1. [Beskrivelse](1-description.md) - Sporingsinfo, mål, omfang, akseptansekriterier
+2. [Analyse](2-analysis.md) - Funn, kompleksitet, risikoanalyse
+3. [Løsning](3-solution.md) - Implementeringsplan med TDD
 4. [Status](4-status.md) - Fremdriftssporing
 ```
 
-## 1-beskrivelse.md (fyll inn alle felter)
+## 1-description.md (fyll inn alle felter)
 
-Struktur - følg `rapport-strukturen` § 1-beskrivelse:
+Struktur - følg `rapport-strukturen` § 1-description:
 
 - `# TITLE - Beskrivelse`
 - TOC med: Sporingsinfo, Beskrivelse, Omfang, Akseptansekriterier
 - **Sporingsinfo:** Oppgave=`FOLDER/`, Opprettet=`DATE`
 - **Beskrivelse:** DESC + redigerbar-notis
-- **Omfang:** `[fylles av /aide-analyser]` for berørte filer, estimat, systemer
-- **Akseptansekriterier:** `[Fylles av /aide-analyser basert på kodebase-analyse]`
+- **Omfang:** `[fylles av /aide-analyze]` for berørte filer, estimat, systemer
+- **Akseptansekriterier:** `[Fylles av /aide-analyze basert på kodebase-analyse]`
 
-## 2-analyse.md (placeholder - fylles av /aide-analyser)
+## 2-analysis.md (placeholder - fylles av /aide-analyze)
 
-Struktur - følg `rapport-strukturen` § 2-analyse:
+Struktur - følg `rapport-strukturen` § 2-analysis:
 
 - `# TITLE - Analyse`
 - TOC med: Sporingsinfo, Omfang, Kompleksitet, Funn, Risikoanalyse
@@ -38,9 +38,9 @@ Struktur - følg `rapport-strukturen` § 2-analyse:
 - **Funn:** Seksjoner for kodebase-analyse, berørte komponenter, mønstre, test-dekning, API-avhengigheter
 - **Risikoanalyse:** Placeholder for risikoer med konsekvens/sannsynlighet/mitigering
 
-## 3-løsning.md (placeholder - fylles av /aide-analyser)
+## 3-solution.md (placeholder - fylles av /aide-analyze)
 
-Struktur - følg `rapport-strukturen` § 3-løsning:
+Struktur - følg `rapport-strukturen` § 3-solution:
 
 - `# TITLE - Løsning`
 - TOC med: Sporingsinfo, Tilnærminger, Anbefalt løsning, Implementeringsplan, Testing
@@ -50,7 +50,7 @@ Struktur - følg `rapport-strukturen` § 3-løsning:
 - **Implementeringsplan:** TDD Red-Green-Refactor med 4 faser og checkbox-lister
 - **Testing:** Seksjoner for unit, integration, e2e, manual testing
 
-## 4-status.md (placeholder - fylles av /aide-analyser)
+## 4-status.md (placeholder - fylles av /aide-analyze)
 
 Struktur - følg `rapport-strukturen` § 4-status:
 

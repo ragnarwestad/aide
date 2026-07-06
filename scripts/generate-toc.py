@@ -167,7 +167,7 @@ def main():
 
     print(f"Found {len(todo_dirs)} TODO directories\n")
 
-    files_to_process = ["1-beskrivelse.md", "2-analyse.md", "3-løsning.md", "4-status.md"]
+    files_to_process = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
     total_updated = 0
 
     for todo_dir in todo_dirs:

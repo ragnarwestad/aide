@@ -29,20 +29,20 @@ _(Dette feltet kan redigeres manuelt for å legge til ekstra kontekst eller pres
 
 ## Omfang
 
-**Berørte filer/komponenter:** [fylles av `/aide-analyser`]
+**Berørte filer/komponenter:** [fylles av `/aide-analyze`]
 
-**Estimert arbeidsinnsats:** [fylles av `/aide-analyser`]
+**Estimert arbeidsinnsats:** [fylles av `/aide-analyze`]
 
-**Påvirkede systemer:** [fylles av `/aide-analyser`]
+**Påvirkede systemer:** [fylles av `/aide-analyze`]
 
 ## Akseptansekriterier
 
-[Fylles av `/aide-analyser` basert på kodebase-analyse]
+[Fylles av `/aide-analyze` basert på kodebase-analyse]
 
 ---
 
 ## Relaterte dokumenter
 
-- [2-analyse.md](./2-analyse.md) - Analyse og kartlegging
-- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD
+- [2-analysis.md](./2-analysis.md) - Analyse og kartlegging
+- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD
 - [4-status.md](./4-status.md) - Fremdriftssporing

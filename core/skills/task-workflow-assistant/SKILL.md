@@ -27,7 +27,7 @@ effort: high
 - Omfang (hva skal gjøres, hva skal IKKE gjøres)
 - Forutsetninger og avhengigheter
 
-**Struktur:** Følg `rapport-strukturen` § 1-beskrivelse
+**Struktur:** Følg `rapport-strukturen` § 1-description
 
 ### 2. analyse.md
 
@@ -37,7 +37,7 @@ effort: high
 - Risikoanalyse
 - API-påvirkning (frontend ↔ backend)
 
-**Struktur:** Følg `rapport-strukturen` § 2-analyse
+**Struktur:** Følg `rapport-strukturen` § 2-analysis
 
 **Eksempel:**
 ```markdown
@@ -61,7 +61,7 @@ effort: high
 - Testing-strategi (REFACTOR phase)
 - Hver steg: konkret, testbart, estimert tid
 
-**Struktur:** Følg `rapport-strukturen` § 3-løsning
+**Struktur:** Følg `rapport-strukturen` § 3-solution
 
 **Eksempel:**
 ```markdown

@@ -32,9 +32,9 @@ implementations/codex/
 ├── config.toml                         # Codex-konfig (sandbox, MCP)
 ├── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + CLI-wrappers
 └── scripts/
-    ├── codex-aide-opprett              # CLI-wrapper for aide-opprett
-    ├── codex-aide-analyser             # CLI-wrapper for aide-analyser
-    └── codex-aide-los                  # CLI-wrapper for aide-løs
+    ├── codex-aide-create              # CLI-wrapper for aide-create
+    ├── codex-aide-analyze             # CLI-wrapper for aide-analyze
+    └── codex-aide-implement                  # CLI-wrapper for aide-implement
 ```
 
 **Gjenbruker:**
@@ -125,22 +125,22 @@ chmod +x ~/.local/bin/codex-aide-*
 
 | Kommando | Beskrivelse |
 |----------|-------------|
-| `codex-aide-opprett <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO |
-| `codex-aide-analyser <ID>` | Analyser kodebase og identifiser påvirkede filer |
-| `codex-aide-los <ID>` | Implementer løsning med TDD |
+| `codex-aide-create <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO |
+| `codex-aide-analyze <ID>` | Analyser kodebase og identifiser påvirkede filer |
+| `codex-aide-implement <ID>` | Implementer løsning med TDD |
 
 **Eksempler:**
 
 ```bash
 # JIRA-arbeidsflyt
-codex-aide-opprett PROJ-7890
-codex-aide-analyser PROJ-7890
-codex-aide-los PROJ-7890
+codex-aide-create PROJ-7890
+codex-aide-analyze PROJ-7890
+codex-aide-implement PROJ-7890
 
 # TODO-arbeidsflyt
-codex-aide-opprett todo-01-redux-migration
-codex-aide-analyser todo-01
-codex-aide-los todo-01
+codex-aide-create todo-01-redux-migration
+codex-aide-analyze todo-01
+codex-aide-implement todo-01
 ```
 
 ---
@@ -244,7 +244,7 @@ Codex' instruksjonsfil er `AGENTS.md`. doc-aide genererer `core/AGENTS.md` fra `
 
 #### 1. Opprett JIRA-dokumentasjon
 
-**I stedet for:** `/aide-opprett PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
 
 **Med Codex:**
 
@@ -258,38 +258,38 @@ codex "Opprett strukturert dokumentasjon for JIRA-sak PROJ-7890:
 1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
 2. Følg core/rules/documentation.md
 3. Bruk templates fra core/templates/todo/
-4. Fyll ut 1-beskrivelse.md med JIRA-metadata (bruker limer inn data)
-5. Opprett tomme filer: 2-analyse.md, 3-løsning.md, 4-status.md
+4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
+5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
 6. Stage alle nye filer i git"
 ```
 
 **Eller bruk CLI-wrapperen:**
 ```bash
-codex-aide-opprett PROJ-7890
+codex-aide-create PROJ-7890
 ```
 
 #### 2. Analyser kodebase
 
-**I stedet for:** `/aide-analyser PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
 
 **Med Codex:**
 
 ```bash
 codex "Analyser kodebasen for JIRA-sak PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-beskrivelse.md
+1. Les reports/<NN>-PROJ-7890-slug/1-description.md
 2. Søk i kodebasen etter relevante filer
 3. Identifiser påvirkede komponenter (fil:linje)
 4. Sjekk API-påvirkning (frontend ↔ backend)
 5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analyse.md med funn
-7. Lag implementeringsplan i 3-løsning.md
+6. Oppdater 2-analysis.md med funn
+7. Lag implementeringsplan i 3-solution.md
 8. Følg core/rules/workflows.md struktur"
 ```
 
 #### 3. Implementer med TDD
 
-**I stedet for:** `/aide-løs PROJ-7890` (Claude Code)
+**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
 
 **Med Codex:**
 
@@ -297,14 +297,14 @@ codex "Analyser kodebasen for JIRA-sak PROJ-7890:
 codex "Implementer løsningen for PROJ-7890 med TDD:
 
 RED PHASE:
-1. Les 3-løsning.md → Steg 0: Skriv tester
+1. Les 3-solution.md → Steg 0: Skriv tester
 2. Opprett testfiler som beskrevet
 3. Kjør: pnpm test -- --run <testfil>
 4. Verifiser at tester FEILER
 5. Stopp og be om bekreftelse
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-løsning.md
+1. Implementer Steg 1-N fra 3-solution.md
 2. Kjør tester etter hvert steg
 3. Verifiser at alle tester PASSERER
 4. Stopp og be om bekreftelse
@@ -335,13 +335,13 @@ finnes CLI-wrappers for de vanligste workflowene:
 
 | Wrapper | Formål | Tilsvarer Claude Code |
 |---------|--------|----------------------|
-| `codex-aide-opprett` | Opprett JIRA/TODO-dokumentasjon | `/aide-opprett` |
-| `codex-aide-analyser` | Analyser kodebase | `/aide-analyser` |
-| `codex-aide-los` | Implementer med TDD | `/aide-løs` |
+| `codex-aide-create` | Opprett JIRA/TODO-dokumentasjon | `/aide-create` |
+| `codex-aide-analyze` | Analyser kodebase | `/aide-analyze` |
+| `codex-aide-implement` | Implementer med TDD | `/aide-implement` |
 
 **Bruk:**
 ```bash
-codex-aide-opprett PROJ-7890
+codex-aide-create PROJ-7890
 ```
 
 ---
@@ -358,8 +358,8 @@ codex "Analyser PROJ-7890"
 ✅ **Bra:**
 ```bash
 codex "Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-beskrivelse.md, søk deretter i kodebasen,
-og oppdater 2-analyse.md med funn (fil:linje)."
+Les først 1-description.md, søk deretter i kodebasen,
+og oppdater 2-analysis.md med funn (fil:linje)."
 ```
 
 ### 2. Referer alltid til core/rules/
@@ -435,7 +435,7 @@ codex "Review PR #123 og sjekk om den følger KODESTANDARD.md"
 
 | Feature | Claude Code | OpenAI Codex |
 |---------|-------------|--------------|
-| **Kommandoer** | Slash commands (`/aide-opprett`) | Natural language prompts |
+| **Kommandoer** | Slash commands (`/aide-create`) | Natural language prompts |
 | **Instruksjoner** | CLAUDE.md (auto-read) | AGENTS.md (~/.codex/AGENTS.md) |
 | **Agents** | `@agent-jira-analyzer` | Generell agent |
 | **TDD** | Innebygd RED→GREEN→REFACTOR | Støtter TDD-syklus |
@@ -495,7 +495,7 @@ codex exec "Kjør alle tester" --format jsonl
 codex exec "Si 'hello'"
 
 # Kjør aide-workflow headless
-codex exec "/aide-opprett PROJ-TEST"
+codex exec "/aide-create PROJ-TEST"
 ```
 
 ### Flagg for automatisering

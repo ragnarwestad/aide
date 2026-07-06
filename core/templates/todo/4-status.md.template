@@ -102,6 +102,6 @@
 
 ## Relaterte dokumenter
 
-- [1-beskrivelse.md](./1-beskrivelse.md) - Sporingsinfo og akseptansekriterier
-- [2-analyse.md](./2-analyse.md) - Analyse og kartlegging
-- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD
+- [1-description.md](./1-description.md) - Sporingsinfo og akseptansekriterier
+- [2-analysis.md](./2-analysis.md) - Analyse og kartlegging
+- [3-solution.md](./3-solution.md) - Implementeringsplan med TDD

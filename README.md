@@ -119,9 +119,9 @@ Alle AI-verktøy følger samme grunnleggende workflow:
 **Eksempel (Claude Code):**
 
 ```bash
-/aide-opprett PROJ-7890    # Opprett dokumentstruktur
-/aide-analyser PROJ-7890   # Analyser kodebase
-/aide-løs PROJ-7890        # Implementer med TDD
+/aide-create PROJ-7890    # Opprett dokumentstruktur
+/aide-analyze PROJ-7890   # Analyser kodebase
+/aide-implement PROJ-7890        # Implementer med TDD
 ```
 
 **Se:** [core/rules/workflows.md](core/rules/workflows.md) for detaljer.

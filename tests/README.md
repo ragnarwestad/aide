@@ -167,7 +167,7 @@ tests/
 │   │   └── claude_code/                      # Claude Code integrasjon
 │   │
 │   ├── e2e/                                  # End-to-end tester (ekskludert fra standard kjøring)
-│   │   ├── test_claude_e2e.py                # Claude Code: Tester slash-kommandoer (/aide-opprett, /aide-analyser)
+│   │   ├── test_claude_e2e.py                # Claude Code: Tester slash-kommandoer (/aide-create, /aide-analyze)
 │   │   ├── test_codex_e2e.py                 # Codex: Tester prompts via `codex exec --full-auto`
 │   │   └── test_copilot_e2e.py               # Copilot: Tester prompts fra implementations/copilot/prompts/
 │   │
@@ -467,10 +467,10 @@ echo "$result" | jq '.result'
 
 ```python
 # Kjør kommando
-subprocess.run(["claude", "-p", "/aide-opprett TODO test Description"])
+subprocess.run(["claude", "-p", "/aide-create TODO test Description"])
 
 # Verifiser at filer ble opprettet
-assert (reports_dir / "todo-01-test" / "1-beskrivelse.md").exists()
+assert (reports_dir / "todo-01-test" / "1-description.md").exists()
 ```
 
 **4. Komplett eksempel med alle verifiseringer**
@@ -484,7 +484,7 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
 
     # Kjør kommando
     result = subprocess.run(
-        ["claude", "-p", "/aide-opprett TODO test-task Description",
+        ["claude", "-p", "/aide-create TODO test-task Description",
          "--output-format", "json"],
         capture_output=True, text=True, timeout=120,
         cwd=str(tmp_path)
@@ -500,7 +500,7 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
     todo_dirs = list((tmp_path / "reports" / "todo").glob("TODO-*"))
     assert len(todo_dirs) >= 1, "No TODO directory created"
 
-    expected_files = ["1-beskrivelse.md", "2-analyse.md", "3-løsning.md", "4-status.md"]
+    expected_files = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
     for filename in expected_files:
         assert (todo_dirs[0] / filename).exists(), f"Missing: {filename}"
 ```
