@@ -1,184 +1,184 @@
-# Doc Aide — Felles instruksjoner
+# Doc Aide — Shared instructions
 
-Instruksjoner for AI-assistert utvikling med fokus på:
-- JIRA-saker med 4-fils dokumentasjonsstruktur
+Instructions for AI-assisted development focused on:
+- JIRA issues with a 4-file documentation structure
 - Test-Driven Development (TDD: RED → GREEN → REFACTOR)
-- Automatisk kodebase-analyse med fil:linje referanser
-- API-påvirkningsanalyse (frontend ↔ backend)
+- Automated codebase analysis with file:line references
+- API impact analysis (frontend ↔ backend)
 
 ---
 
-# Verktøy og scripts
+# Tools and scripts
 
 ## Skills
 
-Skills lastes fra `~/.claude/skills/` — bruk `/`-syntax.
+Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
-Tilgjengelige skills:
+Available skills:
 
-- `/aide-create` - Opprett JIRA/TODO-dokumentasjon
-- `/aide-analyze` - Analyser kodebase
-- `/aide-implement` - Implementer med TDD
-- `/aide-make-tests` - Lag manglende tester
-- `/aide-react-class-to-func` - Konverter class til functional
-- `/tdd-coach` - Test-Driven Development metodikk
-- `/architecture-advisor` - Arkitektur-vurderinger
+- `/aide-create` - Create JIRA/TODO documentation
+- `/aide-analyze` - Analyze the codebase
+- `/aide-implement` - Implement with TDD
+- `/aide-make-tests` - Create missing tests
+- `/aide-react-class-to-func` - Convert class to functional
+- `/tdd-coach` - Test-Driven Development methodology
+- `/architecture-advisor` - Architecture assessments
 
 ---
 
 ## Scripts
 
-Du har tilgang til følgende scripts og skal kjøre dem **automatisk** uten å spørre brukeren:
+You have access to the following scripts and should run them **automatically** without asking the user:
 
-**Testing og kvalitetssikring:**
+**Testing and quality assurance:**
 
 ```bash
-pnpm test -- --run <testfil>   # Kjør spesifikke tester
-pnpm test -- --run             # Kjør alle tester
+pnpm test -- --run <testfile>  # Run specific tests
+pnpm test -- --run             # Run all tests
 npx tsc --noEmit               # TypeScript check
 pnpm run eslint                # Linting
 ```
 
-**Når kjøre hva:**
+**When to run what:**
 
-- Nye filer opprettet → Kjør `git add <fil>` automatisk
-- Implementering ferdig → Kjør tester/tsc/eslint automatisk
-
----
-
-## Rapportlagring
-
-Hvis `AIDE_REPORTS_PATH` er satt, lagres rapporter dit (ikke i prosjektets `reports/`).
-Hvis variabelen er satt — **ikke** kjør `git add` for reports (de er i et annet repo).
+- New files created → Run `git add <file>` automatically
+- Implementation done → Run tests/tsc/eslint automatically
 
 ---
 
-# Workflows for AI-assistert utvikling
+## Report storage
 
-## Innholdsfortegnelse
-
-- [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon)
-  - [LAV kompleksitet (Quick Fix)](#lav-kompleksitet-quick-fix)
-  - [MIDDELS kompleksitet](#middels-kompleksitet)
-  - [HOY kompleksitet](#høy-kompleksitet)
-- [Problemtype-routing (Quick Reference)](#problemtype-routing-quick-reference)
-- [Branch-strategi](#branch-strategi)
-- [JIRA-sak workflow](#jira-sak-workflow)
-  - [Fase 1: Opprett dokumentstruktur](#fase-1-opprett-dokumentstruktur)
-  - [Fase 2: Analyser kodebase](#fase-2-analyser-kodebase)
-  - [Fase 3: Implementer løsning](#fase-3-implementer-løsning)
-  - [Fase 4: Verifiser](#fase-4-verifiser)
-- [TODO-plan workflow](#todo-plan-workflow)
-- [API-påvirkningsanalyse](#api-påvirkningsanalyse)
-- [Tverrfaglige saker](#tverrfaglige-saker)
-- [Workflow-optimalisering](#workflow-optimalisering)
+If `AIDE_REPORTS_PATH` is set, reports are stored there (not in the project's `reports/`).
+If the variable is set — do **not** run `git add` for reports (they live in another repo).
 
 ---
 
-## Kompleksitetsdeteksjon
+# Workflows for AI-assisted development
 
-**Prinsipp:** Match dokumentasjonens omfang til oppgavens kompleksitet.
+## Table of contents
 
-### LAV kompleksitet (Quick Fix)
-
-**Kjennetegn:**
-- Beskrivelsen nevner **én spesifikk fil**
-- Enkle operasjoner: "fjern", "erstatt", "rett", "oppdater", "fikse"
-- Påvirker 1-2 filer totalt
-
-**Analyse-scope:**
-- Les KUN den nevnte filen
-- IKKE søk i hele kodebasen
-
-**Dokumentasjon:** Kort og konsis (< 200 linjer totalt)
-**Estimat:** Minutter til timer (< 2 timer)
-
-**Eksempler:**
-- "Fjern console.log fra src/services/utils.js"
-- "Rett typo i UserProfile.tsx linje 45"
+- [Complexity detection](#complexity-detection)
+  - [LOW complexity (Quick Fix)](#low-complexity-quick-fix)
+  - [MEDIUM complexity](#medium-complexity)
+  - [HIGH complexity](#high-complexity)
+- [Problem type routing (Quick Reference)](#problem-type-routing-quick-reference)
+- [Branch strategy](#branch-strategy)
+- [JIRA issue workflow](#jira-issue-workflow)
+  - [Phase 1: Create document structure](#phase-1-create-document-structure)
+  - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
+  - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
+  - [Phase 4: Verify](#phase-4-verify)
+- [TODO plan workflow](#todo-plan-workflow)
+- [API impact analysis](#api-impact-analysis)
+- [Cross-project issues](#cross-project-issues)
+- [Workflow optimization](#workflow-optimization)
 
 ---
 
-### MIDDELS kompleksitet
+## Complexity detection
 
-**Kjennetegn:**
-- Beskrivelsen nevner **én komponent/modul**
-- Operasjoner: "refaktorer", "forbedre", "moderniser", "utvid"
-- Kan påvirke 3-10 filer
+**Principle:** Match the scope of the documentation to the complexity of the task.
 
-**Analyse-scope:**
-- Finn filer knyttet til komponenten/modulen
-- Finn relaterte tester og brukssteder
-- IKKE søk bredere enn nødvendig
+### LOW complexity (Quick Fix)
 
-**Dokumentasjon:** Moderat detalj (100-300 linjer totalt)
-**Estimat:** Timer til dager (2-16 timer)
+**Characteristics:**
+- The description mentions **one specific file**
+- Simple operations: "remove", "replace", "correct", "update", "fix"
+- Affects 1-2 files in total
 
-**Eksempler:**
-- "Refaktorer Stegvelger-komponenten"
-- "Forbedre error handling i api-layer"
+**Analysis scope:**
+- Read ONLY the mentioned file
+- Do NOT search the entire codebase
 
----
+**Documentation:** Short and concise (< 200 lines total)
+**Estimate:** Minutes to hours (< 2 hours)
 
-### HØY kompleksitet
-
-**Kjennetegn:**
-- Beskrivelsen bruker **patterns** ("alle", "migrer X til Y", "oppgrader")
-- Store refaktoreringer eller arkitekturendringer
-- Påvirker 10+ filer
-
-**Analyse-scope:**
-- Søk bredt i kodebasen for patterns
-- Kategoriser filer etter kompleksitet
-- Analyser API-påvirkning (frontend - backend)
-- Identifiser edge cases og risikoer
-
-**Dokumentasjon:** Omfattende analyse (300-800 linjer totalt)
-**Estimat:** Dager til uker (1-10 dager)
-
-**Eksempler:**
-- "Migrer alle Redux Form-komponenter til react-hook-form"
-- "Oppgrader React 17 til React 18"
+**Examples:**
+- "Remove console.log from src/services/utils.js"
+- "Fix typo in UserProfile.tsx line 45"
 
 ---
 
-## Problemtype-routing (Quick Reference)
+### MEDIUM complexity
 
-| Problemtype | Start med dokumentasjon | Workflow |
+**Characteristics:**
+- The description mentions **one component/module**
+- Operations: "refactor", "improve", "modernize", "extend"
+- May affect 3-10 files
+
+**Analysis scope:**
+- Find files related to the component/module
+- Find related tests and usage sites
+- Do NOT search wider than necessary
+
+**Documentation:** Moderate detail (100-300 lines total)
+**Estimate:** Hours to days (2-16 hours)
+
+**Examples:**
+- "Refactor the Stegvelger component"
+- "Improve error handling in the api layer"
+
+---
+
+### HIGH complexity
+
+**Characteristics:**
+- The description uses **patterns** ("all", "migrate X to Y", "upgrade")
+- Large refactorings or architecture changes
+- Affects 10+ files
+
+**Analysis scope:**
+- Search the codebase broadly for patterns
+- Categorize files by complexity
+- Analyze API impact (frontend - backend)
+- Identify edge cases and risks
+
+**Documentation:** Comprehensive analysis (300-800 lines total)
+**Estimate:** Days to weeks (1-10 days)
+
+**Examples:**
+- "Migrate all Redux Form components to react-hook-form"
+- "Upgrade React 17 to React 18"
+
+---
+
+## Problem type routing (Quick Reference)
+
+| Problem type | Start with documentation | Workflow |
 |-------------|------------------------|----------|
-| **Frontend UI-bug** | `frontend kodestandard` | Reproduser - Identifiser komponent - Sjekk API - TDD |
-| **Backend API-feil** | `backend oversikt` + `patterns.md` | Identifiser endpoint - Sjekk ripple effects - TDD |
-| **Tverrfaglig** | `API mapping guide` | Backend først - Test - Frontend - Full stack test |
-| **Refaktorering** | `testing-reglene` | Sikre tester - Refaktorer - Verifiser grønne tester |
-| **Test-generering** | `testing-reglene` | Les kode - Identifiser edge cases - Skriv tester |
-| **Ny funksjonalitet** | `workflows-reglene` | Les JIRA/TODO - Analyser omfang - TDD |
-| **Database-endring** | `backend patterns` | Identifiser ripple effects - Flyway - Test |
-| **Performance** | `frontend kodestandard` | Profiler - Finn root cause - Benchmark - Optimaliser |
+| **Frontend UI bug** | `frontend code standard` | Reproduce - Identify component - Check API - TDD |
+| **Backend API error** | `backend overview` + `patterns.md` | Identify endpoint - Check ripple effects - TDD |
+| **Cross-project** | `API mapping guide` | Backend first - Test - Frontend - Full stack test |
+| **Refactoring** | `the testing rules` | Secure tests - Refactor - Verify green tests |
+| **Test generation** | `the testing rules` | Read code - Identify edge cases - Write tests |
+| **New functionality** | `the workflows rules` | Read JIRA/TODO - Analyze scope - TDD |
+| **Database change** | `backend patterns` | Identify ripple effects - Flyway - Test |
+| **Performance** | `frontend code standard` | Profile - Find root cause - Benchmark - Optimize |
 
-**Hurtigreferanse:**
-- **Frontend-problem?** Se `frontend kodestandard`
-- **Backend-problem?** Se `backend oversikt` + `patterns.md`
-- **Tverrfaglig?** Se `API mapping guide`
-- **Testing?** Se `testing-reglene`
-- **Git/Commit?** Se `git-reglene`
+**Quick reference:**
+- **Frontend problem?** See `frontend code standard`
+- **Backend problem?** See `backend overview` + `patterns.md`
+- **Cross-project?** See `API mapping guide`
+- **Testing?** See `the testing rules`
+- **Git/Commit?** See `the git rules`
 
 ---
 
-## Branch-strategi
+## Branch strategy
 
-**Før du starter analyse eller implementering:**
+**Before starting analysis or implementation:**
 
-AI-assistenten kan jobbe med **flere repositories** samtidig (f.eks. my-app, my-api, etc.). Det er kritisk at riktig branch er sjekket ut i alle relevante repositories.
+The AI assistant may work with **multiple repositories** at the same time (e.g. my-app, my-api, etc.). It is critical that the correct branch is checked out in all relevant repositories.
 
-### Hvorfor dette er viktig
+### Why this matters
 
-- Analyse-fasen leser API-mapping for å finne hvilke systemer som er involvert
-- **Hvis feil branch er sjekket ut**, kan analysen/implementeringen bli feil eller ufullstendig
-- AI-assistenten **avbryter med feilmelding** hvis nødvendig repository mangler
+- The analysis phase reads the API mapping to find which systems are involved
+- **If the wrong branch is checked out**, the analysis/implementation may be wrong or incomplete
+- The AI assistant **aborts with an error message** if a required repository is missing
 
-### Anbefalt prosedyre
+### Recommended procedure
 
-**1. Sjekk ut samme branch i alle relevante repositories:**
+**1. Check out the same branch in all relevant repositories:**
 
 ```bash
 # my-app (frontend)
@@ -190,803 +190,803 @@ cd ~/develop/my-api
 git checkout feature/PROJ-7637
 ```
 
-**2. Verifiser at repositories er synkroniserte:**
+**2. Verify that the repositories are in sync:**
 
 ```bash
 cd ~/develop/my-app && git pull
 cd ~/develop/my-api && git pull
 ```
 
-### Sporingsinfo i dokumentasjon
+### Tracking info in documentation
 
-Etter analyse/løsning oppdateres **Sporingsinfo** med hvilke repositories og branches som ble brukt:
+After analysis/solution, the **Tracking info** section is updated with which repositories and branches were used:
 
 ```markdown
-## Sporingsinfo
+## Tracking info
 
 - **JIRA:** [PROJ-7637](https://jira.example.com/browse/PROJ-7637)
-- **Sist analysert:** `2025-11-07`
+- **Last analyzed:** `2025-11-07`
 
-**Repositories brukt under analyse:**
+**Repositories used during analysis:**
 - **my-app:** `feature/PROJ-7637` @ `abc123de`
 - **my-api:** `feature/PROJ-7637` @ `def456ab`
 ```
 
 ---
 
-## JIRA-sak workflow
+## JIRA issue workflow
 
-### Overordnet flyt
+### Overall flow
 ```text
-Opprett - Analyser - Løs - Verifiser
+Create - Analyze - Solve - Verify
 ```
 
-### Fase 1: Opprett dokumentstruktur
+### Phase 1: Create document structure
 
-**Hva skal gjøres:**
-1. Henter saken fra JIRA API (validering)
-2. Tildeler neste ledige nummer og oppretter katalog: `reports/<NN>-PROJ-XXXX-slug/`
-3. Fyller ut `1-description.md` med JIRA-metadata
-4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
-5. Stager alle nye filer i git (automatisk)
+**What is done:**
+1. Fetches the issue from the JIRA API (validation)
+2. Assigns the next available number and creates the directory: `reports/<NN>-PROJ-XXXX-slug/`
+3. Fills in `1-description.md` with JIRA metadata
+4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
+5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
 reports/05-PROJ-7894-class-to-functional/
-├── 0-README.md            (leserekkefølge)
-├── 1-description.md       (ferdig)
-├── 2-analysis.md           (⏳ tom)
-├── 3-solution.md           (⏳ tom)
-└── 4-status.md            (⏳ tom)
+├── 0-README.md            (reading order)
+├── 1-description.md       (done)
+├── 2-analysis.md           (⏳ empty)
+├── 3-solution.md           (⏳ empty)
+└── 4-status.md            (⏳ empty)
 ```
 
-### Fase 2: Analyser kodebase
+### Phase 2: Analyze the codebase
 
-**Hva skal gjøres:**
-1. Leser `1-description.md`
-2. **Detekter kompleksitetsnivå** (se [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon))
-3. Analyserer kodebase (konkrete filer + linjenummer)
-4. Identifiserer påvirkede prosjekter (frontend, backend, etc.)
-5. Vurderer API-påvirkning (se [API-påvirkningsanalyse](#api-påvirkningsanalyse))
-6. Oppdaterer alle 4 dokumentfiler
+**What is done:**
+1. Reads `1-description.md`
+2. **Detects the complexity level** (see [Complexity detection](#complexity-detection))
+3. Analyzes the codebase (specific files + line numbers)
+4. Identifies affected projects (frontend, backend, etc.)
+5. Assesses API impact (see [API impact analysis](#api-impact-analysis))
+6. Updates all 4 document files
 
-**Kan kjøres på nytt** når kodebasen endres.
+**Can be re-run** when the codebase changes.
 
-### Fase 3: Implementer løsning
+### Phase 3: Implement the solution
 
-**Hva skal gjøres:**
-1. Leser `2-analysis.md` og `3-solution.md`
-2. Følger TDD-tilnærming:
-   - **RED**: Skriver tester som beviser problemet (skal feile)
-   - **GREEN**: Implementerer løsningen (testene skal passere)
-   - **REFACTOR**: Kjører regresjonstester (verifiserer ingen brudd)
-3. Ber om bekreftelse før hver fase
-4. Oppdaterer `4-status.md` underveis
+**What is done:**
+1. Reads `2-analysis.md` and `3-solution.md`
+2. Follows a TDD approach:
+   - **RED**: Writes tests that prove the problem (should fail)
+   - **GREEN**: Implements the solution (the tests should pass)
+   - **REFACTOR**: Runs regression tests (verifies nothing broke)
+3. Asks for confirmation before each phase
+4. Updates `4-status.md` along the way
 
-### Fase 4: Verifiser
+### Phase 4: Verify
 
-**Manuelt steg:**
-1. Kjør alle tester: `pnpm test -- --run`
-2. Kjør linting: `pnpm run lint`
-3. Bygg applikasjonen: `pnpm run build`
-4. Test manuelt i nettleser
-5. Kjør `/ultrareview` for skybasert kodegjennomgang av branchen (bruker-trigget, krever git-repo)
-6. Commit endringer
+**Manual step:**
+1. Run all tests: `pnpm test -- --run`
+2. Run linting: `pnpm run lint`
+3. Build the application: `pnpm run build`
+4. Test manually in the browser
+5. Run `/ultrareview` for a cloud-based code review of the branch (user-triggered, requires a git repo)
+6. Commit changes
 
 ---
 
-## TODO-plan workflow
+## TODO plan workflow
 
-### Overordnet flyt
+### Overall flow
 ```text
-Opprett - Analyser - Løs - Verifiser
+Create - Analyze - Solve - Verify
 ```
 
-### Fase 1: Opprett dokumentstruktur
+### Phase 1: Create document structure
 
-**Hva skal gjøres:**
-1. Tildeler nummer (neste ledige)
-2. Oppretter katalog: `reports/<NN>-slug-navn/`
-3. Fyller ut `1-description.md` med metadata
-4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
-5. Stager alle nye filer i git (automatisk)
+**What is done:**
+1. Assigns a number (next available)
+2. Creates the directory: `reports/<NN>-slug-name/`
+3. Fills in `1-description.md` with metadata
+4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
+5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/17-rydd-opp-i-console-log/
-├── 0-README.md            (leserekkefølge)
-├── 1-description.md       (ferdig)
-├── 2-analysis.md           (⏳ tom)
-├── 3-solution.md           (⏳ tom)
-└── 4-status.md            (⏳ tom)
+reports/17-clean-up-console-log/
+├── 0-README.md            (reading order)
+├── 1-description.md       (done)
+├── 2-analysis.md           (⏳ empty)
+├── 3-solution.md           (⏳ empty)
+└── 4-status.md            (⏳ empty)
 ```
 
-### Fase 2-4: Analyser, Løs og Verifiser
+### Phase 2-4: Analyze, Solve and Verify
 
-Samme som [JIRA-sak workflow](#jira-sak-workflow).
+Same as the [JIRA issue workflow](#jira-issue-workflow).
 
 ---
 
-## API-påvirkningsanalyse
+## API impact analysis
 
-**VIKTIG:** Vurder alltid API-påvirkning når du analyserer en sak!
+**IMPORTANT:** Always assess API impact when analyzing an issue!
 
 ### Workflow
 
-1. **Les API mapping guide**
+1. **Read the API mapping guide**
    - `API mapping guide`
-2. **Identifiser API-kall**
-   - Søk etter endpoints i frontend-kode
-   - Eksempel: `'api/sak/' + sakId`
+2. **Identify API calls**
+   - Search for endpoints in the frontend code
+   - Example: `'api/sak/' + sakId`
 
-3. **Slå opp i mapping**
-   - Bruk `API quick reference` for rask lookup
-   - Finn eksakt backend-fil og linjenummer
+3. **Look up in the mapping**
+   - Use the `API quick reference` for fast lookup
+   - Find the exact backend file and line number
 
-4. **Vurder påvirkning**
-   - **Frontend only?** UI-endringer uten API-endring
-   - **Backend only?** Logikk-endringer uten kontraktsendring
-   - **Both?** Nye felt, validering, endret API-kontrakt
+4. **Assess the impact**
+   - **Frontend only?** UI changes without API changes
+   - **Backend only?** Logic changes without contract changes
+   - **Both?** New fields, validation, changed API contract
 
-### Eksempel
+### Example
 
-**JIRA-sak:** "Legg til 'behandlingsstatus' felt i saksoversikt"
+**JIRA issue:** "Add a 'processing status' field to the case overview"
 
-**Analyse:**
-1. Frontend bruker: `GET /api/sak/{sakId}`
-2. Backend-endepunktet ligger i: `my-api/src/.../SakController.java:156`
-3. Vurdering: **Both**
+**Analysis:**
+1. Frontend uses: `GET /api/case/{caseId}`
+2. The backend endpoint lives in: `my-api/src/.../CaseController.java:156`
+3. Assessment: **Both**
 
-**Dokumenter i `2-analysis.md`:**
+**Document in `2-analysis.md`:**
 ```markdown
-## Påvirkede prosjekter
+## Affected projects
 
 ### my-api
-- SakController.java:156 - Legg til `behandlingsstatus` i response
-- SakDto.java:42 - Legg til nytt felt
+- CaseController.java:156 - Add `processingStatus` to the response
+- CaseDto.java:42 - Add new field
 
 ### my-app
-- src/sider/sak/SakOversikt.tsx:89 - Vis `behandlingsstatus` i UI
+- src/pages/case/CaseOverview.tsx:89 - Show `processingStatus` in the UI
 ```
 
 ---
 
-## Tverrfaglige saker
+## Cross-project issues
 
-Mange saker krever endringer i flere prosjekter.
+Many issues require changes in multiple projects.
 
-### Workflow for tverrfaglige saker
+### Workflow for cross-project issues
 
-1. **Analyser** hvilke prosjekter som påvirkes
-2. **Dokumenter** i `2-analysis.md`:
-   - Liste over påvirkede filer (med linjenummer)
-   - Avhengigheter mellom prosjekter
-3. **Implementer** i riktig rekkefølge:
-   - Ofte: Backend først, deretter frontend
-   - Årsak: Frontend avhenger av backend API-kontrakt
-4. **Test** hele flyten:
-   - Backend-tester (unit + integration)
-   - Frontend-tester (unit + e2e)
-   - Manuell testing (full stack)
+1. **Analyze** which projects are affected
+2. **Document** in `2-analysis.md`:
+   - List of affected files (with line numbers)
+   - Dependencies between projects
+3. **Implement** in the right order:
+   - Often: Backend first, then frontend
+   - Reason: The frontend depends on the backend API contract
+4. **Test** the entire flow:
+   - Backend tests (unit + integration)
+   - Frontend tests (unit + e2e)
+   - Manual testing (full stack)
 
 ---
 
-## Workflow-optimalisering
+## Workflow optimization
 
-Basert på [Anthropics offisielle guide](https://www.anthropic.com/engineering/claude-code-best-practices).
+Based on [Anthropic's official guide](https://www.anthropic.com/engineering/claude-code-best-practices).
 
 ### Context management
 
-**Bruk `/clear` mellom uavhengige oppgaver:**
-- Holder ytelsen oppe
-- Forhindrer at tidligere kontekst distraherer
+**Use `/clear` between independent tasks:**
+- Keeps performance up
+- Prevents earlier context from distracting
 
-**Når bruke /clear:**
-- Etter fullført JIRA-sak eller TODO-plan
-- Når du bytter mellom uavhengige oppgaver
+**When to use /clear:**
+- After completing a JIRA issue or TODO plan
+- When switching between independent tasks
 
 ### Course correction
 
-**Interrupt og omstyring:**
-- **Escape:** Avbryt pågående operasjon og gi nye instruksjoner
-- **Double-tap Escape:** Rediger forrige prompt
-- **Spør Claude om å undo:** "Undo siste endring"
+**Interrupt and redirect:**
+- **Escape:** Abort the ongoing operation and give new instructions
+- **Double-tap Escape:** Edit the previous prompt
+- **Ask Claude to undo:** "Undo the last change"
 
-**Be Claude planlegge først:**
-- "Planlegg hvordan du vil løse dette før du skriver kode"
-- "Think hard" for mer grundig analyse
+**Ask Claude to plan first:**
+- "Plan how you want to solve this before writing code"
+- "Think hard" for more thorough analysis
 
 ### Explore - Plan - Code workflow
 
-**Følg alltid disse stegene:**
+**Always follow these steps:**
 
-**1. Explore (Utforsk)**
+**1. Explore**
 ```text
-- "Les gjennom SakOversikt.tsx og forklar strukturen"
-- "Finn alle steder hvor vi bruker validateSøknad"
+- "Read through SakOversikt.tsx and explain the structure"
+- "Find all places where we use validateApplication"
 ```
 
-**2. Plan (Planlegg)**
+**2. Plan**
 ```text
-- "Lag en plan for hvordan vi skal implementere dette"
+- "Make a plan for how we should implement this"
 - "Think hard about the edge cases"
 ```
 
-**3. Code (Implementer)**
+**3. Code (Implement)**
 ```text
-- Skriv tester først (RED)
-- Implementer løsningen (GREEN)
-- Kjør regresjonstester (REFACTOR)
+- Write tests first (RED)
+- Implement the solution (GREEN)
+- Run regression tests (REFACTOR)
 ```
 
-**4. Commit (Bekreft)**
+**4. Commit (Confirm)**
 ```text
-- Manuell testing
+- Manual testing
 - Code review
 - Git commit
 ```
 
-### Iterasjon mot klare mål
+### Iterating toward clear goals
 
-**Bruk målbare targets:**
-- **Tester:** Skriv tester som definerer ønsket oppførsel
-- **Screenshots:** Vis ønsket design som målbilde
-- **Spesifikasjoner:** Eksplisitte akseptansekriterier
+**Use measurable targets:**
+- **Tests:** Write tests that define the desired behavior
+- **Screenshots:** Show the desired design as a target
+- **Specifications:** Explicit acceptance criteria
 
-### Checklists for komplekse oppgaver
+### Checklists for complex tasks
 
-**For store migrasjoner:**
+**For large migrations:**
 
-1. Be Claude lage en Markdown checklist
-2. Gå systematisk gjennom hvert punkt
-3. Oppdater 4-status.md underveis
+1. Ask Claude to create a Markdown checklist
+2. Work systematically through each item
+3. Update 4-status.md along the way
 
-**Eksempel:**
+**Example:**
 ```markdown
-## Migreringsplan: Redux til Zustand
+## Migration plan: Redux to Zustand
 
-- [ ] Migrer `sakSlice.ts` (10 actions)
-- [ ] Migrer `brukerSlice.ts` (5 actions)
-- [ ] Oppdater alle komponenter som bruker `useSelector`
-- [ ] Fjern Redux dependencies
-- [ ] Kjør full test-suite
+- [ ] Migrate `caseSlice.ts` (10 actions)
+- [ ] Migrate `userSlice.ts` (5 actions)
+- [ ] Update all components using `useSelector`
+- [ ] Remove Redux dependencies
+- [ ] Run the full test suite
 ```
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre viktige prinsipper:**
-1. **Detekter kompleksitet** tidlig og match dokumentasjon til oppgaven
-2. Følg **lineær flyt**: Opprett - Analyser - Løs - Verifiser
-3. Vurder alltid **API-påvirkning** (bruk mapping)
+**Three key principles:**
+1. **Detect complexity** early and match the documentation to the task
+2. Follow the **linear flow**: Create - Analyze - Solve - Verify
+3. Always assess **API impact** (use the mapping)
 
 **Best practices:**
-1. Bruk `/clear` mellom uavhengige oppgaver
-2. Følg **Explore - Plan - Code - Commit**
-3. Iterer mot **klare mål** (tester, screenshots, spesifikasjoner)
-4. Bruk **checklists** for komplekse oppgaver
+1. Use `/clear` between independent tasks
+2. Follow **Explore - Plan - Code - Commit**
+3. Iterate toward **clear goals** (tests, screenshots, specifications)
+4. Use **checklists** for complex tasks
 
 ---
 
-## Se også
+## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-fils struktur for rapporter
-
----
-
-# LLM-kodedisiplin
-
-Atferdsregler som demmer opp for to vanlige LLM-feil: stille antakelser og
-scope-glidning. Inspirert av Andrej Karpathys observasjoner om hvor
-språkmodeller svikter når de skriver kode.
-
-**Avveining:** Disse reglene vektlegger varsomhet framfor fart. På trivielle
-oppgaver, bruk skjønn.
-
-## Innholdsfortegnelse
-
-- [Tenk før du koder](#tenk-før-du-koder)
-- [Kirurgiske endringer](#kirurgiske-endringer)
-- [Se også](#se-også)
+- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for reports
 
 ---
 
-## Tenk før du koder
+# LLM coding discipline
 
-**Ikke anta. Ikke skjul forvirring. Synliggjør avveiningene.**
+Behavioral rules that guard against two common LLM failures: silent
+assumptions and scope creep. Inspired by Andrej Karpathy's observations
+on where language models fall short when writing code.
 
-Før du implementerer:
+**Trade-off:** These rules favor caution over speed. On trivial tasks,
+use judgment.
 
-- Oppgi antakelsene dine eksplisitt. Er du usikker, spør.
-- Finnes det flere tolkninger, legg dem fram — ikke velg én i stillhet.
-- Finnes det en enklere tilnærming, si fra. Si imot når det er grunn til det.
-- Er noe uklart, stopp. Sett ord på hva som forvirrer. Spør.
+## Table of contents
 
----
-
-## Kirurgiske endringer
-
-**Rør bare det du må. Rydd bare opp i ditt eget rot.**
-
-Når du endrer eksisterende kode:
-
-- Ikke «forbedre» tilstøtende kode, kommentarer eller formatering.
-- Ikke refaktorer ting som ikke er ødelagt.
-- Følg eksisterende stil, selv om du ville gjort det annerledes.
-- Oppdager du urelatert død kode, nevn det — ikke slett det.
-
-Når endringene dine etterlater foreldreløs kode:
-
-- Fjern importer, variabler og funksjoner som *dine* endringer gjorde ubrukte.
-- Ikke fjern død kode som allerede lå der, med mindre du blir bedt om det.
-
-Tommelfingerregel: hver linje du endrer skal kunne spores direkte til det
-brukeren ba om.
+- [Think before you code](#think-before-you-code)
+- [Surgical changes](#surgical-changes)
+- [See also](#see-also)
 
 ---
 
-## Se også
+## Think before you code
 
-To beslektede Karpathy-prinsipper har allerede egen dekning hos oss — bruk dem
-framfor å duplisere:
+**Don't assume. Don't hide confusion. Surface the trade-offs.**
 
-- **Enkelhet først** (minimal kode, ingen spekulativ abstraksjon) — `/code-review`-skillen
-- **Målstyrt utføring** (verifiserbare suksesskriterier, RED → GREEN → REFACTOR) — `testing.md` og `/tdd-coach`
+Before implementing:
+
+- State your assumptions explicitly. If you are unsure, ask.
+- If multiple interpretations exist, lay them out — don't silently pick one.
+- If a simpler approach exists, say so. Push back when there is reason to.
+- If something is unclear, stop. Put the confusion into words. Ask.
 
 ---
 
-# Git-regler for AI-assistert utvikling
+## Surgical changes
 
-## Innholdsfortegnelse
+**Touch only what you must. Clean up only your own mess.**
 
-- [Staging av nye filer](#staging-av-nye-filer)
-  - [Hovednorm](#hovednorm)
-  - [Eksempel](#eksempel)
-- [Filrenaming og konvertering](#filrenaming-og-konvertering)
-  - [Hovednorm](#hovednorm-1)
-  - [Arbeidsflyt for JS til TS konvertering](#arbeidsflyt-for-js-til-ts-konvertering)
-- [Commit-meldinger](#commit-meldinger)
+When modifying existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Follow the existing style, even if you would have done it differently.
+- If you discover unrelated dead code, mention it — don't delete it.
+
+When your changes leave orphaned code behind:
+
+- Remove imports, variables, and functions that *your* changes made unused.
+- Don't remove dead code that was already there, unless asked to.
+
+Rule of thumb: every line you change should be directly traceable to what
+the user asked for.
+
+---
+
+## See also
+
+Two related Karpathy principles already have their own coverage here — use
+them rather than duplicating:
+
+- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
+- **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
+
+---
+
+# Git rules for AI-assisted development
+
+## Table of contents
+
+- [Staging new files](#staging-new-files)
+  - [Core rule](#core-rule)
+  - [Example](#example)
+- [File renaming and conversion](#file-renaming-and-conversion)
+  - [Core rule](#core-rule-1)
+  - [Workflow for JS to TS conversion](#workflow-for-js-to-ts-conversion)
+- [Commit messages](#commit-messages)
   - [Format](#format)
-  - [Riktige eksempler](#riktige-eksempler)
-- [Oppsummering](#oppsummering)
+  - [Good examples](#good-examples)
+- [Summary](#summary)
 
 ---
 
-## Staging av nye filer
+## Staging new files
 
-### Hovednorm
-**Legg automatisk til nye filer DU har opprettet, men ALDRI andre filer!**
+### Core rule
+**Automatically add new files YOU have created, but NEVER any other files!**
 
-### ❌ FORBUDT
-- `git add .` (legger til ALLE filer, inkludert genererte/uønskede)
-- `git add -A` (legger til ALLE filer, inkludert genererte/uønskede)
-- Legge til filer du IKKE har opprettet selv (node_modules, build-output, genererte filer, etc.)
+### ❌ FORBIDDEN
+- `git add .` (adds ALL files, including generated/unwanted ones)
+- `git add -A` (adds ALL files, including generated/unwanted ones)
+- Adding files you did NOT create yourself (node_modules, build output, generated files, etc.)
 
-### ✅ RIKTIG fremgangsmåte
-1. Når du har opprettet NYE filer (dokumentasjon, kode, tester), kjør `git add` **automatisk** for disse
-2. Bruk eksplisitte filnavn: `git add reports/<NN>-PROJ-7890-slug/beskrivelse.md` (ikke `git add .`)
-3. Bare legg til filer DU selv har skrevet/opprettet
-4. ALDRI legg til:
-   - Genererte filer (build output, coverage reports)
+### ✅ CORRECT approach
+1. When you have created NEW files (documentation, code, tests), run `git add` **automatically** for them
+2. Use explicit file names: `git add reports/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
+3. Only add files YOU wrote/created yourself
+4. NEVER add:
+   - Generated files (build output, coverage reports)
    - Dependencies (node_modules, vendor)
-   - IDE-filer (.idea/, *.swp)
-   - Midlertidige filer
+   - IDE files (.idea/, *.swp)
+   - Temporary files
 
-### OBS
-Endrede filer (allerede tracked) trenger ikke `git add` - brukeren håndterer commit i sin IDE.
+### Note
+Modified files (already tracked) do not need `git add` - the user handles committing in their IDE.
 
-### Eksempel
+### Example
 ```bash
-# Du har opprettet 4 nye markdown-filer
-git add reports/<NN>-PROJ-7890-slug/beskrivelse.md
-git add reports/<NN>-PROJ-7890-slug/analyse.md
-git add reports/<NN>-PROJ-7890-slug/løsning.md
+# You have created 4 new markdown files
+git add reports/<NN>-PROJ-7890-slug/description.md
+git add reports/<NN>-PROJ-7890-slug/analysis.md
+git add reports/<NN>-PROJ-7890-slug/solution.md
 git add reports/<NN>-PROJ-7890-slug/status.md
 
-# Eller samlet:
+# Or all at once:
 git add reports/<NN>-PROJ-7890-slug/*.md
 ```
 
 ---
 
-## Filrenaming og konvertering
+## File renaming and conversion
 
-### Hovednorm
-**Bruk ALLTID `git mv` for å bevare git-historikk når filer omdøpes!**
+### Core rule
+**ALWAYS use `git mv` to preserve git history when renaming files!**
 
-### ❌ FORBUDT (mister historikk)
+### ❌ FORBIDDEN (loses history)
 ```bash
-# Slette gammel fil og opprette ny
-rm src/utils/land.js
-# opprett ny src/utils/land.ts
-git add src/utils/land.ts
+# Deleting the old file and creating a new one
+rm src/utils/country.js
+# create new src/utils/country.ts
+git add src/utils/country.ts
 ```
 
-### ✅ RIKTIG (bevarer historikk)
+### ✅ CORRECT (preserves history)
 ```bash
-# Bruk git mv for å bevare commit-historikk
-git mv src/utils/land.js src/utils/land.ts
+# Use git mv to preserve commit history
+git mv src/utils/country.js src/utils/country.ts
 git mv src/components/UserProfile.jsx src/components/UserProfile.tsx
 ```
 
-### Hvorfor dette er viktig
-- Bevarer hele commit-historikken (hvem endret hva, når, hvorfor)
-- Git forstår at det er samme fil, bare med nytt navn
-- `git blame` og `git log` fungerer korrekt
-- Historikken vises i IDE og GitHub
+### Why this matters
+- Preserves the entire commit history (who changed what, when, why)
+- Git understands that it is the same file, just with a new name
+- `git blame` and `git log` work correctly
+- The history shows up in the IDE and on GitHub
 
-### Arbeidsflyt for JS til TS konvertering
-1. `git mv old.js new.ts` (først!)
-2. Konverter innhold til TypeScript
-3. `git add new.ts` (endringene)
+### Workflow for JS to TS conversion
+1. `git mv old.js new.ts` (first!)
+2. Convert the contents to TypeScript
+3. `git add new.ts` (the changes)
 4. Commit
 
-**Denne regelen gjelder ALLTID ved JS→TS/JSX→TSX konvertering!**
+**This rule ALWAYS applies to JS→TS/JSX→TSX conversion!**
 
 ---
 
-## Commit-meldinger
+## Commit messages
 
 ### Format
-**Alltid norsk, alltid i fortid (ikke imperativ).**
+**Always English, always in the imperative mood (not past tense).**
 
-### ❌ ALDRI Co-Authored-By
-- Legg ALDRI til `Co-Authored-By`-linjer i commit-meldinger
-- Dette gjelder alle varianter (`Claude`, `Copilot`, `GPT`, etc.)
+### ❌ NEVER Co-Authored-By
+- NEVER add `Co-Authored-By` lines to commit messages
+- This applies to all variants (`Claude`, `Copilot`, `GPT`, etc.)
 
-### Riktige eksempler
-- "La til automatisk git add for nye filer"
-- "Fjernet bruker-spesifikke paths fra settings.json"
-- "Oppdaterte dokumentasjon med hook-forklaring"
+### Good examples
+- "Add automatic git add for new files"
+- "Remove user-specific paths from settings.json"
+- "Update documentation with hook explanation"
+- "Convert UserProfile.jsx to TypeScript"
+- "Add unit tests for country.ts"
+
+### ❌ Wrong (past tense/Norwegian)
+- "Added automatic git add for new files"
+- "Removed user-specific paths"
+- "Updated documentation"
 - "Konverterte UserProfile.jsx til TypeScript"
-- "La til enhetstester for land.ts"
+- "La til enhetstester for country.ts"
 
-### ❌ Feil (imperativ/nåtid)
-- "Legg til automatisk git add for nye filer"
-- "Fjern bruker-spesifikke paths"
-- "Oppdater dokumentasjon"
-- "Konverter til TypeScript"
-- "Legg til tester"
-
-### Struktur
+### Structure
 
 ```text
-<Hva ble gjort i fortid>
+<What the change does, in the imperative mood>
 
-<Valgfri: Hvorfor, kontekst, eller detaljer>
+<Optional: why, context, or details>
 ```
 
-**Eksempel:**
+**Example:**
 
 ```text
-La til enhetstester for land.ts
+Add unit tests for country.ts
 
-Testet getLandnavn(), getLandkode(), og edge cases.
-Forberedelse før JS til TS konvertering.
+Test getCountryName(), getCountryCode(), and edge cases.
+Preparation before the JS to TS conversion.
 ```
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre gullregler:**
-1. ✅ Bruk `git add` med eksplisitte filnavn for NYE filer du har opprettet
-2. ✅ Bruk `git mv` når filer skal omdøpes (bevarer historikk)
-3. ✅ Skriv commit-meldinger på norsk i fortid
+**Three golden rules:**
+1. ✅ Use `git add` with explicit file names for NEW files you have created
+2. ✅ Use `git mv` when renaming files (preserves history)
+3. ✅ Write commit messages in English, in the imperative mood
 
-**Dette gjelder ALLTID - både i kommandoer, agents og normal interaksjon!**
-
----
-
-# Testing-regler for AI-assistert utvikling
-
-## Innholdsfortegnelse
-
-- [Hovednorm](#hovednorm)
-- [Testkommandoer](#testkommandoer)
-  - [Enhetstester (Vitest)](#enhetstester-vitest)
-  - [E2E-tester (Playwright)](#e2e-tester-playwright)
-- [Arbeidsflyt](#arbeidsflyt)
-  - [Eksempel på riktig arbeidsflyt](#eksempel-på-riktig-arbeidsflyt)
-  - [Ved feilende tester](#ved-feilende-tester)
-- [TDD-tilnærming](#tdd-tilnærming-test-driven-development)
-- [Watch mode advarsler](#watch-mode-advarsler)
+**This ALWAYS applies - in commands, agents, and normal interaction alike!**
 
 ---
 
-## Hovednorm
+# Testing rules for AI-assisted development
 
-**ALLTID kjør tester når du oppretter eller endrer dem!**
+## Table of contents
 
-### ❌ ALDRI
-- Opprett tester uten å kjøre dem
-- Endre tester uten å verifisere at de fortsatt fungerer
-- Anta at tester passerer uten å sjekke
-- Committe tester som feiler
-
-### ✅ RIKTIG fremgangsmåte
-1. Når du oppretter/endrer tester, **kjør dem umiddelbart**
-2. **Verifiser** at alle tester passerer (grønne ✅)
-3. Hvis tester feiler (røde ❌):
-   - Analyser feilmeldingen
-   - Fiks problemet (enten testen eller koden)
-   - Kjør på nytt til alle passerer
-4. **Før commit:** Kjør hele testsuiten for å sjekke for regresjoner
+- [Core rule](#core-rule)
+- [Test commands](#test-commands)
+  - [Unit tests (Vitest)](#unit-tests-vitest)
+  - [E2E tests (Playwright)](#e2e-tests-playwright)
+- [Workflow](#workflow)
+  - [Example of a correct workflow](#example-of-a-correct-workflow)
+  - [When tests fail](#when-tests-fail)
+- [TDD approach](#tdd-approach-test-driven-development)
+- [Watch mode warnings](#watch-mode-warnings)
 
 ---
 
-## Testkommandoer
+## Core rule
 
-### Enhetstester (Vitest)
+**ALWAYS run tests when you create or modify them!**
+
+### ❌ NEVER
+- Create tests without running them
+- Modify tests without verifying that they still work
+- Assume that tests pass without checking
+- Commit failing tests
+
+### ✅ CORRECT approach
+1. When you create/modify tests, **run them immediately**
+2. **Verify** that all tests pass (green ✅)
+3. If tests fail (red ❌):
+   - Analyze the error message
+   - Fix the problem (either the test or the code)
+   - Re-run until everything passes
+4. **Before committing:** Run the entire test suite to check for regressions
+
+---
+
+## Test commands
+
+### Unit tests (Vitest)
 ```bash
-# Alle tester (ALLTID bruk --run for å unngå watch mode!)
+# All tests (ALWAYS use --run to avoid watch mode!)
 pnpm test -- --run
 
-# Spesifikk testfil
-pnpm test -- --run <filnavn>
+# Specific test file
+pnpm test -- --run <filename>
 
-# Med dekningsrapport
+# With coverage report
 pnpm run test:coverage
 ```
 
-### E2E-tester (Playwright)
+### E2E tests (Playwright)
 ```bash
-# Alle e2e-tester
+# All e2e tests
 pnpm run test:e2e
 
-# Spesifikk e2e-test
-pnpm exec playwright test <filnavn>
+# Specific e2e test
+pnpm exec playwright test <filename>
 
-# Med UI-modus (UNNGÅ - holder prosess åpen)
+# With UI mode (AVOID - keeps the process open)
 pnpm run test:e2e:ui
 ```
 
 ---
 
-## Arbeidsflyt
+## Workflow
 
-### Eksempel på riktig arbeidsflyt
+### Example of a correct workflow
 ```text
-1. Opprettet test: src/utils/land.test.ts
-2. Kjører: pnpm test -- --run land.test.ts
-3. ✅ Alle 5 tester passerer
-4. Kjører: pnpm test -- --run (full suite for regresjonssjekk)
-5. ✅ 1247 tester passerer, 0 feiler
-6. Nå er det trygt å committe
+1. Created test: src/utils/country.test.ts
+2. Run: pnpm test -- --run country.test.ts
+3. ✅ All 5 tests pass
+4. Run: pnpm test -- --run (full suite for regression check)
+5. ✅ 1247 tests pass, 0 fail
+6. Now it is safe to commit
 ```
 
-### Ved feilende tester
+### When tests fail
 ```text
-1. Opprettet test: src/components/UserForm.test.tsx
-2. Kjører: pnpm test -- --run UserForm.test.tsx
-3. ❌ 2 av 8 tester feiler
-4. Analyserer feilmelding: "Expected <button> to be disabled, but was enabled"
-5. Fikser koden i UserForm.tsx (disabled-logikk)
-6. Kjører: pnpm test -- --run UserForm.test.tsx
-7. ✅ Alle 8 tester passerer
-8. Kjører: pnpm test -- --run (full suite)
-9. ✅ 1255 tester passerer, 0 feiler
-10. Nå er det trygt å committe
+1. Created test: src/components/UserForm.test.tsx
+2. Run: pnpm test -- --run UserForm.test.tsx
+3. ❌ 2 of 8 tests fail
+4. Analyze the error message: "Expected <button> to be disabled, but was enabled"
+5. Fix the code in UserForm.tsx (disabled logic)
+6. Run: pnpm test -- --run UserForm.test.tsx
+7. ✅ All 8 tests pass
+8. Run: pnpm test -- --run (full suite)
+9. ✅ 1255 tests pass, 0 fail
+10. Now it is safe to commit
 ```
 
 ---
 
-## TDD-tilnærming (Test-Driven Development)
+## TDD approach (Test-Driven Development)
 
 **Red → Green → Refactor**
 
-### 1. RED: Skriv test som feiler
-Bevis problemet ved å skrive en test som demonstrerer ønsket oppførsel (men feiler fordi koden ikke er implementert ennå).
+### 1. RED: Write a failing test
+Prove the problem by writing a test that demonstrates the desired behavior (but fails because the code is not implemented yet).
 
 ```tsx
-// Eksempel: Test for ny funksjonalitet som ikke finnes ennå
-test('getLandnavn should return "Norge" for code "NO"', () => {
-  expect(getLandnavn('NO')).toBe('Norge');
+// Example: Test for new functionality that does not exist yet
+test('getCountryName should return "Norway" for code "NO"', () => {
+  expect(getCountryName('NO')).toBe('Norway');
 });
 
-// Kjør: pnpm test -- --run land.test.ts
-// ❌ Feiler (beviser at funksjonaliteten mangler)
+// Run: pnpm test -- --run country.test.ts
+// ❌ Fails (proves that the functionality is missing)
 ```
 
-### 2. GREEN: Implementer til testen passerer
-Skriv minimal kode for å få testen til å passere.
+### 2. GREEN: Implement until the test passes
+Write minimal code to make the test pass.
 
 ```typescript
-// Implementer funksjonaliteten
-export function getLandnavn(code: string): string {
-  const land = {
-    'NO': 'Norge',
-    'SE': 'Sverige',
-    'DK': 'Danmark',
+// Implement the functionality
+export function getCountryName(code: string): string {
+  const countries = {
+    'NO': 'Norway',
+    'SE': 'Sweden',
+    'DK': 'Denmark',
   };
-  return land[code] || 'Ukjent';
+  return countries[code] || 'Unknown';
 }
 
-// Kjør: pnpm test -- --run land.test.ts
-// ✅ Passerer (funksjonaliteten virker)
+// Run: pnpm test -- --run country.test.ts
+// ✅ Passes (the functionality works)
 ```
 
-### 3. REFACTOR: Kjør alle tester
-Verifiser at ingen eksisterende funksjonalitet ble ødelagt.
+### 3. REFACTOR: Run all tests
+Verify that no existing functionality was broken.
 
 ```bash
-# Kjør hele testsuiten
+# Run the entire test suite
 pnpm test -- --run
 
-# ✅ Alle 1255 tester passerer (ingen regresjoner)
+# ✅ All 1255 tests pass (no regressions)
 ```
 
 ---
 
-## Watch mode advarsler
+## Watch mode warnings
 
-### KRITISK: Alle tester MÅ avsluttes etter kjøring
+### CRITICAL: All tests MUST terminate after running
 
-**VIKTIG:** Tester må alltid kjøres slik at prosessen avsluttes når testene er ferdige.
+**IMPORTANT:** Tests must always be run so that the process exits when the tests are done.
 
 ```bash
-# ✅ RIKTIG - Tester kjører og prosessen avsluttes
-pnpm test -- --run                    # Vitest - avslutter etter kjøring
-pnpm test -- --run UserProfile.test.tsx  # Spesifikk test
-pnpm run test:e2e                     # Playwright - avslutter automatisk
+# ✅ CORRECT - Tests run and the process exits
+pnpm test -- --run                    # Vitest - exits after running
+pnpm test -- --run UserProfile.test.tsx  # Specific test
+pnpm run test:e2e                     # Playwright - exits automatically
 
-# ❌ FEIL - Watch mode (prosessen avsluttes ALDRI)
-pnpm test                             # Starter i watch mode
+# ❌ WRONG - Watch mode (the process NEVER exits)
+pnpm test                             # Starts in watch mode
 pnpm test UserProfile.test.tsx        # Watch mode
-pnpm run test:e2e:ui                  # Playwright UI-modus
+pnpm run test:e2e:ui                  # Playwright UI mode
 ```
 
-### Hvorfor dette er kritisk
+### Why this is critical
 
-**I AI-assistert utvikling:**
-- AI kan ikke interagere med watch mode (krever manuell input for å avslutte)
-- Prosesser holder åpne i bakgrunnen og må drepen manuelt
-- Umulig for AI å verifisere når tester er ferdig kjørt
-- Kan forårsake resource-leaks
+**In AI-assisted development:**
+- AI cannot interact with watch mode (requires manual input to exit)
+- Processes stay open in the background and must be killed manually
+- Impossible for AI to verify when tests have finished running
+- Can cause resource leaks
 
-**I CI/CD pipelines:**
-- Watch mode blokkerer pipeline (venter i det uendelige)
-- Spiser ressurser unødvendig
-- Gjør automatiserte workflows umulige
+**In CI/CD pipelines:**
+- Watch mode blocks the pipeline (waits forever)
+- Consumes resources unnecessarily
+- Makes automated workflows impossible
 
-**I TDD-workflow:**
-- Du må kunne kjøre tester flere ganger i syklusen
-- Hver kjøring må avslutte for å gå videre til neste fase
-- Watch mode ødelegger automatiseringen
+**In the TDD workflow:**
+- You must be able to run tests multiple times in the cycle
+- Each run must exit to move on to the next phase
+- Watch mode breaks the automation
 
-### Hvordan sjekke om test-prosesser henger
+### How to check whether test processes are hanging
 
-**ADVARSEL:** Drep kun prosesser du selv har startet, ikke alle node-prosesser!
+**WARNING:** Only kill processes you started yourself, not all node processes!
 
 ```bash
-# Sjekk om DINE test-prosesser henger (ikke drep automatisk!)
+# Check whether YOUR test processes are hanging (do not kill automatically!)
 ps aux | grep vitest
 ps aux | grep playwright
 
-# Se PID og kommando for å identifisere dine prosesser
-ps aux | grep "[v]itest"    # Viser vitest-prosesser
-ps aux | grep "[p]laywright" # Viser playwright-prosesser
+# See PID and command to identify your processes
+ps aux | grep "[v]itest"    # Shows vitest processes
+ps aux | grep "[p]laywright" # Shows playwright processes
 
-# Drep KUN prosesser du selv har startet (bruk PID fra output over)
-kill <PID>                   # Erstatt <PID> med prosess-ID
+# Kill ONLY processes you started yourself (use the PID from the output above)
+kill <PID>                   # Replace <PID> with the process ID
 
-# Eksempel:
+# Example:
 # ps aux | grep vitest
 # > ragnar  12345  ... node .../vitest/...
 # kill 12345
 ```
 
-**VIKTIG:**
-- ❌ **ALDRI** bruk `pkill -f node` (dreper alle node-prosesser!)
-- ❌ **ALDRI** bruk `pkill -f vitest` uten å sjekke først
-- ✅ Bruk `ps aux` for å identifisere dine prosesser
-- ✅ Bruk `kill <PID>` for å drepe spesifikke prosesser
+**IMPORTANT:**
+- ❌ **NEVER** use `pkill -f node` (kills all node processes!)
+- ❌ **NEVER** use `pkill -f vitest` without checking first
+- ✅ Use `ps aux` to identify your processes
+- ✅ Use `kill <PID>` to kill specific processes
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre gullregler:**
-1. ✅ Kjør tester **umiddelbart** etter opprettelse/endring
-2. ✅ Verifiser at **alle tester passerer** før commit
-3. ✅ Bruk **TDD** (Red → Green → Refactor) for nye features
+**Three golden rules:**
+1. ✅ Run tests **immediately** after creating/modifying them
+2. ✅ Verify that **all tests pass** before committing
+3. ✅ Use **TDD** (Red → Green → Refactor) for new features
 
-**Denne regelen gjelder ALLTID - testing er ikke valgfritt!**
+**This rule ALWAYS applies - testing is not optional!**
 
 ---
 
-# Dokumentasjonsstandard
+# Documentation standard
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Generelle regler for alle dokumenter](#generelle-regler-for-alle-dokumenter)
-  - [Dokumentstruktur](#dokumentstruktur)
-  - [Innholdsfortegnelse](#innholdsfortegnelse-1)
-  - [Formatering](#formatering)
-- [Markdown-retningslinjer](#markdown-retningslinjer)
-  - [Kodeblokker](#kodeblokker)
-  - [Nummererte lister](#nummererte-lister)
+- [General rules for all documents](#general-rules-for-all-documents)
+  - [Document structure](#document-structure)
+  - [Table of contents](#table-of-contents-1)
+  - [Formatting](#formatting)
+- [Markdown guidelines](#markdown-guidelines)
+  - [Code blocks](#code-blocks)
+  - [Numbered lists](#numbered-lists)
   - [Emojis](#emojis)
-- [Best practices for AI-assistert dokumentasjon](#best-practices-for-ai-assistert-dokumentasjon)
-  - [Visuell dokumentasjon](#visuell-dokumentasjon)
-  - [Relaterte ressurser og URL-er](#relaterte-ressurser-og-url-er)
-  - [Spesifikke instruksjoner](#spesifikke-instruksjoner)
-  - [Filreferanser](#filreferanser)
-- [Se også](#se-også)
+- [Best practices for AI-assisted documentation](#best-practices-for-ai-assisted-documentation)
+  - [Visual documentation](#visual-documentation)
+  - [Related resources and URLs](#related-resources-and-urls)
+  - [Specific instructions](#specific-instructions)
+  - [File references](#file-references)
+- [See also](#see-also)
 
 ---
 
-## Generelle regler for alle dokumenter
+## General rules for all documents
 
-Disse reglene gjelder for ALLE markdown-dokumenter i prosjektet.
+These rules apply to ALL markdown documents in the project.
 
-### Dokumentstruktur
+### Document structure
 
-Alle dokumenter skal følge denne strukturen:
+All documents must follow this structure:
 
 ```markdown
-# Dokumenttittel
+# Document title
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Seksjon 1](#seksjon-1)
-  - [Underseksjon 1.1](#underseksjon-11)
-- [Seksjon 2](#seksjon-2)
+- [Section 1](#section-1)
+  - [Subsection 1.1](#subsection-11)
+- [Section 2](#section-2)
 
 ---
 
-## Seksjon 1
+## Section 1
 
-Innhold...
+Content...
 ```
 
-### Innholdsfortegnelse
+### Table of contents
 
-**Krav:**
-- Alle dokumenter over 50 linjer SKAL ha innholdsfortegnelse
-- Bruk 2 nivåer (hovedseksjoner og underseksjoner)
-- Plasser etter formål-setningen og før første innholdsseksjon
-- Overskriften skal være `## Innholdsfortegnelse` (uten emoji)
+**Requirements:**
+- All documents over 50 lines MUST have a table of contents
+- Use 2 levels (main sections and subsections)
+- Place it after the purpose statement and before the first content section
+- The heading must be `## Table of contents` (no emoji)
 
 **Format:**
 ```markdown
-## Innholdsfortegnelse
+## Table of contents
 
-- [Hovedseksjon](#hovedseksjon)
-  - [Underseksjon](#underseksjon)
+- [Main section](#main-section)
+  - [Subsection](#subsection)
 ```
 
-### Formatering
+### Formatting
 
-**Titler og overskrifter:**
-- Dokumenttittel: `# Tittel` (kun én per dokument)
-- Hovedseksjoner: `## Seksjon`
-- Underseksjoner: `### Underseksjon`
-- Ingen emojis i overskrifter (forårsaker problemer med anchor-lenker)
+**Titles and headings:**
+- Document title: `# Title` (only one per document)
+- Main sections: `## Section`
+- Subsections: `### Subsection`
+- No emojis in headings (causes problems with anchor links)
 
-**Separatorer:**
-- Bruk `---` mellom logiske seksjoner
-- Alltid `---` etter innholdsfortegnelsen
+**Separators:**
+- Use `---` between logical sections
+- Always `---` after the table of contents
 
 ---
 
-## Markdown-retningslinjer
+## Markdown guidelines
 
-### Kodeblokker
+### Code blocks
 
-**Alltid spesifiser språk ved START:**
-- `tsx` for kode med JSX (React: `<Component />`)
-- `typescript` for TypeScript uten JSX
-- `bash` for shell-kommandoer
-- `markdown` for markdown-eksempler
-- `text` for generell output
+**Always specify the language at the START:**
+- `tsx` for code with JSX (React: `<Component />`)
+- `typescript` for TypeScript without JSX
+- `bash` for shell commands
+- `markdown` for markdown examples
+- `text` for general output
 
-**Hvorfor:** IDEer parser kodeblokker og gir warnings hvis syntaks ikke matcher.
+**Why:** IDEs parse code blocks and produce warnings if the syntax does not match.
 
-**KRITISK: Avslutning av kodeblokker:**
+**CRITICAL: Closing code blocks:**
 
-Kodeblokker avsluttes ALLTID med bare tre backticks - ALDRI med språk-specifier:
+Code blocks are ALWAYS closed with just three backticks - NEVER with a language specifier:
 
 ````markdown
 ```bash
@@ -994,7 +994,7 @@ echo "Hello"
 ```
 ````
 
-**FEIL (vanlig AI-feil):**
+**WRONG (common AI mistake):**
 
 ````markdown
 ```bash
@@ -1002,203 +1002,203 @@ echo "Hello"
 ```text
 ````
 
-**Hvorfor dette er viktig:**
-- ` ```text` som avslutning bryter markdown-parsing
-- Pandoc og andre konverterere tolker det som ny kodeblokk
-- HTML-generering feiler med ødelagte kodeblokker
-- Anchor-lenker kan bli ødelagt
+**Why this matters:**
+- ` ```text` as a closing fence breaks markdown parsing
+- Pandoc and other converters interpret it as the start of a new code block
+- HTML generation fails with broken code blocks
+- Anchor links can end up broken
 
-**Før/Etter kodeeksempler:**
+**Before/After code examples:**
 
-Del alltid "Før" og "Etter" i SEPARATE kodeblokker:
+Always split "Before" and "After" into SEPARATE code blocks:
 
 ````markdown
-**Før:**
+**Before:**
 ```tsx
 const [value, setValue] = useState();
 ```
 
-**Etter:**
+**After:**
 ```tsx
 const value = useSelector(state => state.value);
 ```
 ````
 
-**Hvorfor:** Unngår redeclaration-feil (samme variabelnavn i én kodeblokk).
+**Why:** Avoids redeclaration errors (same variable name in a single code block).
 
-### Nummererte lister
+### Numbered lists
 
-**Start alltid på 1 etter en header/seksjonsskift:**
+**Always start at 1 after a header/section break:**
 
 ```markdown
-#### Filer å endre:
+#### Files to change:
 
-1. fil1.tsx
-2. fil2.tsx
+1. file1.tsx
+2. file2.tsx
 
-#### Filer å teste:
+#### Files to test:
 
-1. test1.tsx   (RIKTIG - starter på 1)
+1. test1.tsx   (CORRECT - starts at 1)
 2. test2.tsx
 ```
 
-**Hvorfor:** Markdown-lintere forventer at nye lister starter på 1.
+**Why:** Markdown linters expect new lists to start at 1.
 
 ### Emojis
 
-**IKKE bruk emojis i section headings (## overskrifter):**
+**Do NOT use emojis in section headings (## headings):**
 
 ```markdown
-## 📋 Innholdsfortegnelse   (FEIL - emoji i heading)
-## Innholdsfortegnelse      (RIKTIG)
+## 📋 Table of contents   (WRONG - emoji in heading)
+## Table of contents      (CORRECT)
 ```
 
-**Hvorfor:** Markdown-prosessorer stripper emojis fra heading IDs, som forårsaker MD051-feil (anchor link mismatch).
+**Why:** Markdown processors strip emojis from heading IDs, which causes MD051 errors (anchor link mismatch).
 
-**OK å bruke emojis i:**
-- Innhold og brødtekst
-- Lister og tabeller
-- Metadata-felt
+**Emojis are OK in:**
+- Content and body text
+- Lists and tables
+- Metadata fields
 
-**Se også:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detaljerte linting-regler.
+**See also:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detailed linting rules.
 
 ---
 
-## Best practices for AI-assistert dokumentasjon
+## Best practices for AI-assisted documentation
 
-### Visuell dokumentasjon
+### Visual documentation
 
-**Bruk screenshots og design mocks når det er relevant:**
-- Inkluder screenshots av UI-problemer eller feil
-- Legg ved design mocks for å vise ønsket sluttresultat
-- Lag assets-mappe: `assets/` i dokumentmappen
-- Referer til bilder i markdown: `![Beskrivelse](./assets/screenshot.png)`
+**Use screenshots and design mocks when relevant:**
+- Include screenshots of UI problems or bugs
+- Attach design mocks to show the desired end result
+- Create an assets folder: `assets/` in the document folder
+- Reference images in markdown: `![Description](./assets/screenshot.png)`
 
-**Hvorfor:** Moderne AI-assistenter er multimodale og kan iterere visuelt mot et målbilde.
+**Why:** Modern AI assistants are multimodal and can iterate visually toward a target image.
 
-**Eksempel:**
+**Example:**
 ```markdown
 ## Problem
 
-Datepicker viser feil format i Safari:
+Datepicker shows the wrong format in Safari:
 
 ![Safari bug](./assets/safari-datepicker-bug.png)
 
-Ønsket resultat:
+Desired result:
 
 ![Design mock](./assets/datepicker-design.png)
 ```
 
-### Relaterte ressurser og URL-er
+### Related resources and URLs
 
-**Inkluder lenker til eksterne ressurser:**
-- JIRA-saker: `https://jira.example.com/browse/PROJ-XXXX`
-- Confluence-dokumentasjon
-- Design-dokumenter (Figma, Sketch)
-- API-dokumentasjon (Swagger, OpenAPI)
+**Include links to external resources:**
+- JIRA issues: `https://jira.example.com/browse/PROJ-XXXX`
+- Confluence documentation
+- Design documents (Figma, Sketch)
+- API documentation (Swagger, OpenAPI)
 
-**Hvorfor:** URL-er gir AI-assistenter tilgang til oppdatert dokumentasjon og kontekst.
+**Why:** URLs give AI assistants access to up-to-date documentation and context.
 
-### Spesifikke instruksjoner
+### Specific instructions
 
-**Vær eksplisitt og detaljert i beskrivelser:**
+**Be explicit and detailed in descriptions:**
 
-**Vagt eksempel:**
+**Vague example:**
 ```markdown
 ## Problem
-Legg til tester for foo.tsx
+Add tests for foo.tsx
 ```
 
-**Spesifikt eksempel:**
+**Specific example:**
 ```markdown
 ## Problem
-Skriv enhetstester for `validateSøknadSkjema()` i foo.tsx:156.
-Test følgende edge cases:
-- Ugyldig personnummer (11 siffer, men feil kontrollsiffer)
-- Manglende påkrevde felt (navn, adresse)
-- Dato i fremtiden for fødselsdato
+Write unit tests for `validateApplicationForm()` in foo.tsx:156.
+Test the following edge cases:
+- Invalid national identity number (11 digits, but wrong check digit)
+- Missing required fields (name, address)
+- Date of birth in the future
 
-Unngå mocks for validering - bruk reelle test-data.
+Avoid mocks for validation - use real test data.
 ```
 
-**Hvorfor:** Spesifikke instruksjoner gir betydelig høyere suksessrate.
+**Why:** Specific instructions yield a significantly higher success rate.
 
-### Filreferanser
+### File references
 
-**Bruk konkrete filstier:**
-- Nevn eksakte filer: `src/components/Saksoversikt.tsx`
-- Bruk linjenummer: `Saksoversikt.tsx:123-145`
+**Use concrete file paths:**
+- Name exact files: `src/components/CaseOverview.tsx`
+- Use line numbers: `CaseOverview.tsx:123-145`
 
-**Hvorfor:** Hjelper AI-assistenter å lokalisere riktige ressurser uten å søke.
+**Why:** Helps AI assistants locate the right resources without searching.
 
 ---
 
-## Se også
+## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-fils struktur for JIRA/TODO rapporter
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting-regler
+- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for JIRA/TODO reports
+- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
 
 ---
 
 # Markdown Linting
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Oversikt](#oversikt)
-- [Bruk](#bruk)
-- [Konfigurasjon](#konfigurasjon)
-- [Ansvar](#ansvar)
-- [Vanlige feil og løsninger](#vanlige-feil-og-løsninger)
+- [Overview](#overview)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Responsibilities](#responsibilities)
+- [Common errors and solutions](#common-errors-and-solutions)
   - [MD029: List numbering](#md029-list-numbering)
   - [MD040: Missing code block language](#md040-missing-code-block-language)
   - [MD051: Broken anchor link](#md051-broken-anchor-link)
-  - [Vanlig AI-feil: Kodeblokk-avslutning med språk](#vanlig-ai-feil-kodeblokk-avslutning-med-språk)
+  - [Common AI mistake: Closing a code block with a language](#common-ai-mistake-closing-a-code-block-with-a-language)
 
 ---
 
-## Oversikt
+## Overview
 
-Dette workspace bruker `markdownlint-cli2` via `npx` for å fange opp markdown-feil før de committes.
+This workspace uses `markdownlint-cli2` via `npx` to catch markdown errors before they are committed.
 
-**Fokusområder:**
+**Focus areas:**
 1. **List numbering (MD029)** - Numbered lists must restart at 1 after headers
 2. **Anchor links (MD051)** - TOC links must match actual heading anchors
 3. **Code block language (MD040)** - All code blocks must specify language (tsx, typescript, bash, etc.)
 
-## Bruk
+## Usage
 
-### Sjekk alle markdown-filer
+### Check all markdown files
 
 ```bash
 npx markdownlint-cli2 '**/*.md'
 ```
 
-### Automatisk fikse det som kan fikses
+### Automatically fix what can be fixed
 
 ```bash
 npx markdownlint-cli2 --fix '**/*.md'
 ```
 
-## Konfigurasjon
+## Configuration
 
-Se `.markdownlint-cli2.jsonc` for reglene.
+See `.markdownlint-cli2.jsonc` for the rules.
 
-**Viktig:** Konfigurasjonen er minimal og fokuserer KUN på de kritiske issuene vi har hatt problemer med.
+**Important:** The configuration is minimal and focuses ONLY on the critical issues we have had problems with.
 
-## Ansvar
+## Responsibilities
 
-**ALLE AI-implementasjoner (Claude Code, Cursor, Junie, Codex, etc.):**
-- Må ALLTID kjøre linting på markdown-filer etter skriving/endring/flytting
-- Må fikse alle MD029, MD040 og MD051 feil før oppgaven er ferdig
-- Kommando: `npx markdownlint-cli2 <fil.md>` eller `npx markdownlint-cli2 '**/*.md'`
+**ALL AI implementations (Claude Code, Cursor, Junie, Codex, etc.):**
+- Must ALWAYS run linting on markdown files after writing/editing/moving them
+- Must fix all MD029, MD040 and MD051 errors before the task is done
+- Command: `npx markdownlint-cli2 <file.md>` or `npx markdownlint-cli2 '**/*.md'`
 
-**Manuell sjekk (valgfritt):** Du kan kjøre linting for å dobbeltsjekke.
+**Manual check (optional):** You can run linting to double-check.
 
-## Vanlige feil og løsninger
+## Common errors and solutions
 
 ### MD029: List numbering
 
-**Feil:**
+**Wrong:**
 ```markdown
 ### My Header
 
@@ -1206,7 +1206,7 @@ Se `.markdownlint-cli2.jsonc` for reglene.
 4. Second item
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 ### My Header
 
@@ -1216,52 +1216,52 @@ Se `.markdownlint-cli2.jsonc` for reglene.
 
 ### MD040: Missing code block language
 
-**Feil:**
+**Wrong:**
 ```markdown
 \```
 const foo = 'bar';
 \```
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 \```typescript
 const foo = 'bar';
 \```
 ```
 
-**Viktig:** Bruk `tsx` for React/JSX code, ikke `typescript`.
+**Important:** Use `tsx` for React/JSX code, not `typescript`.
 
 ### MD051: Broken anchor link
 
-**Feil:**
+**Wrong:**
 ```markdown
 - [My Section](#my-section)
 
 ## 1. My Section
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 - [My Section](#1-my-section)
 
 ## 1. My Section
 ```
 
-Eller oppdater HTML anchor:
+Or update the HTML anchor:
 ```markdown
 <a id="my-section"></a>
 ## 1. My Section
 ```
-til:
+to:
 ```markdown
 <a id="1-my-section"></a>
 ## 1. My Section
 ```
 
-### Vanlig AI-feil: Kodeblokk-avslutning med språk
+### Common AI mistake: Closing a code block with a language
 
-**Feil (ikke fanget av linter, men bryter HTML-generering):**
+**Wrong (not caught by the linter, but breaks HTML generation):**
 
 ````markdown
 ```bash
@@ -1269,7 +1269,7 @@ echo "Hello"
 ```text
 ````
 
-**Løsning:**
+**Solution:**
 
 ````markdown
 ```bash
@@ -1277,15 +1277,15 @@ echo "Hello"
 ```
 ````
 
-**Hvorfor dette skjer:**
-- AI-assistenter (Claude, Copilot, etc.) skriver noen ganger ` ```text` som avslutning
-- Dette er IKKE gyldig markdown - kodeblokker avsluttes ALLTID med bare ` ``` `
-- Pandoc og andre konverterere tolker ` ```text` som START på ny kodeblokk
-- Resultatet er ødelagt HTML med feil kodeblokker og brutte anchor-lenker
+**Why this happens:**
+- AI assistants (Claude, Copilot, etc.) sometimes write ` ```text` as a closing fence
+- This is NOT valid markdown - code blocks are ALWAYS closed with just ` ``` `
+- Pandoc and other converters interpret ` ```text` as the START of a new code block
+- The result is broken HTML with wrong code blocks and broken anchor links
 
-**Preventiv fix:**
-- `aide-generate-html` scriptet retter dette automatisk
-- Men kilden bør fikses - se [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#kodeblokker)
+**Preventive fix:**
+- The `aide-generate-html` script corrects this automatically
+- But the source should be fixed - see [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#code-blocks)
 
 ---
 
@@ -1294,403 +1294,403 @@ paths:
   - "**/aide-reports/**"
 ---
 
-# Rapport-struktur for JIRA og TODO
+# Report structure for JIRA and TODO
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Oversikt](#oversikt)
-- [Filstruktur](#filstruktur)
+- [Overview](#overview)
+- [File structure](#file-structure)
   - [1-description](#1-description)
   - [2-analysis](#2-analysis)
   - [3-solution](#3-solution)
   - [4-status](#4-status)
-- [Separasjon av innhold](#separasjon-av-innhold)
-- [Forskjeller JIRA vs TODO](#forskjeller-jira-vs-todo)
+- [Separation of content](#separation-of-content)
+- [Differences JIRA vs TODO](#differences-jira-vs-todo)
 - [Templates](#templates)
-- [Se også](#se-også)
+- [See also](#see-also)
 
 ---
 
-## Oversikt
+## Overview
 
-4 standardiserte filer per sak/plan:
+4 standardized files per issue/plan:
 
 ```text
-reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
-├── 1-description.md        # (JIRA: PROJ-nøkkel inngår i sluggen)
+reports/<NN>-slug/          # flat structure, same for JIRA and TODO
+├── 1-description.md        # (JIRA: the PROJ key is part of the slug)
 ├── 2-analysis.md
 ├── 3-solution.md
 └── 4-status.md
 ```
 
-**Roller:**
-1. **1-description.md** - Hovedinngang: Problem, omfang, akseptansekriterier
-2. **2-analysis.md** - Detaljert analyse: Funn, kompleksitet, risiko
-3. **3-solution.md** - Implementasjonsplan med TDD-tilnærming
-4. **4-status.md** - Levende dokument: Fremdrift og status
+**Roles:**
+1. **1-description.md** - Main entry point: Problem, scope, acceptance criteria
+2. **2-analysis.md** - Detailed analysis: Findings, complexity, risk
+3. **3-solution.md** - Implementation plan with a TDD approach
+4. **4-status.md** - Living document: Progress and status
 
 ---
 
-## Filstruktur
+## File structure
 
 ### 1-description
 
-**Formål:** Gi oversikt over saken, omfanget og akseptansekriteriene.
+**Purpose:** Give an overview of the issue, the scope and the acceptance criteria.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel]
+# [Title]
 
-## Innholdsfortegnelse
+## Table of contents
 
 - Metadata
-- Beskrivelse
+- Description
 - Problem
-- Omfang
-- Akseptansekriterier
+- Scope
+- Acceptance criteria
 
 ---
 
 ## Metadata
 
-**JIRA:** Tabell med type, status, prioritet, reporter, assignee
-**TODO:** Nummer, opprettet dato, forventet varighet
+**JIRA:** Table with type, status, priority, reporter, assignee
+**TODO:** Number, created date, expected duration
 
 ---
 
-## Beskrivelse
+## Description
 
-**Dette feltet kan redigeres manuelt for å legge til:**
-- Ekstra kontekst eller presiseringer
-- Spesifikke tekniske krav
-- Avklaringer fra møter/diskusjoner
+**This field can be edited manually to add:**
+- Extra context or clarifications
+- Specific technical requirements
+- Clarifications from meetings/discussions
 
 ---
 
 ## Problem
 
-[Beskrivelse kopiert fra JIRA eller skrevet av utvikler]
+[Description copied from JIRA or written by the developer]
 
-## Omfang
+## Scope
 
-**Berørte filer/komponenter:** [antall fra analyse]
-**Estimert arbeidsinnsats:** [tid basert på funn]
+**Affected files/components:** [count from the analysis]
+**Estimated effort:** [time based on findings]
 
-## Akseptansekriterier
+## Acceptance criteria
 
-[Kriterier for når saken/planen er ferdig]
+[Criteria for when the issue/plan is done]
 
 ```
 
-**Nøkkelpunkter:**
-- Innholdsfortegnelse for rask navigasjon
-- Metadata-tabell (JIRA/TODO-spesifikk)
-- Beskrivelse-seksjonen er redigerbar for manuell tilleggsinformasjon
-- Problem-seksjonen kopieres direkte (ikke skriv om)
-- Ingen kodeeksempler (de hører hjemme i 3-solution.md)
+**Key points:**
+- Table of contents for quick navigation
+- Metadata table (JIRA/TODO-specific)
+- The Description section is editable for manual additional information
+- The Problem section is copied verbatim (do not rewrite)
+- No code examples (they belong in 3-solution.md)
 
 ---
 
 ### 2-analysis
 
-**Formål:** Detaljert teknisk analyse av problemet.
+**Purpose:** Detailed technical analysis of the problem.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel] - Analyse
+# [Title] - Analysis
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Omfang
-- Kompleksitet
-- Funn
-- Risikoanalyse
+- Scope
+- Complexity
+- Findings
+- Risk analysis
 
 ---
 
-## Omfang
+## Scope
 
-**Antall berørte filer/komponenter:** [tall]
-**Sist analysert**: [dato]
+**Number of affected files/components:** [count]
+**Last analyzed**: [date]
 
-**Berørte filer/komponenter:**
-1. `fil/path.tsx:123-145` - [beskrivelse]
-2. `fil/path2.tsx:67` - [beskrivelse]
+**Affected files/components:**
+1. `fil/path.tsx:123-145` - [description]
+2. `fil/path2.tsx:67` - [description]
 
-## Kompleksitet
+## Complexity
 
-### [Høy/Middels/Lav kompleksitet]
+### [High/Medium/Low complexity]
 
-**Estimat:**
-- **Manuell utvikling:** [tid]
-- **AI-assistert utvikling:** [tid]
+**Estimate:**
+- **Manual development:** [time]
+- **AI-assisted development:** [time]
 
-## Funn
+## Findings
 
-### Kodebase-analyse
+### Codebase analysis
 
-[Detaljerte funn]
+[Detailed findings]
 
-### Berørte komponenter
+### Affected components
 
-[Detaljert beskrivelse per fil med konkrete linjenummer]
+[Detailed description per file with specific line numbers]
 
-### Test-dekning
+### Test coverage
 
-**Eksisterende tester:** [liste]
-**Manglende tester:** [gaps]
+**Existing tests:** [list]
+**Missing tests:** [gaps]
 
-## Risikoanalyse
+## Risk analysis
 
-### [Høy/Middels/Lav risiko]
+### [High/Medium/Low risk]
 
-**[Risiko 1]**
-- **Konsekvens:** [beskrivelse]
-- **Sannsynlighet:** [Høy/Middels/Lav]
-- **Mitigering:** [hvordan redusere]
+**[Risk 1]**
+- **Consequence:** [description]
+- **Probability:** [High/Medium/Low]
+- **Mitigation:** [how to reduce]
 ```
 
-**Nøkkelpunkter:**
-- Fokuser på ANALYSE (ikke løsning)
-- Inkluder konkrete filer med linjenummer
-- Estimater for både manuell og AI-assistert utvikling
-- Ingen implementasjonsplan eller løsningsforslag
+**Key points:**
+- Focus on ANALYSIS (not solution)
+- Include specific files with line numbers
+- Estimates for both manual and AI-assisted development
+- No implementation plan or solution proposals
 
 ---
 
 ### 3-solution
 
-**Formål:** Implementeringsplan med TDD-tilnærming.
+**Purpose:** Implementation plan with a TDD approach.
 
-**Struktur:**
+**Structure:**
 
 ````markdown
-# [Tittel] - Løsning
+# [Title] - Solution
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Tilnærminger
-- Anbefalt løsning
-- Implementeringsplan
+- Approaches
+- Recommended solution
+- Implementation plan
 - Testing
-- Referanser
+- References
 
 ---
 
-## Tilnærminger
+## Approaches
 
-### Tilnærming 1: [Navn] (anbefalt)
+### Approach 1: [Name] (recommended)
 
-**Fordeler:** [liste]
-**Ulemper:** [liste]
-**Estimat:** [tid]
+**Pros:** [list]
+**Cons:** [list]
+**Estimate:** [time]
 
 ---
 
-## Anbefalt løsning
+## Recommended solution
 
-### Før/Etter eksempler
+### Before/After examples
 
-**Før:**
+**Before:**
 ```tsx
 // fil/path.tsx:123
-[gammel kode]
+[old code]
 ```
 
-**Etter:**
+**After:**
 ```tsx
 // fil/path.tsx:123
-[ny kode]
+[new code]
 ```
 
 ---
 
-## Implementeringsplan
+## Implementation plan
 
-### TDD-tilnærming (Red-Green-Refactor)
+### TDD approach (Red-Green-Refactor)
 
-### Fase 1: Skriv tester (RED)
-- [ ] Oppgave 1
-- [ ] Oppgave 2
+### Phase 1: Write tests (RED)
+- [ ] Task 1
+- [ ] Task 2
 
-### Fase 2: Implementer løsningen (GREEN)
-- [ ] Oppgave 1
-- [ ] Oppgave 2
+### Phase 2: Implement the solution (GREEN)
+- [ ] Task 1
+- [ ] Task 2
 
-### Fase 3: Verifiser (REFACTOR)
-- [ ] Kjør full test-suite
-- [ ] Sjekk for regresjoner
+### Phase 3: Verify (REFACTOR)
+- [ ] Run the full test suite
+- [ ] Check for regressions
 
 ---
 
 ## Testing
 
 ### Unit tests
-[Testningstrategi]
+[Testing strategy]
 
 ### Manual testing
-[Hva må testes manuelt]
+[What must be tested manually]
 
 ---
 
-## Referanser
+## References
 
-- 1-description.md - Problembeskrivelse
-- 2-analysis.md - Analyse og funn
+- 1-description.md - Problem description
+- 2-analysis.md - Analysis and findings
 ````
 
-**Nøkkelpunkter:**
-- Tilnærminger med fordeler/ulemper
-- Før/Etter i SEPARATE kodeblokker (unngår redeclaration-feil)
-- TDD-tilnærming med RED-GREEN-REFACTOR faser
+**Key points:**
+- Approaches with pros/cons
+- Before/After in SEPARATE code blocks (avoids redeclaration errors)
+- TDD approach with RED-GREEN-REFACTOR phases
 
 ---
 
 ### 4-status
 
-**Formål:** Levende dokument som oppdateres underveis.
+**Purpose:** Living document that is updated along the way.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel] - Status
+# [Title] - Status
 
-**Total fremgang:** X% (Y av Z fullført)
-**Estimat:** [tid]
+**Total progress:** X% (Y of Z completed)
+**Estimate:** [time]
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Fase 1: Navn
-- Fase 2: Navn
-- Notasjon
+- Phase 1: Name
+- Phase 2: Name
+- Notation
 
 ---
 
-## Fase 1: [Navn]
+## Phase 1: [Name]
 
-| Oppgave | Status | Notater |
+| Task | Status | Notes |
 |---------|--------|---------|
-| Oppgave 1 | ⬜ | [notater] |
-| Oppgave 2 | 🔄 | [notater] |
-| Oppgave 3 | ✅ | [notater] |
+| Task 1 | ⬜ | [notes] |
+| Task 2 | 🔄 | [notes] |
+| Task 3 | ✅ | [notes] |
 
 ---
 
-## Notasjon
+## Notation
 
-| Symbol | Betydning |
+| Symbol | Meaning |
 |--------|-----------|
-| ⬜ | Ikke startet |
-| 🔄 | Under arbeid |
-| ✅ | Fullført |
-| ❌ | Blokkert |
-| ⚠️ | Venter |
+| ⬜ | Not started |
+| 🔄 | In progress |
+| ✅ | Completed |
+| ❌ | Blocked |
+| ⚠️ | Waiting |
 ```
 
-**Nøkkelpunkter:**
-- Total fremgang øverst
-- Organisert i faser (matcher 3-solution.md)
-- Tabellformat for oversiktlighet
-- Oppdateres kontinuerlig
+**Key points:**
+- Total progress at the top
+- Organized in phases (matches 3-solution.md)
+- Table format for clarity
+- Updated continuously
 
 ---
 
-## Separasjon av innhold
+## Separation of content
 
-| Innhold                    | Plassering        |
+| Content                    | Location          |
 |----------------------------|-------------------|
-| Problembeskrivelse         | 1-description.md  |
+| Problem description        | 1-description.md  |
 | Metadata                   | 1-description.md  |
-| Akseptansekriterier        | 1-description.md  |
-| Kartlegging/funn           | 2-analysis.md      |
-| Kompleksitetsanalyse       | 2-analysis.md      |
-| Risikoanalyse              | 2-analysis.md      |
-| Tilnærminger               | 3-solution.md      |
-| Før/etter eksempler        | 3-solution.md      |
-| Implementeringsplan        | 3-solution.md      |
-| Testing-strategi           | 3-solution.md      |
-| Fremdrift                  | 4-status.md       |
+| Acceptance criteria        | 1-description.md  |
+| Mapping/findings           | 2-analysis.md      |
+| Complexity analysis        | 2-analysis.md      |
+| Risk analysis              | 2-analysis.md      |
+| Approaches                 | 3-solution.md      |
+| Before/after examples      | 3-solution.md      |
+| Implementation plan        | 3-solution.md      |
+| Testing strategy           | 3-solution.md      |
+| Progress                   | 4-status.md       |
 
 ---
 
-## Forskjeller JIRA vs TODO
+## Differences JIRA vs TODO
 
-JIRA-saker og TODO-planer har **identisk struktur**, men forskjeller i innhold:
+JIRA issues and TODO plans have an **identical structure**, but differ in content:
 
-| Aspekt          | JIRA-saker                    | TODO-planer           |
+| Aspect          | JIRA issues                   | TODO plans            |
 |-----------------|-------------------------------|-----------------------|
-| **Lokasjon**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
-| **Kilde**       | JIRA API (ekstern)            | Manuelt opprettet     |
-| **Beskrivelse** | Kopieres fra JIRA             | Skrives av utvikler   |
-| **Metadata**    | JIRA-felt (type, status, etc.)| Nummer, dato          |
+| **Location**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
+| **Source**      | JIRA API (external)           | Created manually      |
+| **Description** | Copied from JIRA              | Written by the developer |
+| **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |
 
-**Felles:**
-- 4 filer: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
-- Samme struktur og formattering
-- Samme notasjon (⬜ 🔄 ✅ ❌ ⚠️)
-- Samme TDD-tilnærming i 3-solution.md
+**In common:**
+- 4 files: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
+- Same structure and formatting
+- Same notation (⬜ 🔄 ✅ ❌ ⚠️)
+- Same TDD approach in 3-solution.md
 
 ---
 
 ## Templates
 
-AI-verktøy oppretter dokumentasjon direkte basert på strukturen beskrevet i dette dokumentet.
+AI tools create documentation directly based on the structure described in this document.
 
-Kommandoen `/aide-create` oppretter 4-fils strukturen med riktige plassholdere.
-Kommandoen `/aide-analyze` fyller inn analyse, løsning og status.
-
----
-
-## Se også
-
-- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - Generelle dokumentasjonsregler
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting-regler
+The `/aide-create` command creates the 4-file structure with the correct placeholders.
+The `/aide-analyze` command fills in the analysis, solution and status.
 
 ---
 
-# Kommunikasjons-regler
+## See also
 
-Regler for hvordan AI-assistenten presenterer tekst i samtalen til brukeren.
-
-## Innholdsfortegnelse
-
-- [Forslag til tekst brukeren skal kopiere ut](#forslag-til-tekst-brukeren-skal-kopiere-ut)
+- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - General documentation rules
+- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
 
 ---
 
-## Forslag til tekst brukeren skal kopiere ut
+# Communication rules
 
-**Ikke bruk markdown-blockquote (`> ` foran hver linje)** når du foreslår tekst brukeren skal kopiere og lime inn et annet sted (Slack-meldinger, PR-kommentarer, commit-meldinger, e-poster, etc.).
+Rules for how the AI assistant presents text in the conversation with the user.
 
-**Hvorfor:** Blockquote rendres som en vertikal strek i venstre marg i terminalen, og `>`-tegnene blir med ved kopiering. Det gjør teksten ubrukelig uten manuell opprydning.
+## Table of contents
 
-**Hvordan:**
+- [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
-- Skill mellom tekst som er *ditt svar* (kan bruke blockquote/headere fritt) og tekst som er *forslag til ekstern bruk* (ren tekst, ikke prefiks hver linje med `>`).
-- For å avgrense forslagsteksten visuelt, bruk heller `---` over og under, eller en kort innledning som "Forslag:" på linja før.
-- Markdown for kursiv/fet/lister inni forslaget er ok — det er bare blockquote-prefikset som er problemet.
+---
 
-**Eksempel:**
+## Suggested text the user will copy out
 
-Feil:
+**Do not use markdown blockquotes (`> ` in front of each line)** when suggesting text the user will copy and paste somewhere else (Slack messages, PR comments, commit messages, emails, etc.).
+
+**Why:** Blockquotes render as a vertical bar in the left margin of the terminal, and the `>` characters come along when copying. That makes the text unusable without manual cleanup.
+
+**How:**
+
+- Distinguish between text that is *your reply* (may use blockquotes/headers freely) and text that is *a suggestion for external use* (plain text, do not prefix each line with `>`).
+- To visually delimit the suggested text, instead use `---` above and below, or a short lead-in like "Suggestion:" on the preceding line.
+- Markdown for italics/bold/lists inside the suggestion is fine — it is only the blockquote prefix that is the problem.
+
+**Example:**
+
+Wrong:
 
 ```text
-Forslag til Slack-melding:
+Suggested Slack message:
 
-> Takk for gjennomgangen.
-> Vi har ryddet i koden nå.
+> Thanks for the review.
+> We have cleaned up the code now.
 ```
 
-Riktig:
+Correct:
 
 ```text
-Forslag til Slack-melding:
+Suggested Slack message:
 
 ---
 
-Takk for gjennomgangen.
-Vi har ryddet i koden nå.
+Thanks for the review.
+We have cleaned up the code now.
 
 ---
 ```
 
-Denne regelen gjelder ALLE prosjekter og sesjoner.
+This rule applies to ALL projects and sessions.

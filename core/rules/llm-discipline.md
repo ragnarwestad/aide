@@ -1,58 +1,58 @@
-# LLM-kodedisiplin
+# LLM coding discipline
 
-Atferdsregler som demmer opp for to vanlige LLM-feil: stille antakelser og
-scope-glidning. Inspirert av Andrej Karpathys observasjoner om hvor
-språkmodeller svikter når de skriver kode.
+Behavioral rules that guard against two common LLM failures: silent
+assumptions and scope creep. Inspired by Andrej Karpathy's observations
+on where language models fall short when writing code.
 
-**Avveining:** Disse reglene vektlegger varsomhet framfor fart. På trivielle
-oppgaver, bruk skjønn.
+**Trade-off:** These rules favor caution over speed. On trivial tasks,
+use judgment.
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Tenk før du koder](#tenk-før-du-koder)
-- [Kirurgiske endringer](#kirurgiske-endringer)
-- [Se også](#se-også)
-
----
-
-## Tenk før du koder
-
-**Ikke anta. Ikke skjul forvirring. Synliggjør avveiningene.**
-
-Før du implementerer:
-
-- Oppgi antakelsene dine eksplisitt. Er du usikker, spør.
-- Finnes det flere tolkninger, legg dem fram — ikke velg én i stillhet.
-- Finnes det en enklere tilnærming, si fra. Si imot når det er grunn til det.
-- Er noe uklart, stopp. Sett ord på hva som forvirrer. Spør.
+- [Think before you code](#think-before-you-code)
+- [Surgical changes](#surgical-changes)
+- [See also](#see-also)
 
 ---
 
-## Kirurgiske endringer
+## Think before you code
 
-**Rør bare det du må. Rydd bare opp i ditt eget rot.**
+**Don't assume. Don't hide confusion. Surface the trade-offs.**
 
-Når du endrer eksisterende kode:
+Before implementing:
 
-- Ikke «forbedre» tilstøtende kode, kommentarer eller formatering.
-- Ikke refaktorer ting som ikke er ødelagt.
-- Følg eksisterende stil, selv om du ville gjort det annerledes.
-- Oppdager du urelatert død kode, nevn det — ikke slett det.
-
-Når endringene dine etterlater foreldreløs kode:
-
-- Fjern importer, variabler og funksjoner som *dine* endringer gjorde ubrukte.
-- Ikke fjern død kode som allerede lå der, med mindre du blir bedt om det.
-
-Tommelfingerregel: hver linje du endrer skal kunne spores direkte til det
-brukeren ba om.
+- State your assumptions explicitly. If you are unsure, ask.
+- If multiple interpretations exist, lay them out — don't silently pick one.
+- If a simpler approach exists, say so. Push back when there is reason to.
+- If something is unclear, stop. Put the confusion into words. Ask.
 
 ---
 
-## Se også
+## Surgical changes
 
-To beslektede Karpathy-prinsipper har allerede egen dekning hos oss — bruk dem
-framfor å duplisere:
+**Touch only what you must. Clean up only your own mess.**
 
-- **Enkelhet først** (minimal kode, ingen spekulativ abstraksjon) — `/code-review`-skillen
-- **Målstyrt utføring** (verifiserbare suksesskriterier, RED → GREEN → REFACTOR) — `testing.md` og `/tdd-coach`
+When modifying existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Follow the existing style, even if you would have done it differently.
+- If you discover unrelated dead code, mention it — don't delete it.
+
+When your changes leave orphaned code behind:
+
+- Remove imports, variables, and functions that *your* changes made unused.
+- Don't remove dead code that was already there, unless asked to.
+
+Rule of thumb: every line you change should be directly traceable to what
+the user asked for.
+
+---
+
+## See also
+
+Two related Karpathy principles already have their own coverage here — use
+them rather than duplicating:
+
+- **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
+- **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`

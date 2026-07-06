@@ -1,129 +1,129 @@
-# Workflows for AI-assistert utvikling
+# Workflows for AI-assisted development
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon)
-  - [LAV kompleksitet (Quick Fix)](#lav-kompleksitet-quick-fix)
-  - [MIDDELS kompleksitet](#middels-kompleksitet)
-  - [HOY kompleksitet](#høy-kompleksitet)
-- [Problemtype-routing (Quick Reference)](#problemtype-routing-quick-reference)
-- [Branch-strategi](#branch-strategi)
-- [JIRA-sak workflow](#jira-sak-workflow)
-  - [Fase 1: Opprett dokumentstruktur](#fase-1-opprett-dokumentstruktur)
-  - [Fase 2: Analyser kodebase](#fase-2-analyser-kodebase)
-  - [Fase 3: Implementer løsning](#fase-3-implementer-løsning)
-  - [Fase 4: Verifiser](#fase-4-verifiser)
-- [TODO-plan workflow](#todo-plan-workflow)
-- [API-påvirkningsanalyse](#api-påvirkningsanalyse)
-- [Tverrfaglige saker](#tverrfaglige-saker)
-- [Workflow-optimalisering](#workflow-optimalisering)
-
----
-
-## Kompleksitetsdeteksjon
-
-**Prinsipp:** Match dokumentasjonens omfang til oppgavens kompleksitet.
-
-### LAV kompleksitet (Quick Fix)
-
-**Kjennetegn:**
-- Beskrivelsen nevner **én spesifikk fil**
-- Enkle operasjoner: "fjern", "erstatt", "rett", "oppdater", "fikse"
-- Påvirker 1-2 filer totalt
-
-**Analyse-scope:**
-- Les KUN den nevnte filen
-- IKKE søk i hele kodebasen
-
-**Dokumentasjon:** Kort og konsis (< 200 linjer totalt)
-**Estimat:** Minutter til timer (< 2 timer)
-
-**Eksempler:**
-- "Fjern console.log fra src/services/utils.js"
-- "Rett typo i UserProfile.tsx linje 45"
+- [Complexity detection](#complexity-detection)
+  - [LOW complexity (Quick Fix)](#low-complexity-quick-fix)
+  - [MEDIUM complexity](#medium-complexity)
+  - [HIGH complexity](#high-complexity)
+- [Problem type routing (Quick Reference)](#problem-type-routing-quick-reference)
+- [Branch strategy](#branch-strategy)
+- [JIRA issue workflow](#jira-issue-workflow)
+  - [Phase 1: Create document structure](#phase-1-create-document-structure)
+  - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
+  - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
+  - [Phase 4: Verify](#phase-4-verify)
+- [TODO plan workflow](#todo-plan-workflow)
+- [API impact analysis](#api-impact-analysis)
+- [Cross-project issues](#cross-project-issues)
+- [Workflow optimization](#workflow-optimization)
 
 ---
 
-### MIDDELS kompleksitet
+## Complexity detection
 
-**Kjennetegn:**
-- Beskrivelsen nevner **én komponent/modul**
-- Operasjoner: "refaktorer", "forbedre", "moderniser", "utvid"
-- Kan påvirke 3-10 filer
+**Principle:** Match the scope of the documentation to the complexity of the task.
 
-**Analyse-scope:**
-- Finn filer knyttet til komponenten/modulen
-- Finn relaterte tester og brukssteder
-- IKKE søk bredere enn nødvendig
+### LOW complexity (Quick Fix)
 
-**Dokumentasjon:** Moderat detalj (100-300 linjer totalt)
-**Estimat:** Timer til dager (2-16 timer)
+**Characteristics:**
+- The description mentions **one specific file**
+- Simple operations: "remove", "replace", "correct", "update", "fix"
+- Affects 1-2 files in total
 
-**Eksempler:**
-- "Refaktorer Stegvelger-komponenten"
-- "Forbedre error handling i api-layer"
+**Analysis scope:**
+- Read ONLY the mentioned file
+- Do NOT search the entire codebase
 
----
+**Documentation:** Short and concise (< 200 lines total)
+**Estimate:** Minutes to hours (< 2 hours)
 
-### HØY kompleksitet
-
-**Kjennetegn:**
-- Beskrivelsen bruker **patterns** ("alle", "migrer X til Y", "oppgrader")
-- Store refaktoreringer eller arkitekturendringer
-- Påvirker 10+ filer
-
-**Analyse-scope:**
-- Søk bredt i kodebasen for patterns
-- Kategoriser filer etter kompleksitet
-- Analyser API-påvirkning (frontend - backend)
-- Identifiser edge cases og risikoer
-
-**Dokumentasjon:** Omfattende analyse (300-800 linjer totalt)
-**Estimat:** Dager til uker (1-10 dager)
-
-**Eksempler:**
-- "Migrer alle Redux Form-komponenter til react-hook-form"
-- "Oppgrader React 17 til React 18"
+**Examples:**
+- "Remove console.log from src/services/utils.js"
+- "Fix typo in UserProfile.tsx line 45"
 
 ---
 
-## Problemtype-routing (Quick Reference)
+### MEDIUM complexity
 
-| Problemtype | Start med dokumentasjon | Workflow |
+**Characteristics:**
+- The description mentions **one component/module**
+- Operations: "refactor", "improve", "modernize", "extend"
+- May affect 3-10 files
+
+**Analysis scope:**
+- Find files related to the component/module
+- Find related tests and usage sites
+- Do NOT search wider than necessary
+
+**Documentation:** Moderate detail (100-300 lines total)
+**Estimate:** Hours to days (2-16 hours)
+
+**Examples:**
+- "Refactor the Stegvelger component"
+- "Improve error handling in the api layer"
+
+---
+
+### HIGH complexity
+
+**Characteristics:**
+- The description uses **patterns** ("all", "migrate X to Y", "upgrade")
+- Large refactorings or architecture changes
+- Affects 10+ files
+
+**Analysis scope:**
+- Search the codebase broadly for patterns
+- Categorize files by complexity
+- Analyze API impact (frontend - backend)
+- Identify edge cases and risks
+
+**Documentation:** Comprehensive analysis (300-800 lines total)
+**Estimate:** Days to weeks (1-10 days)
+
+**Examples:**
+- "Migrate all Redux Form components to react-hook-form"
+- "Upgrade React 17 to React 18"
+
+---
+
+## Problem type routing (Quick Reference)
+
+| Problem type | Start with documentation | Workflow |
 |-------------|------------------------|----------|
-| **Frontend UI-bug** | `frontend kodestandard` | Reproduser - Identifiser komponent - Sjekk API - TDD |
-| **Backend API-feil** | `backend oversikt` + `patterns.md` | Identifiser endpoint - Sjekk ripple effects - TDD |
-| **Tverrfaglig** | `API mapping guide` | Backend først - Test - Frontend - Full stack test |
-| **Refaktorering** | `testing-reglene` | Sikre tester - Refaktorer - Verifiser grønne tester |
-| **Test-generering** | `testing-reglene` | Les kode - Identifiser edge cases - Skriv tester |
-| **Ny funksjonalitet** | `workflows-reglene` | Les JIRA/TODO - Analyser omfang - TDD |
-| **Database-endring** | `backend patterns` | Identifiser ripple effects - Flyway - Test |
-| **Performance** | `frontend kodestandard` | Profiler - Finn root cause - Benchmark - Optimaliser |
+| **Frontend UI bug** | `frontend code standard` | Reproduce - Identify component - Check API - TDD |
+| **Backend API error** | `backend overview` + `patterns.md` | Identify endpoint - Check ripple effects - TDD |
+| **Cross-project** | `API mapping guide` | Backend first - Test - Frontend - Full stack test |
+| **Refactoring** | `the testing rules` | Secure tests - Refactor - Verify green tests |
+| **Test generation** | `the testing rules` | Read code - Identify edge cases - Write tests |
+| **New functionality** | `the workflows rules` | Read JIRA/TODO - Analyze scope - TDD |
+| **Database change** | `backend patterns` | Identify ripple effects - Flyway - Test |
+| **Performance** | `frontend code standard` | Profile - Find root cause - Benchmark - Optimize |
 
-**Hurtigreferanse:**
-- **Frontend-problem?** Se `frontend kodestandard`
-- **Backend-problem?** Se `backend oversikt` + `patterns.md`
-- **Tverrfaglig?** Se `API mapping guide`
-- **Testing?** Se `testing-reglene`
-- **Git/Commit?** Se `git-reglene`
+**Quick reference:**
+- **Frontend problem?** See `frontend code standard`
+- **Backend problem?** See `backend overview` + `patterns.md`
+- **Cross-project?** See `API mapping guide`
+- **Testing?** See `the testing rules`
+- **Git/Commit?** See `the git rules`
 
 ---
 
-## Branch-strategi
+## Branch strategy
 
-**Før du starter analyse eller implementering:**
+**Before starting analysis or implementation:**
 
-AI-assistenten kan jobbe med **flere repositories** samtidig (f.eks. my-app, my-api, etc.). Det er kritisk at riktig branch er sjekket ut i alle relevante repositories.
+The AI assistant may work with **multiple repositories** at the same time (e.g. my-app, my-api, etc.). It is critical that the correct branch is checked out in all relevant repositories.
 
-### Hvorfor dette er viktig
+### Why this matters
 
-- Analyse-fasen leser API-mapping for å finne hvilke systemer som er involvert
-- **Hvis feil branch er sjekket ut**, kan analysen/implementeringen bli feil eller ufullstendig
-- AI-assistenten **avbryter med feilmelding** hvis nødvendig repository mangler
+- The analysis phase reads the API mapping to find which systems are involved
+- **If the wrong branch is checked out**, the analysis/implementation may be wrong or incomplete
+- The AI assistant **aborts with an error message** if a required repository is missing
 
-### Anbefalt prosedyre
+### Recommended procedure
 
-**1. Sjekk ut samme branch i alle relevante repositories:**
+**1. Check out the same branch in all relevant repositories:**
 
 ```bash
 # my-app (frontend)
@@ -135,285 +135,285 @@ cd ~/develop/my-api
 git checkout feature/PROJ-7637
 ```
 
-**2. Verifiser at repositories er synkroniserte:**
+**2. Verify that the repositories are in sync:**
 
 ```bash
 cd ~/develop/my-app && git pull
 cd ~/develop/my-api && git pull
 ```
 
-### Sporingsinfo i dokumentasjon
+### Tracking info in documentation
 
-Etter analyse/løsning oppdateres **Sporingsinfo** med hvilke repositories og branches som ble brukt:
+After analysis/solution, the **Tracking info** section is updated with which repositories and branches were used:
 
 ```markdown
-## Sporingsinfo
+## Tracking info
 
 - **JIRA:** [PROJ-7637](https://jira.example.com/browse/PROJ-7637)
-- **Sist analysert:** `2025-11-07`
+- **Last analyzed:** `2025-11-07`
 
-**Repositories brukt under analyse:**
+**Repositories used during analysis:**
 - **my-app:** `feature/PROJ-7637` @ `abc123de`
 - **my-api:** `feature/PROJ-7637` @ `def456ab`
 ```
 
 ---
 
-## JIRA-sak workflow
+## JIRA issue workflow
 
-### Overordnet flyt
+### Overall flow
 ```text
-Opprett - Analyser - Løs - Verifiser
+Create - Analyze - Solve - Verify
 ```
 
-### Fase 1: Opprett dokumentstruktur
+### Phase 1: Create document structure
 
-**Hva skal gjøres:**
-1. Henter saken fra JIRA API (validering)
-2. Tildeler neste ledige nummer og oppretter katalog: `reports/<NN>-PROJ-XXXX-slug/`
-3. Fyller ut `1-description.md` med JIRA-metadata
-4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
-5. Stager alle nye filer i git (automatisk)
+**What is done:**
+1. Fetches the issue from the JIRA API (validation)
+2. Assigns the next available number and creates the directory: `reports/<NN>-PROJ-XXXX-slug/`
+3. Fills in `1-description.md` with JIRA metadata
+4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
+5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
 reports/05-PROJ-7894-class-to-functional/
-├── 0-README.md            (leserekkefølge)
-├── 1-description.md       (ferdig)
-├── 2-analysis.md           (⏳ tom)
-├── 3-solution.md           (⏳ tom)
-└── 4-status.md            (⏳ tom)
+├── 0-README.md            (reading order)
+├── 1-description.md       (done)
+├── 2-analysis.md           (⏳ empty)
+├── 3-solution.md           (⏳ empty)
+└── 4-status.md            (⏳ empty)
 ```
 
-### Fase 2: Analyser kodebase
+### Phase 2: Analyze the codebase
 
-**Hva skal gjøres:**
-1. Leser `1-description.md`
-2. **Detekter kompleksitetsnivå** (se [Kompleksitetsdeteksjon](#kompleksitetsdeteksjon))
-3. Analyserer kodebase (konkrete filer + linjenummer)
-4. Identifiserer påvirkede prosjekter (frontend, backend, etc.)
-5. Vurderer API-påvirkning (se [API-påvirkningsanalyse](#api-påvirkningsanalyse))
-6. Oppdaterer alle 4 dokumentfiler
+**What is done:**
+1. Reads `1-description.md`
+2. **Detects the complexity level** (see [Complexity detection](#complexity-detection))
+3. Analyzes the codebase (specific files + line numbers)
+4. Identifies affected projects (frontend, backend, etc.)
+5. Assesses API impact (see [API impact analysis](#api-impact-analysis))
+6. Updates all 4 document files
 
-**Kan kjøres på nytt** når kodebasen endres.
+**Can be re-run** when the codebase changes.
 
-### Fase 3: Implementer løsning
+### Phase 3: Implement the solution
 
-**Hva skal gjøres:**
-1. Leser `2-analysis.md` og `3-solution.md`
-2. Følger TDD-tilnærming:
-   - **RED**: Skriver tester som beviser problemet (skal feile)
-   - **GREEN**: Implementerer løsningen (testene skal passere)
-   - **REFACTOR**: Kjører regresjonstester (verifiserer ingen brudd)
-3. Ber om bekreftelse før hver fase
-4. Oppdaterer `4-status.md` underveis
+**What is done:**
+1. Reads `2-analysis.md` and `3-solution.md`
+2. Follows a TDD approach:
+   - **RED**: Writes tests that prove the problem (should fail)
+   - **GREEN**: Implements the solution (the tests should pass)
+   - **REFACTOR**: Runs regression tests (verifies nothing broke)
+3. Asks for confirmation before each phase
+4. Updates `4-status.md` along the way
 
-### Fase 4: Verifiser
+### Phase 4: Verify
 
-**Manuelt steg:**
-1. Kjør alle tester: `pnpm test -- --run`
-2. Kjør linting: `pnpm run lint`
-3. Bygg applikasjonen: `pnpm run build`
-4. Test manuelt i nettleser
-5. Kjør `/ultrareview` for skybasert kodegjennomgang av branchen (bruker-trigget, krever git-repo)
-6. Commit endringer
+**Manual step:**
+1. Run all tests: `pnpm test -- --run`
+2. Run linting: `pnpm run lint`
+3. Build the application: `pnpm run build`
+4. Test manually in the browser
+5. Run `/ultrareview` for a cloud-based code review of the branch (user-triggered, requires a git repo)
+6. Commit changes
 
 ---
 
-## TODO-plan workflow
+## TODO plan workflow
 
-### Overordnet flyt
+### Overall flow
 ```text
-Opprett - Analyser - Løs - Verifiser
+Create - Analyze - Solve - Verify
 ```
 
-### Fase 1: Opprett dokumentstruktur
+### Phase 1: Create document structure
 
-**Hva skal gjøres:**
-1. Tildeler nummer (neste ledige)
-2. Oppretter katalog: `reports/<NN>-slug-navn/`
-3. Fyller ut `1-description.md` med metadata
-4. Oppretter tomme filer: `2-analysis.md`, `3-solution.md`, `4-status.md`
-5. Stager alle nye filer i git (automatisk)
+**What is done:**
+1. Assigns a number (next available)
+2. Creates the directory: `reports/<NN>-slug-name/`
+3. Fills in `1-description.md` with metadata
+4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
+5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/17-rydd-opp-i-console-log/
-├── 0-README.md            (leserekkefølge)
-├── 1-description.md       (ferdig)
-├── 2-analysis.md           (⏳ tom)
-├── 3-solution.md           (⏳ tom)
-└── 4-status.md            (⏳ tom)
+reports/17-clean-up-console-log/
+├── 0-README.md            (reading order)
+├── 1-description.md       (done)
+├── 2-analysis.md           (⏳ empty)
+├── 3-solution.md           (⏳ empty)
+└── 4-status.md            (⏳ empty)
 ```
 
-### Fase 2-4: Analyser, Løs og Verifiser
+### Phase 2-4: Analyze, Solve and Verify
 
-Samme som [JIRA-sak workflow](#jira-sak-workflow).
+Same as the [JIRA issue workflow](#jira-issue-workflow).
 
 ---
 
-## API-påvirkningsanalyse
+## API impact analysis
 
-**VIKTIG:** Vurder alltid API-påvirkning når du analyserer en sak!
+**IMPORTANT:** Always assess API impact when analyzing an issue!
 
 ### Workflow
 
-1. **Les API mapping guide**
+1. **Read the API mapping guide**
    - `API mapping guide`
-2. **Identifiser API-kall**
-   - Søk etter endpoints i frontend-kode
-   - Eksempel: `'api/sak/' + sakId`
+2. **Identify API calls**
+   - Search for endpoints in the frontend code
+   - Example: `'api/sak/' + sakId`
 
-3. **Slå opp i mapping**
-   - Bruk `API quick reference` for rask lookup
-   - Finn eksakt backend-fil og linjenummer
+3. **Look up in the mapping**
+   - Use the `API quick reference` for fast lookup
+   - Find the exact backend file and line number
 
-4. **Vurder påvirkning**
-   - **Frontend only?** UI-endringer uten API-endring
-   - **Backend only?** Logikk-endringer uten kontraktsendring
-   - **Both?** Nye felt, validering, endret API-kontrakt
+4. **Assess the impact**
+   - **Frontend only?** UI changes without API changes
+   - **Backend only?** Logic changes without contract changes
+   - **Both?** New fields, validation, changed API contract
 
-### Eksempel
+### Example
 
-**JIRA-sak:** "Legg til 'behandlingsstatus' felt i saksoversikt"
+**JIRA issue:** "Add a 'processing status' field to the case overview"
 
-**Analyse:**
-1. Frontend bruker: `GET /api/sak/{sakId}`
-2. Backend-endepunktet ligger i: `my-api/src/.../SakController.java:156`
-3. Vurdering: **Both**
+**Analysis:**
+1. Frontend uses: `GET /api/case/{caseId}`
+2. The backend endpoint lives in: `my-api/src/.../CaseController.java:156`
+3. Assessment: **Both**
 
-**Dokumenter i `2-analysis.md`:**
+**Document in `2-analysis.md`:**
 ```markdown
-## Påvirkede prosjekter
+## Affected projects
 
 ### my-api
-- SakController.java:156 - Legg til `behandlingsstatus` i response
-- SakDto.java:42 - Legg til nytt felt
+- CaseController.java:156 - Add `processingStatus` to the response
+- CaseDto.java:42 - Add new field
 
 ### my-app
-- src/sider/sak/SakOversikt.tsx:89 - Vis `behandlingsstatus` i UI
+- src/pages/case/CaseOverview.tsx:89 - Show `processingStatus` in the UI
 ```
 
 ---
 
-## Tverrfaglige saker
+## Cross-project issues
 
-Mange saker krever endringer i flere prosjekter.
+Many issues require changes in multiple projects.
 
-### Workflow for tverrfaglige saker
+### Workflow for cross-project issues
 
-1. **Analyser** hvilke prosjekter som påvirkes
-2. **Dokumenter** i `2-analysis.md`:
-   - Liste over påvirkede filer (med linjenummer)
-   - Avhengigheter mellom prosjekter
-3. **Implementer** i riktig rekkefølge:
-   - Ofte: Backend først, deretter frontend
-   - Årsak: Frontend avhenger av backend API-kontrakt
-4. **Test** hele flyten:
-   - Backend-tester (unit + integration)
-   - Frontend-tester (unit + e2e)
-   - Manuell testing (full stack)
+1. **Analyze** which projects are affected
+2. **Document** in `2-analysis.md`:
+   - List of affected files (with line numbers)
+   - Dependencies between projects
+3. **Implement** in the right order:
+   - Often: Backend first, then frontend
+   - Reason: The frontend depends on the backend API contract
+4. **Test** the entire flow:
+   - Backend tests (unit + integration)
+   - Frontend tests (unit + e2e)
+   - Manual testing (full stack)
 
 ---
 
-## Workflow-optimalisering
+## Workflow optimization
 
-Basert på [Anthropics offisielle guide](https://www.anthropic.com/engineering/claude-code-best-practices).
+Based on [Anthropic's official guide](https://www.anthropic.com/engineering/claude-code-best-practices).
 
 ### Context management
 
-**Bruk `/clear` mellom uavhengige oppgaver:**
-- Holder ytelsen oppe
-- Forhindrer at tidligere kontekst distraherer
+**Use `/clear` between independent tasks:**
+- Keeps performance up
+- Prevents earlier context from distracting
 
-**Når bruke /clear:**
-- Etter fullført JIRA-sak eller TODO-plan
-- Når du bytter mellom uavhengige oppgaver
+**When to use /clear:**
+- After completing a JIRA issue or TODO plan
+- When switching between independent tasks
 
 ### Course correction
 
-**Interrupt og omstyring:**
-- **Escape:** Avbryt pågående operasjon og gi nye instruksjoner
-- **Double-tap Escape:** Rediger forrige prompt
-- **Spør Claude om å undo:** "Undo siste endring"
+**Interrupt and redirect:**
+- **Escape:** Abort the ongoing operation and give new instructions
+- **Double-tap Escape:** Edit the previous prompt
+- **Ask Claude to undo:** "Undo the last change"
 
-**Be Claude planlegge først:**
-- "Planlegg hvordan du vil løse dette før du skriver kode"
-- "Think hard" for mer grundig analyse
+**Ask Claude to plan first:**
+- "Plan how you want to solve this before writing code"
+- "Think hard" for more thorough analysis
 
 ### Explore - Plan - Code workflow
 
-**Følg alltid disse stegene:**
+**Always follow these steps:**
 
-**1. Explore (Utforsk)**
+**1. Explore**
 ```text
-- "Les gjennom SakOversikt.tsx og forklar strukturen"
-- "Finn alle steder hvor vi bruker validateSøknad"
+- "Read through SakOversikt.tsx and explain the structure"
+- "Find all places where we use validateApplication"
 ```
 
-**2. Plan (Planlegg)**
+**2. Plan**
 ```text
-- "Lag en plan for hvordan vi skal implementere dette"
+- "Make a plan for how we should implement this"
 - "Think hard about the edge cases"
 ```
 
-**3. Code (Implementer)**
+**3. Code (Implement)**
 ```text
-- Skriv tester først (RED)
-- Implementer løsningen (GREEN)
-- Kjør regresjonstester (REFACTOR)
+- Write tests first (RED)
+- Implement the solution (GREEN)
+- Run regression tests (REFACTOR)
 ```
 
-**4. Commit (Bekreft)**
+**4. Commit (Confirm)**
 ```text
-- Manuell testing
+- Manual testing
 - Code review
 - Git commit
 ```
 
-### Iterasjon mot klare mål
+### Iterating toward clear goals
 
-**Bruk målbare targets:**
-- **Tester:** Skriv tester som definerer ønsket oppførsel
-- **Screenshots:** Vis ønsket design som målbilde
-- **Spesifikasjoner:** Eksplisitte akseptansekriterier
+**Use measurable targets:**
+- **Tests:** Write tests that define the desired behavior
+- **Screenshots:** Show the desired design as a target
+- **Specifications:** Explicit acceptance criteria
 
-### Checklists for komplekse oppgaver
+### Checklists for complex tasks
 
-**For store migrasjoner:**
+**For large migrations:**
 
-1. Be Claude lage en Markdown checklist
-2. Gå systematisk gjennom hvert punkt
-3. Oppdater 4-status.md underveis
+1. Ask Claude to create a Markdown checklist
+2. Work systematically through each item
+3. Update 4-status.md along the way
 
-**Eksempel:**
+**Example:**
 ```markdown
-## Migreringsplan: Redux til Zustand
+## Migration plan: Redux to Zustand
 
-- [ ] Migrer `sakSlice.ts` (10 actions)
-- [ ] Migrer `brukerSlice.ts` (5 actions)
-- [ ] Oppdater alle komponenter som bruker `useSelector`
-- [ ] Fjern Redux dependencies
-- [ ] Kjør full test-suite
+- [ ] Migrate `caseSlice.ts` (10 actions)
+- [ ] Migrate `userSlice.ts` (5 actions)
+- [ ] Update all components using `useSelector`
+- [ ] Remove Redux dependencies
+- [ ] Run the full test suite
 ```
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre viktige prinsipper:**
-1. **Detekter kompleksitet** tidlig og match dokumentasjon til oppgaven
-2. Følg **lineær flyt**: Opprett - Analyser - Løs - Verifiser
-3. Vurder alltid **API-påvirkning** (bruk mapping)
+**Three key principles:**
+1. **Detect complexity** early and match the documentation to the task
+2. Follow the **linear flow**: Create - Analyze - Solve - Verify
+3. Always assess **API impact** (use the mapping)
 
 **Best practices:**
-1. Bruk `/clear` mellom uavhengige oppgaver
-2. Følg **Explore - Plan - Code - Commit**
-3. Iterer mot **klare mål** (tester, screenshots, spesifikasjoner)
-4. Bruk **checklists** for komplekse oppgaver
+1. Use `/clear` between independent tasks
+2. Follow **Explore - Plan - Code - Commit**
+3. Iterate toward **clear goals** (tests, screenshots, specifications)
+4. Use **checklists** for complex tasks
 
 ---
 
-## Se også
+## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-fils struktur for rapporter
+- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for reports

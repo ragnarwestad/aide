@@ -1,47 +1,47 @@
-# Kommunikasjons-regler
+# Communication rules
 
-Regler for hvordan AI-assistenten presenterer tekst i samtalen til brukeren.
+Rules for how the AI assistant presents text in the conversation with the user.
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Forslag til tekst brukeren skal kopiere ut](#forslag-til-tekst-brukeren-skal-kopiere-ut)
+- [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
 ---
 
-## Forslag til tekst brukeren skal kopiere ut
+## Suggested text the user will copy out
 
-**Ikke bruk markdown-blockquote (`> ` foran hver linje)** når du foreslår tekst brukeren skal kopiere og lime inn et annet sted (Slack-meldinger, PR-kommentarer, commit-meldinger, e-poster, etc.).
+**Do not use markdown blockquotes (`> ` in front of each line)** when suggesting text the user will copy and paste somewhere else (Slack messages, PR comments, commit messages, emails, etc.).
 
-**Hvorfor:** Blockquote rendres som en vertikal strek i venstre marg i terminalen, og `>`-tegnene blir med ved kopiering. Det gjør teksten ubrukelig uten manuell opprydning.
+**Why:** Blockquotes render as a vertical bar in the left margin of the terminal, and the `>` characters come along when copying. That makes the text unusable without manual cleanup.
 
-**Hvordan:**
+**How:**
 
-- Skill mellom tekst som er *ditt svar* (kan bruke blockquote/headere fritt) og tekst som er *forslag til ekstern bruk* (ren tekst, ikke prefiks hver linje med `>`).
-- For å avgrense forslagsteksten visuelt, bruk heller `---` over og under, eller en kort innledning som "Forslag:" på linja før.
-- Markdown for kursiv/fet/lister inni forslaget er ok — det er bare blockquote-prefikset som er problemet.
+- Distinguish between text that is *your reply* (may use blockquotes/headers freely) and text that is *a suggestion for external use* (plain text, do not prefix each line with `>`).
+- To visually delimit the suggested text, instead use `---` above and below, or a short lead-in like "Suggestion:" on the preceding line.
+- Markdown for italics/bold/lists inside the suggestion is fine — it is only the blockquote prefix that is the problem.
 
-**Eksempel:**
+**Example:**
 
-Feil:
+Wrong:
 
 ```text
-Forslag til Slack-melding:
+Suggested Slack message:
 
-> Takk for gjennomgangen.
-> Vi har ryddet i koden nå.
+> Thanks for the review.
+> We have cleaned up the code now.
 ```
 
-Riktig:
+Correct:
 
 ```text
-Forslag til Slack-melding:
+Suggested Slack message:
 
 ---
 
-Takk for gjennomgangen.
-Vi har ryddet i koden nå.
+Thanks for the review.
+We have cleaned up the code now.
 
 ---
 ```
 
-Denne regelen gjelder ALLE prosjekter og sesjoner.
+This rule applies to ALL projects and sessions.

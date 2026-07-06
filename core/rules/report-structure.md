@@ -3,353 +3,353 @@ paths:
   - "**/aide-reports/**"
 ---
 
-# Rapport-struktur for JIRA og TODO
+# Report structure for JIRA and TODO
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Oversikt](#oversikt)
-- [Filstruktur](#filstruktur)
+- [Overview](#overview)
+- [File structure](#file-structure)
   - [1-description](#1-description)
   - [2-analysis](#2-analysis)
   - [3-solution](#3-solution)
   - [4-status](#4-status)
-- [Separasjon av innhold](#separasjon-av-innhold)
-- [Forskjeller JIRA vs TODO](#forskjeller-jira-vs-todo)
+- [Separation of content](#separation-of-content)
+- [Differences JIRA vs TODO](#differences-jira-vs-todo)
 - [Templates](#templates)
-- [Se også](#se-også)
+- [See also](#see-also)
 
 ---
 
-## Oversikt
+## Overview
 
-4 standardiserte filer per sak/plan:
+4 standardized files per issue/plan:
 
 ```text
-reports/<NN>-slug/          # flat struktur, samme for JIRA og TODO
-├── 1-description.md        # (JIRA: PROJ-nøkkel inngår i sluggen)
+reports/<NN>-slug/          # flat structure, same for JIRA and TODO
+├── 1-description.md        # (JIRA: the PROJ key is part of the slug)
 ├── 2-analysis.md
 ├── 3-solution.md
 └── 4-status.md
 ```
 
-**Roller:**
-1. **1-description.md** - Hovedinngang: Problem, omfang, akseptansekriterier
-2. **2-analysis.md** - Detaljert analyse: Funn, kompleksitet, risiko
-3. **3-solution.md** - Implementasjonsplan med TDD-tilnærming
-4. **4-status.md** - Levende dokument: Fremdrift og status
+**Roles:**
+1. **1-description.md** - Main entry point: Problem, scope, acceptance criteria
+2. **2-analysis.md** - Detailed analysis: Findings, complexity, risk
+3. **3-solution.md** - Implementation plan with a TDD approach
+4. **4-status.md** - Living document: Progress and status
 
 ---
 
-## Filstruktur
+## File structure
 
 ### 1-description
 
-**Formål:** Gi oversikt over saken, omfanget og akseptansekriteriene.
+**Purpose:** Give an overview of the issue, the scope and the acceptance criteria.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel]
+# [Title]
 
-## Innholdsfortegnelse
+## Table of contents
 
 - Metadata
-- Beskrivelse
+- Description
 - Problem
-- Omfang
-- Akseptansekriterier
+- Scope
+- Acceptance criteria
 
 ---
 
 ## Metadata
 
-**JIRA:** Tabell med type, status, prioritet, reporter, assignee
-**TODO:** Nummer, opprettet dato, forventet varighet
+**JIRA:** Table with type, status, priority, reporter, assignee
+**TODO:** Number, created date, expected duration
 
 ---
 
-## Beskrivelse
+## Description
 
-**Dette feltet kan redigeres manuelt for å legge til:**
-- Ekstra kontekst eller presiseringer
-- Spesifikke tekniske krav
-- Avklaringer fra møter/diskusjoner
+**This field can be edited manually to add:**
+- Extra context or clarifications
+- Specific technical requirements
+- Clarifications from meetings/discussions
 
 ---
 
 ## Problem
 
-[Beskrivelse kopiert fra JIRA eller skrevet av utvikler]
+[Description copied from JIRA or written by the developer]
 
-## Omfang
+## Scope
 
-**Berørte filer/komponenter:** [antall fra analyse]
-**Estimert arbeidsinnsats:** [tid basert på funn]
+**Affected files/components:** [count from the analysis]
+**Estimated effort:** [time based on findings]
 
-## Akseptansekriterier
+## Acceptance criteria
 
-[Kriterier for når saken/planen er ferdig]
+[Criteria for when the issue/plan is done]
 
 ```
 
-**Nøkkelpunkter:**
-- Innholdsfortegnelse for rask navigasjon
-- Metadata-tabell (JIRA/TODO-spesifikk)
-- Beskrivelse-seksjonen er redigerbar for manuell tilleggsinformasjon
-- Problem-seksjonen kopieres direkte (ikke skriv om)
-- Ingen kodeeksempler (de hører hjemme i 3-solution.md)
+**Key points:**
+- Table of contents for quick navigation
+- Metadata table (JIRA/TODO-specific)
+- The Description section is editable for manual additional information
+- The Problem section is copied verbatim (do not rewrite)
+- No code examples (they belong in 3-solution.md)
 
 ---
 
 ### 2-analysis
 
-**Formål:** Detaljert teknisk analyse av problemet.
+**Purpose:** Detailed technical analysis of the problem.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel] - Analyse
+# [Title] - Analysis
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Omfang
-- Kompleksitet
-- Funn
-- Risikoanalyse
+- Scope
+- Complexity
+- Findings
+- Risk analysis
 
 ---
 
-## Omfang
+## Scope
 
-**Antall berørte filer/komponenter:** [tall]
-**Sist analysert**: [dato]
+**Number of affected files/components:** [count]
+**Last analyzed**: [date]
 
-**Berørte filer/komponenter:**
-1. `fil/path.tsx:123-145` - [beskrivelse]
-2. `fil/path2.tsx:67` - [beskrivelse]
+**Affected files/components:**
+1. `fil/path.tsx:123-145` - [description]
+2. `fil/path2.tsx:67` - [description]
 
-## Kompleksitet
+## Complexity
 
-### [Høy/Middels/Lav kompleksitet]
+### [High/Medium/Low complexity]
 
-**Estimat:**
-- **Manuell utvikling:** [tid]
-- **AI-assistert utvikling:** [tid]
+**Estimate:**
+- **Manual development:** [time]
+- **AI-assisted development:** [time]
 
-## Funn
+## Findings
 
-### Kodebase-analyse
+### Codebase analysis
 
-[Detaljerte funn]
+[Detailed findings]
 
-### Berørte komponenter
+### Affected components
 
-[Detaljert beskrivelse per fil med konkrete linjenummer]
+[Detailed description per file with specific line numbers]
 
-### Test-dekning
+### Test coverage
 
-**Eksisterende tester:** [liste]
-**Manglende tester:** [gaps]
+**Existing tests:** [list]
+**Missing tests:** [gaps]
 
-## Risikoanalyse
+## Risk analysis
 
-### [Høy/Middels/Lav risiko]
+### [High/Medium/Low risk]
 
-**[Risiko 1]**
-- **Konsekvens:** [beskrivelse]
-- **Sannsynlighet:** [Høy/Middels/Lav]
-- **Mitigering:** [hvordan redusere]
+**[Risk 1]**
+- **Consequence:** [description]
+- **Probability:** [High/Medium/Low]
+- **Mitigation:** [how to reduce]
 ```
 
-**Nøkkelpunkter:**
-- Fokuser på ANALYSE (ikke løsning)
-- Inkluder konkrete filer med linjenummer
-- Estimater for både manuell og AI-assistert utvikling
-- Ingen implementasjonsplan eller løsningsforslag
+**Key points:**
+- Focus on ANALYSIS (not solution)
+- Include specific files with line numbers
+- Estimates for both manual and AI-assisted development
+- No implementation plan or solution proposals
 
 ---
 
 ### 3-solution
 
-**Formål:** Implementeringsplan med TDD-tilnærming.
+**Purpose:** Implementation plan with a TDD approach.
 
-**Struktur:**
+**Structure:**
 
 ````markdown
-# [Tittel] - Løsning
+# [Title] - Solution
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Tilnærminger
-- Anbefalt løsning
-- Implementeringsplan
+- Approaches
+- Recommended solution
+- Implementation plan
 - Testing
-- Referanser
+- References
 
 ---
 
-## Tilnærminger
+## Approaches
 
-### Tilnærming 1: [Navn] (anbefalt)
+### Approach 1: [Name] (recommended)
 
-**Fordeler:** [liste]
-**Ulemper:** [liste]
-**Estimat:** [tid]
+**Pros:** [list]
+**Cons:** [list]
+**Estimate:** [time]
 
 ---
 
-## Anbefalt løsning
+## Recommended solution
 
-### Før/Etter eksempler
+### Before/After examples
 
-**Før:**
+**Before:**
 ```tsx
 // fil/path.tsx:123
-[gammel kode]
+[old code]
 ```
 
-**Etter:**
+**After:**
 ```tsx
 // fil/path.tsx:123
-[ny kode]
+[new code]
 ```
 
 ---
 
-## Implementeringsplan
+## Implementation plan
 
-### TDD-tilnærming (Red-Green-Refactor)
+### TDD approach (Red-Green-Refactor)
 
-### Fase 1: Skriv tester (RED)
-- [ ] Oppgave 1
-- [ ] Oppgave 2
+### Phase 1: Write tests (RED)
+- [ ] Task 1
+- [ ] Task 2
 
-### Fase 2: Implementer løsningen (GREEN)
-- [ ] Oppgave 1
-- [ ] Oppgave 2
+### Phase 2: Implement the solution (GREEN)
+- [ ] Task 1
+- [ ] Task 2
 
-### Fase 3: Verifiser (REFACTOR)
-- [ ] Kjør full test-suite
-- [ ] Sjekk for regresjoner
+### Phase 3: Verify (REFACTOR)
+- [ ] Run the full test suite
+- [ ] Check for regressions
 
 ---
 
 ## Testing
 
 ### Unit tests
-[Testningstrategi]
+[Testing strategy]
 
 ### Manual testing
-[Hva må testes manuelt]
+[What must be tested manually]
 
 ---
 
-## Referanser
+## References
 
-- 1-description.md - Problembeskrivelse
-- 2-analysis.md - Analyse og funn
+- 1-description.md - Problem description
+- 2-analysis.md - Analysis and findings
 ````
 
-**Nøkkelpunkter:**
-- Tilnærminger med fordeler/ulemper
-- Før/Etter i SEPARATE kodeblokker (unngår redeclaration-feil)
-- TDD-tilnærming med RED-GREEN-REFACTOR faser
+**Key points:**
+- Approaches with pros/cons
+- Before/After in SEPARATE code blocks (avoids redeclaration errors)
+- TDD approach with RED-GREEN-REFACTOR phases
 
 ---
 
 ### 4-status
 
-**Formål:** Levende dokument som oppdateres underveis.
+**Purpose:** Living document that is updated along the way.
 
-**Struktur:**
+**Structure:**
 ```markdown
-# [Tittel] - Status
+# [Title] - Status
 
-**Total fremgang:** X% (Y av Z fullført)
-**Estimat:** [tid]
+**Total progress:** X% (Y of Z completed)
+**Estimate:** [time]
 
-## Innholdsfortegnelse
+## Table of contents
 
-- Fase 1: Navn
-- Fase 2: Navn
-- Notasjon
+- Phase 1: Name
+- Phase 2: Name
+- Notation
 
 ---
 
-## Fase 1: [Navn]
+## Phase 1: [Name]
 
-| Oppgave | Status | Notater |
+| Task | Status | Notes |
 |---------|--------|---------|
-| Oppgave 1 | ⬜ | [notater] |
-| Oppgave 2 | 🔄 | [notater] |
-| Oppgave 3 | ✅ | [notater] |
+| Task 1 | ⬜ | [notes] |
+| Task 2 | 🔄 | [notes] |
+| Task 3 | ✅ | [notes] |
 
 ---
 
-## Notasjon
+## Notation
 
-| Symbol | Betydning |
+| Symbol | Meaning |
 |--------|-----------|
-| ⬜ | Ikke startet |
-| 🔄 | Under arbeid |
-| ✅ | Fullført |
-| ❌ | Blokkert |
-| ⚠️ | Venter |
+| ⬜ | Not started |
+| 🔄 | In progress |
+| ✅ | Completed |
+| ❌ | Blocked |
+| ⚠️ | Waiting |
 ```
 
-**Nøkkelpunkter:**
-- Total fremgang øverst
-- Organisert i faser (matcher 3-solution.md)
-- Tabellformat for oversiktlighet
-- Oppdateres kontinuerlig
+**Key points:**
+- Total progress at the top
+- Organized in phases (matches 3-solution.md)
+- Table format for clarity
+- Updated continuously
 
 ---
 
-## Separasjon av innhold
+## Separation of content
 
-| Innhold                    | Plassering        |
+| Content                    | Location          |
 |----------------------------|-------------------|
-| Problembeskrivelse         | 1-description.md  |
+| Problem description        | 1-description.md  |
 | Metadata                   | 1-description.md  |
-| Akseptansekriterier        | 1-description.md  |
-| Kartlegging/funn           | 2-analysis.md      |
-| Kompleksitetsanalyse       | 2-analysis.md      |
-| Risikoanalyse              | 2-analysis.md      |
-| Tilnærminger               | 3-solution.md      |
-| Før/etter eksempler        | 3-solution.md      |
-| Implementeringsplan        | 3-solution.md      |
-| Testing-strategi           | 3-solution.md      |
-| Fremdrift                  | 4-status.md       |
+| Acceptance criteria        | 1-description.md  |
+| Mapping/findings           | 2-analysis.md      |
+| Complexity analysis        | 2-analysis.md      |
+| Risk analysis              | 2-analysis.md      |
+| Approaches                 | 3-solution.md      |
+| Before/after examples      | 3-solution.md      |
+| Implementation plan        | 3-solution.md      |
+| Testing strategy           | 3-solution.md      |
+| Progress                   | 4-status.md       |
 
 ---
 
-## Forskjeller JIRA vs TODO
+## Differences JIRA vs TODO
 
-JIRA-saker og TODO-planer har **identisk struktur**, men forskjeller i innhold:
+JIRA issues and TODO plans have an **identical structure**, but differ in content:
 
-| Aspekt          | JIRA-saker                    | TODO-planer           |
+| Aspect          | JIRA issues                   | TODO plans            |
 |-----------------|-------------------------------|-----------------------|
-| **Lokasjon**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
-| **Kilde**       | JIRA API (ekstern)            | Manuelt opprettet     |
-| **Beskrivelse** | Kopieres fra JIRA             | Skrives av utvikler   |
-| **Metadata**    | JIRA-felt (type, status, etc.)| Nummer, dato          |
+| **Location**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
+| **Source**      | JIRA API (external)           | Created manually      |
+| **Description** | Copied from JIRA              | Written by the developer |
+| **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |
 
-**Felles:**
-- 4 filer: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
-- Samme struktur og formattering
-- Samme notasjon (⬜ 🔄 ✅ ❌ ⚠️)
-- Samme TDD-tilnærming i 3-solution.md
+**In common:**
+- 4 files: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
+- Same structure and formatting
+- Same notation (⬜ 🔄 ✅ ❌ ⚠️)
+- Same TDD approach in 3-solution.md
 
 ---
 
 ## Templates
 
-AI-verktøy oppretter dokumentasjon direkte basert på strukturen beskrevet i dette dokumentet.
+AI tools create documentation directly based on the structure described in this document.
 
-Kommandoen `/aide-create` oppretter 4-fils strukturen med riktige plassholdere.
-Kommandoen `/aide-analyze` fyller inn analyse, løsning og status.
+The `/aide-create` command creates the 4-file structure with the correct placeholders.
+The `/aide-analyze` command fills in the analysis, solution and status.
 
 ---
 
-## Se også
+## See also
 
-- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - Generelle dokumentasjonsregler
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting-regler
+- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - General documentation rules
+- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules

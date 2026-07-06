@@ -1,7 +1,7 @@
-# Doc Aide — Felles instruksjoner
+# Doc Aide — Shared instructions
 
-Instruksjoner for AI-assistert utvikling med fokus på:
-- JIRA-saker med 4-fils dokumentasjonsstruktur
+Instructions for AI-assisted development focused on:
+- JIRA issues with a 4-file documentation structure
 - Test-Driven Development (TDD: RED → GREEN → REFACTOR)
-- Automatisk kodebase-analyse med fil:linje referanser
-- API-påvirkningsanalyse (frontend ↔ backend)
+- Automated codebase analysis with file:line references
+- API impact analysis (frontend ↔ backend)

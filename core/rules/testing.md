@@ -1,214 +1,214 @@
-# Testing-regler for AI-assistert utvikling
+# Testing rules for AI-assisted development
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Hovednorm](#hovednorm)
-- [Testkommandoer](#testkommandoer)
-  - [Enhetstester (Vitest)](#enhetstester-vitest)
-  - [E2E-tester (Playwright)](#e2e-tester-playwright)
-- [Arbeidsflyt](#arbeidsflyt)
-  - [Eksempel på riktig arbeidsflyt](#eksempel-på-riktig-arbeidsflyt)
-  - [Ved feilende tester](#ved-feilende-tester)
-- [TDD-tilnærming](#tdd-tilnærming-test-driven-development)
-- [Watch mode advarsler](#watch-mode-advarsler)
-
----
-
-## Hovednorm
-
-**ALLTID kjør tester når du oppretter eller endrer dem!**
-
-### ❌ ALDRI
-- Opprett tester uten å kjøre dem
-- Endre tester uten å verifisere at de fortsatt fungerer
-- Anta at tester passerer uten å sjekke
-- Committe tester som feiler
-
-### ✅ RIKTIG fremgangsmåte
-1. Når du oppretter/endrer tester, **kjør dem umiddelbart**
-2. **Verifiser** at alle tester passerer (grønne ✅)
-3. Hvis tester feiler (røde ❌):
-   - Analyser feilmeldingen
-   - Fiks problemet (enten testen eller koden)
-   - Kjør på nytt til alle passerer
-4. **Før commit:** Kjør hele testsuiten for å sjekke for regresjoner
+- [Core rule](#core-rule)
+- [Test commands](#test-commands)
+  - [Unit tests (Vitest)](#unit-tests-vitest)
+  - [E2E tests (Playwright)](#e2e-tests-playwright)
+- [Workflow](#workflow)
+  - [Example of a correct workflow](#example-of-a-correct-workflow)
+  - [When tests fail](#when-tests-fail)
+- [TDD approach](#tdd-approach-test-driven-development)
+- [Watch mode warnings](#watch-mode-warnings)
 
 ---
 
-## Testkommandoer
+## Core rule
 
-### Enhetstester (Vitest)
+**ALWAYS run tests when you create or modify them!**
+
+### ❌ NEVER
+- Create tests without running them
+- Modify tests without verifying that they still work
+- Assume that tests pass without checking
+- Commit failing tests
+
+### ✅ CORRECT approach
+1. When you create/modify tests, **run them immediately**
+2. **Verify** that all tests pass (green ✅)
+3. If tests fail (red ❌):
+   - Analyze the error message
+   - Fix the problem (either the test or the code)
+   - Re-run until everything passes
+4. **Before committing:** Run the entire test suite to check for regressions
+
+---
+
+## Test commands
+
+### Unit tests (Vitest)
 ```bash
-# Alle tester (ALLTID bruk --run for å unngå watch mode!)
+# All tests (ALWAYS use --run to avoid watch mode!)
 pnpm test -- --run
 
-# Spesifikk testfil
-pnpm test -- --run <filnavn>
+# Specific test file
+pnpm test -- --run <filename>
 
-# Med dekningsrapport
+# With coverage report
 pnpm run test:coverage
 ```
 
-### E2E-tester (Playwright)
+### E2E tests (Playwright)
 ```bash
-# Alle e2e-tester
+# All e2e tests
 pnpm run test:e2e
 
-# Spesifikk e2e-test
-pnpm exec playwright test <filnavn>
+# Specific e2e test
+pnpm exec playwright test <filename>
 
-# Med UI-modus (UNNGÅ - holder prosess åpen)
+# With UI mode (AVOID - keeps the process open)
 pnpm run test:e2e:ui
 ```
 
 ---
 
-## Arbeidsflyt
+## Workflow
 
-### Eksempel på riktig arbeidsflyt
+### Example of a correct workflow
 ```text
-1. Opprettet test: src/utils/land.test.ts
-2. Kjører: pnpm test -- --run land.test.ts
-3. ✅ Alle 5 tester passerer
-4. Kjører: pnpm test -- --run (full suite for regresjonssjekk)
-5. ✅ 1247 tester passerer, 0 feiler
-6. Nå er det trygt å committe
+1. Created test: src/utils/country.test.ts
+2. Run: pnpm test -- --run country.test.ts
+3. ✅ All 5 tests pass
+4. Run: pnpm test -- --run (full suite for regression check)
+5. ✅ 1247 tests pass, 0 fail
+6. Now it is safe to commit
 ```
 
-### Ved feilende tester
+### When tests fail
 ```text
-1. Opprettet test: src/components/UserForm.test.tsx
-2. Kjører: pnpm test -- --run UserForm.test.tsx
-3. ❌ 2 av 8 tester feiler
-4. Analyserer feilmelding: "Expected <button> to be disabled, but was enabled"
-5. Fikser koden i UserForm.tsx (disabled-logikk)
-6. Kjører: pnpm test -- --run UserForm.test.tsx
-7. ✅ Alle 8 tester passerer
-8. Kjører: pnpm test -- --run (full suite)
-9. ✅ 1255 tester passerer, 0 feiler
-10. Nå er det trygt å committe
+1. Created test: src/components/UserForm.test.tsx
+2. Run: pnpm test -- --run UserForm.test.tsx
+3. ❌ 2 of 8 tests fail
+4. Analyze the error message: "Expected <button> to be disabled, but was enabled"
+5. Fix the code in UserForm.tsx (disabled logic)
+6. Run: pnpm test -- --run UserForm.test.tsx
+7. ✅ All 8 tests pass
+8. Run: pnpm test -- --run (full suite)
+9. ✅ 1255 tests pass, 0 fail
+10. Now it is safe to commit
 ```
 
 ---
 
-## TDD-tilnærming (Test-Driven Development)
+## TDD approach (Test-Driven Development)
 
 **Red → Green → Refactor**
 
-### 1. RED: Skriv test som feiler
-Bevis problemet ved å skrive en test som demonstrerer ønsket oppførsel (men feiler fordi koden ikke er implementert ennå).
+### 1. RED: Write a failing test
+Prove the problem by writing a test that demonstrates the desired behavior (but fails because the code is not implemented yet).
 
 ```tsx
-// Eksempel: Test for ny funksjonalitet som ikke finnes ennå
-test('getLandnavn should return "Norge" for code "NO"', () => {
-  expect(getLandnavn('NO')).toBe('Norge');
+// Example: Test for new functionality that does not exist yet
+test('getCountryName should return "Norway" for code "NO"', () => {
+  expect(getCountryName('NO')).toBe('Norway');
 });
 
-// Kjør: pnpm test -- --run land.test.ts
-// ❌ Feiler (beviser at funksjonaliteten mangler)
+// Run: pnpm test -- --run country.test.ts
+// ❌ Fails (proves that the functionality is missing)
 ```
 
-### 2. GREEN: Implementer til testen passerer
-Skriv minimal kode for å få testen til å passere.
+### 2. GREEN: Implement until the test passes
+Write minimal code to make the test pass.
 
 ```typescript
-// Implementer funksjonaliteten
-export function getLandnavn(code: string): string {
-  const land = {
-    'NO': 'Norge',
-    'SE': 'Sverige',
-    'DK': 'Danmark',
+// Implement the functionality
+export function getCountryName(code: string): string {
+  const countries = {
+    'NO': 'Norway',
+    'SE': 'Sweden',
+    'DK': 'Denmark',
   };
-  return land[code] || 'Ukjent';
+  return countries[code] || 'Unknown';
 }
 
-// Kjør: pnpm test -- --run land.test.ts
-// ✅ Passerer (funksjonaliteten virker)
+// Run: pnpm test -- --run country.test.ts
+// ✅ Passes (the functionality works)
 ```
 
-### 3. REFACTOR: Kjør alle tester
-Verifiser at ingen eksisterende funksjonalitet ble ødelagt.
+### 3. REFACTOR: Run all tests
+Verify that no existing functionality was broken.
 
 ```bash
-# Kjør hele testsuiten
+# Run the entire test suite
 pnpm test -- --run
 
-# ✅ Alle 1255 tester passerer (ingen regresjoner)
+# ✅ All 1255 tests pass (no regressions)
 ```
 
 ---
 
-## Watch mode advarsler
+## Watch mode warnings
 
-### KRITISK: Alle tester MÅ avsluttes etter kjøring
+### CRITICAL: All tests MUST terminate after running
 
-**VIKTIG:** Tester må alltid kjøres slik at prosessen avsluttes når testene er ferdige.
+**IMPORTANT:** Tests must always be run so that the process exits when the tests are done.
 
 ```bash
-# ✅ RIKTIG - Tester kjører og prosessen avsluttes
-pnpm test -- --run                    # Vitest - avslutter etter kjøring
-pnpm test -- --run UserProfile.test.tsx  # Spesifikk test
-pnpm run test:e2e                     # Playwright - avslutter automatisk
+# ✅ CORRECT - Tests run and the process exits
+pnpm test -- --run                    # Vitest - exits after running
+pnpm test -- --run UserProfile.test.tsx  # Specific test
+pnpm run test:e2e                     # Playwright - exits automatically
 
-# ❌ FEIL - Watch mode (prosessen avsluttes ALDRI)
-pnpm test                             # Starter i watch mode
+# ❌ WRONG - Watch mode (the process NEVER exits)
+pnpm test                             # Starts in watch mode
 pnpm test UserProfile.test.tsx        # Watch mode
-pnpm run test:e2e:ui                  # Playwright UI-modus
+pnpm run test:e2e:ui                  # Playwright UI mode
 ```
 
-### Hvorfor dette er kritisk
+### Why this is critical
 
-**I AI-assistert utvikling:**
-- AI kan ikke interagere med watch mode (krever manuell input for å avslutte)
-- Prosesser holder åpne i bakgrunnen og må drepen manuelt
-- Umulig for AI å verifisere når tester er ferdig kjørt
-- Kan forårsake resource-leaks
+**In AI-assisted development:**
+- AI cannot interact with watch mode (requires manual input to exit)
+- Processes stay open in the background and must be killed manually
+- Impossible for AI to verify when tests have finished running
+- Can cause resource leaks
 
-**I CI/CD pipelines:**
-- Watch mode blokkerer pipeline (venter i det uendelige)
-- Spiser ressurser unødvendig
-- Gjør automatiserte workflows umulige
+**In CI/CD pipelines:**
+- Watch mode blocks the pipeline (waits forever)
+- Consumes resources unnecessarily
+- Makes automated workflows impossible
 
-**I TDD-workflow:**
-- Du må kunne kjøre tester flere ganger i syklusen
-- Hver kjøring må avslutte for å gå videre til neste fase
-- Watch mode ødelegger automatiseringen
+**In the TDD workflow:**
+- You must be able to run tests multiple times in the cycle
+- Each run must exit to move on to the next phase
+- Watch mode breaks the automation
 
-### Hvordan sjekke om test-prosesser henger
+### How to check whether test processes are hanging
 
-**ADVARSEL:** Drep kun prosesser du selv har startet, ikke alle node-prosesser!
+**WARNING:** Only kill processes you started yourself, not all node processes!
 
 ```bash
-# Sjekk om DINE test-prosesser henger (ikke drep automatisk!)
+# Check whether YOUR test processes are hanging (do not kill automatically!)
 ps aux | grep vitest
 ps aux | grep playwright
 
-# Se PID og kommando for å identifisere dine prosesser
-ps aux | grep "[v]itest"    # Viser vitest-prosesser
-ps aux | grep "[p]laywright" # Viser playwright-prosesser
+# See PID and command to identify your processes
+ps aux | grep "[v]itest"    # Shows vitest processes
+ps aux | grep "[p]laywright" # Shows playwright processes
 
-# Drep KUN prosesser du selv har startet (bruk PID fra output over)
-kill <PID>                   # Erstatt <PID> med prosess-ID
+# Kill ONLY processes you started yourself (use the PID from the output above)
+kill <PID>                   # Replace <PID> with the process ID
 
-# Eksempel:
+# Example:
 # ps aux | grep vitest
 # > ragnar  12345  ... node .../vitest/...
 # kill 12345
 ```
 
-**VIKTIG:**
-- ❌ **ALDRI** bruk `pkill -f node` (dreper alle node-prosesser!)
-- ❌ **ALDRI** bruk `pkill -f vitest` uten å sjekke først
-- ✅ Bruk `ps aux` for å identifisere dine prosesser
-- ✅ Bruk `kill <PID>` for å drepe spesifikke prosesser
+**IMPORTANT:**
+- ❌ **NEVER** use `pkill -f node` (kills all node processes!)
+- ❌ **NEVER** use `pkill -f vitest` without checking first
+- ✅ Use `ps aux` to identify your processes
+- ✅ Use `kill <PID>` to kill specific processes
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre gullregler:**
-1. ✅ Kjør tester **umiddelbart** etter opprettelse/endring
-2. ✅ Verifiser at **alle tester passerer** før commit
-3. ✅ Bruk **TDD** (Red → Green → Refactor) for nye features
+**Three golden rules:**
+1. ✅ Run tests **immediately** after creating/modifying them
+2. ✅ Verify that **all tests pass** before committing
+3. ✅ Use **TDD** (Red → Green → Refactor) for new features
 
-**Denne regelen gjelder ALLTID - testing er ikke valgfritt!**
+**This rule ALWAYS applies - testing is not optional!**

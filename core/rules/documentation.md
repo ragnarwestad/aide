@@ -1,94 +1,94 @@
-# Dokumentasjonsstandard
+# Documentation standard
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Generelle regler for alle dokumenter](#generelle-regler-for-alle-dokumenter)
-  - [Dokumentstruktur](#dokumentstruktur)
-  - [Innholdsfortegnelse](#innholdsfortegnelse-1)
-  - [Formatering](#formatering)
-- [Markdown-retningslinjer](#markdown-retningslinjer)
-  - [Kodeblokker](#kodeblokker)
-  - [Nummererte lister](#nummererte-lister)
+- [General rules for all documents](#general-rules-for-all-documents)
+  - [Document structure](#document-structure)
+  - [Table of contents](#table-of-contents-1)
+  - [Formatting](#formatting)
+- [Markdown guidelines](#markdown-guidelines)
+  - [Code blocks](#code-blocks)
+  - [Numbered lists](#numbered-lists)
   - [Emojis](#emojis)
-- [Best practices for AI-assistert dokumentasjon](#best-practices-for-ai-assistert-dokumentasjon)
-  - [Visuell dokumentasjon](#visuell-dokumentasjon)
-  - [Relaterte ressurser og URL-er](#relaterte-ressurser-og-url-er)
-  - [Spesifikke instruksjoner](#spesifikke-instruksjoner)
-  - [Filreferanser](#filreferanser)
-- [Se også](#se-også)
+- [Best practices for AI-assisted documentation](#best-practices-for-ai-assisted-documentation)
+  - [Visual documentation](#visual-documentation)
+  - [Related resources and URLs](#related-resources-and-urls)
+  - [Specific instructions](#specific-instructions)
+  - [File references](#file-references)
+- [See also](#see-also)
 
 ---
 
-## Generelle regler for alle dokumenter
+## General rules for all documents
 
-Disse reglene gjelder for ALLE markdown-dokumenter i prosjektet.
+These rules apply to ALL markdown documents in the project.
 
-### Dokumentstruktur
+### Document structure
 
-Alle dokumenter skal følge denne strukturen:
+All documents must follow this structure:
 
 ```markdown
-# Dokumenttittel
+# Document title
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Seksjon 1](#seksjon-1)
-  - [Underseksjon 1.1](#underseksjon-11)
-- [Seksjon 2](#seksjon-2)
+- [Section 1](#section-1)
+  - [Subsection 1.1](#subsection-11)
+- [Section 2](#section-2)
 
 ---
 
-## Seksjon 1
+## Section 1
 
-Innhold...
+Content...
 ```
 
-### Innholdsfortegnelse
+### Table of contents
 
-**Krav:**
-- Alle dokumenter over 50 linjer SKAL ha innholdsfortegnelse
-- Bruk 2 nivåer (hovedseksjoner og underseksjoner)
-- Plasser etter formål-setningen og før første innholdsseksjon
-- Overskriften skal være `## Innholdsfortegnelse` (uten emoji)
+**Requirements:**
+- All documents over 50 lines MUST have a table of contents
+- Use 2 levels (main sections and subsections)
+- Place it after the purpose statement and before the first content section
+- The heading must be `## Table of contents` (no emoji)
 
 **Format:**
 ```markdown
-## Innholdsfortegnelse
+## Table of contents
 
-- [Hovedseksjon](#hovedseksjon)
-  - [Underseksjon](#underseksjon)
+- [Main section](#main-section)
+  - [Subsection](#subsection)
 ```
 
-### Formatering
+### Formatting
 
-**Titler og overskrifter:**
-- Dokumenttittel: `# Tittel` (kun én per dokument)
-- Hovedseksjoner: `## Seksjon`
-- Underseksjoner: `### Underseksjon`
-- Ingen emojis i overskrifter (forårsaker problemer med anchor-lenker)
+**Titles and headings:**
+- Document title: `# Title` (only one per document)
+- Main sections: `## Section`
+- Subsections: `### Subsection`
+- No emojis in headings (causes problems with anchor links)
 
-**Separatorer:**
-- Bruk `---` mellom logiske seksjoner
-- Alltid `---` etter innholdsfortegnelsen
+**Separators:**
+- Use `---` between logical sections
+- Always `---` after the table of contents
 
 ---
 
-## Markdown-retningslinjer
+## Markdown guidelines
 
-### Kodeblokker
+### Code blocks
 
-**Alltid spesifiser språk ved START:**
-- `tsx` for kode med JSX (React: `<Component />`)
-- `typescript` for TypeScript uten JSX
-- `bash` for shell-kommandoer
-- `markdown` for markdown-eksempler
-- `text` for generell output
+**Always specify the language at the START:**
+- `tsx` for code with JSX (React: `<Component />`)
+- `typescript` for TypeScript without JSX
+- `bash` for shell commands
+- `markdown` for markdown examples
+- `text` for general output
 
-**Hvorfor:** IDEer parser kodeblokker og gir warnings hvis syntaks ikke matcher.
+**Why:** IDEs parse code blocks and produce warnings if the syntax does not match.
 
-**KRITISK: Avslutning av kodeblokker:**
+**CRITICAL: Closing code blocks:**
 
-Kodeblokker avsluttes ALLTID med bare tre backticks - ALDRI med språk-specifier:
+Code blocks are ALWAYS closed with just three backticks - NEVER with a language specifier:
 
 ````markdown
 ```bash
@@ -96,7 +96,7 @@ echo "Hello"
 ```
 ````
 
-**FEIL (vanlig AI-feil):**
+**WRONG (common AI mistake):**
 
 ````markdown
 ```bash
@@ -104,138 +104,138 @@ echo "Hello"
 ```text
 ````
 
-**Hvorfor dette er viktig:**
-- ` ```text` som avslutning bryter markdown-parsing
-- Pandoc og andre konverterere tolker det som ny kodeblokk
-- HTML-generering feiler med ødelagte kodeblokker
-- Anchor-lenker kan bli ødelagt
+**Why this matters:**
+- ` ```text` as a closing fence breaks markdown parsing
+- Pandoc and other converters interpret it as the start of a new code block
+- HTML generation fails with broken code blocks
+- Anchor links can end up broken
 
-**Før/Etter kodeeksempler:**
+**Before/After code examples:**
 
-Del alltid "Før" og "Etter" i SEPARATE kodeblokker:
+Always split "Before" and "After" into SEPARATE code blocks:
 
 ````markdown
-**Før:**
+**Before:**
 ```tsx
 const [value, setValue] = useState();
 ```
 
-**Etter:**
+**After:**
 ```tsx
 const value = useSelector(state => state.value);
 ```
 ````
 
-**Hvorfor:** Unngår redeclaration-feil (samme variabelnavn i én kodeblokk).
+**Why:** Avoids redeclaration errors (same variable name in a single code block).
 
-### Nummererte lister
+### Numbered lists
 
-**Start alltid på 1 etter en header/seksjonsskift:**
+**Always start at 1 after a header/section break:**
 
 ```markdown
-#### Filer å endre:
+#### Files to change:
 
-1. fil1.tsx
-2. fil2.tsx
+1. file1.tsx
+2. file2.tsx
 
-#### Filer å teste:
+#### Files to test:
 
-1. test1.tsx   (RIKTIG - starter på 1)
+1. test1.tsx   (CORRECT - starts at 1)
 2. test2.tsx
 ```
 
-**Hvorfor:** Markdown-lintere forventer at nye lister starter på 1.
+**Why:** Markdown linters expect new lists to start at 1.
 
 ### Emojis
 
-**IKKE bruk emojis i section headings (## overskrifter):**
+**Do NOT use emojis in section headings (## headings):**
 
 ```markdown
-## 📋 Innholdsfortegnelse   (FEIL - emoji i heading)
-## Innholdsfortegnelse      (RIKTIG)
+## 📋 Table of contents   (WRONG - emoji in heading)
+## Table of contents      (CORRECT)
 ```
 
-**Hvorfor:** Markdown-prosessorer stripper emojis fra heading IDs, som forårsaker MD051-feil (anchor link mismatch).
+**Why:** Markdown processors strip emojis from heading IDs, which causes MD051 errors (anchor link mismatch).
 
-**OK å bruke emojis i:**
-- Innhold og brødtekst
-- Lister og tabeller
-- Metadata-felt
+**Emojis are OK in:**
+- Content and body text
+- Lists and tables
+- Metadata fields
 
-**Se også:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detaljerte linting-regler.
+**See also:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detailed linting rules.
 
 ---
 
-## Best practices for AI-assistert dokumentasjon
+## Best practices for AI-assisted documentation
 
-### Visuell dokumentasjon
+### Visual documentation
 
-**Bruk screenshots og design mocks når det er relevant:**
-- Inkluder screenshots av UI-problemer eller feil
-- Legg ved design mocks for å vise ønsket sluttresultat
-- Lag assets-mappe: `assets/` i dokumentmappen
-- Referer til bilder i markdown: `![Beskrivelse](./assets/screenshot.png)`
+**Use screenshots and design mocks when relevant:**
+- Include screenshots of UI problems or bugs
+- Attach design mocks to show the desired end result
+- Create an assets folder: `assets/` in the document folder
+- Reference images in markdown: `![Description](./assets/screenshot.png)`
 
-**Hvorfor:** Moderne AI-assistenter er multimodale og kan iterere visuelt mot et målbilde.
+**Why:** Modern AI assistants are multimodal and can iterate visually toward a target image.
 
-**Eksempel:**
+**Example:**
 ```markdown
 ## Problem
 
-Datepicker viser feil format i Safari:
+Datepicker shows the wrong format in Safari:
 
 ![Safari bug](./assets/safari-datepicker-bug.png)
 
-Ønsket resultat:
+Desired result:
 
 ![Design mock](./assets/datepicker-design.png)
 ```
 
-### Relaterte ressurser og URL-er
+### Related resources and URLs
 
-**Inkluder lenker til eksterne ressurser:**
-- JIRA-saker: `https://jira.example.com/browse/PROJ-XXXX`
-- Confluence-dokumentasjon
-- Design-dokumenter (Figma, Sketch)
-- API-dokumentasjon (Swagger, OpenAPI)
+**Include links to external resources:**
+- JIRA issues: `https://jira.example.com/browse/PROJ-XXXX`
+- Confluence documentation
+- Design documents (Figma, Sketch)
+- API documentation (Swagger, OpenAPI)
 
-**Hvorfor:** URL-er gir AI-assistenter tilgang til oppdatert dokumentasjon og kontekst.
+**Why:** URLs give AI assistants access to up-to-date documentation and context.
 
-### Spesifikke instruksjoner
+### Specific instructions
 
-**Vær eksplisitt og detaljert i beskrivelser:**
+**Be explicit and detailed in descriptions:**
 
-**Vagt eksempel:**
+**Vague example:**
 ```markdown
 ## Problem
-Legg til tester for foo.tsx
+Add tests for foo.tsx
 ```
 
-**Spesifikt eksempel:**
+**Specific example:**
 ```markdown
 ## Problem
-Skriv enhetstester for `validateSøknadSkjema()` i foo.tsx:156.
-Test følgende edge cases:
-- Ugyldig personnummer (11 siffer, men feil kontrollsiffer)
-- Manglende påkrevde felt (navn, adresse)
-- Dato i fremtiden for fødselsdato
+Write unit tests for `validateApplicationForm()` in foo.tsx:156.
+Test the following edge cases:
+- Invalid national identity number (11 digits, but wrong check digit)
+- Missing required fields (name, address)
+- Date of birth in the future
 
-Unngå mocks for validering - bruk reelle test-data.
+Avoid mocks for validation - use real test data.
 ```
 
-**Hvorfor:** Spesifikke instruksjoner gir betydelig høyere suksessrate.
+**Why:** Specific instructions yield a significantly higher success rate.
 
-### Filreferanser
+### File references
 
-**Bruk konkrete filstier:**
-- Nevn eksakte filer: `src/components/Saksoversikt.tsx`
-- Bruk linjenummer: `Saksoversikt.tsx:123-145`
+**Use concrete file paths:**
+- Name exact files: `src/components/CaseOverview.tsx`
+- Use line numbers: `CaseOverview.tsx:123-145`
 
-**Hvorfor:** Hjelper AI-assistenter å lokalisere riktige ressurser uten å søke.
+**Why:** Helps AI assistants locate the right resources without searching.
 
 ---
 
-## Se også
+## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-fils struktur for JIRA/TODO rapporter
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting-regler
+- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for JIRA/TODO reports
+- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules

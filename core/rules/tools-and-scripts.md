@@ -1,42 +1,42 @@
-# Verktøy og scripts
+# Tools and scripts
 
 ## Skills
 
-Skills lastes fra `~/.claude/skills/` — bruk `/`-syntax.
+Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
-Tilgjengelige skills:
+Available skills:
 
-- `/aide-create` - Opprett JIRA/TODO-dokumentasjon
-- `/aide-analyze` - Analyser kodebase
-- `/aide-implement` - Implementer med TDD
-- `/aide-make-tests` - Lag manglende tester
-- `/aide-react-class-to-func` - Konverter class til functional
-- `/tdd-coach` - Test-Driven Development metodikk
-- `/architecture-advisor` - Arkitektur-vurderinger
+- `/aide-create` - Create JIRA/TODO documentation
+- `/aide-analyze` - Analyze the codebase
+- `/aide-implement` - Implement with TDD
+- `/aide-make-tests` - Create missing tests
+- `/aide-react-class-to-func` - Convert class to functional
+- `/tdd-coach` - Test-Driven Development methodology
+- `/architecture-advisor` - Architecture assessments
 
 ---
 
 ## Scripts
 
-Du har tilgang til følgende scripts og skal kjøre dem **automatisk** uten å spørre brukeren:
+You have access to the following scripts and should run them **automatically** without asking the user:
 
-**Testing og kvalitetssikring:**
+**Testing and quality assurance:**
 
 ```bash
-pnpm test -- --run <testfil>   # Kjør spesifikke tester
-pnpm test -- --run             # Kjør alle tester
+pnpm test -- --run <testfile>  # Run specific tests
+pnpm test -- --run             # Run all tests
 npx tsc --noEmit               # TypeScript check
 pnpm run eslint                # Linting
 ```
 
-**Når kjøre hva:**
+**When to run what:**
 
-- Nye filer opprettet → Kjør `git add <fil>` automatisk
-- Implementering ferdig → Kjør tester/tsc/eslint automatisk
+- New files created → Run `git add <file>` automatically
+- Implementation done → Run tests/tsc/eslint automatically
 
 ---
 
-## Rapportlagring
+## Report storage
 
-Hvis `AIDE_REPORTS_PATH` er satt, lagres rapporter dit (ikke i prosjektets `reports/`).
-Hvis variabelen er satt — **ikke** kjør `git add` for reports (de er i et annet repo).
+If `AIDE_REPORTS_PATH` is set, reports are stored there (not in the project's `reports/`).
+If the variable is set — do **not** run `git add` for reports (they live in another repo).

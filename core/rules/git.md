@@ -1,140 +1,140 @@
-# Git-regler for AI-assistert utvikling
+# Git rules for AI-assisted development
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Staging av nye filer](#staging-av-nye-filer)
-  - [Hovednorm](#hovednorm)
-  - [Eksempel](#eksempel)
-- [Filrenaming og konvertering](#filrenaming-og-konvertering)
-  - [Hovednorm](#hovednorm-1)
-  - [Arbeidsflyt for JS til TS konvertering](#arbeidsflyt-for-js-til-ts-konvertering)
-- [Commit-meldinger](#commit-meldinger)
+- [Staging new files](#staging-new-files)
+  - [Core rule](#core-rule)
+  - [Example](#example)
+- [File renaming and conversion](#file-renaming-and-conversion)
+  - [Core rule](#core-rule-1)
+  - [Workflow for JS to TS conversion](#workflow-for-js-to-ts-conversion)
+- [Commit messages](#commit-messages)
   - [Format](#format)
-  - [Riktige eksempler](#riktige-eksempler)
-- [Oppsummering](#oppsummering)
+  - [Good examples](#good-examples)
+- [Summary](#summary)
 
 ---
 
-## Staging av nye filer
+## Staging new files
 
-### Hovednorm
-**Legg automatisk til nye filer DU har opprettet, men ALDRI andre filer!**
+### Core rule
+**Automatically add new files YOU have created, but NEVER any other files!**
 
-### ❌ FORBUDT
-- `git add .` (legger til ALLE filer, inkludert genererte/uønskede)
-- `git add -A` (legger til ALLE filer, inkludert genererte/uønskede)
-- Legge til filer du IKKE har opprettet selv (node_modules, build-output, genererte filer, etc.)
+### ❌ FORBIDDEN
+- `git add .` (adds ALL files, including generated/unwanted ones)
+- `git add -A` (adds ALL files, including generated/unwanted ones)
+- Adding files you did NOT create yourself (node_modules, build output, generated files, etc.)
 
-### ✅ RIKTIG fremgangsmåte
-1. Når du har opprettet NYE filer (dokumentasjon, kode, tester), kjør `git add` **automatisk** for disse
-2. Bruk eksplisitte filnavn: `git add reports/<NN>-PROJ-7890-slug/beskrivelse.md` (ikke `git add .`)
-3. Bare legg til filer DU selv har skrevet/opprettet
-4. ALDRI legg til:
-   - Genererte filer (build output, coverage reports)
+### ✅ CORRECT approach
+1. When you have created NEW files (documentation, code, tests), run `git add` **automatically** for them
+2. Use explicit file names: `git add reports/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
+3. Only add files YOU wrote/created yourself
+4. NEVER add:
+   - Generated files (build output, coverage reports)
    - Dependencies (node_modules, vendor)
-   - IDE-filer (.idea/, *.swp)
-   - Midlertidige filer
+   - IDE files (.idea/, *.swp)
+   - Temporary files
 
-### OBS
-Endrede filer (allerede tracked) trenger ikke `git add` - brukeren håndterer commit i sin IDE.
+### Note
+Modified files (already tracked) do not need `git add` - the user handles committing in their IDE.
 
-### Eksempel
+### Example
 ```bash
-# Du har opprettet 4 nye markdown-filer
-git add reports/<NN>-PROJ-7890-slug/beskrivelse.md
-git add reports/<NN>-PROJ-7890-slug/analyse.md
-git add reports/<NN>-PROJ-7890-slug/løsning.md
+# You have created 4 new markdown files
+git add reports/<NN>-PROJ-7890-slug/description.md
+git add reports/<NN>-PROJ-7890-slug/analysis.md
+git add reports/<NN>-PROJ-7890-slug/solution.md
 git add reports/<NN>-PROJ-7890-slug/status.md
 
-# Eller samlet:
+# Or all at once:
 git add reports/<NN>-PROJ-7890-slug/*.md
 ```
 
 ---
 
-## Filrenaming og konvertering
+## File renaming and conversion
 
-### Hovednorm
-**Bruk ALLTID `git mv` for å bevare git-historikk når filer omdøpes!**
+### Core rule
+**ALWAYS use `git mv` to preserve git history when renaming files!**
 
-### ❌ FORBUDT (mister historikk)
+### ❌ FORBIDDEN (loses history)
 ```bash
-# Slette gammel fil og opprette ny
-rm src/utils/land.js
-# opprett ny src/utils/land.ts
-git add src/utils/land.ts
+# Deleting the old file and creating a new one
+rm src/utils/country.js
+# create new src/utils/country.ts
+git add src/utils/country.ts
 ```
 
-### ✅ RIKTIG (bevarer historikk)
+### ✅ CORRECT (preserves history)
 ```bash
-# Bruk git mv for å bevare commit-historikk
-git mv src/utils/land.js src/utils/land.ts
+# Use git mv to preserve commit history
+git mv src/utils/country.js src/utils/country.ts
 git mv src/components/UserProfile.jsx src/components/UserProfile.tsx
 ```
 
-### Hvorfor dette er viktig
-- Bevarer hele commit-historikken (hvem endret hva, når, hvorfor)
-- Git forstår at det er samme fil, bare med nytt navn
-- `git blame` og `git log` fungerer korrekt
-- Historikken vises i IDE og GitHub
+### Why this matters
+- Preserves the entire commit history (who changed what, when, why)
+- Git understands that it is the same file, just with a new name
+- `git blame` and `git log` work correctly
+- The history shows up in the IDE and on GitHub
 
-### Arbeidsflyt for JS til TS konvertering
-1. `git mv old.js new.ts` (først!)
-2. Konverter innhold til TypeScript
-3. `git add new.ts` (endringene)
+### Workflow for JS to TS conversion
+1. `git mv old.js new.ts` (first!)
+2. Convert the contents to TypeScript
+3. `git add new.ts` (the changes)
 4. Commit
 
-**Denne regelen gjelder ALLTID ved JS→TS/JSX→TSX konvertering!**
+**This rule ALWAYS applies to JS→TS/JSX→TSX conversion!**
 
 ---
 
-## Commit-meldinger
+## Commit messages
 
 ### Format
-**Alltid norsk, alltid i fortid (ikke imperativ).**
+**Always English, always in the imperative mood (not past tense).**
 
-### ❌ ALDRI Co-Authored-By
-- Legg ALDRI til `Co-Authored-By`-linjer i commit-meldinger
-- Dette gjelder alle varianter (`Claude`, `Copilot`, `GPT`, etc.)
+### ❌ NEVER Co-Authored-By
+- NEVER add `Co-Authored-By` lines to commit messages
+- This applies to all variants (`Claude`, `Copilot`, `GPT`, etc.)
 
-### Riktige eksempler
-- "La til automatisk git add for nye filer"
-- "Fjernet bruker-spesifikke paths fra settings.json"
-- "Oppdaterte dokumentasjon med hook-forklaring"
+### Good examples
+- "Add automatic git add for new files"
+- "Remove user-specific paths from settings.json"
+- "Update documentation with hook explanation"
+- "Convert UserProfile.jsx to TypeScript"
+- "Add unit tests for country.ts"
+
+### ❌ Wrong (past tense/Norwegian)
+- "Added automatic git add for new files"
+- "Removed user-specific paths"
+- "Updated documentation"
 - "Konverterte UserProfile.jsx til TypeScript"
-- "La til enhetstester for land.ts"
+- "La til enhetstester for country.ts"
 
-### ❌ Feil (imperativ/nåtid)
-- "Legg til automatisk git add for nye filer"
-- "Fjern bruker-spesifikke paths"
-- "Oppdater dokumentasjon"
-- "Konverter til TypeScript"
-- "Legg til tester"
-
-### Struktur
+### Structure
 
 ```text
-<Hva ble gjort i fortid>
+<What the change does, in the imperative mood>
 
-<Valgfri: Hvorfor, kontekst, eller detaljer>
+<Optional: why, context, or details>
 ```
 
-**Eksempel:**
+**Example:**
 
 ```text
-La til enhetstester for land.ts
+Add unit tests for country.ts
 
-Testet getLandnavn(), getLandkode(), og edge cases.
-Forberedelse før JS til TS konvertering.
+Test getCountryName(), getCountryCode(), and edge cases.
+Preparation before the JS to TS conversion.
 ```
 
 ---
 
-## Oppsummering
+## Summary
 
-**Tre gullregler:**
-1. ✅ Bruk `git add` med eksplisitte filnavn for NYE filer du har opprettet
-2. ✅ Bruk `git mv` når filer skal omdøpes (bevarer historikk)
-3. ✅ Skriv commit-meldinger på norsk i fortid
+**Three golden rules:**
+1. ✅ Use `git add` with explicit file names for NEW files you have created
+2. ✅ Use `git mv` when renaming files (preserves history)
+3. ✅ Write commit messages in English, in the imperative mood
 
-**Dette gjelder ALLTID - både i kommandoer, agents og normal interaksjon!**
+**This ALWAYS applies - in commands, agents, and normal interaction alike!**

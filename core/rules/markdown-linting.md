@@ -1,62 +1,62 @@
 # Markdown Linting
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Oversikt](#oversikt)
-- [Bruk](#bruk)
-- [Konfigurasjon](#konfigurasjon)
-- [Ansvar](#ansvar)
-- [Vanlige feil og løsninger](#vanlige-feil-og-løsninger)
+- [Overview](#overview)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Responsibilities](#responsibilities)
+- [Common errors and solutions](#common-errors-and-solutions)
   - [MD029: List numbering](#md029-list-numbering)
   - [MD040: Missing code block language](#md040-missing-code-block-language)
   - [MD051: Broken anchor link](#md051-broken-anchor-link)
-  - [Vanlig AI-feil: Kodeblokk-avslutning med språk](#vanlig-ai-feil-kodeblokk-avslutning-med-språk)
+  - [Common AI mistake: Closing a code block with a language](#common-ai-mistake-closing-a-code-block-with-a-language)
 
 ---
 
-## Oversikt
+## Overview
 
-Dette workspace bruker `markdownlint-cli2` via `npx` for å fange opp markdown-feil før de committes.
+This workspace uses `markdownlint-cli2` via `npx` to catch markdown errors before they are committed.
 
-**Fokusområder:**
+**Focus areas:**
 1. **List numbering (MD029)** - Numbered lists must restart at 1 after headers
 2. **Anchor links (MD051)** - TOC links must match actual heading anchors
 3. **Code block language (MD040)** - All code blocks must specify language (tsx, typescript, bash, etc.)
 
-## Bruk
+## Usage
 
-### Sjekk alle markdown-filer
+### Check all markdown files
 
 ```bash
 npx markdownlint-cli2 '**/*.md'
 ```
 
-### Automatisk fikse det som kan fikses
+### Automatically fix what can be fixed
 
 ```bash
 npx markdownlint-cli2 --fix '**/*.md'
 ```
 
-## Konfigurasjon
+## Configuration
 
-Se `.markdownlint-cli2.jsonc` for reglene.
+See `.markdownlint-cli2.jsonc` for the rules.
 
-**Viktig:** Konfigurasjonen er minimal og fokuserer KUN på de kritiske issuene vi har hatt problemer med.
+**Important:** The configuration is minimal and focuses ONLY on the critical issues we have had problems with.
 
-## Ansvar
+## Responsibilities
 
-**ALLE AI-implementasjoner (Claude Code, Cursor, Junie, Codex, etc.):**
-- Må ALLTID kjøre linting på markdown-filer etter skriving/endring/flytting
-- Må fikse alle MD029, MD040 og MD051 feil før oppgaven er ferdig
-- Kommando: `npx markdownlint-cli2 <fil.md>` eller `npx markdownlint-cli2 '**/*.md'`
+**ALL AI implementations (Claude Code, Cursor, Junie, Codex, etc.):**
+- Must ALWAYS run linting on markdown files after writing/editing/moving them
+- Must fix all MD029, MD040 and MD051 errors before the task is done
+- Command: `npx markdownlint-cli2 <file.md>` or `npx markdownlint-cli2 '**/*.md'`
 
-**Manuell sjekk (valgfritt):** Du kan kjøre linting for å dobbeltsjekke.
+**Manual check (optional):** You can run linting to double-check.
 
-## Vanlige feil og løsninger
+## Common errors and solutions
 
 ### MD029: List numbering
 
-**Feil:**
+**Wrong:**
 ```markdown
 ### My Header
 
@@ -64,7 +64,7 @@ Se `.markdownlint-cli2.jsonc` for reglene.
 4. Second item
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 ### My Header
 
@@ -74,52 +74,52 @@ Se `.markdownlint-cli2.jsonc` for reglene.
 
 ### MD040: Missing code block language
 
-**Feil:**
+**Wrong:**
 ```markdown
 \```
 const foo = 'bar';
 \```
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 \```typescript
 const foo = 'bar';
 \```
 ```
 
-**Viktig:** Bruk `tsx` for React/JSX code, ikke `typescript`.
+**Important:** Use `tsx` for React/JSX code, not `typescript`.
 
 ### MD051: Broken anchor link
 
-**Feil:**
+**Wrong:**
 ```markdown
 - [My Section](#my-section)
 
 ## 1. My Section
 ```
 
-**Løsning:**
+**Solution:**
 ```markdown
 - [My Section](#1-my-section)
 
 ## 1. My Section
 ```
 
-Eller oppdater HTML anchor:
+Or update the HTML anchor:
 ```markdown
 <a id="my-section"></a>
 ## 1. My Section
 ```
-til:
+to:
 ```markdown
 <a id="1-my-section"></a>
 ## 1. My Section
 ```
 
-### Vanlig AI-feil: Kodeblokk-avslutning med språk
+### Common AI mistake: Closing a code block with a language
 
-**Feil (ikke fanget av linter, men bryter HTML-generering):**
+**Wrong (not caught by the linter, but breaks HTML generation):**
 
 ````markdown
 ```bash
@@ -127,7 +127,7 @@ echo "Hello"
 ```text
 ````
 
-**Løsning:**
+**Solution:**
 
 ````markdown
 ```bash
@@ -135,12 +135,12 @@ echo "Hello"
 ```
 ````
 
-**Hvorfor dette skjer:**
-- AI-assistenter (Claude, Copilot, etc.) skriver noen ganger ` ```text` som avslutning
-- Dette er IKKE gyldig markdown - kodeblokker avsluttes ALLTID med bare ` ``` `
-- Pandoc og andre konverterere tolker ` ```text` som START på ny kodeblokk
-- Resultatet er ødelagt HTML med feil kodeblokker og brutte anchor-lenker
+**Why this happens:**
+- AI assistants (Claude, Copilot, etc.) sometimes write ` ```text` as a closing fence
+- This is NOT valid markdown - code blocks are ALWAYS closed with just ` ``` `
+- Pandoc and other converters interpret ` ```text` as the START of a new code block
+- The result is broken HTML with wrong code blocks and broken anchor links
 
-**Preventiv fix:**
-- `aide-generate-html` scriptet retter dette automatisk
-- Men kilden bør fikses - se [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#kodeblokker)
+**Preventive fix:**
+- The `aide-generate-html` script corrects this automatically
+- But the source should be fixed - see [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#code-blocks)
