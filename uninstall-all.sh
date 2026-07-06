@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Avinstallerer doc-aide for ALLE AI-verktøy.
+# Uninstalls doc-aide for ALL AI tools.
 #
-# Kjører hver implementations/<ai>/uninstall.sh. Hver enkelt ber om egen
-# bekreftelse før den sletter noe.
+# Runs each implementations/<ai>/uninstall.sh. Each one asks for its own
+# confirmation before deleting anything.
 #
-# Vil du bare avinstallere én AI, kjør dens script direkte, f.eks.:
+# If you only want to uninstall one AI, run its script directly, e.g.:
 #   implementations/codex/uninstall.sh
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "🗑️  doc-aide — avinstallerer alle AI-verktøy"
+echo "🗑️  doc-aide — uninstalling all AI tools"
 echo "==============================================="
 
 status=0
@@ -17,17 +17,17 @@ for ai in claude-code copilot codex gemini; do
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/implementations/$ai/uninstall.sh"; then
-    echo "✅ $ai ferdig"
+    echo "✅ $ai done"
   else
-    echo "⚠️  $ai feilet (hopper videre)"
+    echo "⚠️  $ai failed (continuing)"
     status=1
   fi
 done
 
 echo ""
 if [ "$status" -eq 0 ]; then
-  echo "✅ Alle avinstallert."
+  echo "✅ All uninstalled."
 else
-  echo "⚠️  Én eller flere feilet — se loggen over."
+  echo "⚠️  One or more failed — see the log above."
 fi
 exit "$status"

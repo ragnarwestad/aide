@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'git (.*\\s)?add (\\.(\\s|$)|-A(\\s|$))'; then echo 'Blokkert: Bruk eksplisitte filnavn med git add' >&2; exit 2; fi; exit 0"
+            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'git (.*\\s)?add (\\.(\\s|$)|-A(\\s|$))'; then echo 'Blocked: Use explicit file names with git add' >&2; exit 2; fi; exit 0"
           }
         ]
       },
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blokkert: Bruk pnpm test -- --run (ikke watch mode)' >&2; exit 2; fi; exit 0"
+            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Use pnpm test -- --run (not watch mode)' >&2; exit 2; fi; exit 0"
           }
         ]
       }

@@ -1,64 +1,64 @@
-# /aide-make-tests - Lag manglende enhetstester
-# Bruk: /aide-make-tests src/utils/land.ts
+# /aide-make-tests - Create missing unit tests
+# Usage: /aide-make-tests src/utils/country.ts
 
-description = "Analyser en fil og opprett manglende enhetstester"
+description = "Analyze a file and create missing unit tests"
 
 prompt = """
-Analyser filen og opprett manglende enhetstester for: {{args}}
+Analyze the file and create missing unit tests for: {{args}}
 
-STEG 1: ANALYSER FILEN
-- Les filen: {{args}}
-- Identifiser alle eksporterte funksjoner
-- Sjekk eksisterende testfil (f.eks. <fil>.test.ts)
-- Identifiser gaps i testdekningen
+STEP 1: ANALYZE THE FILE
+- Read the file: {{args}}
+- Identify all exported functions
+- Check the existing test file (e.g. <file>.test.ts)
+- Identify gaps in the test coverage
 
-STEG 2: SKRIV COMPREHENSIVE TESTER
-For hver funksjon som mangler tester:
-- Happy path (normale scenarioer)
-- Edge cases (grensetilfeller)
-- Error cases (feilhåndtering)
+STEP 2: WRITE COMPREHENSIVE TESTS
+For each function that lacks tests:
+- Happy path (normal scenarios)
+- Edge cases (boundary conditions)
+- Error cases (error handling)
 
-STEG 3: KJØR TESTER OG VERIFISER
-- Kjør: pnpm test -- --run <testfil>
-- Verifiser at alle nye tester passerer
-- Fiks eventuelle feil
+STEP 3: RUN TESTS AND VERIFY
+- Run: pnpm test -- --run <testfile>
+- Verify that all new tests pass
+- Fix any errors
 
-STEG 4: GENERER COVERAGE-RAPPORT
-- Kjør: pnpm test -- --coverage <fil-path>
-- Vis før/etter testdekning
-- Oppsummer antall tester opprettet
+STEP 4: GENERATE A COVERAGE REPORT
+- Run: pnpm test -- --coverage <file-path>
+- Show before/after test coverage
+- Summarize the number of tests created
 
-VIKTIG REGLER:
-- Følg prosjektets kodestandard for test-stil
-- Følg core/rules/testing.md for TDD-prinsipper
-- Bruk Vitest for unit tests
-- Bruk React Testing Library for React-komponenter
-- Mock eksterne avhengigheter (API-kall, etc.)
-- ALLTID bruk --run flagget (IKKE watch mode)
+IMPORTANT RULES:
+- Follow the project's coding standard for test style
+- Follow core/rules/testing.md for TDD principles
+- Use Vitest for unit tests
+- Use React Testing Library for React components
+- Mock external dependencies (API calls, etc.)
+- ALWAYS use the --run flag (NOT watch mode)
 
-STOPP OG BE OM BEKREFTELSE:
-- Etter testene er skrevet (før kjøring)
-- Etter testene er kjørt (før commit)
+STOP AND ASK FOR CONFIRMATION:
+- After the tests are written (before running)
+- After the tests are run (before commit)
 
-FORVENTET OUTPUT:
+EXPECTED OUTPUT:
 ```
-✅ Test-analyse fullført for <fil>
+✅ Test analysis completed for <file>
 
-Funksjoner analysert: N
-- funksjon1() - HAR tester ✅
-- funksjon2() - MANGLER tester ❌
+Functions analyzed: N
+- function1() - HAS tests ✅
+- function2() - MISSING tests ❌
 
-Nye tester opprettet: N
-- funksjon2() - X tester (happy path + edge cases + errors)
+New tests created: N
+- function2() - X tests (happy path + edge cases + errors)
 
-Test-resultat:
-  ✅ N/N tester passerer
+Test result:
+  ✅ N/N tests pass
 
 Coverage:
-  Før:  XX%
-  Etter: XX%
-  Økning: +XX%
+  Before: XX%
+  After:  XX%
+  Increase: +XX%
 
-📖 Neste steg: Stage og commit endringene
+📖 Next step: Stage and commit the changes
 ```
 """

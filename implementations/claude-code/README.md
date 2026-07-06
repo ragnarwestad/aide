@@ -1,278 +1,278 @@
-# JIRA-integrasjon for Claude Code
+# JIRA integration for Claude Code
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
-- [Oppsett (første gang)](#oppsett-første-gang)
-  - [Environment variables](#steg-0-valgfritt-konfigurer-environment-variables)
-  - [Install-script](#steg-1-kjør-install-script)
-- [Daglig bruk](#daglig-bruk)
-  - [JIRA-sak](#starte-arbeid-på-en-ny-jira-sak)
-  - [TODO-plan](#starte-arbeid-på-en-todo-plan)
-- [Feilsøking](#feilsøking)
-- [Filer og struktur](#filer-og-struktur)
-- [Hvordan det fungerer](#hvordan-det-fungerer)
-- [Tips og triks](#tips-og-triks)
+- [Overview](#overview)
+- [Setup (first time)](#setup-first-time)
+  - [Environment variables](#step-0-optional-configure-environment-variables)
+  - [Install script](#step-1-run-the-install-script)
+- [Daily use](#daily-use)
+  - [JIRA issue](#starting-work-on-a-new-jira-issue)
+  - [TODO plan](#starting-work-on-a-todo-plan)
+- [Troubleshooting](#troubleshooting)
+- [Files and structure](#files-and-structure)
+- [How it works](#how-it-works)
+- [Tips and tricks](#tips-and-tricks)
 - [Headless Mode](#headless-mode)
-- [Ressurser](#ressurser)
+- [Resources](#resources)
 
 ---
 
-Denne katalogen inneholder Claude Code-implementasjonen med konfigurasjonsfiler, skills og agents.
+This directory contains the Claude Code implementation with configuration files, skills and agents.
 
-**Referanser:**
-- Claude Code-instruksjoner: Se `CLAUDE.md`
-- Agent-dokumentasjon: Se `agents/README.md`
-- Generiske workflows: Se `../../core/rules/workflows.md`
+**References:**
+- Claude Code instructions: See `CLAUDE.md`
+- Agent documentation: See `agents/README.md`
+- Generic workflows: See `../../core/rules/workflows.md`
 
 ---
 
-## Oversikt
+## Overview
 
-JIRA-integrasjonen lar deg automatisk:
-- Opprette strukturert dokumentasjon i `reports/`-mappen
-- Analysere kodebasen og generere løsningsforslag
-- Implementere med TDD-arbeidsflyt (RED → GREEN → REFACTOR)
+The JIRA integration lets you automatically:
+- Create structured documentation in the `reports/` directory
+- Analyze the codebase and generate solution proposals
+- Implement with a TDD workflow (RED → GREEN → REFACTOR)
 
-**📦 Installasjon:** Se **[INSTALL.md](./INSTALL.md)** for komplett veiledning (5 min)
+**📦 Installation:** See **[INSTALL.md](./INSTALL.md)** for the complete guide (5 min)
 
-**Tilgjengelige skills:**
+**Available skills:**
 ```bash
-# JIRA-arbeidsflyt (detekteres automatisk fra PROJ-* prefix)
-/aide-create PROJ-7637           # Opprett dokumentstruktur
-/aide-analyze PROJ-7637          # Analyser kodebase
-/aide-implement PROJ-7637               # Implementer med TDD
+# JIRA workflow (detected automatically from the PROJ-* prefix)
+/aide-create PROJ-7637           # Create document structure
+/aide-analyze PROJ-7637          # Analyze codebase
+/aide-implement PROJ-7637               # Implement with TDD
 
-# TODO-arbeidsflyt (med todo- prefix)
-/aide-create todo-redux-form-migration Flytt forms fra Redux Form
-# → Genererer: todo-01-redux-form-migration
+# TODO workflow (with todo- prefix)
+/aide-create todo-redux-form-migration Move forms off Redux Form
+# → Generates: todo-01-redux-form-migration
 
-/aide-create todo Flytt forms      # Autogenerert slug
-# → Genererer: todo-01-flytt-forms
+/aide-create todo Move forms      # Auto-generated slug
+# → Generates: todo-01-move-forms
 
-/aide-analyze todo-01               # Analyser (shorthand - søker etter todo-01-*)
-/aide-implement todo-01                    # Implementer (shorthand)
+/aide-analyze todo-01               # Analyze (shorthand - searches for todo-01-*)
+/aide-implement todo-01                    # Implement (shorthand)
 
 # Utility
-/aide-to-pdf PROJ-7637            # Generer PDF-dokument
+/aide-to-pdf PROJ-7637            # Generate PDF document
 ```
 
-**Resultat av /aide-create (JIRA mode):**
-- ✅ Dokumentstruktur opprettet i reports/<NN>-PROJ-7637-slug/
-- ✅ 1-description.md fylt ut med JIRA-metadata + description
-- ✅ Tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
+**Result of /aide-create (JIRA mode):**
+- ✅ Document structure created in reports/<NN>-PROJ-7637-slug/
+- ✅ 1-description.md filled in with JIRA metadata + description
+- ✅ Empty files: 2-analysis.md, 3-solution.md, 4-status.md
 
-**Resultat av /aide-analyze:**
-- ✅ Kodebase analysert (via @agent-jira-analyzer eller @agent-todo-analyzer)
-- ✅ Alle 4 dokumentfiler oppdatert med analyse og løsningsforslag
-- ✅ Konkrete filer og linjenummer identifisert
+**Result of /aide-analyze:**
+- ✅ Codebase analyzed (via @agent-jira-analyzer or @agent-todo-analyzer)
+- ✅ All 4 document files updated with analysis and solution proposals
+- ✅ Concrete files and line numbers identified
 
-**Arkitektur:**
+**Architecture:**
 ```text
-/aide-create PROJ-7637 → Oppretter dokumentstruktur
+/aide-create PROJ-7637 → Creates document structure
     ↓
 /aide-analyze PROJ-7637 → @agent-jira-analyzer
     ↓
-    Analyserer kodebase (Explore agent)
+    Analyzes codebase (Explore agent)
     ↓
-    Oppdaterer dokumentasjon
+    Updates documentation
     ↓
 /aide-implement PROJ-7637 → @agent-tdd-implementer
     ↓
-    RED → GREEN → REFACTOR (med brukerbekreftelse)
+    RED → GREEN → REFACTOR (with user confirmation)
 ```
 
 ---
 
-## Oppsett (første gang)
+## Setup (first time)
 
-### Steg 0: (Valgfritt) Konfigurer environment variables
+### Step 0: (Optional) Configure environment variables
 
-**Før du kjører setup-scriptet**, kan du sette environment variables for å tilpasse oppsettet:
+**Before running the setup script**, you can set environment variables to customize the setup:
 
-#### AIDE_REPORTS_PATH - Lagre reports utenfor workspace
+#### AIDE_REPORTS_PATH - Store reports outside the workspace
 
-**Bruk dette hvis du vil:**
-- Lagre reports i eget privat git repo
-- Bruke skylagring (Dropbox, iCloud, etc.)
-- Separere workspace-kode fra bruker-spesifikke reports
+**Use this if you want to:**
+- Store reports in your own private git repo
+- Use cloud storage (Dropbox, iCloud, etc.)
+- Separate workspace code from user-specific reports
 
 ```bash
-# I ~/.zshrc eller ~/.bashrc
+# In ~/.zshrc or ~/.bashrc
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
-# eller
+# or
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Dropbox/aide-reports"
 
-# Last inn endringene
-source ~/.zshrc  # eller source ~/.bashrc
+# Load the changes
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
-**Hvis ikke satt:** Reports skrives til `doc-aide/reports/` (default, gitignored)
+**If not set:** Reports are written to `doc-aide/reports/` (default, gitignored)
 
-#### AIDE_PROJECTS_PATH - Permissions uten spørsmål
+#### AIDE_PROJECTS_PATH - Permissions without prompts
 
-Settes (valgfritt) for at Claude Code skal generere absolutte stier i permissions:
+Set (optionally) so that Claude Code generates absolute paths in permissions:
 
 ```bash
-# I ~/.zshrc eller ~/.bashrc
+# In ~/.zshrc or ~/.bashrc
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 
-# Last inn endringene
-source ~/.zshrc  # eller source ~/.bashrc
+# Load the changes
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
 ---
 
-### Steg 1: Kjør install-script
+### Step 1: Run the install script
 
 ```bash
 cd doc-aide/implementations/claude-code
 ./install.sh
 ```
 
-**Scriptet installerer globalt:**
+**The script installs globally:**
 - ✅ Scripts → `~/.local/bin/` (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
-- ✅ Skills, agents og regler → `~/.claude/`
-- ✅ LSP-plugins (typescript, kotlin, jdtls)
+- ✅ Skills, agents and rules → `~/.claude/`
+- ✅ LSP plugins (typescript, kotlin, jdtls)
 
-Kjør `./install.sh` på nytt for å oppdatere etter endringer.
+Run `./install.sh` again to update after changes.
 
 
 ---
 
-## Daglig bruk
+## Daily use
 
-### Starte arbeid på en ny JIRA-sak
+### Starting work on a new JIRA issue
 
-1. **Finn JIRA-saksnummer** (f.eks. PROJ-7637)
+1. **Find the JIRA issue number** (e.g. PROJ-7637)
 
-2. **Start Claude Code** (i et hvilket som helst prosjekt: my-app, doc-aide, my-api, etc.)
+2. **Start Claude Code** (in any project: my-app, doc-aide, my-api, etc.)
 
-3. **Kjør slash-kommandoen:**
+3. **Run the slash command:**
    ```bash
    /aide-create PROJ-7637
    ```
 
-4. **Claude vil automatisk:**
-   - Opprette dokumentstruktur: `../doc-aide/reports/<NN>-PROJ-7637-slug/`
-   - Fylle ut `1-description.md` med JIRA-metadata
-   - Gi deg en oppsummering
+4. **Claude will automatically:**
+   - Create the document structure: `../doc-aide/reports/<NN>-PROJ-7637-slug/`
+   - Fill in `1-description.md` with JIRA metadata
+   - Give you a summary
 
-5. **Analyser kodebasen:**
+5. **Analyze the codebase:**
    ```bash
    /aide-analyze PROJ-7637
    ```
 
-6. **Les dokumentasjonen:**
+6. **Read the documentation:**
    ```bash
    cat ../doc-aide/reports/<NN>-PROJ-7637-slug/2-analysis.md
    cat ../doc-aide/reports/<NN>-PROJ-7637-slug/3-solution.md
    ```
 
-7. **Implementer løsningen (valgfritt):**
+7. **Implement the solution (optional):**
    ```bash
    /aide-implement PROJ-7637
    ```
 
-### Starte arbeid på en TODO-plan
+### Starting work on a TODO plan
 
-1. **Start Claude Code** (i et hvilket som helst prosjekt)
+1. **Start Claude Code** (in any project)
 
-2. **Opprett TODO-plan:**
+2. **Create the TODO plan:**
 
-   Med eksplisitt navn:
+   With an explicit name:
    ```bash
-   /aide-create todo-redux-form-migration Flytt alle forms fra Redux Form til React Hook Form
+   /aide-create todo-redux-form-migration Move all forms from Redux Form to React Hook Form
    ```
-   → Genererer: `todo-01-redux-form-migration`
+   → Generates: `todo-01-redux-form-migration`
 
-   Eller autogenerert fra beskrivelse:
+   Or auto-generated from the description:
    ```bash
-   /aide-create todo Flytt forms til React Hook Form
+   /aide-create todo Move forms to React Hook Form
    ```
-   → Genererer: `todo-01-flytt-forms-til-react-hook-form`
+   → Generates: `todo-01-move-forms-to-react-hook-form`
 
-3. **Analyser (bruk shorthand):**
+3. **Analyze (use shorthand):**
    ```bash
    /aide-analyze todo-01
    ```
 
-   Eller med full ID:
+   Or with the full ID:
    ```bash
    /aide-analyze todo-01-redux-form-migration
    ```
 
-4. **Implementer (bruk shorthand):**
+4. **Implement (use shorthand):**
    ```bash
    /aide-implement todo-01
    ```
 
 ---
 
-## Feilsøking
+## Troubleshooting
 
-### Problem: `/aide-create` kommandoen ikke funnet
+### Problem: `/aide-create` command not found
 
-**Årsak:** Skill ikke lastet eller feil plassert
+**Cause:** Skill not loaded or misplaced
 
-**Løsning:**
-1. Sjekk at mappen eksisterer: `~/.claude/skills/aide-create/SKILL.md`
+**Solution:**
+1. Check that the directory exists: `~/.claude/skills/aide-create/SKILL.md`
 2. Restart Claude Code
-3. Prøv igjen
+3. Try again
 
-### Problem: Dokumentasjon eksisterer allerede
+### Problem: Documentation already exists
 
-**Dette er OK!** `/aide-create` kan kjøres på nytt for å oppdatere 1-description.md.
+**This is OK!** `/aide-create` can be re-run to update 1-description.md.
 
-### Problem: Claude spør om permissions selv om de er satt i settings.json
+### Problem: Claude asks for permissions even though they are set in settings.json
 
-**Årsak:** Claude Code ekspanderer relative stier til absolutte stier, og permissions matcher kun eksakt.
+**Cause:** Claude Code expands relative paths to absolute paths, and permissions only match exactly.
 
-**Løsning:**
+**Solution:**
 
-Se **"Steg 0: (Valgfritt) Konfigurer environment variables"** i setup-seksjonen.
+See **"Step 0: (Optional) Configure environment variables"** in the setup section.
 
-Kort versjon:
-1. Sett `AIDE_PROJECTS_PATH` i `~/.zshrc` eller `~/.bashrc`
-2. Kjør `source ~/.zshrc` for å laste inn
-3. Kjør `./install.sh` på nytt
+Short version:
+1. Set `AIDE_PROJECTS_PATH` in `~/.zshrc` or `~/.bashrc`
+2. Run `source ~/.zshrc` to load it
+3. Run `./install.sh` again
 
 ---
 
-## Filer og struktur
+## Files and structure
 
-### Config-filer (source of truth i git)
+### Config files (source of truth in git)
 
 ```text
 doc-aide/
-├── core/                               # Felles (delt av alle AI-verktøy)
-│   ├── rules/                          # Workflows, git, testing, standarder
+├── core/                               # Shared (used by all AI tools)
+│   ├── rules/                          # Workflows, git, testing, standards
 │   ├── skills/                         # Skills (SKILL.md)
-│   ├── scripts/                        # CLI-scripts (aide-generate-pdf m.fl.)
-│   └── templates/                      # Dokumentmaler
+│   ├── scripts/                        # CLI scripts (aide-generate-pdf etc.)
+│   └── templates/                      # Document templates
 │
-└── implementations/claude-code/        # Claude Code-implementasjon
-    ├── README.md                       # Denne filen
-    ├── INSTALL.md                      # Installasjonsguide
-    ├── install.sh / uninstall.sh       # Global install/avinstaller
-    ├── settings.json                   # Mal for ~/.claude/settings.json
-    └── agents/                         # Agent-definisjoner → ~/.claude/agents/
+└── implementations/claude-code/        # Claude Code implementation
+    ├── README.md                       # This file
+    ├── INSTALL.md                      # Installation guide
+    ├── install.sh / uninstall.sh       # Global install/uninstall
+    ├── settings.json                   # Template for ~/.claude/settings.json
+    └── agents/                         # Agent definitions → ~/.claude/agents/
         ├── README.md
-        └── *.md                        # Spesialiserte agents
+        └── *.md                        # Specialized agents
 ```
 
-### Runtime-filer (installert lokalt, ikke i git)
+### Runtime files (installed locally, not in git)
 
 ```text
-~/.local/bin/aide-generate-pdf               # Installert fra core/scripts/
-~/.local/bin/aide-generate-html              # Installert fra core/scripts/
-~/.local/bin/mise-upgrade-ai-tools           # Installert fra core/scripts/
+~/.local/bin/aide-generate-pdf               # Installed from core/scripts/
+~/.local/bin/aide-generate-html              # Installed from core/scripts/
+~/.local/bin/mise-upgrade-ai-tools           # Installed from core/scripts/
 
 $AIDE_PROJECTS_PATH/
-├── CLAUDE.md                           # Delt AI-instruksjoner
-└── .claude/                            # Delt konfigurasjon
-    ├── settings.json                   # Permissions (absolutte stier)
-    ├── skills/                         # Alle skills (ekspert + aide-* workflows)
+├── CLAUDE.md                           # Shared AI instructions
+└── .claude/                            # Shared configuration
+    ├── settings.json                   # Permissions (absolute paths)
+    ├── skills/                         # All skills (expert + aide-* workflows)
     │   ├── aide-create/SKILL.md
     │   ├── aide-analyze/SKILL.md
     │   ├── aide-implement/SKILL.md
@@ -281,109 +281,109 @@ $AIDE_PROJECTS_PATH/
     │   ├── my-api-expert/SKILL.md
     │   ├── task-workflow-assistant/SKILL.md
     │   └── architecture-advisor/SKILL.md
-    └── agents/                         # Spesialiserte agents
+    └── agents/                         # Specialized agents
 
 doc-aide/
-├── CLAUDE.md → ../CLAUDE.md            # Symlink til delt fil
-└── .claude → ../.claude                # Symlink til delt konfigurasjon
+├── CLAUDE.md → ../CLAUDE.md            # Symlink to shared file
+└── .claude → ../.claude                # Symlink to shared configuration
 
 my-app/
-├── CLAUDE.md → ../CLAUDE.md            # Symlink til delt fil
-└── .claude → ../.claude                # Symlink til delt konfigurasjon
+├── CLAUDE.md → ../CLAUDE.md            # Symlink to shared file
+└── .claude → ../.claude                # Symlink to shared configuration
 
 my-api/
-├── CLAUDE.md → ../CLAUDE.md            # Symlink til delt fil
-└── .claude → ../.claude                # Symlink til delt konfigurasjon
+├── CLAUDE.md → ../CLAUDE.md            # Symlink to shared file
+└── .claude → ../.claude                # Symlink to shared configuration
 
 my-docs/
-├── CLAUDE.md → ../CLAUDE.md            # Symlink til delt fil
-└── .claude → ../.claude                # Symlink til delt konfigurasjon
+├── CLAUDE.md → ../CLAUDE.md            # Symlink to shared file
+└── .claude → ../.claude                # Symlink to shared configuration
 ```
 
-### Output-filer (generert av kommandoer - AI-agnostic)
+### Output files (generated by commands - AI-agnostic)
 
 ```text
 doc-aide/reports/
 ├── PROJ-7637/
-│   ├── 1-description.md     # Generert av /aide-create
-│   ├── 2-analysis.md         # Generert av /aide-analyze
-│   ├── 3-solution.md         # Generert av /aide-analyze
-│   └── 4-status.md          # Generert av /aide-analyze
+│   ├── 1-description.md     # Generated by /aide-create
+│   ├── 2-analysis.md         # Generated by /aide-analyze
+│   ├── 3-solution.md         # Generated by /aide-analyze
+│   └── 4-status.md          # Generated by /aide-analyze
 └── PROJ-XXXX/
-    └── [samme struktur]
+    └── [same structure]
 ```
 
 ---
 
-## Hvordan det fungerer
+## How it works
 
 ### 1. Unified /aide-* skills
 
-**`/aide-create PROJ-XXXX`** (detekterer JIRA mode fra format)
-1. Oppretter dokumentstruktur (4 filer)
-2. Fyller ut 1-description.md med JIRA-metadata (brukeren limer inn JIRA-data manuelt)
+**`/aide-create PROJ-XXXX`** (detects JIRA mode from the format)
+1. Creates the document structure (4 files)
+2. Fills in 1-description.md with JIRA metadata (the user pastes in JIRA data manually)
 
 **`/aide-analyze PROJ-XXXX`**
-1. Analyserer kodebase med Explore agent (@agent-jira-analyzer)
-2. Identifiserer berørte filer (med linjenummer)
-3. Oppdaterer alle 4 dokumentfiler
+1. Analyzes the codebase with the Explore agent (@agent-jira-analyzer)
+2. Identifies affected files (with line numbers)
+3. Updates all 4 document files
 
 **`/aide-implement PROJ-XXXX`**
-1. Leser 2-analysis.md og 3-solution.md
-2. Implementerer med TDD (RED → GREEN → REFACTOR)
-3. Oppdaterer 4-status.md underveis
+1. Reads 2-analysis.md and 3-solution.md
+2. Implements with TDD (RED → GREEN → REFACTOR)
+3. Updates 4-status.md along the way
 
 **`/aide-to-pdf PROJ-XXXX`**
-1. Kombinerer alle markdown-filer (1-4) til ett dokument
-2. Legger til forside med metadata
-3. Konverterer til PDF med sidehode/sidefot
+1. Combines all markdown files (1-4) into one document
+2. Adds a cover page with metadata
+3. Converts to PDF with header/footer
 4. Output: `<docs-folder>/PROJ-XXXX.pdf`
 
 ---
 
-## Tips og triks
+## Tips and tricks
 
-### Se alle JIRA-saker du har jobbet med
+### See all JIRA issues you have worked on
 
 ```bash
 ls -lt ../doc-aide/reports/
 ```
 
-### Re-analyser når kodebasen endres
+### Re-analyze when the codebase changes
 
 ```bash
-# Hvis kodebasen har endret seg siden sist analyse
+# If the codebase has changed since the last analysis
 /aide-analyze PROJ-7890
 ```
 
 ---
 
-## Eksempel-flyt
+## Example flow
 
 ```bash
-# 1. Opprett dokumentasjon (auto-detekterer JIRA fra PROJ-format)
+# 1. Create documentation (auto-detects JIRA from the PROJ format)
 /aide-create PROJ-7890
 
-# Claude henter saken og oppretter dokumentstruktur
+# Claude fetches the issue and creates the document structure
 
-# 2. Analyser kodebase
+# 2. Analyze the codebase
 /aide-analyze PROJ-7890
 
-# Claude analyserer kodebase og oppdaterer dokumentasjon
+# Claude analyzes the codebase and updates the documentation
 
-# 3. Les dokumentasjonen
+# 3. Read the documentation
 cat ../doc-aide/reports/<NN>-PROJ-7890-slug/2-analysis.md
 cat ../doc-aide/reports/<NN>-PROJ-7890-slug/3-solution.md
 
-# 4. Implementer løsning (valgfritt - TDD-assistert)
+# 4. Implement the solution (optional - TDD-assisted)
 /aide-implement PROJ-7890
 
-# Eller kode manuelt basert på dokumentasjonen
+# Or code manually based on the documentation
 
-# 5. Generer PDF for deling/arkivering (valgfritt)
+# 5. Generate a PDF for sharing/archiving (optional)
 /aide-to-pdf PROJ-7890
 
-# Åpne PDF
+# Open the PDF
 open ../doc-aide/reports/<NN>-PROJ-7890-slug/PROJ-7890.pdf
 ```
 
@@ -391,38 +391,38 @@ open ../doc-aide/reports/<NN>-PROJ-7890-slug/PROJ-7890.pdf
 
 ## Headless Mode
 
-Claude Code støtter headless mode (`-p` flag) for ikke-interaktiv kjøring:
+Claude Code supports headless mode (the `-p` flag) for non-interactive execution:
 
 ```bash
-# Grunnleggende headless mode
+# Basic headless mode
 claude -p "Say hello"
 
-# Med tool-tillatelser (unngår bekreftelser)
+# With tool permissions (avoids confirmations)
 claude -p "List files" --allowedTools "Bash,Read,Write,Edit"
 
-# Med JSON output for programmatisk parsing
+# With JSON output for programmatic parsing
 claude -p "Analyze this code" --output-format json
 
-# Med streaming JSON for multi-turn
+# With streaming JSON for multi-turn
 claude -p "Complex task" --output-format stream-json
 ```
 
-**Viktige flagg:**
+**Important flags:**
 
-| Flag | Beskrivelse |
+| Flag | Description |
 |------|-------------|
-| `-p "prompt"` | Headless mode - kjører uten interaktiv UI |
-| `--allowedTools` | Gir tillatelser uten bruker-input |
+| `-p "prompt"` | Headless mode - runs without the interactive UI |
+| `--allowedTools` | Grants permissions without user input |
 | `--output-format json` | JSON output for parsing |
 | `--output-format stream-json` | Streaming JSON for multi-turn |
 
 ---
 
-## Ressurser
+## Resources
 
-**Offisiell dokumentasjon og best practices:**
+**Official documentation and best practices:**
 
-- [Anthropic: Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices) - Offisielle tips for effektiv bruk
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code) - Fullstendig dokumentasjon
-- [CLI Reference](https://docs.anthropic.com/en/docs/claude-code/cli-usage) - Alle CLI-flagg inkludert headless mode
-- [Anthropic Prompt Engineering](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering) - Prompt-teknikker
+- [Anthropic: Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices) - Official tips for effective use
+- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code) - Complete documentation
+- [CLI Reference](https://docs.anthropic.com/en/docs/claude-code/cli-usage) - All CLI flags including headless mode
+- [Anthropic Prompt Engineering](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering) - Prompting techniques

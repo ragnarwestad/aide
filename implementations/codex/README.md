@@ -1,143 +1,143 @@
-# OpenAI Codex - Implementasjonsguide
+# OpenAI Codex - Implementation Guide
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
-- [Hva er OpenAI Codex?](#hva-er-openai-codex)
-- [Forutsetninger](#forutsetninger)
-- [Installasjon](#installasjon)
-  - [CLI-wrappers](#steg-3-installer-cli-wrappers-anbefalt)
-- [Konfigurasjon](#konfigurasjon)
-  - [MCP-servere](#mcp-servere-model-context-protocol)
-  - [Execpolicy](#execpolicy-kommandokontroll)
-  - [AGENTS.md](#agentsmd-persistente-instruksjoner)
-- [Bruk](#bruk)
-  - [JIRA-arbeidsflyt](#jira-arbeidsflyt)
-  - [TDD-arbeidsflyt](#tdd-arbeidsflyt)
-- [Slash commands og wrappers](#slash-commands-og-wrappers)
-- [Tips og triks](#tips-og-triks)
-- [Begrensninger](#begrensninger)
-- [Sammenligning med Claude Code](#sammenligning-med-claude-code)
+- [Overview](#overview)
+- [What is OpenAI Codex?](#what-is-openai-codex)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [CLI wrappers](#step-3-install-the-cli-wrappers-recommended)
+- [Configuration](#configuration)
+  - [MCP servers](#mcp-servers-model-context-protocol)
+  - [Execpolicy](#execpolicy-command-control)
+  - [AGENTS.md](#agentsmd-persistent-instructions)
+- [Usage](#usage)
+  - [JIRA workflow](#jira-workflow)
+  - [TDD workflow](#tdd-workflow)
+- [Slash commands and wrappers](#slash-commands-and-wrappers)
+- [Tips and tricks](#tips-and-tricks)
+- [Limitations](#limitations)
+- [Comparison with Claude Code](#comparison-with-claude-code)
 
 ---
 
-## Oversikt
+## Overview
 
-Denne implementasjonen lar deg bruke **OpenAI Codex CLI** til å følge samme workflows som Claude Code, med terminal-basert AI-assistanse.
+This implementation lets you use the **OpenAI Codex CLI** to follow the same workflows as Claude Code, with terminal-based AI assistance.
 
-**Arkitektur:**
+**Architecture:**
 ```text
 implementations/codex/
-├── README.md                           # Denne filen
-├── config.toml                         # Codex-konfig (sandbox, MCP)
-├── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + CLI-wrappers
+├── README.md                           # This file
+├── config.toml                         # Codex config (sandbox, MCP)
+├── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + CLI wrappers
 └── scripts/
-    ├── codex-aide-create              # CLI-wrapper for aide-create
-    ├── codex-aide-analyze             # CLI-wrapper for aide-analyze
-    └── codex-aide-implement                  # CLI-wrapper for aide-implement
+    ├── codex-aide-create              # CLI wrapper for aide-create
+    ├── codex-aide-analyze             # CLI wrapper for aide-analyze
+    └── codex-aide-implement                  # CLI wrapper for aide-implement
 ```
 
-**Gjenbruker:**
-- ✅ `core/rules/` - Samme workflows, git-regler, testing-regler
-- ✅ `core/templates/` - Samme 4-fils dokumentstruktur
-- ✅ `core/scripts/` - Samme scripts (aide-generate-pdf, etc.)
+**Reuses:**
+- ✅ `core/rules/` - Same workflows, git rules, testing rules
+- ✅ `core/templates/` - Same 4-file document structure
+- ✅ `core/scripts/` - Same scripts (aide-generate-pdf, etc.)
 
 ---
 
-## Hva er OpenAI Codex?
+## What is OpenAI Codex?
 
-**OpenAI Codex** er en AI-kodingsagent fra OpenAI som kan:
-- ✅ Kjøre lokalt i terminalen med tilgang til filsystemet
-- ✅ Jobbe på mange oppgaver parallelt
-- ✅ Navigere i repo, editere filer, kjøre kommandoer
-- ✅ Integrere med GitHub, Slack, IDE
-- ✅ Bygge hele prosjekter fra scratch
-- ✅ Utføre store refaktoreringer
+**OpenAI Codex** is an AI coding agent from OpenAI that can:
+- ✅ Run locally in the terminal with access to the file system
+- ✅ Work on many tasks in parallel
+- ✅ Navigate the repo, edit files, run commands
+- ✅ Integrate with GitHub, Slack, IDEs
+- ✅ Build entire projects from scratch
+- ✅ Perform large refactorings
 
-**Forskjell fra GitHub Copilot:**
-- GitHub Copilot: IDE-basert, code completion og chat
-- OpenAI Codex: Terminal-basert agent, autonome multi-step oppgaver
+**Difference from GitHub Copilot:**
+- GitHub Copilot: IDE-based, code completion and chat
+- OpenAI Codex: Terminal-based agent, autonomous multi-step tasks
 
-**Modell:**
-- Drevet av GPT-5-Codex (optimalisert for software engineering)
+**Model:**
+- Powered by GPT-5-Codex (optimized for software engineering)
 
 ---
 
-## Forutsetninger
+## Prerequisites
 
-### 1. OpenAI-abonnement
-- ChatGPT Plus, Pro, Business, eller Enterprise
-- API-tilgang (for CLI)
+### 1. OpenAI subscription
+- ChatGPT Plus, Pro, Business, or Enterprise
+- API access (for the CLI)
 
 ### 2. Codex CLI
 ```bash
-# Installer Codex CLI
+# Install the Codex CLI
 npm install -g @openai/codex-cli
 
-# Eller via Homebrew (macOS)
+# Or via Homebrew (macOS)
 brew install openai/tap/codex
 ```
 
-### 3. IntelliJ plugin (valgfritt)
+### 3. IntelliJ plugin (optional)
 ```text
-# Installer "Codex Launcher" fra JetBrains Marketplace
+# Install "Codex Launcher" from the JetBrains Marketplace
 # https://plugins.jetbrains.com/plugin/28264-codex-launcher
 ```
 
 ---
 
-## Installasjon
+## Installation
 
-### Steg 1: Installer og autentiser Codex
+### Step 1: Install and authenticate Codex
 
 ```bash
-# Installer CLI
+# Install the CLI
 npm install -g @openai/codex-cli
 
-# Autentiser med OpenAI API-nøkkel
+# Authenticate with your OpenAI API key
 codex auth
 
-# Verifiser installasjon
+# Verify the installation
 codex --version
 ```
 
-### Steg 2: Installer instruksjonsfilen (AGENTS.md)
+### Step 2: Install the instruction file (AGENTS.md)
 
-Instruksjonene bor i `core/AGENTS.md` (genereres fra `core/rules/`). `install.sh` kopierer den til `~/.codex/AGENTS.md`:
+The instructions live in `core/AGENTS.md` (generated from `core/rules/`). `install.sh` copies it to `~/.codex/AGENTS.md`:
 
 ```bash
 cp core/AGENTS.md ~/.codex/AGENTS.md
 ```
 
-Codex leser `~/.codex/AGENTS.md` automatisk ved oppstart (samt repo-`AGENTS.md` via directory-walk).
+Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `AGENTS.md` via directory walk).
 
-### Steg 3: Installer CLI-wrappers (anbefalt)
+### Step 3: Install the CLI wrappers (recommended)
 
-CLI-wrapperne gjør det enkelt å starte aide-workflows uten manuell kopiering av prompts:
+The CLI wrappers make it easy to start aide workflows without manually copying prompts:
 
 ```bash
-# Kopier CLI-wrappers til PATH
+# Copy the CLI wrappers to PATH
 cp implementations/codex/scripts/codex-aide-* ~/.local/bin/
 chmod +x ~/.local/bin/codex-aide-*
 ```
 
-**Tilgjengelige kommandoer:**
+**Available commands:**
 
-| Kommando | Beskrivelse |
+| Command | Description |
 |----------|-------------|
-| `codex-aide-create <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO |
-| `codex-aide-analyze <ID>` | Analyser kodebase og identifiser påvirkede filer |
-| `codex-aide-implement <ID>` | Implementer løsning med TDD |
+| `codex-aide-create <ID>` | Create the document structure for a JIRA issue or TODO |
+| `codex-aide-analyze <ID>` | Analyze the codebase and identify affected files |
+| `codex-aide-implement <ID>` | Implement the solution with TDD |
 
-**Eksempler:**
+**Examples:**
 
 ```bash
-# JIRA-arbeidsflyt
+# JIRA workflow
 codex-aide-create PROJ-7890
 codex-aide-analyze PROJ-7890
 codex-aide-implement PROJ-7890
 
-# TODO-arbeidsflyt
+# TODO workflow
 codex-aide-create todo-01-redux-migration
 codex-aide-analyze todo-01
 codex-aide-implement todo-01
@@ -145,39 +145,39 @@ codex-aide-implement todo-01
 
 ---
 
-## Konfigurasjon
+## Configuration
 
-### Instruksjoner (AGENTS.md)
+### Instructions (AGENTS.md)
 
-Codex leser automatisk `~/.codex/AGENTS.md` (installert fra `core/AGENTS.md`) som inneholder:
+Codex automatically reads `~/.codex/AGENTS.md` (installed from `core/AGENTS.md`), which contains:
 
-- 🎯 Workspace-konsept og struktur
-- 📋 Referanser til `core/rules/workflows.md`
-- 🧪 TDD-regler fra `core/rules/testing.md`
-- 🔀 Git-regler fra `core/rules/git.md`
-- 📝 Dokumentstandard fra `core/rules/documentation.md`
+- 🎯 The workspace concept and structure
+- 📋 References to `core/rules/workflows.md`
+- 🧪 TDD rules from `core/rules/testing.md`
+- 🔀 Git rules from `core/rules/git.md`
+- 📝 Documentation standard from `core/rules/documentation.md`
 
-### Miljøvariabler
+### Environment variables
 
 ```bash
-# Legg til i ~/.bashrc eller ~/.zshrc
+# Add to ~/.bashrc or ~/.zshrc
 export OPENAI_API_KEY="your-api-key-here"
-export CODEX_MODEL="gpt-5-codex"  # Eller o4-mini for raskere/billigere
+export CODEX_MODEL="gpt-5-codex"  # Or o4-mini for faster/cheaper
 ```
 
-### MCP-servere (Model Context Protocol)
+### MCP servers (Model Context Protocol)
 
-Codex støtter MCP-servere for utvidet funksjonalitet. Konfigurer i `~/.codex/config.toml`:
+Codex supports MCP servers for extended functionality. Configure them in `~/.codex/config.toml`:
 
 ```toml
 [mcp]
-# Eksempel: Filesystem MCP-server
+# Example: Filesystem MCP server
 [[mcp.servers]]
 name = "filesystem"
 command = "npx"
 args = ["-y", "@anthropic/mcp-filesystem", "/path/to/allowed/dir"]
 
-# Eksempel: GitHub MCP-server
+# Example: GitHub MCP server
 [[mcp.servers]]
 name = "github"
 command = "npx"
@@ -185,20 +185,20 @@ args = ["-y", "@anthropic/mcp-github"]
 env = { GITHUB_TOKEN = "your-token" }
 ```
 
-**Tilgjengelige MCP-servere:**
+**Available MCP servers:**
 
-- `@anthropic/mcp-filesystem` - Filsystem-tilgang
-- `@anthropic/mcp-github` - GitHub-integrasjon
-- `@anthropic/mcp-slack` - Slack-integrasjon
-- Egendefinerte servere via MCP-protokollen
+- `@anthropic/mcp-filesystem` - File system access
+- `@anthropic/mcp-github` - GitHub integration
+- `@anthropic/mcp-slack` - Slack integration
+- Custom servers via the MCP protocol
 
-### Execpolicy (Kommandokontroll)
+### Execpolicy (command control)
 
-Definer regler for hvilke kommandoer Codex kan kjøre i `~/.codex/config.toml`:
+Define rules for which commands Codex may run in `~/.codex/config.toml`:
 
 ```toml
 [execpolicy]
-# Godkjente kommandoer (kjøres uten bekreftelse)
+# Approved commands (run without confirmation)
 allow = [
   "pnpm *",
   "npm *",
@@ -208,14 +208,14 @@ allow = [
   "git log *"
 ]
 
-# Blokkerte kommandoer (kan ikke kjøres)
+# Blocked commands (cannot be run)
 deny = [
   "rm -rf *",
   "git push --force *",
-  "git commit *"  # Blokkér commits som i Claude Code
+  "git commit *"  # Block commits, as in Claude Code
 ]
 
-# Krever bekreftelse (standard for ukjente kommandoer)
+# Require confirmation (default for unknown commands)
 confirm = [
   "git add *",
   "curl *",
@@ -223,306 +223,306 @@ confirm = [
 ]
 ```
 
-### AGENTS.md (Persistente instruksjoner)
+### AGENTS.md (persistent instructions)
 
-Codex' instruksjonsfil er `AGENTS.md`. doc-aide genererer `core/AGENTS.md` fra `core/rules/`, og `install.sh` installerer den som `~/.codex/AGENTS.md`. Codex leser i tillegg en `AGENTS.md` i prosjektroten via directory-walk (git-rot → cwd), så prosjekter kan legge til egne regler:
+Codex's instruction file is `AGENTS.md`. doc-aide generates `core/AGENTS.md` from `core/rules/`, and `install.sh` installs it as `~/.codex/AGENTS.md`. Codex additionally reads an `AGENTS.md` in the project root via directory walk (git root → cwd), so projects can add their own rules:
 
 ```markdown
 # AGENTS.md
 
-## Prosjektregler
-- Følg TDD-workflow (RED → GREEN → REFACTOR)
-- Bruk norsk i commit-meldinger
-- Kjør alltid tester før du anser en oppgave som ferdig
+## Project rules
+- Follow the TDD workflow (RED → GREEN → REFACTOR)
+- Use Norwegian in commit messages
+- Always run the tests before considering a task done
 ```
 
 ---
 
-## Bruk
+## Usage
 
-### JIRA-arbeidsflyt
+### JIRA workflow
 
-#### 1. Opprett JIRA-dokumentasjon
+#### 1. Create JIRA documentation
 
-**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
+**Instead of:** `/aide-create PROJ-7890` (Claude Code)
 
-**Med Codex:**
+**With Codex:**
 
 ```bash
-# Interaktiv sesjon
+# Interactive session
 codex
 
-# Eller direkte kommando
-codex "Opprett strukturert dokumentasjon for JIRA-sak PROJ-7890:
+# Or as a direct command
+codex "Create structured documentation for JIRA issue PROJ-7890:
 
-1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
-2. Følg core/rules/documentation.md
-3. Bruk templates fra core/templates/todo/
-4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
-5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
-6. Stage alle nye filer i git"
+1. Create directory: reports/<NN>-PROJ-7890-slug/
+2. Follow core/rules/documentation.md
+3. Use templates from core/templates/todo/
+4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
+5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
+6. Stage all new files in git"
 ```
 
-**Eller bruk CLI-wrapperen:**
+**Or use the CLI wrapper:**
 ```bash
 codex-aide-create PROJ-7890
 ```
 
-#### 2. Analyser kodebase
+#### 2. Analyze the codebase
 
-**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
+**Instead of:** `/aide-analyze PROJ-7890` (Claude Code)
 
-**Med Codex:**
+**With Codex:**
 
 ```bash
-codex "Analyser kodebasen for JIRA-sak PROJ-7890:
+codex "Analyze the codebase for JIRA issue PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-description.md
-2. Søk i kodebasen etter relevante filer
-3. Identifiser påvirkede komponenter (fil:linje)
-4. Sjekk API-påvirkning (frontend ↔ backend)
-5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analysis.md med funn
-7. Lag implementeringsplan i 3-solution.md
-8. Følg core/rules/workflows.md struktur"
+1. Read reports/<NN>-PROJ-7890-slug/1-description.md
+2. Search the codebase for relevant files
+3. Identify affected components (file:line)
+4. Check API impact (frontend ↔ backend)
+5. Assess complexity (simple/medium/complex)
+6. Update 2-analysis.md with findings
+7. Create an implementation plan in 3-solution.md
+8. Follow the core/rules/workflows.md structure"
 ```
 
-#### 3. Implementer med TDD
+#### 3. Implement with TDD
 
-**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
+**Instead of:** `/aide-implement PROJ-7890` (Claude Code)
 
-**Med Codex:**
+**With Codex:**
 
 ```bash
-codex "Implementer løsningen for PROJ-7890 med TDD:
+codex "Implement the solution for PROJ-7890 with TDD:
 
 RED PHASE:
-1. Les 3-solution.md → Steg 0: Skriv tester
-2. Opprett testfiler som beskrevet
-3. Kjør: pnpm test -- --run <testfil>
-4. Verifiser at tester FEILER
-5. Stopp og be om bekreftelse
+1. Read 3-solution.md → Step 0: Write tests
+2. Create the test files as described
+3. Run: pnpm test -- --run <testfile>
+4. Verify that the tests FAIL
+5. Stop and ask for confirmation
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-solution.md
-2. Kjør tester etter hvert steg
-3. Verifiser at alle tester PASSERER
-4. Stopp og be om bekreftelse
+1. Implement Steps 1-N from 3-solution.md
+2. Run the tests after each step
+3. Verify that all tests PASS
+4. Stop and ask for confirmation
 
 REFACTOR PHASE:
-1. Kjør: pnpm test -- --run (alle tester)
-2. Kjør: npx tsc --noEmit
-3. Kjør: pnpm run eslint
-4. Oppdater 4-status.md med resultat
+1. Run: pnpm test -- --run (all tests)
+2. Run: npx tsc --noEmit
+3. Run: pnpm run eslint
+4. Update 4-status.md with the result
 
-Følg prosjektets kodestandard for all kode."
+Follow the project's coding standard for all code."
 ```
 
-### TDD-arbeidsflyt
+### TDD workflow
 
-Codex støtter TDD-syklusen:
-- Skriver tester først (RED)
-- Implementerer til tester passerer (GREEN)
-- Refaktorerer og verifiserer (REFACTOR)
-- Itererer automatisk ved feil
+Codex supports the TDD cycle:
+- Writes tests first (RED)
+- Implements until tests pass (GREEN)
+- Refactors and verifies (REFACTOR)
+- Iterates automatically on failures
 
 ---
 
-## Slash commands og wrappers
+## Slash commands and wrappers
 
-Codex leser de samme skills som Claude Code (fra `~/.agents/skills/`), og det
-finnes CLI-wrappers for de vanligste workflowene:
+Codex reads the same skills as Claude Code (from `~/.agents/skills/`), and there
+are CLI wrappers for the most common workflows:
 
-| Wrapper | Formål | Tilsvarer Claude Code |
+| Wrapper | Purpose | Claude Code equivalent |
 |---------|--------|----------------------|
-| `codex-aide-create` | Opprett JIRA/TODO-dokumentasjon | `/aide-create` |
-| `codex-aide-analyze` | Analyser kodebase | `/aide-analyze` |
-| `codex-aide-implement` | Implementer med TDD | `/aide-implement` |
+| `codex-aide-create` | Create JIRA/TODO documentation | `/aide-create` |
+| `codex-aide-analyze` | Analyze the codebase | `/aide-analyze` |
+| `codex-aide-implement` | Implement with TDD | `/aide-implement` |
 
-**Bruk:**
+**Usage:**
 ```bash
 codex-aide-create PROJ-7890
 ```
 
 ---
 
-## Tips og triks
+## Tips and tricks
 
-### 1. Vær eksplisitt om kontekst
+### 1. Be explicit about context
 
-❌ **Dårlig:**
+❌ **Bad:**
 ```bash
-codex "Analyser PROJ-7890"
+codex "Analyze PROJ-7890"
 ```
 
-✅ **Bra:**
+✅ **Good:**
 ```bash
-codex "Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-description.md, søk deretter i kodebasen,
-og oppdater 2-analysis.md med funn (fil:linje)."
+codex "Analyze PROJ-7890 by following core/rules/workflows.md.
+First read 1-description.md, then search the codebase,
+and update 2-analysis.md with findings (file:line)."
 ```
 
-### 2. Referer alltid til core/rules/
+### 2. Always reference core/rules/
 
 ```bash
-codex "Følg workflows i core/rules/workflows.md
-Følg git-regler i core/rules/git.md
-Følg testing-regler i core/rules/testing.md
-Følg prosjektets kodestandarder"
+codex "Follow the workflows in core/rules/workflows.md
+Follow the git rules in core/rules/git.md
+Follow the testing rules in core/rules/testing.md
+Follow the project's coding standards"
 ```
 
-### 3. Bruk parallelle oppgaver
+### 3. Use parallel tasks
 
-Codex kan jobbe på flere oppgaver samtidig:
+Codex can work on several tasks at the same time:
 
 ```bash
-# Start bakgrunnsoppgave
-codex --background "Analyser alle komponenter i src/components/"
+# Start a background task
+codex --background "Analyze all components in src/components/"
 
-# Fortsett med annet arbeid
-codex "Implementer ny feature i UserProfile"
+# Continue with other work
+codex "Implement a new feature in UserProfile"
 ```
 
-### 4. Integrer med GitHub
+### 4. Integrate with GitHub
 
 ```bash
 # Preload repository
 codex --github myorg/my-app
 
-# Arbeid med PR
-codex "Review PR #123 og sjekk om den følger KODESTANDARD.md"
+# Work on a PR
+codex "Review PR #123 and check whether it follows KODESTANDARD.md"
 ```
 
-### 5. Bruk IntelliJ-plugin
+### 5. Use the IntelliJ plugin
 
-1. Installer "Codex Launcher" fra Marketplace
-2. Høyreklikk i editor → "Open with Codex"
-3. Codex åpnes med fil-kontekst
+1. Install "Codex Launcher" from the Marketplace
+2. Right-click in the editor → "Open with Codex"
+3. Codex opens with file context
 
 ---
 
-## Begrensninger
+## Limitations
 
-### Codex har IKKE:
-- ❌ Native slash commands (bruker natural language i stedet)
-- ❌ Automatisk lesing av CLAUDE.md ved oppstart (bruk `AGENTS.md`)
-- ❌ Innebygde agents som `@agent-jira-analyzer`
-- ❌ Gratis tier (krever Plus/Pro/Enterprise)
+### Codex does NOT have:
+- ❌ Native slash commands (uses natural language instead)
+- ❌ Automatic reading of CLAUDE.md at startup (use `AGENTS.md`)
+- ❌ Built-in agents like `@agent-jira-analyzer`
+- ❌ A free tier (requires Plus/Pro/Enterprise)
 
-### Codex HAR:
-- ✅ Terminal-basert CLI
-- ✅ Parallelle oppgaver
-- ✅ GitHub/Slack/IDE-integrasjon
-- ✅ Instruksjonsfil (`AGENTS.md` → `~/.codex/AGENTS.md`)
+### Codex DOES have:
+- ✅ Terminal-based CLI
+- ✅ Parallel tasks
+- ✅ GitHub/Slack/IDE integration
+- ✅ Instruction file (`AGENTS.md` → `~/.codex/AGENTS.md`)
 - ✅ Codebase analysis
 - ✅ Command execution
-- ✅ Auto-iterasjon ved feil
+- ✅ Auto-iteration on failures
 
-### Kostnader:
+### Costs:
 - API: $1.50/1M input tokens, $6/1M output tokens
 - Subscription: ChatGPT Plus/Pro/Business/Enterprise
-- Rate limits (kan kjøpe ekstra credits)
+- Rate limits (extra credits can be purchased)
 
 ### Workarounds:
-1. **Slash commands:** Bruk skills (`~/.agents/skills/`) eller `codex-aide-*`-wrappers
-2. **Auto-read CLAUDE.md → AGENTS.md:** Bruk `AGENTS.md` (installeres globalt som `~/.codex/AGENTS.md`)
-3. **Agents → Explicit prompts:** Be Codex om å følge spesifikke workflows
-4. **Gratis → Betalt:** Krever abonnement
+1. **Slash commands:** Use skills (`~/.agents/skills/`) or the `codex-aide-*` wrappers
+2. **Auto-read CLAUDE.md → AGENTS.md:** Use `AGENTS.md` (installed globally as `~/.codex/AGENTS.md`)
+3. **Agents → Explicit prompts:** Ask Codex to follow specific workflows
+4. **Free → Paid:** Requires a subscription
 
 ---
 
-## Sammenligning med Claude Code
+## Comparison with Claude Code
 
 | Feature | Claude Code | OpenAI Codex |
 |---------|-------------|--------------|
-| **Kommandoer** | Slash commands (`/aide-create`) | Natural language prompts |
-| **Instruksjoner** | CLAUDE.md (auto-read) | AGENTS.md (~/.codex/AGENTS.md) |
-| **Agents** | `@agent-jira-analyzer` | Generell agent |
-| **TDD** | Innebygd RED→GREEN→REFACTOR | Støtter TDD-syklus |
+| **Commands** | Slash commands (`/aide-create`) | Natural language prompts |
+| **Instructions** | CLAUDE.md (auto-read) | AGENTS.md (~/.codex/AGENTS.md) |
+| **Agents** | `@agent-jira-analyzer` | General agent |
+| **TDD** | Built-in RED→GREEN→REFACTOR | Supports the TDD cycle |
 | **Codebase analysis** | ✅ | ✅ |
 | **Tool calling** | ✅ | ✅ |
-| **Parallelle oppgaver** | ❌ | ✅ |
-| **GitHub-integrasjon** | Via gh CLI | Native |
-| **Slack-integrasjon** | ❌ | ✅ |
-| **Context window** | 200K tokens | Varierer (GPT-5) |
-| **IDE-integrasjon** | VS Code (via CLI) | IntelliJ, VS Code, Cursor |
-| **Pris** | Gratis (beta) | $1.50-$6/1M tokens |
+| **Parallel tasks** | ❌ | ✅ |
+| **GitHub integration** | Via gh CLI | Native |
+| **Slack integration** | ❌ | ✅ |
+| **Context window** | 200K tokens | Varies (GPT-5) |
+| **IDE integration** | VS Code (via CLI) | IntelliJ, VS Code, Cursor |
+| **Price** | Free (beta) | $1.50-$6/1M tokens |
 
-### Når bruke hva?
+### When to use what?
 
-| Scenario | Anbefaling |
+| Scenario | Recommendation |
 |----------|-----------|
-| **Kompleks JIRA-analyse** | Claude Code (større kontekst, gratis) |
-| **Parallelle oppgaver** | Codex (native støtte) |
-| **TDD-implementering** | Begge fungerer godt |
-| **GitHub-workflows** | Codex (native integrasjon) |
-| **Team-samarbeid** | Codex (Slack-integrasjon) |
-| **Kostnadsbevisst** | Claude Code (gratis i beta) |
+| **Complex JIRA analysis** | Claude Code (larger context, free) |
+| **Parallel tasks** | Codex (native support) |
+| **TDD implementation** | Both work well |
+| **GitHub workflows** | Codex (native integration) |
+| **Team collaboration** | Codex (Slack integration) |
+| **Cost-conscious** | Claude Code (free in beta) |
 
 ---
 
-## Neste steg
+## Next steps
 
-1. ✅ Installer Codex CLI
-2. ✅ Autentiser med OpenAI API-nøkkel
-3. ✅ Kopier custom instructions
-4. ✅ Test med en enkel JIRA-sak
-5. ✅ Les [docs/AI_ASSISTERT_UTVIKLING.md](../../docs/AI_ASSISTERT_UTVIKLING.md) for full dokumentasjon
+1. ✅ Install the Codex CLI
+2. ✅ Authenticate with your OpenAI API key
+3. ✅ Copy the custom instructions
+4. ✅ Test with a simple JIRA issue
+5. ✅ Read [docs/AI_ASSISTERT_UTVIKLING.md](../../docs/AI_ASSISTERT_UTVIKLING.md) for the full documentation
 
 ---
 
-## Headless Mode (Automatisering)
+## Headless Mode (automation)
 
-Codex CLI støtter headless mode via `codex exec` for automatisering, CI/CD og scripting.
+The Codex CLI supports headless mode via `codex exec` for automation, CI/CD and scripting.
 
-### Grunnleggende bruk
+### Basic usage
 
 ```bash
-# Kjør enkelt prompt uten interaktiv UI
-codex exec "Analyser denne koden og foreslå forbedringer"
+# Run a single prompt without the interactive UI
+codex exec "Analyze this code and suggest improvements"
 
-# Output siste melding til fil
-codex exec "List alle TypeScript-filer" --output-last-message result.txt
+# Output the last message to a file
+codex exec "List all TypeScript files" --output-last-message result.txt
 
-# JSONL output for programmatisk parsing
-codex exec "Kjør alle tester" --format jsonl
+# JSONL output for programmatic parsing
+codex exec "Run all tests" --format jsonl
 ```
 
-### E2E Testing
+### E2E testing
 
 ```bash
-# Test at Codex CLI fungerer
-codex exec "Si 'hello'"
+# Test that the Codex CLI works
+codex exec "Say 'hello'"
 
-# Kjør aide-workflow headless
+# Run an aide workflow headless
 codex exec "/aide-create PROJ-TEST"
 ```
 
-### Flagg for automatisering
+### Flags for automation
 
-| Flagg | Beskrivelse |
+| Flag | Description |
 |-------|-------------|
-| `exec "prompt"` | Headless mode - kjør uten interaktiv UI |
-| `--output-last-message <fil>` | Skriv siste melding til fil |
+| `exec "prompt"` | Headless mode - run without the interactive UI |
+| `--output-last-message <file>` | Write the last message to a file |
 | `--format jsonl` | JSONL output for parsing |
 
-**Merk:** Autentisering kan være utfordrende i headless miljøer (krever OAuth flow).
+**Note:** Authentication can be challenging in headless environments (requires an OAuth flow).
 
 ---
 
-## Ressurser
+## Resources
 
-**Offisiell dokumentasjon og best practices:**
+**Official documentation and best practices:**
 
-- [OpenAI API Documentation](https://platform.openai.com/docs) - Fullstendig API-dokumentasjon
-- [OpenAI Best Practices](https://platform.openai.com/docs/guides/best-practices) - Offisielle best practices
-- [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering) - Prompt-teknikker
+- [OpenAI API Documentation](https://platform.openai.com/docs) - Complete API documentation
+- [OpenAI Best Practices](https://platform.openai.com/docs/guides/best-practices) - Official best practices
+- [OpenAI Prompt Engineering Guide](https://platform.openai.com/docs/guides/prompt-engineering) - Prompt techniques
 
-**Headless mode og CLI:**
+**Headless mode and CLI:**
 
-- [Codex CLI - OpenAI Developers](https://developers.openai.com/codex/cli) - CLI-dokumentasjon
+- [Codex CLI - OpenAI Developers](https://developers.openai.com/codex/cli) - CLI documentation
 - [Codex GitHub](https://github.com/openai/codex) - Open source repo
 
 ---
 
-**Lykke til med OpenAI Codex!**
+**Good luck with OpenAI Codex!**

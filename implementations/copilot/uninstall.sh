@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
 
-# uninstall.sh - Fjerner GitHub Copilot-konfigurasjon installert av install.sh
-# Reverserer NØYAKTIG det install.sh gjør — ikke mer, ikke mindre.
+# uninstall.sh - Removes GitHub Copilot configuration installed by install.sh
+# Reverses EXACTLY what install.sh does — no more, no less.
 
-set -e  # Exit ved feil
+set -e  # Exit on error
 
 echo "🗑️  GitHub Copilot Uninstall"
 echo "============================"
 echo ""
 
-# Bekreft avinstallasjon
-echo "⚠️  Dette vil fjerne:"
-echo "   - Scripts fra ~/.local/bin/ (aide-generate-pdf, aide-generate-html, mise-upgrade-ai-tools)"
+# Confirm uninstallation
+echo "⚠️  This will remove:"
+echo "   - Scripts from ~/.local/bin/ (aide-generate-pdf, aide-generate-html, mise-upgrade-ai-tools)"
 echo "   - ~/.copilot/copilot-instructions.md"
 echo "   - JetBrains Live Templates (aide-templates.xml)"
 echo ""
-read -p "Er du sikker på at du vil fortsette? [y/N]: " CONFIRM
+read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""
-  echo "❌ Avbrutt"
+  echo "❌ Aborted"
   exit 0
 fi
 
 echo ""
 
-# 1. Fjern scripts fra ~/.local/bin/
-echo "1️⃣  Fjerner scripts fra ~/.local/bin/..."
+# 1. Remove scripts from ~/.local/bin/
+echo "1️⃣  Removing scripts from ~/.local/bin/..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
@@ -35,20 +35,20 @@ uninstall_common_bin
 
 echo ""
 
-# 2. Fjern global Copilot-instruksjon
-echo "2️⃣  Fjerner global Copilot-instruksjon..."
+# 2. Remove global Copilot instructions
+echo "2️⃣  Removing global Copilot instructions..."
 
 if [ -f "$HOME/.copilot/copilot-instructions.md" ]; then
   rm "$HOME/.copilot/copilot-instructions.md"
-  echo "   ✅ Fjernet: ~/.copilot/copilot-instructions.md"
+  echo "   ✅ Removed: ~/.copilot/copilot-instructions.md"
 else
-  echo "   ⏭️  Fantes ikke: ~/.copilot/copilot-instructions.md"
+  echo "   ⏭️  Did not exist: ~/.copilot/copilot-instructions.md"
 fi
 
 echo ""
 
-# 3. Fjern JetBrains Live Templates
-echo "3️⃣  Fjerner JetBrains Live Templates..."
+# 3. Remove JetBrains Live Templates
+echo "3️⃣  Removing JetBrains Live Templates..."
 
 JETBRAINS_DIR="$HOME/Library/Application Support/JetBrains"
 
@@ -58,25 +58,25 @@ if [ -d "$JETBRAINS_DIR" ]; then
       ide_name=$(basename "$ide_dir")
       templates_file="$ide_dir/templates/aide-templates.xml"
 
-      # Hopp over backup-mapper
+      # Skip backup folders
       if [[ "$ide_name" == *"backup"* ]] || [[ "$ide_name" == "consentOptions" ]]; then
         continue
       fi
 
       if [ -f "$templates_file" ]; then
         rm "$templates_file"
-        echo "   ✅ Fjernet: $ide_name/templates/aide-templates.xml"
+        echo "   ✅ Removed: $ide_name/templates/aide-templates.xml"
       fi
     fi
   done
 else
-  echo "   ⏭️  JetBrains-mappe ikke funnet"
+  echo "   ⏭️  JetBrains folder not found"
 fi
 
 echo ""
 
-echo "✅ Avinstallasjon fullført!"
+echo "✅ Uninstallation complete!"
 echo ""
-echo "💡 For å installere på nytt, kjør:"
+echo "💡 To reinstall, run:"
 echo "   cd implementations/copilot"
 echo "   ./install.sh"

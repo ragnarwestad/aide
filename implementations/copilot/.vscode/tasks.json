@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Test: Kjør alle tester",
+      "label": "Test: Run all tests",
       "type": "shell",
       "command": "cd ${workspaceFolder}/../my-app && pnpm test -- --run",
       "problemMatcher": [],
@@ -16,7 +16,7 @@
       }
     },
     {
-      "label": "Test: Kjør spesifikk testfil",
+      "label": "Test: Run specific test file",
       "type": "shell",
       "command": "cd ${workspaceFolder}/../my-app && pnpm test -- --run ${input:testFile}",
       "problemMatcher": [],
@@ -60,12 +60,12 @@
       "group": "build"
     },
     {
-      "label": "QA: Full kvalitetssjekk",
+      "label": "QA: Full quality check",
       "dependsOn": [
         "QA: TypeScript check",
         "QA: ESLint",
         "QA: Markdown linting",
-        "Test: Kjør alle tester"
+        "Test: Run all tests"
       ],
       "dependsOrder": "sequence",
       "problemMatcher": [],
@@ -82,7 +82,7 @@
       }
     },
     {
-      "label": "Gemini: Start interaktiv sesjon",
+      "label": "Gemini: Start interactive session",
       "type": "shell",
       "command": "gemini",
       "problemMatcher": [],
@@ -96,7 +96,7 @@
     {
       "id": "testFile",
       "type": "promptString",
-      "description": "Test fil path (relativ til my-app)"
+      "description": "Test file path (relative to my-app)"
     }
   ]
 }

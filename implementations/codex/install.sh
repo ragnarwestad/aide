@@ -1,127 +1,127 @@
 #!/usr/bin/env bash
 
-# install.sh - Installerer OpenAI Codex-konfigurasjon for doc-aide workspace
-# Dette setter opp custom instructions, CLI-wrappers og JIRA-scripts
+# install.sh - Installs OpenAI Codex configuration for the doc-aide workspace
+# This sets up custom instructions, CLI wrappers and JIRA scripts
 
-set -e  # Exit ved feil
+set -e  # Exit on error
 
 echo "🔧 OpenAI Codex Setup"
 echo "====================="
 echo ""
 
-# Codex installeres globalt (~/.codex/AGENTS.md + ~/.local/bin/) — ingen prosjekt-sti nødvendig
+# Codex is installed globally (~/.codex/AGENTS.md + ~/.local/bin/) — no project path needed
 
 echo ""
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-# Verifiser at workspace eksisterer
+# Verify that the workspace exists
 if [ ! -d "$WORKSPACE_ROOT" ]; then
-  echo "❌ Kunne ikke finne workspace: $WORKSPACE_ROOT"
+  echo "❌ Could not find workspace: $WORKSPACE_ROOT"
   exit 1
 fi
 
 echo "📂 Workspace: $WORKSPACE_ROOT"
 echo ""
 
-# 1. Installer scripts til ~/.local/bin/
-echo "1️⃣  Installerer scripts til ~/.local/bin/..."
+# 1. Install scripts to ~/.local/bin/
+echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
 
 echo ""
 
-# 2. Installer Codex CLI-wrappers
-echo "2️⃣  Installerer Codex CLI-wrappers til ~/.local/bin/..."
+# 2. Install Codex CLI wrappers
+echo "2️⃣  Installing Codex CLI wrappers to ~/.local/bin/..."
 
 for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
   if [ -f "$SCRIPT_DIR/scripts/$script" ]; then
     cp "$SCRIPT_DIR/scripts/$script" ~/.local/bin/
     chmod +x ~/.local/bin/$script
-    echo "   ✅ Installert: ~/.local/bin/$script"
+    echo "   ✅ Installed: ~/.local/bin/$script"
   fi
 done
 
 echo ""
 
-# 3. Installer global Codex-instruksjon (AGENTS.md)
-echo "3️⃣  Installerer global Codex-instruksjon..."
+# 3. Install global Codex instructions (AGENTS.md)
+echo "3️⃣  Installing global Codex instructions..."
 
 if [ ! -f "$WORKSPACE_ROOT/core/AGENTS.md" ]; then
-  echo "   ❌ core/AGENTS.md ikke funnet!"
-  echo "   Kjør core/scripts/build-agents-md.sh først, eller sjekk at du har siste versjon: git pull"
+  echo "   ❌ core/AGENTS.md not found!"
+  echo "   Run core/scripts/build-agents-md.sh first, or make sure you have the latest version: git pull"
   exit 1
 fi
 
 mkdir -p "$HOME/.codex"
 cp "$WORKSPACE_ROOT/core/AGENTS.md" "$HOME/.codex/AGENTS.md"
-echo "   ✅ Installert: ~/.codex/AGENTS.md"
+echo "   ✅ Installed: ~/.codex/AGENTS.md"
 
 echo ""
 
-# 4. Verifiser at ~/.local/bin er i PATH
-echo "4️⃣  Verifiserer PATH..."
+# 4. Verify that ~/.local/bin is in PATH
+echo "4️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-  echo "   ✅ ~/.local/bin er i PATH"
+  echo "   ✅ ~/.local/bin is in PATH"
 else
-  echo "   ⚠️  ~/.local/bin er IKKE i PATH"
-  echo "   ℹ️  Legg til følgende i ~/.zshrc eller ~/.bashrc:"
+  echo "   ⚠️  ~/.local/bin is NOT in PATH"
+  echo "   ℹ️  Add the following to ~/.zshrc or ~/.bashrc:"
   echo ""
   echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 fi
 
-# 5. Sjekk om Codex CLI er installert
-echo "5️⃣  Sjekker Codex CLI..."
+# 5. Check if Codex CLI is installed
+echo "5️⃣  Checking Codex CLI..."
 
 if command -v codex &> /dev/null; then
-  echo "   ✅ Codex CLI er installert: $(codex --version 2>/dev/null || echo 'versjon ukjent')"
+  echo "   ✅ Codex CLI is installed: $(codex --version 2>/dev/null || echo 'version unknown')"
 else
-  echo "   ⚠️  Codex CLI er IKKE installert"
+  echo "   ⚠️  Codex CLI is NOT installed"
   echo ""
-  echo "   Installer via npm:"
+  echo "   Install via npm:"
   echo "      npm install -g @openai/codex"
   echo ""
-  echo "   Eller via mise:"
+  echo "   Or via mise:"
   echo "      mise use -g npm:@openai/codex@latest"
   echo ""
 fi
 
-# 6. Sjekk om Browser Testing MCP er konfigurert
-echo "6️⃣  Sjekker Browser Testing MCP (Playwright & Chrome DevTools)..."
+# 6. Check if Browser Testing MCP is configured
+echo "6️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
 
 CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
 BROWSER_MCP_INSTALLED=false
 
 if [ -f "$CODEX_CONFIG_FILE" ]; then
   if grep -q 'name = "playwright"' "$CODEX_CONFIG_FILE" && grep -q 'name = "chrome-devtools"' "$CODEX_CONFIG_FILE"; then
-    echo "   ✅ Playwright og Chrome DevTools MCP er allerede konfigurert"
+    echo "   ✅ Playwright and Chrome DevTools MCP are already configured"
     BROWSER_MCP_INSTALLED=true
   fi
 fi
 
 if [ "$BROWSER_MCP_INSTALLED" = false ]; then
-  echo "   ⚠️  Browser Testing MCP er IKKE konfigurert"
+  echo "   ⚠️  Browser Testing MCP is NOT configured"
   echo ""
-  echo "   Playwright & Chrome DevTools gir:"
-  echo "   - Browser automatisering (navigere, klikke, fylle ut forms)"
-  echo "   - Generere E2E tester automatisk"
+  echo "   Playwright & Chrome DevTools provide:"
+  echo "   - Browser automation (navigate, click, fill out forms)"
+  echo "   - Generate E2E tests automatically"
   echo "   - Chrome DevTools debugging (Console, Network, Performance)"
-  echo "   - Accessibility analyse"
+  echo "   - Accessibility analysis"
   echo ""
-  echo "   Vil du legge til Browser Testing MCP nå? [y/N]"
+  echo "   Do you want to add Browser Testing MCP now? [y/N]"
   if [ -t 0 ]; then
     read -r INSTALL_BROWSER_MCP
   else
-    INSTALL_BROWSER_MCP="N"   # non-interaktivt (install-all/CI): hopp over
+    INSTALL_BROWSER_MCP="N"   # non-interactive (install-all/CI): skip
   fi
 
   if [[ "$INSTALL_BROWSER_MCP" =~ ^[Yy]$ ]]; then
     echo ""
-    echo "   🔧 Legger til Browser Testing MCP..."
+    echo "   🔧 Adding Browser Testing MCP..."
 
-    # Opprett config.toml hvis den ikke finnes
+    # Create config.toml if it does not exist
     mkdir -p "$HOME/.codex"
 
     if [ ! -f "$CODEX_CONFIG_FILE" ]; then
@@ -140,9 +140,9 @@ name = "chrome-devtools"
 command = "npx"
 args = ["chrome-devtools-mcp@latest"]
 EOF
-      echo "   ✅ Opprettet $CODEX_CONFIG_FILE med MCP servers"
+      echo "   ✅ Created $CODEX_CONFIG_FILE with MCP servers"
     else
-      # Append til eksisterende config
+      # Append to existing config
       if ! grep -q '\[mcp\]' "$CODEX_CONFIG_FILE"; then
         echo "" >> "$CODEX_CONFIG_FILE"
         echo "[mcp]" >> "$CODEX_CONFIG_FILE"
@@ -162,52 +162,52 @@ name = "chrome-devtools"
 command = "npx"
 args = ["chrome-devtools-mcp@latest"]
 EOF
-      echo "   ✅ La til Playwright og Chrome DevTools i $CODEX_CONFIG_FILE"
+      echo "   ✅ Added Playwright and Chrome DevTools to $CODEX_CONFIG_FILE"
     fi
 
     BROWSER_MCP_INSTALLED=true
     echo ""
-    echo "   📚 Mer info: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
+    echo "   📚 More info: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
   else
-    echo "   ⏭️  Hoppet over Browser Testing MCP-konfigurasjon"
-    echo "   💡 Du kan legge til senere i $CODEX_CONFIG_FILE"
+    echo "   ⏭️  Skipped Browser Testing MCP configuration"
+    echo "   💡 You can add it later in $CODEX_CONFIG_FILE"
     echo ""
-    echo "   📚 Se: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
+    echo "   📚 See: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
   fi
 fi
 
-# 7. Sjekk om Context7 MCP er konfigurert
-echo "7️⃣  Sjekker Context7 MCP (Oppdatert dokumentasjon)..."
+# 7. Check if Context7 MCP is configured
+echo "7️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 
 CONTEXT7_INSTALLED=false
 
 if [ -f "$CODEX_CONFIG_FILE" ]; then
   if grep -q 'name = "context7"' "$CODEX_CONFIG_FILE"; then
-    echo "   ✅ Context7 MCP er allerede konfigurert"
+    echo "   ✅ Context7 MCP is already configured"
     CONTEXT7_INSTALLED=true
   fi
 fi
 
 if [ "$CONTEXT7_INSTALLED" = false ]; then
-  echo "   ⚠️  Context7 MCP er IKKE konfigurert"
+  echo "   ⚠️  Context7 MCP is NOT configured"
   echo ""
-  echo "   Context7 gir:"
-  echo "   - Oppdatert, versjonsspesifikk dokumentasjon for biblioteker"
+  echo "   Context7 provides:"
+  echo "   - Up-to-date, version-specific documentation for libraries"
   echo "   - React, TypeScript, Spring Boot, etc."
-  echo "   - Injiserer automatisk i prompts med 'use context7'"
+  echo "   - Injects automatically into prompts with 'use context7'"
   echo ""
-  echo "   Vil du legge til Context7 MCP nå? [y/N]"
+  echo "   Do you want to add Context7 MCP now? [y/N]"
   if [ -t 0 ]; then
     read -r INSTALL_CONTEXT7
   else
-    INSTALL_CONTEXT7="N"   # non-interaktivt (install-all/CI): hopp over
+    INSTALL_CONTEXT7="N"   # non-interactive (install-all/CI): skip
   fi
 
   if [[ "$INSTALL_CONTEXT7" =~ ^[Yy]$ ]]; then
     echo ""
-    echo "   🔧 Legger til Context7 MCP..."
+    echo "   🔧 Adding Context7 MCP..."
 
-    # Opprett config.toml hvis den ikke finnes
+    # Create config.toml if it does not exist
     mkdir -p "$HOME/.codex"
 
     if [ ! -f "$CODEX_CONFIG_FILE" ]; then
@@ -220,9 +220,9 @@ name = "context7"
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 EOF
-      echo "   ✅ Opprettet $CODEX_CONFIG_FILE med Context7"
+      echo "   ✅ Created $CODEX_CONFIG_FILE with Context7"
     else
-      # Append til eksisterende config
+      # Append to existing config
       if ! grep -q '\[mcp\]' "$CODEX_CONFIG_FILE"; then
         echo "" >> "$CODEX_CONFIG_FILE"
         echo "[mcp]" >> "$CODEX_CONFIG_FILE"
@@ -236,59 +236,59 @@ name = "context7"
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 EOF
-      echo "   ✅ La til Context7 i $CODEX_CONFIG_FILE"
+      echo "   ✅ Added Context7 to $CODEX_CONFIG_FILE"
     fi
 
     CONTEXT7_INSTALLED=true
     echo ""
-    echo "   📚 Mer info: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
+    echo "   📚 More info: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
   else
-    echo "   ⏭️  Hoppet over Context7 MCP-konfigurasjon"
-    echo "   💡 Du kan legge til senere i $CODEX_CONFIG_FILE"
+    echo "   ⏭️  Skipped Context7 MCP configuration"
+    echo "   💡 You can add it later in $CODEX_CONFIG_FILE"
     echo ""
-    echo "   📚 Se: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
+    echo "   📚 See: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
   fi
 fi
 
 echo ""
-echo "✅ Setup fullført!"
+echo "✅ Setup complete!"
 echo ""
-echo "📋 Installert:"
+echo "📋 Installed:"
 echo "   ~/.local/bin/codex-aide-create"
 echo "   ~/.local/bin/codex-aide-analyze"
 echo "   ~/.local/bin/codex-aide-implement"
 echo ""
-echo "📝 Neste steg:"
-echo "   1. Start Codex i et prosjekt:"
+echo "📝 Next steps:"
+echo "   1. Start Codex in a project:"
 echo "      cd $AIDE_PROJECTS_PATH/my-app"
 echo "      codex"
 echo ""
-echo "   3. Bruk CLI-wrappers:"
+echo "   3. Use the CLI wrappers:"
 echo "      codex-aide-create PROJ-7890"
 echo "      codex-aide-analyze PROJ-7890"
 echo "      codex-aide-implement PROJ-7890"
 echo ""
 echo "💡 Tips:"
-echo "   - Oppdater konfigurasjon: Kjør ./install.sh på nytt"
-echo "   - Avinstaller: ./uninstall.sh"
+echo "   - Update configuration: Run ./install.sh again"
+echo "   - Uninstall: ./uninstall.sh"
 echo ""
 if [ "$BROWSER_MCP_INSTALLED" = true ]; then
   echo "🌐 Browser Testing MCP:"
-  echo "   ✅ Playwright MCP konfigurert"
-  echo "   ✅ Chrome DevTools MCP konfigurert"
-  echo "   💡 Browser automatisering og debugging tilgjengelig"
-  echo "   📖 Les: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
+  echo "   ✅ Playwright MCP configured"
+  echo "   ✅ Chrome DevTools MCP configured"
+  echo "   💡 Browser automation and debugging available"
+  echo "   📖 Read: $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"
   echo ""
 fi
 if [ "$CONTEXT7_INSTALLED" = true ]; then
   echo "📚 Context7 MCP:"
-  echo "   ✅ Context7 MCP konfigurert"
-  echo "   💡 Oppdatert dokumentasjon for biblioteker tilgjengelig"
-  echo "   💡 Bruk 'use context7' i prompts for oppdatert docs"
-  echo "   📖 Les: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
+  echo "   ✅ Context7 MCP configured"
+  echo "   💡 Up-to-date documentation for libraries available"
+  echo "   💡 Use 'use context7' in prompts for up-to-date docs"
+  echo "   📖 Read: $WORKSPACE_ROOT/implementations/codex/mcp/CONTEXT7_MCP_SETUP.md"
   echo ""
 fi
-echo "📚 Dokumentasjon:"
+echo "📚 Documentation:"
 echo "   - $SCRIPT_DIR/README.md"
 if [ "$BROWSER_MCP_INSTALLED" = true ]; then
   echo "   - $WORKSPACE_ROOT/implementations/codex/mcp/BROWSER_TESTING_MCP_SETUP.md"

@@ -1,10 +1,10 @@
 #!/bin/bash
-# codex-aide-create - Opprett JIRA/TODO dokumentasjon via Codex CLI
+# codex-aide-create - Create JIRA/TODO documentation via Codex CLI
 #
-# Bruk:
-#   codex-aide-create PROJ-7890              # JIRA-sak
-#   codex-aide-create todo-01-redux-migration   # TODO-plan
-#   codex-aide-create todo Beskrivelse her      # TODO med autogenerert slug
+# Usage:
+#   codex-aide-create PROJ-7890              # JIRA issue
+#   codex-aide-create todo-01-redux-migration   # TODO plan
+#   codex-aide-create todo Description here      # TODO with auto-generated slug
 
 set -e
 
@@ -12,12 +12,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPTS_DIR="$(dirname "$SCRIPT_DIR")/prompts"
 
 if [ -z "$1" ]; then
-    echo "Bruk: codex-aide-create <ID> [beskrivelse]"
+    echo "Usage: codex-aide-create <ID> [description]"
     echo ""
-    echo "Eksempler:"
+    echo "Examples:"
     echo "  codex-aide-create PROJ-7890"
     echo "  codex-aide-create todo-01-redux-migration"
-    echo "  codex-aide-create todo Beskrivelse her"
+    echo "  codex-aide-create todo Description here"
     exit 1
 fi
 
@@ -25,37 +25,37 @@ ID="$1"
 shift
 DESCRIPTION="$*"
 
-# Les prompt-template
+# Read prompt template
 PROMPT_FILE="$PROMPTS_DIR/aide-create.md"
 if [ ! -f "$PROMPT_FILE" ]; then
-    echo "Feil: Finner ikke $PROMPT_FILE"
+    echo "Error: Cannot find $PROMPT_FILE"
     exit 1
 fi
 
-# Bygg prompt med ID-substitusjon
+# Build prompt with ID substitution
 if [[ "$ID" == PROJ-* ]]; then
-    # JIRA-sak
+    # JIRA issue
     PROMPT=$(cat "$PROMPT_FILE" | sed "s/PROJ-XXXX/$ID/g")
     PROMPT="$PROMPT
 
 ---
-Kjør oppgaven for JIRA-sak: $ID"
+Run the task for JIRA issue: $ID"
 else
-    # TODO-plan
+    # TODO plan
     PROMPT=$(cat "$PROMPT_FILE" | sed "s/TODO-XX-navn/$ID/g")
     if [ -n "$DESCRIPTION" ]; then
         PROMPT="$PROMPT
 
 ---
-Kjør oppgaven for TODO: $ID
-Beskrivelse: $DESCRIPTION"
+Run the task for TODO: $ID
+Description: $DESCRIPTION"
     else
         PROMPT="$PROMPT
 
 ---
-Kjør oppgaven for TODO: $ID"
+Run the task for TODO: $ID"
     fi
 fi
 
-# Kjør Codex med prompten
+# Run Codex with the prompt
 exec codex "$PROMPT"

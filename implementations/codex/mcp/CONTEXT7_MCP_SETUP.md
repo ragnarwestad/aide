@@ -1,66 +1,66 @@
 # Context7 MCP Server Setup for Codex
 
-**Oppdatert dokumentasjon for biblioteker og frameworks**
+**Up-to-date documentation for libraries and frameworks**
 
 ---
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
-  - [Hva er Context7?](#hva-er-context7)
-  - [Hvorfor bruke Context7?](#hvorfor-bruke-context7)
-- [Installasjon](#installasjon)
-  - [Automatisk konfigurasjon (via install.sh)](#automatisk-konfigurasjon-via-installsh)
-  - [Manuell konfigurasjon](#manuell-konfigurasjon)
-- [Bruk](#bruk)
-  - [Grunnleggende bruk](#grunnleggende-bruk)
-  - [Spesifiser bibliotek og versjon](#spesifiser-bibliotek-og-versjon)
-- [Relevante biblioteker for doc-aide](#relevante-biblioteker-for-doc-aide)
+- [Overview](#overview)
+  - [What is Context7?](#what-is-context7)
+  - [Why use Context7?](#why-use-context7)
+- [Installation](#installation)
+  - [Automatic configuration (via install.sh)](#automatic-configuration-via-installsh)
+  - [Manual configuration](#manual-configuration)
+- [Usage](#usage)
+  - [Basic usage](#basic-usage)
+  - [Specify library and version](#specify-library-and-version)
+- [Relevant libraries for doc-aide](#relevant-libraries-for-doc-aide)
   - [Frontend](#frontend)
   - [Backend](#backend)
   - [Testing](#testing)
-- [Eksempler](#eksempler)
+- [Examples](#examples)
   - [Material UI](#material-ui)
   - [React Hooks](#react-hooks)
   - [Spring Boot](#spring-boot)
-- [Feilsøking](#feilsøking)
-  - [Context7 svarer ikke](#context7-svarer-ikke)
-  - [Finner ikke bibliotek](#finner-ikke-bibliotek)
-- [Referanser](#referanser)
+- [Troubleshooting](#troubleshooting)
+  - [Context7 does not respond](#context7-does-not-respond)
+  - [Library not found](#library-not-found)
+- [References](#references)
 
 ---
 
-## Oversikt
+## Overview
 
-### Hva er Context7?
+### What is Context7?
 
-Context7 er en MCP server fra Upstash som gir Codex tilgang til **oppdatert, versjonsspesifikk dokumentasjon** for biblioteker og frameworks.
+Context7 is an MCP server from Upstash that gives Codex access to **up-to-date, version-specific documentation** for libraries and frameworks.
 
-### Hvorfor bruke Context7?
+### Why use Context7?
 
 **For doc-aide:**
-- ✅ Alltid oppdatert info om UI-biblioteker
-- ✅ Korrekte React/TypeScript patterns
+- ✅ Always up-to-date info about UI libraries
+- ✅ Correct React/TypeScript patterns
 - ✅ Spring Boot / Kotlin best practices
-- ✅ Unngå deprecated APIs
+- ✅ Avoid deprecated APIs
 
 ---
 
-## Installasjon
+## Installation
 
-### Automatisk konfigurasjon (via install.sh)
+### Automatic configuration (via install.sh)
 
-Kjør installasjonsskriptet:
+Run the installation script:
 ```bash
 cd implementations/codex
 ./install.sh
 ```
 
-Scriptet tilbyr å legge til Context7 MCP automatisk.
+The script offers to add the Context7 MCP automatically.
 
-### Manuell konfigurasjon
+### Manual configuration
 
-Legg til i `~/.codex/config.toml`:
+Add to `~/.codex/config.toml`:
 
 ```toml
 [mcp]
@@ -72,29 +72,29 @@ command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 ```
 
-**Restart Codex** for å laste inn MCP server.
+**Restart Codex** to load the MCP server.
 
 ---
 
-## Bruk
+## Usage
 
-### Grunnleggende bruk
+### Basic usage
 
-Legg til `use context7` i prompts:
+Add `use context7` to your prompts:
 
 ```text
-Lag en React component med Material UI buttons, use context7
+Create a React component with Material UI buttons, use context7
 ```
 
-### Spesifiser bibliotek og versjon
+### Specify library and version
 
 ```text
-Refaktorer til React 19, use context7 for react@19
+Refactor to React 19, use context7 for react@19
 ```
 
 ---
 
-## Relevante biblioteker for doc-aide
+## Relevant libraries for doc-aide
 
 ### Frontend
 - `react` - React core
@@ -112,45 +112,45 @@ Refaktorer til React 19, use context7 for react@19
 
 ---
 
-## Eksempler
+## Examples
 
 ### Material UI
 
 ```text
-Lag en form med TextField og Button fra Material UI, use context7 for @mui/material
+Create a form with TextField and Button from Material UI, use context7 for @mui/material
 ```
 
 ### React Hooks
 
 ```text
-Optimaliser med React 19 hooks, use context7 for react@19
+Optimize with React 19 hooks, use context7 for react@19
 ```
 
 ### Spring Boot
 
 ```text
-Lag REST endpoint med validation, use context7 for spring-boot
+Create a REST endpoint with validation, use context7 for spring-boot
 ```
 
 ---
 
-## Feilsøking
+## Troubleshooting
 
-### Context7 svarer ikke
+### Context7 does not respond
 
-1. Sjekk `~/.codex/config.toml`
+1. Check `~/.codex/config.toml`
 2. Restart Codex
-3. Prøv igjen
+3. Try again
 
-### Finner ikke bibliotek
+### Library not found
 
-- Bruk offisielt navn (f.eks. `@navikt/ds-react`)
-- Sjekk om det finnes på npm
+- Use the official name (e.g. `@navikt/ds-react`)
+- Check whether it exists on npm
 
 ---
 
-## Referanser
+## References
 
-- [Context7 offisiell side](https://context7.com/)
-- [Context7 MCP dokumentasjon](https://upstash.com/blog/context7-mcp)
+- [Context7 official site](https://context7.com/)
+- [Context7 MCP documentation](https://upstash.com/blog/context7-mcp)
 - [Codex README](../README.md)

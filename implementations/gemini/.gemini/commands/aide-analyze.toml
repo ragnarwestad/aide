@@ -1,52 +1,52 @@
-# /aide-analyze - Analyser kodebase for JIRA/TODO
-# Bruk: /aide-analyze PROJ-1234
-# Eller: /aide-analyze todo-01
+# /aide-analyze - Analyze the codebase for JIRA/TODO
+# Usage: /aide-analyze PROJ-1234
+# Or: /aide-analyze todo-01
 
-description = "Analyser kodebasen og oppdater 2-analysis.md og 3-solution.md"
+description = "Analyze the codebase and update 2-analysis.md and 3-solution.md"
 
 prompt = """
-Analyser kodebasen for: {{args}}
+Analyze the codebase for: {{args}}
 
-STEG 0: FINN DOKUMENTASJON
-- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/1-description.md
-- Hvis todo-*: Les todo/<TODO_ID>/1-description.md
-- Hvis filen ikke finnes: Kjør /aide-create først
+STEP 0: FIND THE DOCUMENTATION
+- If a JIRA issue (e.g. PROJ-*): Read reports/<NN>-<ISSUE_ID>-slug/1-description.md
+- If todo-*: Read todo/<TODO_ID>/1-description.md
+- If the file does not exist: Run /aide-create first
 
-STEG 1: DETEKTER KOMPLEKSITET
-Les core/rules/workflows.md for kompleksitetsdeteksjon:
-- LAV: 1-2 filer, enkle endringer
-- MIDDELS: 3-10 filer, moderat kompleksitet
-- HØY: 10+ filer, store refaktoreringer
+STEP 1: DETECT COMPLEXITY
+Read core/rules/workflows.md for complexity detection:
+- LOW: 1-2 files, simple changes
+- MEDIUM: 3-10 files, moderate complexity
+- HIGH: 10+ files, large refactorings
 
-STEG 2: ANALYSER KODEBASE
-- Søk etter relevante filer basert på beskrivelsen
-- Identifiser påvirkede komponenter med fil:linje referanser
+STEP 2: ANALYZE THE CODEBASE
+- Search for relevant files based on the description
+- Identify affected components with file:line references
 
-STEG 3: VURDER API-PÅVIRKNING
-- Er dette frontend-only, backend-only, eller begge?
-- Dokumenter påvirkede endpoints
+STEP 3: ASSESS API IMPACT
+- Is this frontend-only, backend-only, or both?
+- Document affected endpoints
 
-STEG 4: OPPDATER DOKUMENTER
-Oppdater 2-analysis.md med:
-- Påvirkede filer (fil:linje format)
-- Kompleksitetsvurdering
-- Risikoanalyse
-- API-påvirkning
+STEP 4: UPDATE THE DOCUMENTS
+Update 2-analysis.md with:
+- Affected files (file:line format)
+- Complexity assessment
+- Risk analysis
+- API impact
 
-Oppdater 3-solution.md med:
-- TDD-basert implementeringsplan
-- Steg 0: Skriv tester (RED)
-- Steg 1-N: Implementering (GREEN)
-- Testing-strategi (REFACTOR)
+Update 3-solution.md with:
+- TDD-based implementation plan
+- Step 0: Write tests (RED)
+- Steps 1-N: Implementation (GREEN)
+- Testing strategy (REFACTOR)
 
-STEG 5: STAGE FILER
-- git add <endrede filer>
+STEP 5: STAGE FILES
+- git add <changed files>
 
-STEG 6: BEKREFT
-- Vis oppsummering av funn
-- Neste steg: Kjør /aide-implement <ID>
+STEP 6: CONFIRM
+- Show a summary of the findings
+- Next step: Run /aide-implement <ID>
 
-VIKTIG:
-- Følg core/rules/workflows.md
-- Bruk fil:linje referanser ALLTID
+IMPORTANT:
+- Follow core/rules/workflows.md
+- ALWAYS use file:line references
 """

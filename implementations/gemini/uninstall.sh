@@ -1,34 +1,34 @@
 #!/usr/bin/env bash
 
-# uninstall.sh - Fjerner Google Gemini CLI-konfigurasjon installert av install.sh
-# Dette reverserer alle endringer gjort av install.sh
+# uninstall.sh - Removes the Google Gemini CLI configuration installed by install.sh
+# This reverses all changes made by install.sh
 
-set -e  # Exit ved feil
+set -e  # Exit on error
 
 echo "🗑️  Google Gemini CLI Uninstall"
 echo "==============================="
 echo ""
 
-# Gemini er global — ingen prosjekt-sti nødvendig
+# Gemini is global — no project path needed
 
-# Bekreft avinstallasjon
-echo "⚠️  Dette vil fjerne:"
-echo "   - Scripts fra ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools)"
+# Confirm uninstallation
+echo "⚠️  This will remove:"
+echo "   - Scripts from ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools)"
 echo "   - ~/.gemini/GEMINI.md"
 echo "   - ~/.gemini/commands/aide-*.toml"
 echo ""
-read -p "Er du sikker på at du vil fortsette? [y/N]: " CONFIRM
+read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""
-  echo "❌ Avbrutt"
+  echo "❌ Aborted"
   exit 0
 fi
 
 echo ""
 
-# 1. Fjern scripts fra ~/.local/bin/
-echo "1️⃣  Fjerner scripts fra ~/.local/bin/..."
+# 1. Remove scripts from ~/.local/bin/
+echo "1️⃣  Removing scripts from ~/.local/bin/..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
@@ -37,46 +37,46 @@ uninstall_common_bin
 
 echo ""
 
-# 2. Fjern global Gemini-konfigurasjon
-echo "2️⃣  Fjerner global Gemini-konfigurasjon..."
+# 2. Remove global Gemini configuration
+echo "2️⃣  Removing global Gemini configuration..."
 
 if [ -f "$HOME/.gemini/GEMINI.md" ]; then
   rm "$HOME/.gemini/GEMINI.md"
-  echo "   ✅ Fjernet: ~/.gemini/GEMINI.md"
+  echo "   ✅ Removed: ~/.gemini/GEMINI.md"
 else
-  echo "   ⏭️  Fantes ikke: ~/.gemini/GEMINI.md"
+  echo "   ⏭️  Did not exist: ~/.gemini/GEMINI.md"
 fi
 
 if [ -d "$HOME/.gemini/commands" ]; then
   rm -f "$HOME/.gemini/commands/"aide-*.toml
-  echo "   ✅ Fjernet: ~/.gemini/commands/aide-*.toml"
+  echo "   ✅ Removed: ~/.gemini/commands/aide-*.toml"
 fi
 
 echo ""
 
-# 3. Informasjon om manuelle steg
-echo "3️⃣  Manuell opprydding (valgfritt)..."
+# 3. Information about manual steps
+echo "3️⃣  Manual cleanup (optional)..."
 echo ""
-echo "   Følgende må fjernes manuelt hvis ønskelig:"
+echo "   The following must be removed manually if desired:"
 echo ""
 echo "   Gemini CLI:"
 echo "      npm uninstall -g @google/gemini-cli"
-echo "      # eller"
+echo "      # or"
 echo "      mise uninstall npm:@google/gemini-cli"
 echo ""
 echo "   Gemini config:"
 echo "      rm -rf ~/.gemini"
 echo ""
-echo "   Environment variabler (i ~/.zshrc eller ~/.bashrc):"
+echo "   Environment variables (in ~/.zshrc or ~/.bashrc):"
 echo "      export AIDE_PROJECTS_PATH=..."
 echo "      export AIDE_INSTALLATION_PATH=..."
 echo ""
-echo "   JIRA-token:"
+echo "   JIRA token:"
 echo "      rm ~/.jira_token"
 echo ""
 
-echo "✅ Avinstallasjon fullført!"
+echo "✅ Uninstallation complete!"
 echo ""
-echo "💡 For å installere på nytt, kjør:"
+echo "💡 To reinstall, run:"
 echo "   cd implementations/gemini"
 echo "   ./install.sh"

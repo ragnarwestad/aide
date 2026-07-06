@@ -1,34 +1,34 @@
-# /aide-create - Opprett JIRA/TODO dokumentasjon
-# Bruk: /aide-create PROJ-7890
-# Eller: /aide-create todo-navn Beskrivelse av oppgaven
+# /aide-create - Create JIRA/TODO documentation
+# Usage: /aide-create PROJ-7890
+# Or: /aide-create todo-name Description of the task
 
-description = "Opprett strukturert dokumentasjon for JIRA-sak eller TODO-plan"
+description = "Create structured documentation for a JIRA issue or TODO plan"
 
 prompt = """
-Opprett dokumentasjon for: {{args}}
+Create documentation for: {{args}}
 
-STEG 0: DETEKTER TYPE
-- Hvis argumentet starter med "PROJ-": Dette er en JIRA-sak
-- Hvis argumentet starter med "TODO": Dette er en TODO-plan
-- Ellers: Spør bruker om det er JIRA eller TODO
+STEP 0: DETECT TYPE
+- If the argument starts with "PROJ-": This is a JIRA issue
+- If the argument starts with "TODO": This is a TODO plan
+- Otherwise: Ask the user whether it is JIRA or TODO
 
-FOR JIRA-SAK (PROJ-XXXX):
-1. Sjekk at AIDE_INSTALLATION_PATH er satt (stopp med feilmelding hvis ikke).
-2. Tildel neste ledige nummer, og opprett katalogen reports/<NN>-PROJ-XXXX-slug/
-   med filene fra malene i core/templates/todo/: 0-README.md, 1-description.md,
-   2-analysis.md, 3-solution.md, 4-status.md. Fyll inn JIRA-metadata i
-   1-description.md (bruker limer inn JIRA-data).
-3. Verifiser at filene ble opprettet.
-4. Vis oppsummering. Neste steg: /aide-analyze <NN>
+FOR A JIRA ISSUE (PROJ-XXXX):
+1. Check that AIDE_INSTALLATION_PATH is set (stop with an error message if not).
+2. Assign the next available number, and create the directory reports/<NN>-PROJ-XXXX-slug/
+   with the files from the templates in core/templates/todo/: 0-README.md, 1-description.md,
+   2-analysis.md, 3-solution.md, 4-status.md. Fill in the JIRA metadata in
+   1-description.md (the user pastes in the JIRA data).
+3. Verify that the files were created.
+4. Show a summary. Next step: /aide-analyze <NN>
 
-FOR TODO-PLAN:
-1. Sjekk at AIDE_INSTALLATION_PATH er satt.
-2. Tildel neste ledige nummer, generer slug fra tittelen, og opprett
-   reports/<NN>-slug/ med de samme filene fra malene i core/templates/todo/.
-3. Verifiser at filene ble opprettet.
-4. Vis oppsummering. Neste steg: /aide-analyze <NN>
+FOR A TODO PLAN:
+1. Check that AIDE_INSTALLATION_PATH is set.
+2. Assign the next available number, generate a slug from the title, and create
+   reports/<NN>-slug/ with the same files from the templates in core/templates/todo/.
+3. Verify that the files were created.
+4. Show a summary. Next step: /aide-analyze <NN>
 
-VIKTIG:
-- Følg core/rules/workflows.md
-- Følg core/rules/documentation.md
+IMPORTANT:
+- Follow core/rules/workflows.md
+- Follow core/rules/documentation.md
 """

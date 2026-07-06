@@ -1,103 +1,103 @@
-# Installasjonsveiledning - doc-aide-claude-code
+# Installation Guide - doc-aide-claude-code
 
 ## Quick Start
 
 ```bash
-# 1. Pakk ut zip-filen
+# 1. Unpack the zip file
 cd ~/develop
 unzip doc-aide-claude-code.zip
 cd doc-aide-claude-code
 
-# 2. Sett environment-variabler (legg til i ~/.zshrc)
+# 2. Set environment variables (add to ~/.zshrc)
 export AIDE_PROJECTS_PATH="$HOME/develop"
 
-# 3. Kjør install
+# 3. Run install
 ./install.sh
 
-# 4. Start Claude Code i et prosjekt
+# 4. Start Claude Code in a project
 cd $AIDE_PROJECTS_PATH/my-app
 claude
 ```
 
-**Test:** Kjør `/aide-create PROJ-7637` i Claude Code.
+**Test:** Run `/aide-create PROJ-7637` in Claude Code.
 
 ---
 
-## Forutsetninger
+## Prerequisites
 
-- **Claude Code CLI** installert (`claude` kommandoen fungerer)
+- **Claude Code CLI** installed (the `claude` command works)
 - **Python 3.8+** (for scripts)
-- **Tilgang til JIRA** (https://jira.example.com)
-- **Mac/Linux** eller **Windows med WSL** (bash-scripts krever Unix-shell)
+- **Access to JIRA** (https://jira.example.com)
+- **Mac/Linux** or **Windows with WSL** (bash scripts require a Unix shell)
 
-> **Windows-brukere:** Scriptene er bash-scripts og krever [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) eller Git Bash. Kjør `wsl --install` i PowerShell for å installere WSL.
+> **Windows users:** The scripts are bash scripts and require [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) or Git Bash. Run `wsl --install` in PowerShell to install WSL.
 
 ---
 
-## Hva gjør install.sh?
+## What does install.sh do?
 
-1. **Installerer scripts** til `~/.local/bin/`:
-   - `aide-generate-pdf`, `aide-generate-html` - PDF/HTML-eksport
-   - `mise-upgrade-ai-tools` - Oppdaterer AI-CLI-ene
+1. **Installs scripts** to `~/.local/bin/`:
+   - `aide-generate-pdf`, `aide-generate-html` - PDF/HTML export
+   - `mise-upgrade-ai-tools` - Updates the AI CLIs
 
-2. **Installerer globalt** til `~/.claude/`:
-   - `skills/` - skills (eksperter + aide-* workflows)
-   - `agents/` - Spesialiserte agenter
-   - `rules/` - Generiske regler
+2. **Installs globally** to `~/.claude/`:
+   - `skills/` - skills (experts + aide-* workflows)
+   - `agents/` - Specialized agents
+   - `rules/` - Generic rules
 
-3. **Installerer LSP-plugins** (typescript, kotlin, jdtls)
+3. **Installs LSP plugins** (typescript, kotlin, jdtls)
 
 ### Native Claude Code Skills
 
-Skills er ekspertise-moduler som Claude Code automatisk aktiverer basert på kontekst:
+Skills are expertise modules that Claude Code activates automatically based on context:
 
 ```text
 .claude/skills/
 ├── tdd-coach/SKILL.md               # Test-Driven Development
-├── task-workflow-assistant/SKILL.md # JIRA/TODO-analyse
-└── architecture-advisor/SKILL.md    # Arkitektur-vurderinger
+├── task-workflow-assistant/SKILL.md # JIRA/TODO analysis
+└── architecture-advisor/SKILL.md    # Architecture assessments
 ```
 
-**Eksempel:** Når du skal implementere ny funksjonalitet, aktiveres `tdd-coach` automatisk og veileder Claude Code gjennom RED → GREEN → REFACTOR.
+**Example:** When you are about to implement new functionality, `tdd-coach` is activated automatically and guides Claude Code through RED → GREEN → REFACTOR.
 
 ---
 
 ## Environment Variables
 
-### AIDE_PROJECTS_PATH (påkrevd)
+### AIDE_PROJECTS_PATH (required)
 
 ```bash
 export AIDE_PROJECTS_PATH="$HOME/develop"
 ```
 
-Rot-mappen hvor prosjektene dine ligger.
+The root directory where your projects live.
 
-### AIDE_REPORTS_PATH (valgfri)
+### AIDE_REPORTS_PATH (optional)
 
 ```bash
 export AIDE_REPORTS_PATH="$HOME/Documents/aide-reports"
 ```
 
-Hvor JIRA-dokumentasjon og TODO-planer lagres. Hvis ikke satt, brukes `doc-aide-claude-code/reports/`.
+Where JIRA documentation and TODO plans are stored. If not set, `doc-aide-claude-code/reports/` is used.
 
 ---
 
 ---
 
-## LSP-plugins (semantisk kodeforståelse)
+## LSP plugins (semantic code understanding)
 
-Claude Code har innebygd støtte for LSP-plugins som gir semantisk kodenavigasjon
-(symbol-søk, finn referanser, refactoring). Disse installeres automatisk av `install.sh`.
+Claude Code has built-in support for LSP plugins that provide semantic code navigation
+(symbol search, find references, refactoring). These are installed automatically by `install.sh`.
 
-**Installerte plugins:**
+**Installed plugins:**
 
-| Plugin | Språk | Bruksområde |
+| Plugin | Language | Used for |
 |--------|-------|-------------|
 | `typescript-lsp` | TypeScript/JavaScript | my-app |
 | `kotlin-lsp` | Kotlin | my-api |
 | `jdtls-lsp` | Java | my-api |
 
-**Manuell installasjon** (hvis nødvendig):
+**Manual installation** (if needed):
 
 ```bash
 claude plugin install typescript-lsp@claude-plugins-official
@@ -105,46 +105,46 @@ claude plugin install kotlin-lsp@claude-plugins-official
 claude plugin install jdtls-lsp@claude-plugins-official
 ```
 
-### JIRA MCP (alternativ til cookies)
+### JIRA MCP (alternative to cookies)
 
-Hvis du har JIRA MCP-server, kan den brukes i stedet for cookie-basert autentisering.
+If you have a JIRA MCP server, it can be used instead of cookie-based authentication.
 
 ---
 
-## Tilgjengelige skills
+## Available skills
 
-### Slash commands (skills i Claude Code)
+### Slash commands (skills in Claude Code)
 
-| Kommando | Beskrivelse |
+| Command | Description |
 |----------|-------------|
-| `/aide-create PROJ-XXXX` | Opprett JIRA-dokumentasjon |
-| `/aide-create todo-navn Beskrivelse` | Opprett TODO-plan |
-| `/aide-analyze PROJ-XXXX` | Analyser kodebase |
-| `/aide-implement PROJ-XXXX` | Implementer med TDD |
-| `/aide-react-class-to-func <fil>` | Konverter React class til functional |
-| `/aide-make-tests <fil>` | Generer manglende tester |
+| `/aide-create PROJ-XXXX` | Create JIRA documentation |
+| `/aide-create todo-name Description` | Create TODO plan |
+| `/aide-analyze PROJ-XXXX` | Analyze codebase |
+| `/aide-implement PROJ-XXXX` | Implement with TDD |
+| `/aide-react-class-to-func <file>` | Convert React class to functional |
+| `/aide-make-tests <file>` | Generate missing tests |
 
-### Terminal-scripts
+### Terminal scripts
 
-| Script | Beskrivelse |
+| Script | Description |
 |--------|-------------|
-| `aide-generate-pdf` | Generer PDF fra rapport |
-| `aide-generate-html` | Generer HTML fra rapport |
-| `mise-upgrade-ai-tools` | Oppdater AI-CLI-ene |
+| `aide-generate-pdf` | Generate PDF from a report |
+| `aide-generate-html` | Generate HTML from a report |
+| `mise-upgrade-ai-tools` | Update the AI CLIs |
 
-Dokumentopprettelse skjer via slash-kommandoen `/aide-create` (ikke et terminal-script).
+Document creation happens via the slash command `/aide-create` (not a terminal script).
 
 ---
 
-## Feilsøking
+## Troubleshooting
 
-### "/aide-create kommando ikke funnet"
+### "/aide-create command not found"
 
 ```bash
-# Verifiser at AIDE_PROJECTS_PATH er satt
+# Verify that AIDE_PROJECTS_PATH is set
 echo $AIDE_PROJECTS_PATH
 
-# Kjør install på nytt
+# Run install again
 cd /path/to/doc-aide-claude-code
 ./install.sh
 
@@ -153,19 +153,19 @@ cd /path/to/doc-aide-claude-code
 
 ---
 
-## Oppdatere
+## Updating
 
-For å oppdatere til ny versjon:
+To update to a new version:
 
-1. Last ned ny zip-pakke
-2. Pakk ut (overskriver gammel)
-3. Kjør `./install.sh` på nytt
+1. Download the new zip package
+2. Unpack (overwrites the old one)
+3. Run `./install.sh` again
 
 ---
 
-## Videre lesning
+## Further reading
 
-- `README.md` - Oversikt
-- `CLAUDE.md` - AI-instruksjoner
-- `core/rules/workflows.md` - Arbeidsflyter
-- `core/rules/git.md` - Git-regler
+- `README.md` - Overview
+- `CLAUDE.md` - AI instructions
+- `core/rules/workflows.md` - Workflows
+- `core/rules/git.md` - Git rules

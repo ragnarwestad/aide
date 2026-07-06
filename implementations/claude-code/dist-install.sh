@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# install.sh - Installerer doc-aide-claude-code
+# install.sh - Installs doc-aide-claude-code
 
 set -e
 
@@ -8,20 +8,20 @@ echo "🔧 doc-aide-claude-code Install"
 echo "===================================="
 echo ""
 
-# Finn hvor dette scriptet kjører fra (dist-pakke-roten)
+# Find where this script is running from (the dist package root)
 DIST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Sjekk at AIDE_PROJECTS_PATH er satt
+# Check that AIDE_PROJECTS_PATH is set
 if [ -z "$AIDE_PROJECTS_PATH" ]; then
-  echo "❌ Feil: AIDE_PROJECTS_PATH er ikke satt"
+  echo "❌ Error: AIDE_PROJECTS_PATH is not set"
   echo ""
-  echo "Sett disse i ~/.zshrc eller ~/.bashrc:"
+  echo "Set these in ~/.zshrc or ~/.bashrc:"
   echo "  export AIDE_PROJECTS_PATH=\"\$HOME/develop\""
   echo "  export AIDE_INSTALLATION_PATH=\"$DIST_DIR\""
   echo ""
-  echo "(AIDE_INSTALLATION_PATH skal peke hit: $DIST_DIR)"
+  echo "(AIDE_INSTALLATION_PATH should point here: $DIST_DIR)"
   echo ""
-  echo "Deretter:"
+  echo "Then:"
   echo "  source ~/.zshrc"
   echo "  ./install.sh"
   exit 1
@@ -29,20 +29,20 @@ fi
 
 echo "✅ AIDE_PROJECTS_PATH: $AIDE_PROJECTS_PATH"
 
-# Verifiser at mappen eksisterer
+# Verify that the directory exists
 if [ ! -d "$AIDE_PROJECTS_PATH" ]; then
-  echo "❌ Mappen eksisterer ikke: $AIDE_PROJECTS_PATH"
+  echo "❌ Directory does not exist: $AIDE_PROJECTS_PATH"
   exit 1
 fi
 
-# Sjekk at AIDE_INSTALLATION_PATH er satt
+# Check that AIDE_INSTALLATION_PATH is set
 if [ -z "$AIDE_INSTALLATION_PATH" ]; then
-  echo "❌ Feil: AIDE_INSTALLATION_PATH er ikke satt"
+  echo "❌ Error: AIDE_INSTALLATION_PATH is not set"
   echo ""
-  echo "Sett denne i ~/.zshrc eller ~/.bashrc:"
+  echo "Set this in ~/.zshrc or ~/.bashrc:"
   echo "  export AIDE_INSTALLATION_PATH=\"$DIST_DIR\""
   echo ""
-  echo "Deretter:"
+  echo "Then:"
   echo "  source ~/.zshrc"
   echo "  ./install.sh"
   exit 1
@@ -50,19 +50,19 @@ fi
 
 echo "✅ AIDE_INSTALLATION_PATH: $AIDE_INSTALLATION_PATH"
 
-# Verifiser at installasjons-mappen eksisterer og har templates
+# Verify that the installation directory exists and has templates
 if [ ! -d "$AIDE_INSTALLATION_PATH/core/templates" ]; then
-  echo "❌ Feil: Templates ikke funnet i: $AIDE_INSTALLATION_PATH/core/templates"
+  echo "❌ Error: Templates not found in: $AIDE_INSTALLATION_PATH/core/templates"
   echo ""
-  echo "Er AIDE_INSTALLATION_PATH satt riktig?"
+  echo "Is AIDE_INSTALLATION_PATH set correctly?"
   exit 1
 fi
 
-echo "📂 Installerer fra: $DIST_DIR"
+echo "📂 Installing from: $DIST_DIR"
 echo ""
 
-# 1. Installer scripts til ~/.local/bin/
-echo "1️⃣  Installerer scripts til ~/.local/bin/..."
+# 1. Install scripts to ~/.local/bin/
+echo "1️⃣  Installing scripts to ~/.local/bin/..."
 mkdir -p ~/.local/bin
 
 for script in aide-generate-pdf aide-generate-html aide-create; do
@@ -75,10 +75,10 @@ done
 
 echo ""
 
-# 2. Kopier konfigurasjon til prosjekter
-echo "2️⃣  Kopierer konfigurasjon til prosjekter..."
+# 2. Copy configuration to projects
+echo "2️⃣  Copying configuration to projects..."
 
-# Generer settings.json med absolutte stier
+# Generate settings.json with absolute paths
 generate_settings() {
   local REPORTS_PERMISSION=""
   if [ -n "$AIDE_REPORTS_PATH" ]; then
@@ -112,42 +112,42 @@ for project in my-app my-api doc-aide my-docs; do
   PROJECT_DIR="$AIDE_PROJECTS_PATH/$project"
 
   if [ ! -d "$PROJECT_DIR" ]; then
-    echo "   ⏭️  $project: finnes ikke"
+    echo "   ⏭️  $project: does not exist"
     continue
   fi
 
-  # Fjern gamle symlinks
+  # Remove old symlinks
   [ -L "$PROJECT_DIR/.claude" ] && rm "$PROJECT_DIR/.claude"
   [ -L "$PROJECT_DIR/CLAUDE.md" ] && rm "$PROJECT_DIR/CLAUDE.md"
 
-  # Fjern gammel .claude mappe
+  # Remove old .claude directory
   [ -d "$PROJECT_DIR/.claude" ] && rm -rf "$PROJECT_DIR/.claude"
 
-  # Opprett .claude/
+  # Create .claude/
   mkdir -p "$PROJECT_DIR/.claude"
 
-  # Kopier commands
+  # Copy commands
   if [ -d "$DIST_DIR/.claude/commands" ]; then
     cp -r "$DIST_DIR/.claude/commands" "$PROJECT_DIR/.claude/"
   fi
 
-  # Kopier skills (native Claude Code skills)
+  # Copy skills (native Claude Code skills)
   if [ -d "$DIST_DIR/.claude/skills" ]; then
     cp -r "$DIST_DIR/.claude/skills" "$PROJECT_DIR/.claude/"
   fi
 
-  # Kopier agents
+  # Copy agents
   if [ -d "$DIST_DIR/agents" ]; then
     cp -r "$DIST_DIR/agents" "$PROJECT_DIR/.claude/"
   fi
 
-  # Generer settings.json
+  # Generate settings.json
   generate_settings > "$PROJECT_DIR/.claude/settings.json"
 
-  # Kopier CLAUDE.md til .claude/ (ikke rot)
+  # Copy CLAUDE.md to .claude/ (not the root)
   cp "$DIST_DIR/CLAUDE.md" "$PROJECT_DIR/.claude/CLAUDE.md"
 
-  # Fjern gammel rot-CLAUDE.md hvis den finnes
+  # Remove old root CLAUDE.md if it exists
   if [ -f "$PROJECT_DIR/CLAUDE.md" ] && [ ! -L "$PROJECT_DIR/CLAUDE.md" ]; then
     rm "$PROJECT_DIR/CLAUDE.md"
   fi
@@ -157,20 +157,20 @@ done
 
 echo ""
 
-# 3. Verifiser PATH
-echo "3️⃣  Verifiserer PATH..."
+# 3. Verify PATH
+echo "3️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-  echo "   ✅ ~/.local/bin er i PATH"
+  echo "   ✅ ~/.local/bin is in PATH"
 else
-  echo "   ⚠️  ~/.local/bin er IKKE i PATH"
-  echo "   Legg til i ~/.zshrc:"
+  echo "   ⚠️  ~/.local/bin is NOT in PATH"
+  echo "   Add to ~/.zshrc:"
   echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
 fi
 
 echo ""
-echo "✅ Installasjon fullført!"
+echo "✅ Installation complete!"
 echo ""
-echo "📝 Neste steg:"
+echo "📝 Next steps:"
 echo "   1. Start Claude Code:"
 echo "      cd $AIDE_PROJECTS_PATH/my-app && claude"
 echo ""

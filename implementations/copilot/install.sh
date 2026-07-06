@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-# install.sh - Installerer GitHub Copilot-konfigurasjon globalt
+# install.sh - Installs GitHub Copilot configuration globally
 #
-# Globalt (~/.copilot/): copilot-instructions.md
-# Globalt (~/.local/bin/): scripts
+# Global (~/.copilot/): copilot-instructions.md
+# Global (~/.local/bin/): scripts
 
-set -e  # Exit ved feil
+set -e  # Exit on error
 
 echo "🔧 GitHub Copilot Setup"
 echo "======================="
@@ -14,78 +14,78 @@ echo ""
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
-# Verifiser at workspace eksisterer
+# Verify that the workspace exists
 if [ ! -d "$WORKSPACE_ROOT" ]; then
-  echo "❌ Kunne ikke finne workspace: $WORKSPACE_ROOT"
+  echo "❌ Could not find workspace: $WORKSPACE_ROOT"
   exit 1
 fi
 
 echo "📂 Workspace: $WORKSPACE_ROOT"
 echo ""
 
-# 1. Installer scripts til ~/.local/bin/
-echo "1️⃣  Installerer scripts til ~/.local/bin/..."
+# 1. Install scripts to ~/.local/bin/
+echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
 
 echo ""
 
-# 2. Installer AGENTS.md som global Copilot-instruksjon
-echo "2️⃣  Installerer global Copilot-instruksjon..."
+# 2. Install AGENTS.md as global Copilot instructions
+echo "2️⃣  Installing global Copilot instructions..."
 
 if [ ! -f "$WORKSPACE_ROOT/core/AGENTS.md" ]; then
-  echo "   ❌ core/AGENTS.md ikke funnet!"
-  echo "   Kjør core/scripts/build-agents-md.sh først, eller sjekk at du har siste versjon: git pull"
+  echo "   ❌ core/AGENTS.md not found!"
+  echo "   Run core/scripts/build-agents-md.sh first, or make sure you have the latest version: git pull"
   exit 1
 fi
 
 mkdir -p "$HOME/.copilot"
 cp "$WORKSPACE_ROOT/core/AGENTS.md" "$HOME/.copilot/copilot-instructions.md"
-echo "   ✅ Installert: ~/.copilot/copilot-instructions.md"
+echo "   ✅ Installed: ~/.copilot/copilot-instructions.md"
 echo ""
 
-# Verifiser at ~/.local/bin er i PATH
-echo "3️⃣  Verifiserer PATH..."
+# Verify that ~/.local/bin is in PATH
+echo "3️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-  echo "   ✅ ~/.local/bin er i PATH"
+  echo "   ✅ ~/.local/bin is in PATH"
 else
-  echo "   ⚠️  ~/.local/bin er IKKE i PATH"
-  echo "   ℹ️  Legg til følgende i ~/.zshrc eller ~/.bashrc:"
+  echo "   ⚠️  ~/.local/bin is NOT in PATH"
+  echo "   ℹ️  Add the following to ~/.zshrc or ~/.bashrc:"
   echo ""
   echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 fi
 
-# 4. Sjekk om GitHub Copilot extension er installert
-echo "4️⃣  Sjekker GitHub Copilot extension..."
+# 4. Check if the GitHub Copilot extension is installed
+echo "4️⃣  Checking GitHub Copilot extension..."
 
 if command -v code &> /dev/null; then
   if code --list-extensions | grep -q "github.copilot"; then
-    echo "   ✅ GitHub Copilot extension er installert"
+    echo "   ✅ GitHub Copilot extension is installed"
   else
-    echo "   ⚠️  GitHub Copilot extension er IKKE installert"
+    echo "   ⚠️  GitHub Copilot extension is NOT installed"
     echo ""
-    echo "   Installer extensions:"
+    echo "   Install the extensions:"
     echo "      code --install-extension GitHub.copilot"
     echo "      code --install-extension GitHub.copilot-chat"
     echo ""
   fi
 else
-  echo "   ⚠️  'code' kommando ikke funnet (VS Code CLI)"
-  echo "   💡 Installer fra VS Code: Cmd+Shift+P → 'Shell Command: Install 'code' command in PATH'"
+  echo "   ⚠️  'code' command not found (VS Code CLI)"
+  echo "   💡 Install from VS Code: Cmd+Shift+P → 'Shell Command: Install 'code' command in PATH'"
   echo ""
 fi
 
-# 5. Installer JetBrains Live Templates (valgfritt)
+# 5. Install JetBrains Live Templates (optional)
 echo "5️⃣  JetBrains Live Templates..."
 
 JETBRAINS_TEMPLATES="$WORKSPACE_ROOT/implementations/copilot/jetbrains/aide-templates.xml"
 
 if [ -f "$JETBRAINS_TEMPLATES" ]; then
-  echo "   📦 Live Templates tilgjengelig for JetBrains IDE-er"
+  echo "   📦 Live Templates available for JetBrains IDEs"
   echo ""
 
-  # Finn installerte JetBrains IDE-er
+  # Find installed JetBrains IDEs
   JETBRAINS_DIR="$HOME/Library/Application Support/JetBrains"
 
   if [ -d "$JETBRAINS_DIR" ]; then
@@ -95,50 +95,50 @@ if [ -f "$JETBRAINS_TEMPLATES" ]; then
         ide_name=$(basename "$ide_dir")
         templates_dir="$ide_dir/templates"
 
-        # Hopp over backup-mapper og andre ikke-IDE-mapper
+        # Skip backup folders and other non-IDE folders
         if [[ "$ide_name" == *"backup"* ]] || [[ "$ide_name" == "consentOptions" ]]; then
           continue
         fi
 
         mkdir -p "$templates_dir"
         cp "$JETBRAINS_TEMPLATES" "$templates_dir/aide-templates.xml"
-        echo "   ✅ Installert: $ide_name/templates/aide-templates.xml"
+        echo "   ✅ Installed: $ide_name/templates/aide-templates.xml"
         FOUND_IDE=true
       fi
     done
 
     if [ "$FOUND_IDE" = false ]; then
-      echo "   ⚠️  Ingen JetBrains IDE-er funnet"
-      echo "   💡 Manuell installasjon:"
+      echo "   ⚠️  No JetBrains IDEs found"
+      echo "   💡 Manual installation:"
       echo "      cp $JETBRAINS_TEMPLATES ~/Library/Application Support/JetBrains/<IDE>/templates/"
     fi
   else
-    echo "   ⚠️  JetBrains-mappe ikke funnet"
-    echo "   💡 Hvis du bruker JetBrains IDE, kopier manuelt:"
+    echo "   ⚠️  JetBrains folder not found"
+    echo "   💡 If you use a JetBrains IDE, copy manually:"
     echo "      cp $JETBRAINS_TEMPLATES ~/Library/Application Support/JetBrains/<IDE>/templates/"
   fi
 
   echo ""
-  echo "   📋 Tilgjengelige Live Templates:"
-  echo "      aide-review    → Code review før PR"
-  echo "      aide-create   → Opprett JIRA-dokumentasjon"
-  echo "      aide-analyze  → Analyser kodebase"
-  echo "      aide-implement       → Implementer med TDD"
-  echo "      aide-make-tests → Lag manglende tester"
-  echo "      aide-react-class-to-func → Konverter React class"
+  echo "   📋 Available Live Templates:"
+  echo "      aide-review    → Code review before PR"
+  echo "      aide-create   → Create JIRA documentation"
+  echo "      aide-analyze  → Analyze codebase"
+  echo "      aide-implement       → Implement with TDD"
+  echo "      aide-make-tests → Create missing tests"
+  echo "      aide-react-class-to-func → Convert React class"
   echo ""
-  echo "   💡 Bruk: Skriv forkortelsen i editoren og trykk Tab"
+  echo "   💡 Usage: Type the abbreviation in the editor and press Tab"
 fi
 
 echo ""
-echo "✅ Setup fullført!"
+echo "✅ Setup complete!"
 echo ""
-echo "📋 Installert globalt:"
-echo "   ~/.copilot/copilot-instructions.md  (regler for Copilot)"
+echo "📋 Installed globally:"
+echo "   ~/.copilot/copilot-instructions.md  (rules for Copilot)"
 echo "   ~/.local/bin/                       (scripts)"
 echo ""
 echo "💡 Tips:"
-echo "   - Oppdater: Kjør ./install.sh på nytt"
-echo "   - Oppdater regler: Rediger core/rules/, kjør core/scripts/build-agents-md.sh, deretter ./install.sh"
-echo "   - Restart VS Code etter oppdatering"
+echo "   - Update: Run ./install.sh again"
+echo "   - Update rules: Edit core/rules/, run core/scripts/build-agents-md.sh, then ./install.sh"
+echo "   - Restart VS Code after updating"
 echo ""

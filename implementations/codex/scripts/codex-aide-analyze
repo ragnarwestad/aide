@@ -1,9 +1,9 @@
 #!/bin/bash
-# codex-aide-analyze - Analyser kodebase for JIRA/TODO via Codex CLI
+# codex-aide-analyze - Analyze codebase for JIRA/TODO via Codex CLI
 #
-# Bruk:
-#   codex-aide-analyze PROJ-7890    # JIRA-sak
-#   codex-aide-analyze todo-01         # TODO-plan
+# Usage:
+#   codex-aide-analyze PROJ-7890    # JIRA issue
+#   codex-aide-analyze todo-01         # TODO plan
 
 set -e
 
@@ -11,9 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPTS_DIR="$(dirname "$SCRIPT_DIR")/prompts"
 
 if [ -z "$1" ]; then
-    echo "Bruk: codex-aide-analyze <ID>"
+    echo "Usage: codex-aide-analyze <ID>"
     echo ""
-    echo "Eksempler:"
+    echo "Examples:"
     echo "  codex-aide-analyze PROJ-7890"
     echo "  codex-aide-analyze todo-01"
     exit 1
@@ -21,27 +21,27 @@ fi
 
 ID="$1"
 
-# Les prompt-template
+# Read prompt template
 PROMPT_FILE="$PROMPTS_DIR/aide-analyze.md"
 if [ ! -f "$PROMPT_FILE" ]; then
-    echo "Feil: Finner ikke $PROMPT_FILE"
+    echo "Error: Cannot find $PROMPT_FILE"
     exit 1
 fi
 
-# Bygg prompt med ID-substitusjon
+# Build prompt with ID substitution
 if [[ "$ID" == PROJ-* ]]; then
     PROMPT=$(cat "$PROMPT_FILE" | sed "s/PROJ-XXXX/$ID/g")
     PROMPT="$PROMPT
 
 ---
-Kjør analyse for JIRA-sak: $ID"
+Run analysis for JIRA issue: $ID"
 else
     PROMPT=$(cat "$PROMPT_FILE" | sed "s/TODO-XX-navn/$ID/g" | sed "s/TODO-XX/$ID/g")
     PROMPT="$PROMPT
 
 ---
-Kjør analyse for TODO: $ID"
+Run analysis for TODO: $ID"
 fi
 
-# Kjør Codex med prompten
+# Run Codex with the prompt
 exec codex "$PROMPT"

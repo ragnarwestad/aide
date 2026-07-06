@@ -1,37 +1,37 @@
-# Google Gemini CLI - Implementasjonsguide
+# Google Gemini CLI - Implementation Guide
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
-- [Hva er Gemini CLI?](#hva-er-gemini-cli)
-- [Forutsetninger](#forutsetninger)
-- [Installasjon](#installasjon)
-- [Konfigurasjon](#konfigurasjon)
-  - [VS Code-integrasjon](#vs-code-integrasjon-gemini-code-assist)
-- [Bruk](#bruk)
+- [Overview](#overview)
+- [What is the Gemini CLI?](#what-is-the-gemini-cli)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [VS Code integration](#vs-code-integration-gemini-code-assist)
+- [Usage](#usage)
   - [Slash Commands](#slash-commands)
-  - [JIRA-arbeidsflyt](#jira-arbeidsflyt)
-  - [TDD-arbeidsflyt](#tdd-arbeidsflyt)
-- [Slash Commands (detaljer)](#slash-commands)
-- [Prompt-templates](#prompt-templates)
+  - [JIRA workflow](#jira-workflow)
+  - [TDD workflow](#tdd-workflow)
+- [Slash Commands (details)](#slash-commands)
+- [Prompt templates](#prompt-templates)
 - [VS Code Tasks](#vs-code-tasks)
-- [Tips og triks](#tips-og-triks)
-- [Begrensninger](#begrensninger)
-- [Sammenligning med Claude Code](#sammenligning-med-claude-code)
+- [Tips and tricks](#tips-and-tricks)
+- [Limitations](#limitations)
+- [Comparison with Claude Code](#comparison-with-claude-code)
 
 ---
 
-## Oversikt
+## Overview
 
-Denne implementasjonen lar deg bruke **Google Gemini CLI** til å følge samme workflows som Claude Code, med terminal-basert AI-assistanse.
+This implementation lets you use the **Google Gemini CLI** to follow the same workflows as Claude Code, with terminal-based AI assistance.
 
-**Arkitektur:**
+**Architecture:**
 ```text
 implementations/gemini/
-├── README.md                           # Denne filen
-├── GEMINI.md                           # Custom instructions (kopieres til workspace)
+├── README.md                           # This file
+├── GEMINI.md                           # Custom instructions (copied to the workspace)
 └── .gemini/
-    └── commands/                       # Slash commands (TOML-format)
+    └── commands/                       # Slash commands (TOML format)
         ├── aide-create.toml           # /aide-create
         ├── aide-analyze.toml          # /aide-analyze
         ├── aide-implement.toml               # /aide-implement
@@ -39,115 +39,115 @@ implementations/gemini/
         └── aide-react-class-to-func.toml # /aide-react-class-to-func
 ```
 
-**Gjenbruker:**
-- `core/rules/` - Samme workflows, git-regler, testing-regler
-- `core/templates/` - Samme 4-fils dokumentstruktur
-- `core/scripts/` - Samme scripts (aide-generate-pdf, etc.)
+**Reuses:**
+- `core/rules/` - Same workflows, git rules, testing rules
+- `core/templates/` - Same 4-file document structure
+- `core/scripts/` - Same scripts (aide-generate-pdf, etc.)
 
 ---
 
-## Hva er Gemini CLI?
+## What is the Gemini CLI?
 
-**Gemini CLI** er et open-source AI-verktøy fra Google som kan:
-- Kjøre lokalt i terminalen med tilgang til filsystemet
-- Navigere i repo, editere filer, kjøre kommandoer
-- Bruke Google Search for oppdatert informasjon
-- Integrere med MCP (Model Context Protocol) for utvidelser
-- Lagre og gjenoppta samtaler (checkpointing)
+The **Gemini CLI** is an open-source AI tool from Google that can:
+- Run locally in the terminal with access to the file system
+- Navigate the repo, edit files, run commands
+- Use Google Search for up-to-date information
+- Integrate with MCP (Model Context Protocol) for extensions
+- Save and resume conversations (checkpointing)
 
-**Modell:**
+**Model:**
 - Gemini 3 (default, 1M token context window)
-- Gemini 3.x Flash / Flash-Lite for raskere/billigere bruk
+- Gemini 3.x Flash / Flash-Lite for faster/cheaper usage
 
-**Gratis tier:**
-- 60 requests/minutt
-- 1000 requests/dag
-- Gemini 3 med 1M token context window
+**Free tier:**
+- 60 requests/minute
+- 1000 requests/day
+- Gemini 3 with 1M token context window
 
 **Open source:**
-- Apache 2.0 lisens
+- Apache 2.0 license
 - https://github.com/google-gemini/gemini-cli
 
 ---
 
-## Forutsetninger
+## Prerequisites
 
-### 1. Google-konto
+### 1. Google account
 
-- Personlig Google-konto (gratis tier)
-- Eller betalt tier (Google AI Pro/Ultra) for høyere grenser
-- Eller betalt API-nøkkel
+- Personal Google account (free tier)
+- Or paid tier (Google AI Pro/Ultra) for higher limits
+- Or paid API key
 
 ### 2. Node.js 20+
 
 ```bash
-# Sjekk versjon
+# Check version
 node --version
-# Må være 20.x eller høyere
+# Must be 20.x or higher
 ```
 
 ---
 
-## Installasjon
+## Installation
 
-### Steg 1: Installer Gemini CLI
+### Step 1: Install the Gemini CLI
 
 ```bash
-# Via npm (anbefalt)
+# Via npm (recommended)
 npm install -g @google/gemini-cli
 
 # Via Homebrew (macOS)
 brew install gemini-cli
 
-# Eller kjør uten installasjon
+# Or run without installing
 npx https://github.com/google-gemini/gemini-cli
 ```
 
-### Steg 2: Autentiser
+### Step 2: Authenticate
 
 ```bash
-# Start Gemini CLI - autentisering skjer automatisk
+# Start the Gemini CLI - authentication happens automatically
 gemini
 
-# Følg instruksjonene for å logge inn med Google-konto
+# Follow the instructions to log in with a Google account
 ```
 
-### Steg 3: Kopier GEMINI.md til workspace
+### Step 3: Copy GEMINI.md to the workspace
 
 ```bash
-# Fra doc-aide workspace-roten
+# From the doc-aide workspace root
 cp implementations/gemini/GEMINI.md ./GEMINI.md
 ```
 
-Gemini CLI leser automatisk `GEMINI.md` i prosjekt-roten ved oppstart.
+The Gemini CLI automatically reads `GEMINI.md` in the project root on startup.
 
 ---
 
-## Konfigurasjon
+## Configuration
 
 ### GEMINI.md
 
-Gemini CLI leser automatisk `GEMINI.md` som inneholder:
+The Gemini CLI automatically reads `GEMINI.md`, which contains:
 
-- Workspace-konsept og struktur
-- Referanser til `core/rules/workflows.md`
-- TDD-regler fra `core/rules/testing.md`
-- Git-regler fra `core/rules/git.md`
-- Dokumentstandard fra `core/rules/documentation.md`
+- Workspace concept and structure
+- References to `core/rules/workflows.md`
+- TDD rules from `core/rules/testing.md`
+- Git rules from `core/rules/git.md`
+- Documentation standard from `core/rules/documentation.md`
 
-### Miljøvariabler
+### Environment variables
 
 ```bash
-# Legg til i ~/.bashrc eller ~/.zshrc
+# Add to ~/.bashrc or ~/.zshrc
 export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/doc-aide"
 
-# Valgfritt: Separat reports-path
+# Optional: Separate reports path
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
 ```
 
 ### Global settings
 
-Gemini CLI-innstillinger lagres i `~/.gemini/settings.json`:
+Gemini CLI settings are stored in `~/.gemini/settings.json`:
 
 ```json
 {
@@ -156,186 +156,186 @@ Gemini CLI-innstillinger lagres i `~/.gemini/settings.json`:
 }
 ```
 
-### VS Code-integrasjon (Gemini Code Assist)
+### VS Code integration (Gemini Code Assist)
 
-Som et alternativ til terminal-basert bruk kan du bruke **Gemini Code Assist** i VS Code. Dette gir deg tilgang til Gemini-funksjonalitet direkte i editoren.
+As an alternative to terminal-based usage, you can use **Gemini Code Assist** in VS Code. This gives you access to Gemini functionality directly in the editor.
 
-**Installasjon:**
+**Installation:**
 
-1. Åpne VS Code Extensions (`Cmd+Shift+X` / `Ctrl+Shift+X`)
-2. Søk etter "Gemini Code Assist"
-3. Installer extensionen fra Google
-4. Logg inn med Google-konto
+1. Open VS Code Extensions (`Cmd+Shift+X` / `Ctrl+Shift+X`)
+2. Search for "Gemini Code Assist"
+3. Install the extension from Google
+4. Log in with a Google account
 
-**Funksjoner i VS Code:**
+**Features in VS Code:**
 
-| Funksjon | Terminal (Gemini CLI) | VS Code (Code Assist) |
+| Feature | Terminal (Gemini CLI) | VS Code (Code Assist) |
 |----------|----------------------|----------------------|
-| Chat | ✅ Fullt funksjonelt | ✅ Sidebar chat |
-| Slash commands | ✅ Native (`.toml`) | ❌ Ikke støttet |
-| Fil-editing | ✅ Full tilgang | ✅ Inline suggestions |
-| Terminal-kommandoer | ✅ Full tilgang | ⚠️ Begrenset |
-| GEMINI.md | ✅ Auto-lest | ❌ Ikke lest |
-| Context window | ✅ 1M tokens | ⚠️ Varierer |
+| Chat | ✅ Fully functional | ✅ Sidebar chat |
+| Slash commands | ✅ Native (`.toml`) | ❌ Not supported |
+| File editing | ✅ Full access | ✅ Inline suggestions |
+| Terminal commands | ✅ Full access | ⚠️ Limited |
+| GEMINI.md | ✅ Auto-read | ❌ Not read |
+| Context window | ✅ 1M tokens | ⚠️ Varies |
 
-**Anbefaling:**
+**Recommendation:**
 
-- **Bruk Gemini CLI** for JIRA-workflows, TDD, og komplekse analyser
-- **Bruk Code Assist** for inline code completion og raske spørsmål i VS Code
+- **Use the Gemini CLI** for JIRA workflows, TDD, and complex analyses
+- **Use Code Assist** for inline code completion and quick questions in VS Code
 
-**Merk:** Gemini Code Assist agent mode i VS Code er "powered by Gemini CLI" og deler kvoter med terminal-versjonen.
+**Note:** Gemini Code Assist agent mode in VS Code is "powered by Gemini CLI" and shares quotas with the terminal version.
 
 ---
 
-## Bruk
+## Usage
 
 ### Slash Commands
 
-Gemini CLI støtter slash commands via TOML-filer i `.gemini/commands/`.
+The Gemini CLI supports slash commands via TOML files in `.gemini/commands/`.
 
-**Tilgjengelige kommandoer:**
+**Available commands:**
 
-| Kommando | Beskrivelse |
+| Command | Description |
 |----------|-------------|
-| `/aide-create <ID>` | Opprett dokumentstruktur for JIRA-sak eller TODO-plan |
-| `/aide-analyze <ID>` | Analyser kodebase og identifiser påvirkede filer |
-| `/aide-implement <ID>` | Implementer løsning med TDD (RED-GREEN-REFACTOR) |
-| `/aide-make-tests <fil>` | Lag manglende enhetstester for en fil |
-| `/aide-react-class-to-func <fil>` | Konverter React class til functional component |
+| `/aide-create <ID>` | Create the document structure for a JIRA issue or TODO plan |
+| `/aide-analyze <ID>` | Analyze the codebase and identify affected files |
+| `/aide-implement <ID>` | Implement the solution with TDD (RED-GREEN-REFACTOR) |
+| `/aide-make-tests <file>` | Create missing unit tests for a file |
+| `/aide-react-class-to-func <file>` | Convert a React class to a functional component |
 
-**Bruk:**
+**Usage:**
 
 ```bash
-# Start Gemini CLI
+# Start the Gemini CLI
 gemini
 
-# Bruk slash commands
+# Use slash commands
 > /aide-create PROJ-7890
 > /aide-analyze PROJ-7890
 > /aide-implement PROJ-7890
 
-# TODO-arbeidsflyt
+# TODO workflow
 > /aide-create todo-01
 > /aide-analyze todo-01
 > /aide-implement todo-01
 
-# Utility-kommandoer
-> /aide-make-tests src/utils/land.ts
+# Utility commands
+> /aide-make-tests src/utils/country.ts
 > /aide-react-class-to-func src/components/UserProfile.tsx
 ```
 
-**Installasjon av slash commands:**
+**Installing slash commands:**
 
 ```bash
-# Kopier .gemini/ katalogen til workspace-roten
+# Copy the .gemini/ directory to the workspace root
 cp -r implementations/gemini/.gemini ./
 ```
 
 ---
 
-### JIRA-arbeidsflyt
+### JIRA workflow
 
-#### 1. Opprett JIRA-dokumentasjon
+#### 1. Create JIRA documentation
 
-**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
+**Instead of:** `/aide-create PROJ-7890` (Claude Code)
 
-**Med Gemini CLI:**
+**With the Gemini CLI:**
 
 ```bash
-# Start interaktiv sesjon
+# Start an interactive session
 gemini
 
-# Deretter:
-> Opprett strukturert dokumentasjon for JIRA-sak PROJ-7890:
+# Then:
+> Create structured documentation for JIRA issue PROJ-7890:
 >
-> 1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
-> 2. Følg core/rules/documentation.md
-> 3. Bruk templates fra core/templates/todo/
-> 4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
-> 5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
-> 6. Stage alle nye filer i git
+> 1. Create directory: reports/<NN>-PROJ-7890-slug/
+> 2. Follow core/rules/documentation.md
+> 3. Use templates from core/templates/todo/
+> 4. Fill in 1-description.md with JIRA metadata (user pastes in data)
+> 5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
+> 6. Stage all new files in git
 ```
 
-**Eller direkte fra terminal:**
+**Or directly from the terminal:**
 ```bash
-gemini -p "Hent JIRA-sak PROJ-7890 og opprett dokumentasjon"
+gemini -p "Fetch JIRA issue PROJ-7890 and create documentation"
 ```
 
-#### 2. Analyser kodebase
+#### 2. Analyze the codebase
 
-**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
+**Instead of:** `/aide-analyze PROJ-7890` (Claude Code)
 
-**Med Gemini CLI:**
+**With the Gemini CLI:**
 
 ```bash
-gemini -p "Analyser kodebasen for JIRA-sak PROJ-7890:
+gemini -p "Analyze the codebase for JIRA issue PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-description.md
-2. Søk i kodebasen etter relevante filer
-3. Identifiser påvirkede komponenter (fil:linje)
-4. Sjekk API-påvirkning (frontend ↔ backend)
-5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analysis.md med funn
-7. Lag implementeringsplan i 3-solution.md
-8. Følg core/rules/workflows.md struktur"
+1. Read reports/<NN>-PROJ-7890-slug/1-description.md
+2. Search the codebase for relevant files
+3. Identify affected components (file:line)
+4. Check API impact (frontend ↔ backend)
+5. Assess complexity (simple/medium/complex)
+6. Update 2-analysis.md with findings
+7. Create an implementation plan in 3-solution.md
+8. Follow the core/rules/workflows.md structure"
 ```
 
-#### 3. Implementer med TDD
+#### 3. Implement with TDD
 
-**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
+**Instead of:** `/aide-implement PROJ-7890` (Claude Code)
 
-**Med Gemini CLI:**
+**With the Gemini CLI:**
 
 ```bash
-gemini -p "Implementer løsningen for PROJ-7890 med TDD:
+gemini -p "Implement the solution for PROJ-7890 with TDD:
 
 RED PHASE:
-1. Les 3-solution.md -> Steg 0: Skriv tester
-2. Opprett testfiler som beskrevet
-3. Kjør: pnpm test -- --run <testfil>
-4. Verifiser at tester FEILER
-5. Stopp og be om bekreftelse
+1. Read 3-solution.md -> Step 0: Write tests
+2. Create test files as described
+3. Run: pnpm test -- --run <testfile>
+4. Verify that the tests FAIL
+5. Stop and ask for confirmation
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-solution.md
-2. Kjør tester etter hvert steg
-3. Verifiser at alle tester PASSERER
-4. Stopp og be om bekreftelse
+1. Implement Steps 1-N from 3-solution.md
+2. Run tests after each step
+3. Verify that all tests PASS
+4. Stop and ask for confirmation
 
 REFACTOR PHASE:
-1. Kjør: pnpm test -- --run (alle tester)
-2. Kjør: npx tsc --noEmit
-3. Kjør: pnpm run eslint
-4. Oppdater 4-status.md med resultat
+1. Run: pnpm test -- --run (all tests)
+2. Run: npx tsc --noEmit
+3. Run: pnpm run eslint
+4. Update 4-status.md with the result
 
-Følg prosjektets kodestandard for all kode."
+Follow the project's coding standard for all code."
 ```
 
-### TDD-arbeidsflyt
+### TDD workflow
 
-Gemini CLI støtter TDD-syklusen:
-- Skriver tester først (RED)
-- Implementerer til tester passerer (GREEN)
-- Refaktorerer og verifiserer (REFACTOR)
-- Itererer automatisk ved feil
+The Gemini CLI supports the TDD cycle:
+- Writes tests first (RED)
+- Implements until tests pass (GREEN)
+- Refactors and verifies (REFACTOR)
+- Iterates automatically on failures
 
 ---
 
-## Prompt-templates
+## Prompt templates
 
-Slash commands ligger i `.gemini/commands/*.toml` og virker native i en `gemini`-sesjon:
+Slash commands live in `.gemini/commands/*.toml` and work natively in a `gemini` session:
 
-| Kommando | Formål |
+| Command | Purpose |
 |----------|--------|
-| `/aide-create` | Opprett JIRA/TODO-dokumentasjon |
-| `/aide-analyze` | Analyser kodebase |
-| `/aide-implement` | Implementer med TDD |
-| `/aide-make-tests` | Lag manglende enhetstester |
-| `/aide-react-class-to-func` | Konverter class til functional |
+| `/aide-create` | Create JIRA/TODO documentation |
+| `/aide-analyze` | Analyze the codebase |
+| `/aide-implement` | Implement with TDD |
+| `/aide-make-tests` | Create missing unit tests |
+| `/aide-react-class-to-func` | Convert class to functional |
 
-**Bruk:**
+**Usage:**
 ```bash
-# I en gemini-sesjon:
+# In a gemini session:
 /aide-create PROJ-7890
 ```
 
@@ -343,194 +343,194 @@ Slash commands ligger i `.gemini/commands/*.toml` og virker native i en `gemini`
 
 ## VS Code Tasks
 
-VS Code Tasks gjør det enkelt å starte Gemini-workflows direkte fra VS Code.
+VS Code Tasks make it easy to start Gemini workflows directly from VS Code.
 
-**Tilgjengelige tasks:**
+**Available tasks:**
 
-| Task | Beskrivelse |
+| Task | Description |
 |------|-------------|
-| `Gemini: Start interaktiv sesjon` | Åpne Gemini CLI i terminal |
-| `Gemini: Opprett JIRA-dokumentasjon` | Opprett 4-fils struktur for JIRA-sak |
-| `Gemini: Analyser kodebase` | Analyser påvirkede filer |
-| `Gemini: Implementer med TDD` | Implementer med RED-GREEN-REFACTOR |
+| `Gemini: Start interactive session` | Open the Gemini CLI in a terminal |
+| `Gemini: Create JIRA documentation` | Create the 4-file structure for a JIRA issue |
+| `Gemini: Analyze codebase` | Analyze affected files |
+| `Gemini: Implement with TDD` | Implement with RED-GREEN-REFACTOR |
 
-**Bruk:**
+**Usage:**
 
-1. Åpne Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
-2. Velg "Tasks: Run Task"
-3. Velg ønsket Gemini-task
-4. Skriv inn JIRA-ID når du blir spurt
+1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
+2. Select "Tasks: Run Task"
+3. Select the desired Gemini task
+4. Enter the JIRA ID when prompted
 
-**Alternativt:** Bruk `Cmd+Shift+B` / `Ctrl+Shift+B` for å kjøre build tasks.
+**Alternatively:** Use `Cmd+Shift+B` / `Ctrl+Shift+B` to run build tasks.
 
 ---
 
-## Tips og triks
+## Tips and tricks
 
-### 1. Bruk Google Search grounding
+### 1. Use Google Search grounding
 
-Gemini CLI kan søke på nettet for oppdatert informasjon:
+The Gemini CLI can search the web for up-to-date information:
 
 ```bash
-gemini -p "Søk etter beste praksis for React 19 hooks og oppsummer"
+gemini -p "Search for best practices for React 19 hooks and summarize"
 ```
 
-### 2. Inkluder flere kataloger
+### 2. Include multiple directories
 
 ```bash
 gemini --include-directories ../my-api,../my-app
 ```
 
-### 3. Lagre og gjenoppta samtaler
+### 3. Save and resume conversations
 
 ```bash
-# Gemini lagrer automatisk samtaler
-# Bruk /chat for å administrere
+# Gemini automatically saves conversations
+# Use /chat to manage them
 
 gemini
-> /chat list      # Vis tidligere samtaler
-> /chat load 123  # Last inn samtale
+> /chat list      # Show previous conversations
+> /chat load 123  # Load a conversation
 ```
 
-### 4. Bruk MCP-servere
+### 4. Use MCP servers
 
-Konfigurer MCP-servere i `~/.gemini/settings.json` for utvidede funksjoner.
+Configure MCP servers in `~/.gemini/settings.json` for extended functionality.
 
-### 5. Vær eksplisitt om kontekst
+### 5. Be explicit about context
 
-**Dårlig:**
+**Bad:**
 ```bash
-gemini -p "Analyser PROJ-7890"
+gemini -p "Analyze PROJ-7890"
 ```
 
-**Bra:**
+**Good:**
 ```bash
-gemini -p "Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-description.md, søk deretter i kodebasen,
-og oppdater 2-analysis.md med funn (fil:linje)."
+gemini -p "Analyze PROJ-7890 by following core/rules/workflows.md.
+First read 1-description.md, then search the codebase,
+and update 2-analysis.md with findings (file:line)."
 ```
 
 ---
 
-## Begrensninger
+## Limitations
 
-### Gemini CLI har IKKE:
+### The Gemini CLI does NOT have:
 
-- Innebygde agents som `@agent-jira-analyzer` (men du kan bruke slash commands)
-- IDE-integrasjon på samme nivå som Copilot
+- Built-in agents like `@agent-jira-analyzer` (but you can use slash commands)
+- IDE integration on the same level as Copilot
 
-### Gemini CLI HAR:
+### The Gemini CLI DOES have:
 
-- Terminal-basert CLI (open source)
+- Terminal-based CLI (open source)
 - Google Search grounding
-- MCP-støtte for utvidelser
+- MCP support for extensions
 - Conversation checkpointing
-- 1M token context window (gratis)
-- Multimodal støtte (bilder, etc.)
+- 1M token context window (free)
+- Multimodal support (images, etc.)
 
-### Kostnader:
+### Costs:
 
-- **Gratis tier:** 60 req/min, 1000 req/dag
-- **API:** Priser varierer, se Google AI Studio
-- **Google AI Pro/Ultra:** Høyere grenser og tilgang til toppmodeller
+- **Free tier:** 60 req/min, 1000 req/day
+- **API:** Prices vary, see Google AI Studio
+- **Google AI Pro/Ultra:** Higher limits and access to top models
 
 ### Workarounds:
 
-1. **Slash commands:** Bruk `.gemini/commands/` (TOML-filer)
-2. **Auto-read CLAUDE.md - GEMINI.md:** Konfigurer `GEMINI.md` i prosjekt-roten
-3. **Agents - Explicit prompts:** Be Gemini om å følge spesifikke workflows
+1. **Slash commands:** Use `.gemini/commands/` (TOML files)
+2. **Auto-read CLAUDE.md - GEMINI.md:** Configure `GEMINI.md` in the project root
+3. **Agents - Explicit prompts:** Ask Gemini to follow specific workflows
 
 ---
 
-## Sammenligning med Claude Code
+## Comparison with Claude Code
 
 | Feature | Claude Code | Gemini CLI |
 |---------|-------------|------------|
-| **Kommandoer** | Slash commands (`.md`) | Slash commands (`.toml`) |
-| **Instruksjoner** | CLAUDE.md (auto-read) | GEMINI.md (auto-read) |
+| **Commands** | Slash commands (`.md`) | Slash commands (`.toml`) |
+| **Instructions** | CLAUDE.md (auto-read) | GEMINI.md (auto-read) |
 | **Agents** | `@agent-jira-analyzer` | Slash commands |
-| **TDD** | Innebygd RED-GREEN-REFACTOR | Støtter TDD-syklus |
-| **Codebase analysis** | Ja | Ja |
-| **Tool calling** | Ja | Ja |
-| **Web search** | Nei | Ja (Google Search) |
-| **MCP-støtte** | Ja | Ja |
+| **TDD** | Built-in RED-GREEN-REFACTOR | Supports the TDD cycle |
+| **Codebase analysis** | Yes | Yes |
+| **Tool calling** | Yes | Yes |
+| **Web search** | No | Yes (Google Search) |
+| **MCP support** | Yes | Yes |
 | **Context window** | 200K tokens | 1M tokens |
-| **Open source** | Nei | Ja (Apache 2.0) |
-| **Pris** | Begrenset gratis | Sjenerøs gratis tier |
+| **Open source** | No | Yes (Apache 2.0) |
+| **Price** | Limited free | Generous free tier |
 
-### Når bruke hva?
+### When to use what?
 
-| Scenario | Anbefaling |
+| Scenario | Recommendation |
 |----------|-----------|
-| **Stor kontekst (mange filer)** | Gemini CLI (1M tokens) |
-| **Oppdatert web-info** | Gemini CLI (Google Search) |
+| **Large context (many files)** | Gemini CLI (1M tokens) |
+| **Up-to-date web info** | Gemini CLI (Google Search) |
 | **Slash commands workflow** | Claude Code |
-| **Open source preferanse** | Gemini CLI |
-| **TDD-implementering** | Begge fungerer godt |
-| **IDE-integrasjon** | Claude Code / Copilot |
+| **Open source preference** | Gemini CLI |
+| **TDD implementation** | Both work well |
+| **IDE integration** | Claude Code / Copilot |
 
 ---
 
-## Neste steg
+## Next steps
 
-1. Installer Gemini CLI
-2. Autentiser med Google-konto
-3. Kopier GEMINI.md til workspace
-4. Test med en enkel JIRA-sak
+1. Install the Gemini CLI
+2. Authenticate with a Google account
+3. Copy GEMINI.md to the workspace
+4. Test with a simple JIRA issue
 
 ---
 
-## Headless Mode (Automatisering)
+## Headless Mode (Automation)
 
-Gemini CLI støtter headless mode for automatisering, CI/CD og scripting.
+The Gemini CLI supports headless mode for automation, CI/CD and scripting.
 
-### Grunnleggende bruk
+### Basic usage
 
 ```bash
-# Kjør enkelt prompt uten interaktiv UI
-gemini -p "Analyser denne koden og foreslå forbedringer"
+# Run a single prompt without the interactive UI
+gemini -p "Analyze this code and suggest improvements"
 
-# Med JSON output for programmatisk parsing
-gemini -p "List alle TypeScript-filer i src/" -o json
+# With JSON output for programmatic parsing
+gemini -p "List all TypeScript files in src/" -o json
 
-# YOLO mode - ingen bekreftelser (full automatisering)
-gemini -p "Kjør alle tester" -y
+# YOLO mode - no confirmations (full automation)
+gemini -p "Run all tests" -y
 ```
 
 ### E2E Testing
 
 ```bash
-# Test at Gemini CLI fungerer
-gemini -p "Si 'hello'" -o json
+# Test that the Gemini CLI works
+gemini -p "Say 'hello'" -o json
 
-# Kjør aide-workflow headless
+# Run the aide workflow headless
 gemini -p "/aide-create PROJ-TEST" -y
 ```
 
-### Flagg for automatisering
+### Flags for automation
 
-| Flagg | Beskrivelse |
+| Flag | Description |
 |-------|-------------|
-| `-p "prompt"` | Headless mode - kjør uten interaktiv UI |
+| `-p "prompt"` | Headless mode - run without the interactive UI |
 | `-o json` | JSON output for parsing |
-| `-y` / `--yolo` | Ingen bekreftelser (full automatisering) |
+| `-y` / `--yolo` | No confirmations (full automation) |
 
-**Merk:** Custom commands (`.toml`) har begrenset støtte i headless mode per nå.
+**Note:** Custom commands (`.toml`) have limited support in headless mode for now.
 
 ---
 
-## Ressurser
+## Resources
 
-**Offisiell dokumentasjon:**
+**Official documentation:**
 
 - [Gemini CLI GitHub](https://github.com/google-gemini/gemini-cli) - Open source repo
-- [Google Developers - Gemini CLI](https://developers.google.com/gemini-code-assist/docs/gemini-cli) - Offisiell dokumentasjon
-- [Gemini CLI Hands-on Codelab](https://codelabs.developers.google.com/gemini-cli-hands-on) - Interaktiv tutorial
+- [Google Developers - Gemini CLI](https://developers.google.com/gemini-code-assist/docs/gemini-cli) - Official documentation
+- [Gemini CLI Hands-on Codelab](https://codelabs.developers.google.com/gemini-cli-hands-on) - Interactive tutorial
 
-**Headless mode og automatisering:**
+**Headless mode and automation:**
 
-- [Headless Mode - Gemini CLI Docs](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html) - Offisiell headless-dokumentasjon
+- [Headless Mode - Gemini CLI Docs](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html) - Official headless documentation
 
 ---
 
-**Lykke til med Gemini CLI!**
+**Good luck with the Gemini CLI!**

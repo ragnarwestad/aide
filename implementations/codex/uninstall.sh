@@ -1,85 +1,85 @@
 #!/usr/bin/env bash
 
-# uninstall.sh - Fjerner OpenAI Codex-konfigurasjon installert av install.sh
-# Dette reverserer alle endringer gjort av install.sh
+# uninstall.sh - Removes the OpenAI Codex configuration installed by install.sh
+# This reverses all changes made by install.sh
 
-set -e  # Exit ved feil
+set -e  # Exit on error
 
 echo "🗑️  OpenAI Codex Uninstall"
 echo "=========================="
 echo ""
 
-# Codex er global — ingen prosjekt-sti nødvendig
+# Codex is global — no project path needed
 
-# Bekreft avinstallasjon
-echo "⚠️  Dette vil fjerne:"
-echo "   - Scripts fra ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools, codex-aide-*)"
+# Confirm uninstallation
+echo "⚠️  This will remove:"
+echo "   - Scripts from ~/.local/bin/ (aide-generate-*, mise-upgrade-ai-tools, codex-aide-*)"
 echo "   - ~/.codex/AGENTS.md"
 echo ""
-read -p "Er du sikker på at du vil fortsette? [y/N]: " CONFIRM
+read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo ""
-  echo "❌ Avbrutt"
+  echo "❌ Aborted"
   exit 0
 fi
 
 echo ""
 
-# 1. Fjern scripts fra ~/.local/bin/
-echo "1️⃣  Fjerner scripts fra ~/.local/bin/..."
+# 1. Remove scripts from ~/.local/bin/
+echo "1️⃣  Removing scripts from ~/.local/bin/..."
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 uninstall_common_bin
 
-# Codex-spesifikke CLI-wrappers (installeres av install.sh)
+# Codex-specific CLI wrappers (installed by install.sh)
 for script in codex-aide-create codex-aide-analyze codex-aide-implement; do
   if [ -f "$HOME/.local/bin/$script" ]; then
     rm "$HOME/.local/bin/$script"
-    echo "   ✅ Fjernet: ~/.local/bin/$script"
+    echo "   ✅ Removed: ~/.local/bin/$script"
   fi
 done
 
 echo ""
 
-# 2. Fjern global Codex-instruksjon
-echo "2️⃣  Fjerner global Codex-instruksjon..."
+# 2. Remove global Codex instructions
+echo "2️⃣  Removing global Codex instructions..."
 
 if [ -f "$HOME/.codex/AGENTS.md" ]; then
   rm "$HOME/.codex/AGENTS.md"
-  echo "   ✅ Fjernet: ~/.codex/AGENTS.md"
+  echo "   ✅ Removed: ~/.codex/AGENTS.md"
 else
-  echo "   ⏭️  Fantes ikke: ~/.codex/AGENTS.md"
+  echo "   ⏭️  Did not exist: ~/.codex/AGENTS.md"
 fi
 
 echo ""
 
-# 3. Informasjon om manuelle steg
-echo "3️⃣  Manuell opprydding (valgfritt)..."
+# 3. Information about manual steps
+echo "3️⃣  Manual cleanup (optional)..."
 echo ""
-echo "   Følgende må fjernes manuelt hvis ønskelig:"
+echo "   The following must be removed manually if desired:"
 echo ""
 echo "   Codex CLI:"
 echo "      npm uninstall -g @openai/codex"
-echo "      # eller"
+echo "      # or"
 echo "      mise uninstall npm:@openai/codex"
 echo ""
 echo "   Codex config:"
 echo "      rm -rf ~/.codex"
 echo ""
-echo "   Environment variabler (i ~/.zshrc eller ~/.bashrc):"
+echo "   Environment variables (in ~/.zshrc or ~/.bashrc):"
 echo "      export AIDE_PROJECTS_PATH=..."
 echo "      export AIDE_INSTALLATION_PATH=..."
 echo "      export OPENAI_API_KEY=..."
 echo ""
-echo "   JIRA-token:"
+echo "   JIRA token:"
 echo "      rm ~/.jira_token"
 echo ""
 
-echo "✅ Avinstallasjon fullført!"
+echo "✅ Uninstallation complete!"
 echo ""
-echo "💡 For å installere på nytt, kjør:"
+echo "💡 To reinstall, run:"
 echo "   cd implementations/codex"
 echo "   ./install.sh"

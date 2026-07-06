@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Installerer doc-aide for ALLE AI-verktøy.
+# Installs doc-aide for ALL AI tools.
 #
-# Kjører hver implementations/<ai>/install.sh. Hver enkelt er selvstendig og
-# installerer felles scripts (core/scripts) + sitt eget AI-spesifikke oppsett.
-# De felles scriptene kopieres derfor flere ganger — det er billig og bevisst.
+# Runs each implementations/<ai>/install.sh. Each one is self-contained and
+# installs the shared scripts (core/scripts) + its own AI-specific setup.
+# The shared scripts are therefore copied multiple times — that is cheap and intentional.
 #
-# Vil du bare installere én AI, kjør dens script direkte, f.eks.:
+# If you only want to install one AI, run its script directly, e.g.:
 #   implementations/codex/install.sh
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "🔧 doc-aide — installerer alle AI-verktøy"
+echo "🔧 doc-aide — installing all AI tools"
 echo "============================================="
 
 status=0
@@ -18,17 +18,17 @@ for ai in claude-code copilot codex gemini; do
   echo ""
   echo "═══════ $ai ═══════"
   if "$ROOT/implementations/$ai/install.sh"; then
-    echo "✅ $ai ferdig"
+    echo "✅ $ai done"
   else
-    echo "⚠️  $ai feilet (hopper videre)"
+    echo "⚠️  $ai failed (continuing)"
     status=1
   fi
 done
 
 echo ""
 if [ "$status" -eq 0 ]; then
-  echo "✅ Alle installert."
+  echo "✅ All installed."
 else
-  echo "⚠️  Én eller flere feilet — se loggen over."
+  echo "⚠️  One or more failed — see the log above."
 fi
 exit "$status"

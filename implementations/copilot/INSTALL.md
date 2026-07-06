@@ -1,70 +1,70 @@
-# Installasjonsveiledning - GitHub Copilot
+# Installation Guide - GitHub Copilot
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
+- [Overview](#overview)
 - [Quick Start](#quick-start)
-- [Detaljert installasjon](#detaljert-installasjon)
-  - [Steg 0: Copilot CLI og VS Code extensions](#steg-0-installer-copilot-cli-og-vs-code-extensions)
-  - [Steg 1: install.sh](#steg-1-installer-konfigurasjon-installsh)
-  - [Steg 2: Slash commands](#steg-2-slash-commands)
-- [Verifisering](#verifisering)
-- [Oppdatering av konfigurasjon](#oppdatering-av-konfigurasjon)
-- [For utviklere av doc-aide](#for-utviklere-av-doc-aide)
-- [Viktige begrensninger](#viktige-begrensninger)
-- [Sammenligning med Claude Code](#sammenligning-med-claude-code)
-- [Feilsøking](#feilsøking)
-- [Videre lesing](#videre-lesing)
+- [Detailed installation](#detailed-installation)
+  - [Step 0: Copilot CLI and VS Code extensions](#step-0-install-copilot-cli-and-vs-code-extensions)
+  - [Step 1: install.sh](#step-1-install-the-configuration-installsh)
+  - [Step 2: Slash commands](#step-2-slash-commands)
+- [Verification](#verification)
+- [Updating the configuration](#updating-the-configuration)
+- [For doc-aide developers](#for-doc-aide-developers)
+- [Important limitations](#important-limitations)
+- [Comparison with Claude Code](#comparison-with-claude-code)
+- [Troubleshooting](#troubleshooting)
+- [Further reading](#further-reading)
 
 ---
 
-## Oversikt
+## Overview
 
-Denne guiden viser hvordan du installerer GitHub Copilot-integrasjonen for doc-aide-workspace **første gang**.
+This guide shows how to install the GitHub Copilot integration for the doc-aide workspace **for the first time**.
 
-**Tidskrav:** ~5 minutter
+**Time required:** ~5 minutes
 
-**Forutsetninger:**
+**Prerequisites:**
 
-- GitHub Copilot-abonnement (Individual, Business, Pro eller Enterprise)
-- Node.js 22+ (for Copilot CLI via npm) eller Homebrew
-- Tilgang til JIRA-instansen din (valgfritt)
-- Git-klon av `doc-aide` (og valgfritt `my-app`, `my-api`, etc.)
-- `AIDE_PROJECTS_PATH` environment variable satt (se Quick Start)
+- GitHub Copilot subscription (Individual, Business, Pro or Enterprise)
+- Node.js 22+ (for Copilot CLI via npm) or Homebrew
+- Access to your JIRA instance (optional)
+- Git clone of `doc-aide` (and optionally `my-app`, `my-api`, etc.)
+- `AIDE_PROJECTS_PATH` environment variable set (see Quick Start)
 
-**Merk:** Copilot CLI ble [GA 25. februar 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) og leser **CLAUDE.md** direkte fra prosjektroten, noe som forenkler oppsettet.
+**Note:** Copilot CLI went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) and reads **CLAUDE.md** directly from the project root, which simplifies setup.
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Installer Copilot CLI
+# 1. Install Copilot CLI
 npm install -g @github/copilot
-# Eller: brew install copilot-cli
-# Eller: curl -fsSL https://gh.io/copilot-install | bash
+# Or: brew install copilot-cli
+# Or: curl -fsSL https://gh.io/copilot-install | bash
 
-# 2. Sett AIDE_PROJECTS_PATH (PÅKREVD)
+# 2. Set AIDE_PROJECTS_PATH (REQUIRED)
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 echo 'export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"' >> ~/.zshrc
 
-# 3. Installer konfigurasjon (scripts, custom instructions, VS Code-oppsett)
+# 3. Install the configuration (scripts, custom instructions, VS Code setup)
 cd doc-aide/implementations/copilot
 ./install.sh
 ```
 
-**Ferdig!** Test med `copilot` i terminalen.
+**Done!** Test with `copilot` in the terminal.
 
 ---
 
-## Detaljert installasjon
+## Detailed installation
 
-### Steg 0: Installer Copilot CLI og VS Code extensions
+### Step 0: Install Copilot CLI and VS Code extensions
 
 **Copilot CLI (terminal):**
 
 ```bash
-# Via npm (anbefalt, krever Node.js 22+)
+# Via npm (recommended, requires Node.js 22+)
 npm install -g @github/copilot
 
 # Via Homebrew
@@ -74,199 +74,199 @@ brew install copilot-cli
 curl -fsSL https://gh.io/copilot-install | bash
 ```
 
-**VS Code extensions (valgfritt, for Agent Mode i IDE):**
+**VS Code extensions (optional, for Agent Mode in the IDE):**
 
 ```bash
-# Installer GitHub Copilot extensions
+# Install the GitHub Copilot extensions
 code --install-extension GitHub.copilot
 code --install-extension GitHub.copilot-chat
 ```
 
-Eller via VS Code:
+Or via VS Code:
 
-1. Åpne Extensions (Cmd+Shift+X)
-2. Søk etter "GitHub Copilot"
-3. Installer begge extensions (Copilot + Copilot Chat)
+1. Open Extensions (Cmd+Shift+X)
+2. Search for "GitHub Copilot"
+3. Install both extensions (Copilot + Copilot Chat)
 
 ---
 
-### Steg 1: Installer konfigurasjon (install.sh)
+### Step 1: Install the configuration (install.sh)
 
 ```bash
 cd doc-aide/implementations/copilot
 ./install.sh
 ```
 
-**Hva gjør install.sh?**
-1. ✅ Installerer felles scripts til `~/.local/bin/`:
-   - `aide-generate-pdf`, `aide-generate-html` - Dokumentgenerering
-   - `mise-upgrade-ai-tools` - Oppdaterer AI-CLI-ene
-2. ✅ Installerer `AGENTS.md` som global Copilot-instruksjon i `~/.copilot/copilot-instructions.md`
-3. ✅ Verifiserer PATH og GitHub Copilot extension
-4. ✅ Installerer JetBrains Live Templates (hvis JetBrains-IDE finnes)
+**What does install.sh do?**
+1. ✅ Installs shared scripts to `~/.local/bin/`:
+   - `aide-generate-pdf`, `aide-generate-html` - Document generation
+   - `mise-upgrade-ai-tools` - Updates the AI CLIs
+2. ✅ Installs `AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
+3. ✅ Verifies PATH and the GitHub Copilot extension
+4. ✅ Installs JetBrains Live Templates (if a JetBrains IDE is found)
 
-**⚠️ MERK:** `core/AGENTS.md` er allerede bygd (`core/scripts/build-agents-md.sh`) og committed. Vanlige brukere trenger ikke bygge den på nytt.
+**⚠️ NOTE:** `core/AGENTS.md` is already built (`core/scripts/build-agents-md.sh`) and committed. Regular users do not need to rebuild it.
 
 **Output:**
 ```text
 🔧 GitHub Copilot Setup
 =======================
 
-1️⃣  Installerer scripts til ~/.local/bin/...
-   ✅ Installert: ~/.local/bin/aide-generate-pdf
-   ✅ Installert: ~/.local/bin/aide-generate-html
-   ✅ Installert: ~/.local/bin/mise-upgrade-ai-tools
+1️⃣  Installing scripts to ~/.local/bin/...
+   ✅ Installed: ~/.local/bin/aide-generate-pdf
+   ✅ Installed: ~/.local/bin/aide-generate-html
+   ✅ Installed: ~/.local/bin/mise-upgrade-ai-tools
 
-2️⃣  Installerer global Copilot-instruksjon...
-   ✅ Installert: ~/.copilot/copilot-instructions.md
+2️⃣  Installing global Copilot instructions...
+   ✅ Installed: ~/.copilot/copilot-instructions.md
 
-3️⃣  Verifiserer PATH...
-   ✅ ~/.local/bin er i PATH
+3️⃣  Verifying PATH...
+   ✅ ~/.local/bin is in PATH
 
-4️⃣  Sjekker GitHub Copilot extension...
-   ✅ GitHub Copilot extension er installert
+4️⃣  Checking GitHub Copilot extension...
+   ✅ GitHub Copilot extension is installed
 ```
 
 ---
 
-### Steg 2: Slash commands
+### Step 2: Slash commands
 
-Ingen ekstra oppsett. Copilot CLI leser de samme skills som Claude Code, så
-`/aide-create`, `/aide-analyze`, `/aide-implement` m.fl. virker native i en
-`copilot`-sesjon.
+No extra setup. Copilot CLI reads the same skills as Claude Code, so
+`/aide-create`, `/aide-analyze`, `/aide-implement` and friends work natively in a
+`copilot` session.
 
 ---
 
-## Verifisering
+## Verification
 
-### Test at alt fungerer:
+### Test that everything works:
 
-**1. Åpne et prosjekt i VS Code:**
+**1. Open a project in VS Code:**
 ```bash
 cd $AIDE_PROJECTS_PATH/my-app
 code .
 ```
 
-**2. Sjekk custom instructions:**
-- Åpne Copilot Chat (`Cmd+Shift+I`)
-- Klikk på "..." → "Settings"
-- Verifiser at `.github/copilot-instructions.md` er listet under "Instructions"
+**2. Check custom instructions:**
+- Open Copilot Chat (`Cmd+Shift+I`)
+- Click "..." → "Settings"
+- Verify that `.github/copilot-instructions.md` is listed under "Instructions"
 
-**3. Test skills i Copilot CLI:**
+**3. Test skills in Copilot CLI:**
 
 ```bash
 copilot
 /skills info aide-create
-# Skal vise: Location: /Users/<deg>/.claude/commands/aide-create.md
+# Should show: Location: /Users/<you>/.claude/commands/aide-create.md
 ```
 
 ---
 
-## Oppdatering av konfigurasjon
+## Updating the configuration
 
-### Når skal du oppdatere?
+### When should you update?
 
-- ✅ Nye slash commands lagt til og pushet til git
-- ✅ Endringer i custom instructions pushet til git
-- ✅ Pull/merge fra `main` branch
+- ✅ New slash commands added and pushed to git
+- ✅ Changes to custom instructions pushed to git
+- ✅ Pull/merge from the `main` branch
 
-### Hvordan oppdatere:
+### How to update:
 
 ```bash
-# 1. Pull siste endringer
+# 1. Pull the latest changes
 cd doc-aide
 git pull
 
-# 2. Installer på nytt (globalt)
+# 2. Reinstall (globally)
 cd implementations/copilot
 ./install.sh
 
 # 3. Restart VS Code
-# Lukk og åpne VS Code på nytt for at endringer skal tre i kraft
+# Close and reopen VS Code for the changes to take effect
 ```
 
-**⚠️ MERK:** Du trenger IKKE regenere instructions - det er allerede gjort av doc-aide-teamet og committed til git.
+**⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the doc-aide team and committed to git.
 
 ---
 
-## For utviklere av doc-aide
+## For doc-aide developers
 
-**Hvis DU jobber på doc-aide og skal oppdatere Copilot instructions:**
+**If YOU work on doc-aide and need to update the Copilot instructions:**
 
 ```bash
-# 1. Rediger kilden (felles regler eller Copilot-seksjonene)
-vim core/rules/<regel>.md          # eller core/agents-intro.md
+# 1. Edit the source (shared rules or the Copilot sections)
+vim core/rules/<rule>.md           # or core/agents-intro.md
 
-# 2. Bygg AGENTS.md på nytt
+# 2. Rebuild AGENTS.md
 core/scripts/build-agents-md.sh
 
-# 3. Commit og push
+# 3. Commit and push
 git add core/rules/ core/AGENTS.md
-git commit -m "Oppdaterte Copilot-instruksjon"
+git commit -m "Updated Copilot instructions"
 git push
 ```
 
-**Vanlige brukere** skal IKKE gjøre dette - de får ferdig `AGENTS.md` via git.
+**Regular users** should NOT do this - they get the finished `AGENTS.md` via git.
 
 ---
 
-## Viktige begrensninger
+## Important limitations
 
 ### Permission prompts (Copilot CLI)
 
-Copilot CLI spør om tillatelse for fil-operasjoner og kommandokjøring.
+Copilot CLI asks for permission for file operations and command execution.
 
-**Løsninger:**
+**Solutions:**
 
-1. **Interaktivt:** Velg "Yes, and approve all for the rest of the running session"
-2. **CLI-flagg:** Start med `copilot --allow-all-tools` for full sesjon
-3. **Permanent:** Konfigurer `~/.copilot/config.json` med `trusted_folders`
-4. **Full auto:** `copilot --yolo` (kun i isolerte miljøer!)
+1. **Interactive:** Choose "Yes, and approve all for the rest of the running session"
+2. **CLI flags:** Start with `copilot --allow-all-tools` for the whole session
+3. **Permanent:** Configure `~/.copilot/config.json` with `trusted_folders`
+4. **Full auto:** `copilot --yolo` (only in isolated environments!)
 
-Se [README.md](./README.md#begrensninger) for fullstendig flagg-referanse.
+See [README.md](./README.md#limitations) for the complete flag reference.
 
 ---
 
-## Sammenligning med Claude Code
+## Comparison with Claude Code
 
 | Feature | Claude Code | Copilot CLI / VS Code |
 |---------|-------------|----------------------|
-| **Slash commands / Skills** | ✅ Native `/aide-create` | ✅ Native i CLI (leser `~/.claude/commands/` som skills) |
+| **Slash commands / Skills** | ✅ Native `/aide-create` | ✅ Native in the CLI (reads `~/.claude/commands/` as skills) |
 | **Custom instructions** | ✅ Auto-read CLAUDE.md | ✅ Auto-read CLAUDE.md + copilot-instructions.md |
-| **Permissions** | ✅ Pre-approval via settings.json | ✅ config.json + CLI-flagg |
-| **Plan mode** | ✅ Native | ✅ Native (Shift+Tab i CLI) |
-| **IDE-integrasjon** | ⚠️ Via CLI | ✅ Native VS Code |
-| **Agent Mode** | ✅ Autonome workflows | ✅ Autonome workflows |
-| **Modeller** | Claude-familien | Claude, GPT, Gemini |
+| **Permissions** | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags |
+| **Plan mode** | ✅ Native | ✅ Native (Shift+Tab in the CLI) |
+| **IDE integration** | ⚠️ Via CLI | ✅ Native VS Code |
+| **Agent Mode** | ✅ Autonomous workflows | ✅ Autonomous workflows |
+| **Models** | The Claude family | Claude, GPT, Gemini |
 | **Setup** | ✅ `install.sh` | ✅ `install.sh` |
 
-**Konklusjon:**
+**Conclusion:**
 
-- Begge bruker de samme reglene fra `core/rules/`
-- Copilot CLI leser CLAUDE.md direkte — enklere oppsett enn før
-- Copilot er bedre integrert i VS Code
-- Claude Code har bedre skills-system og spesialiserte agents
+- Both use the same rules from `core/rules/`
+- Copilot CLI reads CLAUDE.md directly — simpler setup than before
+- Copilot is better integrated in VS Code
+- Claude Code has a better skills system and specialized agents
 
 ---
 
-## Feilsøking
+## Troubleshooting
 
-### Problem: Custom instructions lastes ikke
+### Problem: Custom instructions are not loaded
 
-**Løsning:**
-1. Kjør `implementations/copilot/install.sh` på nytt (installerer `~/.copilot/copilot-instructions.md`)
-2. Sjekk at fila finnes: `cat ~/.copilot/copilot-instructions.md`
+**Solution:**
+1. Run `implementations/copilot/install.sh` again (installs `~/.copilot/copilot-instructions.md`)
+2. Check that the file exists: `cat ~/.copilot/copilot-instructions.md`
 3. Restart Copilot CLI / VS Code
 
 ---
 
-## Videre lesing
+## Further reading
 
-- `README.md` - Brukerveiledning for Copilot
+- `README.md` - User guide for Copilot
 - `../../COPILOT.md` - Quick start guide (workspace root)
 - `../../core/rules/workflows.md` - JIRA/TODO workflows
-- `../../DEVELOPING.md` - Utviklerguide for doc-aide
+- `../../DEVELOPING.md` - Developer guide for doc-aide
 
 ---
 
-**Lykke til med GitHub Copilot! 🚀**
+**Good luck with GitHub Copilot! 🚀**

@@ -1,53 +1,53 @@
-# /aide-implement - Implementer med TDD
-# Bruk: /aide-implement PROJ-1234
-# Eller: /aide-implement todo-01
+# /aide-implement - Implement with TDD
+# Usage: /aide-implement PROJ-1234
+# Or: /aide-implement todo-01
 
-description = "Implementer løsningen med TDD (RED-GREEN-REFACTOR)"
+description = "Implement the solution with TDD (RED-GREEN-REFACTOR)"
 
 prompt = """
-Implementer løsningen for: {{args}}
+Implement the solution for: {{args}}
 
-STEG 0: LES DOKUMENTASJON
-- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/3-solution.md
-- Hvis todo-*: Les todo/<TODO_ID>/3-solution.md
-- Hvis filen er tom: Kjør /aide-analyze først
+STEP 0: READ THE DOCUMENTATION
+- If a JIRA issue (e.g. PROJ-*): Read reports/<NN>-<ISSUE_ID>-slug/3-solution.md
+- If todo-*: Read todo/<TODO_ID>/3-solution.md
+- If the file is empty: Run /aide-analyze first
 
-FASE 1: RED (Skriv tester som feiler)
+PHASE 1: RED (Write failing tests)
 
-1. Les implementeringsplanen i 3-solution.md
-2. Opprett testfiler som beskrevet i "Steg 0: Skriv tester"
-3. Kjør testene: pnpm test -- --run <testfil>
-4. VERIFISER at testene FEILER (dette er forventet!)
-5. **STOPP og be om bekreftelse før du fortsetter**
+1. Read the implementation plan in 3-solution.md
+2. Create test files as described in "Step 0: Write tests"
+3. Run the tests: pnpm test -- --run <testfile>
+4. VERIFY that the tests FAIL (this is expected!)
+5. **STOP and ask for confirmation before continuing**
 
-FASE 2: GREEN (Implementer til tester passerer)
+PHASE 2: GREEN (Implement until tests pass)
 
-1. Implementer koden steg for steg fra 3-solution.md
-2. Etter HVERT steg:
-   - Kjør: pnpm test -- --run <testfil>
-   - Verifiser at testene passerer
-3. Følg prosjektets kodestandarder
-4. **STOPP og be om bekreftelse før refaktorering**
+1. Implement the code step by step from 3-solution.md
+2. After EACH step:
+   - Run: pnpm test -- --run <testfile>
+   - Verify that the tests pass
+3. Follow the project's coding standards
+4. **STOP and ask for confirmation before refactoring**
 
-FASE 3: REFACTOR (Verifiser og forbedre)
+PHASE 3: REFACTOR (Verify and improve)
 
-1. Kjør ALLE tester: pnpm test -- --run
-2. Kjør TypeScript: npx tsc --noEmit
-3. Kjør linting: pnpm run eslint
-4. Kjør build: pnpm run build
-5. Fiks eventuelle feil
+1. Run ALL tests: pnpm test -- --run
+2. Run TypeScript: npx tsc --noEmit
+3. Run linting: pnpm run eslint
+4. Run build: pnpm run build
+5. Fix any errors
 
-STEG 4: OPPDATER STATUS
-- Oppdater 4-status.md med fremdrift
-- Marker fullførte oppgaver med ✅
+STEP 4: UPDATE STATUS
+- Update 4-status.md with progress
+- Mark completed tasks with ✅
 
-STEG 5: STAGE ENDRINGER
-- git add <nye og endrede filer>
-- IKKE bruk git add . eller git add -A
+STEP 5: STAGE CHANGES
+- git add <new and changed files>
+- Do NOT use git add . or git add -A
 
-VIKTIG:
-- Følg core/rules/testing.md
-- Følg core/rules/git.md
-- ALLTID bruk --run flagget (IKKE watch mode)
-- Be om bekreftelse mellom fasene
+IMPORTANT:
+- Follow core/rules/testing.md
+- Follow core/rules/git.md
+- ALWAYS use the --run flag (NOT watch mode)
+- Ask for confirmation between the phases
 """

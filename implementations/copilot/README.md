@@ -1,129 +1,129 @@
-# GitHub Copilot - Implementasjonsguide
+# GitHub Copilot - Implementation Guide
 
-## Innholdsfortegnelse
+## Table of Contents
 
-- [Oversikt](#oversikt)
+- [Overview](#overview)
 - [Quick Start](#quick-start)
-- [Hva er Agent Mode?](#hva-er-agent-mode)
-- [Forutsetninger](#forutsetninger)
-- [Installasjon](#installasjon)
-- [Konfigurasjon](#konfigurasjon)
-- [Bruk](#bruk)
-  - [Slash commands i Copilot CLI](#slash-commands-i-copilot-cli)
-  - [JIRA-arbeidsflyt](#jira-arbeidsflyt)
-  - [TDD-arbeidsflyt](#tdd-arbeidsflyt)
-- [Tips og triks](#tips-og-triks)
-- [Begrensninger](#begrensninger)
-- [Sammenligning med Claude Code](#sammenligning-med-claude-code)
-  - [Tilgjengelige modeller](#tilgjengelige-modeller)
-  - [Når bruke hva?](#når-bruke-hva)
+- [What is Agent Mode?](#what-is-agent-mode)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Slash commands in Copilot CLI](#slash-commands-in-copilot-cli)
+  - [JIRA workflow](#jira-workflow)
+  - [TDD workflow](#tdd-workflow)
+- [Tips and tricks](#tips-and-tricks)
+- [Limitations](#limitations)
+- [Comparison with Claude Code](#comparison-with-claude-code)
+  - [Available models](#available-models)
+  - [When to use what?](#when-to-use-what)
 
 ---
 
-## Oversikt
+## Overview
 
-Denne implementasjonen lar deg bruke **GitHub Copilot CLI** — som ble [GA 25. februar 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — og **Copilot Agent Mode i VS Code** til å følge samme workflows som Claude Code.
+This implementation lets you use **GitHub Copilot CLI** — which went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) — and **Copilot Agent Mode in VS Code** to follow the same workflows as Claude Code.
 
-**Copilot CLI** er en terminal-nativ kodingsagent med native slash commands, plan mode, autopilot mode og permanent permissions-konfigurasjon. Den leser **CLAUDE.md** og `.github/copilot-instructions.md` direkte, noe som gjør oppsettet enklere enn i preview-perioden.
+**Copilot CLI** is a terminal-native coding agent with native slash commands, plan mode, autopilot mode and permanent permissions configuration. It reads **CLAUDE.md** and `.github/copilot-instructions.md` directly, which makes setup simpler than during the preview period.
 
-**Arkitektur:**
+**Architecture:**
 
 ```text
 implementations/copilot/
-├── README.md                           # Denne filen
-├── INSTALL.md                          # Detaljert installasjonsveiledning
-├── install.sh                          # Installasjonsscript (kjørbar)
-├── uninstall.sh                        # Avinstallasjonsscript (kjørbar)
-└── jetbrains/                          # Live Templates for JetBrains-IDEer
+├── README.md                           # This file
+├── INSTALL.md                          # Detailed installation guide
+├── install.sh                          # Installation script (executable)
+├── uninstall.sh                        # Uninstallation script (executable)
+└── jetbrains/                          # Live Templates for JetBrains IDEs
 ```
 
-**Gjenbruker:**
+**Reuses:**
 
-- ✅ `core/AGENTS.md` - Generert instruksjonsfil (intro + core/rules/, deles med Codex)
-- ✅ `core/rules/` - Samme workflows, git-regler, testing-regler
-- ✅ `core/templates/` - Samme 4-fils dokumentstruktur
-- ✅ `core/scripts/` - Samme scripts (aide-generate-pdf, etc.)
-- ✅ `implementations/claude-code/rules/` - Felles regler (git, testing, workflows, dokumentasjon)
+- ✅ `core/AGENTS.md` - Generated instructions file (intro + core/rules/, shared with Codex)
+- ✅ `core/rules/` - Same workflows, git rules, testing rules
+- ✅ `core/templates/` - Same 4-file document structure
+- ✅ `core/scripts/` - Same scripts (aide-generate-pdf, etc.)
+- ✅ `implementations/claude-code/rules/` - Shared rules (git, testing, workflows, documentation)
 
 ---
 
 ## Quick Start
 
-**Første gang?** Følg installasjonsveiledningen:
+**First time?** Follow the installation guide:
 
 ```bash
-# 1. Les detaljert installasjonsveiledning
+# 1. Read the detailed installation guide
 cat implementations/copilot/INSTALL.md
 
-# 2. Kjør install-script
+# 2. Run the install script
 cd implementations/copilot
 ./install.sh
 ```
 
-**Allerede installert?** Hopp til [Bruk](#bruk).
+**Already installed?** Skip to [Usage](#usage).
 
 ---
 
-## Hva er Agent Mode?
+## What is Agent Mode?
 
-**Agent Mode** er GitHub Copilot's autonome modus som kan:
-- ✅ Analysere hele kodebasen for kontekst
-- ✅ Planlegge og utføre multi-step løsninger
-- ✅ Kjøre kommandoer og tester
-- ✅ Iterere til løsningen er riktig (RED → GREEN → REFACTOR)
-- ✅ Auto-fikse feil underveis
+**Agent Mode** is GitHub Copilot's autonomous mode that can:
+- ✅ Analyze the entire codebase for context
+- ✅ Plan and execute multi-step solutions
+- ✅ Run commands and tests
+- ✅ Iterate until the solution is correct (RED → GREEN → REFACTOR)
+- ✅ Auto-fix errors along the way
 
-**Forskjell fra vanlig Copilot:**
-- Vanlig Copilot: Linje-for-linje code completion
-- Agent Mode: Autonome multi-step oppgaver
+**Difference from regular Copilot:**
+- Regular Copilot: Line-by-line code completion
+- Agent Mode: Autonomous multi-step tasks
 
 ---
 
-## Forutsetninger
+## Prerequisites
 
-### 1. GitHub Copilot-abonnement
+### 1. GitHub Copilot subscription
 
-- GitHub Copilot Individual, Business, Pro eller Enterprise
-- Copilot CLI er tilgjengelig for alle abonnementer
+- GitHub Copilot Individual, Business, Pro or Enterprise
+- Copilot CLI is available for all subscriptions
 
 ### 2. Copilot CLI (terminal)
 
 ```bash
-# Installer via npm (anbefalt)
+# Install via npm (recommended)
 npm install -g @github/copilot
 
-# Eller via Homebrew
+# Or via Homebrew
 brew install copilot-cli
 
-# Eller via curl
+# Or via curl
 curl -fsSL https://gh.io/copilot-install | bash
 ```
 
-### 3. VS Code med utvidelser (valgfritt, for Agent Mode i IDE)
+### 3. VS Code with extensions (optional, for Agent Mode in the IDE)
 
 ```bash
-# Installer VS Code-utvidelser
+# Install VS Code extensions
 code --install-extension GitHub.copilot
 code --install-extension GitHub.copilot-chat
 ```
 
 ---
 
-## Installasjon
+## Installation
 
-### Steg 1: Installer custom instructions
+### Step 1: Install custom instructions
 
-Kjør install-scriptet — det installerer `AGENTS.md` som global Copilot-instruksjon
-i `~/.copilot/copilot-instructions.md`:
+Run the install script — it installs `AGENTS.md` as global Copilot instructions
+in `~/.copilot/copilot-instructions.md`:
 
 ```bash
 cd implementations/copilot
 ./install.sh
 ```
 
-Copilot CLI leser i tillegg **CLAUDE.md** direkte fra prosjektroten.
+Copilot CLI additionally reads **CLAUDE.md** directly from the project root.
 
-### Steg 2: Velg modell og modus
+### Step 2: Choose model and mode
 
 **Copilot CLI:**
 
@@ -131,295 +131,295 @@ Copilot CLI leser i tillegg **CLAUDE.md** direkte fra prosjektroten.
 # Start Copilot CLI
 copilot
 
-# Velg modell (i interaktiv sesjon)
+# Choose model (in an interactive session)
 /model
 ```
 
 **VS Code Agent Mode:**
 
-1. Åpne Copilot Chat i VS Code
-2. Velg **"agent"** fra chat mode dropdown
-3. Konfigurer verktøy via tools-knappen
-4. Velg foretrukket AI-modell
+1. Open Copilot Chat in VS Code
+2. Select **"agent"** from the chat mode dropdown
+3. Configure tools via the tools button
+4. Choose your preferred AI model
 
 ---
 
-## Konfigurasjon
+## Configuration
 
 ### Custom Instructions
 
-Install-scriptet legger `AGENTS.md` som global instruksjon i `~/.copilot/copilot-instructions.md`. Den inneholder:
+The install script places `AGENTS.md` as global instructions in `~/.copilot/copilot-instructions.md`. It contains:
 
-- 🎯 Workspace-konsept og struktur
-- 📋 Referanser til `core/rules/workflows.md`
-- 🧪 TDD-regler fra `core/rules/testing.md`
-- 🔀 Git-regler fra `core/rules/git.md`
-- 📝 Dokumentstandard fra `core/rules/documentation.md`
+- 🎯 Workspace concept and structure
+- 📋 References to `core/rules/workflows.md`
+- 🧪 TDD rules from `core/rules/testing.md`
+- 🔀 Git rules from `core/rules/git.md`
+- 📝 Documentation standard from `core/rules/documentation.md`
 
-Copilot vil automatisk følge disse reglene når du ber om hjelp.
+Copilot will automatically follow these rules when you ask for help.
 
 ---
 
-## Bruk
+## Usage
 
-### Slash commands i Copilot CLI
+### Slash commands in Copilot CLI
 
-Copilot CLI leser de samme skills som Claude Code (fra `~/.claude/skills/` og
-`~/.claude/commands/`), så slash commands virker **native** — ingen oppsett ut
-over `install.sh`:
+Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
+`~/.claude/commands/`), so slash commands work **natively** — no setup beyond
+`install.sh`:
 
-| Kommando | Funksjon |
+| Command | Function |
 |----------|----------|
-| `/aide-create` | Opprett JIRA-dokumentasjon |
-| `/aide-analyze` | Analyser kodebase |
-| `/aide-implement` | Implementer med TDD |
-| `/aide-make-tests` | Lag tester for fil |
-| `/aide-react-class-to-func` | Konverter React class til functional |
+| `/aide-create` | Create JIRA documentation |
+| `/aide-analyze` | Analyze codebase |
+| `/aide-implement` | Implement with TDD |
+| `/aide-make-tests` | Create tests for a file |
+| `/aide-react-class-to-func` | Convert React class to functional |
 
-Skriv kommandoen i en `copilot`-sesjon, akkurat som i Claude Code.
+Type the command in a `copilot` session, just like in Claude Code.
 
 ---
 
 ### JetBrains IDE (IntelliJ, WebStorm, etc.)
 
-For JetBrains IDE-er bruker vi **Live Templates** som ekspanderer til fulle prompts.
+For JetBrains IDEs we use **Live Templates** that expand into full prompts.
 
-**Installasjon:**
+**Installation:**
 
-Setup-scriptet installerer automatisk til alle JetBrains IDE-er, eller manuelt:
+The setup script installs automatically to all JetBrains IDEs, or manually:
 
 ```bash
 cp implementations/copilot/jetbrains/aide-templates.xml \
    ~/Library/Application\ Support/JetBrains/<IDE>/templates/
 ```
 
-**Bruk:**
+**Usage:**
 
-1. Åpne en scratch-fil eller kodefil (Live Templates fungerer kun i editoren)
-2. Skriv forkortelsen (f.eks. `aide-review`) og trykk `Tab`
-3. Prompten ekspanderes
-4. Kopier teksten og lim inn i Copilot Chat (Tools → GitHub Copilot → Chat)
+1. Open a scratch file or code file (Live Templates only work in the editor)
+2. Type the abbreviation (e.g. `aide-review`) and press `Tab`
+3. The prompt expands
+4. Copy the text and paste it into Copilot Chat (Tools → GitHub Copilot → Chat)
 
-**Merk:** JetBrains Copilot Chat støtter ikke direkte shortcuts som VS Code, så dette er en workaround.
+**Note:** JetBrains Copilot Chat does not support direct shortcuts like VS Code, so this is a workaround.
 
-**Tilgjengelige templates:**
+**Available templates:**
 
-| Forkortelse              | Funksjon                             |
+| Abbreviation             | Function                             |
 |--------------------------|--------------------------------------|
-| `aide-review`            | Code review før PR                   |
-| `aide-create`           | Opprett JIRA-dokumentasjon           |
-| `aide-analyze`          | Analyser kodebase                    |
-| `aide-implement`               | Implementer med TDD                  |
-| `aide-make-tests`        | Lag manglende tester                 |
-| `aide-react-class-to-func` | Konverter React class til functional |
+| `aide-review`            | Code review before PR                |
+| `aide-create`           | Create JIRA documentation            |
+| `aide-analyze`          | Analyze codebase                     |
+| `aide-implement`               | Implement with TDD                   |
+| `aide-make-tests`        | Create missing tests                 |
+| `aide-react-class-to-func` | Convert React class to functional  |
 
 ---
 
-### JIRA-arbeidsflyt
+### JIRA workflow
 
-#### 1. Opprett JIRA-dokumentasjon
+#### 1. Create JIRA documentation
 
-**I stedet for:** `/aide-create PROJ-7890` (Claude Code)
+**Instead of:** `/aide-create PROJ-7890` (Claude Code)
 
-**Med Copilot (Agent Mode):**
+**With Copilot (Agent Mode):**
 
 ```text
-Opprett strukturert dokumentasjon for JIRA-sak PROJ-7890:
+Create structured documentation for JIRA issue PROJ-7890:
 
-1. Opprett katalog: reports/<NN>-PROJ-7890-slug/
-2. Følg core/rules/documentation.md
-3. Bruk templates fra core/templates/todo/
-4. Fyll ut 1-description.md med JIRA-metadata (bruker limer inn data)
-5. Opprett tomme filer: 2-analysis.md, 3-solution.md, 4-status.md
-6. Stage alle nye filer i git
+1. Create directory: reports/<NN>-PROJ-7890-slug/
+2. Follow core/rules/documentation.md
+3. Use templates from core/templates/todo/
+4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
+5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
+6. Stage all new files in git
 ```
 
-#### 2. Analyser kodebase
+#### 2. Analyze codebase
 
-**I stedet for:** `/aide-analyze PROJ-7890` (Claude Code)
+**Instead of:** `/aide-analyze PROJ-7890` (Claude Code)
 
-**Med Copilot (Agent Mode):**
+**With Copilot (Agent Mode):**
 
 ```text
-Analyser kodebasen for JIRA-sak PROJ-7890:
+Analyze the codebase for JIRA issue PROJ-7890:
 
-1. Les reports/<NN>-PROJ-7890-slug/1-description.md
-2. Søk i kodebasen etter relevante filer
-3. Identifiser påvirkede komponenter (fil:linje)
-4. Sjekk API-påvirkning (frontend ↔ backend)
-5. Vurder kompleksitet (enkel/middels/kompleks)
-6. Oppdater 2-analysis.md med funn
-7. Lag implementeringsplan i 3-solution.md
-8. Følg core/rules/workflows.md struktur
+1. Read reports/<NN>-PROJ-7890-slug/1-description.md
+2. Search the codebase for relevant files
+3. Identify affected components (file:line)
+4. Check API impact (frontend ↔ backend)
+5. Assess complexity (simple/medium/complex)
+6. Update 2-analysis.md with findings
+7. Create an implementation plan in 3-solution.md
+8. Follow the core/rules/workflows.md structure
 ```
 
-#### 3. Implementer med TDD
+#### 3. Implement with TDD
 
-**I stedet for:** `/aide-implement PROJ-7890` (Claude Code)
+**Instead of:** `/aide-implement PROJ-7890` (Claude Code)
 
-**Med Copilot (Agent Mode):**
+**With Copilot (Agent Mode):**
 
 ```text
-Implementer løsningen for PROJ-7890 med TDD:
+Implement the solution for PROJ-7890 with TDD:
 
 RED PHASE:
-1. Les 3-solution.md → Steg 0: Skriv tester
-2. Opprett testfiler som beskrevet
-3. Kjør: pnpm test -- --run <testfil>
-4. Verifiser at tester FEILER
-5. Stopp og be om bekreftelse
+1. Read 3-solution.md → Step 0: Write tests
+2. Create test files as described
+3. Run: pnpm test -- --run <testfile>
+4. Verify that the tests FAIL
+5. Stop and ask for confirmation
 
 GREEN PHASE:
-1. Implementer Steg 1-N fra 3-solution.md
-2. Kjør tester etter hvert steg
-3. Verifiser at alle tester PASSERER
-4. Stopp og be om bekreftelse
+1. Implement Steps 1-N from 3-solution.md
+2. Run tests after each step
+3. Verify that all tests PASS
+4. Stop and ask for confirmation
 
 REFACTOR PHASE:
-1. Kjør: pnpm test -- --run (alle tester)
-2. Kjør: npx tsc --noEmit
-3. Kjør: pnpm run eslint
-4. Oppdater 4-status.md med resultat
+1. Run: pnpm test -- --run (all tests)
+2. Run: npx tsc --noEmit
+3. Run: pnpm run eslint
+4. Update 4-status.md with the result
 
-Følg prosjektets kodestandard for all kode.
+Follow the project's coding standard for all code.
 ```
 
-### TDD-arbeidsflyt
+### TDD workflow
 
-Copilot's Agent Mode har innebygd støtte for TDD-syklusen:
-- Skriver tester først (RED)
-- Implementerer til tester passerer (GREEN)
-- Refaktorerer og verifiserer (REFACTOR)
-- Itererer automatisk ved feil
+Copilot's Agent Mode has built-in support for the TDD cycle:
+- Writes tests first (RED)
+- Implements until tests pass (GREEN)
+- Refactors and verifies (REFACTOR)
+- Iterates automatically on failure
 
 ---
 
 ---
 
-## Tips og triks
+## Tips and tricks
 
-### 1. Vær eksplisitt om kontekst
+### 1. Be explicit about context
 
-❌ **Dårlig:**
+❌ **Bad:**
 ```text
-Analyser PROJ-7890
+Analyze PROJ-7890
 ```
 
-✅ **Bra:**
+✅ **Good:**
 ```text
-Analyser PROJ-7890 ved å følge core/rules/workflows.md.
-Les først 1-description.md, søk deretter i kodebasen,
-og oppdater 2-analysis.md med funn (fil:linje).
+Analyze PROJ-7890 following core/rules/workflows.md.
+First read 1-description.md, then search the codebase,
+and update 2-analysis.md with findings (file:line).
 ```
 
-### 2. Referer alltid til core/rules/
+### 2. Always refer to core/rules/
 
 ```text
-Følg workflows i core/rules/workflows.md
-Følg git-regler i core/rules/git.md
-Følg testing-regler i core/rules/testing.md
-Følg prosjektets kodestandarder
+Follow the workflows in core/rules/workflows.md
+Follow the git rules in core/rules/git.md
+Follow the testing rules in core/rules/testing.md
+Follow the project's coding standards
 ```
 
-### 3. Be om steg-for-steg
+### 3. Ask for step-by-step
 
 ```text
-Gjør dette steg-for-steg. Stopp etter hver fase og be om bekreftelse:
-1. RED phase → Stopp
-2. GREEN phase → Stopp
-3. REFACTOR phase → Stopp
+Do this step by step. Stop after each phase and ask for confirmation:
+1. RED phase → Stop
+2. GREEN phase → Stop
+3. REFACTOR phase → Stop
 ```
 
-### 4. Bruk checkpoint-prompts
+### 4. Use checkpoint prompts
 
 ```text
-Status-sjekk:
-- Har du lest core/rules/workflows.md?
-- Har du fulgt 4-fils struktur?
-- Har du kjørt testene?
-- Har du oppdatert status.md?
+Status check:
+- Have you read core/rules/workflows.md?
+- Have you followed the 4-file structure?
+- Have you run the tests?
+- Have you updated status.md?
 ```
 
-### 5. Verifiser forståelse
+### 5. Verify understanding
 
 ```text
-Før du starter: Oppsummer hva du skal gjøre.
-Inkluder hvilke filer som skal endres og hvilke tester som skal skrives.
+Before you start: Summarize what you are going to do.
+Include which files will be changed and which tests will be written.
 ```
 
 ---
 
-## Begrensninger
+## Limitations
 
 ### Permission prompts
 
-Copilot CLI spør om tillatelse for fil-operasjoner og kommandokjøring.
+Copilot CLI asks for permission for file operations and command execution.
 
-**Løsninger:**
+**Solutions:**
 
 ```bash
-# Godkjenn alt for sesjon (interaktivt)
-# Velg: "Yes, and approve all file operations for the rest of the running session"
+# Approve everything for the session (interactive)
+# Choose: "Yes, and approve all file operations for the rest of the running session"
 
-# Eller bruk CLI-flagg ved oppstart
-copilot --allow-all-tools                 # Tillat alle verktøy
-copilot --allow-tool 'shell(git)'         # Tillat spesifikke verktøy
-copilot --allow-all-paths                 # Tillat alle filstier
+# Or use CLI flags at startup
+copilot --allow-all-tools                 # Allow all tools
+copilot --allow-tool 'shell(git)'         # Allow specific tools
+copilot --allow-all-paths                 # Allow all file paths
 
-# Full automatisering (kun i isolerte miljøer)
-copilot --yolo                            # Tillat alt uten spørsmål
+# Full automation (only in isolated environments)
+copilot --yolo                            # Allow everything without prompts
 ```
 
-**Permanent konfigurasjon:** Bruk `~/.copilot/config.json` med `trusted_folders` for å forhåndsgodkjenne kataloger.
+**Permanent configuration:** Use `~/.copilot/config.json` with `trusted_folders` to pre-approve directories.
 
 ---
 
-### Copilot CLI HAR:
+### Copilot CLI HAS:
 
-- ✅ Native slash commands (`/model`, `/diff`, `/plugin install`, m.fl.)
-- ✅ Automatisk lesing av **CLAUDE.md** fra prosjektroten
-- ✅ Automatisk lesing av `.github/copilot-instructions.md`
-- ✅ Path-spesifikke instruksjoner (`.github/instructions/*.instructions.md`)
-- ✅ Plan mode (Shift+Tab for å bytte modus)
-- ✅ Autopilot mode (full autonomi uten bekreftelser)
-- ✅ Spesialiserte agenter (Explore, Task, Code Review, Plan)
-- ✅ Agent Mode for autonome multi-step oppgaver
+- ✅ Native slash commands (`/model`, `/diff`, `/plugin install`, and more)
+- ✅ Automatic reading of **CLAUDE.md** from the project root
+- ✅ Automatic reading of `.github/copilot-instructions.md`
+- ✅ Path-specific instructions (`.github/instructions/*.instructions.md`)
+- ✅ Plan mode (Shift+Tab to switch modes)
+- ✅ Autopilot mode (full autonomy without confirmations)
+- ✅ Specialized agents (Explore, Task, Code Review, Plan)
+- ✅ Agent Mode for autonomous multi-step tasks
 - ✅ Codebase analysis
 - ✅ Command execution
 - ✅ Test iteration (RED → GREEN → REFACTOR)
-- ✅ Tool calling (kan kjøre Python scripts)
-- ✅ MCP server-støtte (innebygd GitHub MCP + custom)
-- ✅ Permanent permissions via `config.json` og CLI-flagg
+- ✅ Tool calling (can run Python scripts)
+- ✅ MCP server support (built-in GitHub MCP + custom)
+- ✅ Permanent permissions via `config.json` and CLI flags
 
-### Copilot CLI har IKKE:
+### Copilot CLI does NOT have:
 
-- ❌ Innebygde agents som `@agent-jira-analyzer` (bruker generelle agenter)
+- ❌ Built-in agents like `@agent-jira-analyzer` (uses general agents)
 
 ---
 
-## Sammenligning med Claude Code
+## Comparison with Claude Code
 
 | Feature | Claude Code | Copilot CLI |
 |---------|-------------|-------------|
-| **Kommandoer** | Slash commands (`/aide-create`) | Slash commands + natural language |
-| **Instruksjoner** | CLAUDE.md (auto-read) | CLAUDE.md + copilot-instructions.md |
+| **Commands** | Slash commands (`/aide-create`) | Slash commands + natural language |
+| **Instructions** | CLAUDE.md (auto-read) | CLAUDE.md + copilot-instructions.md |
 | **Plan mode** | ✅ Native | ✅ Native (Shift+Tab) |
 | **Autopilot mode** | ✅ (via permissions) | ✅ Native (`--yolo`) |
-| **Agents** | `@agent-jira-analyzer` | Spesialiserte (Explore, Task, Code Review) |
-| **Skills** | ✅ `.claude/skills/` | ✅ Leser `~/.claude/commands/` + `.claude/skills/` |
-| **TDD** | Innebygd RED→GREEN→REFACTOR | Agent Mode itererer |
+| **Agents** | `@agent-jira-analyzer` | Specialized (Explore, Task, Code Review) |
+| **Skills** | ✅ `.claude/skills/` | ✅ Reads `~/.claude/commands/` + `.claude/skills/` |
+| **TDD** | Built-in RED→GREEN→REFACTOR | Agent Mode iterates |
 | **Codebase analysis** | ✅ | ✅ |
 | **Tool calling** | ✅ | ✅ |
-| **MCP servers** | ✅ | ✅ (innebygd GitHub MCP) |
-| **Permanent permissions** | ✅ `settings.json` | ✅ `config.json` + CLI-flagg |
+| **MCP servers** | ✅ | ✅ (built-in GitHub MCP) |
+| **Permanent permissions** | ✅ `settings.json` | ✅ `config.json` + CLI flags |
 | **Multi-step autonomy** | ✅ | ✅ |
-| **Modeller** | Claude Opus/Sonnet/Haiku | Claude, GPT, Gemini (valgfritt) |
-| **Context window** | 200K tokens | Varierer med modell |
-| **IDE-integrasjon** | VS Code (via CLI) | VS Code (native) + CLI |
+| **Models** | Claude Opus/Sonnet/Haiku | Claude, GPT, Gemini (optional) |
+| **Context window** | 200K tokens | Varies by model |
+| **IDE integration** | VS Code (via CLI) | VS Code (native) + CLI |
 
-### Tilgjengelige modeller
+### Available models
 
-| Modell | Claude Code | Copilot CLI |
+| Model | Claude Code | Copilot CLI |
 |--------|-------------|-------------|
 | Claude Opus 4.7 | ✅ | ✅ |
 | Claude Sonnet 4.6 | ✅ | ✅ |
@@ -427,101 +427,101 @@ copilot --yolo                            # Tillat alt uten spørsmål
 | GPT-5.5 | ❌ | ✅ |
 | Gemini 3.x | ❌ | ✅ |
 
-### Når bruke hva?
+### When to use what?
 
-| Scenario | Anbefaling |
+| Scenario | Recommendation |
 |----------|-----------|
-| **Kompleks JIRA-analyse** | Claude Code (bedre skills/agents) |
-| **Quick edits** | Copilot (raskere i VS Code) |
-| **TDD-implementering** | Begge fungerer godt |
-| **Refaktorering** | Copilot (native VS Code-integrasjon) |
-| **Tverrfaglige saker** | Claude Code (bedre multi-repo støtte) |
-| **Full automatisering** | Copilot CLI (`--yolo` modus) |
+| **Complex JIRA analysis** | Claude Code (better skills/agents) |
+| **Quick edits** | Copilot (faster in VS Code) |
+| **TDD implementation** | Both work well |
+| **Refactoring** | Copilot (native VS Code integration) |
+| **Cross-cutting issues** | Claude Code (better multi-repo support) |
+| **Full automation** | Copilot CLI (`--yolo` mode) |
 
 ---
 
-## Neste steg
+## Next steps
 
-1. ✅ Installer Copilot og aktiver Agent Mode
-2. ✅ Kopier custom instructions
-3. ✅ Test med en enkel JIRA-sak
+1. ✅ Install Copilot and enable Agent Mode
+2. ✅ Copy custom instructions
+3. ✅ Test with a simple JIRA issue
 
 ---
 
 ## Headless Mode (Copilot CLI)
 
-Copilot CLI støtter headless mode for automatisering og scripting.
+Copilot CLI supports headless mode for automation and scripting.
 
-### Grunnleggende bruk
+### Basic usage
 
 ```bash
-# Kjør enkelt prompt uten interaktiv UI
-copilot -p "Analyser denne koden"
+# Run a single prompt without the interactive UI
+copilot -p "Analyze this code"
 
-# Tillat alle verktøy (for full automatisering)
-copilot -p "Kjør alle tester" --allow-all-tools
+# Allow all tools (for full automation)
+copilot -p "Run all tests" --allow-all-tools
 
-# Tillat spesifikke verktøy
-copilot -p "Revert siste commit" --allow-tool 'shell(git)'
+# Allow specific tools
+copilot -p "Revert the last commit" --allow-tool 'shell(git)'
 
-# Full automatisering (isolerte miljøer)
-copilot -p "Kjør alle tester og fiks feil" --yolo
+# Full automation (isolated environments)
+copilot -p "Run all tests and fix failures" --yolo
 ```
 
 ### E2E Testing
 
 ```bash
-# Test at Copilot CLI fungerer
-copilot -p "Si 'hello'"
+# Test that Copilot CLI works
+copilot -p "Say 'hello'"
 
-# Kjør aide-workflow headless
+# Run the aide workflow headless
 copilot -p "/aide-create PROJ-TEST"
 ```
 
-### Flagg-referanse
+### Flag reference
 
-| Flagg | Beskrivelse |
+| Flag | Description |
 |-------|-------------|
 | `-p "prompt"` | Headless/programmatic mode |
-| `--allow-all-tools` | Tillat alle verktøy uten bekreftelse |
-| `--allow-tool 'tool'` | Tillat spesifikt verktøy |
-| `--deny-tool 'tool'` | Blokker spesifikt verktøy |
-| `--allow-all-paths` | Tillat tilgang til alle filstier |
-| `--allow-all-urls` | Tillat tilgang til alle URL-er |
-| `--allow-url <domain>` | Forhåndsgodkjenn spesifikt domene |
-| `--yolo` / `--allow-all` | Tillat alt uten bekreftelse |
+| `--allow-all-tools` | Allow all tools without confirmation |
+| `--allow-tool 'tool'` | Allow a specific tool |
+| `--deny-tool 'tool'` | Block a specific tool |
+| `--allow-all-paths` | Allow access to all file paths |
+| `--allow-all-urls` | Allow access to all URLs |
+| `--allow-url <domain>` | Pre-approve a specific domain |
+| `--yolo` / `--allow-all` | Allow everything without confirmation |
 
-**Sikkerhet:** Bruk `--yolo` / `--allow-all-tools` kun i isolerte miljøer (containere, VM).
+**Security:** Use `--yolo` / `--allow-all-tools` only in isolated environments (containers, VMs).
 
-### Slash commands i CLI
+### Slash commands in the CLI
 
-| Kommando | Beskrivelse |
+| Command | Description |
 |----------|-------------|
-| `/model` | Bytt modell midt i sesjonen |
-| `/diff` | Se alle endringer i sesjonen med syntax-highlighting |
-| `/plugin install owner/repo` | Installer plugins fra GitHub |
-| `/login` | Autentisering |
-| `/lsp` | Vis LSP server-status |
-| `/feedback` | Send tilbakemelding |
+| `/model` | Switch model mid-session |
+| `/diff` | View all changes in the session with syntax highlighting |
+| `/plugin install owner/repo` | Install plugins from GitHub |
+| `/login` | Authentication |
+| `/lsp` | Show LSP server status |
+| `/feedback` | Send feedback |
 
 ---
 
-## Ressurser
+## Resources
 
-**Offisiell dokumentasjon og best practices:**
+**Official documentation and best practices:**
 
-- [GitHub Copilot Documentation](https://docs.github.com/en/copilot) - Fullstendig dokumentasjon
-- [Copilot Best Practices](https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot) - Offisielle best practices
-- [Prompt Engineering for Copilot](https://docs.github.com/en/copilot/using-github-copilot/prompt-engineering-for-github-copilot) - Prompt-teknikker
+- [GitHub Copilot Documentation](https://docs.github.com/en/copilot) - Complete documentation
+- [Copilot Best Practices](https://docs.github.com/en/copilot/using-github-copilot/best-practices-for-using-github-copilot) - Official best practices
+- [Prompt Engineering for Copilot](https://docs.github.com/en/copilot/using-github-copilot/prompt-engineering-for-github-copilot) - Prompt techniques
 
 **Copilot CLI:**
 
 - [Copilot CLI GitHub repo](https://github.com/github/copilot-cli) - Open source repo
-- [Using Copilot CLI - GitHub Docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli) - CLI-dokumentasjon
-- [Configure Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli) - Konfigurasjon
-- [Custom Instructions for CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) - CLAUDE.md og instruksjoner
-- [GA-annonsering (25. feb 2026)](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) - Changelog
+- [Using Copilot CLI - GitHub Docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli) - CLI documentation
+- [Configure Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli) - Configuration
+- [Custom Instructions for CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions) - CLAUDE.md and instructions
+- [GA announcement (Feb 25, 2026)](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) - Changelog
 
 ---
 
-**Lykke til med GitHub Copilot!**
+**Good luck with GitHub Copilot!**
