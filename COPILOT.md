@@ -1,20 +1,20 @@
 # COPILOT.md
 
-Denne filen er inngangsporten til GitHub Copilot når du jobber i dette repositoriet.
+This file is the entry point for GitHub Copilot when working in this repository.
 
-**📍 Deployment:** Denne filen er for mennesker som skal sette opp VS Code med Copilot.
+**📍 Deployment:** This file is for humans setting up VS Code with Copilot.
 
-## 📍 Hvor du er nå
+## 📍 Where you are now
 
-Du er i **doc-aide**. Dette er et AI-verktøy workspace for AI-assistert utvikling.
+You are in **doc-aide**. This is an AI tooling workspace for AI-assisted development.
 
 ---
 
-## 🚀 Oppsett for GitHub Copilot
+## 🚀 Setup for GitHub Copilot
 
-### 1. Installer VS Code extensions
+### 1. Install VS Code extensions
 
-Åpne workspace i VS Code - du vil få forslag om å installere anbefalte extensions (`.vscode/extensions.json`):
+Open the workspace in VS Code - you will be prompted to install the recommended extensions (`.vscode/extensions.json`):
 - GitHub Copilot
 - GitHub Copilot Chat
 - Markdown linting
@@ -22,76 +22,76 @@ Du er i **doc-aide**. Dette er et AI-verktøy workspace for AI-assistert utvikli
 
 ### 2. Workspace Trust
 
-Første gang du åpner workspace i VS Code:
-1. Klikk "Trust Workspace" (kreves for at tasks skal fungere)
-2. Dette gir Copilot tilgang til alle filer i workspace
+The first time you open the workspace in VS Code:
+1. Click "Trust Workspace" (required for tasks to work)
+2. This gives Copilot access to all files in the workspace
 
-### 3. Verifiser konfigurasjon
+### 3. Verify configuration
 
-**Sjekk at custom instructions lastes:**
-1. Åpne Copilot Chat (`Cmd+Shift+I` / `Ctrl+Shift+I`)
-2. Klikk på "..." → "Settings"
-3. Verifiser at `.github/copilot-instructions.md` er listet under "Instructions"
+**Check that custom instructions are loaded:**
+1. Open Copilot Chat (`Cmd+Shift+I` / `Ctrl+Shift+I`)
+2. Click "..." → "Settings"
+3. Verify that `.github/copilot-instructions.md` is listed under "Instructions"
 
-**Sjekk environment variabler:**
+**Check environment variables:**
 ```bash
-# I VS Code terminal (Ctrl+` / Cmd+`)
+# In the VS Code terminal (Ctrl+` / Cmd+`)
 echo $AIDE_INSTALLATION_PATH
-# Skal printe: /Users/[din-bruker]/develop/doc-aide
+# Should print: /Users/[your-user]/develop/doc-aide
 
 echo $PATH | grep ".local/bin"
-# Skal inneholde: ~/.local/bin
+# Should contain: ~/.local/bin
 ```
 
 ### 4. Test tasks
 
-**Kjør en task:**
+**Run a task:**
 1. `Cmd+Shift+P` / `Ctrl+Shift+P` → "Tasks: Run Task"
-2. Velg en task (f.eks. "Test: Kjør alle tester")
+2. Pick a task (e.g. "Test: Run all tests")
 
 ---
 
 ## 🔍 Pre-PR Review Workflow
 
-**Review koden din FØR du lager PR:**
+**Review your code BEFORE creating a PR:**
 
-### Metode 1: Bruk GitHub Copilot CLI
+### Method 1: Use GitHub Copilot CLI
 
 ```bash
-# Be Copilot reviewe dine endringer
-? Review mine endringer mot KODESTANDARD.md
+# Ask Copilot to review your changes
+? Review my changes against the project's coding standard
 
-# Eller mer spesifikt:
-? Kjør pre-PR review: sjekk sikkerhet, ytelse, tilgjengelighet og KODESTANDARD.md
+# Or more specifically:
+? Run a pre-PR review: check security, performance, accessibility and the project coding standard
 ```
 
-### Metode 2: Manuell review-kommando
+### Method 2: Manual review command
 
 ```bash
-# Se hva som er endret
+# See what has changed
 git status
 git diff
 
-# Be Copilot om review
-? Review denne diffen
+# Ask Copilot for a review
+? Review this diff
 ```
 
-### Hva reviewes?
+### What gets reviewed?
 
-Copilot sjekker:
-- ✅ **KODESTANDARD.md** - TypeScript, React, testing
-- ✅ **Sikkerhet** - XSS, secrets, input validation
-- ✅ **Ytelse** - Unødvendige re-renders, ineffektive loops
-- ✅ **Tilgjengelighet** - ARIA, semantisk HTML, tastaturnavigasjon
-- ✅ **Testing** - Test coverage, TDD-prinsipper
-- ✅ **Git** - Commit-struktur, filhåndtering
+Copilot checks:
+- ✅ **Coding standard** - TypeScript, React, testing
+- ✅ **Security** - XSS, secrets, input validation
+- ✅ **Performance** - Unnecessary re-renders, inefficient loops
+- ✅ **Accessibility** - ARIA, semantic HTML, keyboard navigation
+- ✅ **Testing** - Test coverage, TDD principles
+- ✅ **Git** - Commit structure, file handling
 
-### Eksempel på review-forespørsel
+### Example review request
 
 ```text
-? Jeg har gjort endringer i UserForm.tsx og userService.ts.
-  Kan du reviewe mot KODESTANDARD.md før jeg committer?
-  Fokuser spesielt på:
+? I have made changes in UserForm.tsx and userService.ts.
+  Can you review them against the coding standard before I commit?
+  Focus in particular on:
   - Form validation
   - Error handling
   - Accessibility
@@ -101,202 +101,202 @@ Copilot sjekker:
 
 ## 🛠️ VS Code Tasks
 
-**Kjør en task:**
+**Run a task:**
 1. `Cmd+Shift+P` / `Ctrl+Shift+P` → "Tasks: Run Task"
-2. Velg ønsket task
-3. Følg instruksjonene i terminalen
+2. Pick the task you want
+3. Follow the instructions in the terminal
 
-**Tilgjengelige tasks:**
-- `Aide: Opprett JIRA-dokumentasjon` - Opprett dokumentstruktur
-- `Test: Kjør alle tester` - Full test-suite
-- `Test: Kjør spesifikk testfil` - Kjør én testfil
+**Available tasks:**
+- `Aide: Create JIRA documentation` - Create document structure
+- `Test: Run all tests` - Full test suite
+- `Test: Run specific test file` - Run a single test file
 - `QA: TypeScript check` - Type checking
 - `QA: ESLint` - Linting
-- `QA: Full kvalitetssjekk` - Alt over i sekvens
+- `QA: Full quality check` - All of the above in sequence
 
 ---
 
-## 🤖 Hvordan bruke Copilot i dette workspace
+## 🤖 How to use Copilot in this workspace
 
-### Agent Mode (anbefalt)
+### Agent Mode (recommended)
 
-Copilot's Agent Mode kan følge multi-step workflows autonomt:
+Copilot's Agent Mode can follow multi-step workflows autonomously:
 
-**Eksempel: Analyser JIRA-sak**
+**Example: Analyze a JIRA issue**
 ```text
-@workspace Analyser PROJ-7890 i Agent Mode.
-Følg "Autonome workflows" fra custom instructions.
+@workspace Analyze PROJ-7890 in Agent Mode.
+Follow "Autonomous workflows" from the custom instructions.
 ```
 
-Copilot vil da:
-1. Opprette dokumentstruktur
-2. Analysere kodebasen
-3. Oppdatere 2-analysis.md og 3-solution.md
-4. Stage filer med git
+Copilot will then:
+1. Create the document structure
+2. Analyze the codebase
+3. Update 2-analysis.md and 3-solution.md
+4. Stage files with git
 
 ### Natural Language Commands
 
-I stedet for slash commands (som Claude Code), bruk natural language:
+Instead of slash commands (like Claude Code), use natural language:
 
-| Claude Code | Copilot ekvivalent |
+| Claude Code | Copilot equivalent |
 |-------------|-------------------|
-| `/aide-create PROJ-7890` | "Opprett dokumentasjon for PROJ-7890" |
-| `/aide-analyze PROJ-7890` | "Analyser PROJ-7890" |
-| `/aide-implement PROJ-7890` | "Implementer PROJ-7890 med TDD" |
+| `/aide-create PROJ-7890` | "Create documentation for PROJ-7890" |
+| `/aide-analyze PROJ-7890` | "Analyze PROJ-7890" |
+| `/aide-implement PROJ-7890` | "Implement PROJ-7890 with TDD" |
 
-### Bruk Tasks for repetitive kommandoer
+### Use Tasks for repetitive commands
 
-For kommandoer du kjører ofte:
+For commands you run often:
 1. `Cmd+Shift+P` → "Tasks: Run Task"
-2. Eller sett opp keyboard shortcuts (se nedenfor)
+2. Or set up keyboard shortcuts (see below)
 
 ---
 
-## ⌨️ Anbefalte keyboard shortcuts
+## ⌨️ Recommended keyboard shortcuts
 
-Legg til i din `keybindings.json` (File → Preferences → Keyboard Shortcuts → Open Keyboard Shortcuts JSON):
+Add to your `keybindings.json` (File → Preferences → Keyboard Shortcuts → Open Keyboard Shortcuts JSON):
 
 ```json
 [
   {
     "key": "cmd+k cmd+j",
     "command": "workbench.action.tasks.runTask",
-    "args": "Aide: Opprett JIRA-dokumentasjon"
+    "args": "Aide: Create JIRA documentation"
   },
   {
     "key": "cmd+k cmd+a",
     "command": "workbench.action.tasks.runTask",
-    "args": "QA: Full kvalitetssjekk"
+    "args": "QA: Full quality check"
   },
   {
     "key": "cmd+k cmd+t",
     "command": "workbench.action.tasks.runTask",
-    "args": "Test: Kjør alle tester"
+    "args": "Test: Run all tests"
   }
 ]
 ```
 
 ---
 
-## 📁 Dokumentasjonstruktur
+## 📁 Documentation structure
 
-- **JIRA-tickets:** `reports/<NN>-{ISSUE_ID}-slug/`
+- **JIRA tickets:** `reports/<NN>-{ISSUE_ID}-slug/`
   - `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
-  - **OBS:** Hvis `AIDE_REPORTS_PATH` er satt, skrives reports dit i stedet
-- **Todo-planer:** `reports/`
-- **Generiske workflows:** `core/rules/`
+  - **NOTE:** If `AIDE_REPORTS_PATH` is set, reports are written there instead
+- **Todo plans:** `reports/`
+- **Generic workflows:** `core/rules/`
 
 ---
 
-## 🚫 KRITISK: Copilot-spesifikke regler
+## 🚫 CRITICAL: Copilot-specific rules
 
-### Commit-håndtering
+### Commit handling
 
-**Copilot kan IKKE kjøre `git commit` direkte.**
+**Copilot CANNOT run `git commit` directly.**
 
-**Når du ber Copilot om å committe:**
-1. Copilot vil kjøre `git status`
-2. Copilot vil kjøre `git add <file>` for nye filer
-3. Copilot vil **gi deg commit-meldingen** som tekst
-4. **DU må kjøre `git commit` selv** i terminalen
+**When you ask Copilot to commit:**
+1. Copilot will run `git status`
+2. Copilot will run `git add <file>` for new files
+3. Copilot will **give you the commit message** as text
+4. **YOU must run `git commit` yourself** in the terminal
 
-**Format for commit-meldinger:** Se [core/rules/git.md](core/rules/git.md)
+**Commit message format:** See [core/rules/git.md](core/rules/git.md)
 
 ### MCP Servers (Model Context Protocol)
 
-Hvis tilgjengelig via Copilot extensions:
-- MCP server for JIRA - hent JIRA-data
-- MCP server for Confluence - dokumentasjonsoppslag
+If available via Copilot extensions:
+- MCP server for JIRA - fetch JIRA data
+- MCP server for Confluence - documentation lookups
 
 ---
 
-## 🛠️ Mest brukte kommandoer
+## 🛠️ Most used commands
 
 **Via Copilot Chat (natural language):**
 
 ```text
-# JIRA-arbeidsflyt
-"Opprett dokumentasjon for PROJ-7890"
-"Analyser PROJ-7890"
-"Implementer PROJ-7890 med TDD"
+# JIRA workflow
+"Create documentation for PROJ-7890"
+"Analyze PROJ-7890"
+"Implement PROJ-7890 with TDD"
 
-# TODO-arbeidsflyt
-"Opprett TODO-plan for Redux Form-migrering"
-"Analyser TODO-01"
-"Implementer TODO-01"
+# TODO workflow
+"Create a TODO plan for the Redux Form migration"
+"Analyze TODO-01"
+"Implement TODO-01"
 
-# Andre oppgaver
-"Konverter UserProfile.tsx til functional component"
-"Lag tester for validateSøknad"
+# Other tasks
+"Convert UserProfile.tsx to a functional component"
+"Create tests for validateForm"
 ```
 
 **Via VS Code Tasks (Command Palette):**
-- `Tasks: Run Task` → "Aide: Opprett JIRA-dokumentasjon"
-- `Tasks: Run Task` → "QA: Full kvalitetssjekk"
-- `Tasks: Run Task` → "Test: Kjør alle tester"
+- `Tasks: Run Task` → "Aide: Create JIRA documentation"
+- `Tasks: Run Task` → "QA: Full quality check"
+- `Tasks: Run Task` → "Test: Run all tests"
 
 ---
 
-## 🔗 Videre lesing
+## 🔗 Further reading
 
-**Må lese før bruk:**
+**Must read before use:**
 - ✅ [core/rules/workflows.md](core/rules/workflows.md) - JIRA/TODO workflows
 - ✅ [core/rules/git.md](core/rules/git.md) - Git best practices
-- ✅ [core/rules/testing.md](core/rules/testing.md) - Testing-regler
+- ✅ [core/rules/testing.md](core/rules/testing.md) - Testing rules
 
-**Copilot-spesifikk dokumentasjon:**
+**Copilot-specific documentation:**
 - ✅ [implementations/copilot/README.md](implementations/copilot/README.md) - Copilot setup guide
-- ✅ [core/AGENTS.md](core/AGENTS.md) - Instruksjoner (installeres til ~/.copilot/copilot-instructions.md)
+- ✅ [core/AGENTS.md](core/AGENTS.md) - Instructions (installed to ~/.copilot/copilot-instructions.md)
 
-**For fullstendig workspace-oversikt:**
-- 📄 [README.md](README.md) - Workspace-oversikt
-
----
-
-## 💡 Tips og triks
-
-### 1. Bruk @workspace for kontekst
-
-```text
-@workspace Finn alle komponenter som bruker redux-form
-```
-
-Copilot får tilgang til hele kodebasen (ikke bare åpen fil).
-
-### 2. Vær spesifikk om fase
-
-```text
-Analyser PROJ-7890, men STOPP etter analyse.
-IKKE implementer enda - jeg må godkjenne planen først.
-```
-
-### 3. Referer til dokumentasjon eksplisitt
-
-```text
-Følg TDD-prosessen fra core/rules/testing.md:
-RED → GREEN → REFACTOR med pause mellom hver fase.
-```
-
-### 4. Bruk Agent Mode for komplekse oppgaver
-
-Aktivér Agent Mode i Copilot Chat:
-- Klikk på "agent" dropdown
-- Eller start prompt med "@workspace" for automatisk agent-deteksjon
+**For a complete workspace overview:**
+- 📄 [README.md](README.md) - Workspace overview
 
 ---
 
-## 🔄 Sammenligning med Claude Code
+## 💡 Tips and tricks
+
+### 1. Use @workspace for context
+
+```text
+@workspace Find all components that use redux-form
+```
+
+Copilot gets access to the entire codebase (not just the open file).
+
+### 2. Be specific about the phase
+
+```text
+Analyze PROJ-7890, but STOP after the analysis.
+Do NOT implement yet - I need to approve the plan first.
+```
+
+### 3. Reference documentation explicitly
+
+```text
+Follow the TDD process from core/rules/testing.md:
+RED → GREEN → REFACTOR with a pause between each phase.
+```
+
+### 4. Use Agent Mode for complex tasks
+
+Enable Agent Mode in Copilot Chat:
+- Click the "agent" dropdown
+- Or start the prompt with "@workspace" for automatic agent detection
+
+---
+
+## 🔄 Comparison with Claude Code
 
 | Feature | Claude Code | Copilot (VS Code) |
 |---------|-------------|-------------------|
-| **Kommandoer** | `/aide-create` | Natural language eller Tasks |
-| **Instruksjoner** | `CLAUDE.md` (auto-read) | `.github/copilot-instructions.md` |
-| **Permissions** | Fine-grained i settings.json | Workspace Trust (all-or-nothing) |
-| **Bash commands** | Direkte kjøring (pre-approved) | Via Tasks eller manual terminal |
-| **Git commit** | Blocked (deny list) | Copilot kan ikke kjøre (må gjøres manuelt) |
-| **Agent Mode** | Innebygd | Innebygd (siden 2024) |
+| **Commands** | `/aide-create` | Natural language or Tasks |
+| **Instructions** | `CLAUDE.md` (auto-read) | `.github/copilot-instructions.md` |
+| **Permissions** | Fine-grained in settings.json | Workspace Trust (all-or-nothing) |
+| **Bash commands** | Direct execution (pre-approved) | Via Tasks or manual terminal |
+| **Git commit** | Blocked (deny list) | Copilot cannot run it (must be done manually) |
+| **Agent Mode** | Built-in | Built-in (since 2024) |
 | **MCP support** | ✅ | ✅ (via extensions) |
 
 ---
 
-**Lykke til med GitHub Copilot! 🚀**
+**Good luck with GitHub Copilot! 🚀**

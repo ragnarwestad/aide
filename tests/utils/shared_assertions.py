@@ -34,16 +34,16 @@ def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
     # Assert 1-description.md has correct content
-    beskrivelse = reports_dir / "1-description.md"
-    content = beskrivelse.read_text()
+    description_file = reports_dir / "1-description.md"
+    content = description_file.read_text()
 
     # Should contain issue key
     assert issue_key in content, f"Should contain issue key {issue_key}"
 
     # Should contain required sections
     assert "## Metadata" in content, "Should contain Metadata section"
-    assert "## Beskrivelse" in content, "Should contain Beskrivelse section"
-    assert "## Omfang" in content, "Should contain Omfang section"
+    assert "## Description" in content, "Should contain Description section"
+    assert "## Scope" in content, "Should contain Scope section"
 
     # Should NOT contain unreplaced placeholders
     assert "{{ISSUE_KEY}}" not in content, "Should not have unreplaced ISSUE_KEY"
@@ -77,14 +77,14 @@ def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
     # Assert 1-description.md has correct content
-    beskrivelse = reports_dir / "1-description.md"
-    content = beskrivelse.read_text()
+    description_file = reports_dir / "1-description.md"
+    content = description_file.read_text()
 
     # Should contain TODO ID
     assert expected_todo_id in content, f"Should contain TODO ID {expected_todo_id}"
 
     # Should contain required sections (TODO templates don't have Metadata like JIRA)
-    assert "## Beskrivelse" in content, "Should contain Beskrivelse section"
+    assert "## Description" in content, "Should contain Description section"
 
     # Should NOT contain unreplaced placeholders (except allowed ones)
     assert "{{TITLE_FORMATTED}}" not in content, "Should not have unreplaced TITLE_FORMATTED"

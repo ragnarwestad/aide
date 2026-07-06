@@ -1,90 +1,90 @@
-# Utviklerguide for doc-aide
+# Developer guide for doc-aide
 
-Denne guiden er for deg som vil **bidra til eller videreutvikle** doc-aide.
+This guide is for you who want to **contribute to or further develop** doc-aide.
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Katalogstruktur](#katalogstruktur)
-- [Legge til ny funksjonalitet](#legge-til-ny-funksjonalitet)
-  - [Ny skill](#ny-skill)
-  - [Oppdatere regler](#oppdatere-regler)
-  - [Oppdatere Copilot-instruksjoner](#oppdatere-copilot-instruksjoner)
-- [Installasjon](#installasjon)
-- [Arkitektur](#arkitektur)
+- [Directory structure](#directory-structure)
+- [Adding new functionality](#adding-new-functionality)
+  - [New skill](#new-skill)
+  - [Updating rules](#updating-rules)
+  - [Updating Copilot instructions](#updating-copilot-instructions)
+- [Installation](#installation)
+- [Architecture](#architecture)
 
 ---
 
-## Katalogstruktur
+## Directory structure
 
 ```text
 doc-aide/
 │
-├── core/                          # FELLES INNHOLD (delt av alle AI-verktøy)
-│   ├── skills/                    # Skills (SKILL.md per mappe)
+├── core/                          # SHARED CONTENT (shared by all AI tools)
+│   ├── skills/                    # Skills (SKILL.md per directory)
 │   │   ├── tdd-coach/
 │   │   └── ...
-│   ├── rules/                     # Generiske regler — installeres til ~/.claude/rules/
+│   ├── rules/                     # Generic rules — installed to ~/.claude/rules/
 │   │   ├── workflows.md
 │   │   ├── git.md
 │   │   ├── testing.md
 │   │   └── ...
-│   ├── scripts/                   # CLI-scripts: aide-generate-pdf, aide-generate-html
-│   └── templates/                 # Dokumentmaler
+│   ├── scripts/                   # CLI scripts: aide-generate-pdf, aide-generate-html
+│   └── templates/                 # Document templates
 │
-├── implementations/               # AI-SPESIFIKKE TILPASNINGER
+├── implementations/               # AI-SPECIFIC ADAPTATIONS
 │   │
 │   ├── claude-code/
-│   │   ├── CLAUDE.md              # Mal — installeres til .claude/CLAUDE.md i hvert prosjekt
-│   │   ├── agents/                # Agent-definisjoner — installeres til ~/.claude/agents/
+│   │   ├── CLAUDE.md              # Template — installed to .claude/CLAUDE.md in each project
+│   │   ├── agents/                # Agent definitions — installed to ~/.claude/agents/
 │   │   │   └── task-analyzer.md
-│   │   ├── settings.json          # Claude Code permissions (doc-aide selv)
+│   │   ├── settings.json          # Claude Code permissions (doc-aide itself)
 │   │   ├── install.sh
 │   │   └── uninstall.sh
 │   │
 │   └── copilot/
 │       ├── .github/
-│       │   └── copilot-instructions.md  # Installeres til .github/ i hvert prosjekt
-│       ├── keybindings.json       # VS Code keybindings (manuelt steg)
+│       │   └── copilot-instructions.md  # Installed to .github/ in each project
+│       ├── keybindings.json       # VS Code keybindings (manual step)
 │       ├── install.sh
 │       └── uninstall.sh
 │
-└── tests/                         # TESTER
+└── tests/                         # TESTS
     └── specs/
 ```
 
 ---
 
-## Legge til ny funksjonalitet
+## Adding new functionality
 
-### Ny skill
+### New skill
 
-Alle skills (både ekspert-skills og aide-* workflow-skills) ligger i `core/skills/`.
+All skills (both expert skills and aide-* workflow skills) live in `core/skills/`.
 
-Eksempel: Legge til `database-expert`
+Example: Adding `database-expert`
 
 ```bash
-# 1. Opprett skill
+# 1. Create the skill
 mkdir -p core/skills/database-expert
 vim core/skills/database-expert/SKILL.md
 
-# 2. Legg til i uninstall.sh sin SKILLS-liste
+# 2. Add it to the SKILLS list in uninstall.sh
 
-# 3. Installer og test
+# 3. Install and test
 cd implementations/claude-code && ./install.sh
 
 # 4. Commit
 git add core/skills/database-expert/
-git commit -m "La til database-expert skill"
+git commit -m "Add database-expert skill"
 ```
 
-### Oppdatere regler
+### Updating rules
 
 ```bash
 vim core/rules/workflows.md
 cd implementations/claude-code && ./install.sh
 ```
 
-### Oppdatere Copilot-instruksjoner
+### Updating Copilot instructions
 
 ```bash
 vim implementations/copilot/.github/copilot-instructions.md
@@ -93,7 +93,7 @@ cd implementations/copilot && ./install.sh
 
 ---
 
-## Installasjon
+## Installation
 
 ```bash
 # Claude Code
@@ -102,32 +102,32 @@ cd implementations/claude-code && ./install.sh
 # Copilot
 cd implementations/copilot && ./install.sh
 
-# Avinstaller Claude Code
+# Uninstall Claude Code
 cd implementations/claude-code && ./uninstall.sh
 ```
 
 ---
 
-## Arkitektur
+## Architecture
 
-### Hovedprinsipper
+### Core principles
 
-1. **Direkte kilder:** Instruksjonsfiler er direkte kildefiler — ingen byggesteg
-2. **Separasjon:** Generisk innhold (`core/`) vs AI-spesifikt (`implementations/`)
+1. **Direct sources:** Instruction files are direct source files — no build step
+2. **Separation:** Generic content (`core/`) vs AI-specific (`implementations/`)
 
-### Installasjonsoversikt
+### Installation overview
 
-| Hva | Kilde | Installeres til |
+| What | Source | Installed to |
 |-----|-------|-----------------|
 | Skills | `core/skills/` | `~/.claude/skills/` |
 | Scripts | `core/scripts/` | `~/.local/bin/` |
 | Agents | `implementations/claude-code/agents/` | `~/.claude/agents/` |
-| Regler | `core/rules/` | `~/.claude/rules/` |
-| CLAUDE.md (mal) | `implementations/claude-code/CLAUDE.md` | `<prosjekt>/.claude/CLAUDE.md` |
-| Copilot instructions | `implementations/copilot/.github/copilot-instructions.md` | `<prosjekt>/.github/copilot-instructions.md` |
+| Rules | `core/rules/` | `~/.claude/rules/` |
+| CLAUDE.md (template) | `implementations/claude-code/CLAUDE.md` | `<project>/.claude/CLAUDE.md` |
+| Copilot instructions | `implementations/copilot/.github/copilot-instructions.md` | `<project>/.github/copilot-instructions.md` |
 
-### Spesialtilfeller
+### Special cases
 
-- **doc-aide:** `.claude/CLAUDE.md` og `.claude/settings.json` er git-tracked og overskrives aldri av install.sh
-- **AI-installasjonene er globale** og gjelder alle prosjektene dine
-- **aide-* skills:** Er slash commands (skills) i Claude Code/Copilot — ikke standalone CLI-scripts
+- **doc-aide:** `.claude/CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
+- **The AI installations are global** and apply to all your projects
+- **aide-* skills:** Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts

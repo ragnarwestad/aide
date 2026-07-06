@@ -390,7 +390,7 @@ codex "Implement a new feature in UserProfile"
 codex --github myorg/my-app
 
 # Work on a PR
-codex "Review PR #123 and check whether it follows KODESTANDARD.md"
+codex "Review PR #123 and check whether it follows the project coding standard"
 ```
 
 ### 5. Use the IntelliJ plugin

@@ -32,20 +32,20 @@ def claude_available() -> bool:
 
 # Template placeholders that should be REPLACED by AI analysis
 TEMPLATE_PLACEHOLDERS = [
-    "[fylles av analyse]",
-    "[Hvordan analysen ble utført",
-    "[beskrivelse av endring]",
-    "[Detaljert beskrivelse av kompleksitet",
-    "[liste over kompleksitetsfaktorer]",
-    "[X timer/dager]",
-    "[Detaljerte funn fra",
+    "[filled in by analysis]",
+    "[How the analysis was performed",
+    "[description of change]",
+    "[Detailed description of complexity",
+    "[list of complexity factors]",
+    "[X hours/days]",
+    "[Detailed findings from",
 ]
 
 # Required sections in 2-analysis.md
 REQUIRED_SECTIONS_2_ANALYSE = [
-    "## Omfang",
-    "## Kompleksitet",
-    "## Funn",
+    "## Scope",
+    "## Complexity",
+    "## Findings",
 ]
 
 
@@ -78,11 +78,11 @@ def assert_sections_filled(content: str, required_sections: list, filename: str)
 @pytest.mark.claude_code
 @pytest.mark.skipif(not claude_available(), reason="Claude CLI not installed")
 class TestClaudeAideWorkflow:
-    """E2E: Claude Code aide workflow - opprett and analyser."""
+    """E2E: Claude Code aide workflow - create and analyze."""
 
     @pytest.mark.slow
     def test_aide_full_workflow(self, e2e_workspace, workspace_root):
-        """Test complete aide workflow: opprett -> analyser.
+        """Test complete aide workflow: create -> analyze.
 
         This test verifies that:
         1. aide-create creates 4 documentation files
@@ -103,8 +103,7 @@ class TestClaudeAideWorkflow:
 
         # Step 1: Run /aide-create slash command (Claude Code specific)
         print("\n[Step 1/5] Running /aide-create via slash command...", flush=True)
-        # Test description in Norwegian (matches the actual aide workflow)
-        test_description = "Opprett en enkel greeting-funksjon med greet(name)"
+        test_description = "Create a simple greeting function with greet(name)"
 
         # Use the actual slash command that users use
         # This tests .claude/commands/aide-create.md
@@ -180,7 +179,7 @@ class TestClaudeAideWorkflow:
         # Step 5: Verify 3-losning.md
         print("\n[Step 5/5] Verifying 3-solution.md was updated...", flush=True)
         assert updated_losning != initial_losning, "3-solution.md was NOT modified"
-        assert any(word in updated_losning.lower() for word in ["steg", "step", "fase", "phase", "implementeringsplan"]), (
+        assert any(word in updated_losning.lower() for word in ["step", "phase", "implementation plan"]), (
             "3-solution.md does not contain implementation steps"
         )
         print("           Implementation steps found: YES", flush=True)

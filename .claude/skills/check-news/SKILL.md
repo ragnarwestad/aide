@@ -1,33 +1,33 @@
 ---
 name: check-news
 description: >-
-  Sjekk AI-verktøy nyheter fra Anthropic, GitHub, Google og OpenAI.
-  Henter changelogs og nyheter fra offisielle kilder, vurderer relevans
-  for doc-aide, og oppdaterer nyhetsloggen.
-  Use when: skal sjekke AI-nyheter, vil vite hva som er nytt i
-  Claude Code/Copilot/Codex/Gemini, skal oppdatere nyhetsloggen.
-  Do NOT use for: generelle spørsmål om AI-verktøy (bruk websøk direkte).
+  Check AI tool news from Anthropic, GitHub, Google and OpenAI.
+  Fetches changelogs and news from official sources, assesses relevance
+  for doc-aide, and updates the news log.
+  Use when: checking AI news, wanting to know what's new in
+  Claude Code/Copilot/Codex/Gemini, updating the news log.
+  Do NOT use for: general questions about AI tools (use web search directly).
 disable-model-invocation: true
 ---
 
-# AI-nyheter: Sjekk og oppdater
+# AI news: Check and update
 
-Nyhetsloggen bor i doc-aide-repoet: `docs/AI_NYHETSLOGG.md`. Denne skillen
-er repo-lokal og kjøres når du jobber i doc-aide.
+The news log lives in the doc-aide repo: `docs/AI_NEWS_LOG.md`. This skill
+is repo-local and runs when you are working in doc-aide.
 
-## Steg 1: Finn nyhetsloggen
+## Step 1: Find the news log
 
 ```bash
 git -C ~/develop/doc-aide rev-parse --show-toplevel 2>/dev/null \
-  && echo "$(git -C ~/develop/doc-aide rev-parse --show-toplevel)/docs/AI_NYHETSLOGG.md"
+  && echo "$(git -C ~/develop/doc-aide rev-parse --show-toplevel)/docs/AI_NEWS_LOG.md"
 ```
 
-Les `docs/AI_NYHETSLOGG.md` og finn datoen for siste gjennomgang (øverste
-overskrift under `## Nyhetslogg`).
+Read `docs/AI_NEWS_LOG.md` and find the date of the last review (the topmost
+heading under `## News log`).
 
-## Steg 2: Hent nyheter fra kilder
+## Step 2: Fetch news from sources
 
-Sjekk disse kildene for nyheter **siden siste gjennomgang**:
+Check these sources for news **since the last review**:
 
 ### Claude Code
 
@@ -49,86 +49,86 @@ Sjekk disse kildene for nyheter **siden siste gjennomgang**:
 1. WebFetch: `https://geminicli.com/docs/changelogs/`
 2. WebFetch: `https://github.com/google-gemini/gemini-cli/releases`
 
-## Steg 3: Filtrer og vurder
+## Step 3: Filter and assess
 
-For hver nyhet, vurder:
+For each news item, assess:
 
-- **Er den relevant for doc-aide?** (skills, hooks, agents, MCP, konfig)
-- **Krever den handling?** (oppdatere ai-tools-reference.md, endre install.sh, nye skills)
-- **Hvor viktig er den?** Bruk ikonene:
-  - ⭐ Direkte påvirkning på doc-aide (krever handling)
-  - ✅ Nyttig, men ingen umiddelbar handling
-  - ℹ️ Informativt, lav relevans
-  - ⚠️ Breaking change eller noe som må verifiseres
+- **Is it relevant for doc-aide?** (skills, hooks, agents, MCP, config)
+- **Does it require action?** (update ai-tools-reference.md, change install.sh, new skills)
+- **How important is it?** Use the icons:
+  - ⭐ Direct impact on doc-aide (requires action)
+  - ✅ Useful, but no immediate action
+  - ℹ️ Informative, low relevance
+  - ⚠️ Breaking change or something that must be verified
 
-## Steg 4: Oppdater nyhetsloggen
+## Step 4: Update the news log
 
-Legg til ny seksjon i `docs/AI_NYHETSLOGG.md` under `## Nyhetslogg`, **over** de
-eksisterende entries (nyeste først). Bruk dagens dato som overskrift, og legg
-datoen til i innholdsfortegnelsen øverst.
+Add a new section in `docs/AI_NEWS_LOG.md` under `## News log`, **above** the
+existing entries (newest first). Use today's date as the heading, and add
+the date to the table of contents at the top.
 
-Format — følg eksisterende mønster i filen:
+Format — follow the existing pattern in the file:
 
 ```markdown
 ### YYYY-MM-DD
 
-**Claude Code (periode):**
+**Claude Code (period):**
 
-| Dato | Versjon | Nyhet | Kilde |
+| Date | Version | News | Source |
 |------|---------|-------|-------|
-| ... | ... | ... | [Kilde](url) |
+| ... | ... | ... | [Source](url) |
 
-**GitHub Copilot CLI (periode):**
+**GitHub Copilot CLI (period):**
 
-| Dato | Versjon | Nyhet | Kilde |
-|------|---------|-------|-------|
-
-**OpenAI Codex CLI (periode):**
-
-| Dato | Versjon | Nyhet | Kilde |
+| Date | Version | News | Source |
 |------|---------|-------|-------|
 
-**Gemini CLI (periode):**
+**OpenAI Codex CLI (period):**
 
-| Dato | Versjon | Nyhet | Kilde |
+| Date | Version | News | Source |
 |------|---------|-------|-------|
 
-**Relevans for doc-aide:**
+**Gemini CLI (period):**
 
-- ⭐ Viktige funn som krever handling
-- ✅ Nyttige funn
-- ℹ️ Informative funn
+| Date | Version | News | Source |
+|------|---------|-------|-------|
+
+**Relevance for doc-aide:**
+
+- ⭐ Important findings that require action
+- ✅ Useful findings
+- ℹ️ Informative findings
 ```
 
-## Steg 5: Flagg forslag til matrise og referanse
+## Step 5: Flag proposals for the matrix and reference
 
-Loggen destilleres videre inn i to dokumenter i repoet:
+The log is further distilled into two documents in the repo:
 
-- `docs/AI_SUPPORT_MATRIX.md` — destillert nåtilstand (versjoner, mekanismer)
-- `.claude/rules/ai-tools-reference.md` — verifisert config-referanse
+- `docs/AI_SUPPORT_MATRIX.md` — distilled current state (versions, mechanisms)
+- `.claude/rules/ai-tools-reference.md` — verified config reference
 
-For hvert ⭐- og ⚠️-funn i denne gjennomgangen: vurder om det endrer noe i disse
-to dokumentene (ny versjon, ny/endret konfig-sti, ny mekanisme, breaking change).
+For each ⭐ and ⚠️ finding in this review: assess whether it changes anything in these
+two documents (new version, new/changed config path, new mechanism, breaking change).
 
-**Ikke rediger dokumentene stille.** Vis i stedet en sjekkliste med konkrete
-forslag, og **be brukeren godkjenne** før du redigerer:
+**Do not edit the documents silently.** Instead, show a checklist with concrete
+proposals, and **ask the user to approve** before you edit:
 
 ```markdown
-Foreslåtte endringer (godkjenn før jeg redigerer):
+Proposed changes (approve before I edit):
 
 AI_SUPPORT_MATRIX.md:
-- [ ] Oppdater versjon Claude Code → vX.Y.Z
-- [ ] Legg til mekanisme: ...
+- [ ] Update version Claude Code → vX.Y.Z
+- [ ] Add mechanism: ...
 
 ai-tools-reference.md:
-- [ ] Oppdater skill-sti-tabell: ...
+- [ ] Update skill path table: ...
 ```
 
-Når brukeren har godkjent, gjør **kirurgiske** endringer i de aktuelle filene.
+Once the user has approved, make **surgical** changes to the relevant files.
 
-## Steg 6: Oppsummer
+## Step 6: Summarize
 
-Vis en kort oppsummering:
-- Antall nye nyheter per verktøy
-- Viktigste funn (⭐-markerte)
-- Foreslåtte matrise/referanse-endringer som venter på godkjenning
+Show a brief summary:
+- Number of new news items per tool
+- Most important findings (⭐-marked)
+- Proposed matrix/reference changes awaiting approval

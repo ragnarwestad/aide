@@ -1,32 +1,32 @@
 # CLAUDE.md - doc-aide
 
-doc-aide er et konfigurasjons- og verktøyrepo for AI-assistert utvikling.
-Det er IKKE en applikasjon i seg selv.
+doc-aide is a configuration and tooling repo for AI-assisted development.
+It is NOT an application in itself.
 
 ---
 
-## Viktig: To roller — ikke forveksle dem
+## Important: Two roles — do not confuse them
 
-**Rolle 1 — Utviklingsmiljø:** Vi bruker kun Claude Code til å jobbe med
-dette repoet. Claude Code-konfig for dette repoet lever i `.claude/`.
-Andre AI-verktøy (Copilot, Codex, Gemini) brukes ikke for utvikling her.
+**Role 1 — Development environment:** We only use Claude Code to work on
+this repo. The Claude Code config for this repo lives in `.claude/`.
+Other AI tools (Copilot, Codex, Gemini) are not used for development here.
 
-**Rolle 2 — Produkt:** `implementations/` inneholder kildekode vi bygger
-og installerer til andre prosjekter. Det finnes implementasjoner
-for Claude Code, Copilot, Codex og Gemini.
+**Role 2 — Product:** `implementations/` contains source code we build
+and install into other projects. There are implementations
+for Claude Code, Copilot, Codex and Gemini.
 
-**Prioritering av implementasjoner:**
-1. **Copilot** — viktigst
-2. **Claude Code** — viktig nr 2
-3. Codex og Gemini — lavere prioritet
+**Implementation priority:**
+1. **Copilot** — most important
+2. **Claude Code** — second most important
+3. Codex and Gemini — lower priority
 
 ---
 
-## Viktige regler
+## Important rules
 
-**aide-* er skills (slash commands), ikke CLI-scripts.**
-`/aide-create`, `/aide-analyze`, `/aide-implement` etc. kjøres inne i Claude Code eller Copilot.
-Kun `aide-generate-pdf` og `aide-generate-html` finnes som CLI-scripts (de kjører pandoc).
+**aide-* are skills (slash commands), not CLI scripts.**
+`/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside Claude Code or Copilot.
+Only `aide-generate-pdf` and `aide-generate-html` exist as CLI scripts (they run pandoc).
 
-Se `.claude/rules/development.md` for katalogstruktur, installasjonsoversikt
-og hvordan legge til ny funksjonalitet.
+See `.claude/rules/development.md` for directory structure, installation overview
+and how to add new functionality.

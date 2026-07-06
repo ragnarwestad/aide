@@ -1,7 +1,7 @@
 """Integration tests for /aide-analyze command.
 
 Tests verify that the analysis phase produces correct output format
-with fil:linje references and proper complexity assessment.
+with file:line references and proper complexity assessment.
 """
 import pytest
 from pathlib import Path
@@ -19,42 +19,42 @@ class TestAideAnalyserJira:
         jira_dir.mkdir(parents=True)
 
         # Create initial 2-analysis.md (empty template)
-        (jira_dir / "2-analysis.md").write_text("# Analyse\n\n<!-- TODO: Fyll ut -->\n")
+        (jira_dir / "2-analysis.md").write_text("# Analysis\n\n<!-- TODO: Fill in -->\n")
 
         # Simulate analysis update
-        analyse_content = """# Analyse: PROJ-1234
+        analyse_content = """# Analysis: PROJ-1234
 
-## Påvirkede filer
+## Affected files
 
 ### Frontend
-- `src/components/UserProfile.tsx:45` - Må oppdatere form-validering
-- `src/api/userApi.ts:12` - Må legge til nytt endpoint-kall
+- `src/components/UserProfile.tsx:45` - Must update form validation
+- `src/api/userApi.ts:12` - Must add new endpoint call
 
 ### Backend
-- `com/example/api/UserController.kt:78` - Må oppdatere DTO
+- `com/example/api/UserController.kt:78` - Must update DTO
 
-## Kompleksitet
+## Complexity
 
-**Vurdering:** Middels
+**Assessment:** Medium
 
-**Begrunnelse:**
-- 3 filer påvirket
-- Mindre API-endringer
-- Estimert 4-6 timer
+**Rationale:**
+- 3 files affected
+- Minor API changes
+- Estimated 4-6 hours
 
-## Risikoanalyse
+## Risk analysis
 
-- Risiko for regresjoner i eksisterende validering
-- API-endring kan påvirke andre consumers
+- Risk of regressions in existing validation
+- API change may affect other consumers
 """
         (jira_dir / "2-analysis.md").write_text(analyse_content)
 
         content = (jira_dir / "2-analysis.md").read_text()
 
         # Verify required sections
-        assert "## Påvirkede filer" in content
-        assert "## Kompleksitet" in content
-        assert "## Risikoanalyse" in content
+        assert "## Affected files" in content
+        assert "## Complexity" in content
+        assert "## Risk analysis" in content
 
     def test_analysis_includes_fil_linje_references(self, mock_workspace, monkeypatch):
         """Verify file:line references are included."""
@@ -63,9 +63,9 @@ class TestAideAnalyserJira:
         jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
-        analyse_content = """# Analyse
+        analyse_content = """# Analysis
 
-## Påvirkede filer
+## Affected files
 
 - `src/components/Test.tsx:45` - Description
 - `src/utils/helper.ts:123` - Description
@@ -74,7 +74,7 @@ class TestAideAnalyserJira:
 
         content = (jira_dir / "2-analysis.md").read_text()
 
-        # Check for fil:linje pattern
+        # Check for file:line pattern
         import re
         fil_linje_pattern = r"`[^`]+:\d+`"
         matches = re.findall(fil_linje_pattern, content)
@@ -88,9 +88,9 @@ class TestAideAnalyserJira:
         jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
-        analyse_content = """# Analyse
+        analyse_content = """# Analysis
 
-## Påvirkede filer
+## Affected files
 
 ### Frontend
 - `src/components/Test.tsx:45`
@@ -118,7 +118,7 @@ class TestAideAnalyserComplexity:
 
         complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
 
-        assert complexity == "Enkel"
+        assert complexity == "Simple"
 
     def test_complexity_medium(self):
         """Verify medium complexity criteria."""
@@ -129,7 +129,7 @@ class TestAideAnalyserComplexity:
 
         complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
 
-        assert complexity == "Middels"
+        assert complexity == "Medium"
 
     def test_complexity_complex(self):
         """Verify complex complexity criteria."""
@@ -140,7 +140,7 @@ class TestAideAnalyserComplexity:
 
         complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
 
-        assert complexity == "Kompleks"
+        assert complexity == "Complex"
 
 
 class TestAideAnalyserTodo:
@@ -153,28 +153,28 @@ class TestAideAnalyserTodo:
         todo_dir = mock_workspace / "todo" / "01-test-todo"
         todo_dir.mkdir(parents=True)
 
-        analyse_content = """# Analyse: TODO-01
+        analyse_content = """# Analysis: TODO-01
 
-## Påvirkede filer
+## Affected files
 
 - `src/components/Test.tsx:45`
 
-## Kompleksitet
+## Complexity
 
-**Vurdering:** Enkel
+**Assessment:** Simple
 
-## Risikoanalyse
+## Risk analysis
 
-- Lav risiko
+- Low risk
 """
         (todo_dir / "2-analysis.md").write_text(analyse_content)
 
         content = (todo_dir / "2-analysis.md").read_text()
 
         # Same required sections as JIRA
-        assert "## Påvirkede filer" in content
-        assert "## Kompleksitet" in content
-        assert "## Risikoanalyse" in content
+        assert "## Affected files" in content
+        assert "## Complexity" in content
+        assert "## Risk analysis" in content
 
 
 def _assess_complexity(affected_files: int, has_api_changes: bool, estimated_hours: float) -> str:
@@ -186,11 +186,11 @@ def _assess_complexity(affected_files: int, has_api_changes: bool, estimated_hou
         estimated_hours: Estimated hours to complete
 
     Returns:
-        Complexity level: "Enkel", "Middels", or "Kompleks"
+        Complexity level: "Simple", "Medium", or "Complex"
     """
     if affected_files > 5 or estimated_hours > 8:
-        return "Kompleks"
+        return "Complex"
     elif affected_files >= 3 or has_api_changes or estimated_hours >= 2:
-        return "Middels"
+        return "Medium"
     else:
-        return "Enkel"
+        return "Simple"

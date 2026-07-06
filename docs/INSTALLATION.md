@@ -1,75 +1,75 @@
-# Installasjon - Doc Aide
+# Installation - Doc Aide
 
-> **📝 Merk:** For AI-spesifikk installasjon, se primært:
+> **📝 Note:** For AI-specific installation, primarily see:
 > - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
 > - **Copilot:** [implementations/copilot/INSTALL.md](../implementations/copilot/INSTALL.md)
 >
-> Denne guiden gir en overordnet oversikt.
+> This guide provides a high-level overview.
 
-Komplett steg-for-steg guide for å sette opp AI-workspace med ditt foretrukne AI-verktøy.
+Complete step-by-step guide for setting up the AI workspace with your preferred AI tool.
 
 ---
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Velg ditt AI-verktøy](#velg-ditt-ai-verktøy)
-- [Generell oppsett (alle AI-verktøy)](#generell-oppsett-alle-ai-verktøy)
-  - [Steg 1: Klon AI-workspace](#steg-1-klon-ai-workspace)
-  - [Steg 2: JIRA-data](#steg-2-jira-data)
-- [AI-verktøy-spesifikk installasjon](#ai-verktøy-spesifikk-installasjon)
-  - [Installer alt på én gang](#installer-alt-på-én-gang)
+- [Choose your AI tool](#choose-your-ai-tool)
+- [General setup (all AI tools)](#general-setup-all-ai-tools)
+  - [Step 1: Clone the AI workspace](#step-1-clone-the-ai-workspace)
+  - [Step 2: JIRA data](#step-2-jira-data)
+- [AI-tool-specific installation](#ai-tool-specific-installation)
+  - [Install everything at once](#install-everything-at-once)
   - [Claude Code](#claude-code)
   - [GitHub Copilot](#github-copilot)
-  - [Andre AI-verktøy](#andre-ai-verktøy)
-- [Verifiser oppsettet](#verifiser-oppsettet)
-- [Feilsøking](#feilsøking)
+  - [Other AI tools](#other-ai-tools)
+- [Verify the setup](#verify-the-setup)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## Velg ditt AI-verktøy
+## Choose your AI tool
 
-Dette workspace'et støtter flere AI-verktøy. Velg det som passer deg best:
+This workspace supports several AI tools. Choose the one that suits you best:
 
-| AI-verktøy         | Fordeler                                           | Best for                                     | Installasjonsdokumentasjon                                               |
+| AI tool            | Advantages                                          | Best for                                     | Installation documentation                                               |
 |--------------------|----------------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, spesialiserte agents, 200K context | Komplekse JIRA-analyser, tverrfaglige saker  | [claude-code/README.md](../implementations/claude-code/README.md)         |
-| **Codex (OpenAI)** | Prompt-templates, manuell workflow                 | JIRA/TODO analyse og implementering          | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Native VS Code, Agent Mode, rask respons           | Quick edits, refaktorering, single-file work | [copilot/README.md](../implementations/copilot/README.md)                 |
+| **Claude Code**    | Slash commands, specialized agents, 200K context   | Complex JIRA analyses, cross-cutting tasks   | [claude-code/README.md](../implementations/claude-code/README.md)         |
+| **Codex (OpenAI)** | Prompt templates, manual workflow                  | JIRA/TODO analysis and implementation        | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| **GitHub Copilot** | Native VS Code, Agent Mode, fast responses         | Quick edits, refactoring, single-file work   | [copilot/README.md](../implementations/copilot/README.md)                 |
 
-**💡 Tips:** Du kan bruke flere AI-verktøy samtidig! Velg beste verktøy for hver oppgave.
+**💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
 ---
 
-## Generell oppsett (alle AI-verktøy)
+## General setup (all AI tools)
 
-Disse stegene gjelder uansett hvilket AI-verktøy du bruker.
+These steps apply regardless of which AI tool you use.
 
-### Forutsetninger
+### Prerequisites
 
-**Du må ha:**
+**You must have:**
 
-- ✅ Git installert
-- ✅ Tilgang til NAVs JIRA: https://jira.example.com
-- ✅ prosjektene dine klonet og fungerende
+- ✅ Git installed
+- ✅ Access to NAV's JIRA: https://jira.example.com
+- ✅ Your projects cloned and working
 
-**Mappestruktur etter oppsett:**
+**Directory structure after setup:**
 
-> **📝 Merk:** Eksemplene under bruker `~/develop/` som base-katalog. Du kan bruke en annen struktur, men
-> workspace'et bør ligge som **søsken** til prosjektene dine for at relative stier skal fungere optimalt.
+> **📝 Note:** The examples below use `~/develop/` as the base directory. You can use a different structure, but
+> the workspace should live as a **sibling** of your projects for relative paths to work optimally.
 
 ```text
-~/develop/          # Eksempel - tilpass til din struktur
-├── doc-aide/       # AI-workspace (dette repoet)
-├── my-app/         # eksempel-prosjekt
-├── my-api/         # eksempel-prosjekt
-└── ...             # andre prosjekter
+~/develop/          # Example - adapt to your structure
+├── doc-aide/       # AI workspace (this repo)
+├── my-app/         # example project
+├── my-api/         # example project
+└── ...             # other projects
 ```
 
 ---
 
-### Steg 1: Klon AI-workspace
+### Step 1: Clone the AI workspace
 
-Klon workspace'et som **søsken** til prosjektene dine (eller der du ønsker):
+Clone the workspace as a **sibling** of your projects (or wherever you prefer):
 
 ```bash
 cd ~/develop/
@@ -77,10 +77,10 @@ git clone <repo-url> doc-aide
 cd doc-aide
 ```
 
-**Verifiser strukturen:**
+**Verify the structure:**
 
 ```bash
-# Du skal kunne se begge katalogene:
+# You should be able to see both directories:
 ls -la ~/develop/
 # → doc-aide/
 # → my-app/
@@ -88,95 +88,95 @@ ls -la ~/develop/
 
 ---
 
-### Steg 2: JIRA-data
+### Step 2: JIRA data
 
-JIRA-data hentes manuelt fra https://jira.example.com og limes inn når AI-verktøyet ber om det.
+JIRA data is fetched manually from https://jira.example.com and pasted in when the AI tool asks for it.
 
-**Ingen scripts eller API-integrasjon kreves** - du kopierer relevant info direkte fra JIRA-nettleseren.
+**No scripts or API integration required** - you copy the relevant info directly from the JIRA browser.
 
 ---
 
-### Steg 3: (Valgfritt) Konfigurer environment variables
+### Step 3: (Optional) Configure environment variables
 
-Disse er **valgfrie** men anbefalt for bedre arbeidsflyt. Gjelder **alle AI-verktøy**.
+These are **optional** but recommended for a better workflow. They apply to **all AI tools**.
 
 #### AIDE_REPORTS_PATH
 
-Lagre JIRA-dokumenter og TODO-planer utenfor workspace (f.eks. i Dropbox/iCloud):
+Store JIRA documents and TODO plans outside the workspace (e.g. in Dropbox/iCloud):
 
 ```bash
-# I ~/.zshrc eller ~/.bashrc
+# In ~/.zshrc or ~/.bashrc
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
-# eller
+# or
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Dropbox/aide-reports"
 
-# Last inn endringene
-source ~/.zshrc  # eller source ~/.bashrc
+# Load the changes
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
-**Fordel:** Reports blir ikke commitet til workspace-repoet, kan synces separat.
+**Benefit:** Reports are not committed to the workspace repo and can be synced separately.
 
 #### AIDE_INSTALLATION_PATH
 
-Peker til workspace-roten (for templates og konfigurasjon):
+Points to the workspace root (for templates and configuration):
 
 ```bash
-# I ~/.zshrc eller ~/.bashrc
+# In ~/.zshrc or ~/.bashrc
 export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/doc-aide"
 
-# Last inn endringene
-source ~/.zshrc  # eller source ~/.bashrc
+# Load the changes
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
-**Fordel:** Scripts og templates finner workspace uavhengig av hvor du kjører dem fra.
+**Benefit:** Scripts and templates find the workspace regardless of where you run them from.
 
-#### AIDE_PROJECTS_PATH (kun Claude Code)
+#### AIDE_PROJECTS_PATH (Claude Code only)
 
-Eliminerer permission-spørsmål i Claude Code:
+Eliminates permission prompts in Claude Code:
 
 ```bash
-# I ~/.zshrc eller ~/.bashrc
+# In ~/.zshrc or ~/.bashrc
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 
-# Last inn endringene
-source ~/.zshrc  # eller source ~/.bashrc
+# Load the changes
+source ~/.zshrc  # or source ~/.bashrc
 ```
 
-**Fordel:** Claude Code genererer absolutte stier i permissions, slipper å godkjenne hver gang.
+**Benefit:** Claude Code generates absolute paths in permissions, so you avoid approving every time.
 
 ---
 
-**✅ Generelt oppsett ferdig!**
+**✅ General setup complete!**
 
-Du har nå:
-- ✅ Klonet doc-aide workspace
-- ✅ (Valgfritt) Konfigurert environment variables
+You now have:
+- ✅ Cloned the doc-aide workspace
+- ✅ (Optional) Configured environment variables
 
-**Neste steg:** Velg ditt AI-verktøy og fullfør installasjon 👇
+**Next step:** Choose your AI tool and complete the installation 👇
 
 ---
 
-## AI-verktøy-spesifikk installasjon
+## AI-tool-specific installation
 
-Velg ditt AI-verktøy og følg relevant guide:
+Choose your AI tool and follow the relevant guide:
 
-### Installer alt på én gang
+### Install everything at once
 
-Enkleste vei er å installere for alle AI-verktøyene samtidig, fra repo-roten:
+The easiest path is to install for all the AI tools at once, from the repo root:
 
 ```bash
 ./install-all.sh
 ```
 
-Den kjører hver AI-implementasjons egen installer. Hver installer er
-**selvstendig** og setter opp både felles scripts (`core/scripts/` → `~/.local/bin/`,
-inkludert `aide-generate-pdf`, `aide-generate-html` og `mise-upgrade-ai-tools`)
-og sitt eget AI-spesifikke oppsett.
+It runs each AI implementation's own installer. Each installer is
+**self-contained** and sets up both the shared scripts (`core/scripts/` → `~/.local/bin/`,
+including `aide-generate-pdf`, `aide-generate-html` and `mise-upgrade-ai-tools`)
+and its own AI-specific setup.
 
-I Claude Code kan du i stedet kjøre `/install-all`-skillen. `./uninstall-all.sh`
-(eller `/uninstall-all`) reverserer alt — hver installer ber om egen bekreftelse.
+In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh`
+(or `/uninstall-all`) reverses everything — each installer asks for its own confirmation.
 
-**Bare ett verktøy?** Kjør dens installer direkte — den gir alt det verktøyet trenger:
+**Just one tool?** Run its installer directly — it provides everything that tool needs:
 
 ```bash
 implementations/claude-code/install.sh
@@ -185,207 +185,207 @@ implementations/codex/install.sh
 implementations/gemini/install.sh
 ```
 
-Avsnittene under beskriver hva hver enkelt installer gjør.
+The sections below describe what each individual installer does.
 
 ### Claude Code
 
-**Installasjon og oppsett:**
+**Installation and setup:**
 
-1. **Installer Claude Code CLI:**
+1. **Install the Claude Code CLI:**
    ```bash
-   # Se: https://docs.anthropic.com/claude-code/installation
-   # Krever Claude Pro/Team-abonnement
+   # See: https://docs.anthropic.com/claude-code/installation
+   # Requires a Claude Pro/Team subscription
    ```
 
-2. **Verifiser installasjonen:**
+2. **Verify the installation:**
    ```bash
    claude --version
    # → Claude Code CLI version X.X.X
    ```
 
-3. **Kjør setup-script:**
+3. **Run the setup script:**
    ```bash
    cd doc-aide/implementations/claude-code
    ./install.sh
    ```
 
-   **Scriptet installerer globalt:**
-    - ✅ Skills, agents og regler → `~/.claude/`
-    - ✅ Scripts (inkl. `mise-upgrade-ai-tools`) → `~/.local/bin/`
-    - ✅ LSP-plugins (typescript, kotlin, jdtls)
+   **The script installs globally:**
+    - ✅ Skills, agents and rules → `~/.claude/`
+    - ✅ Scripts (incl. `mise-upgrade-ai-tools`) → `~/.local/bin/`
+    - ✅ LSP plugins (typescript, kotlin, jdtls)
 
-   **💡 Tips:** Hvis du satte environment variables i Steg 3, kjør `source ~/.zshrc` før setup.
+   **💡 Tip:** If you set environment variables in Step 3, run `source ~/.zshrc` before setup.
 
-4. **Test oppsettet:**
+4. **Test the setup:**
    ```bash
    /aide-create PROJ-7637
    ```
 
-**Full dokumentasjon:**
+**Full documentation:**
 
-- **[implementations/claude-code/README.md](../implementations/claude-code/README.md)** - Setup-guide og quick start
+- **[implementations/claude-code/README.md](../implementations/claude-code/README.md)** - Setup guide and quick start
 
-**Nøkkelfeatures:**
+**Key features:**
 
 - ✅ Slash commands (`/aide-create`, `/aide-analyze`, `/aide-implement`)
-- ✅ Spesialiserte agents (`@agent-jira-analyzer`, `@agent-tdd-implementer`)
-- ✅ Automatisk lesing av CLAUDE.md ved oppstart
+- ✅ Specialized agents (`@agent-jira-analyzer`, `@agent-tdd-implementer`)
+- ✅ Automatic reading of CLAUDE.md at startup
 - ✅ 200K token context window
-- ✅ Automatisk git staging
+- ✅ Automatic git staging
 
 ---
 
 ### GitHub Copilot
 
-**Installasjon og oppsett:**
+**Installation and setup:**
 
-1. **Installer Copilot i VS Code:**
+1. **Install Copilot in VS Code:**
    ```bash
    code --install-extension GitHub.copilot
    code --install-extension GitHub.copilot-chat
    ```
 
-2. **Kjør install-scriptet:**
+2. **Run the install script:**
    ```bash
-   # Fra workspace-roten
+   # From the workspace root
    implementations/copilot/install.sh
    ```
-   Det installerer `AGENTS.md` som global Copilot-instruksjon
-   (`~/.copilot/copilot-instructions.md`) og felles scripts til `~/.local/bin/`.
+   It installs `AGENTS.md` as the global Copilot instructions
+   (`~/.copilot/copilot-instructions.md`) and the shared scripts to `~/.local/bin/`.
 
-3. **Aktiver Agent Mode:**
-    - Åpne Copilot Chat i VS Code (`Ctrl+Shift+I` / `Cmd+Shift+I`)
-    - Velg **"agent"** fra chat mode dropdown
-    - Konfigurer verktøy via tools-knappen
+3. **Enable Agent Mode:**
+    - Open Copilot Chat in VS Code (`Ctrl+Shift+I` / `Cmd+Shift+I`)
+    - Select **"agent"** from the chat mode dropdown
+    - Configure tools via the tools button
 
-4. **Test oppsettet:**
-    - I Copilot CLI: kjør `/aide-create PROJ-7637` (leser de samme skills som Claude Code)
+4. **Test the setup:**
+    - In the Copilot CLI: run `/aide-create PROJ-7637` (reads the same skills as Claude Code)
 
-**Full dokumentasjon:**
+**Full documentation:**
 
-- **[implementations/copilot/README.md](../implementations/copilot/README.md)** - Setup-guide og quick start
+- **[implementations/copilot/README.md](../implementations/copilot/README.md)** - Setup guide and quick start
 
-**Nøkkelfeatures:**
+**Key features:**
 
-- ✅ Agent Mode for autonome multi-step oppgaver
+- ✅ Agent Mode for autonomous multi-step tasks
 - ✅ Custom instructions (`.github/copilot-instructions.md`)
-- ✅ Slash commands / skills (`/aide-create` m.fl. — samme som Claude Code)
-- ✅ Native VS Code-integrasjon (raskere enn Claude CLI)
-- ✅ Codebase analysis og test iteration
+- ✅ Slash commands / skills (`/aide-create` etc. — same as Claude Code)
+- ✅ Native VS Code integration (faster than the Claude CLI)
+- ✅ Codebase analysis and test iteration
 
 ---
 
-### Andre AI-verktøy
+### Other AI tools
 
-**Codex, eller andre AI-verktøy:**
+**Codex, or other AI tools:**
 
-1. **Se Codex-implementasjon:**
-    - **[../implementations/codex/README.md](../implementations/codex/README.md)** - Setup-guide for Codex
-    - Kjør `implementations/codex/install.sh` (CLI-wrappers + custom instructions)
+1. **See the Codex implementation:**
+    - **[../implementations/codex/README.md](../implementations/codex/README.md)** - Setup guide for Codex
+    - Run `implementations/codex/install.sh` (CLI wrappers + custom instructions)
 
-2. **Legg til nye AI-verktøy:**
-    - Følg samme mønster som Codex/Copilot
-    - Opprett `implementations/<tool>/`
-    - Gjenbruk `core/rules/`-regler
+2. **Add new AI tools:**
+    - Follow the same pattern as Codex/Copilot
+    - Create `implementations/<tool>/`
+    - Reuse the `core/rules/` rules
 
-3. **Bruk generiske workflows:**
-    - Les `core/rules/workflows.md` for JIRA/TODO-workflows
-    - Følg `core/rules/testing.md` for TDD
-    - Følg `core/rules/git.md` for git-operasjoner
+3. **Use the generic workflows:**
+    - Read `core/rules/workflows.md` for JIRA/TODO workflows
+    - Follow `core/rules/testing.md` for TDD
+    - Follow `core/rules/git.md` for git operations
 
-4. **Manuell JIRA-opprettelse:**
+4. **Manual JIRA creation:**
    ```bash
-   # Opprett katalog
+   # Create the directory
    mkdir -p reports/<NN>-PROJ-7637-slug/
 
-   # Fyll ut dokumentasjon basert på templates i core/templates/todo/
-   # (Be AI-verktøyet ditt om hjelp - lim inn JIRA-data manuelt)
+   # Fill in the documentation based on the templates in core/templates/todo/
+   # (Ask your AI tool for help - paste in the JIRA data manually)
    ```
 
-**Nøkkelfeatures:**
+**Key features:**
 
-- ✅ Samme workflows som Claude Code og Copilot
-- ✅ Samme 4-fils dokumentstruktur
-- ❌ Ingen native slash commands eller agents
-- ⚠️ Krever mer manuell prompt engineering
+- ✅ Same workflows as Claude Code and Copilot
+- ✅ Same 4-file document structure
+- ❌ No native slash commands or agents
+- ⚠️ Requires more manual prompt engineering
 
 ---
 
-## Verifiser oppsettet
+## Verify the setup
 
-Uansett hvilket AI-verktøy du bruker, test at oppsettet fungerer:
+Regardless of which AI tool you use, test that the setup works:
 
-### Test 1: Dokumentasjonsopprettelse
+### Test 1: Document creation
 
-**Med Claude Code:**
+**With Claude Code:**
 
 ```bash
 /aide-create PROJ-7637
 ```
 
-**Med Copilot:**
+**With Copilot:**
 
-- Kjør `/aide-create PROJ-7637` i Copilot CLI
+- Run `/aide-create PROJ-7637` in the Copilot CLI
 
-**Med andre AI-verktøy:**
+**With other AI tools:**
 
-- Be AI-verktøyet om å opprette dokumentasjon basert på `core/rules/workflows.md`
-- Bruk templates fra `core/templates/todo/`
+- Ask the AI tool to create documentation based on `core/rules/workflows.md`
+- Use the templates from `core/templates/todo/`
 
-**Forventet resultat:**
+**Expected result:**
 
 ```bash
 ls -la reports/<NN>-PROJ-7637-slug/
 # → README.md
-# → 1-description.md (ferdig utfylt)
-# → 2-analysis.md (tom)
-# → 3-solution.md (tom)
-# → 4-status.md (tom)
+# → 1-description.md (filled in)
+# → 2-analysis.md (empty)
+# → 3-solution.md (empty)
+# → 4-status.md (empty)
 ```
 
-### Test 2: Kodebase-analyse (valgfritt)
+### Test 2: Codebase analysis (optional)
 
-Test at AI-verktøyet kan analysere kodebasen:
+Test that the AI tool can analyze the codebase:
 
-**Med Claude Code:**
+**With Claude Code:**
 
 ```bash
 /aide-analyze PROJ-7637
 ```
 
-**Med Copilot:**
+**With Copilot:**
 
-- Kjør `/aide-analyze PROJ-7637` i Copilot CLI
+- Run `/aide-analyze PROJ-7637` in the Copilot CLI
 
-**Med andre AI-verktøy:**
+**With other AI tools:**
 
-- Be om kodebase-analyse basert på `1-description.md`
-- Følg struktur fra `core/rules/workflows.md`
+- Ask for a codebase analysis based on `1-description.md`
+- Follow the structure from `core/rules/workflows.md`
 
-**Forventet resultat:**
+**Expected result:**
 
-- `2-analysis.md` er ferdig utfylt med påvirkede filer (fil:linje)
-- `3-solution.md` inneholder implementeringsplan med TDD-struktur
-- `4-status.md` viser initial status
+- `2-analysis.md` is filled in with affected files (file:line)
+- `3-solution.md` contains an implementation plan with TDD structure
+- `4-status.md` shows the initial status
 
 ---
 
-## Feilsøking
+## Troubleshooting
 
-### Problem: AI-verktøy følger ikke workflows
+### Problem: AI tool does not follow the workflows
 
 **Symptom:**
 
-- Copilot hopper over TDD
-- Claude Code ignorerer git-regler
-- Dokumentasjon mangler 4-fils struktur
+- Copilot skips TDD
+- Claude Code ignores the git rules
+- Documentation lacks the 4-file structure
 
-**Løsning:**
+**Solution:**
 
 **For Claude Code:**
 
 ```bash
-# Kjør setup-scriptet på nytt
+# Run the setup script again
 cd doc-aide/implementations/claude-code
 ./install.sh
 # Restart Claude Code
@@ -394,44 +394,44 @@ cd doc-aide/implementations/claude-code
 **For Copilot:**
 
 ```bash
-# Installer på nytt
+# Reinstall
 implementations/copilot/install.sh
 
 # Restart VS Code / Copilot CLI
 ```
 
-**For andre AI-verktøy:**
+**For other AI tools:**
 
-- Vær mer eksplisitt i prompts
-- Referer direkte til `core/rules/workflows.md`
-- Be om steg-for-steg utførelse
+- Be more explicit in your prompts
+- Refer directly to `core/rules/workflows.md`
+- Ask for step-by-step execution
 
 ---
 
-## Neste steg
+## Next steps
 
-Når oppsettet er ferdig:
+Once the setup is complete:
 
-1. **Les implementasjonsdokumentasjonen for ditt AI-verktøy:**
+1. **Read the implementation documentation for your AI tool:**
     - [implementations/claude-code/README.md](../implementations/claude-code/README.md)
     - [implementations/copilot/README.md](../implementations/copilot/README.md)
-    - [AI_ASSISTERT_UTVIKLING.md](./AI_ASSISTERT_UTVIKLING.md)
+    - [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md)
 
-2. **Les generiske workflows:**
+2. **Read the generic workflows:**
     - [core/rules/workflows.md](../core/rules/workflows.md)
     - [core/rules/documentation.md](../core/rules/documentation.md)
 
-3. **Test med en ekte JIRA-sak:**
-    - Opprett dokumentasjon
-    - Analyser kodebase
-    - Implementer med TDD (valgfritt)
+3. **Test with a real JIRA issue:**
+    - Create the documentation
+    - Analyze the codebase
+    - Implement with TDD (optional)
 
-4. **Utforsk videre:**
-    - Les README.md for full oversikt
-    - Se [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) for arkitektur
+4. **Explore further:**
+    - Read README.md for the full overview
+    - See [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md) for the architecture
 
 ---
 
-**Lykke til med AI-assistert utvikling! 🚀**
+**Good luck with AI-assisted development! 🚀**
 
-**Velg ditt verktøy, følg guiden, og kom i gang!**
+**Choose your tool, follow the guide, and get started!**

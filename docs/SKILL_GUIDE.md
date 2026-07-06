@@ -1,237 +1,237 @@
-# Guide: Skrive gode skills
+# Guide: Writing good skills
 
-Intern guide. Kombinerer Anthropics offisielle anbefalinger med
-praktiske erfaringer fra store skill-samlinger (30+ skills i
-produksjonsbruk).
+Internal guide. Combines Anthropic's official recommendations with
+practical experience from large skill collections (30+ skills in
+production use).
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Offisielle kilder](#offisielle-kilder)
-- [Filstruktur og progressive disclosure](#filstruktur-og-progressive-disclosure)
-- [Description-feltet](#description-feltet)
-- [Skill-typer](#skill-typer)
-- [Hva skiller gode skills fra middelmådige](#hva-skiller-gode-skills-fra-middelmådige)
-- [Anti-patterns er viktigst](#anti-patterns-er-viktigst)
-- [Debugging-queries](#debugging-queries)
-- [Størrelse og dybde](#størrelse-og-dybde)
-- [Sjekkliste for nye og eksisterende skills](#sjekkliste-for-nye-og-eksisterende-skills)
-- [Eksempler å studere](#eksempler-å-studere)
-
----
-
-## Offisielle kilder
-
-Les disse først — vi gjentar ikke innholdet her:
-
-- [The Complete Guide to Building Skills for Claude](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf) — Anthropics fullstendige guide (28 sider)
-- [How to Create Custom Skills](https://support.claude.com/en/articles/12512198-how-to-create-custom-skills) — tekniske krav og best practices
-- [skill-creator plugin](https://claude.com/plugins/skill-creator) — interaktivt verktøy for å lage, teste og iterere på skills
-- [agentskills.io](https://agentskills.io) — åpen standard for portable skills på tvers av AI-verktøy
+- [Official sources](#official-sources)
+- [File structure and progressive disclosure](#file-structure-and-progressive-disclosure)
+- [The description field](#the-description-field)
+- [Skill types](#skill-types)
+- [What separates good skills from mediocre ones](#what-separates-good-skills-from-mediocre-ones)
+- [Anti-patterns matter most](#anti-patterns-matter-most)
+- [Debugging queries](#debugging-queries)
+- [Size and depth](#size-and-depth)
+- [Checklist for new and existing skills](#checklist-for-new-and-existing-skills)
+- [Examples to study](#examples-to-study)
 
 ---
 
-## Filstruktur og progressive disclosure
+## Official sources
 
-Anthropic beskriver tre nivåer av innlasting:
+Read these first — we do not repeat their content here:
 
-| Nivå | Hva | Når det lastes |
+- [The Complete Guide to Building Skills for Claude](https://resources.anthropic.com/hubfs/The-Complete-Guide-to-Building-Skill-for-Claude.pdf) — Anthropic's complete guide (28 pages)
+- [How to Create Custom Skills](https://support.claude.com/en/articles/12512198-how-to-create-custom-skills) — technical requirements and best practices
+- [skill-creator plugin](https://claude.com/plugins/skill-creator) — interactive tool for creating, testing and iterating on skills
+- [agentskills.io](https://agentskills.io) — open standard for portable skills across AI tools
+
+---
+
+## File structure and progressive disclosure
+
+Anthropic describes three levels of loading:
+
+| Level | What | When it is loaded |
 |------|-----|----------------|
-| 1. Frontmatter | `name` + `description` | Alltid (i system prompt) |
-| 2. SKILL.md body | Kjerneinstruksjoner | Når Claude tror skillen er relevant |
-| 3. `references/` | Tung dokumentasjon | Når Claude trenger detaljer |
+| 1. Frontmatter | `name` + `description` | Always (in the system prompt) |
+| 2. SKILL.md body | Core instructions | When Claude thinks the skill is relevant |
+| 3. `references/` | Heavy documentation | When Claude needs details |
 
-**Konsekvens:** Hold SKILL.md fokusert på kjerneinstruksjoner. Flytt tung
-dokumentasjon (SQL-queries, enum-referanser, API-mapping) til `references/`.
+**Consequence:** Keep SKILL.md focused on core instructions. Move heavy
+documentation (SQL queries, enum references, API mapping) to `references/`.
 
 ```text
 my-skill/
-├── SKILL.md              # Kjerneinstruksjoner (maks ~200 linjer)
-└── references/            # Detaljdokumentasjon (lastes on demand)
+├── SKILL.md              # Core instructions (max ~200 lines)
+└── references/            # Detailed documentation (loaded on demand)
     ├── debugging.md
     ├── common-issues.md
     └── enum-reference.md
 ```
 
-**Gode eksempler på dette:** e2e-test-skills med referansefiler for
-debugging-queries og enum-referanser i `references/`.
+**Good examples of this:** e2e-test skills with reference files for
+debugging queries and enum references in `references/`.
 
-**Våre skills som bør refaktoreres:** aide-create, aide-analyze, aide-implement
-har alt i SKILL.md (150-200 linjer). Detaljerte prompts bør flyttes til
+**Our skills that should be refactored:** aide-create, aide-analyze, aide-implement
+have everything in SKILL.md (150-200 lines). Detailed prompts should be moved to
 `references/`.
 
 ---
 
-## Description-feltet
+## The description field
 
-Anthropic kaller dette "the most important part". Formelen:
+Anthropic calls this "the most important part". The formula:
 
 ```text
-[Hva skillen gjør] + [Når den skal brukes] + [Nøkkelfunksjoner]
+[What the skill does] + [When to use it] + [Key features]
 ```
 
-Maks 1024 tegn. Ingen XML-tags (`<` eller `>`). Inkluder konkrete
-trigger-fraser brukere faktisk skriver.
+Max 1024 characters. No XML tags (`<` or `>`). Include concrete
+trigger phrases users actually type.
 
-**God:**
+**Good:**
 
 ```yaml
 description: >-
-  Genererer detaljerte manuelle testbeskrivelser for UI.
-  Use when: skal skrive manuelle teststeg, skal beskrive hvordan
-  opprette en sak i UI, skal lage testscenarier med spesifikke
-  dropdown-verdier.
-  Do NOT use for: automatiserte tester (Vitest/Playwright).
+  Generates detailed manual test descriptions for the UI.
+  Use when: writing manual test steps, describing how to
+  create a case in the UI, creating test scenarios with specific
+  dropdown values.
+  Do NOT use for: automated tests (Vitest/Playwright).
 ```
 
-**Svak (typisk mønster):**
+**Weak (typical pattern):**
 
 ```yaml
 description: >-
-  React/TypeScript utvikling for prosjektet.
+  React/TypeScript development for the project.
 ```
 
-Mangler: trigger-fraser, "Do NOT use for", nøkkelfunksjoner.
+Missing: trigger phrases, "Do NOT use for", key features.
 
 ---
 
-## Skill-typer
+## Skill types
 
-Vi har to hovedtyper med ulik struktur:
+We have two main types with different structures:
 
-### Workflow-skills (aide-create, tdd-coach)
+### Workflow skills (aide-create, tdd-coach)
 
-Stegvise oppskrifter som Claude følger. Strukturen er:
+Step-by-step recipes that Claude follows. The structure is:
 
 ```markdown
-# Skill-tittel
+# Skill title
 
-Kort intro.
+Short intro.
 
-## Når å bruke
+## When to use
 
-Eksplisitte triggere.
+Explicit triggers.
 
 ## Workflow
 
-### Steg 1: [Navn]
-Hva Claude gjør, med konkrete kommandoer.
+### Step 1: [Name]
+What Claude does, with concrete commands.
 
-### Steg 2: [Navn]
+### Step 2: [Name]
 ...
 
-## Feilhåndtering
+## Error handling
 
-Vanlige problemer og løsninger.
+Common problems and solutions.
 ```
 
-### Domeneskills (saksflyt, lovvalg, vedtak, database)
+### Domain skills (case flow, choice of law, decisions, database)
 
-Ekspertkunnskap om et spesifikt område. Strukturen er:
+Expert knowledge about a specific area. The structure is:
 
 ```markdown
-# Skill-tittel
+# Skill title
 
-Kort intro (2-3 setninger).
+Short intro (2-3 sentences).
 
 ## Quick Reference
 
-Tabell med nøkkelkomponenter, tjenester eller operasjoner.
+Table of key components, services or operations.
 
-## Domenemodell
+## Domain model
 
-Entiteter og relasjoner.
+Entities and relationships.
 
-## Nøkkeltjenester
+## Key services
 
-Hva de gjør, hvor de bor (fil:linje), hvordan de henger sammen.
+What they do, where they live (file:line), how they fit together.
 
-## Vanlige feil
+## Common errors
 
-| Symptom | Årsak | Løsning |
+| Symptom | Cause | Solution |
 
-## Fallgruver
+## Pitfalls
 
-Anti-patterns med forklaring på HVORFOR.
+Anti-patterns with an explanation of WHY.
 
 ## Debugging
 
-SQL-queries eller undersøkelsessteg.
+SQL queries or investigation steps.
 
-## Relaterte skills
+## Related skills
 ```
 
 ---
 
-## Hva skiller gode skills fra middelmådige
+## What separates good skills from mediocre ones
 
-**Gode skills svarer på "hva gjør jeg når det feiler".**
+**Good skills answer "what do I do when it fails".**
 
-En skill som bare forklarer happy-path er en referanse. En skill som
-dokumenterer hva som går galt, hvorfor, og hvordan du finner ut av det
-er et verktøy.
+A skill that only explains the happy path is a reference. A skill that
+documents what goes wrong, why, and how you figure it out
+is a tool.
 
-| Middelmådig | God |
+| Mediocre | Good |
 |-------------|-----|
-| Forklarer domenemodellen | + hva som skjer når relasjoner mangler |
-| Lister tjenester | + vanlige feilsituasjoner per tjeneste |
-| Viser korrekt bruk | + hva du IKKE skal gjøre og hvorfor |
-| Generelle advarsler | Daterte, evidensbaserte påstander |
+| Explains the domain model | + what happens when relationships are missing |
+| Lists services | + common failure situations per service |
+| Shows correct usage | + what NOT to do and why |
+| General warnings | Dated, evidence-based claims |
 
 ---
 
-## Anti-patterns er viktigst
+## Anti-patterns matter most
 
-Dokumenter eksplisitt hva som **ikke** fungerer og hvorfor.
-Mønsteret er: **påstand → forklaring → alternativ**.
+Explicitly document what does **not** work and why.
+The pattern is: **claim → explanation → alternative**.
 
-**Eksempel (fra en e2e-test-skill):**
-
-```markdown
-## Hva du IKKE skal gjøre
-
-**ALDRI bruk page.reload() som fallback ved step-transition-feil.**
-
-Hvorfor: Step wizard bruker client-side state. Reload sender deg
-tilbake til steg 1. Testen ser ut til å fortsette, men du tester
-feil steg — og feilen maskeres.
-
-Bruk i stedet: waitForContent-parameter med element fra NESTE steg.
-```
-
-**Eksempel (fra en backend-skill):**
+**Example (from an e2e-test skill):**
 
 ```markdown
-## Fallgruver
+## What NOT to do
 
-**AFTER_COMMIT betyr IKKE at du har ferske objekter.**
+**NEVER use page.reload() as a fallback on step-transition failures.**
 
-Entiteter hentet FØR commit er fortsatt tilgjengelige, men kan ha
-stale state. Hent på nytt fra repository inne i AFTER_COMMIT-handleren.
+Why: The step wizard uses client-side state. Reload sends you
+back to step 1. The test appears to continue, but you are testing
+the wrong step — and the failure is masked.
+
+Use instead: the waitForContent parameter with an element from the NEXT step.
 ```
 
-**Dater påstandene dine.** "Bekreftet mars 2026, ~60% flake rate på
-Yrkessituasjon-steget" er mye mer nyttig enn "dette kan noen ganger feile".
-Daterte påstander lar fremtidige lesere vurdere om de fortsatt er relevante.
+**Example (from a backend skill):**
+
+```markdown
+## Pitfalls
+
+**AFTER_COMMIT does NOT mean you have fresh objects.**
+
+Entities fetched BEFORE the commit are still available, but may have
+stale state. Re-fetch from the repository inside the AFTER_COMMIT handler.
+```
+
+**Date your claims.** "Confirmed March 2026, ~60% flake rate on
+the Yrkessituasjon step" is far more useful than "this can sometimes fail".
+Dated claims let future readers judge whether they are still relevant.
 
 ---
 
-## Debugging-queries
+## Debugging queries
 
-Backend-skills bør ha ferdige SQL-queries. Frontend-skills bør ha
-tilsvarende (console-kommandoer, nettverks-inspeksjon, state-debugging).
+Backend skills should have ready-made SQL queries. Frontend skills should have
+the equivalent (console commands, network inspection, state debugging).
 
-Legg queries i `references/debugging.md` hvis det er mange.
+Put queries in `references/debugging.md` if there are many.
 
-**Eksempel (fra en backend-skill):**
+**Example (from a backend skill):**
 
 ```sql
--- Finn alle prosessinstanser for en behandling
+-- Find all process instances for a case
 SELECT pi.ID, pi.PROSESS_TYPE, pi.STATUS, pi.OPPRETTET_TID
 FROM PROSESSINSTANS pi
 WHERE pi.BEHANDLING_ID = :behandlingId
 ORDER BY pi.OPPRETTET_TID DESC;
 
--- Finn stuck prosesser (eldre enn 1 time, fortsatt KJØRER)
+-- Find stuck processes (older than 1 hour, still RUNNING)
 SELECT pi.ID, pi.PROSESS_TYPE, b.FAGSAK_ID
 FROM PROSESSINSTANS pi
 JOIN BEHANDLING b ON b.ID = pi.BEHANDLING_ID
@@ -241,63 +241,63 @@ AND pi.OPPRETTET_TID < SYSDATE - INTERVAL '1' HOUR;
 
 ---
 
-## Størrelse og dybde
+## Size and depth
 
-| Linjer i SKILL.md | Vurdering |
+| Lines in SKILL.md | Assessment |
 |--------------------|-----------|
-| < 80 | For tynn — bruk som router-skill eller utvid |
-| 80-200 | Bra for workflow-skills og fokuserte domeneskills |
-| 200-350 | Bra for brede domeneskills — vurder references/ |
-| 350+ | Flytt detaljer til references/, hold SKILL.md under 200 |
+| < 80 | Too thin — use as a router skill or expand |
+| 80-200 | Good for workflow skills and focused domain skills |
+| 200-350 | Good for broad domain skills — consider references/ |
+| 350+ | Move details to references/, keep SKILL.md under 200 |
 
-**Hyperspecialisering fungerer.** En skill som `pom-from-recording`
-(480 linjer totalt, fordelt på SKILL.md + references/) løser ett vanskelig
-problem grundig — og var den mest verdifulle skillen i sitt prosjekt.
+**Hyperspecialization works.** A skill like `pom-from-recording`
+(480 lines total, split between SKILL.md + references/) solves one hard
+problem thoroughly — and was the most valuable skill in its project.
 
-Én dyp skill > fire grunne skills.
+One deep skill > four shallow skills.
 
 ---
 
-## Sjekkliste for nye og eksisterende skills
+## Checklist for new and existing skills
 
 ### Frontmatter
 
-- [ ] `name` i kebab-case, matcher mappenavn
-- [ ] `description` følger formelen: [Hva] + [Når] + [Nøkkelfunksjoner]
-- [ ] `description` inkluderer trigger-fraser brukere faktisk skriver
-- [ ] `description` har "Do NOT use for" der det er relevant
-- [ ] `description` under 1024 tegn, ingen XML-tags
+- [ ] `name` in kebab-case, matches the folder name
+- [ ] `description` follows the formula: [What] + [When] + [Key features]
+- [ ] `description` includes trigger phrases users actually type
+- [ ] `description` has "Do NOT use for" where relevant
+- [ ] `description` under 1024 characters, no XML tags
 
-### Struktur
+### Structure
 
-- [ ] SKILL.md fokusert på kjerneinstruksjoner (under ~200 linjer)
-- [ ] Tung dokumentasjon i `references/` (ikke alt i SKILL.md)
-- [ ] Instruksjoner er spesifikke og handlingsbare, ikke vage
+- [ ] SKILL.md focused on core instructions (under ~200 lines)
+- [ ] Heavy documentation in `references/` (not everything in SKILL.md)
+- [ ] Instructions are specific and actionable, not vague
 
-### Innholdskvalitet
+### Content quality
 
-- [ ] Dokumenterer vanlige feil (symptom → årsak → løsning)
-- [ ] Har anti-patterns/fallgruver med forklaring på *hvorfor*
-- [ ] Har debugging-steg eller queries
-- [ ] Inkluderer eksempler (input → output eller før → etter)
-- [ ] Kryssreferanser til relaterte skills
-- [ ] Daterer evidensbaserte påstander
+- [ ] Documents common errors (symptom → cause → solution)
+- [ ] Has anti-patterns/pitfalls with an explanation of *why*
+- [ ] Has debugging steps or queries
+- [ ] Includes examples (input → output or before → after)
+- [ ] Cross-references to related skills
+- [ ] Dates evidence-based claims
 
 ---
 
-## Eksempler å studere
+## Examples to study
 
-### Workflow-skills (doc-aide/core/skills/)
+### Workflow skills (doc-aide/core/skills/)
 
-| Skill | Hvorfor den er god |
+| Skill | Why it is good |
 |-------|--------------------|
-| `tdd-coach` | Klar formel (RED-GREEN-REFACTOR), grunnregler, testkommandoer |
+| `tdd-coach` | Clear formula (RED-GREEN-REFACTOR), ground rules, test commands |
 
-### Kjennetegn ved sterke skills (fra tidligere skill-samlinger)
+### Traits of strong skills (from earlier skill collections)
 
-| Kjennetegn | Eksempel |
+| Trait | Example |
 |------------|----------|
-| Anti-patterns med tidslinjer | Race conditions dokumentert med hendelsesforløp |
-| Evidensbasert feilsøking | Daterte påstander med flake rates |
-| Beslutningstrær og sjekklister | 13-punkts sjekkliste før ferdigstilling |
-| Tunge detaljer i references/ | Database-queries og enum-referanser on demand |
+| Anti-patterns with timelines | Race conditions documented with the sequence of events |
+| Evidence-based troubleshooting | Dated claims with flake rates |
+| Decision trees and checklists | 13-point checklist before completion |
+| Heavy details in references/ | Database queries and enum references on demand |

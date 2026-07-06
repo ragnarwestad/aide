@@ -1,36 +1,36 @@
 ---
 name: install-all
 description: >-
-  Installer doc-aide for alle AI-verktøy (Claude Code, Copilot, Codex, Gemini).
-  Kjører install-all.sh, som kaller hver implementations/<ai>/install.sh.
-  Use when: skal installere eller oppdatere doc-aide for alle verktøy, har
-  endret skills eller regler og vil installere på nytt.
-  Do NOT use for: avinstallering (bruk /uninstall-all). Bare én AI? Kjør
-  implementations/<ai>/install.sh direkte.
+  Install doc-aide for all AI tools (Claude Code, Copilot, Codex, Gemini).
+  Runs install-all.sh, which calls each implementations/<ai>/install.sh.
+  Use when: installing or updating doc-aide for all tools, having
+  changed skills or rules and wanting to reinstall.
+  Do NOT use for: uninstalling (use /uninstall-all). Just one AI? Run
+  implementations/<ai>/install.sh directly.
 disable-model-invocation: true
 ---
 
-# Installer doc-aide (alle AI-verktøy)
+# Install doc-aide (all AI tools)
 
-Kjør orkestratoren fra repo-roten:
+Run the orchestrator from the repo root:
 
 ```bash
 ./install-all.sh
 ```
 
-Den kjører hver AI-implementasjons egen `install.sh`. Hver installer er
-selvstendig og setter opp:
+It runs each AI implementation's own `install.sh`. Each installer is
+self-contained and sets up:
 
-- **Felles:** scripts fra `core/scripts/` → `~/.local/bin/`
+- **Shared:** scripts from `core/scripts/` → `~/.local/bin/`
   (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
-- **Claude Code:** skills, agents, regler → `~/.claude/`, LSP-plugins
+- **Claude Code:** skills, agents, rules → `~/.claude/`, LSP plugins
 - **Copilot:** `AGENTS.md` → `~/.copilot/`, keybindings
-- **Codex:** CLI-wrappers, custom instructions, MCP-servere
-- **Gemini:** `GEMINI.md`, prosjektkonfig, MCP-servere
+- **Codex:** CLI wrappers, custom instructions, MCP servers
+- **Gemini:** `GEMINI.md`, project config, MCP servers
 
-De felles scriptene kopieres av hver installer — bevisst, så `implementations/<ai>/install.sh`
-alene gir alt den AI-en trenger.
+The shared scripts are copied by each installer — deliberately, so `implementations/<ai>/install.sh`
+alone provides everything that AI needs.
 
-**Bare én AI?** Kjør dens script direkte, f.eks. `implementations/codex/install.sh`.
+**Just one AI?** Run its script directly, e.g. `implementations/codex/install.sh`.
 
-Hvis nye skills ikke vises umiddelbart, restart Claude Code.
+If new skills don't show up immediately, restart Claude Code.

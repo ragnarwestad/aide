@@ -1,61 +1,61 @@
-# AI-verktøy referanse
+# AI tools reference
 
-Verifisert konfigurasjonsoversikt for alle AI-verktøy vi støtter.
-Denne filen er kilden til sannhet — ikke gjett, slå opp her.
+Verified configuration overview for all AI tools we support.
+This file is the source of truth — don't guess, look it up here.
 
-Sist verifisert: 2026-03-28
+Last verified: 2026-03-28
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Tverrgående standarder](#tverrgående-standarder)
+- [Cross-cutting standards](#cross-cutting-standards)
 - [Claude Code](#claude-code)
 - [GitHub Copilot](#github-copilot)
 - [OpenAI Codex CLI](#openai-codex-cli)
 - [Google Gemini CLI](#google-gemini-cli)
-- [Sammenligning](#sammenligning)
-- [Kilder](#kilder)
+- [Comparison](#comparison)
+- [Sources](#sources)
 
 ---
 
-## Tverrgående standarder
+## Cross-cutting standards
 
 ### Skills (SKILL.md)
 
-Skills er en tverrgående standard. Alle tre verktøy leser skills fra
-overlappende stier:
+Skills are a cross-cutting standard. All three tools read skills from
+overlapping paths:
 
-| Sti | Claude Code | Copilot | Codex |
+| Path | Claude Code | Copilot | Codex |
 |-----|:-----------:|:-------:|:-----:|
-| `~/.claude/skills/<navn>/SKILL.md` | ja | ja | nei |
-| `~/.copilot/skills/<navn>/SKILL.md` | nei | ja | nei |
-| `~/.agents/skills/<navn>/SKILL.md` | nei | ja (v1.0.11+) | ja |
-| `.claude/skills/<navn>/SKILL.md` | ja | ja | nei |
-| `.github/skills/<navn>/SKILL.md` | nei | ja | nei |
-| `.agents/skills/<navn>/SKILL.md` | nei | ja | ja |
+| `~/.claude/skills/<name>/SKILL.md` | yes | yes | no |
+| `~/.copilot/skills/<name>/SKILL.md` | no | yes | no |
+| `~/.agents/skills/<name>/SKILL.md` | no | yes (v1.0.11+) | yes |
+| `.claude/skills/<name>/SKILL.md` | yes | yes | no |
+| `.github/skills/<name>/SKILL.md` | no | yes | no |
+| `.agents/skills/<name>/SKILL.md` | no | yes | yes |
 
-**Format:** Mappe med `SKILL.md` som inngang. YAML-frontmatter med
-`name` og `description` (påkrevd). Markdown-body med instruksjoner.
+**Format:** Folder with `SKILL.md` as the entry point. YAML frontmatter with
+`name` and `description` (required). Markdown body with instructions.
 
-**Copilot leser også `~/.claude/commands/`** som skills (oppdaget mars 2026).
-Instruksjonene tolkes som naturlig-språk-oppskrift, `$ARGUMENTS` ignoreres.
+**Copilot also reads `~/.claude/commands/`** as skills (discovered March 2026).
+The instructions are interpreted as a natural-language recipe, `$ARGUMENTS` is ignored.
 
-**Viktig for doc-aide:** Våre skills i `~/.claude/skills/` leses av
-både Claude Code og Copilot. De MÅ ha `SKILL.md`-fil med riktig
-frontmatter for at Copilot skal oppdage dem.
+**Important for doc-aide:** Our skills in `~/.claude/skills/` are read by
+both Claude Code and Copilot. They MUST have a `SKILL.md` file with correct
+frontmatter for Copilot to discover them.
 
-### Instruksjonsfiler
+### Instruction files
 
-Alle verktøy har en prosjekt-instruksjonsfil som leses automatisk:
+All tools have a project instruction file that is read automatically:
 
-| Verktøy | Fil | Global |
+| Tool | File | Global |
 |---------|-----|--------|
-| Claude Code | `CLAUDE.md` eller `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
 | Copilot | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
 | Gemini | `GEMINI.md` | `~/.gemini/GEMINI.md` |
 
-**Copilot leser også andres filer** (kun i Coding Agent):
-`AGENTS.md`, `CLAUDE.md` og `GEMINI.md` i repo-roten.
+**Copilot also reads the others' files** (only in Coding Agent):
+`AGENTS.md`, `CLAUDE.md` and `GEMINI.md` in the repo root.
 
 ---
 
@@ -63,52 +63,52 @@ Alle verktøy har en prosjekt-instruksjonsfil som leses automatisk:
 
 **Docs:** <https://code.claude.com/docs/>
 
-### Konfigurasjonsfiler
+### Configuration files
 
-| Fil | Sti | Formål |
+| File | Path | Purpose |
 |-----|-----|--------|
-| CLAUDE.md | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` | Instruksjoner |
+| CLAUDE.md | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` | Instructions |
 | settings.json | `.claude/settings.json`, `~/.claude/settings.json` | Permissions, hooks, env |
-| settings.local.json | `.claude/settings.local.json` | Lokale overrides (gitignored) |
-| Skills | `~/.claude/skills/<navn>/SKILL.md` | Slash commands |
-| Rules | `~/.claude/rules/*.md`, `.claude/rules/*.md` | Automatisk lastede regler |
-| Agents | `~/.claude/agents/*.md`, `.claude/agents/*.md` | Subagent-definisjoner |
-| Commands | `~/.claude/commands/*.md` | Unified med skills (begge lager `/`-commands) |
-| MCP | `~/.claude/.mcp.json`, `.claude/.mcp.json` | MCP-servere |
-| Memory | `~/.claude/projects/<prosjekt>/memory/` | Auto-minne |
+| settings.local.json | `.claude/settings.local.json` | Local overrides (gitignored) |
+| Skills | `~/.claude/skills/<name>/SKILL.md` | Slash commands |
+| Rules | `~/.claude/rules/*.md`, `.claude/rules/*.md` | Automatically loaded rules |
+| Agents | `~/.claude/agents/*.md`, `.claude/agents/*.md` | Subagent definitions |
+| Commands | `~/.claude/commands/*.md` | Unified with skills (both create `/` commands) |
+| MCP | `~/.claude/.mcp.json`, `.claude/.mcp.json` | MCP servers |
+| Memory | `~/.claude/projects/<project>/memory/` | Auto-memory |
 
 ### Rules
 
-Markdown-filer i `.claude/rules/` eller `~/.claude/rules/`. Valgfri
-YAML-frontmatter med `paths` (glob eller YAML-liste med globs) for
-sti-spesifikke regler. Uten `paths` lastes de alltid ved sesjonsstart.
+Markdown files in `.claude/rules/` or `~/.claude/rules/`. Optional
+YAML frontmatter with `paths` (glob or YAML list of globs) for
+path-specific rules. Without `paths` they are always loaded at session start.
 
 ### Agents
 
-Markdown med YAML-frontmatter. Nøkkelfelt: `name`, `description`,
+Markdown with YAML frontmatter. Key fields: `name`, `description`,
 `tools`, `model`, `skills`, `mcpServers`, `hooks`, `memory`, `isolation`.
 
 ### Hooks
 
-Konfigureres i settings.json. Events: `PreToolUse`, `PostToolUse`,
+Configured in settings.json. Events: `PreToolUse`, `PostToolUse`,
 `UserPromptSubmit`, `Stop`, `SessionStart`, `SubagentStart`,
-`CwdChanged`, `FileChanged`, `TaskCreated`, `StopFailure` m.fl.
-Hook-typer: `command`, `http`, `prompt`, `agent`.
-Hooks støtter `if`-felt med permission rule syntax for conditional kjøring.
+`CwdChanged`, `FileChanged`, `TaskCreated`, `StopFailure` and more.
+Hook types: `command`, `http`, `prompt`, `agent`.
+Hooks support an `if` field with permission rule syntax for conditional execution.
 
 ### Skill/Agent frontmatter
 
-Skills og agents støtter disse frontmatter-feltene:
+Skills and agents support these frontmatter fields:
 
-| Felt | Formål |
+| Field | Purpose |
 |------|--------|
-| `name` | Identifikator |
-| `description` | Trigger-matching (maks ~250 tegn vist i `/skills`) |
-| `effort` | Reasoning effort for skillen (low/medium/high) |
-| `maxTurns` | Maks antall tur for agenten |
-| `disallowedTools` | Verktøy agenten ikke har tilgang til |
-| `initialPrompt` | Auto-submit første tur |
-| `paths` | YAML-liste med globs for sti-spesifikk aktivering |
+| `name` | Identifier |
+| `description` | Trigger matching (max ~250 chars shown in `/skills`) |
+| `effort` | Reasoning effort for the skill (low/medium/high) |
+| `maxTurns` | Max number of turns for the agent |
+| `disallowedTools` | Tools the agent does not have access to |
+| `initialPrompt` | Auto-submit first turn |
+| `paths` | YAML list of globs for path-specific activation |
 
 ---
 
@@ -116,23 +116,23 @@ Skills og agents støtter disse frontmatter-feltene:
 
 **Docs:** <https://docs.github.com/en/copilot>
 
-### Konfigurasjonsfiler
+### Configuration files
 
-| Fil | Sti | Formål |
+| File | Path | Purpose |
 |-----|-----|--------|
-| Custom instructions | `.github/copilot-instructions.md` | Repo-wide instruksjoner |
-| Path-specific | `.github/instructions/*.instructions.md` | Sti-spesifikke regler |
-| Global instructions | `~/.copilot/copilot-instructions.md` | Personlige instruksjoner |
-| Skills | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-baserte skills |
-| Custom agents | `.github/agents/*.md` | Agent-definisjoner |
-| CLI config | `~/.copilot/config.json` | CLI-konfigurasjon |
-| VS Code settings | `.vscode/settings.json` | IDE-konfigurasjon |
-| Coding Agent env | `.github/workflows/copilot-setup-steps.yml` | CI-miljø for Coding Agent |
+| Custom instructions | `.github/copilot-instructions.md` | Repo-wide instructions |
+| Path-specific | `.github/instructions/*.instructions.md` | Path-specific rules |
+| Global instructions | `~/.copilot/copilot-instructions.md` | Personal instructions |
+| Skills | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-based skills |
+| Custom agents | `.github/agents/*.md` | Agent definitions |
+| CLI config | `~/.copilot/config.json` | CLI configuration |
+| VS Code settings | `.vscode/settings.json` | IDE configuration |
+| Coding Agent env | `.github/workflows/copilot-setup-steps.yml` | CI environment for Coding Agent |
 
 ### Path-specific instructions
 
-Filer i `.github/instructions/` med `.instructions.md`-endelse.
-Krever YAML-frontmatter med `applyTo`-glob:
+Files in `.github/instructions/` with the `.instructions.md` suffix.
+Require YAML frontmatter with an `applyTo` glob:
 
 ```yaml
 ---
@@ -142,27 +142,27 @@ applyTo: "**/*.ts,**/*.tsx"
 
 ### Custom agents
 
-Filer i `.github/agents/*.md`. YAML-frontmatter med `name`,
+Files in `.github/agents/*.md`. YAML frontmatter with `name`,
 `description`, `tools`, `model`, `mcp-servers`.
 
-### AGENTS.md-støtte
+### AGENTS.md support
 
-Copilot leser `AGENTS.md` i repo-roten og cwd. Støttet i:
-VS Code chat, Coding Agent (alle miljøer), CLI. IKKE i JetBrains
+Copilot reads `AGENTS.md` in the repo root and cwd. Supported in:
+VS Code chat, Coding Agent (all environments), CLI. NOT in JetBrains
 chat, Visual Studio chat, Eclipse chat.
 
-### Monorepo-støtte (v1.0.11+)
+### Monorepo support (v1.0.11+)
 
-Fra v1.0.11 oppdager Copilot CLI skills, instruksjoner, MCP-servere
-og agents på hvert katalognivå fra cwd opp til git-roten. Dette
-betyr at prosjektene kan ha prosjekt-spesifikke skills i
-`.github/skills/` som supplerer de globale i `~/.claude/skills/`.
+From v1.0.11 Copilot CLI discovers skills, instructions, MCP servers
+and agents at every directory level from cwd up to the git root. This
+means projects can have project-specific skills in
+`.github/skills/` that supplement the global ones in `~/.claude/skills/`.
 
-### Hva Copilot IKKE leser
+### What Copilot does NOT read
 
-- `~/.claude/rules/` — kun Claude Code
-- `~/.claude/agents/` — kun Claude Code
-- `.claude/CLAUDE.md` — kun Coding Agent (ikke VS Code chat eller CLI)
+- `~/.claude/rules/` — Claude Code only
+- `~/.claude/agents/` — Claude Code only
+- `.claude/CLAUDE.md` — Coding Agent only (not VS Code chat or CLI)
 
 ---
 
@@ -171,34 +171,34 @@ betyr at prosjektene kan ha prosjekt-spesifikke skills i
 **Docs:** <https://developers.openai.com/codex/cli>
 **Repo:** <https://github.com/openai/codex>
 
-### Konfigurasjonsfiler
+### Configuration files
 
-| Fil | Sti | Formål |
+| File | Path | Purpose |
 |-----|-----|--------|
-| AGENTS.md | Repo-rot og nedover til cwd | Instruksjoner (directory-walk) |
-| AGENTS.override.md | Samme stier | Override uten å slette AGENTS.md |
-| config.toml | `~/.codex/config.toml`, `<repo>/.codex/config.toml` | Konfigurasjon |
-| Skills | `~/.agents/skills/`, `.agents/skills/` | SKILL.md-baserte skills |
-| hooks.json | `~/.codex/hooks.json`, `<repo>/.codex/hooks.json` | Hooks (eksperimentelt) |
+| AGENTS.md | Repo root and down to cwd | Instructions (directory walk) |
+| AGENTS.override.md | Same paths | Override without deleting AGENTS.md |
+| config.toml | `~/.codex/config.toml`, `<repo>/.codex/config.toml` | Configuration |
+| Skills | `~/.agents/skills/`, `.agents/skills/` | SKILL.md-based skills |
+| hooks.json | `~/.codex/hooks.json`, `<repo>/.codex/hooks.json` | Hooks (experimental) |
 
 ### AGENTS.md
 
-Ren Markdown. Codex walker fra git-rot ned til cwd og konkatenerer
-alle AGENTS.md-filer. `AGENTS.override.md` tar presedens på hvert nivå.
-Maks 32 KiB samlet (`project_doc_max_bytes`).
+Plain Markdown. Codex walks from the git root down to cwd and concatenates
+all AGENTS.md files. `AGENTS.override.md` takes precedence at each level.
+Max 32 KiB total (`project_doc_max_bytes`).
 
 ### config.toml
 
-Nøkkelseksjoner: `model`, `approval_policy`, `sandbox_mode`,
-`project_doc_fallback_filenames`. Støtter profiler via
-`[profiles.<navn>]`.
+Key sections: `model`, `approval_policy`, `sandbox_mode`,
+`project_doc_fallback_filenames`. Supports profiles via
+`[profiles.<name>]`.
 
 ### Plugins (v0.117.0+)
 
-Plugins er nå førsteklasses workflow i Codex. Synces ved oppstart,
-browses med `/plugins`, installeres/fjernes med auth-håndtering.
-Sub-agents bruker sti-baserte adresser (`/root/agent_a`) med
-strukturert inter-agent messaging.
+Plugins are now a first-class workflow in Codex. Synced at startup,
+browsed with `/plugins`, installed/removed with auth handling.
+Sub-agents use path-based addresses (`/root/agent_a`) with
+structured inter-agent messaging.
 
 ---
 
@@ -207,62 +207,62 @@ strukturert inter-agent messaging.
 **Docs:** <https://geminicli.com/docs/>
 **Repo:** <https://github.com/google-gemini/gemini-cli>
 
-### Konfigurasjonsfiler
+### Configuration files
 
-| Fil | Sti | Formål |
+| File | Path | Purpose |
 |-----|-----|--------|
-| GEMINI.md | Cwd og oppover til git-rot, `~/.gemini/GEMINI.md` | Instruksjoner |
-| settings.json | `.gemini/settings.json`, `~/.gemini/settings.json` | Konfigurasjon |
+| GEMINI.md | Cwd and up to git root, `~/.gemini/GEMINI.md` | Instructions |
+| settings.json | `.gemini/settings.json`, `~/.gemini/settings.json` | Configuration |
 | Custom commands | `.gemini/commands/*.toml`, `~/.gemini/commands/*.toml` | Slash commands |
-| MCP | settings.json `mcpServers`-seksjon | MCP-servere |
+| MCP | settings.json `mcpServers` section | MCP servers |
 
 ### Custom commands
 
-TOML-format (ikke Markdown). Støtter shell-eksekvering (`!{command}`),
-filinjeksjon (`@{path}`), og brukerargumenter (`{{args}}`).
-Undermapper gir namespace: `git/commit.toml` → `/git:commit`.
+TOML format (not Markdown). Supports shell execution (`!{command}`),
+file injection (`@{path}`), and user arguments (`{{args}}`).
+Subfolders provide namespacing: `git/commit.toml` → `/git:commit`.
 
 ### GEMINI.md
 
-Konkatenerer alle GEMINI.md-filer fra cwd opp til git-rot pluss global.
-Støtter `@file.md`-import for å inkludere andre filer.
+Concatenates all GEMINI.md files from cwd up to the git root plus global.
+Supports `@file.md` imports to include other files.
 
 ---
 
-## Sammenligning
+## Comparison
 
-### Instruksjoner og regler
+### Instructions and rules
 
-| Funksjon | Claude Code | Copilot | Codex | Gemini |
+| Feature | Claude Code | Copilot | Codex | Gemini |
 |----------|:-----------:|:-------:|:-----:|:------:|
-| Prosjekt-instruksjoner | CLAUDE.md | copilot-instructions.md | AGENTS.md | GEMINI.md |
-| Sti-spesifikke regler | rules/ med paths | instructions/*.instructions.md | nei | nei |
-| Directory walk | ja | nei (én fil) | ja (rot→cwd) | ja (cwd→rot) |
-| Global instruksjoner | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md | ~/.gemini/GEMINI.md |
-| Fil-import | nei | nei | nei | ja (@file.md) |
+| Project instructions | CLAUDE.md | copilot-instructions.md | AGENTS.md | GEMINI.md |
+| Path-specific rules | rules/ with paths | instructions/*.instructions.md | no | no |
+| Directory walk | yes | no (single file) | yes (root→cwd) | yes (cwd→root) |
+| Global instructions | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md | ~/.gemini/GEMINI.md |
+| File import | no | no | no | yes (@file.md) |
 
-### Skills og commands
+### Skills and commands
 
-| Funksjon | Claude Code | Copilot | Codex | Gemini |
+| Feature | Claude Code | Copilot | Codex | Gemini |
 |----------|:-----------:|:-------:|:-----:|:------:|
-| Skills (SKILL.md) | ja | ja | ja | nei |
-| Custom commands | unified med skills (.md) | nei | nei | ja (.toml) |
+| Skills (SKILL.md) | yes | yes | yes | no |
+| Custom commands | unified with skills (.md) | no | no | yes (.toml) |
 | Slash commands | /skill-name | /skill-name | /skill-name | /command-name |
-| Auto-aktivering | ja (description match) | ja | ja | nei |
+| Auto-activation | yes (description match) | yes | yes | no |
 
-### Konfigurasjon
+### Configuration
 
-| Funksjon | Claude Code | Copilot | Codex | Gemini |
+| Feature | Claude Code | Copilot | Codex | Gemini |
 |----------|:-----------:|:-------:|:-----:|:------:|
-| Config-format | JSON | JSON | TOML | JSON |
-| Config-sti | .claude/ | .github/, .vscode/ | .codex/ | .gemini/ |
-| MCP-servere | ja | ja (agents) | ja | ja |
-| Hooks | ja | nei | ja (eksperimentelt) | nei |
-| Agents/subagents | ja | ja (.github/agents/) | ja (v0.117+, plugins) | nei |
+| Config format | JSON | JSON | TOML | JSON |
+| Config path | .claude/ | .github/, .vscode/ | .codex/ | .gemini/ |
+| MCP servers | yes | yes (agents) | yes | yes |
+| Hooks | yes | no | yes (experimental) | no |
+| Agents/subagents | yes | yes (.github/agents/) | yes (v0.117+, plugins) | no |
 
 ---
 
-## Kilder
+## Sources
 
 ### Claude Code
 

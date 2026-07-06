@@ -1,9 +1,9 @@
-"""Strukturvalidering av alle SKILL.md-filer i core/skills/.
+"""Structure validation of all SKILL.md files in core/skills/.
 
-core/skills/ er kilden som install.sh kopierer til ~/.claude/skills/.
-test_skill_structure.py dekker kun repoets egne .claude/skills/, så denne
-testen dekker de distribuerbare skillene — inkludert at effort-feltet,
-når satt, har en gyldig verdi.
+core/skills/ is the source that install.sh copies to ~/.claude/skills/.
+test_skill_structure.py only covers the repo's own .claude/skills/, so this
+test covers the distributable skills — including that the effort field,
+when set, has a valid value.
 """
 import re
 from pathlib import Path
@@ -26,7 +26,7 @@ def get_skill_dirs() -> list[Path]:
 
 
 def parse_frontmatter(content: str) -> dict:
-    """Hent ut flate YAML-frontmatter-felt fra en SKILL.md-fil."""
+    """Extract flat YAML frontmatter fields from a SKILL.md file."""
     match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
     if not match:
         return {}
@@ -40,13 +40,13 @@ def parse_frontmatter(content: str) -> dict:
 
 @pytest.mark.validation
 class TestCoreSkillsExist:
-    """Hver skill-katalog i core/skills/ må ha en SKILL.md."""
+    """Every skill directory in core/skills/ must have a SKILL.md."""
 
     def test_core_skills_directory_exists(self):
-        assert CORE_SKILLS_DIR.exists(), f"Fant ikke core/skills/: {CORE_SKILLS_DIR}"
+        assert CORE_SKILLS_DIR.exists(), f"core/skills/ not found: {CORE_SKILLS_DIR}"
 
     def test_at_least_one_skill_found(self):
-        assert len(get_skill_dirs()) > 0, "Ingen skill-kataloger med SKILL.md i core/skills/"
+        assert len(get_skill_dirs()) > 0, "No skill directories with SKILL.md in core/skills/"
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_skill_md_exists(self, skill_dir):
@@ -55,19 +55,19 @@ class TestCoreSkillsExist:
 
 @pytest.mark.validation
 class TestCoreSkillFrontmatter:
-    """SKILL.md-filer i core/skills/ må ha gyldig YAML-frontmatter."""
+    """SKILL.md files in core/skills/ must have valid YAML frontmatter."""
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_has_frontmatter(self, skill_dir):
         content = (skill_dir / "SKILL.md").read_text()
         assert content.startswith("---"), (
-            f"{skill_dir.name}: SKILL.md må starte med YAML-frontmatter (---)"
+            f"{skill_dir.name}: SKILL.md must start with YAML frontmatter (---)"
         )
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_has_name_field(self, skill_dir):
         fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert fields.get("name"), f"{skill_dir.name}: frontmatter må ha ikke-tomt 'name'-felt"
+        assert fields.get("name"), f"{skill_dir.name}: frontmatter must have a non-empty 'name' field"
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_name_matches_directory(self, skill_dir):
@@ -75,25 +75,25 @@ class TestCoreSkillFrontmatter:
         if "name" in fields:
             assert fields["name"] == skill_dir.name, (
                 f"{skill_dir.name}: frontmatter 'name' ({fields['name']}) "
-                f"må matche katalognavnet ({skill_dir.name})"
+                f"must match the directory name ({skill_dir.name})"
             )
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_has_description_field(self, skill_dir):
         fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
-        assert "description" in fields, f"{skill_dir.name}: frontmatter må ha 'description'-felt"
+        assert "description" in fields, f"{skill_dir.name}: frontmatter must have a 'description' field"
 
 
 @pytest.mark.validation
 class TestCoreSkillEffort:
-    """effort-feltet styrer reasoning-nivå per skill (Claude Code)."""
+    """The effort field controls reasoning level per skill (Claude Code)."""
 
     @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
     def test_effort_value_is_valid_when_present(self, skill_dir):
         fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
         if "effort" in fields:
             assert fields["effort"] in VALID_EFFORT_LEVELS, (
-                f"{skill_dir.name}: 'effort' ({fields['effort']!r}) må være en av "
+                f"{skill_dir.name}: 'effort' ({fields['effort']!r}) must be one of "
                 f"{sorted(VALID_EFFORT_LEVELS)}"
             )
 
@@ -101,6 +101,6 @@ class TestCoreSkillEffort:
     def test_has_effort_field(self, skill_dir):
         fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
         assert "effort" in fields, (
-            f"{skill_dir.name}: frontmatter må ha 'effort'-felt "
-            f"(en av {sorted(VALID_EFFORT_LEVELS)}) — sett reasoning-nivå bevisst per skill"
+            f"{skill_dir.name}: frontmatter must have an 'effort' field "
+            f"(one of {sorted(VALID_EFFORT_LEVELS)}) — set the reasoning level deliberately per skill"
         )

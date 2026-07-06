@@ -1,135 +1,135 @@
 # Doc Aide
 
-Et strukturert workspace for AI-assistert utvikling. Støtter Claude Code, GitHub Copilot, Codex og Gemini.
+A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot, Codex and Gemini.
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Visjon](#visjon)
-- [For sluttbrukere](#for-sluttbrukere)
-- [For utviklere av doc-aide](#for-utviklere-av-doc-aide)
-- [Environment variabler](#environment-variabler)
-  - [AIDE_INSTALLATION_PATH](#aide_installation_path-påkrevd-for-dist-pakker)
-  - [AIDE_PROJECTS_PATH](#aide_projects_path-valgfritt)
-  - [AIDE_REPORTS_PATH](#aide_reports_path-valgfritt)
-- [AI-assistert arbeidsflyt](#ai-assistert-arbeidsflyt)
-- [Ressurser](#ressurser)
-
----
-
-## Visjon
-
-Dette workspace-et muliggjør en arbeidsflyt der **hvilken som helst AI-assistent** kan:
-
-- Forstå komplekse JIRA-saker og analysere kodebasen automatisk
-- Foreslå konkrete løsninger med filreferanser og linjenummer
-- Implementere endringer med Test-Driven Development (TDD)
-- Følge etablerte planer for teknisk gjeld og modernisering
-
-**Nøkkelfordel:** Ikke låst til én AI-leverandør - team kan velge beste verktøy for hver oppgave.
+- [Vision](#vision)
+- [For end users](#for-end-users)
+- [For doc-aide developers](#for-doc-aide-developers)
+- [Environment variables](#environment-variables)
+  - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
+  - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
+  - [AIDE_REPORTS_PATH](#aide_reports_path-optional)
+- [AI-assisted workflow](#ai-assisted-workflow)
+- [Resources](#resources)
 
 ---
 
-## For sluttbrukere
+## Vision
 
-> **Du trenger ikke klone dette repoet for å bruke doc-aide.**
+This workspace enables a workflow where **any AI assistant** can:
 
-Last ned ferdig pakke for ditt AI-verktøy:
+- Understand complex JIRA issues and analyze the codebase automatically
+- Suggest concrete solutions with file references and line numbers
+- Implement changes using Test-Driven Development (TDD)
+- Follow established plans for technical debt and modernization
 
-| AI-verktøy | Pakke | Dokumentasjon |
+**Key benefit:** Not locked to a single AI vendor - teams can pick the best tool for each task.
+
+---
+
+## For end users
+
+> **You do not need to clone this repo to use doc-aide.**
+
+Download the ready-made package for your AI tool:
+
+| AI tool | Package | Documentation |
 |------------|-------|---------------|
 | Claude Code | `dist/doc-aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
 | GitHub Copilot | `dist/doc-aide-copilot.zip` | [INSTALL.md](implementations/copilot/INSTALL.md) |
 | Codex | `dist/doc-aide-codex.zip` | [README.md](implementations/codex/README.md) |
 | Gemini | `dist/doc-aide-gemini.zip` | [README.md](implementations/gemini/README.md) |
 
-Hver pakke inneholder alt du trenger: instruksjoner, kommandoer/prompts, scripts og dokumentasjon.
+Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
 
-> **Windows-brukere:** Scriptene krever WSL eller Git Bash. Se [WSL-installasjon](https://learn.microsoft.com/en-us/windows/wsl/install).
+> **Windows users:** The scripts require WSL or Git Bash. See [WSL installation](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 ---
 
-## For utviklere av doc-aide
+## For doc-aide developers
 
-Vil du **bidra til eller videreutvikle** doc-aide?
+Want to **contribute to or further develop** doc-aide?
 
-👉 **[DEVELOPING.md](DEVELOPING.md)** - Komplett utviklerguide
+👉 **[DEVELOPING.md](DEVELOPING.md)** - Complete developer guide
 
-Inneholder:
-- Kom i gang (klon, installer, test, bygg)
-- Detaljert katalogstruktur
+Contains:
+- Getting started (clone, install, test, build)
+- Detailed directory structure
 - Testing
-- Hvordan legge til ny funksjonalitet
+- How to add new functionality
 
-Workspace-et er designet for å håndtere **tverrfaglige saker** der en JIRA-sak kan påvirke flere prosjekter samtidig.
+The workspace is designed to handle **cross-cutting issues** where a single JIRA issue can affect multiple projects at once.
 
 ---
 
-## Environment variabler
+## Environment variables
 
-### AIDE_INSTALLATION_PATH (påkrevd for dist-pakker)
+### AIDE_INSTALLATION_PATH (required for dist packages)
 
-Path til hvor doc-aide er installert.
+Path to where doc-aide is installed.
 
 ```bash
 export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/doc-aide"
 ```
 
-### AIDE_PROJECTS_PATH (valgfritt)
+### AIDE_PROJECTS_PATH (optional)
 
-Løser permission-problemer når AI-verktøy ekspanderer relative stier.
+Solves permission issues when AI tools expand relative paths.
 
 ```bash
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 ```
 
-### AIDE_REPORTS_PATH (valgfritt)
+### AIDE_REPORTS_PATH (optional)
 
-Lagre reports (JIRA-analyser, TODO-planer) utenfor workspace-et.
+Store reports (JIRA analyses, TODO plans) outside the workspace.
 
 ```bash
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
 ```
 
-**Default:** Reports skrives til `doc-aide/reports/` (gitignored).
+**Default:** Reports are written to `doc-aide/reports/` (gitignored).
 
 ---
 
-## AI-assistert arbeidsflyt
+## AI-assisted workflow
 
-Alle AI-verktøy følger samme grunnleggende workflow:
+All AI tools follow the same basic workflow:
 
 ```text
-1. OPPRETT dokumentstruktur
+1. CREATE document structure
    ↓
-   Henter JIRA-sak → Oppretter 4 filer (beskrivelse/analyse/løsning/status)
+   Fetches JIRA issue → Creates 4 files (description/analysis/solution/status)
 
-2. ANALYSER kodebase
+2. ANALYZE codebase
    ↓
-   Søker i kodebase → Identifiserer berørte filer → Oppdaterer dokumentasjon
+   Searches the codebase → Identifies affected files → Updates documentation
 
-3. LØS problemet
+3. SOLVE the problem
    ↓
-   RED: Skriv tester → GREEN: Implementer → REFACTOR: Verifiser
+   RED: Write tests → GREEN: Implement → REFACTOR: Verify
 
-4. VERIFISER
+4. VERIFY
    ↓
-   Kjør tester → Linting → Bygg → Commit
+   Run tests → Linting → Build → Commit
 ```
 
-**Eksempel (Claude Code):**
+**Example (Claude Code):**
 
 ```bash
-/aide-create PROJ-7890    # Opprett dokumentstruktur
-/aide-analyze PROJ-7890   # Analyser kodebase
-/aide-implement PROJ-7890        # Implementer med TDD
+/aide-create PROJ-7890    # Create document structure
+/aide-analyze PROJ-7890   # Analyze codebase
+/aide-implement PROJ-7890        # Implement with TDD
 ```
 
-**Se:** [core/rules/workflows.md](core/rules/workflows.md) for detaljer.
+**See:** [core/rules/workflows.md](core/rules/workflows.md) for details.
 
 ---
 
-## Ressurser
+## Resources
 
-- [DEVELOPING.md](DEVELOPING.md) - Utviklerguide for doc-aide
+- [DEVELOPING.md](DEVELOPING.md) - Developer guide for doc-aide
 - [core/rules/workflows.md](core/rules/workflows.md) - JIRA/TODO workflows
-- [core/rules/git.md](core/rules/git.md) - Git-regler
+- [core/rules/git.md](core/rules/git.md) - Git rules

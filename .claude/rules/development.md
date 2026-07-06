@@ -1,44 +1,44 @@
-# Utvikling i doc-aide
+# Development in doc-aide
 
-## Katalogstruktur
+## Directory structure
 
 ```text
 core/
-  skills/            Skills (SKILL.md) — delt av alle AI-verktøy som støtter det
-  rules/             Felles regler (git, testing, koding etc.) — én kilde for alle
-  scripts/           CLI-scripts + build-agents-md.sh (genererer AGENTS.md)
-  templates/         Dokumentmaler
-  agents-intro.md    Nøytral intro foran de felles reglene
-  AGENTS.md          Generert (intro + core/rules/) — Copilot og Codex sin instruksjonsfil
+  skills/            Skills (SKILL.md) — shared by all AI tools that support it
+  rules/             Shared rules (git, testing, coding etc.) — one source for all
+  scripts/           CLI scripts + build-agents-md.sh (generates AGENTS.md)
+  templates/         Document templates
+  agents-intro.md    Neutral intro placed before the shared rules
+  AGENTS.md          Generated (intro + core/rules/) — Copilot's and Codex's instruction file
 
-implementations/     AI-spesifikke tilpasninger — dette er PRODUKTET
+implementations/     AI-specific adaptations — this is the PRODUCT
   claude-code/       agents/, settings.json, install.sh, uninstall.sh
   copilot/           install.sh, uninstall.sh, jetbrains/
-  codex/             Codex-konfig, mcp/, scripts/
-  gemini/            Gemini-konfig, mcp/
+  codex/             Codex config, mcp/, scripts/
+  gemini/            Gemini config, mcp/
 
-docs/                Dokumentasjon for utviklere (ikke lest av AI-verktøy)
+docs/                Documentation for developers (not read by AI tools)
 ```
 
-## Hva installeres hvor
+## What gets installed where
 
-Alt installeres **globalt** — ikke per prosjekt. Prosjektene kan i tillegg
-ha eget AI-oppsett.
+Everything is installed **globally** — not per project. Projects may also
+have their own AI setup.
 
-**Inngang:** `./install-all.sh` (repo-rot) installerer alle fire AI-ene ved å
-kjøre hver `implementations/<ai>/install.sh`. `/install-all`-skillen gjør det
-samme. Vil du bare én AI, kjør dens script direkte (f.eks.
+**Entry point:** `./install-all.sh` (repo root) installs all four AIs by
+running each `implementations/<ai>/install.sh`. The `/install-all` skill does the
+same. If you only want one AI, run its script directly (e.g.
 `implementations/codex/install.sh`).
 
-Hver AI-installer er **selvstendig**: den installerer felles scripts
-(`core/scripts/` → `~/.local/bin/`) *og* sitt eget AI-spesifikke oppsett. Den
-felles scriptlista defineres ett sted — `core/scripts/_install-bin.sh` — som
-hver installer source-er (`install_common_bin` / `uninstall_common_bin`). Lista
-kopieres derfor flere ganger ved `install-all`, men vedlikeholdes bare ett sted.
+Each AI installer is **self-contained**: it installs the shared scripts
+(`core/scripts/` → `~/.local/bin/`) *and* its own AI-specific setup. The
+shared script list is defined in one place — `core/scripts/_install-bin.sh` — which
+each installer sources (`install_common_bin` / `uninstall_common_bin`). The list
+is therefore copied multiple times during `install-all`, but maintained in only one place.
 
 ### Claude Code (install.sh)
 
-| Kilde | Installeres til |
+| Source | Installed to |
 |-------|-----------------|
 | `core/skills/` | `~/.claude/skills/` |
 | `core/scripts/` | `~/.local/bin/` |
@@ -47,14 +47,14 @@ kopieres derfor flere ganger ved `install-all`, men vedlikeholdes bare ett sted.
 
 ### Copilot (install.sh)
 
-| Kilde | Installeres til |
+| Source | Installed to |
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.copilot/copilot-instructions.md` |
 | `core/scripts/` | `~/.local/bin/` |
 
 ### Codex (install.sh)
 
-| Kilde | Installeres til |
+| Source | Installed to |
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.codex/AGENTS.md` |
 | `core/scripts/` | `~/.local/bin/` |
@@ -62,55 +62,55 @@ kopieres derfor flere ganger ved `install-all`, men vedlikeholdes bare ett sted.
 
 ### Gemini (install.sh)
 
-| Kilde | Installeres til |
+| Source | Installed to |
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.gemini/GEMINI.md` |
 | `core/scripts/` | `~/.local/bin/` |
 | `implementations/gemini/.gemini/commands/*.toml` | `~/.gemini/commands/` |
 
-## Oppdatering av AI-verktøyene
+## Updating the AI tools
 
-CLI-verktøyene holdes oppdatert automatisk:
+The CLI tools are kept up to date automatically:
 
-- **Claude Code** oppdaterer seg selv (auto-update på som standard).
-- **Copilot, Codex og Gemini** styres av [mise](https://mise.jdx.dev/), pinnet til
-  `latest` i `~/.config/mise/config.toml`.
+- **Claude Code** updates itself (auto-update on by default).
+- **Copilot, Codex and Gemini** are managed by [mise](https://mise.jdx.dev/), pinned to
+  `latest` in `~/.config/mise/config.toml`.
 
-`core/scripts/mise-upgrade-ai-tools` kjører `mise upgrade` på verktøyene +
-`claude update`. Det installeres til `~/.local/bin/` av hver AI-installer (via
+`core/scripts/mise-upgrade-ai-tools` runs `mise upgrade` on the tools +
+`claude update`. It is installed to `~/.local/bin/` by each AI installer (via
 `core/scripts/_install-bin.sh`).
 
-Scriptet kjøres daglig via cron — sett opp én gang per maskin:
+The script runs daily via cron — set it up once per machine:
 
 ```bash
 crontab -e
-# Legg til:
+# Add:
 0 8 * * * ~/.local/bin/mise-upgrade-ai-tools
 ```
 
-Matrisen (`docs/AI_SUPPORT_MATRIX.md`) speiler *sist verifiserte* versjoner og
-oppdateres manuelt via `/check-news` — ikke av cron-jobben.
+The matrix (`docs/AI_SUPPORT_MATRIX.md`) reflects the *last verified* versions and
+is updated manually via `/check-news` — not by the cron job.
 
-## Legge til ny funksjonalitet
+## Adding new functionality
 
-### Ny skill
+### New skill
 
-1. Les `docs/SKILL_GUIDE.md` for struktur og beste praksis
-2. Opprett `core/skills/<navn>/SKILL.md` med frontmatter og kjerneinstruksjoner
-3. Legg tung dokumentasjon i `core/skills/<navn>/references/`
-4. Legg til i uninstall.sh sin SKILLS-liste
-5. Kjør `cd implementations/claude-code && ./install.sh`
+1. Read `docs/SKILL_GUIDE.md` for structure and best practices
+2. Create `core/skills/<name>/SKILL.md` with frontmatter and core instructions
+3. Put heavy documentation in `core/skills/<name>/references/`
+4. Add it to the SKILLS list in uninstall.sh
+5. Run `cd implementations/claude-code && ./install.sh`
 
-### Oppdatere regler
+### Updating rules
 
-1. Rediger i `core/rules/` (felles kilde for alle AI-verktøy)
-2. Kjør `core/scripts/build-agents-md.sh` (regenererer `core/AGENTS.md`)
-3. Kjør `implementations/claude-code/install.sh` (regler → `~/.claude/rules/`), `implementations/copilot/install.sh` og `implementations/codex/install.sh` (ny AGENTS.md → `~/.copilot/` og `~/.codex/`)
+1. Edit in `core/rules/` (shared source for all AI tools)
+2. Run `core/scripts/build-agents-md.sh` (regenerates `core/AGENTS.md`)
+3. Run `implementations/claude-code/install.sh` (rules → `~/.claude/rules/`), `implementations/copilot/install.sh` and `implementations/codex/install.sh` (new AGENTS.md → `~/.copilot/` and `~/.codex/`)
 
-### install.sh og uninstall.sh
+### install.sh and uninstall.sh
 
-Disse MÅ alltid speile hverandre. Ved endring i den ene, oppdater den andre.
+These MUST always mirror each other. When changing one, update the other.
 
-Felles scripts (`core/scripts/` → `~/.local/bin/`) håndteres av
-`core/scripts/_install-bin.sh` — endre scriptlista *der*, ikke i hver installer.
-`install-all.sh` / `uninstall-all.sh` (repo-rot) kjører alle fire i rekkefølge.
+Shared scripts (`core/scripts/` → `~/.local/bin/`) are handled by
+`core/scripts/_install-bin.sh` — change the script list *there*, not in each installer.
+`install-all.sh` / `uninstall-all.sh` (repo root) run all four in sequence.

@@ -1,155 +1,155 @@
 # Testing Guide for doc-aide
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Oversikt](#oversikt)
-- [Kjøre tester](#kjøre-tester)
-    - [Alle tester](#alle-tester)
-    - [Spesifikke test-kategorier](#spesifikke-test-kategorier)
-    - [Spesifikk testfil](#spesifikk-testfil)
-- [Test-struktur](#test-struktur)
+- [Overview](#overview)
+- [Running tests](#running-tests)
+    - [All tests](#all-tests)
+    - [Specific test categories](#specific-test-categories)
+    - [Specific test file](#specific-test-file)
+- [Test structure](#test-structure)
 - [Fixtures](#fixtures)
     - [`mock_workspace`](#mock_workspace)
     - [`mock_jira_response`](#mock_jira_response)
     - [`clean_env`](#clean_env)
     - [`workspace_root`](#workspace_root)
     - [`e2e_workspace`](#e2e_workspace)
-- [Legge til nye tester](#legge-til-nye-tester)
-    - [1. Analyser eksisterende kode](#1-analyser-eksisterende-kode)
-    - [2. Skriv test som verifiserer oppførsel](#2-skriv-test-som-verifiserer-oppførsel)
-    - [3. Kjør testen](#3-kjør-testen)
-    - [4. Verifiser coverage](#4-verifiser-coverage)
+- [Adding new tests](#adding-new-tests)
+    - [1. Analyze existing code](#1-analyze-existing-code)
+    - [2. Write a test that verifies behavior](#2-write-a-test-that-verifies-behavior)
+    - [3. Run the test](#3-run-the-test)
+    - [4. Verify coverage](#4-verify-coverage)
 - [Best practices](#best-practices)
-    - [Mock eksterne avhengigheter](#mock-eksterne-avhengigheter)
-    - [Bruk temporary directories](#bruk-temporary-directories)
-    - [Isoler environment variables](#isoler-environment-variables)
-    - [Test både success og error cases](#test-både-success-og-error-cases)
+    - [Mock external dependencies](#mock-external-dependencies)
+    - [Use temporary directories](#use-temporary-directories)
+    - [Isolate environment variables](#isolate-environment-variables)
+    - [Test both success and error cases](#test-both-success-and-error-cases)
 - [Troubleshooting](#troubleshooting)
-    - [Tests feiler med "ModuleNotFoundError"](#tests-feiler-med-modulenotfounderror)
-    - [Coverage rapport mangler filer](#coverage-rapport-mangler-filer)
-    - [Tests henger (watch mode)](#tests-henger-watch-mode)
-- [E2E Tests med CLI Headless Mode](#e2e-tests-med-cli-headless-mode)
-    - [Kjøre E2E tester](#kjøre-e2e-tester)
+    - [Tests fail with "ModuleNotFoundError"](#tests-fail-with-modulenotfounderror)
+    - [Coverage report is missing files](#coverage-report-is-missing-files)
+    - [Tests hang (watch mode)](#tests-hang-watch-mode)
+- [E2E Tests with CLI Headless Mode](#e2e-tests-with-cli-headless-mode)
+    - [Running E2E tests](#running-e2e-tests)
     - [Headless mode per CLI](#headless-mode-per-cli)
-    - [Verifisering av resultater](#verifisering-av-resultater)
-    - [Viktig om E2E-tester](#viktig-om-e2e-tester)
+    - [Verifying results](#verifying-results)
+    - [Important notes about E2E tests](#important-notes-about-e2e-tests)
 - [CI/CD](#cicd)
-- [Målsetning](#målsetning)
-- [Ressurser](#ressurser)
+- [Goals](#goals)
+- [Resources](#resources)
 
-## Oversikt
+## Overview
 
-Dette test-suiten verifiserer funksjonaliteten til doc-aide verktøyet, inkludert:
+This test suite verifies the functionality of the doc-aide tool, including:
 
 - Core scripts (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
-- Implementation-spesifikke kommandoer (Claude Code, Codex, Copilot)
-- Template-systemet og placeholder-replacement
-- Environment variable håndtering
-- Dokumentasjonsstruktur og output-validering
+- Implementation-specific commands (Claude Code, Codex, Copilot)
+- The template system and placeholder replacement
+- Environment variable handling
+- Documentation structure and output validation
 
-## Kjøre tester
+## Running tests
 
-**Først, aktiver virtual environment:**
+**First, activate the virtual environment:**
 
 ```bash
 source .venv/bin/activate
 ```
 
-Du får da `(venv)` foran prompten. Alternativt kan du kjøre `.venv/bin/pytest` direkte.
+You will then see `(venv)` in front of your prompt. Alternatively, you can run `.venv/bin/pytest` directly.
 
-### Alle tester
+### All tests
 
 ```bash
-# Alle tester
+# All tests
 pytest
 
-# Med verbose output
+# With verbose output
 pytest -v
 
-# Med coverage rapport
+# With coverage report
 pytest --cov=. --cov-report=html
 ```
 
-### Spesifikke test-kategorier
+### Specific test categories
 
 ```bash
 # Core script tests (aide-generate-pdf, aide-generate-html)
 pytest tests/specs/unit/core -v
 
-# Implementation-spesifikke tests
+# Implementation-specific tests
 pytest tests/specs/unit/implementations -v
 
-# Kun Claude Code tests
+# Claude Code tests only
 pytest tests/specs/unit/implementations/claude-code -v
 
-# Kun validation tests
+# Validation tests only
 pytest tests/specs/unit/core/validation -v
 ```
 
-### Pytest-markører
+### Pytest markers
 
-**Merk:** E2E- og evaluation-tester er **ekskludert fra standard `pytest`-kjøring** fordi de gjør ekte API-kall som
-koster penger og tar lang tid.
+**Note:** E2E and evaluation tests are **excluded from the standard `pytest` run** because they make real API calls that
+cost money and take a long time.
 
 ```bash
-# Standard kjøring (ekskluderer e2e og evaluation)
+# Standard run (excludes e2e and evaluation)
 pytest
 
-# Kjør E2E-tester (krever CLI installert + autentisering)
+# Run E2E tests (requires CLI installed + authentication)
 pytest -m e2e
 
-# Kjør E2E for spesifikk implementasjon
+# Run E2E for a specific implementation
 pytest -m "e2e and gemini"
 pytest -m "e2e and claude_code"
 pytest -m "e2e and copilot"
 pytest -m "e2e and codex"
 
-# Kjør evaluation-tester (validerer prompts via API)
+# Run evaluation tests (validates prompts via API)
 pytest -m evaluation
 
-# Kjør ALLE tester (inkludert e2e og evaluation)
+# Run ALL tests (including e2e and evaluation)
 pytest -m ""
 
-# Andre nyttige markører
-pytest -m unit -v              # Alle unit tests
-pytest -m integration -v       # Integrasjonstester
-pytest -m validation -v        # Alle validation tests
-pytest -m claude_code -v       # Claude Code-spesifikke
-pytest -m codex -v             # Codex-spesifikke
-pytest -m copilot -v           # Copilot-spesifikke
-pytest -m gemini -v            # Gemini-spesifikke
+# Other useful markers
+pytest -m unit -v              # All unit tests
+pytest -m integration -v       # Integration tests
+pytest -m validation -v        # All validation tests
+pytest -m claude_code -v       # Claude Code-specific
+pytest -m codex -v             # Codex-specific
+pytest -m copilot -v           # Copilot-specific
+pytest -m gemini -v            # Gemini-specific
 ```
 
-**Tilgjengelige markører** (definert i `pytest.ini`):
+**Available markers** (defined in `pytest.ini`):
 
-| Markør            | Beskrivelse                                                    |
+| Marker            | Description                                                    |
 |-------------------|----------------------------------------------------------------|
-| `unit`            | Unit tests (raske, ingen eksterne avhengigheter)               |
-| `integration`     | Integrasjonstester (krever full workspace)                     |
-| `validation`      | Validering av output-kvalitet                                  |
-| `e2e`             | End-to-end tester via CLI headless mode (trege, koster penger) |
-| `evaluation`      | Evaluerer prompts via AI API (trege, koster penger)            |
-| `claude_code`     | Claude Code-spesifikke tester                                  |
-| `codex`           | Codex-spesifikke tester                                        |
-| `copilot`         | Copilot-spesifikke tester                                      |
-| `gemini`          | Gemini-spesifikke tester                                       |
-| `implementations` | Cross-implementation paritetstester                            |
+| `unit`            | Unit tests (fast, no external dependencies)                    |
+| `integration`     | Integration tests (require a full workspace)                   |
+| `validation`      | Validation of output quality                                   |
+| `e2e`             | End-to-end tests via CLI headless mode (slow, cost money)      |
+| `evaluation`      | Evaluates prompts via AI API (slow, costs money)               |
+| `claude_code`     | Claude Code-specific tests                                     |
+| `codex`           | Codex-specific tests                                           |
+| `copilot`         | Copilot-specific tests                                         |
+| `gemini`          | Gemini-specific tests                                          |
+| `implementations` | Cross-implementation parity tests                              |
 
-### Spesifikk testfil
+### Specific test file
 
 ```bash
 pytest tests/specs/unit/core/test_jira_opprett.py -v
 
-# Enkelt test
+# Single test
 pytest tests/specs/unit/core/test_jira_opprett.py::TestFetchJiraData::test_fetch_jira_data_success -v
 ```
 
-## Test-struktur
+## Test structure
 
 ```text
 tests/
 ├── specs/
-│   ├── unit/                                 # Unit tests (raske, ingen API-kall)
+│   ├── unit/                                 # Unit tests (fast, no API calls)
 │   │   ├── core/                             # Core script tests
 │   │   │   ├── validation/                   # Output validation
 │   │   │   │   ├── test_documentation_structure.py
@@ -157,23 +157,23 @@ tests/
 │   │   │   ├── test_jira_opprett.py
 │   │   │   └── test_todo_opprett.py
 │   │   │
-│   │   └── implementations/                  # Implementation-spesifikke tests
+│   │   └── implementations/                  # Implementation-specific tests
 │   │       ├── claude-code/
 │   │       ├── codex/
 │   │       ├── copilot/
 │   │       └── gemini_impl/
 │   │
-│   ├── integration/                          # Integrasjonstester
-│   │   └── claude_code/                      # Claude Code integrasjon
+│   ├── integration/                          # Integration tests
+│   │   └── claude_code/                      # Claude Code integration
 │   │
-│   ├── e2e/                                  # End-to-end tester (ekskludert fra standard kjøring)
-│   │   ├── test_claude_e2e.py                # Claude Code: Tester slash-kommandoer (/aide-create, /aide-analyze)
-│   │   ├── test_codex_e2e.py                 # Codex: Tester prompts via `codex exec --full-auto`
-│   │   └── test_copilot_e2e.py               # Copilot: Tester prompts fra implementations/copilot/prompts/
+│   ├── e2e/                                  # End-to-end tests (excluded from the standard run)
+│   │   ├── test_claude_e2e.py                # Claude Code: Tests slash commands (/aide-create, /aide-analyze)
+│   │   ├── test_codex_e2e.py                 # Codex: Tests prompts via `codex exec --full-auto`
+│   │   └── test_copilot_e2e.py               # Copilot: Tests prompts from implementations/copilot/prompts/
 │   │
-│   └── evaluation/                           # Prompt-evaluering via API (ekskludert)
+│   └── evaluation/                           # Prompt evaluation via API (excluded)
 │
-├── utils/                                    # Delte test-utilities
+├── utils/                                    # Shared test utilities
 │   └── shared_assertions.py
 │
 └── conftest.py                               # Pytest fixtures
@@ -183,11 +183,11 @@ tests/
 
 ### `mock_workspace`
 
-Oppretter en komplett mock workspace-struktur med templates.
+Creates a complete mock workspace structure with templates.
 
 ```python
 def test_something(mock_workspace):
-    # mock_workspace er en tmp_path med full struktur
+    # mock_workspace is a tmp_path with the full structure
     assert (mock_workspace / "core" / "templates").exists()
 ```
 
@@ -197,58 +197,58 @@ Mock JIRA API response data.
 
 ```python
 def test_jira_parsing(mock_jira_response):
-    # mock_jira_response inneholder typisk JIRA JSON
+    # mock_jira_response contains typical JIRA JSON
     assert mock_jira_response["key"] == "PROJ-TEST-001"
 ```
 
 ### `clean_env`
 
-Cleaner environment variables før test (isolering).
+Cleans environment variables before the test (isolation).
 
 ```python
 def test_env_vars(clean_env, monkeypatch):
-    # Environment er clean, kan sette egne verdier
+    # The environment is clean, so you can set your own values
     monkeypatch.setenv("AIDE_INSTALLATION_PATH", "/test/path")
 ```
 
 ### `workspace_root`
 
-Returnerer faktisk workspace root path.
+Returns the actual workspace root path.
 
 ```python
 def test_real_workspace(workspace_root):
-    # workspace_root peker til faktisk doc-aide/
+    # workspace_root points to the actual doc-aide/
     assert (workspace_root / "core" / "scripts").exists()
 ```
 
 ### `e2e_workspace`
 
-Oppretter en isolert workspace for E2E-tester med nødvendig struktur.
+Creates an isolated workspace for E2E tests with the required structure.
 
 ```python
 @pytest.mark.e2e
 def test_aide_workflow(e2e_workspace, workspace_root):
-    # e2e_workspace er en tmp_path med core/ og reports/ struktur
-    # Miljøvariabler settes automatisk til e2e_workspace
+    # e2e_workspace is a tmp_path with core/ and reports/ structure
+    # Environment variables are automatically set to e2e_workspace
     reports_path = e2e_workspace / "reports"
     assert reports_path.exists()
 ```
 
-## Legge til nye tester
+## Adding new tests
 
-### 1. Analyser eksisterende kode
+### 1. Analyze existing code
 
-Før du skriver tester, forstå hvordan koden faktisk fungerer:
+Before writing tests, understand how the code actually works:
 
 ```bash
-# Les scriptet
+# Read the script
 cat core/scripts/aide-generate-pdf
 
-# Test manuelt (se scriptets egen bruksinfo)
+# Test manually (see the script's own usage info)
 ./core/scripts/aide-generate-pdf
 ```
 
-### 2. Skriv test som verifiserer oppførsel
+### 2. Write a test that verifies behavior
 
 ```python
 import pytest
@@ -267,13 +267,13 @@ def test_my_function(mock_workspace):
     assert result == expected_result
 ```
 
-### 3. Kjør testen
+### 3. Run the test
 
 ```bash
 pytest tests/unit/test_my_module.py -v
 ```
 
-### 4. Verifiser coverage
+### 4. Verify coverage
 
 ```bash
 pytest tests/unit/test_my_module.py --cov=core.scripts.my_module --cov-report=term
@@ -281,7 +281,7 @@ pytest tests/unit/test_my_module.py --cov=core.scripts.my_module --cov-report=te
 
 ## Best practices
 
-### Mock eksterne avhengigheter
+### Mock external dependencies
 
 ```python
 from unittest.mock import Mock, patch
@@ -290,29 +290,29 @@ from unittest.mock import Mock, patch
 @patch('subprocess.run')
 def test_with_subprocess_mock(mock_run):
     mock_run.return_value = Mock(returncode=0, stdout="success")
-    # Test kode som kaller subprocess.run
+    # Test code that calls subprocess.run
 ```
 
-### Bruk temporary directories
+### Use temporary directories
 
 ```python
 def test_file_operations(tmp_path):
-    # tmp_path er en temporær mappe som slettes etter test
+    # tmp_path is a temporary directory that is deleted after the test
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
     assert test_file.read_text() == "content"
 ```
 
-### Isoler environment variables
+### Isolate environment variables
 
 ```python
 def test_env_handling(monkeypatch):
     monkeypatch.setenv("MY_VAR", "test_value")
-    # Test kode som bruker MY_VAR
-    # Environment er tilbakestilt etter test
+    # Test code that uses MY_VAR
+    # The environment is restored after the test
 ```
 
-### Test både success og error cases
+### Test both success and error cases
 
 ```python
 def test_success_case():
@@ -327,18 +327,18 @@ def test_error_case():
 
 ## Troubleshooting
 
-### Tests feiler med "ModuleNotFoundError"
+### Tests fail with "ModuleNotFoundError"
 
-Kjør pytest fra workspace root:
+Run pytest from the workspace root:
 
 ```bash
 cd /path/to/doc-aide
 pytest
 ```
 
-### Coverage rapport mangler filer
+### Coverage report is missing files
 
-Sjekk `pytest.ini` - cov paths må matche faktisk struktur:
+Check `pytest.ini` - the cov paths must match the actual structure:
 
 ```ini
 [pytest]
@@ -346,27 +346,27 @@ addopts =
     --cov=core
 ```
 
-### Tests henger (watch mode)
+### Tests hang (watch mode)
 
-Alltid bruk pytest uten watch mode i CI/CD:
+Always use pytest without watch mode in CI/CD:
 
 ```bash
-pytest  # IKKE pytest-watch
+pytest  # NOT pytest-watch
 ```
 
-## E2E Tests med CLI Headless Mode
+## E2E Tests with CLI Headless Mode
 
-Alle AI CLI-verktøy støtter headless mode som gjør det mulig å kjøre ekte end-to-end tester.
+All AI CLI tools support a headless mode that makes it possible to run real end-to-end tests.
 
-**Merk:** E2E-tester er ekskludert fra standard `pytest`-kjøring. Se [Pytest-markører](#pytest-markører).
+**Note:** E2E tests are excluded from the standard `pytest` run. See [Pytest markers](#pytest-markers).
 
-### Kjøre E2E tester
+### Running E2E tests
 
 ```bash
-# Alle E2E tester
+# All E2E tests
 pytest -m e2e
 
-# Per implementasjon
+# Per implementation
 pytest -m "e2e and claude_code"
 pytest -m "e2e and gemini"
 pytest -m "e2e and copilot"
@@ -375,12 +375,12 @@ pytest -m "e2e and codex"
 
 ### Headless mode per CLI
 
-| CLI         | Headless flag      | Status     | Eksempel                                                |
+| CLI         | Headless flag      | Status     | Example                                                 |
 |-------------|--------------------|------------|---------------------------------------------------------|
-| Claude Code | `-p`               | ✅ Fungerer | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
-| Copilot     | `-p`               | ✅ Fungerer | `copilot -p "prompt" --allow-all-tools`                 |
-| Codex       | `exec --full-auto` | ✅ Fungerer | `codex exec --full-auto --skip-git-repo-check "prompt"` |
-| Gemini      | `-p`               | ❌ Fjernet  | CLI henger etter prompt, ingen E2E-tester               |
+| Claude Code | `-p`               | ✅ Works    | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
+| Copilot     | `-p`               | ✅ Works    | `copilot -p "prompt" --allow-all-tools`                 |
+| Codex       | `exec --full-auto` | ✅ Works    | `codex exec --full-auto --skip-git-repo-check "prompt"` |
+| Gemini      | `-p`               | ❌ Removed  | CLI hangs after the prompt, no E2E tests                |
 
 ### Claude Code
 
@@ -388,21 +388,21 @@ pytest -m "e2e and codex"
 # Headless mode
 claude -p "prompt" --allowedTools "Bash,Read,Write"
 
-# Med JSON output
+# With JSON output
 claude -p "prompt" --output-format json
 claude -p "prompt" --output-format stream-json
 ```
 
 ### Gemini CLI
 
-**⚠️ Merk:** Gemini CLI støtter ikke ekte headless mode. CLI-en henger etter å ha fullført prompten og avslutter ikke
-automatisk. E2E-tester for Gemini er derfor skipped.
+**⚠️ Note:** Gemini CLI does not support true headless mode. The CLI hangs after completing the prompt and does not exit
+automatically. E2E tests for Gemini are therefore skipped.
 
 ```bash
-# Headless mode (henger - bruk ikke i automatiserte tester)
+# Headless mode (hangs - do not use in automated tests)
 gemini -p "prompt"
 
-# YOLO mode (ingen bekreftelser, men henger fortsatt)
+# YOLO mode (no confirmations, but still hangs)
 gemini -p "prompt" --yolo
 ```
 
@@ -412,7 +412,7 @@ gemini -p "prompt" --yolo
 # Headless mode
 copilot -p "prompt"
 
-# Med tool-tillatelser
+# With tool permissions
 copilot -p "prompt" --allow-tool "shell(bash)"
 copilot -p "prompt" --allow-all-tools
 ```
@@ -420,17 +420,17 @@ copilot -p "prompt" --allow-all-tools
 ### OpenAI Codex CLI
 
 ```bash
-# Exec mode (headless) - krever --full-auto for automatisk kjøring
+# Exec mode (headless) - requires --full-auto for automatic execution
 codex exec --full-auto --skip-git-repo-check "prompt"
 
-# Med output til fil
+# With output to a file
 codex exec --full-auto -o result.txt "prompt"
 
-# Med JSON output (for parsing)
+# With JSON output (for parsing)
 codex exec --full-auto --json "prompt"
 ```
 
-### Eksempel E2E test
+### Example E2E test
 
 ```python
 @pytest.mark.e2e
@@ -446,9 +446,9 @@ def test_claude_headless_basic():
     assert len(result.stdout) > 0
 ```
 
-### Verifisering av resultater
+### Verifying results
 
-I headless mode kan du verifisere resultater på flere måter:
+In headless mode you can verify results in several ways:
 
 **1. Exit code**
 
@@ -463,26 +463,26 @@ result=$(claude -p "Say hello" --output-format json)
 echo "$result" | jq '.result'
 ```
 
-**3. Sjekke side-effekter (filer opprettet)**
+**3. Checking side effects (files created)**
 
 ```python
-# Kjør kommando
+# Run the command
 subprocess.run(["claude", "-p", "/aide-create TODO test Description"])
 
-# Verifiser at filer ble opprettet
+# Verify that the files were created
 assert (reports_dir / "todo-01-test" / "1-description.md").exists()
 ```
 
-**4. Komplett eksempel med alle verifiseringer**
+**4. Complete example with all verifications**
 
 ```python
 @pytest.mark.e2e
 def test_aide_workflow_creates_files(tmp_path, monkeypatch):
-    """Verifiser at workflow oppretter forventede filer."""
+    """Verify that the workflow creates the expected files."""
     monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(tmp_path))
     (tmp_path / "reports" / "todo").mkdir(parents=True)
 
-    # Kjør kommando
+    # Run the command
     result = subprocess.run(
         ["claude", "-p", "/aide-create TODO test-task Description",
          "--output-format", "json"],
@@ -490,13 +490,13 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
         cwd=str(tmp_path)
     )
 
-    # 1. Verifiser exit code
+    # 1. Verify exit code
     assert result.returncode == 0, f"Failed: {result.stderr}"
 
-    # 2. Verifiser output (ikke tom)
+    # 2. Verify output (not empty)
     assert len(result.stdout) > 0, "No output"
 
-    # 3. Verifiser side-effekter (filer opprettet)
+    # 3. Verify side effects (files created)
     todo_dirs = list((tmp_path / "reports" / "todo").glob("TODO-*"))
     assert len(todo_dirs) >= 1, "No TODO directory created"
 
@@ -505,21 +505,21 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
         assert (todo_dirs[0] / filename).exists(), f"Missing: {filename}"
 ```
 
-### Viktig om E2E-tester
+### Important notes about E2E tests
 
-- **Koster penger** - bruker faktiske API-kall
-- **Trege** - kan ta 30-120 sekunder per test
-- **Krever autentisering** - CLI må være installert og autentisert
-- **Ekskludert fra standard kjøring** - må kjøres eksplisitt med `-m e2e`
+- **Cost money** - they use real API calls
+- **Slow** - can take 30-120 seconds per test
+- **Require authentication** - the CLI must be installed and authenticated
+- **Excluded from the standard run** - must be run explicitly with `-m e2e`
 
 ## CI/CD
 
-**Merk:** Det er foreløpig ingen CI/CD-pipeline konfigurert for dette prosjektet.
+**Note:** There is currently no CI/CD pipeline configured for this project.
 
-For å sette opp GitHub Actions, opprett `.github/workflows/test.yml`:
+To set up GitHub Actions, create `.github/workflows/test.yml`:
 
 ```yaml
-# Eksempel - ikke implementert ennå
+# Example - not implemented yet
 name: Tests
 on: [ push, pull_request ]
 jobs:
@@ -534,14 +534,14 @@ jobs:
       - run: pytest -v --cov=. --cov-report=xml
 ```
 
-## Målsetning
+## Goals
 
 - **Coverage:** Minimum 80% for Python scripts
-- **Hastighet:** Unit tests < 1 sekund hver
-- **Isolasjon:** Ingen tester skal avhenge av andre
-- **Repeatability:** Samme resultat hver gang
+- **Speed:** Unit tests < 1 second each
+- **Isolation:** No test should depend on another
+- **Repeatability:** Same result every time
 
-## Ressurser
+## Resources
 
 ### Testing
 
@@ -549,9 +549,9 @@ jobs:
 - [Python unittest.mock](https://docs.python.org/3/library/unittest.mock.html)
 - [Coverage.py](https://coverage.readthedocs.io/)
 
-### Implementasjoner
+### Implementations
 
-Se README for hver implementasjon for CLI-dokumentasjon og headless mode:
+See the README for each implementation for CLI documentation and headless mode:
 
 - [Claude Code](../implementations/claude-code/README.md)
 - [Gemini CLI](../implementations/gemini/README.md)

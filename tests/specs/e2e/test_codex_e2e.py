@@ -32,20 +32,20 @@ def codex_available() -> bool:
 
 # Template placeholders that should be REPLACED by AI analysis
 TEMPLATE_PLACEHOLDERS = [
-    "[fylles av analyse]",
-    "[Hvordan analysen ble utført",
-    "[beskrivelse av endring]",
-    "[Detaljert beskrivelse av kompleksitet",
-    "[liste over kompleksitetsfaktorer]",
-    "[X timer/dager]",
-    "[Detaljerte funn fra",
+    "[filled in by analysis]",
+    "[How the analysis was performed",
+    "[description of change]",
+    "[Detailed description of complexity",
+    "[list of complexity factors]",
+    "[X hours/days]",
+    "[Detailed findings from",
 ]
 
 # Required sections in 2-analysis.md
 REQUIRED_SECTIONS_2_ANALYSE = [
-    "## Omfang",
-    "## Kompleksitet",
-    "## Funn",
+    "## Scope",
+    "## Complexity",
+    "## Findings",
 ]
 
 
@@ -78,11 +78,11 @@ def assert_sections_filled(content: str, required_sections: list, filename: str)
 @pytest.mark.codex
 @pytest.mark.skipif(not codex_available(), reason="Codex CLI not installed")
 class TestCodexAideWorkflow:
-    """E2E: Codex aide workflow - opprett and analyser."""
+    """E2E: Codex aide workflow - create and analyze."""
 
     @pytest.mark.slow
     def test_aide_full_workflow(self, e2e_workspace, workspace_root):
-        """Test complete aide workflow: opprett -> analyser.
+        """Test complete aide workflow: create -> analyze.
 
         This test verifies that:
         1. aide-create creates 4 documentation files
@@ -104,18 +104,18 @@ class TestCodexAideWorkflow:
         # Step 1: Run aide-create via Codex
         print("\n[Step 1/5] Running aide-create via Codex...", flush=True)
 
-        test_description = "Opprett en enkel queue-modul med enqueue/dequeue"
-        opprett_prompt = f"""Du skal opprette TODO-dokumentasjon (følg /aide-create).
+        test_description = "Create a simple queue module with enqueue/dequeue"
+        opprett_prompt = f"""You are creating TODO documentation (follow /aide-create).
 
-Opprett en TODO-plan med tittel "Codex E2E queue" og beskrivelse: {test_description}
-Tildel neste ledige nummer, og lag katalogen med de fem filene fra malene i
+Create a TODO plan with title "Codex E2E queue" and description: {test_description}
+Assign the next available number, and create the directory with the five files from the templates in
 core/templates/todo/ (0-README, 1-description, 2-analysis, 3-solution, 4-status).
 
-Environment-variabler er allerede satt:
+Environment variables are already set:
 - AIDE_INSTALLATION_PATH={e2e_workspace}
 - AIDE_REPORTS_PATH={reports_path}
 
-Etter opprettelsen, verifiser at filene ble opprettet."""
+After creation, verify that the files were created."""
 
         result_opprett = subprocess.run(
             ["codex", "exec", "--full-auto", "--skip-git-repo-check", opprett_prompt],
@@ -153,25 +153,25 @@ Etter opprettelsen, verifiser at filene ble opprettet."""
         print("\n[Step 3/5] Running aide-analyze via Codex prompt (this takes ~3 min)...", flush=True)
 
         analyser_prompt_file = e2e_workspace / "implementations" / "codex" / "prompts" / "aide-analyze.md"
-        assert analyser_prompt_file.exists(), f"Codex analyser prompt not found: {analyser_prompt_file}"
+        assert analyser_prompt_file.exists(), f"Codex analyze prompt not found: {analyser_prompt_file}"
 
-        analyse_prompt = f"""Analyser TODO-plan {todo_id} og oppdater dokumentasjonen.
+        analyse_prompt = f"""Analyze TODO plan {todo_id} and update the documentation.
 
-TODO-katalog: {todo_dir}
+TODO directory: {todo_dir}
 
-STEG 1: Les beskrivelsen i {todo_dir}/1-description.md
+STEP 1: Read the description in {todo_dir}/1-description.md
 
-STEG 2: Analyser oppgaven (dette er en enkel queue-modul med enqueue/dequeue)
+STEP 2: Analyze the task (this is a simple queue module with enqueue/dequeue)
 
-STEG 3: Oppdater disse filene med faktisk innhold (IKKE placeholder-tekst):
-- {todo_dir}/2-analysis.md - Fyll inn analyse av oppgaven
-- {todo_dir}/3-solution.md - Lag implementeringsplan med steg
-- {todo_dir}/4-status.md - Oppdater status
+STEP 3: Update these files with actual content (NOT placeholder text):
+- {todo_dir}/2-analysis.md - Fill in the analysis of the task
+- {todo_dir}/3-solution.md - Create an implementation plan with steps
+- {todo_dir}/4-status.md - Update the status
 
-VIKTIG:
-- Erstatt ALLE "[fylles av analyse]" og lignende placeholders med faktisk innhold
-- Skriv på norsk
-- Nevn "queue", "enqueue" og "dequeue" i analysen"""
+IMPORTANT:
+- Replace ALL "[filled in by analysis]" and similar placeholders with actual content
+- Write in English
+- Mention "queue", "enqueue" and "dequeue" in the analysis"""
 
         result_analyser = subprocess.run(
             ["codex", "exec", "--full-auto", "--skip-git-repo-check", analyse_prompt],
@@ -210,7 +210,7 @@ VIKTIG:
         # Step 5: Verify 3-losning.md
         print("\n[Step 5/5] Verifying 3-solution.md was updated...", flush=True)
         assert updated_losning != initial_losning, "3-solution.md was NOT modified"
-        assert any(word in updated_losning.lower() for word in ["steg", "step", "fase", "phase", "implementeringsplan"]), (
+        assert any(word in updated_losning.lower() for word in ["step", "phase", "implementation plan"]), (
             "3-solution.md does not contain implementation steps"
         )
         print("           Implementation steps found: YES", flush=True)

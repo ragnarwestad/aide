@@ -1,4 +1,4 @@
-# Reports (bruker-spesifikke, eller flyttet til AIDE_REPORTS_PATH)
+# Reports (user-specific, or relocated via AIDE_REPORTS_PATH)
 reports/
 
 # Python

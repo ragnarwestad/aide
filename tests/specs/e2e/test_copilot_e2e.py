@@ -32,20 +32,20 @@ def copilot_available() -> bool:
 
 # Template placeholders that should be REPLACED by AI analysis
 TEMPLATE_PLACEHOLDERS = [
-    "[fylles av analyse]",
-    "[Hvordan analysen ble utført",
-    "[beskrivelse av endring]",
-    "[Detaljert beskrivelse av kompleksitet",
-    "[liste over kompleksitetsfaktorer]",
-    "[X timer/dager]",
-    "[Detaljerte funn fra",
+    "[filled in by analysis]",
+    "[How the analysis was performed",
+    "[description of change]",
+    "[Detailed description of complexity",
+    "[list of complexity factors]",
+    "[X hours/days]",
+    "[Detailed findings from",
 ]
 
 # Required sections in 2-analysis.md
 REQUIRED_SECTIONS_2_ANALYSE = [
-    "## Omfang",
-    "## Kompleksitet",
-    "## Funn",
+    "## Scope",
+    "## Complexity",
+    "## Findings",
 ]
 
 
@@ -59,11 +59,11 @@ def assert_sections_exist(content: str, required_sections: list, filename: str):
 @pytest.mark.copilot
 @pytest.mark.skipif(not copilot_available(), reason="Copilot CLI not installed")
 class TestCopilotAideWorkflow:
-    """E2E: GitHub Copilot CLI aide workflow - opprett and analyser."""
+    """E2E: GitHub Copilot CLI aide workflow - create and analyze."""
 
     @pytest.mark.slow
     def test_aide_full_workflow(self, e2e_workspace, workspace_root):
-        """Test complete aide workflow: opprett -> analyser.
+        """Test complete aide workflow: create -> analyze.
 
         This test verifies that:
         1. aide-create creates 4 documentation files
@@ -86,14 +86,14 @@ class TestCopilotAideWorkflow:
         print("\n[Step 1/5] Running aide-create via Copilot prompt...", flush=True)
 
         # Run aide-create via Copilot
-        test_description = "Opprett en enkel calculator-funksjon med add(a, b)"
-        opprett_prompt = f"""Du skal opprette TODO-dokumentasjon (følg /aide-create).
+        test_description = "Create a simple calculator function with add(a, b)"
+        opprett_prompt = f"""You are creating TODO documentation (follow /aide-create).
 
-Opprett en TODO-plan med tittel "e2e-calculator" og beskrivelse: {test_description}
-Tildel neste ledige nummer, og lag katalogen med de fem filene fra malene i
+Create a TODO plan with title "e2e-calculator" and description: {test_description}
+Assign the next available number, and create the directory with the five files from the templates in
 core/templates/todo/ (0-README, 1-description, 2-analysis, 3-solution, 4-status).
 
-VIKTIG:
+IMPORTANT:
 - AIDE_INSTALLATION_PATH={e2e_workspace}
 - AIDE_REPORTS_PATH={reports_path}"""
 
@@ -105,7 +105,7 @@ VIKTIG:
         )
 
         if result_opprett.returncode != 0:
-            print(f"           Warning: opprett returned {result_opprett.returncode}", flush=True)
+            print(f"           Warning: aide-create returned {result_opprett.returncode}", flush=True)
         else:
             print("           aide-create completed successfully", flush=True)
 
@@ -129,19 +129,19 @@ VIKTIG:
 
         # Read the actual aide-analyze prompt from implementations/copilot/prompts/
         analyser_prompt_file = e2e_workspace / "implementations" / "copilot" / "prompts" / "aide-analyze.md"
-        assert analyser_prompt_file.exists(), f"Copilot analyser prompt not found: {analyser_prompt_file}"
+        assert analyser_prompt_file.exists(), f"Copilot analyze prompt not found: {analyser_prompt_file}"
 
         # Build prompt referencing the actual prompt file
-        analyse_prompt = f"""Følg instruksjonene i {analyser_prompt_file} for TODO-plan {todo_id}.
+        analyse_prompt = f"""Follow the instructions in {analyser_prompt_file} for TODO plan {todo_id}.
 
-TODO-katalog: {todo_dir}
+TODO directory: {todo_dir}
 
-Filer som skal oppdateres:
+Files to update:
 - {todo_dir}/2-analysis.md
 - {todo_dir}/3-solution.md
 - {todo_dir}/4-status.md
 
-VIKTIG: Erstatt ALLE placeholder-tekster med faktisk innhold!"""
+IMPORTANT: Replace ALL placeholder texts with actual content!"""
 
         result_analyser = subprocess.run(
             ["copilot", "-p", analyse_prompt, "--allow-all-tools"],

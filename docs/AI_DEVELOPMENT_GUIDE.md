@@ -1,11 +1,11 @@
 # AI Development Guide
 
-## Innholdsfortegnelse
+## Table of contents
 
-- [Arkitekturprinsipper](#arkitekturprinsipper)
-  - [AI-agnostisk design](#ai-agnostisk-design)
-  - [Lagdelt arkitektur](#lagdelt-arkitektur)
-- [Design patterns i bruk](#design-patterns-i-bruk)
+- [Architecture principles](#architecture-principles)
+  - [AI-agnostic design](#ai-agnostic-design)
+  - [Layered architecture](#layered-architecture)
+- [Design patterns in use](#design-patterns-in-use)
   - [Pattern 21: Tool Calling](#pattern-21-tool-calling)
   - [Pattern 22: Code Execution](#pattern-22-code-execution)
   - [Pattern 23: Multi-agent Collaboration](#pattern-23-multi-agent-collaboration)
@@ -13,33 +13,33 @@
   - [Pattern 6: Basic RAG](#pattern-6-basic-rag-retrieval-augmented-generation)
   - [Pattern 17: Reflection](#pattern-17-reflection)
 - [AI best practices](#ai-best-practices)
-  - [Fra Anthropic: Claude Code Best Practices](#fra-anthropic-claude-code-best-practices)
-  - [Fra OpenAI: Best Practices for Prompt Engineering](#fra-openai-best-practices-for-prompt-engineering)
-  - [Fra GitHub: Copilot Best Practices](#fra-github-copilot-best-practices)
-- [Ressurser og inspirasjon](#ressurser-og-inspirasjon)
+  - [From Anthropic: Claude Code Best Practices](#from-anthropic-claude-code-best-practices)
+  - [From OpenAI: Best Practices for Prompt Engineering](#from-openai-best-practices-for-prompt-engineering)
+  - [From GitHub: Copilot Best Practices](#from-github-copilot-best-practices)
+- [Resources and inspiration](#resources-and-inspiration)
   - [Generative AI Design Patterns](#generative-ai-design-patterns)
   - [Anthropic Resources](#anthropic-resources)
   - [OpenAI Resources](#openai-resources)
-  - [Andre ressurser](#andre-ressurser)
-- [Implementasjonsdetaljer](#implementasjonsdetaljer)
-  - [Hvorfor 4-fils dokumentstruktur?](#hvorfor-4-fils-dokumentstruktur)
-  - [Hvorfor slash commands (Claude Code)?](#hvorfor-slash-commands-claude-code)
-  - [Hvorfor TDD-tilnærming?](#hvorfor-tdd-tilnærming)
-  - [Hvorfor AI-agnostisk design?](#hvorfor-ai-agnostisk-design)
-- [Bidra til prosjektet](#bidra-til-prosjektet)
-  - [Legge til ny AI-implementasjon](#legge-til-ny-ai-implementasjon)
-  - [Legge til ny design pattern](#legge-til-ny-design-pattern)
-  - [Oppdatere best practices](#oppdatere-best-practices)
+  - [Other resources](#other-resources)
+- [Implementation details](#implementation-details)
+  - [Why a 4-file document structure?](#why-a-4-file-document-structure)
+  - [Why slash commands (Claude Code)?](#why-slash-commands-claude-code)
+  - [Why a TDD approach?](#why-a-tdd-approach)
+  - [Why AI-agnostic design?](#why-ai-agnostic-design)
+- [Contributing to the project](#contributing-to-the-project)
+  - [Adding a new AI implementation](#adding-a-new-ai-implementation)
+  - [Adding a new design pattern](#adding-a-new-design-pattern)
+  - [Updating best practices](#updating-best-practices)
 
 ---
 
-## Arkitekturprinsipper
+## Architecture principles
 
-### AI-agnostisk design
+### AI-agnostic design
 
-**Kjerneprinsipp:** Skill generisk innhold fra AI-spesifikk implementasjon.
+**Core principle:** Separate generic content from AI-specific implementation.
 
-**Struktur:**
+**Structure:**
 
 ```text
 core/                    # AI-agnostic (workflows, docs, scripts)
@@ -47,220 +47,220 @@ implementations/         # AI-specific (claude-code, codex, copilot)
 reports/                 # Output (AI-agnostic)
 ```
 
-**Hvorfor:**
-- Ikke låst til én AI-leverandør
-- Enkel å legge til nye AI-verktøy
-- Gjenbruk av workflows, templates og scripts
-- Team kan velge beste verktøy for hver oppgave
+**Why:**
+- Not locked in to a single AI vendor
+- Easy to add new AI tools
+- Reuse of workflows, templates and scripts
+- The team can choose the best tool for each task
 
-**Se:** [README.md](../README.md#arkitektur)
+**See:** [DEVELOPING.md](../DEVELOPING.md#architecture)
 
-### Lagdelt arkitektur
+### Layered architecture
 
-| Lag                  | Ansvar                                    | Eksempel                           |
+| Layer                | Responsibility                             | Example                            |
 |----------------------|-------------------------------------------|------------------------------------|
 | **Core**             | Workflows, standards, data                | `core/rules/workflows.md`           |
-| **Implementation**   | AI-spesifikke kommandoer/instruksjoner    | `implementations/claude-code/`     |
-| **Scripts**          | CLI-verktøy                               | `core/scripts/`                         |
-| **Templates**        | Dokumentstrukturer                        | `core/templates/todo/`             |
-| **Output**           | Generert dokumentasjon og analyse         | `reports/<NN>-PROJ-XXXX-slug/`       |
+| **Implementation**   | AI-specific commands/instructions         | `implementations/claude-code/`     |
+| **Scripts**          | CLI tools                                 | `core/scripts/`                         |
+| **Templates**        | Document structures                       | `core/templates/todo/`             |
+| **Output**           | Generated documentation and analysis      | `reports/<NN>-PROJ-XXXX-slug/`       |
 
 ---
 
-## Design patterns i bruk
+## Design patterns in use
 
-Dette prosjektet er inspirert av [Lakshman Oruganti's Generative AI Design Patterns](https://github.com/lakshmanok/generative-ai-design-patterns) (O'Reilly bok).
+This project is inspired by [Lakshman Oruganti's Generative AI Design Patterns](https://github.com/lakshmanok/generative-ai-design-patterns) (O'Reilly book).
 
 ### Pattern 21: Tool Calling
 
-**Konsept:** LLM-er sender spesielle tokens for å kalle API-er med parametere. En postprocessor kjører funksjonen og returnerer resultater til modellen.
+**Concept:** LLMs emit special tokens to call APIs with parameters. A postprocessor runs the function and returns results to the model.
 
-**Vår implementasjon:**
+**Our implementation:**
 - Claude Code slash commands: `/aide-create`, `/aide-analyze`, `/aide-implement`
-- AI-verktøy kaller scripts og leser JIRA-data fra bruker → Genererer dokumentasjon
+- AI tools call scripts and read JIRA data from the user → Generate documentation
 
-**Eksempel:**
+**Example:**
 ```bash
-# Claude Code oppretter dokumentstruktur
+# Claude Code creates the document structure
 /aide-create PROJ-7890
   ↓
-Bruker limer inn JIRA-data  # Data kopieres manuelt fra JIRA-nettleseren
+User pastes in JIRA data  # Data is copied manually from the JIRA browser
   ↓
-AI fyller ut 1-description.md med metadata og problembeskrivelse
+AI fills in 1-description.md with metadata and problem description
 ```
 
-**Hvorfor:** Gir AI-verktøy tilgang til eksterne systemer (git, kodebase) via tool calling.
+**Why:** Gives AI tools access to external systems (git, codebase) via tool calling.
 
 ### Pattern 22: Code Execution
 
-**Konsept:** AI-agenter genererer kode som kjøres av eksterne systemer.
+**Concept:** AI agents generate code that is executed by external systems.
 
-**Vår implementasjon:**
-- AI genererer tester (RED)
-- AI implementerer løsning (GREEN)
-- Bash-kommandoer kjører `pnpm test`, `pnpm run build`
-- AI tolker output og itererer
+**Our implementation:**
+- AI generates tests (RED)
+- AI implements the solution (GREEN)
+- Bash commands run `pnpm test`, `pnpm run build`
+- AI interprets the output and iterates
 
-**Eksempel:**
+**Example:**
 ```typescript
-// AI genererer test
-test('validateSøknad should reject invalid personnummer', () => {
-  expect(validateSøknad({ personnummer: '12345678901' })).toBe(false)
+// AI generates a test
+test('validateApplication should reject invalid personnummer', () => {
+  expect(validateApplication({ personnummer: '12345678901' })).toBe(false)
 })
 
-// Kjører testen
-pnpm test -- validateSøknad  # Test feiler (RED)
+// Run the test
+pnpm test -- validateApplication  # Test fails (RED)
 
-// AI implementerer løsning
-function validateSøknad(data) {
+// AI implements the solution
+function validateApplication(data) {
   return isValidPersonnummer(data.personnummer)
 }
 
-// Kjører testen igjen
-pnpm test -- validateSøknad  # Test passerer (GREEN)
+// Run the test again
+pnpm test -- validateApplication  # Test passes (GREEN)
 ```
 
-**Hvorfor:** TDD-tilnærming gir AI et klart mål (test som skal passere) i stedet for vage beskrivelser.
+**Why:** The TDD approach gives the AI a clear goal (a test that must pass) instead of vague descriptions.
 
 ### Pattern 23: Multi-agent Collaboration
 
-**Konsept:** Spesialiserte enkeltstående agenter organisert i hierarkiske strukturer.
+**Concept:** Specialized single-purpose agents organized in hierarchical structures.
 
-**Vår implementasjon (Claude Code):**
-- `task-analyzer` - Analyserer JIRA-saker og TODO-planer, detekterer kompleksitet
-- `tdd-implementer` - Implementerer løsninger med TDD (RED → GREEN → REFACTOR)
-- `test-coverage-improver` - Lager manglende enhetstester
-- `react-class-to-functional-converter` - Konverterer React class til functional components
-- `redux-form-analyzer` - Analyserer Redux Form for migrering
+**Our implementation (Claude Code):**
+- `task-analyzer` - Analyzes JIRA issues and TODO plans, detects complexity
+- `tdd-implementer` - Implements solutions with TDD (RED → GREEN → REFACTOR)
+- `test-coverage-improver` - Creates missing unit tests
+- `react-class-to-functional-converter` - Converts React class components to functional components
+- `redux-form-analyzer` - Analyzes Redux Form for migration
 
-**Hvorfor:** Spesialiserte agenter er bedre på spesifikke oppgaver enn én generalist-agent.
+**Why:** Specialized agents are better at specific tasks than a single generalist agent.
 
-**Se:** [implementations/claude-code/README.md](../implementations/claude-code/README.md)
+**See:** [implementations/claude-code/README.md](../implementations/claude-code/README.md)
 
 ### Pattern 13: Chain of Thought
 
-**Konsept:** Bryt komplekse problemer i mellomsteg før endelig svar.
+**Concept:** Break complex problems into intermediate steps before the final answer.
 
-**Vår implementasjon:**
-- **Explore** → Les relevante filer, forstå struktur
-- **Plan** → Tenk gjennom tilnærminger, identifiser edge cases
-- **Code** → Implementer med TDD (RED → GREEN → REFACTOR)
-- **Commit** → Verifiser og commit
+**Our implementation:**
+- **Explore** → Read relevant files, understand the structure
+- **Plan** → Think through approaches, identify edge cases
+- **Code** → Implement with TDD (RED → GREEN → REFACTOR)
+- **Commit** → Verify and commit
 
-**Hvorfor:** AI som hopper rett til koding uten å forstå problemet gir dårligere resultater.
+**Why:** AI that jumps straight to coding without understanding the problem gives worse results.
 
-**Se:** [workflows.md](../core/rules/workflows.md)
+**See:** [workflows.md](../core/rules/workflows.md)
 
 ### Pattern 6: Basic RAG (Retrieval-Augmented Generation)
 
-**Konsept:** Grunn responser ved å legge til relevant knowledge base informasjon i prompts.
+**Concept:** Ground responses by adding relevant knowledge base information to prompts.
 
-**Vår implementasjon:**
-- Testing-regler: `core/rules/testing.md`
+**Our implementation:**
+- Testing rules: `core/rules/testing.md`
 - Workflows: `core/rules/workflows.md`
-- AI leser relevante dokumenter før generering
+- The AI reads the relevant documents before generating
 
-**Eksempel:**
+**Example:**
 
 ```text
-User: "Legg til behandlingsstatus felt i saksoversikt"
+User: "Add a processing status field to the case overview"
   ↓
-AI søker i kodebasen etter API-kallet
+AI searches the codebase for the API call
   ↓
-AI finner: GET /api/sak/{sakId} → my-api/.../SakController.java:156
+AI finds: GET /api/sak/{sakId} → my-api/.../SakController.java:156
   ↓
-AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
+AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 ```
 
-**Hvorfor:** Grounding reduserer hallusinasjoner og sikrer at AI jobber med faktisk kodebase-struktur.
+**Why:** Grounding reduces hallucinations and ensures the AI works with the actual codebase structure.
 
 ### Pattern 17: Reflection
 
-**Konsept:** AI evaluerer og forbedrer egne output.
+**Concept:** The AI evaluates and improves its own output.
 
-**Vår implementasjon:**
-- 4-fils dokumentstruktur: `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
-- AI kan kjøre `/aide-analyze` på nytt etter kodeendringer
-- AI oppdaterer `4-status.md` underveis i implementering
+**Our implementation:**
+- 4-file document structure: `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
+- The AI can re-run `/aide-analyze` after code changes
+- The AI updates `4-status.md` during implementation
 
-**Hvorfor:** Iterativ forbedring av analyse og plan gir bedre resultater enn one-shot generering.
+**Why:** Iterative improvement of the analysis and plan gives better results than one-shot generation.
 
 ---
 
 ## AI best practices
 
-### Fra Anthropic: Claude Code Best Practices
+### From Anthropic: Claude Code Best Practices
 
-**Kilde:** [Anthropic Engineering Blog](https://www.anthropic.com/engineering/claude-code-best-practices)
+**Source:** [Anthropic Engineering Blog](https://www.anthropic.com/engineering/claude-code-best-practices)
 
-**Nøkkelpunkter:**
+**Key points:**
 
 1. **Explore → Plan → Code → Commit workflow**
-   - Steg 1-2 er kritiske - uten dem hopper AI rett til koding
-   - Allerede innebygd i `core/rules/workflows.md`
+   - Steps 1-2 are critical - without them the AI jumps straight to coding
+   - Already built into `core/rules/workflows.md`
 
 2. **Test-Driven Development**
-   - Iterere mot et klart mål (test som skal passere)
-   - Allerede innebygd i `3-solution.md` TDD-tilnærming
+   - Iterate toward a clear goal (a test that must pass)
+   - Already built into the `3-solution.md` TDD approach
 
-3. **Visuell iterasjon**
-   - Bruk screenshots og design mocks
-   - Lagt til i `core/rules/documentation.md` (assets-mapper)
+3. **Visual iteration**
+   - Use screenshots and design mocks
+   - Added to `core/rules/documentation.md` (assets folders)
 
 4. **Context management**
-   - Bruk `/clear` mellom uavhengige oppgaver
-   - Lagt til i `core/rules/workflows.md` (Workflow-optimalisering)
+   - Use `/clear` between independent tasks
+   - Added to `core/rules/workflows.md` (Workflow optimization)
 
-5. **Spesifikke instruksjoner**
-   - Detaljerte beskrivelser gir betydelig høyere suksessrate
-   - Lagt til i `core/rules/documentation.md` (Best practices)
+5. **Specific instructions**
+   - Detailed descriptions give a significantly higher success rate
+   - Added to `core/rules/documentation.md` (Best practices)
 
-**Se:** [documentation.md](../core/rules/documentation.md#best-practices-for-ai-assistert-dokumentasjon) og [workflows.md](../core/rules/workflows.md#workflow-optimalisering)
+**See:** [documentation.md](../core/rules/documentation.md#best-practices-for-ai-assisted-documentation) and [workflows.md](../core/rules/workflows.md#workflow-optimization)
 
-### Fra OpenAI: Best Practices for Prompt Engineering
+### From OpenAI: Best Practices for Prompt Engineering
 
-**Prinsipper:**
+**Principles:**
 
 1. **Write clear instructions**
-   - Allerede implementert: Detaljerte templates i `core/templates/`
-   - Spesifikke instruksjoner i `CLAUDE.md`, `copilot-instructions.md`
+   - Already implemented: Detailed templates in `core/templates/`
+   - Specific instructions in `CLAUDE.md`, `copilot-instructions.md`
 
 2. **Provide reference text**
-   - Allerede implementert: `core/rules/`
-   - AI leser dokumentasjon før generering (RAG-pattern)
+   - Already implemented: `core/rules/`
+   - The AI reads documentation before generating (RAG pattern)
 
 3. **Split complex tasks into simpler subtasks**
-   - Allerede implementert: 4-fils dokumentstruktur
-   - Fase-basert implementering (Opprett → Analyser → Løs → Verifiser)
+   - Already implemented: 4-file document structure
+   - Phase-based implementation (Create → Analyze → Implement → Verify)
 
 4. **Give the model time to "think"**
-   - Allerede implementert: Explore og Plan faser før Code
-   - AI-spesifikke "deep thinking" funksjoner kan aktiveres ved behov
+   - Already implemented: Explore and Plan phases before Code
+   - AI-specific "deep thinking" features can be enabled as needed
 
-### Fra GitHub: Copilot Best Practices
+### From GitHub: Copilot Best Practices
 
-**Prinsipper:**
+**Principles:**
 
 1. **Use descriptive function names**
-   - Implementert: Navnekonvensjoner i `KODESTANDARD.md`
+   - Implemented: Naming conventions in the project coding standard
 
 2. **Provide context through comments**
-   - Implementert: Før/etter eksempler i `3-solution.md`
+   - Implemented: Before/after examples in `3-solution.md`
 
 3. **Break down large functions**
-   - Implementert: Refaktorering-retningslinjer i `KODESTANDARD.md`
+   - Implemented: Refactoring guidelines in the project coding standard
 
 ---
 
-## Ressurser og inspirasjon
+## Resources and inspiration
 
 ### Generative AI Design Patterns
 
 **Repo:** [lakshmanok/generative-ai-design-patterns](https://github.com/lakshmanok/generative-ai-design-patterns)
 
-**Bok:** "Generative AI Design Patterns" (O'Reilly)
+**Book:** "Generative AI Design Patterns" (O'Reilly)
 
-**32 patterns organisert i kategorier:**
+**32 patterns organized into categories:**
 
 1. **Patterns 1-5:** Prompt engineering basics
 2. **Patterns 6-12:** Knowledge & context management (RAG, semantic search)
@@ -269,19 +269,19 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 5. **Patterns 21-23:** Agent action & tool orchestration ⭐ (Tool Calling, Code Execution, Multi-agent)
 6. **Patterns 24-32:** Advanced patterns (template generation, etc.)
 
-**Hvilke patterns vi bruker:**
-- Pattern 6: Basic RAG (API-mapping, dokumentasjon)
+**Which patterns we use:**
+- Pattern 6: Basic RAG (API mapping, documentation)
 - Pattern 13: Chain of Thought (Explore → Plan → Code)
-- Pattern 17: Reflection (iterativ forbedring av analyse)
+- Pattern 17: Reflection (iterative improvement of the analysis)
 - Pattern 21: Tool Calling (JIRA API, git, scripts)
-- Pattern 22: Code Execution (TDD-testing)
-- Pattern 23: Multi-agent Collaboration (spesialiserte agents)
+- Pattern 22: Code Execution (TDD testing)
+- Pattern 23: Multi-agent Collaboration (specialized agents)
 
 ### Anthropic Resources
 
 **Claude Code Best Practices:**
 - [Blog post](https://www.anthropic.com/engineering/claude-code-best-practices)
-- [Dokumentasjon](https://docs.claude.com/en/docs/claude-code)
+- [Documentation](https://docs.claude.com/en/docs/claude-code)
 
 **Prompt Engineering:**
 - [Prompt Engineering Guide](https://docs.anthropic.com/claude/docs/prompt-engineering)
@@ -296,7 +296,7 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 **Function Calling:**
 - [Function Calling Guide](https://platform.openai.com/docs/guides/function-calling)
 
-### Andre ressurser
+### Other resources
 
 **AI Agent Frameworks:**
 - [LangChain](https://www.langchain.com/) - Framework for building AI applications
@@ -309,99 +309,99 @@ AI konkluderer: Må endre både frontend (my-app) og backend (my-api)
 
 ---
 
-## Implementasjonsdetaljer
+## Implementation details
 
-### Hvorfor 4-fils dokumentstruktur?
+### Why a 4-file document structure?
 
-**Design-valg:**
-- `1-description.md` - Problembeskrivelse (read-only etter opprettelse)
-- `2-analysis.md` - Kodebase-analyse (kan kjøres på nytt)
-- `3-solution.md` - Implementeringsplan (iterativt forbedret)
-- `4-status.md` - Fremdriftssporing (oppdateres kontinuerlig)
+**Design choice:**
+- `1-description.md` - Problem description (read-only after creation)
+- `2-analysis.md` - Codebase analysis (can be re-run)
+- `3-solution.md` - Implementation plan (iteratively improved)
+- `4-status.md` - Progress tracking (updated continuously)
 
-**Hvorfor 4 filer, ikke én stor fil?**
-1. **Separasjon av bekymringer:** Hver fil har ett ansvar
-2. **Re-entrancy:** `2-analysis.md` kan regenereres uten å overskrive `1-description.md`
-3. **Lesbarhet:** Mennesker leser `1-description.md` → `2-analysis.md` → `3-solution.md`
-4. **AI-parsing:** AI kan lese én fil av gangen (reduserer token-bruk)
+**Why 4 files, not one big file?**
+1. **Separation of concerns:** Each file has one responsibility
+2. **Re-entrancy:** `2-analysis.md` can be regenerated without overwriting `1-description.md`
+3. **Readability:** Humans read `1-description.md` → `2-analysis.md` → `3-solution.md`
+4. **AI parsing:** The AI can read one file at a time (reduces token usage)
 
-**Inspirert av:** Software engineering best practices (Single Responsibility Principle)
+**Inspired by:** Software engineering best practices (Single Responsibility Principle)
 
-### Hvorfor slash commands (Claude Code)?
+### Why slash commands (Claude Code)?
 
-**Design-valg:**
-- `/aide-create PROJ-XXXX` - Opprett dokumentstruktur
-- `/aide-analyze PROJ-XXXX` - Analyser kodebase
-- `/aide-implement PROJ-XXXX` - Implementer løsning
+**Design choice:**
+- `/aide-create PROJ-XXXX` - Create the document structure
+- `/aide-analyze PROJ-XXXX` - Analyze the codebase
+- `/aide-implement PROJ-XXXX` - Implement the solution
 
-**Hvorfor slash commands, ikke naturlig språk?**
-1. **Presisjon:** Unngår tvetydighet (vs. "analyser denne saken")
-2. **Konsistens:** Samme kommando gir samme resultat
-3. **Discoverability:** `/` viser alle tilgjengelige kommandoer
-4. **Composability:** Kan kalle commands fra andre commands
+**Why slash commands, not natural language?**
+1. **Precision:** Avoids ambiguity (vs. "analyze this issue")
+2. **Consistency:** The same command gives the same result
+3. **Discoverability:** `/` shows all available commands
+4. **Composability:** Commands can be called from other commands
 
-**Alternativ (GitHub Copilot/Codex):** Prompt-templates i `implementations/copilot/prompts/` og `implementations/codex/prompts/`
+**Alternative (GitHub Copilot/Codex):** Prompt templates in `implementations/copilot/prompts/` and `implementations/codex/prompts/`
 
-### Hvorfor TDD-tilnærming?
+### Why a TDD approach?
 
-**Design-valg:** RED → GREEN → REFACTOR
+**Design choice:** RED → GREEN → REFACTOR
 
-**Hvorfor TDD for AI-assistert utvikling?**
-1. **Klart mål:** AI har konkret target (test som skal passere)
-2. **Verifiserbarhet:** AI kan kjøre tester og se om de passerer
-3. **Iterasjon:** AI kan iterere til testene passerer
-4. **Regresjons-sikkerhet:** Full test-suite kjøres etter implementering
+**Why TDD for AI-assisted development?**
+1. **Clear goal:** The AI has a concrete target (a test that must pass)
+2. **Verifiability:** The AI can run tests and see whether they pass
+3. **Iteration:** The AI can iterate until the tests pass
+4. **Regression safety:** The full test suite is run after implementation
 
-**Inspirert av:** Test-Driven Development (Kent Beck)
+**Inspired by:** Test-Driven Development (Kent Beck)
 
-### Hvorfor AI-agnostisk design?
+### Why AI-agnostic design?
 
-**Design-valg:** Skill `core/` fra `implementations/`
+**Design choice:** Separate `core/` from `implementations/`
 
-**Hvorfor ikke én AI-spesifikk implementasjon?**
-1. **Resiliens:** Ikke låst til én leverandør (hvis Claude har nedetid, bruk Codex/Copilot)
-2. **Fleksibilitet:** Velg beste verktøy for hver oppgave
-3. **Læring:** Sammenlign hvordan ulike AI-verktøy håndterer samme oppgaver
-4. **Fremtidssikker:** Enkel å legge til nye AI-verktøy
+**Why not a single AI-specific implementation?**
+1. **Resilience:** Not locked in to one vendor (if Claude has downtime, use Codex/Copilot)
+2. **Flexibility:** Choose the best tool for each task
+3. **Learning:** Compare how different AI tools handle the same tasks
+4. **Future-proof:** Easy to add new AI tools
 
-**Trade-off:** Mer kompleks struktur, men betydelig mer robust og fleksibel.
+**Trade-off:** A more complex structure, but significantly more robust and flexible.
 
 ---
 
-## Bidra til prosjektet
+## Contributing to the project
 
-### Legge til ny AI-implementasjon
+### Adding a new AI implementation
 
-1. **Opprett katalog:** `implementations/<ai-tool>/`
-2. **Opprett README.md:** Setup-guide og quick start
-3. **Legg til instruksjons-/konfigfiler** for verktøyet:
-   - Claude Code: skills i `core/skills/`, regler i `core/rules/`, agenter i `implementations/claude-code/agents/`
-   - Copilot: `core/AGENTS.md` → `~/.copilot/copilot-instructions.md` (genereres via `core/scripts/build-agents-md.sh`)
-   - Codex: `core/AGENTS.md` → `~/.codex/AGENTS.md`, pluss `implementations/codex/config.toml`
+1. **Create the directory:** `implementations/<ai-tool>/`
+2. **Create README.md:** Setup guide and quick start
+3. **Add instruction/config files** for the tool:
+   - Claude Code: skills in `core/skills/`, rules in `core/rules/`, agents in `implementations/claude-code/agents/`
+   - Copilot: `core/AGENTS.md` → `~/.copilot/copilot-instructions.md` (generated via `core/scripts/build-agents-md.sh`)
+   - Codex: `core/AGENTS.md` → `~/.codex/AGENTS.md`, plus `implementations/codex/config.toml`
    - Gemini: `implementations/gemini/settings.json`
-   - Ny AI: tilsvarende format for det verktøyet
-4. **Opprett install.sh** etter mønster fra eksisterende implementasjoner
-5. **Test workflow:** Opprett → Analyser → Løs → Verifiser
+   - New AI: the equivalent format for that tool
+4. **Create install.sh** following the pattern of the existing implementations
+5. **Test the workflow:** Create → Analyze → Implement → Verify
 
-### Legge til ny design pattern
+### Adding a new design pattern
 
-1. **Identifiser pattern:** Hvilken pattern løser hvilket problem?
-2. **Dokumenter i denne filen:** Legg til under "Design patterns i bruk"
-3. **Implementer:** Oppdater `core/rules/` eller `implementations/`
-4. **Test:** Verifiser at pattern fungerer i praksis
+1. **Identify the pattern:** Which pattern solves which problem?
+2. **Document it in this file:** Add it under "Design patterns in use"
+3. **Implement:** Update `core/rules/` or `implementations/`
+4. **Test:** Verify that the pattern works in practice
 
-### Oppdatere best practices
+### Updating best practices
 
-1. **Finn ny ressurs:** Blog post, forskningsartikkel, dokumentasjon
-2. **Evaluer relevans:** Passer det med prosjektets arkitektur?
-3. **Dokumenter her:** Legg til under "AI best practices"
-4. **Implementer:** Oppdater relevante filer (`core/rules/workflows.md`, `core/rules/documentation.md`)
+1. **Find a new resource:** Blog post, research article, documentation
+2. **Evaluate relevance:** Does it fit the project's architecture?
+3. **Document it here:** Add it under "AI best practices"
+4. **Implement:** Update the relevant files (`core/rules/workflows.md`, `core/rules/documentation.md`)
 
 ---
 
-## Se også
+## See also
 
-- [README.md](../README.md) - Prosjektets hovedside
-- [workflows.md](../core/rules/workflows.md) - JIRA-sak og TODO-plan workflows
-- [documentation.md](../core/rules/documentation.md) - Dokumentasjonsstandard
-- [implementations/claude-code/README.md](../implementations/claude-code/README.md) - Claude Code-implementasjon
+- [README.md](../README.md) - The project's main page
+- [workflows.md](../core/rules/workflows.md) - JIRA issue and TODO plan workflows
+- [documentation.md](../core/rules/documentation.md) - Documentation standard
+- [implementations/claude-code/README.md](../implementations/claude-code/README.md) - Claude Code implementation

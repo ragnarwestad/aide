@@ -1,26 +1,26 @@
 ---
 name: uninstall-all
 description: >-
-  Avinstaller doc-aide for alle AI-verktøy (Claude Code, Copilot, Codex, Gemini).
-  Kjører uninstall-all.sh, som kaller hver implementations/<ai>/uninstall.sh.
-  Use when: skal fjerne doc-aide fra maskinen, skal rydde opp før ny installasjon.
-  Do NOT use for: installering (bruk /install-all). Bare én AI? Kjør
-  implementations/<ai>/uninstall.sh direkte.
+  Uninstall doc-aide for all AI tools (Claude Code, Copilot, Codex, Gemini).
+  Runs uninstall-all.sh, which calls each implementations/<ai>/uninstall.sh.
+  Use when: removing doc-aide from the machine, cleaning up before a fresh install.
+  Do NOT use for: installing (use /install-all). Just one AI? Run
+  implementations/<ai>/uninstall.sh directly.
 disable-model-invocation: true
 ---
 
-# Avinstaller doc-aide (alle AI-verktøy)
+# Uninstall doc-aide (all AI tools)
 
-Kjør orkestratoren fra repo-roten:
+Run the orchestrator from the repo root:
 
 ```bash
 ./uninstall-all.sh
 ```
 
-Den kjører hver AI-implementasjons egen `uninstall.sh`, som reverserer det
-respektive `install.sh` gjorde. Hver installer **ber om egen bekreftelse** før
-den sletter noe (så du får ett ja/nei-spørsmål per AI).
+It runs each AI implementation's own `uninstall.sh`, which reverses what the
+respective `install.sh` did. Each installer **asks for its own confirmation** before
+deleting anything (so you get one yes/no question per AI).
 
-**Bare én AI?** Kjør dens script direkte, f.eks. `implementations/codex/uninstall.sh`.
+**Just one AI?** Run its script directly, e.g. `implementations/codex/uninstall.sh`.
 
-Hvis fjernede skills fortsatt vises, restart Claude Code.
+If removed skills still show up, restart Claude Code.
