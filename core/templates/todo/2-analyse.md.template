@@ -1,0 +1,109 @@
+# {{TITLE_FORMATTED}} - Analyse
+
+## Innholdsfortegnelse
+
+- [Sporingsinfo](#sporingsinfo)
+- [Omfang](#omfang)
+  - [Kartlegging](#kartlegging)
+  - [Berørte filer/komponenter](#berørte-filerkomponenter)
+- [Kompleksitet](#kompleksitet)
+  - [Faktorer](#faktorer)
+  - [Estimat](#estimat)
+- [Funn](#funn)
+  - [Kodebase-analyse](#kodebase-analyse)
+  - [Berørte komponenter](#berørte-komponenter)
+  - [Mønstre og anti-mønstre](#mønstre-og-anti-mønstre)
+  - [Test-dekning](#test-dekning)
+  - [API-avhengigheter](#api-avhengigheter)
+- [Risikoanalyse](#risikoanalyse)
+
+---
+
+## Sporingsinfo
+
+- **TODO:** `todo/{{FOLDER_NAME}}/`
+- **Sist analysert:** `{{ANALYSIS_DATE}}`
+
+<!-- Agent skal legge til repos her etter analyse:
+**Repositories brukt under analyse:**
+- **repo-name:** `branch` @ `commit`
+-->
+
+---
+
+## Omfang
+
+**Antall berørte filer/komponenter:** [fylles av analyse]
+
+**Kartlegging:**
+
+[Hvordan analysen ble utført - søkeord, metoder, verktøy brukt]
+
+**Berørte filer/komponenter:**
+
+1. `fil/path.tsx:123-145` - [beskrivelse av endring]
+2. `fil/path2.tsx:67` - [beskrivelse av endring]
+
+## Kompleksitet
+
+### [Høy/Middels/Lav kompleksitet]
+
+[Detaljert beskrivelse av kompleksitet basert på antall filer, avhengigheter, etc.]
+
+**Faktorer:**
+- [liste over kompleksitetsfaktorer]
+
+**Estimat:**
+- **Manuell utvikling:** [X timer/dager]
+- **AI-assistert utvikling:** [Y timer/dager] (Z% raskere)
+
+## Funn
+
+### Kodebase-analyse
+
+[Detaljerte funn fra Explore agent eller annen analysemetode]
+
+### Berørte komponenter
+
+[Detaljert beskrivelse per fil med konkrete linjenummer og hva som må endres]
+
+### Mønstre og anti-mønstre
+
+[Identifiserte mønstre i kodebasen - både gode og dårlige]
+
+### Test-dekning
+
+**Eksisterende tester:**
+- [liste over relevante tester som eksisterer]
+
+**Manglende tester:**
+- [gaps i test-dekning som må fylles]
+
+### API-avhengigheter
+
+[API-endpoints hvis relevant, se core/api-mapping/ for detaljer]
+
+**Brukte endpoints:**
+- `GET /api/endpoint` - [beskrivelse]
+
+## Risikoanalyse
+
+### [Høy/Middels/Lav risiko]
+
+**[Risiko 1 navn]**
+- **Konsekvens:** [hva kan gå galt]
+- **Sannsynlighet:** [Høy/Middels/Lav]
+- **Mitigering:** [hvordan redusere risiko]
+
+**[Risiko 2 navn]**
+- **Konsekvens:** [hva kan gå galt]
+- **Sannsynlighet:** [Høy/Middels/Lav]
+- **Mitigering:** [hvordan redusere risiko]
+
+---
+
+## Relaterte dokumenter
+
+- [1-beskrivelse.md](./1-beskrivelse.md) - Sporingsinfo og akseptansekriterier
+- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD
+- [4-status.md](./4-status.md) - Fremdriftssporing

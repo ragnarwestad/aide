@@ -1,0 +1,116 @@
+# /aide-react-class-to-func - Konverter React class til functional
+# Bruk: /aide-react-class-to-func src/components/UserProfile.tsx
+
+description = "Konverter en React class-komponent til funksjonell komponent med hooks"
+
+prompt = """
+Konverter React class component til functional component med hooks for: {{args}}
+
+STEG 1: ANALYSER CLASS COMPONENT
+- Les filen: {{args}}
+- Identifiser:
+  - Lifecycle-metoder (componentDidMount, componentDidUpdate, componentWillUnmount)
+  - State (this.state)
+  - Props (this.props)
+  - Refs (this.refs eller React.createRef())
+  - Context (this.context)
+  - PureComponent vs Component
+
+STEG 2: PLANLEGG KONVERTERING
+Lag mapping-tabell:
+- componentDidMount → useEffect(() => {}, [])
+- componentDidUpdate → useEffect(() => {}, [deps])
+- componentWillUnmount → useEffect cleanup function
+- this.state → useState()
+- this.props → function parameters
+- this.refs → useRef()
+- Context → useContext()
+- PureComponent → React.memo()
+
+STEG 3: KONVERTER TIL FUNCTIONAL COMPONENT
+- Skriv ny functional component
+- Konverter lifecycle til hooks
+- Konverter state til useState
+- Konverter refs til useRef
+- Wrap med React.memo() hvis PureComponent
+
+STEG 4: VERIFISER MED TESTER
+- Finn eksisterende testfil (f.eks. <fil>.test.tsx)
+- Kjør: pnpm test -- --run <testfil>
+- Verifiser at ALLE tester fortsatt passerer
+- Hvis tester feiler: analyser og fiks
+
+STEG 5: OPPDATER IMPORTEN
+- Endre class export til const export
+- Fjern Component/PureComponent fra imports
+- Legg til hooks (useState, useEffect, etc.)
+
+VIKTIG REGLER:
+- Følg prosjektets kodestandard for React-stil
+- ALDRI endre business logic - kun konvertering av patterns
+- Behold nøyaktig samme props-interface
+- Behold nøyaktig samme oppførsel
+- Verifiser med tester at oppførselen er identisk
+- ALLTID bruk --run flagget (IKKE watch mode)
+
+STOPP OG BE OM BEKREFTELSE:
+- Etter konverteringsplan er laget (før kodeendring)
+- Etter kode er konvertert (før test)
+- Etter tester er kjørt (før commit)
+
+KONVERTERINGSMØNSTRE:
+
+Lifecycle → useEffect:
+```typescript
+// Før (class)
+componentDidMount() {
+  this.fetchData();
+}
+
+// Etter (functional)
+useEffect(() => {
+  fetchData();
+}, []);
+```
+
+State → useState:
+```typescript
+// Før (class)
+state = { user: null, loading: false };
+this.setState({ loading: true });
+
+// Etter (functional)
+const [user, setUser] = useState(null);
+const [loading, setLoading] = useState(false);
+setLoading(true);
+```
+
+PureComponent → React.memo:
+```typescript
+// Før (class)
+class UserProfile extends React.PureComponent { ... }
+
+// Etter (functional)
+const UserProfile = React.memo(({ userId }) => { ... });
+```
+
+FORVENTET OUTPUT:
+```
+✅ Konvertering fullført for <fil>
+
+Konverteringsmapping:
+  componentDidMount → useEffect(() => { ... }, [])
+  this.state (x, y, z) → useState() x3
+  this.refs → useRef()
+
+Endringer:
+  Før: XX linjer (class-based)
+  Etter: XX linjer (functional with hooks)
+
+Test-resultat:
+  ✅ N/N tester passerer
+  Ingen oppførselsendring detektert
+
+📖 Neste steg: Stage og commit endringene
+```
+"""

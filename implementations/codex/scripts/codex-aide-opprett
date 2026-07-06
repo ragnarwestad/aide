@@ -1,0 +1,61 @@
+#!/bin/bash
+# codex-aide-opprett - Opprett JIRA/TODO dokumentasjon via Codex CLI
+#
+# Bruk:
+#   codex-aide-opprett PROJ-7890              # JIRA-sak
+#   codex-aide-opprett todo-01-redux-migration   # TODO-plan
+#   codex-aide-opprett todo Beskrivelse her      # TODO med autogenerert slug
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROMPTS_DIR="$(dirname "$SCRIPT_DIR")/prompts"
+
+if [ -z "$1" ]; then
+    echo "Bruk: codex-aide-opprett <ID> [beskrivelse]"
+    echo ""
+    echo "Eksempler:"
+    echo "  codex-aide-opprett PROJ-7890"
+    echo "  codex-aide-opprett todo-01-redux-migration"
+    echo "  codex-aide-opprett todo Beskrivelse her"
+    exit 1
+fi
+
+ID="$1"
+shift
+DESCRIPTION="$*"
+
+# Les prompt-template
+PROMPT_FILE="$PROMPTS_DIR/aide-opprett.md"
+if [ ! -f "$PROMPT_FILE" ]; then
+    echo "Feil: Finner ikke $PROMPT_FILE"
+    exit 1
+fi
+
+# Bygg prompt med ID-substitusjon
+if [[ "$ID" == PROJ-* ]]; then
+    # JIRA-sak
+    PROMPT=$(cat "$PROMPT_FILE" | sed "s/PROJ-XXXX/$ID/g")
+    PROMPT="$PROMPT
+
+---
+Kjør oppgaven for JIRA-sak: $ID"
+else
+    # TODO-plan
+    PROMPT=$(cat "$PROMPT_FILE" | sed "s/TODO-XX-navn/$ID/g")
+    if [ -n "$DESCRIPTION" ]; then
+        PROMPT="$PROMPT
+
+---
+Kjør oppgaven for TODO: $ID
+Beskrivelse: $DESCRIPTION"
+    else
+        PROMPT="$PROMPT
+
+---
+Kjør oppgaven for TODO: $ID"
+    fi
+fi
+
+# Kjør Codex med prompten
+exec codex "$PROMPT"

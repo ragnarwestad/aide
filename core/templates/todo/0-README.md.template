@@ -1,0 +1,10 @@
+# Dokumentasjon
+
+**Innholdsfortegnelse:**
+
+1. [Beskrivelse](1-beskrivelse.md) - Sporingsinfo, mål, omfang, akseptansekriterier
+2. [Analyse](2-analyse.md) - Funn, kompleksitet, risikoanalyse
+3. [Løsning](3-løsning.md) - Implementeringsplan med TDD
+4. [Status](4-status.md) - Fremdriftssporing
+
+---

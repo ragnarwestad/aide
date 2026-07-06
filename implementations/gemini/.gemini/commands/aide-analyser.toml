@@ -1,0 +1,52 @@
+# /aide-analyser - Analyser kodebase for JIRA/TODO
+# Bruk: /aide-analyser PROJ-1234
+# Eller: /aide-analyser todo-01
+
+description = "Analyser kodebasen og oppdater 2-analyse.md og 3-løsning.md"
+
+prompt = """
+Analyser kodebasen for: {{args}}
+
+STEG 0: FINN DOKUMENTASJON
+- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/1-beskrivelse.md
+- Hvis todo-*: Les todo/<TODO_ID>/1-beskrivelse.md
+- Hvis filen ikke finnes: Kjør /aide-opprett først
+
+STEG 1: DETEKTER KOMPLEKSITET
+Les core/rules/workflows.md for kompleksitetsdeteksjon:
+- LAV: 1-2 filer, enkle endringer
+- MIDDELS: 3-10 filer, moderat kompleksitet
+- HØY: 10+ filer, store refaktoreringer
+
+STEG 2: ANALYSER KODEBASE
+- Søk etter relevante filer basert på beskrivelsen
+- Identifiser påvirkede komponenter med fil:linje referanser
+
+STEG 3: VURDER API-PÅVIRKNING
+- Er dette frontend-only, backend-only, eller begge?
+- Dokumenter påvirkede endpoints
+
+STEG 4: OPPDATER DOKUMENTER
+Oppdater 2-analyse.md med:
+- Påvirkede filer (fil:linje format)
+- Kompleksitetsvurdering
+- Risikoanalyse
+- API-påvirkning
+
+Oppdater 3-løsning.md med:
+- TDD-basert implementeringsplan
+- Steg 0: Skriv tester (RED)
+- Steg 1-N: Implementering (GREEN)
+- Testing-strategi (REFACTOR)
+
+STEG 5: STAGE FILER
+- git add <endrede filer>
+
+STEG 6: BEKREFT
+- Vis oppsummering av funn
+- Neste steg: Kjør /aide-løs <ID>
+
+VIKTIG:
+- Følg core/rules/workflows.md
+- Bruk fil:linje referanser ALLTID
+"""

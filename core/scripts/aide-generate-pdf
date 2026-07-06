@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+
+# aide-generate-pdf - Generer PDF fra JIRA eller TODO dokumentasjon
+# Kombinerer alle markdown-filer til et samlet PDF-dokument
+
+set -e
+
+# Farger for output
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Hjelpetekst
+if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  echo "📄 Bruk: aide-generate-pdf <ISSUE_ID>"
+  echo ""
+  echo "Eksempler (flat struktur):"
+  echo "  aide-generate-pdf 35                    # Shorthand: finner 35-todo-ai-nyheter"
+  echo "  aide-generate-pdf todo-35               # Alternativ shorthand"
+  echo "  aide-generate-pdf 35-todo-ai-nyheter    # Full ID"
+  echo "  aide-generate-pdf 45-proj-7637          # JIRA-basert oppgave"
+  echo ""
+  echo "Environment variables:"
+  echo "  AIDE_REPORTS_PATH    - Path til reports (valgfri)"
+  echo "  (Fallback: relativ til script-lokasjon)"
+  echo ""
+  echo "Output: <docs-folder>/<ISSUE_ID>.pdf"
+  exit 0
+fi
+
+ISSUE_ID="$1"
+
+# Delte hjelpefunksjoner (reports-root, resolusjon, doc-type, display-name)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$SCRIPT_DIR/_aide-report-lib.sh"
+
+REPORTS_ROOT="$(aide_reports_root)"
+FULL_ID="$(aide_resolve_report "$ISSUE_ID" "$REPORTS_ROOT")"
+DOCS_DIR="$REPORTS_ROOT/$FULL_ID"
+
+# Sjekk at vi fant noe
+if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
+  echo -e "${RED}❌ Feil: Fant ingen dokumentasjon for: $ISSUE_ID${NC}"
+  echo ""
+  echo "Søkte i: $REPORTS_ROOT"
+  echo ""
+  echo "Tips:"
+  echo "  - Har du kjørt /aide-opprett først?"
+  echo "  - Sjekk at AIDE_REPORTS_PATH er riktig satt"
+  echo ""
+  echo "Tilgjengelige mapper:"
+  ls -1 "$REPORTS_ROOT" | grep -E "^[0-9]+-" | head -10
+  exit 1
+fi
+
+# Oppdater ISSUE_ID til full ID for filnavn
+ISSUE_ID="$FULL_ID"
+DOC_TYPE="$(aide_doc_type "$FULL_ID")"
+
+# Sjekk at md-to-pdf er installert
+if ! command -v md-to-pdf &> /dev/null; then
+  echo -e "${RED}❌ Feil: md-to-pdf er ikke installert${NC}"
+  echo ""
+  echo "Installer med:"
+  echo "  npm install -g md-to-pdf"
+  echo ""
+  echo "Eller kjør fra {{domain}}-web:"
+  echo "  npx md-to-pdf"
+  exit 1
+fi
+
+echo -e "${GREEN}📄 Genererer PDF for $DOC_TYPE: $ISSUE_ID${NC}"
+echo ""
+
+# Opprett midlertidig kombinert markdown-fil i system TMP-område
+TEMP_MD="$(mktemp /tmp/combined-${ISSUE_ID}-XXXXXX.md)"
+OUTPUT_PDF="$DOCS_DIR/$ISSUE_ID.pdf"
+
+cleanup() {
+  rm -f "$TEMP_MD"
+}
+trap cleanup EXIT
+
+# Start med tom fil
+> "$TEMP_MD"
+
+# Forside (kun metadata for PDF-motor)
+echo "---" >> "$TEMP_MD"
+echo "title: \"$ISSUE_ID\"" >> "$TEMP_MD"
+echo "date: \"$(date '+%Y-%m-%d')\"" >> "$TEMP_MD"
+echo "---" >> "$TEMP_MD"
+echo "" >> "$TEMP_MD"
+
+# Funksjon for å legge til README (uten heading, med interne linker)
+add_readme() {
+  if [ -f "$DOCS_DIR/0-README.md" ]; then
+    echo -e "${GREEN}  ✅ Innholdsfortegnelse${NC}"
+
+    # Legg til forside med navigasjonsbokser
+    echo "# Innholdsfortegnelse" >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+    echo '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 40px 0;">' >> "$TEMP_MD"
+    echo '<a href="#beskrivelse" style="text-decoration: none; color: inherit;"><div style="border: 2px solid #0066cc; border-radius: 8px; padding: 20px; background: #f0f7ff;"><h2 style="margin: 0 0 10px 0; color: #0066cc;">📋 Beskrivelse</h2><p style="margin: 0; color: #666;">JIRA-data, omfang og akseptansekriterier</p></div></a>' >> "$TEMP_MD"
+    echo '<a href="#analyse" style="text-decoration: none; color: inherit;"><div style="border: 2px solid #0066cc; border-radius: 8px; padding: 20px; background: #f0f7ff;"><h2 style="margin: 0 0 10px 0; color: #0066cc;">🔍 Analyse</h2><p style="margin: 0; color: #666;">Kodebase-analyse og kompleksitet</p></div></a>' >> "$TEMP_MD"
+    echo '<a href="#løsning" style="text-decoration: none; color: inherit;"><div style="border: 2px solid #0066cc; border-radius: 8px; padding: 20px; background: #f0f7ff;"><h2 style="margin: 0 0 10px 0; color: #0066cc;">💡 Løsning</h2><p style="margin: 0; color: #666;">Implementeringsplan med TDD</p></div></a>' >> "$TEMP_MD"
+    echo '<a href="#status" style="text-decoration: none; color: inherit;"><div style="border: 2px solid #0066cc; border-radius: 8px; padding: 20px; background: #f0f7ff;"><h2 style="margin: 0 0 10px 0; color: #0066cc;">✅ Status</h2><p style="margin: 0; color: #666;">Fremdriftssporing og resultater</p></div></a>' >> "$TEMP_MD"
+    echo '</div>' >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+    echo '<div style="page-break-after: always;"></div>' >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+  else
+    echo -e "${YELLOW}  ⏭️  Hopper over innholdsfortegnelse (0-README.md finnes ikke)${NC}"
+  fi
+}
+
+# Funksjon for å legge til seksjon med sideskift (filen har allerede heading)
+add_section() {
+  local file="$1"
+  local title="$2"
+  local anchor_id=$(echo "$title" | tr '[:upper:]' '[:lower:]')  # beskrivelse, analyse, etc.
+
+  if [ -f "$DOCS_DIR/$file" ]; then
+    echo -e "${GREEN}  ✅ $title${NC}"
+    # Sideskift før seksjonen (HTML for bedre støtte i md-to-pdf)
+    echo '<div style="page-break-before: always;"></div>' >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+    # Legg til HTML-anker for intern linking OG kontekst-markør for header
+    echo "<!-- SECTION: $title -->" >> "$TEMP_MD"
+    echo "<a id=\"$anchor_id\"></a>" >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+    # Inkluder filen direkte (har allerede sin egen heading)
+    cat "$DOCS_DIR/$file" >> "$TEMP_MD"
+    echo "" >> "$TEMP_MD"
+  else
+    echo -e "${YELLOW}  ⏭️  Hopper over $title (filen finnes ikke)${NC}"
+  fi
+}
+
+# Legg til alle seksjoner
+add_readme  # Først README (uten ekstra heading)
+add_section "1-beskrivelse.md" "Beskrivelse"
+add_section "2-analyse.md" "Analyse"
+add_section "3-løsning.md" "Løsning"
+add_section "4-status.md" "Status"
+
+# Gjør kryssdokument-lenker om til interne anker (ellers åpnes de eksternt i PDF-en).
+# Lenker med #anker beholder ankeret; hel-fil-lenker mappes til seksjons-ankeret.
+sed -E \
+  -e 's|\]\((\./)?[0-9]+-[^)#]*\.md#|](#|g' \
+  -e 's|\]\((\./)?1-beskrivelse\.md\)|](#beskrivelse)|g' \
+  -e 's|\]\((\./)?2-analyse\.md\)|](#analyse)|g' \
+  -e 's|\]\((\./)?3-løsning\.md\)|](#løsning)|g' \
+  -e 's|\]\((\./)?4-status\.md\)|](#status)|g' \
+  "$TEMP_MD" > "${TEMP_MD}.linked" && mv "${TEMP_MD}.linked" "$TEMP_MD"
+
+echo ""
+echo -e "${GREEN}📄 Konverterer til PDF...${NC}"
+
+# Få lesbart navn for header
+DISPLAY_NAME=$(get_display_name "$ISSUE_ID")
+
+# Konverter til PDF med md-to-pdf (output direkte til riktig plassering)
+# Header: Viser kun dokument-navn (enkelt og rent)
+# Footer: Sidenummer
+md-to-pdf "$TEMP_MD" --pdf-options '{"format": "A4", "margin": {"top": "20mm", "right": "20mm", "bottom": "20mm", "left": "20mm"}, "displayHeaderFooter": true, "headerTemplate": "<div style=\"font-size: 10px; width: 100%; padding: 8px 20px; border-bottom: 1px solid #ccc; background: #f8f8f8;\"><span style=\"font-weight: bold; color: #333;\">'"$DISPLAY_NAME"'</span></div>", "footerTemplate": "<div style=\"font-size: 9px; text-align: center; width: 100%; color: #666; border-top: 1px solid #ddd; padding-top: 5px;\">Side <span class=\"pageNumber\"></span> av <span class=\"totalPages\"></span></div>"}' > /dev/null 2>&1
+
+# Finn generert PDF og flytt til riktig navn/sted
+TEMP_PDF="${TEMP_MD%.md}.pdf"
+if [ -f "$TEMP_PDF" ]; then
+  mv "$TEMP_PDF" "$OUTPUT_PDF"
+fi
+
+echo ""
+echo -e "${GREEN}✅ PDF generert: $OUTPUT_PDF${NC}"
+echo ""
+echo "Åpne med:"
+echo "  open \"$OUTPUT_PDF\""

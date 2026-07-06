@@ -1,0 +1,19 @@
+# Reports (bruker-spesifikke, eller flyttet til AIDE_REPORTS_PATH)
+reports/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.coverage
+
+# Build output
+/dist/
+

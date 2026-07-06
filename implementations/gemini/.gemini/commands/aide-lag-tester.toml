@@ -1,0 +1,64 @@
+# /aide-lag-tester - Lag manglende enhetstester
+# Bruk: /aide-lag-tester src/utils/land.ts
+
+description = "Analyser en fil og opprett manglende enhetstester"
+
+prompt = """
+Analyser filen og opprett manglende enhetstester for: {{args}}
+
+STEG 1: ANALYSER FILEN
+- Les filen: {{args}}
+- Identifiser alle eksporterte funksjoner
+- Sjekk eksisterende testfil (f.eks. <fil>.test.ts)
+- Identifiser gaps i testdekningen
+
+STEG 2: SKRIV COMPREHENSIVE TESTER
+For hver funksjon som mangler tester:
+- Happy path (normale scenarioer)
+- Edge cases (grensetilfeller)
+- Error cases (feilhåndtering)
+
+STEG 3: KJØR TESTER OG VERIFISER
+- Kjør: pnpm test -- --run <testfil>
+- Verifiser at alle nye tester passerer
+- Fiks eventuelle feil
+
+STEG 4: GENERER COVERAGE-RAPPORT
+- Kjør: pnpm test -- --coverage <fil-path>
+- Vis før/etter testdekning
+- Oppsummer antall tester opprettet
+
+VIKTIG REGLER:
+- Følg prosjektets kodestandard for test-stil
+- Følg core/rules/testing.md for TDD-prinsipper
+- Bruk Vitest for unit tests
+- Bruk React Testing Library for React-komponenter
+- Mock eksterne avhengigheter (API-kall, etc.)
+- ALLTID bruk --run flagget (IKKE watch mode)
+
+STOPP OG BE OM BEKREFTELSE:
+- Etter testene er skrevet (før kjøring)
+- Etter testene er kjørt (før commit)
+
+FORVENTET OUTPUT:
+```
+✅ Test-analyse fullført for <fil>
+
+Funksjoner analysert: N
+- funksjon1() - HAR tester ✅
+- funksjon2() - MANGLER tester ❌
+
+Nye tester opprettet: N
+- funksjon2() - X tester (happy path + edge cases + errors)
+
+Test-resultat:
+  ✅ N/N tester passerer
+
+Coverage:
+  Før:  XX%
+  Etter: XX%
+  Økning: +XX%
+
+📖 Neste steg: Stage og commit endringene
+```
+"""

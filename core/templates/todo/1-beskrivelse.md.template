@@ -1,0 +1,48 @@
+# {{TITLE_FORMATTED}} - Beskrivelse
+
+## Innholdsfortegnelse
+
+- [Sporingsinfo](#sporingsinfo)
+- [Beskrivelse](#beskrivelse)
+- [Omfang](#omfang)
+  - [Berørte filer/komponenter](#berørte-filerkomponenter)
+  - [Estimert arbeidsinnsats](#estimert-arbeidsinnsats)
+  - [Påvirkede systemer](#påvirkede-systemer)
+- [Akseptansekriterier](#akseptansekriterier)
+
+---
+
+## Sporingsinfo
+
+- **Oppgave:** `{{FOLDER_NAME}}/`
+- **Opprettet:** `{{CREATED_DATE}}`
+
+---
+
+## Beskrivelse
+
+{{DESCRIPTION}}
+
+_(Dette feltet kan redigeres manuelt for å legge til ekstra kontekst eller presiseringer og vil ikke bli overskrevet av aide-kommandoer)_
+
+---
+
+## Omfang
+
+**Berørte filer/komponenter:** [fylles av `/aide-analyser`]
+
+**Estimert arbeidsinnsats:** [fylles av `/aide-analyser`]
+
+**Påvirkede systemer:** [fylles av `/aide-analyser`]
+
+## Akseptansekriterier
+
+[Fylles av `/aide-analyser` basert på kodebase-analyse]
+
+---
+
+## Relaterte dokumenter
+
+- [2-analyse.md](./2-analyse.md) - Analyse og kartlegging
+- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD
+- [4-status.md](./4-status.md) - Fremdriftssporing

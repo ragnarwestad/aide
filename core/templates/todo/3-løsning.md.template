@@ -1,0 +1,207 @@
+# {{TITLE_FORMATTED}} - Løsning
+
+## Innholdsfortegnelse
+
+- [Sporingsinfo](#sporingsinfo)
+- [Tilnærminger](#tilnærminger)
+  - [Tilnærming 1: [Navn] (anbefalt)](#tilnærming-1-navn-anbefalt)
+  - [Tilnærming 2: [Navn]](#tilnærming-2-navn)
+- [Anbefalt løsning](#anbefalt-løsning)
+  - [Før/Etter eksempler](#føretter-eksempler)
+- [Implementeringsplan](#implementeringsplan)
+  - [TDD-tilnærming (Red-Green-Refactor)](#tdd-tilnærming-red-green-refactor)
+  - [Fase 1: Skriv tester som identifiserer problemet (RED)](#fase-1-skriv-tester-som-identifiserer-problemet-red)
+  - [Fase 2: Implementer løsningen (GREEN)](#fase-2-implementer-løsningen-green)
+  - [Fase 3: Verifiser at testene passerer (GREEN)](#fase-3-verifiser-at-testene-passerer-green)
+  - [Fase 4: Kjør full test-suite (REFACTOR)](#fase-4-kjør-full-test-suite-refactor)
+- [Testing](#testing)
+  - [Unit tests](#unit-tests)
+  - [Integration tests](#integration-tests)
+  - [E2E tests](#e2e-tests)
+  - [Manual testing](#manual-testing)
+
+---
+
+## Sporingsinfo
+
+- **TODO:** `todo/{{FOLDER_NAME}}/`
+- **Sist oppdatert:** `{{UPDATE_DATE}}`
+
+<!-- Agent skal legge til repos her etter analyse:
+**Repositories brukt under analyse:**
+- **repo-name:** `branch` @ `commit`
+-->
+
+---
+
+## Tilnærminger
+
+### Tilnærming 1: [Navn] (anbefalt)
+
+[Beskrivelse av tilnærming 1]
+
+**Fordeler:**
+- [fordel 1]
+- [fordel 2]
+
+**Ulemper:**
+- [ulempe 1]
+- [ulempe 2]
+
+**Estimat:** [X timer/dager]
+
+### Tilnærming 2: [Navn]
+
+[Beskrivelse av tilnærming 2 hvis relevant]
+
+**Fordeler:**
+- [fordel 1]
+
+**Ulemper:**
+- [ulempe 1]
+
+**Estimat:** [X timer/dager]
+
+---
+
+## Anbefalt løsning
+
+**Tilnærming 1: [Navn]**
+
+[Detaljert beskrivelse av hvorfor denne tilnærmingen er anbefalt]
+
+### Før/Etter eksempler
+
+**Før:**
+```tsx
+// fil/path.tsx:123
+[gammel kode som viser problemet]
+```
+
+**Etter:**
+```tsx
+// fil/path.tsx:123
+[ny kode som løser problemet]
+```
+
+**Hvorfor:** [forklaring av endringen]
+
+---
+
+## Implementeringsplan
+
+### TDD-tilnærming (Red-Green-Refactor)
+
+Implementeringen følger Test-Driven Development prinsippene for å sikre kvalitet og forhindre regresjoner.
+
+### Fase 1: Skriv tester som identifiserer problemet (RED)
+
+**Mål:** Bevise at problemet eksisterer ved å skrive tester som feiler.
+
+- [ ] Opprett testfil: `[path].test.tsx`
+- [ ] Skriv test som demonstrerer feilen/manglende funksjonalitet
+- [ ] Kjør test og verifiser at den feiler (RED)
+
+**Detaljer:**
+```tsx
+// Eksempel test som skal feile
+test('should [beskrivelse]', () => {
+  // Arrange
+  // Act
+  // Assert - skal feile fordi funksjonalitet mangler
+});
+```
+
+### Fase 2: Implementer løsningen (GREEN)
+
+**Mål:** Implementere minimal kode for å få testene til å passere.
+
+- [ ] Implementer endringer i `[fil1.tsx]`
+- [ ] Implementer endringer i `[fil2.tsx]`
+- [ ] Kjør tester og verifiser at de passerer (GREEN)
+
+**Detaljer:**
+[Beskrivelse av implementeringen med kodeeksempler]
+
+### Fase 3: Verifiser at testene passerer (GREEN)
+
+- [ ] Kjør enhetstester: `pnpm test -- --run [filnavn]`
+- [ ] Kjør integrasjonstester hvis relevante
+- [ ] Verifiser at alle nye tester er grønne
+
+### Fase 4: Kjør full test-suite (REFACTOR)
+
+**Mål:** Sikre at ingen eksisterende funksjonalitet ble ødelagt.
+
+- [ ] Kjør full test-suite: `pnpm test -- --run`
+- [ ] Sjekk for regresjoner
+- [ ] Oppdater snapshot-tester hvis nødvendig
+- [ ] Kjør linting: `pnpm run lint`
+
+---
+
+## Testing
+
+### Unit tests
+
+**Testningstrategi:**
+[Beskrivelse av hvilke unit tests som trengs]
+
+**Eksempel:**
+```tsx
+describe('[Component/Function]', () => {
+  test('happy path', () => {
+    // Test normal oppførsel
+  });
+
+  test('edge case', () => {
+    // Test kanttilfeller
+  });
+
+  test('error handling', () => {
+    // Test feilhåndtering
+  });
+});
+```
+
+### Integration tests
+
+**Testningstrategi:**
+[Beskrivelse av hvilke integrasjonstester som trengs]
+
+### E2E tests
+
+**Testningstrategi:**
+[Beskrivelse av hvilke e2e-tester som trengs]
+
+### Manual testing
+
+**Hva må testes manuelt:**
+
+#### Test-case 1: [Happy path]
+
+**Steg:**
+1. [steg 1]
+2. [steg 2]
+3. [steg 3]
+
+**Forventet resultat:**
+- ✅ [forventet resultat 1]
+- ✅ [forventet resultat 2]
+
+#### Test-case 2: [Edge case]
+
+**Steg:**
+1. [steg 1]
+2. [steg 2]
+
+**Forventet resultat:**
+- ✅ [forventet resultat]
+
+---
+
+## Relaterte dokumenter
+
+- [1-beskrivelse.md](./1-beskrivelse.md) - Sporingsinfo og akseptansekriterier
+- [2-analyse.md](./2-analyse.md) - Analyse og kartlegging
+- [4-status.md](./4-status.md) - Fremdriftssporing

@@ -1,0 +1,107 @@
+# {{TITLE_FORMATTED}} - Status
+
+## Innholdsfortegnelse
+
+- [Sporingsinfo](#sporingsinfo)
+- [Fase 1: RED - Skriv tester](#fase-1-red---skriv-tester)
+  - [Oppgaver](#oppgaver)
+- [Fase 2: GREEN - Implementer](#fase-2-green---implementer)
+  - [Oppgaver](#oppgaver-1)
+- [Fase 3: GREEN - Verifiser tester](#fase-3-green---verifiser-tester)
+  - [Oppgaver](#oppgaver-2)
+- [Fase 4: REFACTOR - Test-suite](#fase-4-refactor---test-suite)
+  - [Oppgaver](#oppgaver-3)
+- [Notasjon](#notasjon)
+
+---
+
+## Sporingsinfo
+
+- **Oppgave:** `{{FOLDER_NAME}}/`
+- **Total fremgang:** 0% (0 av X fullført)
+- **Estimat:** [X timer/dager]
+- **Sist oppdatert:** `{{UPDATE_DATE}}`
+
+<!-- Agent skal legge til repos her etter analyse:
+**Repositories brukt under analyse:**
+- **repo-name:** `branch` @ `commit`
+-->
+
+---
+
+## Fase 1: RED - Skriv tester
+
+**Status:** ⬜ Ikke startet
+
+### Oppgaver
+
+| Oppgave | Status | Notater |
+|---------|--------|---------|
+| Opprett testfil | ⬜ | |
+| Skriv test for [funksjonalitet 1] | ⬜ | |
+| Skriv test for [funksjonalitet 2] | ⬜ | |
+| Kjør tester og verifiser RED | ⬜ | |
+
+---
+
+## Fase 2: GREEN - Implementer
+
+**Status:** ⬜ Ikke startet
+
+### Oppgaver
+
+| Oppgave | Status | Notater |
+|---------|--------|---------|
+| Implementer i [fil1.tsx] | ⬜ | |
+| Implementer i [fil2.tsx] | ⬜ | |
+| Oppdater typer hvis nødvendig | ⬜ | |
+
+---
+
+## Fase 3: GREEN - Verifiser tester
+
+**Status:** ⬜ Ikke startet
+
+### Oppgaver
+
+| Oppgave | Status | Notater |
+|---------|--------|---------|
+| Kjør enhetstester | ⬜ | |
+| Verifiser at alle tester passerer | ⬜ | |
+| Kjør integrasjonstester | ⬜ | |
+
+---
+
+## Fase 4: REFACTOR - Test-suite
+
+**Status:** ⬜ Ikke startet
+
+### Oppgaver
+
+| Oppgave | Status | Notater |
+|---------|--------|---------|
+| Kjør full test-suite | ⬜ | |
+| Sjekk for regresjoner | ⬜ | |
+| Kjør linting | ⬜ | |
+| Oppdater snapshot-tester | ⬜ | |
+| Manuell testing | ⬜ | |
+
+---
+
+## Notasjon
+
+| Symbol | Betydning |
+|--------|-----------|
+| ⬜ | Ikke startet |
+| 🔄 | Under arbeid |
+| ✅ | Fullført |
+| ❌ | Blokkert |
+| ⚠️ | Venter på avklaring |
+
+---
+
+## Relaterte dokumenter
+
+- [1-beskrivelse.md](./1-beskrivelse.md) - Sporingsinfo og akseptansekriterier
+- [2-analyse.md](./2-analyse.md) - Analyse og kartlegging
+- [3-løsning.md](./3-løsning.md) - Implementeringsplan med TDD

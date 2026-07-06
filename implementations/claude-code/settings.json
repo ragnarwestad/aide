@@ -1,0 +1,61 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE\" == *.md ]]; then npx markdownlint-cli2 \"$FILE\" 2>&1; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'git (.*\\s)?add (\\.(\\s|$)|-A(\\s|$))'; then echo 'Blokkert: Bruk eksplisitte filnavn med git add' >&2; exit 2; fi; exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blokkert: Bruk pnpm test -- --run (ikke watch mode)' >&2; exit 2; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if source code files (.ts, .tsx, .js, .jsx, .kt, .java) were edited or written during this turn. If they were, check whether test commands (pnpm test, vitest, tsc) were also run in this turn. If code was changed but NO tests or type checks were run, respond with JSON: {\"decision\": \"block\", \"reason\": \"<explain which verifications are missing>\"}. If no source code was changed (only markdown, config, conversation, git operations), respond with JSON: {\"decision\": \"allow\"}. If stop_hook_active is true, always respond with JSON: {\"decision\": \"allow\"} to prevent infinite loops. IMPORTANT: Respond with raw JSON only, no markdown, no explanation outside the JSON."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Edit(~/develop/**)",
+      "Edit({{AIDE_REPORTS_PATH}}/**)",
+      "Read(~/develop/**)",
+      "Read({{AIDE_REPORTS_PATH}}/**)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Write(~/develop/**)",
+      "Write({{AIDE_REPORTS_PATH}}/**)",
+      "mcp__ide__getDiagnostics",
+      "Bash"
+    ],
+    "deny": []
+  }
+}

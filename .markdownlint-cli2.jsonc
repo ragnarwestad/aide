@@ -1,0 +1,38 @@
+{
+  // Markdownlint configuration for doc-aide
+  // Focuses ONLY on the critical issues we've been manually fixing:
+  // 1. List numbering (MD029) - Lists must restart at 1 after headers
+  // 2. Anchor link validity (MD051) - TOC links must match actual headings
+  // 3. Code block language (MD040) - tsx vs typescript syntax issues
+
+  "config": {
+    // Disable all rules by default
+    "default": false,
+
+    // MD029: Ordered list item prefix - CRITICAL for our numbering issues
+    // Catches lists that don't restart at 1 after headers
+    "MD029": {
+      "style": "ordered"
+    },
+
+    // MD040: Fenced code blocks should have a language specified
+    // Prevents tsx/typescript/bash syntax warnings in IDEs
+    "MD040": true,
+
+    // MD051: Link fragments should be valid - CRITICAL for anchor links
+    // Catches broken TOC links and anchor references
+    "MD051": true
+  },
+
+  // Ignore patterns
+  "ignores": [
+    "node_modules",
+    "**/node_modules/**",
+    ".git"
+  ],
+
+  // Globs to lint
+  "globs": [
+    "**/*.md"
+  ]
+}

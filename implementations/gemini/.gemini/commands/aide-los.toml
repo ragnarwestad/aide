@@ -1,0 +1,53 @@
+# /aide-los - Implementer med TDD
+# Bruk: /aide-los PROJ-1234
+# Eller: /aide-los todo-01
+
+description = "Implementer løsningen med TDD (RED-GREEN-REFACTOR)"
+
+prompt = """
+Implementer løsningen for: {{args}}
+
+STEG 0: LES DOKUMENTASJON
+- Hvis JIRA-sak (f.eks. PROJ-*): Les reports/<NN>-<ISSUE_ID>-slug/3-løsning.md
+- Hvis todo-*: Les todo/<TODO_ID>/3-løsning.md
+- Hvis filen er tom: Kjør /aide-analyser først
+
+FASE 1: RED (Skriv tester som feiler)
+
+1. Les implementeringsplanen i 3-løsning.md
+2. Opprett testfiler som beskrevet i "Steg 0: Skriv tester"
+3. Kjør testene: pnpm test -- --run <testfil>
+4. VERIFISER at testene FEILER (dette er forventet!)
+5. **STOPP og be om bekreftelse før du fortsetter**
+
+FASE 2: GREEN (Implementer til tester passerer)
+
+1. Implementer koden steg for steg fra 3-løsning.md
+2. Etter HVERT steg:
+   - Kjør: pnpm test -- --run <testfil>
+   - Verifiser at testene passerer
+3. Følg prosjektets kodestandarder
+4. **STOPP og be om bekreftelse før refaktorering**
+
+FASE 3: REFACTOR (Verifiser og forbedre)
+
+1. Kjør ALLE tester: pnpm test -- --run
+2. Kjør TypeScript: npx tsc --noEmit
+3. Kjør linting: pnpm run eslint
+4. Kjør build: pnpm run build
+5. Fiks eventuelle feil
+
+STEG 4: OPPDATER STATUS
+- Oppdater 4-status.md med fremdrift
+- Marker fullførte oppgaver med ✅
+
+STEG 5: STAGE ENDRINGER
+- git add <nye og endrede filer>
+- IKKE bruk git add . eller git add -A
+
+VIKTIG:
+- Følg core/rules/testing.md
+- Følg core/rules/git.md
+- ALLTID bruk --run flagget (IKKE watch mode)
+- Be om bekreftelse mellom fasene
+"""

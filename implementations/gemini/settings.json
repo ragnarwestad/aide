@@ -1,0 +1,13 @@
+{
+  "contextFileName": "GEMINI.md",
+  "sandbox": true,
+  "autoAccept": false,
+  "fileFiltering": {
+    "respectGitIgnore": true,
+    "enableRecursiveFileSearch": true
+  },
+  "includeDirectories": [
+    "~/develop"
+  ],
+  "mcpServers": {}
+}

@@ -1,0 +1,18 @@
+# Codex CLI Project Configuration
+# See: https://developers.openai.com/codex/local-config/
+
+# Sandbox mode
+# "read-only" = can read files, but writes and network blocked
+# "workspace-write" = can write to cwd and $TMPDIR
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+writable_roots = [
+  "~/develop"
+]
+network_access = false
+
+# MCP servers (add your servers here)
+# [mcp_servers.example]
+# command = "stdio"
+# args = ["path", "to", "server"]
