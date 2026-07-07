@@ -11,7 +11,6 @@ echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - Scripts from ~/.local/bin/ (aide-generate-pdf, aide-generate-html, mise-upgrade-ai-tools)"
 echo "   - Skills from ~/.claude/skills/ (9 named directories)"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
 echo "   - Rules from ~/.claude/rules/ (9 named files)"
@@ -27,13 +26,9 @@ fi
 
 echo ""
 
-# 1. Remove scripts from ~/.local/bin/
-echo "1️⃣  Removing scripts from ~/.local/bin/..."
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
-uninstall_common_bin
+# 1. Shared scripts in ~/.local/bin are kept (other AI tools use them).
+#    They are only removed by uninstall-all.sh.
+echo "1️⃣  Keeping shared scripts in ~/.local/bin/ (removed only by uninstall-all.sh)"
 
 echo ""
 

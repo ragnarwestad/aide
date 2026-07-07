@@ -2,7 +2,9 @@
 # Uninstalls doc-aide for ALL AI tools.
 #
 # Runs each implementations/<ai>/uninstall.sh. Each one asks for its own
-# confirmation before deleting anything.
+# confirmation before deleting anything. The shared scripts in ~/.local/bin
+# are removed at the end by this script only — individual uninstallers leave
+# them alone, since the other AI tools depend on them.
 #
 # If you only want to uninstall one AI, run its script directly, e.g.:
 #   implementations/codex/uninstall.sh
@@ -23,6 +25,12 @@ for ai in claude-code copilot codex; do
     status=1
   fi
 done
+
+echo ""
+echo "═══════ shared scripts ═══════"
+echo "Removing shared scripts from ~/.local/bin/..."
+source "$ROOT/core/scripts/_install-bin.sh"
+uninstall_common_bin
 
 echo ""
 if [ "$status" -eq 0 ]; then

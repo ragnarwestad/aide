@@ -32,8 +32,12 @@ same. If you only want one AI, run its script directly (e.g.
 Each AI installer is **self-contained**: it installs the shared scripts
 (`core/scripts/` → `~/.local/bin/`) *and* its own AI-specific setup. The
 shared script list is defined in one place — `core/scripts/_install-bin.sh` — which
-each installer sources (`install_common_bin` / `uninstall_common_bin`). The list
-is therefore copied multiple times during `install-all`, but maintained in only one place.
+each installer sources (`install_common_bin`). The list is therefore copied
+multiple times during `install-all`, but maintained in only one place.
+
+**Individual uninstallers never remove the shared scripts** — other AI tools
+and the cron job depend on them. Only `uninstall-all.sh` calls
+`uninstall_common_bin` (as its final step).
 
 ### Claude Code (install.sh)
 
