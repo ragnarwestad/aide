@@ -30,3 +30,7 @@ Only `aide-generate-pdf` and `aide-generate-html` exist as CLI scripts (they run
 
 See `.claude/rules/development.md` for directory structure, installation overview
 and how to add new functionality.
+
+See `docs/ROADMAP.md` for where the project came from, the architecture
+decisions, and what to work on next (phase 3: genericization, phase 4:
+OpenSpec-inspired improvements).
