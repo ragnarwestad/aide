@@ -8,7 +8,9 @@ New contributors (human or AI): read this first.
 - [Background](#background)
 - [Architecture decisions](#architecture-decisions)
 - [Phase 3: Make the tool truly generic](#phase-3-make-the-tool-truly-generic)
-- [Phase 4: OpenSpec-inspired improvements](#phase-4-openspec-inspired-improvements)
+- [Phase 4: Ideas borrowed from other tools](#phase-4-ideas-borrowed-from-other-tools)
+  - [From OpenSpec](#from-openspec)
+  - [From whippletree](#from-whippletree)
 - [Known quirks](#known-quirks)
 
 ---
@@ -57,7 +59,9 @@ The content is generic, but some behavior is still shaped by its origin:
 - [ ] **Per-project setup.** Consider a small init step (or convention)
       for project-level config: JIRA prefix, test commands, reports path.
 
-## Phase 4: OpenSpec-inspired improvements
+## Phase 4: Ideas borrowed from other tools
+
+### From OpenSpec
 
 From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 (see its docs/overview.md for the concepts):
@@ -74,6 +78,36 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
       testable scenarios map directly to the TDD cycle we already require.
 - [ ] **Explore step.** A no-stakes thinking-partner mode before
       `/aide-create` (OpenSpec's `/opsx:explore`).
+
+### From whippletree
+
+From reading [whippletree](https://github.com/larstonder/whippletree), a Go
+CLI that compiles one hook contract onto Claude Code, Codex and opencode. We
+are not adopting it — it distributes executable behavior, we distribute
+prompts, and it carries a compiled dispatcher per bundle for what is often a
+three-line shell script. Three of its ideas are worth taking anyway:
+
+- [ ] **A check step before installing.** `install.sh` installs blind today.
+      Add a step (its `preflight`) that probes what is actually installed and
+      reports where each piece will land: "Copilot 1.0.11 found → skills are
+      read; `~/.claude/rules/` is not read by Copilot, so these rules arrive
+      via AGENTS.md instead." Cheap to build, removes a whole class of silent
+      misses.
+- [ ] **Fidelity levels in the support matrix.** `docs/AI_SUPPORT_MATRIX.md`
+      records yes/no per feature. Whippletree's T1–T4 ladder records *how
+      well*: enforced by the tool, heuristic, or merely an instruction the
+      model usually follows. Our rules land as an enforced hook in Claude Code
+      and as plain instructions in Copilot — the matrix should say so.
+- [ ] **Stamp versions from probing, not by hand.** The matrix's "last
+      verified" line is maintained manually via `/check-news`. Record the
+      version each tool actually reports instead.
+
+Related gap the reading exposed: the four hooks in
+`implementations/claude-code/settings.json` — markdownlint on markdown, the
+`git add .` block, the watch-mode block, and the Stop hook that refuses to end
+a turn when code changed without tests — only work in Claude Code. Codex has
+hooks too (experimental). Porting them is a hand-written `hooks.json`, not a
+reason to adopt whippletree.
 
 ## Known quirks
 
