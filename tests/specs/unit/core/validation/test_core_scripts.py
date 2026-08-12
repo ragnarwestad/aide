@@ -1,0 +1,63 @@
+"""Validation tests for the shared shell scripts in core/scripts."""
+import os
+import re
+import subprocess
+
+import pytest
+
+# Template placeholders such as {{DOMAIN}} — none may survive into core/scripts.
+PLACEHOLDER_PATTERN = re.compile(r"\{\{[A-Za-z_]+\}\}")
+
+
+def _scripts(workspace_root):
+    scripts_dir = workspace_root / "core" / "scripts"
+    if not scripts_dir.exists():
+        pytest.skip("core/scripts not found")
+    return sorted(p for p in scripts_dir.iterdir() if p.is_file())
+
+
+@pytest.mark.validation
+class TestCoreScriptsAreWellFormed:
+    """The scripts must parse and must not carry migration leftovers."""
+
+    def test_scripts_parse_as_bash(self, workspace_root):
+        for script in _scripts(workspace_root):
+            result = subprocess.run(
+                ["bash", "-n", str(script)], capture_output=True, text=True
+            )
+            assert result.returncode == 0, \
+                f"{script.name} is not valid bash:\n{result.stderr}"
+
+    def test_scripts_have_no_unrendered_placeholders(self, workspace_root):
+        for script in _scripts(workspace_root):
+            found = PLACEHOLDER_PATTERN.findall(script.read_text())
+            assert not found, \
+                f"{script.name} still contains template placeholders: {found}"
+
+
+@pytest.mark.validation
+class TestValidateEnv:
+    """validate-env must check the variable names the rest of the repo reads."""
+
+    @staticmethod
+    def _run(workspace_root, extra_env):
+        env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
+        env.update(extra_env)
+        return subprocess.run(
+            [str(workspace_root / "core" / "scripts" / "validate-env"), "--quiet"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    def test_fails_when_installation_path_is_missing(self, workspace_root):
+        result = self._run(workspace_root, {})
+        assert result.returncode == 1, \
+            "Missing AIDE_INSTALLATION_PATH should be reported as an error"
+
+    def test_passes_when_installation_path_is_set(self, workspace_root, tmp_path):
+        result = self._run(
+            workspace_root, {"AIDE_INSTALLATION_PATH": str(tmp_path)}
+        )
+        assert result.returncode == 0, \
+            f"Set AIDE_INSTALLATION_PATH should pass, got:\n{result.stdout}{result.stderr}"

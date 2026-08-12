@@ -65,7 +65,7 @@ if ! command -v md-to-pdf &> /dev/null; then
   echo "Install with:"
   echo "  npm install -g md-to-pdf"
   echo ""
-  echo "Or run from {{domain}}-web:"
+  echo "Or run it without installing:"
   echo "  npx md-to-pdf"
   exit 1
 fi

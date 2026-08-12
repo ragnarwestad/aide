@@ -1,5 +1,5 @@
 #!/bin/bash
-# validate-env - Validates required environment variables for {{domain}}-aide
+# validate-env - Validates required environment variables for doc-aide
 #
 # Usage:
 #   validate-env           # Check all variables
@@ -88,7 +88,7 @@ check_path_exists() {
 
 if [ "$QUIET" = false ]; then
     echo "========================================"
-    echo "Environment variable validation for {{domain}}-aide"
+    echo "Environment variable validation for doc-aide"
     echo "========================================"
     echo ""
     echo "📋 Required variables:"
@@ -96,8 +96,8 @@ if [ "$QUIET" = false ]; then
 fi
 
 # Required variables
-check_required "{{DOMAIN}}_AIDE_INSTALLATION_PATH" "Path to the {{domain}}-aide workspace root"
-check_path_exists "{{DOMAIN}}_AIDE_INSTALLATION_PATH"
+check_required "AIDE_INSTALLATION_PATH" "Path to the doc-aide workspace root"
+check_path_exists "AIDE_INSTALLATION_PATH"
 
 if [ "$QUIET" = false ]; then
     echo ""
@@ -106,8 +106,8 @@ if [ "$QUIET" = false ]; then
 fi
 
 # Optional variables
-check_optional "{{DOMAIN}}_AIDE_REPORTS_PATH" "External path for reports (JIRA/TODO documentation)"
-check_path_exists "{{DOMAIN}}_AIDE_REPORTS_PATH"
+check_optional "AIDE_REPORTS_PATH" "External path for reports (JIRA/TODO documentation)"
+check_path_exists "AIDE_REPORTS_PATH"
 
 check_optional "OPENAI_API_KEY" "API key for OpenAI Codex"
 check_optional "ANTHROPIC_API_KEY" "API key for Claude"
@@ -135,15 +135,15 @@ if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
     echo ""
     echo "🔧 To fix, add to ~/.zshrc or ~/.bashrc:"
     echo ""
-    echo "# {{domain}}-aide environment variables"
+    echo "# doc-aide environment variables"
 
-    if [ -z "${{DOMAIN}}_AIDE_INSTALLATION_PATH" ]; then
-        echo "export {{DOMAIN}}_AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/{{domain}}-aide\""
+    if [ -z "$AIDE_INSTALLATION_PATH" ]; then
+        echo "export AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/doc-aide\""
     fi
 
     echo ""
     echo "# Optional: External reports path"
-    echo "# export {{DOMAIN}}_AIDE_REPORTS_PATH=\"/Users/\$(whoami)/Documents/{{domain}}-reports\""
+    echo "# export AIDE_REPORTS_PATH=\"/Users/\$(whoami)/Documents/aide-reports\""
     echo ""
     echo "Then run: source ~/.zshrc"
 fi

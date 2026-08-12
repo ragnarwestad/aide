@@ -109,7 +109,7 @@ echo ""
 echo -e "${GREEN}📄 Converting to HTML...${NC}"
 
 # Remove TODO prefix from main headings for better ID generation
-# e.g. "# {{domain}}-aide-test-strategy - Analysis" → "# Analysis"
+# e.g. "# 17-clean-up-console-log - Analysis" → "# Analysis"
 sed -i '' 's/^# .*- \(.*\)$/# \1/' "$TEMP_MD"
 
 # REMOVED: We now want a 2-level TOC
