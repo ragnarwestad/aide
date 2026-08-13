@@ -22,7 +22,7 @@ if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   echo "  aide-generate-pdf 45-proj-7637          # JIRA-based task"
   echo ""
   echo "Environment variables:"
-  echo "  AIDE_REPORTS_PATH    - Path to reports (optional)"
+  echo "  AIDE_SPECS_PATH    - Path to specs (optional)"
   echo "  (Fallback: relative to script location)"
   echo ""
   echo "Output: <docs-folder>/<ISSUE_ID>.pdf"
@@ -31,31 +31,32 @@ fi
 
 ISSUE_ID="$1"
 
-# Shared helper functions (reports-root, resolution, doc-type, display-name)
+# Shared helper functions (specs-root, resolution, doc-type, display-name)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$SCRIPT_DIR/_aide-report-lib.sh"
+source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-REPORTS_ROOT="$(aide_reports_root)"
-FULL_ID="$(aide_resolve_report "$ISSUE_ID" "$REPORTS_ROOT")"
-DOCS_DIR="$REPORTS_ROOT/$FULL_ID"
+SPECS_ROOT="$(aide_specs_root)"
+FULL_ID="$(aide_resolve_spec "$ISSUE_ID" "$SPECS_ROOT")"
+DOCS_DIR="$SPECS_ROOT/$FULL_ID"
 
 # Check that we found something
 if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
   echo -e "${RED}❌ Error: No documentation found for: $ISSUE_ID${NC}"
   echo ""
-  echo "Searched in: $REPORTS_ROOT"
+  echo "Searched in: $SPECS_ROOT"
   echo ""
   echo "Tips:"
   echo "  - Have you run /aide-create first?"
-  echo "  - Check that AIDE_REPORTS_PATH is set correctly"
+  echo "  - Check that AIDE_SPECS_PATH is set correctly"
   echo ""
   echo "Available folders:"
-  ls -1 "$REPORTS_ROOT" | grep -E "^[0-9]+-" | head -10
+  ls -1 "$SPECS_ROOT" | grep -E "^[0-9]+-" | head -10
   exit 1
 fi
 
-# Update ISSUE_ID to full ID for the file name
-ISSUE_ID="$FULL_ID"
+# Use the folder BASENAME for file names — FULL_ID may carry an archive/ prefix,
+# and a slash in a file name breaks mktemp and the output path.
+ISSUE_ID="${FULL_ID##*/}"
 DOC_TYPE="$(aide_doc_type "$FULL_ID")"
 
 # Check that md-to-pdf is installed

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Normalize TODO/JIRA reports according to DOCUMENTATION_STANDARD.md
+Normalize TODO/JIRA specs according to DOCUMENTATION_STANDARD.md
 
 Fixes:
 1. 2-level TOC (h2 + h3)
@@ -243,16 +243,16 @@ def update_file(filepath: Path) -> Tuple[bool, List[str]]:
     return False, []
 
 
-def create_readme(report_dir: Path) -> bool:
+def create_readme(spec_dir: Path) -> bool:
     """Create 0-README.md if missing."""
-    readme_path = report_dir / "0-README.md"
+    readme_path = spec_dir / "0-README.md"
 
     if readme_path.exists():
         return False
 
     # Get title from 1-description.md
-    beskrivelse_path = report_dir / "1-description.md"
-    title = report_dir.name
+    beskrivelse_path = spec_dir / "1-description.md"
+    title = spec_dir.name
 
     if beskrivelse_path.exists():
         content = beskrivelse_path.read_text(encoding='utf-8')
@@ -276,10 +276,10 @@ def create_readme(report_dir: Path) -> bool:
     return True
 
 
-def rename_readme(report_dir: Path) -> bool:
+def rename_readme(spec_dir: Path) -> bool:
     """Rename README.md to 0-README.md."""
-    old_readme = report_dir / "README.md"
-    new_readme = report_dir / "0-README.md"
+    old_readme = spec_dir / "README.md"
+    new_readme = spec_dir / "0-README.md"
 
     if old_readme.exists() and not new_readme.exists():
         old_readme.rename(new_readme)
@@ -288,10 +288,10 @@ def rename_readme(report_dir: Path) -> bool:
     return False
 
 
-def process_report_dir(report_dir: Path) -> dict:
-    """Process a single report directory."""
+def process_spec_dir(spec_dir: Path) -> dict:
+    """Process a single spec directory."""
     result = {
-        "name": report_dir.name,
+        "name": spec_dir.name,
         "files_updated": 0,
         "readme_created": False,
         "readme_renamed": False,
@@ -299,12 +299,12 @@ def process_report_dir(report_dir: Path) -> dict:
     }
 
     # Rename README.md if needed
-    if rename_readme(report_dir):
+    if rename_readme(spec_dir):
         result["readme_renamed"] = True
         result["changes"].append("Renamed README.md → 0-README.md")
 
     # Create 0-README.md if missing
-    if create_readme(report_dir):
+    if create_readme(spec_dir):
         result["readme_created"] = True
         result["changes"].append("Created 0-README.md")
 
@@ -312,7 +312,7 @@ def process_report_dir(report_dir: Path) -> dict:
     files_to_process = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]
 
     for filename in files_to_process:
-        filepath = report_dir / filename
+        filepath = spec_dir / filename
         if filepath.exists():
             changed, changes = update_file(filepath)
             if changed:
@@ -325,32 +325,32 @@ def process_report_dir(report_dir: Path) -> dict:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: normalize-reports.py <reports_path> [--dry-run]")
-        print("Example: normalize-reports.py /path/to/aide-reports")
+        print("Usage: normalize-specs.py <specs_path> [--dry-run]")
+        print("Example: normalize-specs.py /path/to/aide-specs")
         sys.exit(1)
 
-    reports_path = Path(sys.argv[1])
+    specs_path = Path(sys.argv[1])
     dry_run = "--dry-run" in sys.argv
 
-    if not reports_path.exists():
-        print(f"Error: Path does not exist: {reports_path}")
+    if not specs_path.exists():
+        print(f"Error: Path does not exist: {specs_path}")
         sys.exit(1)
 
-    # Find report directories (TODO-* or PROJ-*)
-    report_dirs = sorted(list(reports_path.glob("TODO-*")) + list(reports_path.glob("PROJ-*")))
+    # Find spec directories (TODO-* or PROJ-*)
+    spec_dirs = sorted(list(specs_path.glob("TODO-*")) + list(specs_path.glob("PROJ-*")))
 
-    if not report_dirs:
-        print(f"No report directories found in {reports_path}")
+    if not spec_dirs:
+        print(f"No spec directories found in {specs_path}")
         sys.exit(1)
 
-    print(f"{'[DRY RUN] ' if dry_run else ''}Found {len(report_dirs)} report directories\n")
+    print(f"{'[DRY RUN] ' if dry_run else ''}Found {len(spec_dirs)} spec directories\n")
 
     total_files = 0
     total_readmes_created = 0
     total_readmes_renamed = 0
 
-    for report_dir in report_dirs:
-        result = process_report_dir(report_dir)
+    for spec_dir in spec_dirs:
+        result = process_spec_dir(spec_dir)
 
         if result["changes"]:
             print(f"✅ {result['name']}:")

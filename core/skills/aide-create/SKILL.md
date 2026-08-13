@@ -2,7 +2,7 @@
 name: aide-create
 description: >-
   Create the document structure for a JIRA issue or TODO plan with the 4-file
-  report structure (description, analysis, solution, status).
+  spec structure (description, analysis, solution, status).
   Use when: creating a new task, a new JIRA issue, a new TODO plan,
   starting new work that needs documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
@@ -54,19 +54,19 @@ Examples:
 
 ## Workflow
 
-### Step 1: Find the reports root
+### Step 1: Find the specs root
 
-- Run: `echo $AIDE_REPORTS_PATH`
-- If set: Use that path as the reports root
-- If NOT set: Use `reports/` in the project root
+- Run: `echo $AIDE_SPECS_PATH`
+- If set: Use that path as the specs root
+- If NOT set: Use `specs/` in the project root
 
 ### Step 2: Find the next available number
 
-- Find the highest number from the `NN-slug` format in the reports root
-  AND in `<reports-root>/archive/` — archived reports keep their number,
+- Find the highest number from the `NN-slug` format in the specs root
+  AND in `<specs-root>/archive/` — archived specs keep their number,
   and a number must never be reused
 - Next number = highest + 1 (or 01 if none exist), leading zero: `01`, `02`, ...
-- Helper: `aide_next_report_number <reports-root>` in `_aide-report-lib.sh`
+- Helper: `aide_next_spec_number <specs-root>` in `_aide-spec-lib.sh`
   does exactly this
 
 ### Step 3: Generate a slug from the title
@@ -78,14 +78,14 @@ Examples:
 
 ### Step 4: Create the directory and 5 files
 
-- Create the directory: `<reports-root>/NN-slug/`
+- Create the directory: `<specs-root>/NN-slug/`
 - Create the files with content from `references/file-templates.md`
 - Replace placeholders: TITLE, FOLDER, DATE, DESC
 
 ### Step 5: Stage in git
 
-- If `AIDE_REPORTS_PATH` is set: SKIP git add (separate repo)
-- Otherwise: `git add <reports-root>/NN-slug/*.md`
+- If `AIDE_SPECS_PATH` is set: SKIP git add (separate repo)
+- Otherwise: `git add <specs-root>/NN-slug/*.md`
 
 ### Step 6: Confirm
 
@@ -95,18 +95,18 @@ Show a summary and the next step:
 Task created: 55-clean-up-console-log
 
 Files created:
-- reports/55-clean-up-console-log/0-README.md
-- reports/55-clean-up-console-log/1-description.md (filled in)
-- reports/55-clean-up-console-log/2-analysis.md (ready for analysis)
-- reports/55-clean-up-console-log/3-solution.md (ready for solution)
-- reports/55-clean-up-console-log/4-status.md (ready for status)
+- specs/55-clean-up-console-log/0-README.md
+- specs/55-clean-up-console-log/1-description.md (filled in)
+- specs/55-clean-up-console-log/2-analysis.md (ready for analysis)
+- specs/55-clean-up-console-log/3-solution.md (ready for solution)
+- specs/55-clean-up-console-log/4-status.md (ready for status)
 
 Next step: /aide-analyze 55
 ```
 
 IMPORTANT:
 - Follow the workflows rules - Phase 1: Create document structure
-- Follow the report structure for the file layout
+- Follow the spec structure for the file layout
 - Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the closing fence
 
 ---

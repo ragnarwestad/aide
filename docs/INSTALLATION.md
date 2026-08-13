@@ -100,21 +100,21 @@ JIRA data is fetched manually from https://jira.example.com and pasted in when t
 
 These are **optional** but recommended for a better workflow. They apply to **all AI tools**.
 
-#### AIDE_REPORTS_PATH
+#### AIDE_SPECS_PATH
 
 Store JIRA documents and TODO plans outside the workspace (e.g. in Dropbox/iCloud):
 
 ```bash
 # In ~/.zshrc or ~/.bashrc
-export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
+export AIDE_SPECS_PATH="/Users/$(whoami)/Documents/aide-specs"
 # or
-export AIDE_REPORTS_PATH="/Users/$(whoami)/Dropbox/aide-reports"
+export AIDE_SPECS_PATH="/Users/$(whoami)/Dropbox/aide-specs"
 
 # Load the changes
 source ~/.zshrc  # or source ~/.bashrc
 ```
 
-**Benefit:** Reports are not committed to the workspace repo and can be synced separately.
+**Benefit:** Specs are not committed to the workspace repo and can be synced separately.
 
 #### AIDE_INSTALLATION_PATH
 
@@ -295,7 +295,7 @@ The sections below describe what each individual installer does.
 4. **Manual JIRA creation:**
    ```bash
    # Create the directory
-   mkdir -p reports/<NN>-PROJ-7637-slug/
+   mkdir -p specs/<NN>-PROJ-7637-slug/
 
    # Fill in the documentation based on the templates in core/templates/todo/
    # (Ask your AI tool for help - paste in the JIRA data manually)
@@ -334,7 +334,7 @@ Regardless of which AI tool you use, test that the setup works:
 **Expected result:**
 
 ```bash
-ls -la reports/<NN>-PROJ-7637-slug/
+ls -la specs/<NN>-PROJ-7637-slug/
 # → README.md
 # → 1-description.md (filled in)
 # → 2-analysis.md (empty)

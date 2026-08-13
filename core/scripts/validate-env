@@ -109,8 +109,8 @@ fi
 check_optional "AIDE_PROJECTS_PATH" "Root of your project checkouts (helps AI tools resolve relative paths)"
 check_path_exists "AIDE_PROJECTS_PATH"
 
-check_optional "AIDE_REPORTS_PATH" "External path for reports (JIRA/TODO documentation)"
-check_path_exists "AIDE_REPORTS_PATH"
+check_optional "AIDE_SPECS_PATH" "External path for specs (JIRA/TODO documentation)"
+check_path_exists "AIDE_SPECS_PATH"
 
 check_optional "OPENAI_API_KEY" "API key for OpenAI Codex"
 check_optional "ANTHROPIC_API_KEY" "API key for Claude"
@@ -148,8 +148,8 @@ if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
     echo "# Optional: Root of your project checkouts"
     echo "# export AIDE_PROJECTS_PATH=\"/Users/\$(whoami)/develop\""
     echo ""
-    echo "# Optional: External reports path"
-    echo "# export AIDE_REPORTS_PATH=\"/Users/\$(whoami)/Documents/aide-reports\""
+    echo "# Optional: External specs path"
+    echo "# export AIDE_SPECS_PATH=\"/Users/\$(whoami)/Documents/aide-specs\""
     echo ""
     echo "Then run: source ~/.zshrc"
 fi

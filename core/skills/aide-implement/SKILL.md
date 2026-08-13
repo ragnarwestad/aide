@@ -43,8 +43,8 @@ Usage:
 
 ### Preparation
 
-1. Read `reports/XX-slug/2-analysis.md` (affected files)
-2. Read `reports/XX-slug/3-solution.md` (implementation plan)
+1. Read `specs/XX-slug/2-analysis.md` (affected files)
+2. Read `specs/XX-slug/3-solution.md` (implementation plan)
 3. Read the relevant coding standard (frontend or backend)
 
 ### Phase 1: RED — Write failing tests

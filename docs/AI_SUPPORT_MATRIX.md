@@ -67,7 +67,7 @@ everyone believed was an E is how rules break silently.
 | Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.agents/skills/` | **H** — read from `~/.agents/skills/` |
 | Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **E** — via `~/.codex/hooks.json` (verified live against 0.147.0; needs one-time hook trust) |
 | Agents (task-analyzer) | **H** — invoked via the Agent tool | **—** | **—** |
-| Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **H** — the skills carry it |
+| Spec workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **H** — the skills carry it |
 
 Verified hands-on against Copilot CLI 1.0.79 (`copilot skill list`,
 2026-08-13): personal skills are read from `~/.agents/skills/` — **not**
@@ -77,7 +77,7 @@ installers both install `core/skills/` to `~/.agents/skills/` via
 `core/scripts/_install-skills.sh`; each skill is listed once, no duplication.
 
 Skill frontmatter beyond `name`/`description` follows an additive-only
-policy (report 71 in aide-specs): only Claude Code extras whose absence
+policy (spec 71 in aide-specs): only Claude Code extras whose absence
 costs a nicety, never a guarantee (`effort`, `argument-hint`), enforced by
 an allowlist test. See the frontmatter table in the ai-tools reference.
 

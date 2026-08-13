@@ -16,8 +16,8 @@ def mock_workspace(tmp_path):
     (workspace / "core" / "templates" / "jira").mkdir(parents=True)
     (workspace / "core" / "templates" / "todo").mkdir(parents=True)
     (workspace / "core" / "scripts").mkdir(parents=True)
-    (workspace / "reports" / "jira").mkdir(parents=True)
-    (workspace / "reports" / "todo").mkdir(parents=True)
+    (workspace / "specs" / "jira").mkdir(parents=True)
+    (workspace / "specs" / "todo").mkdir(parents=True)
 
     # Copy templates from actual workspace
     # Use __file__ to find the actual workspace root (tests/conftest.py -> aide/)
@@ -68,11 +68,11 @@ def clean_env(monkeypatch):
     """Clean environment variables before each test."""
     # Store original values
     original_workspace = os.getenv("AIDE_INSTALLATION_PATH")
-    original_reports = os.getenv("AIDE_REPORTS_PATH")
+    original_reports = os.getenv("AIDE_SPECS_PATH")
 
     # Delete env vars
     monkeypatch.delenv("AIDE_INSTALLATION_PATH", raising=False)
-    monkeypatch.delenv("AIDE_REPORTS_PATH", raising=False)
+    monkeypatch.delenv("AIDE_SPECS_PATH", raising=False)
 
     yield
 
@@ -80,7 +80,7 @@ def clean_env(monkeypatch):
     if original_workspace:
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", original_workspace)
     if original_reports:
-        monkeypatch.setenv("AIDE_REPORTS_PATH", original_reports)
+        monkeypatch.setenv("AIDE_SPECS_PATH", original_reports)
 
 
 @pytest.fixture
@@ -105,9 +105,9 @@ def e2e_workspace(tmp_path, workspace_root):
         if src.exists():
             shutil.copytree(src, workspace / d)
 
-    # Create report directories
-    (workspace / "reports" / "todo").mkdir(parents=True)
-    (workspace / "reports" / "jira").mkdir(parents=True)
+    # Create spec directories
+    (workspace / "specs" / "todo").mkdir(parents=True)
+    (workspace / "specs" / "jira").mkdir(parents=True)
     (workspace / "test-output").mkdir(parents=True)
 
     # Copy Claude Code commands (direct sources)

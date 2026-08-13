@@ -242,5 +242,5 @@ Avoid mocks for validation - use real test data.
 
 ## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for JIRA/TODO reports
+- [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
 - [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules

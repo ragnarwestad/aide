@@ -2,7 +2,7 @@
 name: aide-to-html
 description: >-
   Generate HTML from JIRA or TODO documentation.
-  Use when: exporting documentation to HTML, generating a readable report.
+  Use when: exporting documentation to HTML, generating a readable spec.
   Do NOT use for: PDF generation (use aide-to-pdf), creating documentation (use aide-create)
 argument-hint: "[ISSUE_ID]"
 effort: medium
@@ -33,11 +33,11 @@ The user has run:
 2. **Determine REPORTS_ROOT:**
    ```bash
    # Check the environment variable first
-   if [ -n "$AIDE_REPORTS_PATH" ]; then
-     REPORTS_ROOT="$AIDE_REPORTS_PATH"
+   if [ -n "$AIDE_SPECS_PATH" ]; then
+     REPORTS_ROOT="$AIDE_SPECS_PATH"
    else
-     # Fallback - assume reports/ exists in the current working directory
-     REPORTS_ROOT="reports"
+     # Fallback - assume specs/ exists in the current working directory
+     REPORTS_ROOT="specs"
    fi
    ```
 
@@ -72,7 +72,7 @@ The user has run:
    aide-generate-html "$DIR"
    ```
 
-   **IMPORTANT:** The `aide-generate-html` script also needs to respect `AIDE_REPORTS_PATH`!
+   **IMPORTANT:** The `aide-generate-html` script also needs to respect `AIDE_SPECS_PATH`!
 
    The script will:
    - Combine all markdown files (1-description, 2-analysis, 3-solution, 4-status)
@@ -117,5 +117,5 @@ Have you run the create command first?
 
 - **Automatic JIRA/TODO detection:** Same logic as `/aide-create`
 - **Output location:** Same directory as the markdown files (keeps everything together)
-- **AIDE_REPORTS_PATH:** The script respects the environment variable if set
+- **AIDE_SPECS_PATH:** The script respects the environment variable if set
 - **Styling:** Modern, clean design with sticky navigation

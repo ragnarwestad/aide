@@ -74,12 +74,12 @@ class TestCopilotAideWorkflow:
         print("E2E TEST: Copilot aide-create -> aide-analyze", flush=True)
         print("=" * 60, flush=True)
 
-        reports_path = e2e_workspace / "reports"
+        reports_path = e2e_workspace / "specs"
         env = {
             **os.environ,
             "PATH": get_mise_path(),
             "AIDE_INSTALLATION_PATH": str(e2e_workspace),
-            "AIDE_REPORTS_PATH": str(reports_path),
+            "AIDE_SPECS_PATH": str(reports_path),
         }
 
         # Step 1: Run aide-create using Copilot prompt file
@@ -95,7 +95,7 @@ core/templates/todo/ (0-README, 1-description, 2-analysis, 3-solution, 4-status)
 
 IMPORTANT:
 - AIDE_INSTALLATION_PATH={e2e_workspace}
-- AIDE_REPORTS_PATH={reports_path}"""
+- AIDE_SPECS_PATH={reports_path}"""
 
         result_opprett = subprocess.run(
             ["copilot", "-p", opprett_prompt, "--allow-all-tools"],

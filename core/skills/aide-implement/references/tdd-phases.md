@@ -53,7 +53,7 @@ pnpm run build
 ```
 
 After all checks:
-5. Update `reports/XX-slug/4-status.md`
+5. Update `specs/XX-slug/4-status.md`
 6. Show a summary and confirm completion
 
 ## Expected output per phase

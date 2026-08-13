@@ -72,7 +72,7 @@ class TestValidateEnv:
             text=True,
             env=env,
         )
-        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH", "AIDE_REPORTS_PATH"):
+        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH", "AIDE_SPECS_PATH"):
             assert var in result.stdout, \
                 f"validate-env does not mention {var}:\n{result.stdout}"
 
@@ -100,7 +100,7 @@ class TestBuildAgentsMd:
 
     The rules are concatenated for Copilot/Codex, which have no concept of
     Claude Code's paths frontmatter — before the fix, the raw `paths:` block
-    from report-structure.md leaked into AGENTS.md as body text.
+    from spec-structure.md leaked into AGENTS.md as body text.
     """
 
     def test_output_contains_no_rule_frontmatter(self, workspace_root, tmp_path):
@@ -124,6 +124,36 @@ class TestBuildAgentsMd:
         assert "paths:" not in [line.strip() for line in lines], (
             "rule frontmatter leaked into AGENTS.md — build-agents-md.sh "
             "must strip the leading YAML block from each rule"
+        )
+
+
+class TestGenerateHtmlForArchivedSpec:
+    """aide-generate-html must handle specs that live under archive/.
+
+    Resolution returns "archive/NN-slug" for archived specs. The script
+    used that full id (with its slash) in temp and output FILE NAMES,
+    so generation for an archived spec died in mktemp (spec 72 smoke test).
+    """
+
+    def test_generates_html_inside_the_archive_folder(self, workspace_root, tmp_path):
+        if shutil.which("pandoc") is None:
+            pytest.skip("pandoc not installed")
+        spec = tmp_path / "archive" / "12-old-spec"
+        spec.mkdir(parents=True)
+        for name in ("1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"):
+            (spec / name).write_text(f"# {name}\n\nContent.\n")
+
+        env = dict(os.environ)
+        env["AIDE_SPECS_PATH"] = str(tmp_path)
+        result = subprocess.run(
+            [str(workspace_root / "core" / "scripts" / "aide-generate-html"), "12"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (spec / "12-old-spec.html").exists(), (
+            "the HTML must land inside the archived spec's own folder"
         )
 
 

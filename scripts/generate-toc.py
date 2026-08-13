@@ -148,8 +148,8 @@ def update_file_toc(filepath: Path) -> bool:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: generate-toc.py <reports_path>")
-        print("Example: generate-toc.py /path/to/aide-reports")
+        print("Usage: generate-toc.py <specs_path>")
+        print("Example: generate-toc.py /path/to/aide-specs")
         sys.exit(1)
 
     todo_path = Path(sys.argv[1])

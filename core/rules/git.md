@@ -28,7 +28,7 @@
 
 ### ✅ CORRECT approach
 1. When you have created NEW files (documentation, code, tests), run `git add` **automatically** for them
-2. Use explicit file names: `git add reports/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
+2. Use explicit file names: `git add specs/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
 3. Only add files YOU wrote/created yourself
 4. NEVER add:
    - Generated files (build output, coverage reports)
@@ -42,13 +42,13 @@ Modified files (already tracked) do not need `git add` - the user handles commit
 ### Example
 ```bash
 # You have created 4 new markdown files
-git add reports/<NN>-PROJ-7890-slug/description.md
-git add reports/<NN>-PROJ-7890-slug/analysis.md
-git add reports/<NN>-PROJ-7890-slug/solution.md
-git add reports/<NN>-PROJ-7890-slug/status.md
+git add specs/<NN>-PROJ-7890-slug/description.md
+git add specs/<NN>-PROJ-7890-slug/analysis.md
+git add specs/<NN>-PROJ-7890-slug/solution.md
+git add specs/<NN>-PROJ-7890-slug/status.md
 
 # Or all at once:
-git add reports/<NN>-PROJ-7890-slug/*.md
+git add specs/<NN>-PROJ-7890-slug/*.md
 ```
 
 ---

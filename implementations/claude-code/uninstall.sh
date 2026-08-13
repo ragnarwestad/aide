@@ -110,7 +110,7 @@ RULES=(
   "testing.md"
   "documentation.md"
   "markdown-linting.md"
-  "report-structure.md"
+  "spec-structure.md"
   "communication.md"
 )
 

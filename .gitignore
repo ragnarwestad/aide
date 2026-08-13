@@ -1,5 +1,5 @@
-# Reports (user-specific, or relocated via AIDE_REPORTS_PATH)
-reports/
+# Specs (user-specific, or relocated via AIDE_SPECS_PATH)
+/specs/
 
 # Python
 __pycache__/

@@ -190,7 +190,7 @@ Type the command in a `copilot` session, just like in Claude Code.
 ```text
 Create structured documentation for JIRA issue PROJ-7890:
 
-1. Create directory: reports/<NN>-PROJ-7890-slug/
+1. Create directory: specs/<NN>-PROJ-7890-slug/
 2. Follow core/rules/documentation.md
 3. Use templates from core/templates/todo/
 4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
@@ -207,7 +207,7 @@ Create structured documentation for JIRA issue PROJ-7890:
 ```text
 Analyze the codebase for JIRA issue PROJ-7890:
 
-1. Read reports/<NN>-PROJ-7890-slug/1-description.md
+1. Read specs/<NN>-PROJ-7890-slug/1-description.md
 2. Search the codebase for relevant files
 3. Identify affected components (file:line)
 4. Check API impact (frontend ↔ backend)

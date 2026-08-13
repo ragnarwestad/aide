@@ -47,12 +47,12 @@
     "defaultMode": "default",
     "allow": [
       "Edit(~/develop/**)",
-      "Edit({{AIDE_REPORTS_PATH}}/**)",
+      "Edit({{AIDE_SPECS_PATH}}/**)",
       "Read(~/develop/**)",
-      "Read({{AIDE_REPORTS_PATH}}/**)",
+      "Read({{AIDE_SPECS_PATH}}/**)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Write(~/develop/**)",
-      "Write({{AIDE_REPORTS_PATH}}/**)",
+      "Write({{AIDE_SPECS_PATH}}/**)",
       "mcp__ide__getDiagnostics",
       "Bash"
     ],

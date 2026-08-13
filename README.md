@@ -10,7 +10,7 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
 - [Environment variables](#environment-variables)
   - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
-  - [AIDE_REPORTS_PATH](#aide_reports_path-optional)
+  - [AIDE_SPECS_PATH](#aide_specs_path-optional)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [Resources](#resources)
 
@@ -81,15 +81,15 @@ Solves permission issues when AI tools expand relative paths.
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 ```
 
-### AIDE_REPORTS_PATH (optional)
+### AIDE_SPECS_PATH (optional)
 
-Store reports (JIRA analyses, TODO plans) outside the workspace.
+Store specs (JIRA analyses, TODO plans) outside the workspace.
 
 ```bash
-export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
+export AIDE_SPECS_PATH="/Users/$(whoami)/Documents/aide-specs"
 ```
 
-**Default:** Reports are written to `aide/reports/` (gitignored).
+**Default:** Specs are written to `aide/specs/` (gitignored).
 
 ---
 

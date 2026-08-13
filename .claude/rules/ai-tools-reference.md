@@ -35,7 +35,7 @@ overlapping paths:
 **Format:** Folder with `SKILL.md` as the entry point. YAML frontmatter with
 `name` and `description` (required). Markdown body with instructions.
 
-**Frontmatter fields** (mapped 2026-08-13, report 71 in aide-specs): the
+**Frontmatter fields** (mapped 2026-08-13, spec 71 in aide-specs): the
 [Agent Skills spec](https://agentskills.io/specification) defines exactly six
 fields — `name`, `description`, `license`, `compatibility`, `metadata`,
 `allowed-tools`. Tool support:

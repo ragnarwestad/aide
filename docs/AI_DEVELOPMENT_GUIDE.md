@@ -44,7 +44,7 @@
 ```text
 core/                    # AI-agnostic (workflows, docs, scripts)
 implementations/         # AI-specific (claude-code, codex, copilot)
-reports/                 # Output (AI-agnostic)
+specs/                 # Output (AI-agnostic)
 ```
 
 **Why:**
@@ -63,7 +63,7 @@ reports/                 # Output (AI-agnostic)
 | **Implementation**   | AI-specific commands/instructions         | `implementations/claude-code/`     |
 | **Scripts**          | CLI tools                                 | `core/scripts/`                         |
 | **Templates**        | Document structures                       | `core/templates/todo/`             |
-| **Output**           | Generated documentation and analysis      | `reports/<NN>-PROJ-XXXX-slug/`       |
+| **Output**           | Generated documentation and analysis      | `specs/<NN>-PROJ-XXXX-slug/`       |
 
 ---
 

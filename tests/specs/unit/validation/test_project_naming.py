@@ -26,7 +26,7 @@ ALLOWED_MENTIONS = {
 }
 
 # Directories that are not ours to rename, plus generated and ignored output.
-SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", "reports", ".pytest_cache"}
+SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", "specs", ".pytest_cache"}
 
 # Only text we author. Anything else is skipped rather than guessed at.
 TEXT_SUFFIXES = {

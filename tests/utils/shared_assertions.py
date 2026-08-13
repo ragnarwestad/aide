@@ -7,18 +7,18 @@ from pathlib import Path
 import re
 
 
-def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
+def assert_jira_output_correct(specs_dir: Path, issue_key: str = "PROJ-1234"):
     """Assert that JIRA documentation output is correct.
 
     This validates the standard structure and content that ALL implementations
     should produce when creating JIRA documentation.
 
     Args:
-        reports_dir: Path to the generated JIRA reports directory
+        specs_dir: Path to the generated JIRA specs directory
         issue_key: The JIRA issue key (default: PROJ-1234)
     """
     # Assert directory exists
-    assert reports_dir.exists(), f"Reports directory should exist: {reports_dir}"
+    assert specs_dir.exists(), f"Specs directory should exist: {specs_dir}"
 
     # Assert all 4 files exist and are not empty
     expected_files = [
@@ -29,12 +29,12 @@ def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
     ]
 
     for filename in expected_files:
-        file_path = reports_dir / filename
+        file_path = specs_dir / filename
         assert file_path.exists(), f"{filename} should exist"
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
     # Assert 1-description.md has correct content
-    description_file = reports_dir / "1-description.md"
+    description_file = specs_dir / "1-description.md"
     content = description_file.read_text()
 
     # Should contain issue key
@@ -50,18 +50,18 @@ def assert_jira_output_correct(reports_dir: Path, issue_key: str = "PROJ-1234"):
     assert "{{SUMMARY}}" not in content, "Should not have unreplaced SUMMARY"
 
 
-def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-01"):
+def assert_todo_output_correct(specs_dir: Path, expected_todo_id: str = "TODO-01"):
     """Assert that TODO documentation output is correct.
 
     This validates the standard structure and content that ALL implementations
     should produce when creating TODO documentation.
 
     Args:
-        reports_dir: Path to the generated TODO reports directory
+        specs_dir: Path to the generated TODO specs directory
         expected_todo_id: Expected TODO ID prefix (default: TODO-01)
     """
     # Assert directory exists
-    assert reports_dir.exists(), f"Reports directory should exist: {reports_dir}"
+    assert specs_dir.exists(), f"Specs directory should exist: {specs_dir}"
 
     # Assert all 4 files exist and are not empty
     expected_files = [
@@ -72,12 +72,12 @@ def assert_todo_output_correct(reports_dir: Path, expected_todo_id: str = "TODO-
     ]
 
     for filename in expected_files:
-        file_path = reports_dir / filename
+        file_path = specs_dir / filename
         assert file_path.exists(), f"{filename} should exist"
         assert file_path.stat().st_size > 0, f"{filename} should not be empty"
 
     # Assert 1-description.md has correct content
-    description_file = reports_dir / "1-description.md"
+    description_file = specs_dir / "1-description.md"
     content = description_file.read_text()
 
     # Should contain TODO ID
@@ -98,7 +98,7 @@ def assert_incremental_numbering(base_dir: Path, expected_numbers: list):
     """Assert that TODO directories use correct incremental numbering.
 
     Args:
-        base_dir: Base TODO reports directory
+        base_dir: Base TODO specs directory
         expected_numbers: List of expected TODO numbers (e.g., [1, 2, 3])
     """
     for num in expected_numbers:

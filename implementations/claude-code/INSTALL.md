@@ -72,13 +72,13 @@ export AIDE_PROJECTS_PATH="$HOME/develop"
 
 The root directory where your projects live.
 
-### AIDE_REPORTS_PATH (optional)
+### AIDE_SPECS_PATH (optional)
 
 ```bash
-export AIDE_REPORTS_PATH="$HOME/Documents/aide-reports"
+export AIDE_SPECS_PATH="$HOME/Documents/aide-specs"
 ```
 
-Where JIRA documentation and TODO plans are stored. If not set, `aide-claude-code/reports/` is used.
+Where JIRA documentation and TODO plans are stored. If not set, `aide-claude-code/specs/` is used.
 
 ---
 
@@ -128,8 +128,8 @@ If you have a JIRA MCP server, it can be used instead of cookie-based authentica
 
 | Script | Description |
 |--------|-------------|
-| `aide-generate-pdf` | Generate PDF from a report |
-| `aide-generate-html` | Generate HTML from a report |
+| `aide-generate-pdf` | Generate PDF from a spec |
+| `aide-generate-html` | Generate HTML from a spec |
 | `upgrade-ai-tools` | Update the AI CLIs |
 
 Document creation happens via the slash command `/aide-create` (not a terminal script).

@@ -2,38 +2,38 @@
 # Shared helper functions for aide-generate-pdf and aide-generate-html.
 # Sourced by both from the same directory:
 #   SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-#   source "$SCRIPT_DIR/_aide-report-lib.sh"
+#   source "$SCRIPT_DIR/_aide-spec-lib.sh"
 #
-# Flat structure: all issues live as <NN>-slug/ directly under the reports root
+# Flat structure: all issues live as <NN>-slug/ directly under the specs root
 # (same for JIRA and TODO; the JIRA key is part of the slug).
 
-# Find the reports root: 1) AIDE_REPORTS_PATH, 2) <install>/reports, 3) reports/
-aide_reports_root() {
-  if [ -n "$AIDE_REPORTS_PATH" ]; then
-    echo "$AIDE_REPORTS_PATH"
+# Find the specs root: 1) AIDE_SPECS_PATH, 2) <install>/specs, 3) specs/
+aide_specs_root() {
+  if [ -n "$AIDE_SPECS_PATH" ]; then
+    echo "$AIDE_SPECS_PATH"
     return
   fi
   local lib_dir install_root
   lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
   install_root="$(dirname "$lib_dir")"
-  if [ -d "$install_root/reports" ]; then
-    echo "$install_root/reports"
+  if [ -d "$install_root/specs" ]; then
+    echo "$install_root/specs"
   else
-    echo "reports"
+    echo "specs"
   fi
 }
 
 # Search one directory for a folder matching a find pattern; echoes the basename.
-_aide_find_report() {
+_aide_find_spec() {
   local dir="$1" flag="$2" pattern="$3"
   find "$dir" -maxdepth 1 -type d "$flag" "$pattern" 2>/dev/null | head -1 | xargs basename 2>/dev/null
 }
 
-# Resolve input to a folder name under the reports root. Echoes the folder
-# name (possibly prefixed "archive/"), or nothing. Active reports win over
+# Resolve input to a folder name under the specs root. Echoes the folder
+# name (possibly prefixed "archive/"), or nothing. Active specs win over
 # archived ones with the same number.
 # Input: NN | todo-NN | <JIRA-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
-aide_resolve_report() {
+aide_resolve_spec() {
   local input="$1" root="$2" dir="" flag="" pattern="" num
   if [ -d "$root/$input" ]; then
     echo "$input"                                         # direct full-ID match
@@ -49,18 +49,18 @@ aide_resolve_report() {
     echo "$input"                                         # assume full folder ID
     return
   fi
-  dir=$(_aide_find_report "$root" "$flag" "$pattern")
+  dir=$(_aide_find_spec "$root" "$flag" "$pattern")
   if [ -z "$dir" ] && [ -d "$root/archive" ]; then
-    dir=$(_aide_find_report "$root/archive" "$flag" "$pattern")
+    dir=$(_aide_find_spec "$root/archive" "$flag" "$pattern")
     [ -n "$dir" ] && dir="archive/$dir"
   fi
   echo "$dir"
 }
 
-# Next free report number across the root AND archive/, zero-padded.
-# Archived reports keep their number — scanning both means a number is
-# never reused after its report is archived.
-aide_next_report_number() {
+# Next free spec number across the root AND archive/, zero-padded.
+# Archived specs keep their number — scanning both means a number is
+# never reused after its spec is archived.
+aide_next_spec_number() {
   local root="$1" max
   max=$( { ls -1 "$root" 2>/dev/null; ls -1 "$root/archive" 2>/dev/null; } \
     | sed -n 's/^\([0-9][0-9]*\)-.*/\1/p' | sort -n | tail -1)

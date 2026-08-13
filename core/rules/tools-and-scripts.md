@@ -5,7 +5,7 @@
 - [Skills](#skills)
 - [Project commands](#project-commands)
 - [Per-project configuration (.aide/config)](#per-project-configuration-aideconfig)
-- [Report storage](#report-storage)
+- [Spec storage](#spec-storage)
 
 ---
 
@@ -15,12 +15,12 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
 Available skills:
 
-- `/aide-explore` - No-stakes thinking partner before a report exists (creates nothing)
+- `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
-- `/aide-archive` - Archive a finished report and feed durable knowledge back into the docs
-- `/aide-to-pdf` - Render the reports to PDF
+- `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
+- `/aide-to-pdf` - Render the specs to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 
 ---
@@ -71,11 +71,11 @@ with `#` comments. Recognized keys:
 Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.
 Shell scripts read the file via `aide_config_get KEY <project-root>` from
-`_aide-report-lib.sh`.
+`_aide-spec-lib.sh`.
 
 ---
 
-## Report storage
+## Spec storage
 
-If `AIDE_REPORTS_PATH` is set, reports are stored there (not in the project's `reports/`).
-If the variable is set — do **not** run `git add` for reports (they live in another repo).
+If `AIDE_SPECS_PATH` is set, specs are stored there (not in the project's `specs/`).
+If the variable is set — do **not** run `git add` for specs (they live in another repo).

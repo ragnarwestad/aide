@@ -1,4 +1,4 @@
-"""Behaviour tests for core/scripts/_aide-report-lib.sh.
+"""Behaviour tests for core/scripts/_aide-spec-lib.sh.
 
 The library must work with ANY JIRA project key, not just the PROJ- example
 prefix it was extracted with. A JIRA key is uppercase letters/digits, a
@@ -11,7 +11,7 @@ import pytest
 
 def _call(workspace_root, snippet, env=None):
     """Source the library and run a snippet, returning stripped stdout."""
-    lib = workspace_root / "core" / "scripts" / "_aide-report-lib.sh"
+    lib = workspace_root / "core" / "scripts" / "_aide-spec-lib.sh"
     result = subprocess.run(
         ["bash", "-c", f'source "{lib}"; {snippet}'],
         capture_output=True,
@@ -23,8 +23,8 @@ def _call(workspace_root, snippet, env=None):
 
 
 @pytest.fixture
-def reports_root(tmp_path):
-    """A reports root with one JIRA folder per prefix style and one TODO."""
+def specs_root(tmp_path):
+    """A specs root with one JIRA folder per prefix style and one TODO."""
     for folder in [
         "05-proj-7894-class-to-functional",
         "17-clean-up-console-log",
@@ -36,34 +36,34 @@ def reports_root(tmp_path):
 
 
 @pytest.mark.validation
-class TestResolveReport:
-    """aide_resolve_report must find folders for any JIRA key."""
+class TestResolveSpec:
+    """aide_resolve_spec must find folders for any JIRA key."""
 
-    def test_resolves_example_prefix(self, workspace_root, reports_root):
+    def test_resolves_example_prefix(self, workspace_root, specs_root):
         out = _call(
             workspace_root,
-            f'aide_resolve_report "PROJ-7894" "{reports_root}"',
+            f'aide_resolve_spec "PROJ-7894" "{specs_root}"',
         )
         assert out == "05-proj-7894-class-to-functional"
 
-    def test_resolves_other_prefix(self, workspace_root, reports_root):
+    def test_resolves_other_prefix(self, workspace_root, specs_root):
         out = _call(
             workspace_root,
-            f'aide_resolve_report "MEL-1234" "{reports_root}"',
+            f'aide_resolve_spec "MEL-1234" "{specs_root}"',
         )
         assert out == "45-MEL-1234-fix-login"
 
-    def test_number_shorthand_still_works(self, workspace_root, reports_root):
+    def test_number_shorthand_still_works(self, workspace_root, specs_root):
         out = _call(
             workspace_root,
-            f'aide_resolve_report "17" "{reports_root}"',
+            f'aide_resolve_spec "17" "{specs_root}"',
         )
         assert out == "17-clean-up-console-log"
 
-    def test_todo_shorthand_still_works(self, workspace_root, reports_root):
+    def test_todo_shorthand_still_works(self, workspace_root, specs_root):
         out = _call(
             workspace_root,
-            f'aide_resolve_report "todo-35" "{reports_root}"',
+            f'aide_resolve_spec "todo-35" "{specs_root}"',
         )
         assert out == "35-todo-ai-nyheter"
 
@@ -98,45 +98,45 @@ class TestDocType:
 
 @pytest.mark.validation
 class TestArchiveAwareness:
-    """Archived reports keep their number and stay findable.
+    """Archived specs keep their number and stay findable.
 
     Archiving moves NN-slug into archive/ unchanged. Numbering must scan
-    archive/ too — otherwise archiving the highest-numbered report would
-    make its number get reused, and "report 17" would become ambiguous.
+    archive/ too — otherwise archiving the highest-numbered spec would
+    make its number get reused, and "spec 17" would become ambiguous.
     """
 
-    def test_next_number_scans_root(self, workspace_root, reports_root):
-        out = _call(workspace_root, f'aide_next_report_number "{reports_root}"')
+    def test_next_number_scans_root(self, workspace_root, specs_root):
+        out = _call(workspace_root, f'aide_next_spec_number "{specs_root}"')
         assert out == "46"
 
-    def test_next_number_scans_archive_too(self, workspace_root, reports_root):
-        archive = reports_root / "archive"
+    def test_next_number_scans_archive_too(self, workspace_root, specs_root):
+        archive = specs_root / "archive"
         archive.mkdir()
         (archive / "88-archived-big-migration").mkdir()
-        out = _call(workspace_root, f'aide_next_report_number "{reports_root}"')
+        out = _call(workspace_root, f'aide_next_spec_number "{specs_root}"')
         assert out == "89"
 
     def test_next_number_on_empty_root(self, workspace_root, tmp_path):
-        out = _call(workspace_root, f'aide_next_report_number "{tmp_path}"')
+        out = _call(workspace_root, f'aide_next_spec_number "{tmp_path}"')
         assert out == "01"
 
-    def test_resolve_falls_back_to_archive(self, workspace_root, reports_root):
-        archive = reports_root / "archive"
+    def test_resolve_falls_back_to_archive(self, workspace_root, specs_root):
+        archive = specs_root / "archive"
         archive.mkdir()
         (archive / "12-old-jira-PROJ-1111-cleanup").mkdir()
         out = _call(
             workspace_root,
-            f'aide_resolve_report "12" "{reports_root}"',
+            f'aide_resolve_spec "12" "{specs_root}"',
         )
         assert out == "archive/12-old-jira-PROJ-1111-cleanup"
 
-    def test_resolve_prefers_root_over_archive(self, workspace_root, reports_root):
-        archive = reports_root / "archive"
+    def test_resolve_prefers_root_over_archive(self, workspace_root, specs_root):
+        archive = specs_root / "archive"
         archive.mkdir()
         (archive / "17-clean-up-console-log").mkdir()
         out = _call(
             workspace_root,
-            f'aide_resolve_report "17" "{reports_root}"',
+            f'aide_resolve_spec "17" "{specs_root}"',
         )
         assert out == "17-clean-up-console-log"
 

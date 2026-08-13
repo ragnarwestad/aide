@@ -27,7 +27,7 @@ effort: high
 - Scope (what will be done, what will NOT be done)
 - Prerequisites and dependencies
 
-**Structure:** Follow the `report structure` § 1-description
+**Structure:** Follow the `spec structure` § 1-description
 
 ### 2. analysis.md
 
@@ -37,7 +37,7 @@ effort: high
 - Risk analysis
 - API impact (frontend ↔ backend)
 
-**Structure:** Follow the `report structure` § 2-analysis
+**Structure:** Follow the `spec structure` § 2-analysis
 
 **Example:**
 ```markdown
@@ -61,7 +61,7 @@ effort: high
 - Testing strategy (REFACTOR phase)
 - Each step: concrete, testable, with time estimate
 
-**Structure:** Follow the `report structure` § 3-solution
+**Structure:** Follow the `spec structure` § 3-solution
 
 **Example:**
 ```markdown
@@ -95,7 +95,7 @@ effort: high
 - Tests (status, coverage)
 - Deployment status
 
-**Structure:** Follow the `report structure` § 4-status
+**Structure:** Follow the `spec structure` § 4-status
 
 ---
 

@@ -168,21 +168,21 @@ After analysis/solution, the **Tracking info** section is updated with which rep
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
-problem through with the user first — no files, no report. Use it when
+problem through with the user first — no files, no spec. Use it when
 the idea or scope is not ready for `/aide-create` yet.
 
 ### Phase 1: Create document structure
 
 **What is done:**
 1. Fetches the issue from the JIRA API (validation)
-2. Assigns the next available number and creates the directory: `reports/<NN>-PROJ-XXXX-slug/`
+2. Assigns the next available number and creates the directory: `specs/<NN>-PROJ-XXXX-slug/`
 3. Fills in `1-description.md` with JIRA metadata
 4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/05-PROJ-7894-class-to-functional/
+specs/05-PROJ-7894-class-to-functional/
 ├── 0-README.md            (reading order)
 ├── 1-description.md       (done)
 ├── 2-analysis.md           (⏳ empty)
@@ -231,7 +231,7 @@ When the work is done, run `/aide-archive <ID>`:
 2. Feeds durable knowledge (decisions, conventions, gotchas) back into the
    project's living documentation
 3. Stamps the archive date in `4-status.md` and moves the folder to
-   `<reports-root>/archive/` — the number is never reused
+   `<specs-root>/archive/` — the number is never reused
 
 ---
 
@@ -246,14 +246,14 @@ Create - Analyze - Solve - Verify - Archive
 
 **What is done:**
 1. Assigns a number (next available)
-2. Creates the directory: `reports/<NN>-slug-name/`
+2. Creates the directory: `specs/<NN>-slug-name/`
 3. Fills in `1-description.md` with metadata
 4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/17-clean-up-console-log/
+specs/17-clean-up-console-log/
 ├── 0-README.md            (reading order)
 ├── 1-description.md       (done)
 ├── 2-analysis.md           (⏳ empty)
@@ -431,4 +431,4 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 
 ## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for reports
+- [spec-structure.md](./spec-structure.md) - 4-file structure for specs

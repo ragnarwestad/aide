@@ -18,7 +18,7 @@ INTRO="$WORKSPACE_ROOT/core/agents-intro.md"
 OUTPUT="$WORKSPACE_ROOT/core/AGENTS.md"
 
 # Order of the rules (most important first)
-RULE_FILES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting report-structure communication"
+RULE_FILES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting spec-structure communication"
 
 # Verify sources
 if [ ! -f "$INTRO" ]; then

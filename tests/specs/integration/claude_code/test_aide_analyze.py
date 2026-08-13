@@ -15,7 +15,7 @@ class TestAideAnalyserJira:
         """Verify that 2-analysis.md is updated with analysis results."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
 
-        jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
+        jira_dir = mock_workspace / "specs" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
         # Create initial 2-analysis.md (empty template)
@@ -60,7 +60,7 @@ class TestAideAnalyserJira:
         """Verify file:line references are included."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
 
-        jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
+        jira_dir = mock_workspace / "specs" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
         analyse_content = """# Analysis
@@ -85,7 +85,7 @@ class TestAideAnalyserJira:
         """Verify files are categorized by frontend/backend."""
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(mock_workspace))
 
-        jira_dir = mock_workspace / "reports" / "jira" / "PROJ-1234"
+        jira_dir = mock_workspace / "specs" / "jira" / "PROJ-1234"
         jira_dir.mkdir(parents=True)
 
         analyse_content = """# Analysis

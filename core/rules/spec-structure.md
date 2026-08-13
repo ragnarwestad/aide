@@ -6,7 +6,7 @@ paths:
   - "**/4-status.md"
 ---
 
-# Report structure for JIRA and TODO
+# Spec structure for JIRA and TODO
 
 ## Table of contents
 
@@ -28,7 +28,7 @@ paths:
 4 standardized files per issue/plan:
 
 ```text
-reports/<NN>-slug/          # flat structure, same for JIRA and TODO
+specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ├── 1-description.md        # (JIRA: the PROJ key is part of the slug)
 ├── 2-analysis.md
 ├── 3-solution.md
@@ -345,7 +345,7 @@ JIRA issues and TODO plans have an **identical structure**, but differ in conten
 
 | Aspect          | JIRA issues                   | TODO plans            |
 |-----------------|-------------------------------|-----------------------|
-| **Location**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
+| **Location**    | `specs/<NN>-PROJ-XXXX-slug/` | `specs/<NN>-slug/`  |
 | **Source**      | JIRA API (external)           | Created manually      |
 | **Description** | Copied from JIRA              | Written by the developer |
 | **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |

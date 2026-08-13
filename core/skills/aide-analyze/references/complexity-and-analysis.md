@@ -66,7 +66,7 @@ Implementation plan created:
 - Phase 4: Complex forms - 2-3 days
 
 Files updated:
-- reports/XX-slug/2-analysis.md
-- reports/XX-slug/3-solution.md
-- reports/XX-slug/4-status.md
+- specs/XX-slug/2-analysis.md
+- specs/XX-slug/3-solution.md
+- specs/XX-slug/4-status.md
 ```

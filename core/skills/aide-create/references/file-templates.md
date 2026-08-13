@@ -17,7 +17,7 @@ Placeholders: TITLE=title, FOLDER=NN-slug, DATE=today's date, DESC=description
 
 ## 1-description.md (fill in all fields)
 
-Structure - follow the report structure § 1-description:
+Structure - follow the spec structure § 1-description:
 
 - `# TITLE - Description`
 - TOC with: Tracking info, Description, Scope
@@ -28,7 +28,7 @@ Structure - follow the report structure § 1-description:
 
 ## 2-analysis.md (placeholder - filled in by /aide-analyze)
 
-Structure - follow the report structure § 2-analysis:
+Structure - follow the spec structure § 2-analysis:
 
 - `# TITLE - Analysis`
 - TOC with: Tracking info, Scope, Complexity, Findings, Risk analysis
@@ -40,7 +40,7 @@ Structure - follow the report structure § 2-analysis:
 
 ## 3-solution.md (placeholder - filled in by /aide-analyze)
 
-Structure - follow the report structure § 3-solution:
+Structure - follow the spec structure § 3-solution:
 
 - `# TITLE - Solution`
 - TOC with: Tracking info, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Implementation plan, Testing
@@ -54,7 +54,7 @@ Structure - follow the report structure § 3-solution:
 
 ## 4-status.md (placeholder - filled in by /aide-analyze)
 
-Structure - follow the report structure § 4-status:
+Structure - follow the spec structure § 4-status:
 
 - `# TITLE - Status`
 - Total progress: `0% (0 of X completed)`, Estimate: `[X hours/days]`

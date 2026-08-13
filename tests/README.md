@@ -224,10 +224,10 @@ Creates an isolated workspace for E2E tests with the required structure.
 ```python
 @pytest.mark.e2e
 def test_aide_workflow(e2e_workspace, workspace_root):
-    # e2e_workspace is a tmp_path with core/ and reports/ structure
+    # e2e_workspace is a tmp_path with core/ and specs/ structure
     # Environment variables are automatically set to e2e_workspace
-    reports_path = e2e_workspace / "reports"
-    assert reports_path.exists()
+    specs_path = e2e_workspace / "specs"
+    assert specs_path.exists()
 ```
 
 ## Adding new tests
@@ -451,7 +451,7 @@ echo "$result" | jq '.result'
 subprocess.run(["claude", "-p", "/aide-create TODO test Description"])
 
 # Verify that the files were created
-assert (reports_dir / "todo-01-test" / "1-description.md").exists()
+assert (specs_dir / "todo-01-test" / "1-description.md").exists()
 ```
 
 **4. Complete example with all verifications**
@@ -461,7 +461,7 @@ assert (reports_dir / "todo-01-test" / "1-description.md").exists()
 def test_aide_workflow_creates_files(tmp_path, monkeypatch):
     """Verify that the workflow creates the expected files."""
     monkeypatch.setenv("AIDE_INSTALLATION_PATH", str(tmp_path))
-    (tmp_path / "reports" / "todo").mkdir(parents=True)
+    (tmp_path / "specs" / "todo").mkdir(parents=True)
 
     # Run the command
     result = subprocess.run(
@@ -478,7 +478,7 @@ def test_aide_workflow_creates_files(tmp_path, monkeypatch):
     assert len(result.stdout) > 0, "No output"
 
     # 3. Verify side effects (files created)
-    todo_dirs = list((tmp_path / "reports" / "todo").glob("TODO-*"))
+    todo_dirs = list((tmp_path / "specs" / "todo").glob("TODO-*"))
     assert len(todo_dirs) >= 1, "No TODO directory created"
 
     expected_files = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]

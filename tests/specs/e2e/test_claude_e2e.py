@@ -93,12 +93,12 @@ class TestClaudeAideWorkflow:
         print("E2E TEST: Claude aide-create -> aide-analyze", flush=True)
         print("=" * 60, flush=True)
 
-        reports_path = e2e_workspace / "reports"
+        reports_path = e2e_workspace / "specs"
         env = {
             **os.environ,
             "PATH": get_mise_path(),
             "AIDE_INSTALLATION_PATH": str(e2e_workspace),
-            "AIDE_REPORTS_PATH": str(reports_path),
+            "AIDE_SPECS_PATH": str(reports_path),
         }
 
         # Step 1: Run /aide-create slash command (Claude Code specific)

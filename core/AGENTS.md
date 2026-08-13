@@ -15,7 +15,7 @@ Instructions for AI-assisted development focused on:
 - [Skills](#skills)
 - [Project commands](#project-commands)
 - [Per-project configuration (.aide/config)](#per-project-configuration-aideconfig)
-- [Report storage](#report-storage)
+- [Spec storage](#spec-storage)
 
 ---
 
@@ -25,12 +25,12 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
 Available skills:
 
-- `/aide-explore` - No-stakes thinking partner before a report exists (creates nothing)
+- `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
-- `/aide-archive` - Archive a finished report and feed durable knowledge back into the docs
-- `/aide-to-pdf` - Render the reports to PDF
+- `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
+- `/aide-to-pdf` - Render the specs to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 
 ---
@@ -81,14 +81,14 @@ with `#` comments. Recognized keys:
 Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.
 Shell scripts read the file via `aide_config_get KEY <project-root>` from
-`_aide-report-lib.sh`.
+`_aide-spec-lib.sh`.
 
 ---
 
-## Report storage
+## Spec storage
 
-If `AIDE_REPORTS_PATH` is set, reports are stored there (not in the project's `reports/`).
-If the variable is set — do **not** run `git add` for reports (they live in another repo).
+If `AIDE_SPECS_PATH` is set, specs are stored there (not in the project's `specs/`).
+If the variable is set — do **not** run `git add` for specs (they live in another repo).
 
 ---
 
@@ -262,21 +262,21 @@ After analysis/solution, the **Tracking info** section is updated with which rep
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
-problem through with the user first — no files, no report. Use it when
+problem through with the user first — no files, no spec. Use it when
 the idea or scope is not ready for `/aide-create` yet.
 
 ### Phase 1: Create document structure
 
 **What is done:**
 1. Fetches the issue from the JIRA API (validation)
-2. Assigns the next available number and creates the directory: `reports/<NN>-PROJ-XXXX-slug/`
+2. Assigns the next available number and creates the directory: `specs/<NN>-PROJ-XXXX-slug/`
 3. Fills in `1-description.md` with JIRA metadata
 4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/05-PROJ-7894-class-to-functional/
+specs/05-PROJ-7894-class-to-functional/
 ├── 0-README.md            (reading order)
 ├── 1-description.md       (done)
 ├── 2-analysis.md           (⏳ empty)
@@ -325,7 +325,7 @@ When the work is done, run `/aide-archive <ID>`:
 2. Feeds durable knowledge (decisions, conventions, gotchas) back into the
    project's living documentation
 3. Stamps the archive date in `4-status.md` and moves the folder to
-   `<reports-root>/archive/` — the number is never reused
+   `<specs-root>/archive/` — the number is never reused
 
 ---
 
@@ -340,14 +340,14 @@ Create - Analyze - Solve - Verify - Archive
 
 **What is done:**
 1. Assigns a number (next available)
-2. Creates the directory: `reports/<NN>-slug-name/`
+2. Creates the directory: `specs/<NN>-slug-name/`
 3. Fills in `1-description.md` with metadata
 4. Creates empty files: `2-analysis.md`, `3-solution.md`, `4-status.md`
 5. Stages all new files in git (automatically)
 
 **Output:**
 ```text
-reports/17-clean-up-console-log/
+specs/17-clean-up-console-log/
 ├── 0-README.md            (reading order)
 ├── 1-description.md       (done)
 ├── 2-analysis.md           (⏳ empty)
@@ -525,7 +525,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 
 ## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for reports
+- [spec-structure.md](./spec-structure.md) - 4-file structure for specs
 
 ---
 
@@ -620,7 +620,7 @@ them rather than duplicating:
 
 ### ✅ CORRECT approach
 1. When you have created NEW files (documentation, code, tests), run `git add` **automatically** for them
-2. Use explicit file names: `git add reports/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
+2. Use explicit file names: `git add specs/<NN>-PROJ-7890-slug/description.md` (not `git add .`)
 3. Only add files YOU wrote/created yourself
 4. NEVER add:
    - Generated files (build output, coverage reports)
@@ -634,13 +634,13 @@ Modified files (already tracked) do not need `git add` - the user handles commit
 ### Example
 ```bash
 # You have created 4 new markdown files
-git add reports/<NN>-PROJ-7890-slug/description.md
-git add reports/<NN>-PROJ-7890-slug/analysis.md
-git add reports/<NN>-PROJ-7890-slug/solution.md
-git add reports/<NN>-PROJ-7890-slug/status.md
+git add specs/<NN>-PROJ-7890-slug/description.md
+git add specs/<NN>-PROJ-7890-slug/analysis.md
+git add specs/<NN>-PROJ-7890-slug/solution.md
+git add specs/<NN>-PROJ-7890-slug/status.md
 
 # Or all at once:
-git add reports/<NN>-PROJ-7890-slug/*.md
+git add specs/<NN>-PROJ-7890-slug/*.md
 ```
 
 ---
@@ -1291,7 +1291,7 @@ Avoid mocks for validation - use real test data.
 
 ## See also
 
-- [REPORT_STRUCTURE.md](./REPORT_STRUCTURE.md) - 4-file structure for JIRA/TODO reports
+- [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
 - [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
 
 ---
@@ -1446,7 +1446,7 @@ echo "Hello"
 ---
 
 
-# Report structure for JIRA and TODO
+# Spec structure for JIRA and TODO
 
 ## Table of contents
 
@@ -1468,7 +1468,7 @@ echo "Hello"
 4 standardized files per issue/plan:
 
 ```text
-reports/<NN>-slug/          # flat structure, same for JIRA and TODO
+specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ├── 1-description.md        # (JIRA: the PROJ key is part of the slug)
 ├── 2-analysis.md
 ├── 3-solution.md
@@ -1785,7 +1785,7 @@ JIRA issues and TODO plans have an **identical structure**, but differ in conten
 
 | Aspect          | JIRA issues                   | TODO plans            |
 |-----------------|-------------------------------|-----------------------|
-| **Location**    | `reports/<NN>-PROJ-XXXX-slug/` | `reports/<NN>-slug/`  |
+| **Location**    | `specs/<NN>-PROJ-XXXX-slug/` | `specs/<NN>-slug/`  |
 | **Source**      | JIRA API (external)           | Created manually      |
 | **Description** | Copied from JIRA              | Written by the developer |
 | **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |

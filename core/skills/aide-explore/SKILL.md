@@ -3,26 +3,26 @@ name: aide-explore
 description: >-
   No-stakes thinking partner before /aide-create: explore a problem or idea,
   weigh approaches, sharpen the scope — without creating any files.
-  Use when: an idea is not ready for a report yet, weighing whether/how to
+  Use when: an idea is not ready for a spec yet, weighing whether/how to
   do something, unclear scope, "what would it take to ...".
-  Do NOT use for: creating reports (use aide-create), analysis of an existing
-  report (use aide-analyze), implementation.
+  Do NOT use for: creating specs (use aide-create), analysis of an existing
+  spec (use aide-analyze), implementation.
 argument-hint: "[topic, question or idea]"
 effort: high
 ---
 
 Think a problem through WITH the user before anything is committed to a
-report. Nothing is created, nothing is decided — the output is a sharper
+spec. Nothing is created, nothing is decided — the output is a sharper
 understanding, and an offer to crystallize it.
 
 **Input:** $ARGUMENTS (a topic, a question, or a half-formed idea)
 
 ## Ground rules
 
-- **Create and modify NOTHING** — no reports, no files, no code, no git.
+- **Create and modify NOTHING** — no specs, no files, no code, no git.
   Reading the codebase is allowed and encouraged.
 - **This mode has no stakes.** Ideas may be bad; say so plainly and move
-  on. Half of the value is discarding approaches cheaply, before a report
+  on. Half of the value is discarding approaches cheaply, before a spec
   gives them weight.
 - **Do not drift into implementation.** When the talk turns into "then
   let's build it", hand over to `/aide-create` instead of coding.

@@ -24,7 +24,7 @@ English, and slimmed down. The git history documents each step.
 
 The repo initially carried a "doc-" prefix; it was dropped in August 2026
 because the tool had outgrown documents — it installs rules, skills,
-agents and hooks, and the reports are just one of its outputs.
+agents and hooks, and the specs are just one of its outputs.
 
 The frozen original lives at `~/develop/nav/melosys-aide` (local reference
 only — do not develop there).
@@ -47,9 +47,9 @@ only — do not develop there).
   Only `uninstall-all.sh` removes them (learned the hard way — removing
   one tool used to break the others and the daily cron job).
 - **Conventions:** English throughout; commit messages in English
-  imperative mood; report files are `1-description.md`, `2-analysis.md`,
+  imperative mood; spec files are `1-description.md`, `2-analysis.md`,
   `3-solution.md`, `4-status.md` with strict content separation.
-- **Skill frontmatter is additive-only** (report 71 in aide-specs, August
+- **Skill frontmatter is additive-only** (spec 71 in aide-specs, August
   2026): beyond the Agent Skills spec's six fields, only Claude Code extras
   whose absence costs a nicety (`effort`, `argument-hint`) — enforced by an
   allowlist test. Behavior-critical fields are banned; that class of
@@ -71,7 +71,7 @@ Done in August 2026:
 - [x] **Per-project setup.** Optional `.aide/config` in the project root
       (KEY=value): `AIDE_JIRA_BASE_URL` plus `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/
       `AIDE_BUILD_CMD` overrides. Shell scripts read it via `aide_config_get`
-      in `_aide-report-lib.sh`. No init step — the file is created the first
+      in `_aide-spec-lib.sh`. No init step — the file is created the first
       time a skill needs a value it cannot detect.
 
 ## Phase 4: Ideas borrowed from other tools
@@ -84,9 +84,9 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 - [x] **Archive step that closes the loop.** Done August 2026: `/aide-archive`
       verifies `4-status.md`, feeds durable knowledge back into the project's
       living docs, stamps the date in `4-status.md` and moves the folder to
-      `<reports-root>/archive/` with its name unchanged (the date lives in
+      `<specs-root>/archive/` with its name unchanged (the date lives in
       the status file, so resolution stays unambiguous). Numbers are never
-      reused — `aide_next_report_number` scans `archive/` too, and the
+      reused — `aide_next_spec_number` scans `archive/` too, and the
       pdf/html scripts fall back to `archive/` when resolving.
 - [x] **Delta thinking in requirements.** Done August 2026: `3-solution.md`
       has a "Behavior delta" section — what the solution ADDS / MODIFIES /
@@ -141,11 +141,11 @@ All four verified in live `codex exec` sessions against 0.147.0.
 
 ## Known quirks
 
-- `reports/` is gitignored; only `reports/README.md` is force-tracked.
-- `scripts/generate-toc.py` and `scripts/normalize-reports.py` emit
+- `specs/` is gitignored; only `specs/README.md` is force-tracked.
+- `scripts/generate-toc.py` and `scripts/normalize-specs.py` emit
   "Table of contents" but still *detect* the legacy Norwegian heading
-  ("Innholdsfortegnelse") for old reports.
-- `AIDE_REPORTS_PATH` (optional) redirects report output to an external
+  ("Innholdsfortegnelse") for old specs.
+- `AIDE_SPECS_PATH` (optional) redirects spec output to an external
   directory/repo — aide's equivalent of OpenSpec's "Stores" idea.
 - The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
   upgrades Copilot/Codex/opencode via mise and Claude Code via

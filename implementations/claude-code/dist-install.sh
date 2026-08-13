@@ -80,11 +80,11 @@ echo "2️⃣  Copying configuration to projects..."
 
 # Generate settings.json with absolute paths
 generate_settings() {
-  local REPORTS_PERMISSION=""
-  if [ -n "$AIDE_REPORTS_PATH" ]; then
-    REPORTS_PERMISSION="      \"Read($AIDE_REPORTS_PATH/**)\",
-      \"Write($AIDE_REPORTS_PATH/**)\",
-      \"Edit($AIDE_REPORTS_PATH/**)\","
+  local SPECS_PERMISSION=""
+  if [ -n "$AIDE_SPECS_PATH" ]; then
+    SPECS_PERMISSION="      \"Read($AIDE_SPECS_PATH/**)\",
+      \"Write($AIDE_SPECS_PATH/**)\",
+      \"Edit($AIDE_SPECS_PATH/**)\","
   fi
 
   cat <<EOF
@@ -96,8 +96,8 @@ generate_settings() {
       "WebFetch(domain:raw.githubusercontent.com)",
       "Read($AIDE_PROJECTS_PATH/**)",
       "Write($AIDE_PROJECTS_PATH/**)",
-      "Edit($AIDE_PROJECTS_PATH/**)"${REPORTS_PERMISSION:+,
-$REPORTS_PERMISSION}
+      "Edit($AIDE_PROJECTS_PATH/**)"${SPECS_PERMISSION:+,
+$SPECS_PERMISSION}
     ],
     "deny": [
       "Bash(git commit:*)",

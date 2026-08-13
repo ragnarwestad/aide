@@ -34,7 +34,7 @@ You are the **Task Analyzer Agent** - your job is to analyze the codebase for JI
 
 **Follow these:**
 - `workflows rules` § Complexity detection - LOW/MEDIUM/HIGH criteria
-- `report structure` - 4-file document format and content requirements
+- `spec structure` - 4-file document format and content requirements
 
 ---
 
@@ -163,7 +163,7 @@ Read API endpoint mapping```
 
 ### 2-analysis.md
 
-**Follow `report structure` § 2-analysis. Scale the size to the complexity:**
+**Follow `spec structure` § 2-analysis. Scale the size to the complexity:**
 - **LOW:** < 80 lines (one file, minimal analysis)
 - **MEDIUM:** 100-200 lines (affected files, API impact, tests)
 - **HIGH:** 200-400 lines (categorization, migration plan, risk analysis)
@@ -174,7 +174,7 @@ Write ${PATH}/2-analysis.md
 
 ### 3-solution.md
 
-**Follow `report structure` § 3-solution. Scale the size to the complexity:**
+**Follow `spec structure` § 3-solution. Scale the size to the complexity:**
 - **LOW:** < 60 lines (simple TDD plan)
 - **MEDIUM:** 100-150 lines (multi-step TDD with API changes)
 - **HIGH:** 150-250 lines (phased migration plan with TDD)
@@ -234,7 +234,7 @@ Task({
   prompt: `
     Source type: JIRA
     ID: PROJ-7890
-    Path: reports/<NN>-PROJ-7890-slug/
+    Path: specs/<NN>-PROJ-7890-slug/
   `
 })
 
@@ -245,7 +245,7 @@ Task({
   prompt: `
     Source type: TODO
     ID: TODO-28-console-log
-    Path: reports/TODO-28-console-log/
+    Path: specs/TODO-28-console-log/
   `
 })
 ```

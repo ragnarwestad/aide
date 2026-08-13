@@ -48,7 +48,7 @@ Examples:
 
 ### Step 1: Read the description
 
-- Read `reports/XX-slug/1-description.md`
+- Read `specs/XX-slug/1-description.md`
 - Identify: What should change? What is the scope? Migration or single fix?
 
 ### Step 2: Detect complexity
@@ -67,13 +67,13 @@ See `references/complexity-and-analysis.md` for detailed steps per level.
 
 ### Step 4: Update 2-analysis.md
 
-Write to `reports/XX-slug/2-analysis.md`. Follow the report structure § 2-analysis.
+Write to `specs/XX-slug/2-analysis.md`. Follow the spec structure § 2-analysis.
 Include: Tracking info, affected files with file:line, complexity,
 API impact, test coverage, risk analysis, estimate.
 
 ### Step 5: Create the implementation plan (3-solution.md)
 
-Write to `reports/XX-slug/3-solution.md`. Follow the report structure § 3-solution.
+Write to `specs/XX-slug/3-solution.md`. Follow the spec structure § 3-solution.
 
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
 in behavior, relative to how the system works today — not just which files
@@ -90,7 +90,7 @@ Structure the plan with TDD:
 
 ### Step 6: Update 4-status.md
 
-Write to `reports/XX-slug/4-status.md`. Follow the report structure § 4-status.
+Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 
