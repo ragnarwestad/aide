@@ -28,7 +28,7 @@ and which configuration files each tool reads.
 |---------|---------|-----------------|--------|
 | Claude Code | 2.1.231 | 2026-08-13 | ✅ Supported |
 | GitHub Copilot CLI | 1.0.79 | 2026-08-13 | ✅ Supported |
-| Codex CLI | 0.133.0 | 2026-05-23 | ✅ Supported |
+| Codex CLI | 0.147.0 | 2026-08-13 | ✅ Supported |
 
 **The Version and Last verified columns are stamped from probing — do not
 edit them by hand.** Run:
