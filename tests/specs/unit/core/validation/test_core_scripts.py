@@ -61,3 +61,34 @@ class TestValidateEnv:
         )
         assert result.returncode == 0, \
             f"Set AIDE_INSTALLATION_PATH should pass, got:\n{result.stdout}{result.stderr}"
+
+    def test_checks_all_documented_variables(self, workspace_root):
+        """README documents three AIDE_* variables; validate-env must know them all."""
+        env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
+        result = subprocess.run(
+            [str(workspace_root / "core" / "scripts" / "validate-env")],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH", "AIDE_REPORTS_PATH"):
+            assert var in result.stdout, \
+                f"validate-env does not mention {var}:\n{result.stdout}"
+
+
+@pytest.mark.validation
+class TestInstallCommonBin:
+    """The shared bin installer must ship every user-facing CLI script."""
+
+    def test_validate_env_is_installed(self, workspace_root, tmp_path):
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
+            "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"

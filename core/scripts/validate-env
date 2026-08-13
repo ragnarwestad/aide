@@ -106,6 +106,9 @@ if [ "$QUIET" = false ]; then
 fi
 
 # Optional variables
+check_optional "AIDE_PROJECTS_PATH" "Root of your project checkouts (helps AI tools resolve relative paths)"
+check_path_exists "AIDE_PROJECTS_PATH"
+
 check_optional "AIDE_REPORTS_PATH" "External path for reports (JIRA/TODO documentation)"
 check_path_exists "AIDE_REPORTS_PATH"
 
@@ -141,6 +144,9 @@ if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
         echo "export AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/aide\""
     fi
 
+    echo ""
+    echo "# Optional: Root of your project checkouts"
+    echo "# export AIDE_PROJECTS_PATH=\"/Users/\$(whoami)/develop\""
     echo ""
     echo "# Optional: External reports path"
     echo "# export AIDE_REPORTS_PATH=\"/Users/\$(whoami)/Documents/aide-reports\""
