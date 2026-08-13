@@ -37,26 +37,60 @@ def specs_root(tmp_path):
 
 @pytest.mark.validation
 class TestSpecsRoot:
-    """The specs root contract: AIDE_SPECS_PATH wins, else specs/ in the CWD.
+    """The specs root is PER-PROJECT config, never global state (spec 73).
 
-    (A third branch that looked for specs/ next to the installation was
-    dead code from the melosys layout — it pointed one level too shallow
-    after the core/ restructuring and could never fire. Removed.)
+    Contract: `aide_specs_root [project-root]` — root defaults to the git
+    toplevel (cwd as fallback); `AIDE_SPECS_PATH` from the project's
+    `.aide/config` wins; otherwise `<root>/specs`. The environment
+    variable of the same name is retired: a set variable is IGNORED, so a
+    stale export cannot leak one project's specs into another's root.
     """
 
-    def test_env_var_wins(self, workspace_root, tmp_path):
-        out = _call(
-            workspace_root, "aide_specs_root",
-            env={"AIDE_SPECS_PATH": str(tmp_path), "PATH": "/usr/bin:/bin"},
-        )
-        assert out == str(tmp_path)
+    def _project(self, tmp_path, config_value=None):
+        if config_value is not None:
+            (tmp_path / ".aide").mkdir()
+            (tmp_path / ".aide" / "config").write_text(
+                f"AIDE_SPECS_PATH={config_value}\n"
+            )
+        return tmp_path
 
-    def test_defaults_to_specs_in_the_current_project(self, workspace_root):
+    def test_project_config_wins(self, workspace_root, tmp_path):
+        root = self._project(tmp_path, "/somewhere/central-specs")
+        out = _call(workspace_root, f'aide_specs_root "{root}"')
+        assert out == "/somewhere/central-specs"
+
+    def test_environment_variable_is_dead(self, workspace_root, tmp_path):
+        root = self._project(tmp_path)
         out = _call(
-            workspace_root, "aide_specs_root",
-            env={"PATH": "/usr/bin:/bin"},
+            workspace_root, f'aide_specs_root "{root}"',
+            env={"AIDE_SPECS_PATH": "/should/be/ignored", "PATH": "/usr/bin:/bin"},
         )
-        assert out == "specs"
+        assert out == f"{root}/specs", (
+            "a set AIDE_SPECS_PATH environment variable must be ignored — "
+            "the specs path is per-project config only"
+        )
+
+    def test_defaults_to_specs_under_the_project_root(self, workspace_root, tmp_path):
+        root = self._project(tmp_path)
+        out = _call(workspace_root, f'aide_specs_root "{root}"')
+        assert out == f"{root}/specs"
+
+    def test_without_argument_uses_the_git_toplevel(self, workspace_root, tmp_path):
+        root = self._project(tmp_path, "/somewhere/central-specs")
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subdir = root / "src" / "deep"
+        subdir.mkdir(parents=True)
+        lib = workspace_root / "core" / "scripts" / "_aide-spec-lib.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'cd "{subdir}" && source "{lib}"; aide_specs_root'],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip() == "/somewhere/central-specs", (
+            "run from a subdirectory, the project root must be the git "
+            "toplevel so the config is still found"
+        )
 
 
 @pytest.mark.validation

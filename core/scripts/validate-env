@@ -109,9 +109,6 @@ fi
 check_optional "AIDE_PROJECTS_PATH" "Root of your project checkouts (helps AI tools resolve relative paths)"
 check_path_exists "AIDE_PROJECTS_PATH"
 
-check_optional "AIDE_SPECS_PATH" "External path for specs (JIRA/TODO documentation)"
-check_path_exists "AIDE_SPECS_PATH"
-
 check_optional "OPENAI_API_KEY" "API key for OpenAI Codex"
 check_optional "ANTHROPIC_API_KEY" "API key for Claude"
 
@@ -148,10 +145,10 @@ if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
     echo "# Optional: Root of your project checkouts"
     echo "# export AIDE_PROJECTS_PATH=\"/Users/\$(whoami)/develop\""
     echo ""
-    echo "# Optional: External specs path"
-    echo "# export AIDE_SPECS_PATH=\"/Users/\$(whoami)/Documents/aide-specs\""
-    echo ""
     echo "Then run: source ~/.zshrc"
+    echo ""
+    echo "# The specs path is per-project configuration, not an environment"
+    echo "# variable: set AIDE_SPECS_PATH in <project>/.aide/config"
 fi
 
 # Exit with an error code only if required variables are missing

@@ -75,11 +75,13 @@ class TestCopilotAideWorkflow:
         print("=" * 60, flush=True)
 
         reports_path = e2e_workspace / "specs"
+        aide_dir = e2e_workspace / ".aide"
+        aide_dir.mkdir(exist_ok=True)
+        (aide_dir / "config").write_text(f"AIDE_SPECS_PATH={reports_path}\n")
         env = {
             **os.environ,
             "PATH": get_mise_path(),
             "AIDE_INSTALLATION_PATH": str(e2e_workspace),
-            "AIDE_SPECS_PATH": str(reports_path),
         }
 
         # Step 1: Run aide-create using Copilot prompt file
@@ -95,7 +97,7 @@ core/templates/todo/ (0-README, 1-description, 2-analysis, 3-solution, 4-status)
 
 IMPORTANT:
 - AIDE_INSTALLATION_PATH={e2e_workspace}
-- AIDE_SPECS_PATH={reports_path}"""
+- Specs root (from .aide/config): {reports_path}"""
 
         result_opprett = subprocess.run(
             ["copilot", "-p", opprett_prompt, "--allow-all-tools"],

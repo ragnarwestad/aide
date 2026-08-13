@@ -47,12 +47,9 @@
     "defaultMode": "default",
     "allow": [
       "Edit(~/develop/**)",
-      "Edit({{AIDE_SPECS_PATH}}/**)",
       "Read(~/develop/**)",
-      "Read({{AIDE_SPECS_PATH}}/**)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Write(~/develop/**)",
-      "Write({{AIDE_SPECS_PATH}}/**)",
       "mcp__ide__getDiagnostics",
       "Bash"
     ],

@@ -100,21 +100,19 @@ JIRA data is fetched manually from https://jira.example.com and pasted in when t
 
 These are **optional** but recommended for a better workflow. They apply to **all AI tools**.
 
-#### AIDE_SPECS_PATH
+#### AIDE_SPECS_PATH (per project, in .aide/config)
 
-Store JIRA documents and TODO plans outside the workspace (e.g. in Dropbox/iCloud):
+Store a project's specs outside that project (e.g. a private specs repo):
 
-```bash
-# In ~/.zshrc or ~/.bashrc
-export AIDE_SPECS_PATH="/Users/$(whoami)/Documents/aide-specs"
-# or
-export AIDE_SPECS_PATH="/Users/$(whoami)/Dropbox/aide-specs"
-
-# Load the changes
-source ~/.zshrc  # or source ~/.bashrc
+```text
+# <project>/.aide/config
+AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
-**Benefit:** Specs are not committed to the workspace repo and can be synced separately.
+**Benefit:** specs stay out of the project repo and each project can have
+its own location. Not an environment variable — the key lives in the
+project's `.aide/config`. Add `.aide/` to your global personal gitignore
+(`git config core.excludesFile`) so personal configs never get committed.
 
 #### AIDE_INSTALLATION_PATH
 

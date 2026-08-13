@@ -127,7 +127,7 @@ Instead of slash commands (like Claude Code), use natural language:
 
 - **JIRA tickets:** `specs/<NN>-{ISSUE_ID}-slug/`
   - `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
-  - **NOTE:** If `AIDE_SPECS_PATH` is set, specs are written there instead
+  - **NOTE:** If `.aide/config` sets `AIDE_SPECS_PATH`, specs are written there instead
 - **Todo plans:** `specs/`
 - **Generic workflows:** `core/rules/`
 

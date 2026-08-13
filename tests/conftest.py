@@ -68,19 +68,15 @@ def clean_env(monkeypatch):
     """Clean environment variables before each test."""
     # Store original values
     original_workspace = os.getenv("AIDE_INSTALLATION_PATH")
-    original_reports = os.getenv("AIDE_SPECS_PATH")
 
-    # Delete env vars
+    # Delete env vars (the specs path is per-project .aide/config, no env)
     monkeypatch.delenv("AIDE_INSTALLATION_PATH", raising=False)
-    monkeypatch.delenv("AIDE_SPECS_PATH", raising=False)
 
     yield
 
     # Restore original values if they existed
     if original_workspace:
         monkeypatch.setenv("AIDE_INSTALLATION_PATH", original_workspace)
-    if original_reports:
-        monkeypatch.setenv("AIDE_SPECS_PATH", original_reports)
 
 
 @pytest.fixture

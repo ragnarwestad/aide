@@ -7,14 +7,24 @@
 # Flat structure: all issues live as <NN>-slug/ directly under the specs root
 # (same for JIRA and TODO; the JIRA key is part of the slug).
 
-# Find the specs root: AIDE_SPECS_PATH if set, otherwise specs/ in the
-# current project (relative to where the caller stands).
+# Find the specs root for a project (spec 73: per-project config, no
+# global state).
+#   aide_specs_root [project-root]
+# The root defaults to the git toplevel, falling back to the current
+# directory. AIDE_SPECS_PATH read from <root>/.aide/config wins;
+# otherwise <root>/specs. The environment variable of the same name is
+# retired and deliberately ignored.
 aide_specs_root() {
-  if [ -n "$AIDE_SPECS_PATH" ]; then
-    echo "$AIDE_SPECS_PATH"
-    return
+  local root="$1" configured
+  if [ -z "$root" ]; then
+    root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
   fi
-  echo "specs"
+  configured="$(aide_config_get AIDE_SPECS_PATH "$root")"
+  if [ -n "$configured" ]; then
+    echo "$configured"
+  else
+    echo "$root/specs"
+  fi
 }
 
 # Search one directory for a folder matching a find pattern; echoes the basename.

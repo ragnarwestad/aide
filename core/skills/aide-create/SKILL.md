@@ -56,9 +56,10 @@ Examples:
 
 ### Step 1: Find the specs root
 
-- Run: `echo $AIDE_SPECS_PATH`
-- If set: Use that path as the specs root
-- If NOT set: Use `specs/` in the project root
+- Read `AIDE_SPECS_PATH` from `.aide/config` in the project root
+  (helper: `aide_specs_root` in `_aide-spec-lib.sh` does the whole lookup)
+- If the key is set: use that path as the specs root
+- Otherwise: use `specs/` in the project root
 
 ### Step 2: Find the next available number
 
@@ -84,7 +85,8 @@ Examples:
 
 ### Step 5: Stage in git
 
-- If `AIDE_SPECS_PATH` is set: SKIP git add (separate repo)
+- If the specs root lies OUTSIDE the project root: SKIP git add in the
+  project's repo (the specs live elsewhere, possibly their own repo)
 - Otherwise: `git add <specs-root>/NN-slug/*.md`
 
 ### Step 6: Confirm

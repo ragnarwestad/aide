@@ -10,7 +10,7 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
 - [Environment variables](#environment-variables)
   - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
-  - [AIDE_SPECS_PATH](#aide_specs_path-optional)
+  - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [Resources](#resources)
 
@@ -81,15 +81,19 @@ Solves permission issues when AI tools expand relative paths.
 export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 ```
 
-### AIDE_SPECS_PATH (optional)
+### AIDE_SPECS_PATH (optional, per project)
 
-Store specs (JIRA analyses, TODO plans) outside the workspace.
+Store specs (JIRA analyses, TODO plans) outside a project — set the key
+in `.aide/config` in that project's root:
 
-```bash
-export AIDE_SPECS_PATH="/Users/$(whoami)/Documents/aide-specs"
+```text
+AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
-**Default:** Specs are written to `aide/specs/` (gitignored).
+**Default:** specs are written to `specs/` in the project root. The path
+is per-project configuration, not an environment variable — two projects
+can point at two different spec repos. Keep personal configs out of git
+with a global personal gitignore (`core.excludesFile`) containing `.aide/`.
 
 ---
 

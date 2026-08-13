@@ -1,4 +1,4 @@
-# Specs (user-specific, or relocated via AIDE_SPECS_PATH)
+# Specs (user-specific, or relocated via AIDE_SPECS_PATH in .aide/config)
 /specs/
 
 # Python
@@ -17,3 +17,6 @@ venv/
 # Build output
 /dist/
 
+
+# Per-project aide config (personal)
+/.aide/

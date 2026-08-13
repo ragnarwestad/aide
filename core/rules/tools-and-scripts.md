@@ -77,5 +77,9 @@ Shell scripts read the file via `aide_config_get KEY <project-root>` from
 
 ## Spec storage
 
-If `AIDE_SPECS_PATH` is set, specs are stored there (not in the project's `specs/`).
-If the variable is set — do **not** run `git add` for specs (they live in another repo).
+The specs root is per-project configuration: `AIDE_SPECS_PATH` in
+`.aide/config` in the project root. If the key is set, specs are stored
+there (not in the project's `specs/`); when the specs root lies outside
+the project root, do **not** run `git add` for specs in the project's
+repo (they live in another repo). Without the key, specs go to `specs/`
+in the project root. There is no environment variable.

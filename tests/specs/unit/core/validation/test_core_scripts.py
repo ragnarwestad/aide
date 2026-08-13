@@ -64,7 +64,8 @@ class TestValidateEnv:
             f"Set AIDE_INSTALLATION_PATH should pass, got:\n{result.stdout}{result.stderr}"
 
     def test_checks_all_documented_variables(self, workspace_root):
-        """README documents three AIDE_* variables; validate-env must know them all."""
+        """Two AIDE_* environment variables remain; the specs path is
+        per-project .aide/config (spec 73) and must NOT be checked as env."""
         env = {"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]}
         result = subprocess.run(
             [str(workspace_root / "core" / "scripts" / "validate-env")],
@@ -72,9 +73,11 @@ class TestValidateEnv:
             text=True,
             env=env,
         )
-        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH", "AIDE_SPECS_PATH"):
+        for var in ("AIDE_INSTALLATION_PATH", "AIDE_PROJECTS_PATH"):
             assert var in result.stdout, \
                 f"validate-env does not mention {var}:\n{result.stdout}"
+        assert "AIDE_SPECS_PATH is not set" not in result.stdout, \
+            "the retired env var must not be checked"
 
 
 @pytest.mark.validation
@@ -138,18 +141,24 @@ class TestGenerateHtmlForArchivedSpec:
     def test_generates_html_inside_the_archive_folder(self, workspace_root, tmp_path):
         if shutil.which("pandoc") is None:
             pytest.skip("pandoc not installed")
-        spec = tmp_path / "archive" / "12-old-spec"
+        specs_root = tmp_path / "central-specs"
+        spec = specs_root / "archive" / "12-old-spec"
         spec.mkdir(parents=True)
         for name in ("1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"):
             (spec / name).write_text(f"# {name}\n\nContent.\n")
 
-        env = dict(os.environ)
-        env["AIDE_SPECS_PATH"] = str(tmp_path)
+        # The project points at the external specs root via .aide/config —
+        # the AIDE_SPECS_PATH environment variable is retired (spec 73).
+        project = tmp_path / "project"
+        (project / ".aide").mkdir(parents=True)
+        (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs_root}\n")
+
         result = subprocess.run(
             [str(workspace_root / "core" / "scripts" / "aide-generate-html"), "12"],
             capture_output=True,
             text=True,
-            env=env,
+            env={"PATH": os.environ["PATH"], "HOME": os.environ["HOME"]},
+            cwd=project,
         )
         assert result.returncode == 0, result.stdout + result.stderr
         assert (spec / "12-old-spec.html").exists(), (

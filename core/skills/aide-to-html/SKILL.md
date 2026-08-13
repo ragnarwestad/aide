@@ -32,13 +32,10 @@ The user has run:
 
 2. **Determine REPORTS_ROOT:**
    ```bash
-   # Check the environment variable first
-   if [ -n "$AIDE_SPECS_PATH" ]; then
-     REPORTS_ROOT="$AIDE_SPECS_PATH"
-   else
-     # Fallback - assume specs/ exists in the current working directory
-     REPORTS_ROOT="specs"
-   fi
+   # The lib resolves it: .aide/config in the project root wins,
+   # otherwise <project-root>/specs
+   source ~/.local/bin/_aide-spec-lib.sh
+   REPORTS_ROOT="$(aide_specs_root)"
    ```
 
 3. **Resolve to the full directory ID** (flat structure: everything lives as `<NN>-slug/` directly under REPORTS_ROOT):
@@ -72,7 +69,7 @@ The user has run:
    aide-generate-html "$DIR"
    ```
 
-   **IMPORTANT:** The `aide-generate-html` script also needs to respect `AIDE_SPECS_PATH`!
+   **IMPORTANT:** The `aide-generate-html` script resolves the specs root the same way (via `aide_specs_root`).
 
    The script will:
    - Combine all markdown files (1-description, 2-analysis, 3-solution, 4-status)
@@ -117,5 +114,5 @@ Have you run the create command first?
 
 - **Automatic JIRA/TODO detection:** Same logic as `/aide-create`
 - **Output location:** Same directory as the markdown files (keeps everything together)
-- **AIDE_SPECS_PATH:** The script respects the environment variable if set
+- **AIDE_SPECS_PATH:** read from `.aide/config` in the project root (no environment variable)
 - **Styling:** Modern, clean design with sticky navigation

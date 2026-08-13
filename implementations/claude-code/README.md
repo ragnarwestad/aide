@@ -97,17 +97,14 @@ The JIRA integration lets you automatically:
 - Use cloud storage (Dropbox, iCloud, etc.)
 - Separate workspace code from user-specific specs
 
-```bash
-# In ~/.zshrc or ~/.bashrc
-export AIDE_SPECS_PATH="/Users/$(whoami)/Documents/aide-specs"
-# or
-export AIDE_SPECS_PATH="/Users/$(whoami)/Dropbox/aide-specs"
-
-# Load the changes
-source ~/.zshrc  # or source ~/.bashrc
+```text
+# <project>/.aide/config
+AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 ```
 
-**If not set:** Specs are written to `aide/specs/` (default, gitignored)
+**If not set:** specs are written to `specs/` in the project root. The
+key is per-project configuration in `.aide/config`, not an environment
+variable.
 
 #### AIDE_PROJECTS_PATH - Permissions without prompts
 

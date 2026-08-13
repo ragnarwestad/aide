@@ -78,15 +78,11 @@ echo ""
 # 2. Copy configuration to projects
 echo "2️⃣  Copying configuration to projects..."
 
-# Generate settings.json with absolute paths
+# Generate settings.json with absolute paths.
+# The specs path is per-project config (.aide/config), so no permission is
+# generated for it — specs under AIDE_PROJECTS_PATH are already covered.
+# A specs root OUTSIDE the projects path needs a manual permission entry.
 generate_settings() {
-  local SPECS_PERMISSION=""
-  if [ -n "$AIDE_SPECS_PATH" ]; then
-    SPECS_PERMISSION="      \"Read($AIDE_SPECS_PATH/**)\",
-      \"Write($AIDE_SPECS_PATH/**)\",
-      \"Edit($AIDE_SPECS_PATH/**)\","
-  fi
-
   cat <<EOF
 {
   "permissions": {
@@ -96,8 +92,7 @@ generate_settings() {
       "WebFetch(domain:raw.githubusercontent.com)",
       "Read($AIDE_PROJECTS_PATH/**)",
       "Write($AIDE_PROJECTS_PATH/**)",
-      "Edit($AIDE_PROJECTS_PATH/**)"${SPECS_PERMISSION:+,
-$SPECS_PERMISSION}
+      "Edit($AIDE_PROJECTS_PATH/**)"
     ],
     "deny": [
       "Bash(git commit:*)",

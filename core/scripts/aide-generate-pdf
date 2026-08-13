@@ -21,9 +21,9 @@ if [ "$#" -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
   echo "  aide-generate-pdf 35-todo-ai-nyheter    # Full ID"
   echo "  aide-generate-pdf 45-proj-7637          # JIRA-based task"
   echo ""
-  echo "Environment variables:"
-  echo "  AIDE_SPECS_PATH    - Path to specs (optional)"
-  echo "  (Fallback: relative to script location)"
+  echo "Configuration:"
+  echo "  AIDE_SPECS_PATH in <project>/.aide/config - external specs root (optional)"
+  echo "  (Default: specs/ in the project root)"
   echo ""
   echo "Output: <docs-folder>/<ISSUE_ID>.pdf"
   exit 0
@@ -47,7 +47,7 @@ if [ -z "$FULL_ID" ] || [ ! -d "$DOCS_DIR" ]; then
   echo ""
   echo "Tips:"
   echo "  - Have you run /aide-create first?"
-  echo "  - Check that AIDE_SPECS_PATH is set correctly"
+  echo "  - Check AIDE_SPECS_PATH in .aide/config in the project root"
   echo ""
   echo "Available folders:"
   ls -1 "$SPECS_ROOT" | grep -E "^[0-9]+-" | head -10

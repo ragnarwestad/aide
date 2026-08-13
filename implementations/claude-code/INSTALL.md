@@ -72,13 +72,16 @@ export AIDE_PROJECTS_PATH="$HOME/develop"
 
 The root directory where your projects live.
 
-### AIDE_SPECS_PATH (optional)
+### AIDE_SPECS_PATH (optional, per project)
 
-```bash
-export AIDE_SPECS_PATH="$HOME/Documents/aide-specs"
+```text
+# <project>/.aide/config
+AIDE_SPECS_PATH=$HOME/develop/my-specs-repo
 ```
 
-Where JIRA documentation and TODO plans are stored. If not set, `aide-claude-code/specs/` is used.
+Where that project's JIRA documentation and TODO plans are stored. If not
+set, `specs/` in the project root is used. Per-project configuration —
+not an environment variable.
 
 ---
 

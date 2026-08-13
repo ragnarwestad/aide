@@ -27,8 +27,9 @@ into documentation that future work actually reads.
 
 ### Step 1: Resolve the spec
 
-- Specs root: `$AIDE_SPECS_PATH` if set, otherwise `specs/` in the
-  project root
+- Specs root: `AIDE_SPECS_PATH` from `.aide/config` in the project
+  root if set, otherwise `specs/` in the project root (helper:
+  `aide_specs_root` in `_aide-spec-lib.sh`)
 - Resolve the argument to a folder (same rules as the other aide skills:
   number shorthand, JIRA key, or full `NN-slug`)
 - If the folder is already under `archive/`: say so and stop
@@ -79,8 +80,8 @@ The spec stays findable: /aide-to-pdf 17
 
 IMPORTANT:
 - Never delete a spec — archiving is a move, not a removal
-- If `AIDE_SPECS_PATH` is set, do NOT run `git add`/`git mv` in the
-  project's repo for spec files (they live in another repo — use the
-  specs repo's git if it has one)
+- If the specs root lies outside the project root, do NOT run
+  `git add`/`git mv` in the project's repo for spec files (they live in
+  another repo — use the specs repo's git if it has one)
 - Code blocks ALWAYS end with just ` ``` ` — NEVER ` ```text ` as the
   closing fence
