@@ -49,6 +49,12 @@ only — do not develop there).
 - **Conventions:** English throughout; commit messages in English
   imperative mood; report files are `1-description.md`, `2-analysis.md`,
   `3-solution.md`, `4-status.md` with strict content separation.
+- **Skill frontmatter is additive-only** (report 71 in aide-specs, August
+  2026): beyond the Agent Skills spec's six fields, only Claude Code extras
+  whose absence costs a nicety (`effort`, `argument-hint`) — enforced by an
+  allowlist test. Behavior-critical fields are banned; that class of
+  divergence is what made `disable-model-invocation` block "ask the
+  assistant in prose" while Copilot/Codex ignored the field entirely.
 
 ## Phase 3: Make the tool truly generic
 
