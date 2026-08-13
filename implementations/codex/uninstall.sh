@@ -12,13 +12,11 @@ echo ""
 # Codex is global — no project path needed
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
 echo "   - ~/.codex/AGENTS.md"
 echo "   - ~/.codex/hooks.json (if unchanged) + ~/.codex/hooks/aide-*.sh"
-echo "   - aide's skills from ~/.agents/skills/"
 echo ""
 read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -67,18 +65,9 @@ echo "   ✅ Removed: ~/.codex/hooks/aide-*.sh"
 
 echo ""
 
-# 4. Remove aide's skills from ~/.agents/skills/ (foreign skills stay)
-echo "4️⃣  Removing skills from ~/.agents/skills/..."
-
-for skill_dir in "$WORKSPACE_ROOT/core/skills/"*/; do
-  skill=$(basename "$skill_dir")
-  if [ -d "$HOME/.agents/skills/$skill" ]; then
-    rm -rf "${HOME:?}/.agents/skills/$skill"
-    echo "   ✅ Removed: ~/.agents/skills/$skill"
-  else
-    echo "   ⏭️  Did not exist: ~/.agents/skills/$skill"
-  fi
-done
+# 4. Skills in ~/.agents/skills are kept (Copilot reads them too).
+#    They are only removed by uninstall-all.sh.
+echo "4️⃣  Keeping skills in ~/.agents/skills/ (removed only by uninstall-all.sh)"
 
 echo ""
 

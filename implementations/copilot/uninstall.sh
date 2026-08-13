@@ -24,8 +24,10 @@ fi
 echo ""
 
 # 1. Shared scripts in ~/.local/bin are kept (other AI tools use them).
-#    They are only removed by uninstall-all.sh.
-echo "1️⃣  Keeping shared scripts in ~/.local/bin/ (removed only by uninstall-all.sh)"
+#    Skills in ~/.agents/skills are kept too (Codex reads them).
+#    Both are only removed by uninstall-all.sh.
+echo "1️⃣  Keeping shared scripts in ~/.local/bin/ and skills in ~/.agents/skills/"
+echo "    (removed only by uninstall-all.sh)"
 
 echo ""
 

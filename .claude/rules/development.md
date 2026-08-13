@@ -40,8 +40,10 @@ each installer sources (`install_common_bin`). The list is therefore copied
 multiple times during `install-all`, but maintained in only one place.
 
 **Individual uninstallers never remove the shared scripts** — other AI tools
-and the cron job depend on them. Only `uninstall-all.sh` calls
-`uninstall_common_bin` (as its final step).
+and the cron job depend on them. The same goes for the skills in
+`~/.agents/skills/` (read by both Copilot and Codex, installed via
+`core/scripts/_install-skills.sh`). Only `uninstall-all.sh` calls
+`uninstall_common_bin` and `uninstall_agents_skills` (as its final steps).
 
 ### Claude Code (install.sh)
 
@@ -58,6 +60,7 @@ and the cron job depend on them. Only `uninstall-all.sh` calls
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.copilot/copilot-instructions.md` |
 | `core/scripts/` | `~/.local/bin/` |
+| `core/skills/` | `~/.agents/skills/` |
 
 ### Codex (install.sh)
 

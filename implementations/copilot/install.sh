@@ -47,8 +47,18 @@ cp "$WORKSPACE_ROOT/core/AGENTS.md" "$HOME/.copilot/copilot-instructions.md"
 echo "   ✅ Installed: ~/.copilot/copilot-instructions.md"
 echo ""
 
+# 3. Install skills to ~/.agents/skills/ — the Copilot CLI reads its personal
+#    skills from there, NOT ~/.claude/skills/ (verified against 1.0.79).
+#    Shared with Codex — see core/scripts/_install-skills.sh.
+echo "3️⃣  Installing skills to ~/.agents/skills/..."
+
+source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
+install_agents_skills
+
+echo ""
+
 # Verify that ~/.local/bin is in PATH
-echo "3️⃣  Verifying PATH..."
+echo "4️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
@@ -59,8 +69,8 @@ else
   echo ""
 fi
 
-# 4. Check if the GitHub Copilot extension is installed
-echo "4️⃣  Checking GitHub Copilot extension..."
+# 5. Check if the GitHub Copilot extension is installed
+echo "5️⃣  Checking GitHub Copilot extension..."
 
 if command -v code &> /dev/null; then
   if code --list-extensions | grep -q "github.copilot"; then
@@ -84,6 +94,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed globally:"
 echo "   ~/.copilot/copilot-instructions.md  (rules for Copilot)"
+echo "   ~/.agents/skills/                   (skills, shared with Codex)"
 echo "   ~/.local/bin/                       (scripts)"
 echo ""
 echo "💡 Tips:"

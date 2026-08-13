@@ -25,7 +25,7 @@ overlapping paths:
 
 | Path | Claude Code | Copilot | Codex |
 |-----|:-----------:|:-------:|:-----:|
-| `~/.claude/skills/<name>/SKILL.md` | yes | yes | no |
+| `~/.claude/skills/<name>/SKILL.md` | yes | no (dropped; verified 1.0.79) | no |
 | `~/.copilot/skills/<name>/SKILL.md` | no | yes | no |
 | `~/.agents/skills/<name>/SKILL.md` | no | yes (v1.0.11+) | yes |
 | `.claude/skills/<name>/SKILL.md` | yes | yes | no |
@@ -38,9 +38,12 @@ overlapping paths:
 **Copilot also reads `~/.claude/commands/`** as skills (discovered March 2026).
 The instructions are interpreted as a natural-language recipe, `$ARGUMENTS` is ignored.
 
-**Important for aide:** Our skills in `~/.claude/skills/` are read by
-both Claude Code and Copilot. They MUST have a `SKILL.md` file with correct
-frontmatter for Copilot to discover them.
+**Important for aide:** `~/.claude/skills/` is read by Claude Code only —
+the Copilot CLI stopped reading it (verified hands-on against 1.0.79 with a
+probe skill, 2026-08-13). Copilot and Codex read the personal skills from
+`~/.agents/skills/`, where the copilot and codex installers put `core/skills/`
+via `core/scripts/_install-skills.sh`. Project-level `.claude/skills/` is
+still read by the Copilot CLI (same verification).
 
 ### Instruction files
 
@@ -158,6 +161,7 @@ means projects can have project-specific skills in
 
 ### What Copilot does NOT read
 
+- `~/.claude/skills/` — Claude Code only (CLI dropped it; verified 1.0.79)
 - `~/.claude/rules/` — Claude Code only
 - `~/.claude/agents/` — Claude Code only
 - `.claude/CLAUDE.md` — Coding Agent only (not VS Code chat or CLI)

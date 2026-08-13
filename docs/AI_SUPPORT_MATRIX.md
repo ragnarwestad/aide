@@ -64,14 +64,17 @@ everyone believed was an E is how rules break silently.
 | aide piece | Claude Code | Copilot | Codex |
 |-----------|-------------|---------|-------|
 | Rules (git, testing, workflows, …) | **E** — auto-loaded from `~/.claude/rules/` | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md` |
-| Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.claude/skills/` | **H** — read from `~/.agents/skills/` |
+| Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.agents/skills/` | **H** — read from `~/.agents/skills/` |
 | Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **E** — enforced via `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` |
 | Agents (task-analyzer) | **H** — invoked via the Agent tool | **—** | **—** |
 | Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **H** — the skills carry it |
 
-Copilot discovers skills in both `~/.claude/skills/` and `~/.agents/skills/`;
-after a full install the aide skills exist in both places, which some Copilot
-versions may list twice. Cosmetic only — the instructions are identical.
+Verified hands-on against Copilot CLI 1.0.79 (`copilot skill list`,
+2026-08-13): personal skills are read from `~/.agents/skills/` — **not**
+`~/.claude/skills/` anymore (a probe skill placed only there was not listed).
+Project-level `.claude/skills/` is still read. The copilot and codex
+installers both install `core/skills/` to `~/.agents/skills/` via
+`core/scripts/_install-skills.sh`; each skill is listed once, no duplication.
 
 ---
 
@@ -96,7 +99,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 ## Open follow-up items
 
-- ⚠️ **Copilot may no longer read project-level `.claude/*`.** The Copilot CLI stopped loading agents/skills/commands from `~/.claude/` (the personal directory is now `~/.agents/skills/`). Whether and how project-level `.claude/` cells are still read must be re-verified against the latest version — this affects the Copilot installation strategy.
+- ⚠️ **Copilot's project-level `.claude/commands|agents|rules` rows are unverified.** For SKILLS this is resolved (verified against CLI 1.0.79, 2026-08-13): personal skills come from `~/.agents/skills/` (not `~/.claude/skills/`), project-level `.claude/skills/` is still read. Whether the CLI still reads project-level `.claude/commands/`, `.claude/agents/` and `.claude/rules/` has NOT been re-verified.
 - **The config cells in the tables below have not been hands-on re-verified** against the latest versions — items marked ⚠️ should be checked at the next update.
 - The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
 
@@ -111,8 +114,10 @@ Which files each tool reads automatically:
 | `CLAUDE.md` | ✅ primary | ✅ read | ✅ read |
 | `AGENTS.md` | — | ✅ read | ✅ primary |
 | `.claude/rules/*.md` | ✅ auto-include | ✅ read | — |
-| `.claude/skills/` | ✅ native skills | ✅ read | — |
+| `.claude/skills/` | ✅ native skills | ✅ read (verified 1.0.79) | — |
 | `.github/skills/` | — | ✅ native skills | — |
+| `.agents/skills/` | — | ✅ read | ✅ read |
+| `~/.agents/skills/` | — | ✅ personal skills (verified 1.0.79) | ✅ read |
 | `~/.copilot/skills/` | — | ✅ global skills | — |
 | `.claude/commands/*.md` | ✅ slash commands | ✅ read | — |
 | `.claude/agents/*.md` | ✅ agents | ✅ read | — |
@@ -123,9 +128,11 @@ Which files each tool reads automatically:
 | `~/.codex/AGENTS.md` | — | — | ✅ global |
 | `~/.codex/config.toml` | — | — | ✅ MCP |
 
-> ⚠️ **The Copilot `.claude/*` rows need re-verification.** The Copilot CLI stopped
-> loading agents/skills/commands from `~/.claude/`. Whether and how project-level `.claude/`
-> is still read has not been confirmed — see [Open follow-up items](#open-follow-up-items).
+> ⚠️ **The Copilot `.claude/commands|agents|rules` rows need re-verification.** The
+> skills rows are verified against CLI 1.0.79 (2026-08-13): project-level `.claude/skills/`
+> is still read; personal skills come from `~/.agents/skills/`, and `~/.claude/skills/` is
+> no longer read. The commands/agents/rules rows have not been re-verified — see
+> [Open follow-up items](#open-follow-up-items).
 
 ---
 
@@ -186,13 +193,13 @@ implementations/claude-code/
 
 **Important:** Copilot additionally reads the `.claude/` structure:
 
-> ⚠️ **Needs re-verification.** The Copilot CLI stopped loading agents/skills/commands
-> from `~/.claude/`. The Copilot strategy below — and the "CRITICAL" block further down — assumes that Copilot reads
-> `.claude/`. Confirm against Copilot CLI v1.0.51 before the next install. See [Open follow-up items](#open-follow-up-items).
+> ⚠️ **The commands/agents/rules rows need re-verification.** The `.claude/skills/` row
+> is verified against CLI 1.0.79 (2026-08-13). The remaining rows have not been
+> re-checked. See [Open follow-up items](#open-follow-up-items).
 
 | File | Description |
 |-----|-------------|
-| `.claude/skills/` | Agent skills — read automatically (same format as Claude Code) |
+| `.claude/skills/` | Agent skills — read automatically (verified against 1.0.79) |
 | `.claude/commands/*.md` | Slash commands — read by the Copilot CLI |
 | `.claude/agents/*.md` | Custom agents — read by the Copilot CLI |
 | `.claude/rules/*.md` | Rule files — read by the Copilot CLI |
@@ -202,21 +209,23 @@ implementations/claude-code/
 | File | Description |
 |-----|-------------|
 | `.github/skills/*/SKILL.md` | Repo-specific skills (Copilot's native location) |
+| `.agents/skills/*/SKILL.md` | Repo-specific skills (shared standard with Codex) |
+| `~/.agents/skills/*/SKILL.md` | Personal skills (aide installs `core/skills/` here) |
 | `~/.copilot/skills/*/SKILL.md` | Global skills (shared across projects) |
 
 Since we already have skills in `.claude/skills/`, Copilot picks them up automatically — we do not need to duplicate them to `.github/skills/`.
 
 ### Features
 
-- **Slash commands** — reads shared skills from `~/.claude/skills/` (e.g. `/aide-create`)
+- **Slash commands** — reads the personal skills from `~/.agents/skills/` (e.g. `/aide-create`)
 - **Agent Mode** — can execute multi-step workflows autonomously
 - **MCP:** Support via the GitHub MCP server
 
 ### Installation into target projects
 
 `install.sh` installs globally — `AGENTS.md` becomes `~/.copilot/copilot-instructions.md`,
-and the shared scripts end up in `~/.local/bin/`. Skills are shared via `~/.claude/skills/`, which
-Copilot reads automatically. The projects therefore need no Copilot config of their own.
+the skills go to `~/.agents/skills/` (shared with Codex), and the shared scripts end up in
+`~/.local/bin/`. The projects therefore need no Copilot config of their own.
 
 ### Implementation
 

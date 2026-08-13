@@ -50,8 +50,9 @@ preflight_copilot() {
   probe "Copilot CLI" copilot
   echo "   core/AGENTS.md → ~/.copilot/copilot-instructions.md ($(state "$HOME/.copilot/copilot-instructions.md"))"
   echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
-  echo "   Note: Copilot reads the skills from ~/.claude/skills/ ($(state "$HOME/.claude/skills")) —"
-  echo "   they are installed by the Claude Code installer. ~/.claude/rules/ is"
+  echo "   core/skills/   → ~/.agents/skills/    ($(state "$HOME/.agents/skills"))"
+  echo "   Note: the Copilot CLI reads personal skills from ~/.agents/skills/,"
+  echo "   not ~/.claude/skills/ (verified against 1.0.79). ~/.claude/rules/ is"
   echo "   NOT read by Copilot; the rules reach it through the instructions file."
   echo ""
 }

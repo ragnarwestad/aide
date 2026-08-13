@@ -69,16 +69,12 @@ fi
 
 echo ""
 
-# 4. Install skills to ~/.agents/skills/ (Codex reads SKILL.md from there)
+# 4. Install skills to ~/.agents/skills/ (Codex reads SKILL.md from there;
+#    shared with Copilot — see core/scripts/_install-skills.sh)
 echo "4️⃣  Installing skills to ~/.agents/skills/..."
 
-mkdir -p "$HOME/.agents/skills"
-for skill_dir in "$WORKSPACE_ROOT/core/skills/"*/; do
-  skill=$(basename "$skill_dir")
-  rm -rf "${HOME:?}/.agents/skills/$skill"
-  cp -R "${skill_dir%/}" "$HOME/.agents/skills/$skill"
-  echo "   ✅ Installed: ~/.agents/skills/$skill"
-done
+source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
+install_agents_skills
 
 echo ""
 

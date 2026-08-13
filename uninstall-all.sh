@@ -33,6 +33,12 @@ source "$ROOT/core/scripts/_install-bin.sh"
 uninstall_common_bin
 
 echo ""
+echo "═══════ shared skills ═══════"
+echo "Removing skills from ~/.agents/skills/..."
+source "$ROOT/core/scripts/_install-skills.sh"
+uninstall_agents_skills
+
+echo ""
 if [ "$status" -eq 0 ]; then
   echo "✅ All uninstalled."
 else

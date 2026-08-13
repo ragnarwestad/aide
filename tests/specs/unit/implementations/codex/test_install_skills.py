@@ -3,8 +3,13 @@
 Codex reads SKILL.md skills from ~/.agents/skills/ (see the ai-tools
 reference), but until now no installer touched that directory, so Codex
 only had the workflows as AGENTS.md text. The installer copies every
-skill in core/skills/ there; the uninstaller removes exactly those and
-leaves foreign skills alone.
+skill in core/skills/ there.
+
+~/.agents/skills/ is SHARED: Copilot CLI reads its personal skills from
+there too (verified hands-on against 1.0.79 — it no longer reads
+~/.claude/skills/). So the individual uninstaller must leave the skills
+alone, exactly like the shared ~/.local/bin scripts; only uninstall-all.sh
+removes them.
 """
 import subprocess
 
@@ -53,18 +58,14 @@ class TestInstallSkills:
         assert (stale / "SKILL.md").read_text() == fresh
         assert not (stale / "leftover.md").exists()
 
-    def test_uninstall_removes_only_aide_skills(self, workspace_root, tmp_path):
+    def test_uninstall_keeps_the_shared_skills(self, workspace_root, tmp_path):
         result = _run(workspace_root, "install.sh", home=tmp_path)
         assert result.returncode == 0, result.stdout + result.stderr
-
-        foreign = tmp_path / ".agents" / "skills" / "someone-elses-skill"
-        foreign.mkdir(parents=True)
-        (foreign / "SKILL.md").write_text("not ours")
 
         result = _run(workspace_root, "uninstall.sh", home=tmp_path, stdin="y\n")
         assert result.returncode == 0, result.stdout + result.stderr
         for name in _skill_names(workspace_root):
-            assert not (tmp_path / ".agents" / "skills" / name).exists(), (
-                f"uninstall left ~/.agents/skills/{name} behind"
+            assert (tmp_path / ".agents" / "skills" / name).exists(), (
+                f"uninstall removed the shared ~/.agents/skills/{name} — "
+                "Copilot reads it too; only uninstall-all.sh may remove it"
             )
-        assert (foreign / "SKILL.md").exists(), "uninstall must not touch foreign skills"
