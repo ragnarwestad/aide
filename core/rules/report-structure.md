@@ -1,6 +1,9 @@
 ---
 paths:
-  - "**/aide-reports/**"
+  - "**/1-description.md"
+  - "**/2-analysis.md"
+  - "**/3-solution.md"
+  - "**/4-status.md"
 ---
 
 # Report structure for JIRA and TODO

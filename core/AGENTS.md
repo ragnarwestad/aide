@@ -1445,10 +1445,6 @@ echo "Hello"
 
 ---
 
----
-paths:
-  - "**/aide-reports/**"
----
 
 # Report structure for JIRA and TODO
 

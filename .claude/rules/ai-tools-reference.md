@@ -35,6 +35,30 @@ overlapping paths:
 **Format:** Folder with `SKILL.md` as the entry point. YAML frontmatter with
 `name` and `description` (required). Markdown body with instructions.
 
+**Frontmatter fields** (mapped 2026-08-13, report 71 in aide-specs): the
+[Agent Skills spec](https://agentskills.io/specification) defines exactly six
+fields — `name`, `description`, `license`, `compatibility`, `metadata`,
+`allowed-tools`. Tool support:
+
+| Field | Spec | Claude Code | Copilot | Codex |
+|-------|:----:|:-----------:|:-------:|:-----:|
+| `name`, `description` | yes | yes | yes | yes |
+| `license` | yes | accepted, inert | yes | ignored |
+| `compatibility`, `metadata` | yes | accepted, inert | ignored | ignored |
+| `allowed-tools` | experimental | enforced | yes | ignored |
+| `effort`, `argument-hint` | no | yes | ignored | ignored |
+| 12 more Claude Code fields (`model`, `context`, `hooks`, `paths`, …) | no | yes | ignored | ignored |
+
+**aide's policy (additive-only):** beyond the spec's six fields, skills may
+only use Claude Code extras that degrade additively — a tool that ignores
+them loses a nicety, never a guarantee. Today that is `effort` and
+`argument-hint`. The allowlist is enforced by
+`tests/specs/unit/core/validation/test_core_skills.py`; behavior-critical
+fields (`disable-model-invocation`, `user-invocable`, `context`, `hooks`)
+are banned by default. Note: claude.ai uploads and the Skills API
+**hard-error** on any non-spec field, so the skills cannot be uploaded there
+as-is — a deliberate trade-off.
+
 **Copilot no longer reads `~/.claude/commands/`** (verified against 1.0.79 with
 a probe file, 2026-08-13 — it used to read them as skills). Project-level
 `.claude/commands/*.md` IS still read as skills (same verification).

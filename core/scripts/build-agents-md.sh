@@ -26,6 +26,12 @@ if [ ! -f "$INTRO" ]; then
   exit 1
 fi
 
+# Strip a leading YAML frontmatter block (--- ... ---). The paths frontmatter
+# is Claude Code-only scoping — Copilot/Codex must get the rule body alone.
+strip_frontmatter() {
+  awk 'NR==1 && $0=="---" {skip=1; next} skip && $0=="---" {skip=0; next} !skip' "$1"
+}
+
 # Build AGENTS.md
 cat "$INTRO" > "$OUTPUT"
 
@@ -34,7 +40,7 @@ for rule in $RULE_FILES; do
     echo "" >> "$OUTPUT"
     echo "---" >> "$OUTPUT"
     echo "" >> "$OUTPUT"
-    cat "$RULES_DIR/$rule.md" >> "$OUTPUT"
+    strip_frontmatter "$RULES_DIR/$rule.md" >> "$OUTPUT"
   fi
 done
 

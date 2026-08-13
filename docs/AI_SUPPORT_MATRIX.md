@@ -76,6 +76,11 @@ Project-level `.claude/skills/` is still read. The copilot and codex
 installers both install `core/skills/` to `~/.agents/skills/` via
 `core/scripts/_install-skills.sh`; each skill is listed once, no duplication.
 
+Skill frontmatter beyond `name`/`description` follows an additive-only
+policy (report 71 in aide-specs): only Claude Code extras whose absence
+costs a nicety, never a guarantee (`effort`, `argument-hint`), enforced by
+an allowlist test. See the frontmatter table in the ai-tools reference.
+
 ---
 
 ## Current models

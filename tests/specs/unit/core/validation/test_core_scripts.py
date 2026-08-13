@@ -1,6 +1,7 @@
 """Validation tests for the shared shell scripts in core/scripts."""
 import os
 import re
+import shutil
 import subprocess
 
 import pytest
@@ -92,6 +93,38 @@ class TestInstallCommonBin:
         assert result.returncode == 0, result.stderr
         assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
             "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
+
+
+class TestBuildAgentsMd:
+    """AGENTS.md must carry rule BODIES only, never their YAML frontmatter.
+
+    The rules are concatenated for Copilot/Codex, which have no concept of
+    Claude Code's paths frontmatter — before the fix, the raw `paths:` block
+    from report-structure.md leaked into AGENTS.md as body text.
+    """
+
+    def test_output_contains_no_rule_frontmatter(self, workspace_root, tmp_path):
+        core = tmp_path / "core"
+        (core / "scripts").mkdir(parents=True)
+        shutil.copy(
+            workspace_root / "core" / "scripts" / "build-agents-md.sh",
+            core / "scripts" / "build-agents-md.sh",
+        )
+        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
+        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
+
+        result = subprocess.run(
+            ["bash", str(core / "scripts" / "build-agents-md.sh")],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+        lines = (core / "AGENTS.md").read_text().splitlines()
+        assert "paths:" not in [line.strip() for line in lines], (
+            "rule frontmatter leaked into AGENTS.md — build-agents-md.sh "
+            "must strip the leading YAML block from each rule"
+        )
 
 
 class TestInstallAgentsSkills:

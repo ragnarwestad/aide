@@ -32,7 +32,9 @@ def parse_frontmatter(content: str) -> dict:
         return {}
     fields = {}
     for line in match.group(1).splitlines():
-        if ":" in line:
+        # Only column-0 keys are frontmatter fields — indented lines are
+        # continuations of folded values (e.g. the description block).
+        if re.match(r"^[A-Za-z][A-Za-z0-9_-]*:", line):
             key, _, value = line.partition(":")
             fields[key.strip()] = value.strip()
     return fields
@@ -128,6 +130,43 @@ class TestCoreSkillEffort:
             f"{skill_dir.name}: frontmatter must have an 'effort' field "
             f"(one of {sorted(VALID_EFFORT_LEVELS)}) — set the reasoning level deliberately per skill"
         )
+
+
+# The frontmatter contract (report 71 in aide-specs): the Agent Skills spec's
+# six fields, plus the Claude Code extras aide accepts because they degrade
+# additively — a tool that ignores them loses a nicety, never a guarantee.
+# Behavior-critical fields (disable-model-invocation, user-invocable, context,
+# hooks, ...) are banned by default; extending this list is a deliberate
+# policy decision, not a formality.
+SPEC_FRONTMATTER_FIELDS = {
+    "name", "description", "license", "compatibility", "metadata",
+    "allowed-tools",
+}
+ACCEPTED_CLAUDE_CODE_EXTRAS = {"effort", "argument-hint"}
+ALLOWED_FRONTMATTER_FIELDS = SPEC_FRONTMATTER_FIELDS | ACCEPTED_CLAUDE_CODE_EXTRAS
+
+
+@pytest.mark.validation
+class TestCoreSkillFrontmatterAllowlist:
+    """No skill may carry a frontmatter field outside the allowlist."""
+
+    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
+    def test_skill_uses_only_allowed_fields(self, skill_dir):
+        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
+        rogue = set(fields) - ALLOWED_FRONTMATTER_FIELDS
+        assert not rogue, (
+            f"{skill_dir.name}: field(s) {sorted(rogue)} are outside the "
+            f"frontmatter allowlist. aide only accepts the Agent Skills spec "
+            f"fields plus additive Claude Code extras "
+            f"({sorted(ACCEPTED_CLAUDE_CODE_EXTRAS)}) — see report 71."
+        )
+
+    def test_a_rogue_field_is_detected(self, tmp_path):
+        (tmp_path / "SKILL.md").write_text(
+            "---\nname: rogue\ndescription: x\ncontext: fork\n---\n\nBody.\n"
+        )
+        fields = parse_frontmatter((tmp_path / "SKILL.md").read_text())
+        assert set(fields) - ALLOWED_FRONTMATTER_FIELDS == {"context"}
 
 
 @pytest.mark.validation
