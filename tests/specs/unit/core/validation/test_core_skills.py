@@ -128,3 +128,23 @@ class TestCoreSkillEffort:
             f"{skill_dir.name}: frontmatter must have an 'effort' field "
             f"(one of {sorted(VALID_EFFORT_LEVELS)}) — set the reasoning level deliberately per skill"
         )
+
+
+@pytest.mark.validation
+class TestCoreSkillInvocation:
+    """Skills must be invocable both by the user and by the model.
+
+    disable-model-invocation blocked "ask the assistant in prose" (decided
+    removed 2026-08-13 — the field was inherited from the commands era).
+    It is also Claude Code-only: Copilot and Codex ignore it, so it made
+    the same skill stricter in one tool than the others.
+    """
+
+    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
+    def test_model_invocation_is_not_disabled(self, skill_dir):
+        fields = parse_frontmatter((skill_dir / "SKILL.md").read_text())
+        assert "disable-model-invocation" not in fields, (
+            f"{skill_dir.name}: remove 'disable-model-invocation' — aide skills "
+            "must work when the user asks for them in prose, and the field is "
+            "ignored by Copilot/Codex anyway"
+        )

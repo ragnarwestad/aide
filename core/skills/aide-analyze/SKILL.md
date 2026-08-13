@@ -9,7 +9,6 @@ description: >-
   affected files and API impact.
   Do NOT use for: creating a new task (use aide-create),
   implementation (use aide-implement).
-disable-model-invocation: true
 argument-hint: "[PROJ-XXXX or task number]"
 effort: xhigh
 ---

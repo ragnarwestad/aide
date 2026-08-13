@@ -4,7 +4,6 @@ description: >-
   Convert a React class component to a functional component with hooks.
   Use when: converting a class component to a functional component, modernizing React code.
   Do NOT use for: new components (write functional from the start), refactoring beyond the conversion
-disable-model-invocation: true
 argument-hint: "[file-path]"
 effort: medium
 ---

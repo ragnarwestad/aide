@@ -7,7 +7,6 @@ description: >-
   starting new work that needs documentation.
   Do NOT use for: analysis (use aide-analyze), implementation (use aide-implement),
   code review.
-disable-model-invocation: true
 argument-hint: "[PROJ-XXXX or TODO <description>]"
 effort: medium
 ---

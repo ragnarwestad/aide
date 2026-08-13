@@ -4,7 +4,6 @@ description: >-
   Analyze a file and create missing unit tests.
   Use when: generating missing tests for a specific file, increasing test coverage.
   Do NOT use for: TDD implementation (use aide-implement), code review
-disable-model-invocation: true
 argument-hint: "[file-path]"
 effort: high
 ---

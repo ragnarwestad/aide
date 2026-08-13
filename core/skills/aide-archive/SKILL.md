@@ -7,7 +7,6 @@ description: >-
   cleaning up the reports root.
   Do NOT use for: creating reports (use aide-create), unfinished work,
   deleting reports.
-disable-model-invocation: true
 argument-hint: "[<JIRA-KEY> or task number]"
 effort: medium
 ---

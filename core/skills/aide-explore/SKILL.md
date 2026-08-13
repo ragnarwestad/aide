@@ -7,7 +7,6 @@ description: >-
   do something, unclear scope, "what would it take to ...".
   Do NOT use for: creating reports (use aide-create), analysis of an existing
   report (use aide-analyze), implementation.
-disable-model-invocation: true
 argument-hint: "[topic, question or idea]"
 effort: high
 ---

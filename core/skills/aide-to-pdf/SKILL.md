@@ -4,7 +4,6 @@ description: >-
   Generate PDF from JIRA or TODO documentation.
   Use when: exporting documentation to PDF, generating a print-friendly report.
   Do NOT use for: HTML generation (use aide-to-html), creating documentation (use aide-create)
-disable-model-invocation: true
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---

@@ -8,7 +8,6 @@ description: >-
   implementation plan, coding based on 3-solution.md.
   Do NOT use for: creation (use aide-create),
   analysis (use aide-analyze), tests only without implementation (use aide-make-tests).
-disable-model-invocation: true
 argument-hint: "[PROJ-XXXX or task number]"
 effort: high
 ---
