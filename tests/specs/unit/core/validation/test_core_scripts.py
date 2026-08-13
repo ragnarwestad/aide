@@ -92,3 +92,43 @@ class TestInstallCommonBin:
         assert result.returncode == 0, result.stderr
         assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
             "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
+
+
+class TestInstallAgentsSkills:
+    """The shared skills installer must refuse to run without its source dir.
+
+    On 2026-08-13 the lib was sourced from a shell where BASH_SOURCE was
+    empty, _CORE_SKILLS_DIR resolved to "", and the "$_CORE_SKILLS_DIR"/*/
+    glob expanded to the ROOT directories — the installer started copying
+    /Applications into ~/.agents/skills/. The functions must fail fast when
+    the resolved source directory does not exist.
+    """
+
+    def test_install_fails_fast_when_source_dir_is_invalid(self, workspace_root, tmp_path):
+        installer = workspace_root / "core" / "scripts" / "_install-skills.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c",
+             f'source "{installer}"; _CORE_SKILLS_DIR=/nonexistent; install_agents_skills'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode != 0, (
+            "install_agents_skills must refuse to run when the skills source "
+            "dir is missing, instead of globbing whatever the path expands to"
+        )
+        assert not (tmp_path / ".agents" / "skills").exists(), \
+            "nothing may be created when the source dir is invalid"
+
+    def test_uninstall_fails_fast_when_source_dir_is_invalid(self, workspace_root, tmp_path):
+        installer = workspace_root / "core" / "scripts" / "_install-skills.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c",
+             f'source "{installer}"; _CORE_SKILLS_DIR=/nonexistent; uninstall_agents_skills'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode != 0
