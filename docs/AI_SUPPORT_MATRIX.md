@@ -27,7 +27,7 @@ and which configuration files each tool reads.
 | Tool | Version | Last verified | Status |
 |---------|---------|-----------------|--------|
 | Claude Code | 2.1.231 | 2026-08-13 | ✅ Supported |
-| GitHub Copilot CLI | 1.0.79 | 2026-08-13 | ✅ Supported |
+| GitHub Copilot CLI | 1.0.79 | 2026-08-13 | ⏸️ Parked (no subscription) |
 | Codex CLI | 0.147.0 | 2026-08-13 | ✅ Supported |
 
 **The Version and Last verified columns are stamped from probing — do not
@@ -104,8 +104,7 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 ## Open follow-up items
 
-- ⚠️ **Copilot's project-level `.claude/agents|rules` rows are unverified.** Skills and commands are resolved (verified against CLI 1.0.79, 2026-08-13): personal skills come from `~/.agents/skills/` (not `~/.claude/skills/`), project-level `.claude/skills/` and `.claude/commands/` are still read, personal `~/.claude/commands/` is not. Whether project-level `.claude/agents/` and `.claude/rules/` are still read needs a model call to verify, which was blocked by an account policy («Required policies have not been enabled by your administrator») at the time.
-- **Cells that still need hands-on verification** (2026-08-13 sweep covered the rest): the Copilot cells that require a model call — `CLAUDE.md`, repo `AGENTS.md`, project-level `.claude/rules/` and `.claude/agents/`, and the instructions files (`.github/copilot-instructions.md`, `.github/instructions/`, `~/.copilot/copilot-instructions.md`). All blocked by the same account policy as the item above. Cells stamped "verified 1.0.79" / "verified 0.147.0" are hands-on confirmed.
+- ⏸️ **Copilot is PARKED (August 2026): no subscription.** The customer-provided subscription lapsed, so every Copilot model call is refused («Access denied by policy settings»). Consequences: the Copilot e2e tests cannot run, and the cells that need a model call stay unverified — `CLAUDE.md`, repo `AGENTS.md`, project-level `.claude/rules/` and `.claude/agents/`, and the instructions files. Verified-stamped cells (skills/commands, done via the free `copilot skill list` against 1.0.79 on 2026-08-13) remain valid. Resume the verification sweep when a subscription exists again.
 - The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
 
 ---

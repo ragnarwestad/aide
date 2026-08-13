@@ -17,8 +17,10 @@ for Claude Code, Copilot and Codex.
 
 **Implementation priority:**
 1. **Claude Code** — most important
-2. **Copilot** — second most important
-3. Codex — lower priority
+2. **Codex** — second
+3. Copilot — PARKED since August 2026 (no subscription; the customer-provided
+   one lapsed). The implementation stays but is untestable and unverified
+   until a subscription exists again.
 
 ---
 

@@ -40,7 +40,11 @@ only — do not develop there).
   Copilot both read the skills in `~/.claude/skills/`; Copilot and Codex
   both read the generated `core/AGENTS.md` (installed as
   `~/.copilot/copilot-instructions.md` and `~/.codex/AGENTS.md`).
-  Priority: Claude Code > Copilot > Codex. Gemini support and all
+  Priority: Claude Code > Codex > Copilot — Copilot is PARKED since
+  August 2026: the customer-provided subscription lapsed, so every model
+  call is refused by policy and the implementation cannot be tested or
+  verified. It stays in the repo (self-contained, harmless) awaiting a
+  new subscription. Gemini support and all
   per-tool extras (JetBrains templates, VS Code tasks, Codex CLI wrappers)
   were deliberately dropped — hand-maintained per-tool adapters were the
   main maintenance cost. Inspired by OpenSpec's engine/adapter split.
