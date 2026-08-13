@@ -149,18 +149,22 @@ cd ~/develop/my-api && git pull
 
 ### Tracking info in documentation
 
-After analysis/solution, the **Tracking info** section is updated with which repositories and branches were used:
+After analysis AND solution, the **Tracking info** section records which
+repositories and branches were used — one compact `Repo` line per repo,
+in the same style as the other fields:
 
 ```markdown
 ## Tracking info
 
 - **JIRA:** [PROJ-7637](https://jira.example.com/browse/PROJ-7637)
 - **Last analyzed:** `2025-11-07`
-
-**Repositories used during analysis:**
-- **my-app:** `feature/PROJ-7637` @ `abc123de`
-- **my-api:** `feature/PROJ-7637` @ `def456ab`
+- **Repo:** `my-app/feature/PROJ-7637 @ abc123de`
+- **Repo:** `my-api/feature/PROJ-7637 @ def456ab`
 ```
+
+The `Repo` lines belong in BOTH `2-analysis.md` and `3-solution.md` —
+the solution is written against a state of the code, and that state must
+be recorded where the solution lives.
 
 ---
 

@@ -32,7 +32,8 @@ Structure - follow the spec structure § 2-analysis:
 
 - `# TITLE - Analysis`
 - TOC with: Tracking info, Scope, Complexity, Findings, Risk analysis
-- **Tracking info:** Task=`FOLDER/`, Last analyzed=`[not analyzed yet]`
+- **Tracking info:** Task=`FOLDER/`, Last analyzed=`[not analyzed yet]`,
+  Repo=`[not analyzed yet]` (filled as `repo/branch @ commit`, one line per repo)
 - **Scope:** Placeholder for number of files, mapping, affected files (numbered list)
 - **Complexity:** Placeholder for level, factors, estimate (manual + AI-assisted)
 - **Findings:** Sections for codebase analysis, affected components, patterns, test coverage, API dependencies
@@ -44,7 +45,8 @@ Structure - follow the spec structure § 3-solution:
 
 - `# TITLE - Solution`
 - TOC with: Tracking info, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Implementation plan, Testing
-- **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`
+- **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`,
+  Repo=`[not prepared yet]` (filled as `repo/branch @ commit`, one line per repo)
 - **Approaches:** Placeholder for 2 approaches with pros/cons/estimate
 - **Recommended solution:** Placeholder with before/after examples (SEPARATE code blocks)
 - **Behavior delta:** What the solution Adds / Modifies / Removes in behavior, relative to today
