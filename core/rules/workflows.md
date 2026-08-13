@@ -164,8 +164,12 @@ After analysis/solution, the **Tracking info** section is updated with which rep
 
 ### Overall flow
 ```text
-Create - Analyze - Solve - Verify - Archive
+(Explore) - Create - Analyze - Solve - Verify - Archive
 ```
+
+**Explore is optional and has no stakes:** `/aide-explore` thinks the
+problem through with the user first — no files, no report. Use it when
+the idea or scope is not ready for `/aide-create` yet.
 
 ### Phase 1: Create document structure
 

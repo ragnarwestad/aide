@@ -15,6 +15,7 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
 Available skills:
 
+- `/aide-explore` - No-stakes thinking partner before a report exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD

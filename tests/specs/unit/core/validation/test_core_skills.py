@@ -85,6 +85,30 @@ class TestCoreSkillFrontmatter:
 
 
 @pytest.mark.validation
+class TestUninstallListsEverySkill:
+    """install.sh and uninstall.sh must mirror each other.
+
+    Every skill in core/skills/ is installed to ~/.claude/skills/ — so every
+    one of them must be in uninstall.sh's SKILLS list, or uninstalling
+    leaves it behind silently.
+    """
+
+    def test_every_core_skill_is_in_the_uninstall_list(self):
+        uninstall = (
+            CORE_SKILLS_DIR.parents[1]
+            / "implementations" / "claude-code" / "uninstall.sh"
+        )
+        content = uninstall.read_text()
+        missing = [
+            d.name for d in get_skill_dirs()
+            if f'"{d.name}"' not in content
+        ]
+        assert not missing, (
+            f"Skills missing from uninstall.sh's SKILLS list: {missing}"
+        )
+
+
+@pytest.mark.validation
 class TestCoreSkillEffort:
     """The effort field controls reasoning level per skill (Claude Code)."""
 

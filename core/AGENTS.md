@@ -25,6 +25,7 @@ Skills are loaded from `~/.claude/skills/` — use the `/` syntax.
 
 Available skills:
 
+- `/aide-explore` - No-stakes thinking partner before a report exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
@@ -257,8 +258,12 @@ After analysis/solution, the **Tracking info** section is updated with which rep
 
 ### Overall flow
 ```text
-Create - Analyze - Solve - Verify - Archive
+(Explore) - Create - Analyze - Solve - Verify - Archive
 ```
+
+**Explore is optional and has no stakes:** `/aide-explore` thinks the
+problem through with the user first — no files, no report. Use it when
+the idea or scope is not ready for `/aide-create` yet.
 
 ### Phase 1: Create document structure
 

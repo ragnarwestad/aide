@@ -91,8 +91,11 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
       same time (the strict separation says the description is only the
       problem as reported). The RED phase writes at least one failing test
       per criterion — wired into aide-analyze and aide-implement.
-- [ ] **Explore step.** A no-stakes thinking-partner mode before
-      `/aide-create` (OpenSpec's `/opsx:explore`).
+- [x] **Explore step.** Done August 2026: `/aide-explore` — a thinking
+      partner that creates nothing (reading the codebase is encouraged,
+      writing is banned), lays out approaches with trade-offs including
+      "do nothing", shrinks the scope, and ends with an offer to hand the
+      sharpened conclusion to `/aide-create`.
 
 ### From whippletree
 
