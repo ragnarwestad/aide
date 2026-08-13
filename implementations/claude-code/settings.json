@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Use pnpm test -- --run (not watch mode)' >&2; exit 2; fi; exit 0"
+            "command": "CMD=$(cat | jq -r '.tool_input.command'); if echo \"$CMD\" | grep -qE 'pnpm test' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Use pnpm test -- --run (not watch mode)' >&2; exit 2; fi; if echo \"$CMD\" | grep -qE '(^|[ /])vitest($| )' && ! echo \"$CMD\" | grep -qE '(^|[ /])vitest run($| )' && ! echo \"$CMD\" | grep -q -- '--run'; then echo 'Blocked: Bare vitest starts watch mode - use vitest run' >&2; exit 2; fi; if echo \"$CMD\" | grep -qE -- '--watch( |$|=)|--continuous|cargo watch|(^|[ /])(ptw|pytest-watch)($| )'; then echo 'Blocked: watch mode never exits - use single-run mode' >&2; exit 2; fi; exit 0"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check if source code files (.ts, .tsx, .js, .jsx, .kt, .java) were edited or written during this turn. If they were, check whether test commands (pnpm test, vitest, tsc) were also run in this turn. If code was changed but NO tests or type checks were run, respond with JSON: {\"decision\": \"block\", \"reason\": \"<explain which verifications are missing>\"}. If no source code was changed (only markdown, config, conversation, git operations), respond with JSON: {\"decision\": \"allow\"}. If stop_hook_active is true, always respond with JSON: {\"decision\": \"allow\"} to prevent infinite loops. IMPORTANT: Respond with raw JSON only, no markdown, no explanation outside the JSON."
+            "prompt": "Check if source code files (.ts, .tsx, .js, .jsx, .mjs, .cjs, .py, .go, .rs, .kt, .kts, .java, .rb, .swift, .cs, .php) were edited or written during this turn. If they were, check whether test or type-check commands (pnpm/npm/yarn/bun test, vitest, jest, tsc, pytest, go test, cargo test, gradle/mvn test) were also run in this turn. If code was changed but NO tests or type checks were run, respond with JSON: {\"decision\": \"block\", \"reason\": \"<explain which verifications are missing>\"}. If no source code was changed (only markdown, config, conversation, git operations), respond with JSON: {\"decision\": \"allow\"}. If stop_hook_active is true, always respond with JSON: {\"decision\": \"allow\"} to prevent infinite loops. IMPORTANT: Respond with raw JSON only, no markdown, no explanation outside the JSON."
           }
         ]
       }

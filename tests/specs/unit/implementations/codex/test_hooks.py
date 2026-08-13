@@ -172,6 +172,42 @@ class TestBlockWatchMode:
         )
         assert result.returncode == 0
 
+    @pytest.mark.parametrize("cmd", [
+        "vitest",
+        "npx vitest",
+        "jest --watch",
+        "vitest --watch src/",
+        "./gradlew test --continuous",
+        "cargo watch -x test",
+        "ptw",
+        "pytest-watch",
+    ])
+    def test_blocks_watchers_across_toolchains(self, hooks_dir, cmd):
+        result = run_hook(
+            hooks_dir,
+            "aide-block-watch-mode.sh",
+            payload("Bash", {"command": cmd}, event="PreToolUse"),
+        )
+        assert result.returncode == 2, f"watcher not blocked: {cmd}"
+
+    @pytest.mark.parametrize("cmd", [
+        "vitest run",
+        "npx vitest run country.test.ts",
+        "pytest",
+        "python -m pytest -q",
+        "go test ./...",
+        "cargo test",
+        "./gradlew test",
+        "npm test",
+    ])
+    def test_allows_single_run_commands(self, hooks_dir, cmd):
+        result = run_hook(
+            hooks_dir,
+            "aide-block-watch-mode.sh",
+            payload("Bash", {"command": cmd}, event="PreToolUse"),
+        )
+        assert result.returncode == 0, f"valid command blocked: {cmd}"
+
 
 @pytest.mark.codex
 class TestMarkdownlint:
@@ -285,4 +321,20 @@ class TestStopGuard:
     def test_type_check_counts_as_verification(self, hooks_dir, tmp_path):
         self.track(hooks_dir, tmp_path, "Write", {"file_path": "src/foo.ts"})
         self.track(hooks_dir, tmp_path, "Bash", {"command": "npx tsc --noEmit"})
+        assert self.decision(self.stop(hooks_dir, tmp_path)) is None
+
+    @pytest.mark.parametrize("filename", [
+        "app/main.py", "cmd/server.go", "src/lib.rs", "app/Model.rb",
+        "Sources/App.swift", "src/index.mjs",
+    ])
+    def test_non_js_source_files_trigger_the_guard(self, hooks_dir, tmp_path, filename):
+        self.track(hooks_dir, tmp_path, "Write", {"file_path": filename})
+        result = self.stop(hooks_dir, tmp_path)
+        assert self.decision(result) == "block", (
+            f"editing {filename} without tests must block the stop"
+        )
+
+    def test_bun_test_counts_as_verification(self, hooks_dir, tmp_path):
+        self.track(hooks_dir, tmp_path, "Write", {"file_path": "src/foo.ts"})
+        self.track(hooks_dir, tmp_path, "Bash", {"command": "bun test"})
         assert self.decision(self.stop(hooks_dir, tmp_path)) is None

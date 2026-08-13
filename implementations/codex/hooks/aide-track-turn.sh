@@ -15,7 +15,7 @@ state_dir="${TMPDIR:-/tmp}/aide-codex-hooks/$session"
 case "$tool" in
   Bash)
     cmd=$(jq -r '.tool_input.command // empty' <<<"$payload")
-    if echo "$cmd" | grep -qE '(^|[ /])((pnpm|npm|yarn) (run )?test|vitest|jest|tsc|pytest|gradlew?|mvn|go test|cargo test)'; then
+    if echo "$cmd" | grep -qE '(^|[ /])((pnpm|npm|yarn|bun) (run )?test|vitest|jest|tsc|pytest|gradlew?|mvn|go test|cargo test)'; then
       mkdir -p "$state_dir"
       touch "$state_dir/$turn.tests-run"
     fi
@@ -26,7 +26,7 @@ case "$tool" in
       files=$(jq -r '.tool_input.command // .tool_input.input // empty' <<<"$payload" |
         sed -nE 's/^\*\*\* (Add|Update) File: (.*)$/\2/p')
     fi
-    if echo "$files" | grep -qE '\.(ts|tsx|js|jsx|kt|java)$'; then
+    if echo "$files" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|kt|kts|java|rb|swift|cs|php)$'; then
       mkdir -p "$state_dir"
       touch "$state_dir/$turn.code-changed"
     fi
