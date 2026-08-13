@@ -213,6 +213,19 @@ hooks, so `aide-track-turn.sh` writes per-turn markers ("code changed",
 "tests run") under `$TMPDIR`, and `aide-stop-guard.sh` blocks Stop when the
 first exists without the second. The scripts require `jq`.
 
+All four hooks are verified in live `codex exec` sessions (0.147.0,
+2026-08-13): the Stop guard blocked a turn that changed source code without
+tests, the markdownlint hook linted a file created via `apply_patch` (the
+path extraction from the patch text works), and `git add .` was denied with
+the hook's message.
+
+**Hook trust:** Codex only runs hooks it trusts. The first interactive
+session after installing asks you to approve them once; headless automation
+(`codex exec`) must pass `--dangerously-bypass-hook-trust` until that
+approval exists. Note that repo-level `.codex/hooks.json` did not load in
+`codex exec` during verification — aide's hooks are global
+(`~/.codex/hooks.json`), so this does not affect them.
+
 ---
 
 ## Usage

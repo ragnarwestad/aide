@@ -131,6 +131,7 @@ a turn when code changed without tests — are ported to Codex as
 installed to `~/.codex/`). The Stop guard needed a different construction:
 Codex has no prompt hooks, so PostToolUse markers ("code changed" /
 "tests run") are written per turn and judged by a command hook at Stop.
+All four verified in live `codex exec` sessions against 0.147.0.
 
 ## Known quirks
 
