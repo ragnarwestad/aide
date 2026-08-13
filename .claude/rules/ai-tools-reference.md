@@ -35,8 +35,9 @@ overlapping paths:
 **Format:** Folder with `SKILL.md` as the entry point. YAML frontmatter with
 `name` and `description` (required). Markdown body with instructions.
 
-**Copilot also reads `~/.claude/commands/`** as skills (discovered March 2026).
-The instructions are interpreted as a natural-language recipe, `$ARGUMENTS` is ignored.
+**Copilot no longer reads `~/.claude/commands/`** (verified against 1.0.79 with
+a probe file, 2026-08-13 — it used to read them as skills). Project-level
+`.claude/commands/*.md` IS still read as skills (same verification).
 
 **Important for aide:** `~/.claude/skills/` is read by Claude Code only —
 the Copilot CLI stopped reading it (verified hands-on against 1.0.79 with a

@@ -99,8 +99,8 @@ All three tools have skills, stable hooks, subagents and a plan/analysis mode.
 
 ## Open follow-up items
 
-- ⚠️ **Copilot's project-level `.claude/commands|agents|rules` rows are unverified.** For SKILLS this is resolved (verified against CLI 1.0.79, 2026-08-13): personal skills come from `~/.agents/skills/` (not `~/.claude/skills/`), project-level `.claude/skills/` is still read. Whether the CLI still reads project-level `.claude/commands/`, `.claude/agents/` and `.claude/rules/` has NOT been re-verified.
-- **The config cells in the tables below have not been hands-on re-verified** against the latest versions — items marked ⚠️ should be checked at the next update.
+- ⚠️ **Copilot's project-level `.claude/agents|rules` rows are unverified.** Skills and commands are resolved (verified against CLI 1.0.79, 2026-08-13): personal skills come from `~/.agents/skills/` (not `~/.claude/skills/`), project-level `.claude/skills/` and `.claude/commands/` are still read, personal `~/.claude/commands/` is not. Whether project-level `.claude/agents/` and `.claude/rules/` are still read needs a model call to verify, which was blocked by an account policy («Required policies have not been enabled by your administrator») at the time.
+- **Cells that still need hands-on verification** (2026-08-13 sweep covered the rest): the Copilot cells that require a model call — `CLAUDE.md`, repo `AGENTS.md`, project-level `.claude/rules/` and `.claude/agents/`, and the instructions files (`.github/copilot-instructions.md`, `.github/instructions/`, `~/.copilot/copilot-instructions.md`). All blocked by the same account policy as the item above. Cells stamped "verified 1.0.79" / "verified 0.147.0" are hands-on confirmed.
 - The `effort` frontmatter on skills is in use (`low`/`medium`/`high`/`xhigh`) — Claude Code-specific.
 
 ---
@@ -111,27 +111,28 @@ Which files each tool reads automatically:
 
 | File/directory | Claude Code | Copilot | Codex |
 |-----------|:-----------:|:-------:|:-----:|
-| `CLAUDE.md` | ✅ primary | ✅ read | ✅ read |
-| `AGENTS.md` | — | ✅ read | ✅ primary |
+| `CLAUDE.md` | ✅ primary | ✅ read | — (not read; verified 0.147.0) |
+| `AGENTS.md` | — | ✅ read | ✅ primary (verified 0.147.0) |
 | `.claude/rules/*.md` | ✅ auto-include | ✅ read | — |
 | `.claude/skills/` | ✅ native skills | ✅ read (verified 1.0.79) | — |
-| `.github/skills/` | — | ✅ native skills | — |
-| `.agents/skills/` | — | ✅ read | ✅ read |
+| `.github/skills/` | — | ✅ native skills (verified 1.0.79) | — |
+| `.agents/skills/` | — | ✅ read (verified 1.0.79) | ✅ read (verified 0.147.0) |
 | `~/.agents/skills/` | — | ✅ personal skills (verified 1.0.79) | ✅ read |
 | `~/.copilot/skills/` | — | ✅ global skills | — |
-| `.claude/commands/*.md` | ✅ slash commands | ✅ read | — |
+| `.claude/commands/*.md` | ✅ slash commands | ✅ read as skills (verified 1.0.79) | — |
 | `.claude/agents/*.md` | ✅ agents | ✅ read | — |
 | `.claude/settings.json` | ✅ MCP + hooks | — | — |
 | `.github/copilot-instructions.md` | — | ✅ primary | — |
 | `.github/instructions/**/*.instructions.md` | — | ✅ path-specific | — |
 | `~/.copilot/copilot-instructions.md` | — | ✅ global | — |
-| `~/.codex/AGENTS.md` | — | — | ✅ global |
-| `~/.codex/config.toml` | — | — | ✅ MCP |
+| `~/.codex/AGENTS.md` | — | — | ✅ global (verified 0.147.0) |
+| `~/.codex/config.toml` | — | — | ✅ MCP (verified 0.147.0) |
 
-> ⚠️ **The Copilot `.claude/commands|agents|rules` rows need re-verification.** The
-> skills rows are verified against CLI 1.0.79 (2026-08-13): project-level `.claude/skills/`
-> is still read; personal skills come from `~/.agents/skills/`, and `~/.claude/skills/` is
-> no longer read. The commands/agents/rules rows have not been re-verified — see
+> ⚠️ **The Copilot `.claude/agents|rules` rows need re-verification.** The skills and
+> commands rows are verified against CLI 1.0.79 (2026-08-13): project-level
+> `.claude/skills/` and `.claude/commands/` are still read; personal skills come from
+> `~/.agents/skills/`, and `~/.claude/skills/` and `~/.claude/commands/` are no longer
+> read. The agents/rules rows have not been re-verified — see
 > [Open follow-up items](#open-follow-up-items).
 
 ---
@@ -193,14 +194,14 @@ implementations/claude-code/
 
 **Important:** Copilot additionally reads the `.claude/` structure:
 
-> ⚠️ **The commands/agents/rules rows need re-verification.** The `.claude/skills/` row
-> is verified against CLI 1.0.79 (2026-08-13). The remaining rows have not been
-> re-checked. See [Open follow-up items](#open-follow-up-items).
+> ⚠️ **The agents/rules rows need re-verification.** The `.claude/skills/` and
+> `.claude/commands/` rows are verified against CLI 1.0.79 (2026-08-13). The remaining
+> rows have not been re-checked. See [Open follow-up items](#open-follow-up-items).
 
 | File | Description |
 |-----|-------------|
 | `.claude/skills/` | Agent skills — read automatically (verified against 1.0.79) |
-| `.claude/commands/*.md` | Slash commands — read by the Copilot CLI |
+| `.claude/commands/*.md` | Read as skills by the Copilot CLI (verified against 1.0.79) |
 | `.claude/agents/*.md` | Custom agents — read by the Copilot CLI |
 | `.claude/rules/*.md` | Rule files — read by the Copilot CLI |
 
@@ -247,7 +248,7 @@ implementations/copilot/
 | File | Description |
 |-----|-------------|
 | `AGENTS.md` (`~/.codex/AGENTS.md`) | Primary instruction file (installed from `core/AGENTS.md`) |
-| `CLAUDE.md` | Also read |
+| `CLAUDE.md` | Not read (verified 0.147.0) — needs `project_doc_fallback_filenames` in config.toml |
 
 ### Configuration
 
