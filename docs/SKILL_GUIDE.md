@@ -287,7 +287,7 @@ One deep skill > four shallow skills.
 
 ## Examples to study
 
-### Workflow skills (doc-aide/core/skills/)
+### Workflow skills (aide/core/skills/)
 
 | Skill | Why it is good |
 |-------|--------------------|

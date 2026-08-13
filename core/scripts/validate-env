@@ -1,5 +1,5 @@
 #!/bin/bash
-# validate-env - Validates required environment variables for doc-aide
+# validate-env - Validates required environment variables for aide
 #
 # Usage:
 #   validate-env           # Check all variables
@@ -88,7 +88,7 @@ check_path_exists() {
 
 if [ "$QUIET" = false ]; then
     echo "========================================"
-    echo "Environment variable validation for doc-aide"
+    echo "Environment variable validation for aide"
     echo "========================================"
     echo ""
     echo "📋 Required variables:"
@@ -96,7 +96,7 @@ if [ "$QUIET" = false ]; then
 fi
 
 # Required variables
-check_required "AIDE_INSTALLATION_PATH" "Path to the doc-aide workspace root"
+check_required "AIDE_INSTALLATION_PATH" "Path to the aide workspace root"
 check_path_exists "AIDE_INSTALLATION_PATH"
 
 if [ "$QUIET" = false ]; then
@@ -135,10 +135,10 @@ if [ "$FIX" = true ] && [ $errors -gt 0 ]; then
     echo ""
     echo "🔧 To fix, add to ~/.zshrc or ~/.bashrc:"
     echo ""
-    echo "# doc-aide environment variables"
+    echo "# aide environment variables"
 
     if [ -z "$AIDE_INSTALLATION_PATH" ]; then
-        echo "export AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/doc-aide\""
+        echo "export AIDE_INSTALLATION_PATH=\"/Users/\$(whoami)/develop/aide\""
     fi
 
     echo ""

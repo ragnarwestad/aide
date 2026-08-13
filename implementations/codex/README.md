@@ -182,7 +182,7 @@ confirm = [
 
 ### AGENTS.md (persistent instructions)
 
-Codex's instruction file is `AGENTS.md`. doc-aide generates `core/AGENTS.md` from `core/rules/`, and `install.sh` installs it as `~/.codex/AGENTS.md`. Codex additionally reads an `AGENTS.md` in the project root via directory walk (git root → cwd), so projects can add their own rules:
+Codex's instruction file is `AGENTS.md`. aide generates `core/AGENTS.md` from `core/rules/`, and `install.sh` installs it as `~/.codex/AGENTS.md`. Codex additionally reads an `AGENTS.md` in the project root via directory walk (git root → cwd), so projects can add their own rules:
 
 ```markdown
 # AGENTS.md

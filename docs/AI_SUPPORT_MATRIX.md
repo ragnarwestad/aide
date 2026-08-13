@@ -211,7 +211,7 @@ implementations/copilot/
 
 ### Features
 
-- **No doc-aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
+- **No aide slash commands** — workflows are driven via the `~/.codex/AGENTS.md` instructions
 - **MCP:** Support via `~/.codex/config.toml`
 - **Parallel execution** — can work on several tasks at once
 
@@ -228,7 +228,7 @@ implementations/codex/
 
 ## Installation into target projects
 
-When you install doc-aide into a target project (e.g. my-app):
+When you install aide into a target project (e.g. my-app):
 
 ### Minimum requirements per tool
 

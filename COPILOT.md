@@ -6,7 +6,7 @@ This file is the entry point for GitHub Copilot when working in this repository.
 
 ## 📍 Where you are now
 
-You are in **doc-aide**. This is an AI tooling workspace for AI-assisted development.
+You are in **aide**. This is an AI tooling workspace for AI-assisted development.
 
 ---
 
@@ -37,7 +37,7 @@ The first time you open the workspace in VS Code:
 ```bash
 # In the VS Code terminal (Ctrl+` / Cmd+`)
 echo $AIDE_INSTALLATION_PATH
-# Should print: /Users/[your-user]/develop/doc-aide
+# Should print: /Users/[your-user]/develop/aide
 
 echo $PATH | grep ".local/bin"
 # Should contain: ~/.local/bin

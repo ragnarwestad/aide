@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# install.sh - Installs OpenAI Codex configuration for the doc-aide workspace
+# install.sh - Installs OpenAI Codex configuration for the aide workspace
 # This sets up custom instructions and shared CLI scripts
 
 set -e  # Exit on error

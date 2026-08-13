@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Uninstalls doc-aide for ALL AI tools.
+# Uninstalls aide for ALL AI tools.
 #
 # Runs each implementations/<ai>/uninstall.sh. Each one asks for its own
 # confirmation before deleting anything. The shared scripts in ~/.local/bin
@@ -11,7 +11,7 @@
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "🗑️  doc-aide — uninstalling all AI tools"
+echo "🗑️  aide — uninstalling all AI tools"
 echo "==============================================="
 
 status=0

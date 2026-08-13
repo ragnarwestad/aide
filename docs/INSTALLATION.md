@@ -1,4 +1,4 @@
-# Installation - Doc Aide
+# Installation - aide
 
 > **📝 Note:** For AI-specific installation, primarily see:
 > - **Claude Code:** [implementations/claude-code/INSTALL.md](../implementations/claude-code/INSTALL.md)
@@ -59,7 +59,7 @@ These steps apply regardless of which AI tool you use.
 
 ```text
 ~/develop/          # Example - adapt to your structure
-├── doc-aide/       # AI workspace (this repo)
+├── aide/       # AI workspace (this repo)
 ├── my-app/         # example project
 ├── my-api/         # example project
 └── ...             # other projects
@@ -73,8 +73,8 @@ Clone the workspace as a **sibling** of your projects (or wherever you prefer):
 
 ```bash
 cd ~/develop/
-git clone <repo-url> doc-aide
-cd doc-aide
+git clone <repo-url> aide
+cd aide
 ```
 
 **Verify the structure:**
@@ -82,7 +82,7 @@ cd doc-aide
 ```bash
 # You should be able to see both directories:
 ls -la ~/develop/
-# → doc-aide/
+# → aide/
 # → my-app/
 ```
 
@@ -122,7 +122,7 @@ Points to the workspace root (for templates and configuration):
 
 ```bash
 # In ~/.zshrc or ~/.bashrc
-export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/doc-aide"
+export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
 
 # Load the changes
 source ~/.zshrc  # or source ~/.bashrc
@@ -149,7 +149,7 @@ source ~/.zshrc  # or source ~/.bashrc
 **✅ General setup complete!**
 
 You now have:
-- ✅ Cloned the doc-aide workspace
+- ✅ Cloned the aide workspace
 - ✅ (Optional) Configured environment variables
 
 **Next step:** Choose your AI tool and complete the installation 👇
@@ -204,7 +204,7 @@ The sections below describe what each individual installer does.
 
 3. **Run the setup script:**
    ```bash
-   cd doc-aide/implementations/claude-code
+   cd aide/implementations/claude-code
    ./install.sh
    ```
 
@@ -385,7 +385,7 @@ Test that the AI tool can analyze the codebase:
 
 ```bash
 # Run the setup script again
-cd doc-aide/implementations/claude-code
+cd aide/implementations/claude-code
 ./install.sh
 # Restart Claude Code
 ```

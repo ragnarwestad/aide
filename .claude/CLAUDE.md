@@ -1,6 +1,6 @@
-# CLAUDE.md - doc-aide
+# CLAUDE.md - aide
 
-doc-aide is a configuration and tooling repo for AI-assisted development.
+aide is a configuration and tooling repo for AI-assisted development.
 It is NOT an application in itself.
 
 ---

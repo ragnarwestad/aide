@@ -1,12 +1,12 @@
-# Installation Guide - doc-aide-claude-code
+# Installation Guide - aide-claude-code
 
 ## Quick Start
 
 ```bash
 # 1. Unpack the zip file
 cd ~/develop
-unzip doc-aide-claude-code.zip
-cd doc-aide-claude-code
+unzip aide-claude-code.zip
+cd aide-claude-code
 
 # 2. Set environment variables (add to ~/.zshrc)
 export AIDE_PROJECTS_PATH="$HOME/develop"
@@ -78,7 +78,7 @@ The root directory where your projects live.
 export AIDE_REPORTS_PATH="$HOME/Documents/aide-reports"
 ```
 
-Where JIRA documentation and TODO plans are stored. If not set, `doc-aide-claude-code/reports/` is used.
+Where JIRA documentation and TODO plans are stored. If not set, `aide-claude-code/reports/` is used.
 
 ---
 
@@ -145,7 +145,7 @@ Document creation happens via the slash command `/aide-create` (not a terminal s
 echo $AIDE_PROJECTS_PATH
 
 # Run install again
-cd /path/to/doc-aide-claude-code
+cd /path/to/aide-claude-code
 ./install.sh
 
 # Restart Claude Code

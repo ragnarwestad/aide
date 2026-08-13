@@ -1,4 +1,4 @@
-# Development in doc-aide
+# Development in aide
 
 ## Directory structure
 

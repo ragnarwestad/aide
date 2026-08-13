@@ -1,4 +1,4 @@
-# Doc Aide
+# aide
 
 A structured workspace for AI-assisted development. Supports Claude Code, GitHub Copilot and Codex.
 
@@ -6,7 +6,7 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
 
 - [Vision](#vision)
 - [For end users](#for-end-users)
-- [For doc-aide developers](#for-doc-aide-developers)
+- [For aide developers](#for-aide-developers)
 - [Environment variables](#environment-variables)
   - [AIDE_INSTALLATION_PATH](#aide_installation_path-required-for-dist-packages)
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
@@ -31,15 +31,15 @@ This workspace enables a workflow where **any AI assistant** can:
 
 ## For end users
 
-> **You do not need to clone this repo to use doc-aide.**
+> **You do not need to clone this repo to use aide.**
 
 Download the ready-made package for your AI tool:
 
 | AI tool | Package | Documentation |
 |------------|-------|---------------|
-| Claude Code | `dist/doc-aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
-| GitHub Copilot | `dist/doc-aide-copilot.zip` | [INSTALL.md](implementations/copilot/INSTALL.md) |
-| Codex | `dist/doc-aide-codex.zip` | [README.md](implementations/codex/README.md) |
+| Claude Code | `dist/aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
+| GitHub Copilot | `dist/aide-copilot.zip` | [INSTALL.md](implementations/copilot/INSTALL.md) |
+| Codex | `dist/aide-codex.zip` | [README.md](implementations/codex/README.md) |
 
 Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
 
@@ -47,9 +47,9 @@ Each package contains everything you need: instructions, commands/prompts, scrip
 
 ---
 
-## For doc-aide developers
+## For aide developers
 
-Want to **contribute to or further develop** doc-aide?
+Want to **contribute to or further develop** aide?
 
 👉 **[DEVELOPING.md](DEVELOPING.md)** - Complete developer guide
 
@@ -67,10 +67,10 @@ The workspace is designed to handle **cross-cutting issues** where a single JIRA
 
 ### AIDE_INSTALLATION_PATH (required for dist packages)
 
-Path to where doc-aide is installed.
+Path to where aide is installed.
 
 ```bash
-export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/doc-aide"
+export AIDE_INSTALLATION_PATH="/Users/$(whoami)/develop/aide"
 ```
 
 ### AIDE_PROJECTS_PATH (optional)
@@ -89,7 +89,7 @@ Store reports (JIRA analyses, TODO plans) outside the workspace.
 export AIDE_REPORTS_PATH="/Users/$(whoami)/Documents/aide-reports"
 ```
 
-**Default:** Reports are written to `doc-aide/reports/` (gitignored).
+**Default:** Reports are written to `aide/reports/` (gitignored).
 
 ---
 
@@ -129,6 +129,6 @@ All AI tools follow the same basic workflow:
 
 ## Resources
 
-- [DEVELOPING.md](DEVELOPING.md) - Developer guide for doc-aide
+- [DEVELOPING.md](DEVELOPING.md) - Developer guide for aide
 - [core/rules/workflows.md](core/rules/workflows.md) - JIRA/TODO workflows
 - [core/rules/git.md](core/rules/git.md) - Git rules

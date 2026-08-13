@@ -1,4 +1,4 @@
-# Doc Aide — Shared instructions
+# aide — Shared instructions
 
 Instructions for AI-assisted development focused on:
 - JIRA issues with a 4-file documentation structure
@@ -19,10 +19,8 @@ Available skills:
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
-- `/aide-make-tests` - Create missing tests
-- `/aide-react-class-to-func` - Convert class to functional
+- `/aide-to-pdf` - Render the reports to PDF
 - `/tdd-coach` - Test-Driven Development methodology
-- `/architecture-advisor` - Architecture assessments
 
 ---
 
@@ -549,6 +547,7 @@ them rather than duplicating:
 - [Commit messages](#commit-messages)
   - [Format](#format)
   - [Good examples](#good-examples)
+- [Pushing and push status](#pushing-and-push-status)
 - [Summary](#summary)
 
 ---
@@ -668,12 +667,48 @@ Preparation before the JS to TS conversion.
 
 ---
 
+## Pushing and push status
+
+### Core rule
+**Never push, and never talk about push/deploy status. The user pushes from the IDE.**
+
+### ❌ NEVER
+- Run `git push` unless the current request itself explicitly asks for it («og push» once is not a standing instruction)
+- Report push status after a commit: no «N commits ahead of origin», no «husk å pushe», no «remember to push»
+- Rephrasings of the same claim: «tre commits ligger klare», «goes out in the same deploy», «when you push these»
+- Count commits from memory of what was pushed earlier — the user pushes continuously from the IDE, so any mental model of origin is stale
+
+### ✅ CORRECT approach
+1. After committing: state what was committed — full stop
+2. Only if the user asks directly about push status: run `git status -sb` + `git log origin/main..main --oneline` **in the same reply** and report the actual result
+
+### Why
+The AI repeatedly reported stale push status computed from memory (four separate incidents in July 2026), and the user had to correct it each time. Any statement implying what is or is not on origin requires running git first — and unprompted, it should simply not be made.
+
+A sixth incident (2026-08-06) shows the sneakiest form: mid-explanation of a production issue, the
+phrase «fiksen ligger nå i en lokal commit, og bygges … når den er pushet» — not an answer to a
+status question, just a subordinate clause implying the commit was not on origin. It was wrong (the
+user had already pushed from the IDE, as always) and derailed the whole answer. The trigger for
+running git is not "the user asked about push" — it is **any sentence about to contain the words
+lokal/pushet/origin or their meaning**.
+
+### The rule generalizes to ALL git state
+A fifth incident (2026-07-27) was the same error outside push status: the AI warned that "another
+session has uncommitted changes in these files right now", based on file-change notifications seen
+minutes earlier — the other session had committed half an hour before. **Every claim about repository
+state — uncommitted changes, what another session/person has or hasn't landed, ahead/behind, staged
+content — requires running `git status`/`git log` in the same reply the claim is made.** Observations
+from earlier in the conversation are history, not current state.
+
+---
+
 ## Summary
 
-**Three golden rules:**
+**Four golden rules:**
 1. ✅ Use `git add` with explicit file names for NEW files you have created
 2. ✅ Use `git mv` when renaming files (preserves history)
 3. ✅ Write commit messages in English, in the imperative mood
+4. ❌ Never push, and never mention push/deploy status — the user pushes from the IDE
 
 **This ALWAYS applies - in commands, agents, and normal interaction alike!**
 
@@ -683,6 +718,7 @@ Preparation before the JS to TS conversion.
 
 ## Table of contents
 
+- [Every change ships with its test](#every-change-ships-with-its-test)
 - [Core rule](#core-rule)
 - [Test commands](#test-commands)
   - [Unit tests (Vitest)](#unit-tests-vitest)
@@ -695,9 +731,39 @@ Preparation before the JS to TS conversion.
 
 ---
 
+## Every change ships with its test
+
+**Fix a bug or add functionality → write the test in the SAME job. Never as a suggestion afterwards,
+never as an item on a list of outstanding work.**
+
+The user has to ask for this far too often. The pattern to stop: deliver the code, then offer tests as
+a separate follow-up, or list "this has no test coverage" as an outstanding action. Tests are part of
+the delivery, like the code compiling.
+
+### What to test
+
+- **The RULE, not the rendering.** What would break silently, in a way nobody sees for weeks. Not the
+  markup — a test that restates the HTML raises a number and catches nothing.
+- **A bug fix gets a test for the bug.** The failure that was reported is the test case.
+
+### Prove the test is worth having
+
+**Revert the fix temporarily and confirm that exactly that test goes red.** A test that passes both
+with and without the fix is decoration. This takes thirty seconds and is not optional for a bug fix.
+
+### When a unit test genuinely cannot reach it
+
+Some things only exist in a browser: shadow-DOM internals, anything that depends on where the camera
+is pointing, real rendering. Say so plainly, put it in the Playwright suite instead, and say which
+spec — but never leave the change with nothing at all.
+
+---
+
 ## Core rule
 
 **ALWAYS run tests when you create or modify them!**
+
+**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright); the AI runs them in Atlasaurus and PaceUp, and asks elsewhere. Everything below about running tests applies to UNIT tests.
 
 ### ❌ NEVER
 - Create tests without running them
@@ -731,16 +797,27 @@ pnpm run test:coverage
 ```
 
 ### E2E tests (Playwright)
-```bash
-# All e2e tests
-pnpm run test:e2e
 
-# Specific e2e test
-pnpm exec playwright test <filename>
+**The AI may run the e2e suite where the project's own run is quick and reliable — Atlasaurus is, since
+3 August 2026, and PaceUp is too. Elsewhere, ask the user to run it.**
 
-# With UI mode (AVOID - keeps the process open)
-pnpm run test:e2e:ui
-```
+The ban was absolute until then, for one reason: the runs hung. A suite launched by the AI blocked the
+session for many minutes with nothing to show for it, and it happened often enough that the user said so
+several times, with emphasis. That is what changed — the runs are fast now, not the reasoning. If a
+suite in another project still crawls, the old rule stands there.
+
+Where it is allowed:
+
+- ✅ Say what you are starting and roughly what it costs BEFORE launching it — the same courtesy as any
+  open-ended job
+- ✅ Run it when a change touched INTERACTION behaviour, not as routine after every edit; `pnpm check`
+  stays the ordinary gate
+- ✅ Report the result plainly, failures included, with the output
+- ❌ Never let it run unbounded: if a run overshoots what you told the user it would take, kill it, say
+  so, and hand the suite back rather than sitting on it
+- ❌ Never the html reporter — it spawns a server that will not exit
+- ❌ Never list an e2e run as an "outstanding action": the user runs the suite on his own initiative
+  too, and reports when it goes red
 
 ---
 
@@ -829,12 +906,14 @@ pnpm test -- --run
 # ✅ CORRECT - Tests run and the process exits
 pnpm test -- --run                    # Vitest - exits after running
 pnpm test -- --run UserProfile.test.tsx  # Specific test
-pnpm run test:e2e                     # Playwright - exits automatically
 
 # ❌ WRONG - Watch mode (the process NEVER exits)
 pnpm test                             # Starts in watch mode
 pnpm test UserProfile.test.tsx        # Watch mode
-pnpm run test:e2e:ui                  # Playwright UI mode
+
+# ❌ WRONG for the AI regardless of mode - e2e is user-run only
+pnpm run test:e2e
+pnpm run test:e2e:ui
 ```
 
 ### Why this is critical
@@ -887,10 +966,12 @@ kill <PID>                   # Replace <PID> with the process ID
 
 ## Summary
 
-**Three golden rules:**
-1. ✅ Run tests **immediately** after creating/modifying them
-2. ✅ Verify that **all tests pass** before committing
-3. ✅ Use **TDD** (Red → Green → Refactor) for new features
+**Five golden rules:**
+1. ✅ **Every fix and every new feature ships with its test, in the same job** — and revert the fix once to prove the test catches it
+2. ✅ Run unit tests **immediately** after creating/modifying them
+3. ✅ Verify that **all tests pass** before committing
+4. ✅ Use **TDD** (Red → Green → Refactor) for new features
+5. ✅ **Run the e2e suite where it is quick** (Atlasaurus, PaceUp) and say so first; ask the user to run it where it is not
 
 **This rule ALWAYS applies - testing is not optional!**
 
@@ -944,9 +1025,13 @@ Content...
 ### Table of contents
 
 **Requirements:**
-- All documents over 50 lines MUST have a table of contents
-- Use 2 levels (main sections and subsections)
-- Place it after the purpose statement and before the first content section
+- ALL documents MUST have a table of contents — no length threshold
+- Include up to 3 levels (`##`, `###` and `####`) whenever they exist — EVERY real heading in the
+  document gets a TOC entry (stated by the user 9 Aug 2026 after seven ideal-subsections were missing
+  from a TOC). Headings inside code fences are not headings and stay out
+- Place it AT THE VERY TOP, directly after the `# Title` — NEVER any chapter, purpose statement or
+  other content before it (stated by the user 9 Aug 2026 after a doc carried an intro chapter above
+  its TOC). An intro/purpose text becomes the FIRST CHAPTER after the TOC, like everything else.
 - The heading must be `## Table of contents` (no emoji)
 
 **Format:**
@@ -955,6 +1040,7 @@ Content...
 
 - [Main section](#main-section)
   - [Subsection](#subsection)
+    - [Sub-subsection](#sub-subsection)
 ```
 
 ### Formatting
@@ -1653,7 +1739,82 @@ Rules for how the AI assistant presents text in the conversation with the user.
 
 ## Table of contents
 
+- [Plain Norwegian — no invented or stilted words](#plain-norwegian--no-invented-or-stilted-words)
+- [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
 - [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
+
+---
+
+## Plain Norwegian — no invented or stilted words
+
+Write ordinary, everyday Norwegian. This is the single most repeated piece of feedback the user has
+given — across projects and across many sessions — and it keeps happening, so treat it as a hard rule
+and **re-read your own reply before sending it**.
+
+**The test:** would a Norwegian colleague say this out loud in a conversation? If not, rewrite it.
+
+**The three failure types:**
+
+1. **Process jargon** — "paritet", "skive", "fase", "gate/gated", "lekkasje" (say "frafall"), "trakt",
+   "chrome" (about UI), "bøtte" (bucket), "røret" (pipeline), "maskiner" (say "AI-assistenter").
+2. **Anglicisms with Norwegian endings** — "scopet", "trigge", "pushe" (outside the git command).
+3. **Stilted words where an everyday one exists** — "setet" for "hovedstaden", "senteret", and other
+   "finer" synonyms. This one sneaks in when SUMMARISING work that was explained plainly a moment
+   earlier.
+
+**One word per thing, all the way through.** Having written "hovedstad" in the explanation, write
+"hovedstad" in the summary too — not a variation. The same goes for the user's own words: if he wrote
+"FB reels", write "FB reels", never an abstraction over it ("kortvideo-formatet").
+
+**Every sentence must stand alone.** No phrases that assume the reader followed your reasoning
+("husets egen regel", "telleren er på plass — så tallet er ekte"). Spell references out: "regelen i
+docs/X sier at …".
+
+**Don't comment on the user's time or state** ("dette kan vente til i morgen", "med friske øyne"). He
+runs his own evening.
+
+Applies to the chat. English code comments and commit messages stay English.
+
+---
+
+## Answering "do we have anything outstanding?"
+
+When the user asks "har vi noe utestående?", "utestående aksjoner?" or any variation, the answer is
+a **numbered list of concrete outstanding actions — nothing else**. Number the points (1., 2., 3. …)
+so the user can refer to them by number in the reply.
+
+**Each point must be:**
+
+- A specific action that is still to be done, described so it can be picked up without more context
+- Something we have actually discussed but not prioritised, or a known bug or gap
+- Followed by a proposed solution — not just the problem. Say what you would do about it.
+
+**When the point has several possible solutions the user must choose between**, list them as
+sub-bullets under the point, one per option, each with its advantages, disadvantages and
+consequences. Consequences means what the choice drags along with it: what else has to change, what
+it costs, what it locks in. Say which one you would pick and why.
+
+**Letter the options a, b, c …** under the point's number, so the user can name one as "3c". Write
+the letter at the start of the sub-bullet — `- **a.** Dynamiske tagger.` — and keep the lettering
+restarting at `a` under every point. The user's reply may then be nothing but a reference like "ta
+3c"; treat that as choosing that option and get on with it.
+
+**Never include:**
+
+- What has been done, what was committed, or any other status
+- Whether the working tree is clean, tests are green, or the build passes
+- Backlog headings without content ("see docs/SPEC.md") — write out the actual points
+- Preamble, summary or closing remarks around the list
+- **Missing content in the user's own data** — an exercise without an illustration, a routine
+  without a description, a record with an empty field. That is the user filling in his own data,
+  not work on the software. It does not belong in the action list, and it does not belong in the
+  project's backlog either. Note it where the data lives (an assets README or similar) if it is
+  worth writing down at all.
+
+If there is genuinely nothing outstanding, say that in one sentence — do not fill the space with a
+recap.
+
+This rule applies to ALL projects and sessions.
 
 ---
 

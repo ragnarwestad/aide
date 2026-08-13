@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for doc-aide testing."""
+"""Shared pytest fixtures for aide testing."""
 import pytest
 import sys
 from pathlib import Path
@@ -9,7 +9,7 @@ import os
 @pytest.fixture
 def mock_workspace(tmp_path):
     """Create a complete mock workspace structure."""
-    workspace = tmp_path / "doc-aide"
+    workspace = tmp_path / "aide"
     workspace.mkdir()
 
     # Create directory structure
@@ -20,7 +20,7 @@ def mock_workspace(tmp_path):
     (workspace / "reports" / "todo").mkdir(parents=True)
 
     # Copy templates from actual workspace
-    # Use __file__ to find the actual workspace root (tests/conftest.py -> doc-aide/)
+    # Use __file__ to find the actual workspace root (tests/conftest.py -> aide/)
     actual_workspace = Path(__file__).parent.parent
 
     # Copy JIRA templates if they exist

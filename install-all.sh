@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs doc-aide for ALL AI tools.
+# Installs aide for ALL AI tools.
 #
 # Runs each implementations/<ai>/install.sh. Each one is self-contained and
 # installs the shared scripts (core/scripts) + its own AI-specific setup.
@@ -10,7 +10,7 @@
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "🔧 doc-aide — installing all AI tools"
+echo "🔧 aide — installing all AI tools"
 echo "============================================="
 
 status=0

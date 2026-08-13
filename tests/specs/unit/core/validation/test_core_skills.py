@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-# tests/specs/unit/core/validation/test_core_skills.py -> doc-aide/
+# tests/specs/unit/core/validation/test_core_skills.py -> aide/
 CORE_SKILLS_DIR = Path(__file__).parents[5] / "core" / "skills"
 
 VALID_EFFORT_LEVELS = {"low", "medium", "high", "xhigh"}

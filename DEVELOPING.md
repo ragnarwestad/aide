@@ -1,6 +1,6 @@
-# Developer guide for doc-aide
+# Developer guide for aide
 
-This guide is for you who want to **contribute to or further develop** doc-aide.
+This guide is for you who want to **contribute to or further develop** aide.
 
 ## Table of contents
 
@@ -17,7 +17,7 @@ This guide is for you who want to **contribute to or further develop** doc-aide.
 ## Directory structure
 
 ```text
-doc-aide/
+aide/
 │
 ├── core/                          # SHARED CONTENT (shared by all AI tools)
 │   ├── skills/                    # Skills (SKILL.md per directory)
@@ -37,7 +37,7 @@ doc-aide/
 │   │   ├── CLAUDE.md              # Template — installed to .claude/CLAUDE.md in each project
 │   │   ├── agents/                # Agent definitions — installed to ~/.claude/agents/
 │   │   │   └── task-analyzer.md
-│   │   ├── settings.json          # Claude Code permissions (doc-aide itself)
+│   │   ├── settings.json          # Claude Code permissions (aide itself)
 │   │   ├── install.sh
 │   │   └── uninstall.sh
 │   │
@@ -128,6 +128,6 @@ cd implementations/claude-code && ./uninstall.sh
 
 ### Special cases
 
-- **doc-aide:** `.claude/CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
+- **aide:** `.claude/CLAUDE.md` and `.claude/settings.json` are git-tracked and never overwritten by install.sh
 - **The AI installations are global** and apply to all your projects
 - **aide-* skills:** Are slash commands (skills) in Claude Code/Copilot — not standalone CLI scripts

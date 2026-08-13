@@ -1,5 +1,5 @@
 {
-  // Markdownlint configuration for doc-aide
+  // Markdownlint configuration for aide
   // Focuses ONLY on the critical issues we've been manually fixing:
   // 1. List numbering (MD029) - Lists must restart at 1 after headers
   // 2. Anchor link validity (MD051) - TOC links must match actual headings

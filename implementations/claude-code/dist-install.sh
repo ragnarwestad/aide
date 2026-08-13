@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-# install.sh - Installs doc-aide-claude-code
+# install.sh - Installs aide-claude-code
 
 set -e
 
-echo "🔧 doc-aide-claude-code Install"
+echo "🔧 aide-claude-code Install"
 echo "===================================="
 echo ""
 
@@ -108,7 +108,7 @@ $REPORTS_PERMISSION}
 EOF
 }
 
-for project in my-app my-api doc-aide my-docs; do
+for project in my-app my-api aide my-docs; do
   PROJECT_DIR="$AIDE_PROJECTS_PATH/$project"
 
   if [ ! -d "$PROJECT_DIR" ]; then

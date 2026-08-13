@@ -10,7 +10,7 @@
   - [Step 2: Slash commands](#step-2-slash-commands)
 - [Verification](#verification)
 - [Updating the configuration](#updating-the-configuration)
-- [For doc-aide developers](#for-doc-aide-developers)
+- [For aide developers](#for-aide-developers)
 - [Important limitations](#important-limitations)
 - [Comparison with Claude Code](#comparison-with-claude-code)
 - [Troubleshooting](#troubleshooting)
@@ -20,7 +20,7 @@
 
 ## Overview
 
-This guide shows how to install the GitHub Copilot integration for the doc-aide workspace **for the first time**.
+This guide shows how to install the GitHub Copilot integration for the aide workspace **for the first time**.
 
 **Time required:** ~5 minutes
 
@@ -29,7 +29,7 @@ This guide shows how to install the GitHub Copilot integration for the doc-aide 
 - GitHub Copilot subscription (Individual, Business, Pro or Enterprise)
 - Node.js 22+ (for Copilot CLI via npm) or Homebrew
 - Access to your JIRA instance (optional)
-- Git clone of `doc-aide` (and optionally `my-app`, `my-api`, etc.)
+- Git clone of `aide` (and optionally `my-app`, `my-api`, etc.)
 - `AIDE_PROJECTS_PATH` environment variable set (see Quick Start)
 
 **Note:** Copilot CLI went [GA on February 25, 2026](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/) and reads **CLAUDE.md** directly from the project root, which simplifies setup.
@@ -49,7 +49,7 @@ export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"
 echo 'export AIDE_PROJECTS_PATH="/Users/$(whoami)/develop"' >> ~/.zshrc
 
 # 3. Install the configuration (scripts, custom instructions, VS Code setup)
-cd doc-aide/implementations/copilot
+cd aide/implementations/copilot
 ./install.sh
 ```
 
@@ -93,7 +93,7 @@ Or via VS Code:
 ### Step 1: Install the configuration (install.sh)
 
 ```bash
-cd doc-aide/implementations/copilot
+cd aide/implementations/copilot
 ./install.sh
 ```
 
@@ -173,7 +173,7 @@ copilot
 
 ```bash
 # 1. Pull the latest changes
-cd doc-aide
+cd aide
 git pull
 
 # 2. Reinstall (globally)
@@ -184,13 +184,13 @@ cd implementations/copilot
 # Close and reopen VS Code for the changes to take effect
 ```
 
-**⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the doc-aide team and committed to git.
+**⚠️ NOTE:** You do NOT need to regenerate the instructions - that has already been done by the aide team and committed to git.
 
 ---
 
-## For doc-aide developers
+## For aide developers
 
-**If YOU work on doc-aide and need to update the Copilot instructions:**
+**If YOU work on aide and need to update the Copilot instructions:**
 
 ```bash
 # 1. Edit the source (shared rules or the Copilot sections)
@@ -264,7 +264,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 - `README.md` - User guide for Copilot
 - `../../COPILOT.md` - Quick start guide (workspace root)
 - `../../core/rules/workflows.md` - JIRA/TODO workflows
-- `../../DEVELOPING.md` - Developer guide for doc-aide
+- `../../DEVELOPING.md` - Developer guide for aide
 
 ---
 

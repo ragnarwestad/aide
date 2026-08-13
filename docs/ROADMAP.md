@@ -1,6 +1,6 @@
 # Roadmap
 
-Where doc-aide came from, what has been decided, and what comes next.
+Where aide came from, what has been decided, and what comes next.
 New contributors (human or AI): read this first.
 
 ## Table of contents
@@ -17,10 +17,14 @@ New contributors (human or AI): read this first.
 
 ## Background
 
-doc-aide started as *melosys-aide*, an internal AI-tooling workspace for a
+aide started as *melosys-aide*, an internal AI-tooling workspace for a
 NAV project. In July 2026 it was extracted into this repo with a clean
 history, stripped of all domain content, translated from Norwegian to
 English, and slimmed down. The git history documents each step.
+
+The repo initially carried a "doc-" prefix; it was dropped in August 2026
+because the tool had outgrown documents — it installs rules, skills,
+agents and hooks, and the reports are just one of its outputs.
 
 The frozen original lives at `~/develop/nav/melosys-aide` (local reference
 only — do not develop there).
@@ -69,7 +73,7 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 - [ ] **Archive step that closes the loop.** OpenSpec's key trick: when a
       change is done, its delta merges back into a persistent source of
       truth (`specs/`), and the change folder is archived with a date
-      stamp. doc-aide reports are write-only today — nothing feeds back
+      stamp. aide reports are write-only today — nothing feeds back
       into living documentation. Design an `aide-archive` step.
 - [ ] **Delta thinking in requirements.** Describe what a change ADDS /
       MODIFIES / REMOVES relative to current behavior, not just which
@@ -116,7 +120,7 @@ reason to adopt whippletree.
   "Table of contents" but still *detect* the legacy Norwegian heading
   ("Innholdsfortegnelse") for old reports.
 - `AIDE_REPORTS_PATH` (optional) redirects report output to an external
-  directory/repo — doc-aide's equivalent of OpenSpec's "Stores" idea.
+  directory/repo — aide's equivalent of OpenSpec's "Stores" idea.
 - The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
   upgrades Copilot/Codex/Junie/opencode via mise and Claude Code via
   `claude update`.

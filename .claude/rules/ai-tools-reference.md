@@ -38,7 +38,7 @@ overlapping paths:
 **Copilot also reads `~/.claude/commands/`** as skills (discovered March 2026).
 The instructions are interpreted as a natural-language recipe, `$ARGUMENTS` is ignored.
 
-**Important for doc-aide:** Our skills in `~/.claude/skills/` are read by
+**Important for aide:** Our skills in `~/.claude/skills/` are read by
 both Claude Code and Copilot. They MUST have a `SKILL.md` file with correct
 frontmatter for Copilot to discover them.
 

@@ -1,4 +1,4 @@
-# Testing Guide for doc-aide
+# Testing Guide for aide
 
 ## Table of contents
 
@@ -39,7 +39,7 @@
 
 ## Overview
 
-This test suite verifies the functionality of the doc-aide tool, including:
+This test suite verifies the functionality of the aide tool, including:
 
 - Core scripts (`aide-generate-pdf`, `aide-generate-html`, `upgrade-ai-tools`)
 - Implementation-specific commands (Claude Code, Codex, Copilot)
@@ -213,7 +213,7 @@ Returns the actual workspace root path.
 
 ```python
 def test_real_workspace(workspace_root):
-    # workspace_root points to the actual doc-aide/
+    # workspace_root points to the actual aide/
     assert (workspace_root / "core" / "scripts").exists()
 ```
 
@@ -328,7 +328,7 @@ def test_error_case():
 Run pytest from the workspace root:
 
 ```bash
-cd /path/to/doc-aide
+cd /path/to/aide
 pytest
 ```
 
