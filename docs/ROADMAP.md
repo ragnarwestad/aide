@@ -26,6 +26,11 @@ The repo initially carried a "doc-" prefix; it was dropped in August 2026
 because the tool had outgrown documents — it installs rules, skills,
 agents and hooks, and the specs are just one of its outputs.
 
+The documents themselves were renamed from "reports" to "specs" in August
+2026 (spec 72 in aide-specs), following the documents repo's rename to
+aide-specs: they are specifications more than reports. The old technical
+identifiers are banned by `tests/specs/unit/validation/test_spec_vocabulary.py`.
+
 The frozen original lives at `~/develop/nav/melosys-aide` (local reference
 only — do not develop there).
 
