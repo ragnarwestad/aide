@@ -7,20 +7,14 @@
 # Flat structure: all issues live as <NN>-slug/ directly under the specs root
 # (same for JIRA and TODO; the JIRA key is part of the slug).
 
-# Find the specs root: 1) AIDE_SPECS_PATH, 2) <install>/specs, 3) specs/
+# Find the specs root: AIDE_SPECS_PATH if set, otherwise specs/ in the
+# current project (relative to where the caller stands).
 aide_specs_root() {
   if [ -n "$AIDE_SPECS_PATH" ]; then
     echo "$AIDE_SPECS_PATH"
     return
   fi
-  local lib_dir install_root
-  lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-  install_root="$(dirname "$lib_dir")"
-  if [ -d "$install_root/specs" ]; then
-    echo "$install_root/specs"
-  else
-    echo "specs"
-  fi
+  echo "specs"
 }
 
 # Search one directory for a folder matching a find pattern; echoes the basename.

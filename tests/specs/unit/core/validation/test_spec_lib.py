@@ -36,6 +36,30 @@ def specs_root(tmp_path):
 
 
 @pytest.mark.validation
+class TestSpecsRoot:
+    """The specs root contract: AIDE_SPECS_PATH wins, else specs/ in the CWD.
+
+    (A third branch that looked for specs/ next to the installation was
+    dead code from the melosys layout — it pointed one level too shallow
+    after the core/ restructuring and could never fire. Removed.)
+    """
+
+    def test_env_var_wins(self, workspace_root, tmp_path):
+        out = _call(
+            workspace_root, "aide_specs_root",
+            env={"AIDE_SPECS_PATH": str(tmp_path), "PATH": "/usr/bin:/bin"},
+        )
+        assert out == str(tmp_path)
+
+    def test_defaults_to_specs_in_the_current_project(self, workspace_root):
+        out = _call(
+            workspace_root, "aide_specs_root",
+            env={"PATH": "/usr/bin:/bin"},
+        )
+        assert out == "specs"
+
+
+@pytest.mark.validation
 class TestResolveSpec:
     """aide_resolve_spec must find folders for any JIRA key."""
 
