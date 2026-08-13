@@ -123,12 +123,14 @@ three-line shell script. Three of its ideas are worth taking anyway:
       keeps its old row. `/check-news` now points to the script instead of
       hand-editing.
 
-Related gap the reading exposed: the four hooks in
+Related gap the reading exposed — closed August 2026: the four hooks in
 `implementations/claude-code/settings.json` — markdownlint on markdown, the
 `git add .` block, the watch-mode block, and the Stop hook that refuses to end
-a turn when code changed without tests — only work in Claude Code. Codex has
-hooks too (experimental). Porting them is a hand-written `hooks.json`, not a
-reason to adopt whippletree.
+a turn when code changed without tests — are ported to Codex as
+`implementations/codex/hooks/` (a `hooks.json` plus five shell scripts,
+installed to `~/.codex/`). The Stop guard needed a different construction:
+Codex has no prompt hooks, so PostToolUse markers ("code changed" /
+"tests run") are written per turn and judged by a command hook at Stop.
 
 ## Known quirks
 

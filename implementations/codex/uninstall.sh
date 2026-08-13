@@ -11,9 +11,12 @@ echo ""
 
 # Codex is global — no project path needed
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Confirm uninstallation
 echo "⚠️  This will remove:"
 echo "   - ~/.codex/AGENTS.md"
+echo "   - ~/.codex/hooks.json (if unchanged) + ~/.codex/hooks/aide-*.sh"
 echo ""
 read -p "Are you sure you want to continue? [y/N]: " CONFIRM
 
@@ -43,8 +46,27 @@ fi
 
 echo ""
 
-# 3. Information about manual steps
-echo "3️⃣  Manual cleanup (optional)..."
+# 3. Remove Codex hooks
+echo "3️⃣  Removing Codex hooks..."
+
+if [ -f "$HOME/.codex/hooks.json" ]; then
+  if cmp -s "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"; then
+    rm "$HOME/.codex/hooks.json"
+    echo "   ✅ Removed: ~/.codex/hooks.json"
+  else
+    echo "   ⚠️  ~/.codex/hooks.json differs from aide's — left in place"
+  fi
+else
+  echo "   ⏭️  Did not exist: ~/.codex/hooks.json"
+fi
+
+rm -f "$HOME/.codex/hooks/"aide-*.sh
+echo "   ✅ Removed: ~/.codex/hooks/aide-*.sh"
+
+echo ""
+
+# 4. Information about manual steps
+echo "4️⃣  Manual cleanup (optional)..."
 echo ""
 echo "   The following must be removed manually if desired:"
 echo ""

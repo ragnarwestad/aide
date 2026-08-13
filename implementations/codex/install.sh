@@ -50,8 +50,27 @@ echo "   ✅ Installed: ~/.codex/AGENTS.md"
 
 echo ""
 
-# 3. Verify that ~/.local/bin is in PATH
-echo "3️⃣  Verifying PATH..."
+# 3. Install Codex hooks (ports of the Claude Code hooks in settings.json)
+echo "3️⃣  Installing Codex hooks..."
+
+mkdir -p "$HOME/.codex/hooks"
+if [ -f "$HOME/.codex/hooks.json" ] && ! cmp -s "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"; then
+  cp "$HOME/.codex/hooks.json" "$HOME/.codex/hooks.json.bak"
+  echo "   ⚠️  Existing ~/.codex/hooks.json differed — backed up to ~/.codex/hooks.json.bak"
+fi
+cp "$SCRIPT_DIR/hooks/hooks.json" "$HOME/.codex/hooks.json"
+cp "$SCRIPT_DIR/hooks/"aide-*.sh "$HOME/.codex/hooks/"
+chmod +x "$HOME/.codex/hooks/"aide-*.sh
+echo "   ✅ Installed: ~/.codex/hooks.json + hook scripts in ~/.codex/hooks/"
+
+if ! command -v jq &> /dev/null; then
+  echo "   ⚠️  jq is NOT installed — the hooks need it (brew install jq)"
+fi
+
+echo ""
+
+# 4. Verify that ~/.local/bin is in PATH
+echo "4️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
@@ -62,8 +81,8 @@ else
   echo ""
 fi
 
-# 4. Check if Codex CLI is installed
-echo "4️⃣  Checking Codex CLI..."
+# 5. Check if Codex CLI is installed
+echo "5️⃣  Checking Codex CLI..."
 
 if command -v codex &> /dev/null; then
   echo "   ✅ Codex CLI is installed: $(codex --version 2>/dev/null || echo 'version unknown')"
@@ -78,8 +97,8 @@ else
   echo ""
 fi
 
-# 5. Check if Browser Testing MCP is configured
-echo "5️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
+# 6. Check if Browser Testing MCP is configured
+echo "6️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
 
 CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
 BROWSER_MCP_INSTALLED=false
@@ -166,8 +185,8 @@ EOF
   fi
 fi
 
-# 6. Check if Context7 MCP is configured
-echo "6️⃣  Checking Context7 MCP (Up-to-date documentation)..."
+# 7. Check if Context7 MCP is configured
+echo "7️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 
 CONTEXT7_INSTALLED=false
 
@@ -245,6 +264,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📋 Installed:"
 echo "   ~/.codex/AGENTS.md"
+echo "   ~/.codex/hooks.json + ~/.codex/hooks/aide-*.sh"
 echo ""
 echo "📝 Next steps:"
 echo "   1. Start Codex in a project:"

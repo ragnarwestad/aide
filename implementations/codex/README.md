@@ -10,6 +10,7 @@
   - [MCP servers](#mcp-servers-model-context-protocol)
   - [Execpolicy](#execpolicy-command-control)
   - [AGENTS.md](#agentsmd-persistent-instructions)
+  - [Hooks](#hooks)
 - [Usage](#usage)
   - [JIRA workflow](#jira-workflow)
   - [TDD workflow](#tdd-workflow)
@@ -29,7 +30,8 @@ This implementation lets you use the **OpenAI Codex CLI** to follow the same wor
 implementations/codex/
 ├── README.md                           # This file
 ├── config.toml                         # Codex config (sandbox, MCP)
-└── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md
+├── hooks/                              # hooks.json + scripts → ~/.codex/
+└── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + hooks
 ```
 
 **Reuses:**
@@ -192,6 +194,24 @@ Codex's instruction file is `AGENTS.md`. aide generates `core/AGENTS.md` from `c
 - Use Norwegian in commit messages
 - Always run the tests before considering a task done
 ```
+
+### Hooks
+
+`install.sh` installs `hooks/hooks.json` to `~/.codex/hooks.json` and the
+`hooks/aide-*.sh` scripts to `~/.codex/hooks/`. They port the four Claude Code
+hooks from `implementations/claude-code/settings.json`:
+
+| Hook | Event | What it does |
+|------|-------|--------------|
+| `aide-markdownlint.sh` | PostToolUse | Lints markdown files right after they are edited |
+| `aide-block-git-add-all.sh` | PreToolUse | Blocks `git add .` / `git add -A` (explicit file names only) |
+| `aide-block-watch-mode.sh` | PreToolUse | Blocks `pnpm test` without `--run` (watch mode never exits) |
+| `aide-track-turn.sh` + `aide-stop-guard.sh` | PostToolUse + Stop | Refuses to end a turn where source code changed without tests |
+
+The Stop guard works differently from Claude Code's: Codex has no prompt
+hooks, so `aide-track-turn.sh` writes per-turn markers ("code changed",
+"tests run") under `$TMPDIR`, and `aide-stop-guard.sh` blocks Stop when the
+first exists without the second. The scripts require `jq`.
 
 ---
 

@@ -65,7 +65,7 @@ everyone believed was an E is how rules break silently.
 |-----------|-------------|---------|-------|
 | Rules (git, testing, workflows, …) | **E** — auto-loaded from `~/.claude/rules/` | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md` |
 | Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.claude/skills/` | **I** — only as workflow text in AGENTS.md |
-| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **—** (Codex hooks are experimental; not ported) |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **E** — enforced via `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` |
 | Agents (task-analyzer) | **H** — invoked via the Agent tool | **—** | **—** |
 | Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **I** — AGENTS.md text |
 

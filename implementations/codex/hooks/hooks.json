@@ -1,0 +1,63 @@
+{
+  "description": "aide hooks for Codex - ports of the four Claude Code hooks in implementations/claude-code/settings.json. Installed to ~/.codex/hooks.json with the scripts in ~/.codex/hooks/.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-block-git-add-all.sh",
+            "statusMessage": "Checking git add usage"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-block-watch-mode.sh",
+            "statusMessage": "Checking for watch mode"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-markdownlint.sh",
+            "statusMessage": "Linting markdown"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-track-turn.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-track-turn.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.codex/hooks/aide-stop-guard.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
