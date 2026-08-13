@@ -98,12 +98,13 @@ are not adopting it — it distributes executable behavior, we distribute
 prompts, and it carries a compiled dispatcher per bundle for what is often a
 three-line shell script. Three of its ideas are worth taking anyway:
 
-- [ ] **A check step before installing.** `install.sh` installs blind today.
-      Add a step (its `preflight`) that probes what is actually installed and
-      reports where each piece will land: "Copilot 1.0.11 found → skills are
-      read; `~/.claude/rules/` is not read by Copilot, so these rules arrive
-      via AGENTS.md instead." Cheap to build, removes a whole class of silent
-      misses.
+- [x] **A check step before installing.** Done August 2026:
+      `core/scripts/aide-preflight` probes each CLI (version or not-found),
+      reports where every piece lands and whether the target exists, and
+      explains the cross-tool paths (Copilot reads skills from
+      `~/.claude/skills/`; rules reach Copilot/Codex via AGENTS.md). Each
+      installer runs it first; informational only, never blocks. Also ships
+      to `~/.local/bin` for standalone runs.
 - [ ] **Fidelity levels in the support matrix.** `docs/AI_SUPPORT_MATRIX.md`
       records yes/no per feature. Whippletree's T1–T4 ladder records *how
       well*: enforced by the tool, heuristic, or merely an instruction the

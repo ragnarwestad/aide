@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# aide-preflight - Probe what is actually installed before installing aide.
+#
+# Reports, per AI tool: whether the CLI is on PATH (and its version), and
+# where each aide piece will land. Informational only — always exits 0 for
+# known tools, so installers can run it without aborting. A missing tool is
+# fine: the files install anyway and take effect once the tool arrives.
+#
+# Usage:
+#   aide-preflight            # all tools
+#   aide-preflight all
+#   aide-preflight claude
+#   aide-preflight copilot
+#   aide-preflight codex
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Probe a CLI: print found+version or a not-found warning. Never fails.
+probe() {
+  local label="$1" cmd="$2" version
+  if command -v "$cmd" >/dev/null 2>&1; then
+    version="$("$cmd" --version 2>/dev/null | head -1)"
+    echo -e "${GREEN}✅ $label found${NC} (${version:-version unknown})"
+  else
+    echo -e "${YELLOW}⚠️  $label not found on PATH${NC} — files install anyway and take effect once it is installed"
+  fi
+}
+
+# "exists" or "new" for a target path
+state() {
+  if [ -e "$1" ]; then echo "exists, will be updated"; else echo "new"; fi
+}
+
+preflight_claude() {
+  echo "Claude Code"
+  echo "-----------"
+  probe "Claude Code" claude
+  echo "   core/skills/   → ~/.claude/skills/    ($(state "$HOME/.claude/skills"))"
+  echo "   core/rules/    → ~/.claude/rules/     ($(state "$HOME/.claude/rules"))"
+  echo "   agents/        → ~/.claude/agents/    ($(state "$HOME/.claude/agents"))"
+  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
+  echo ""
+}
+
+preflight_copilot() {
+  echo "GitHub Copilot"
+  echo "--------------"
+  probe "Copilot CLI" copilot
+  echo "   core/AGENTS.md → ~/.copilot/copilot-instructions.md ($(state "$HOME/.copilot/copilot-instructions.md"))"
+  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
+  echo "   Note: Copilot reads the skills from ~/.claude/skills/ ($(state "$HOME/.claude/skills")) —"
+  echo "   they are installed by the Claude Code installer. ~/.claude/rules/ is"
+  echo "   NOT read by Copilot; the rules reach it through the instructions file."
+  echo ""
+}
+
+preflight_codex() {
+  echo "OpenAI Codex"
+  echo "------------"
+  probe "Codex CLI" codex
+  echo "   core/AGENTS.md → ~/.codex/AGENTS.md   ($(state "$HOME/.codex/AGENTS.md"))"
+  echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
+  echo ""
+}
+
+preflight_optional_deps() {
+  echo "Optional CLI dependencies"
+  echo "-------------------------"
+  probe "pandoc (aide-generate-html)" pandoc
+  probe "md-to-pdf (aide-generate-pdf)" md-to-pdf
+  echo ""
+}
+
+TOOL="${1:-all}"
+
+echo "🔎 aide preflight"
+echo "================="
+echo ""
+
+case "$TOOL" in
+  claude)  preflight_claude ;;
+  copilot) preflight_copilot ;;
+  codex)   preflight_codex ;;
+  all)
+    preflight_claude
+    preflight_copilot
+    preflight_codex
+    preflight_optional_deps
+    ;;
+  *)
+    echo "❌ Unknown tool: $TOOL (use claude, copilot, codex or all)"
+    exit 1
+    ;;
+esac
+
+exit 0

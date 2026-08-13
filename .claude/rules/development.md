@@ -29,6 +29,10 @@ running each `implementations/<ai>/install.sh`. The `/install-all` skill does th
 same. If you only want one AI, run its script directly (e.g.
 `implementations/codex/install.sh`).
 
+Each AI installer starts with `core/scripts/aide-preflight <tool>`, which
+probes what is actually installed and reports where each piece will land
+(informational only — a missing CLI never blocks the install).
+
 Each AI installer is **self-contained**: it installs the shared scripts
 (`core/scripts/` → `~/.local/bin/`) *and* its own AI-specific setup. The
 shared script list is defined in one place — `core/scripts/_install-bin.sh` — which

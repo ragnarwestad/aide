@@ -23,6 +23,9 @@ fi
 echo "📂 Workspace: $WORKSPACE_ROOT"
 echo ""
 
+# Preflight: report what is installed and where the pieces will land
+"$WORKSPACE_ROOT/core/scripts/aide-preflight" copilot
+
 # 1. Install scripts to ~/.local/bin/
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
