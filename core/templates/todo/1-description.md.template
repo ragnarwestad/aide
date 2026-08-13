@@ -8,7 +8,6 @@
   - [Affected files/components](#affected-filescomponents)
   - [Estimated effort](#estimated-effort)
   - [Affected systems](#affected-systems)
-- [Acceptance criteria](#acceptance-criteria)
 
 ---
 
@@ -34,10 +33,6 @@ _(This field can be edited manually to add extra context or clarifications and w
 **Estimated effort:** [filled in by `/aide-analyze`]
 
 **Affected systems:** [filled in by `/aide-analyze`]
-
-## Acceptance criteria
-
-[Filled in by `/aide-analyze` based on codebase analysis]
 
 ---
 

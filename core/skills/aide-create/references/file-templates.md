@@ -9,7 +9,7 @@ Placeholders: TITLE=title, FOLDER=NN-slug, DATE=today's date, DESC=description
 
 **Table of contents:**
 
-1. [Description](1-description.md) - Tracking info, goal, scope, acceptance criteria
+1. [Description](1-description.md) - Tracking info, goal and scope
 2. [Analysis](2-analysis.md) - Findings, complexity, risk analysis
 3. [Solution](3-solution.md) - Implementation plan with TDD
 4. [Status](4-status.md) - Progress tracking
@@ -20,11 +20,11 @@ Placeholders: TITLE=title, FOLDER=NN-slug, DATE=today's date, DESC=description
 Structure - follow the report structure § 1-description:
 
 - `# TITLE - Description`
-- TOC with: Tracking info, Description, Scope, Acceptance criteria
+- TOC with: Tracking info, Description, Scope
 - **Tracking info:** Task=`FOLDER/`, Created=`DATE`
 - **Description:** DESC + editable note
 - **Scope:** `[filled in by /aide-analyze]` for affected files, estimate, systems
-- **Acceptance criteria:** `[Filled in by /aide-analyze based on the codebase analysis]`
+- NO criteria for done-ness here — they are part of the solution (3-solution.md)
 
 ## 2-analysis.md (placeholder - filled in by /aide-analyze)
 
@@ -43,10 +43,12 @@ Structure - follow the report structure § 2-analysis:
 Structure - follow the report structure § 3-solution:
 
 - `# TITLE - Solution`
-- TOC with: Tracking info, Approaches, Recommended solution, Implementation plan, Testing
+- TOC with: Tracking info, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Implementation plan, Testing
 - **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`
 - **Approaches:** Placeholder for 2 approaches with pros/cons/estimate
 - **Recommended solution:** Placeholder with before/after examples (SEPARATE code blocks)
+- **Behavior delta:** What the solution Adds / Modifies / Removes in behavior, relative to today
+- **Acceptance criteria:** Testable given/when/then scenarios; the RED phase writes one failing test per criterion
 - **Implementation plan:** TDD Red-Green-Refactor with 4 phases and checkbox lists
 - **Testing:** Sections for unit, integration, e2e, manual testing
 

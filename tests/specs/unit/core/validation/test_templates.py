@@ -33,6 +33,58 @@ class TestPlaceholderReplacement:
 
 
 @pytest.mark.validation
+class TestSolutionOwnsTheCriteria:
+    """3-solution.md owns acceptance criteria and the behavior delta.
+
+    The strict separation says 1-description is ONLY the problem as
+    reported — criteria for done-ness are part of the solution. And the
+    solution must state what it changes in BEHAVIOR (adds/modifies/
+    removes), not just which files it touches.
+    """
+
+    @staticmethod
+    def _template(workspace_root, name):
+        path = workspace_root / "core" / "templates" / "todo" / name
+        if not path.exists():
+            pytest.skip(f"{name} not found")
+        return path.read_text()
+
+    def test_solution_template_has_behavior_delta(self, workspace_root):
+        content = self._template(workspace_root, "3-solution.md.template")
+        assert "## Behavior delta" in content
+        for marker in ("**Adds:**", "**Modifies:**", "**Removes:**"):
+            assert marker in content, f"Behavior delta must have {marker}"
+
+    def test_solution_template_has_given_when_then(self, workspace_root):
+        content = self._template(workspace_root, "3-solution.md.template")
+        assert "## Acceptance criteria" in content
+        for word in ("Given", "when", "then"):
+            assert word in content, \
+                f"Acceptance criteria must be given/when/then scenarios ({word} missing)"
+
+    def test_description_template_has_no_acceptance_criteria(self, workspace_root):
+        content = self._template(workspace_root, "1-description.md.template")
+        assert "cceptance criteria" not in content, \
+            "1-description is ONLY the problem as reported — criteria live in 3-solution"
+
+    def test_file_templates_put_criteria_in_solution(self, workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-create"
+                / "references" / "file-templates.md")
+        if not path.exists():
+            pytest.skip("file-templates.md not found")
+        sections = {}
+        for chunk in path.read_text().split("\n## "):
+            header = chunk.splitlines()[0]
+            sections[header] = chunk
+        desc = next(v for k, v in sections.items() if k.startswith("1-description"))
+        sol = next(v for k, v in sections.items() if k.startswith("3-solution"))
+        assert "cceptance criteria" not in desc, \
+            "file-templates.md must not put acceptance criteria in 1-description"
+        assert "cceptance criteria" in sol, \
+            "file-templates.md must put acceptance criteria in 3-solution"
+
+
+@pytest.mark.validation
 class TestRequiredPlaceholders:
     """Test that all expected placeholders exist in templates."""
 

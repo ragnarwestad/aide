@@ -8,6 +8,8 @@
   - [Approach 2: [Name]](#approach-2-name)
 - [Recommended solution](#recommended-solution)
   - [Before/After examples](#beforeafter-examples)
+- [Behavior delta](#behavior-delta)
+- [Acceptance criteria](#acceptance-criteria)
 - [Implementation plan](#implementation-plan)
   - [TDD approach (Red-Green-Refactor)](#tdd-approach-red-green-refactor)
   - [Phase 1: Write tests that identify the problem (RED)](#phase-1-write-tests-that-identify-the-problem-red)
@@ -88,6 +90,32 @@
 
 ---
 
+## Behavior delta
+
+What the chosen solution changes in BEHAVIOR, relative to how the system
+works today — not which files change (that is the analysis's scope).
+
+**Adds:**
+- [new behavior that does not exist today]
+
+**Modifies:**
+- [existing behavior that changes: before → after]
+
+**Removes:**
+- [behavior that goes away]
+
+---
+
+## Acceptance criteria
+
+Each criterion is a testable given/when/then scenario. The RED phase
+writes at least one failing test per criterion.
+
+1. **Given** [precondition] **when** [action] **then** [expected outcome]
+2. **Given** [precondition] **when** [action] **then** [expected outcome]
+
+---
+
 ## Implementation plan
 
 ### TDD approach (Red-Green-Refactor)
@@ -99,8 +127,8 @@ The implementation follows Test-Driven Development principles to ensure quality 
 **Goal:** Prove that the problem exists by writing tests that fail.
 
 - [ ] Create test file: `[path].test.tsx`
-- [ ] Write a test that demonstrates the bug/missing functionality
-- [ ] Run the test and verify that it fails (RED)
+- [ ] Write at least one failing test per acceptance criterion above
+- [ ] Run the tests and verify that they fail (RED)
 
 **Details:**
 ```tsx
@@ -202,6 +230,6 @@ describe('[Component/Function]', () => {
 
 ## Related documents
 
-- [1-description.md](./1-description.md) - Tracking info and acceptance criteria
+- [1-description.md](./1-description.md) - Tracking info and problem description
 - [2-analysis.md](./2-analysis.md) - Analysis and mapping
 - [4-status.md](./4-status.md) - Progress tracking

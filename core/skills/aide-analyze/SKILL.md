@@ -75,8 +75,17 @@ API impact, test coverage, risk analysis, estimate.
 ### Step 5: Create the implementation plan (3-solution.md)
 
 Write to `reports/XX-slug/3-solution.md`. Follow the report structure § 3-solution.
-Structure it with TDD:
-- Step 0: Write tests (RED phase)
+
+**Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
+in behavior, relative to how the system works today — not just which files
+change (that is the analysis's scope).
+
+**Acceptance criteria:** testable given/when/then scenarios. Each criterion
+must be verifiable by a test — if you cannot phrase the test, the criterion
+is too vague.
+
+Structure the plan with TDD:
+- Step 0: Write tests (RED phase) — at least one failing test per acceptance criterion
 - Step 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
 

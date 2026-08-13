@@ -102,6 +102,6 @@
 
 ## Related documents
 
-- [1-description.md](./1-description.md) - Tracking info and acceptance criteria
+- [1-description.md](./1-description.md) - Tracking info and problem description
 - [2-analysis.md](./2-analysis.md) - Analysis and mapping
 - [3-solution.md](./3-solution.md) - Implementation plan with TDD

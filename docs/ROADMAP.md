@@ -82,11 +82,15 @@ From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
       the status file, so resolution stays unambiguous). Numbers are never
       reused — `aide_next_report_number` scans `archive/` too, and the
       pdf/html scripts fall back to `archive/` when resolving.
-- [ ] **Delta thinking in requirements.** Describe what a change ADDS /
-      MODIFIES / REMOVES relative to current behavior, not just which
-      files change.
-- [ ] **Given/when/then acceptance criteria** in `3-solution.md` —
-      testable scenarios map directly to the TDD cycle we already require.
+- [x] **Delta thinking in requirements.** Done August 2026: `3-solution.md`
+      has a "Behavior delta" section — what the solution ADDS / MODIFIES /
+      REMOVES in behavior relative to today, distinct from the analysis's
+      file scope.
+- [x] **Given/when/then acceptance criteria** in `3-solution.md`. Done
+      August 2026, and the criteria moved OUT of `1-description.md` at the
+      same time (the strict separation says the description is only the
+      problem as reported). The RED phase writes at least one failing test
+      per criterion — wired into aide-analyze and aide-implement.
 - [ ] **Explore step.** A no-stakes thinking-partner mode before
       `/aide-create` (OpenSpec's `/opsx:explore`).
 

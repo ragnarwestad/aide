@@ -50,8 +50,8 @@ Usage:
 
 ### Phase 1: RED — Write failing tests
 
-1. Read "Step 0" from 3-solution.md
-2. Create test files
+1. Read "Step 0" and the acceptance criteria from 3-solution.md
+2. Create test files — at least one failing test per acceptance criterion
 3. Run the tests — verify that they FAIL
 4. **STOP** — ask the user for confirmation before GREEN
 

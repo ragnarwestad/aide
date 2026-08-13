@@ -33,9 +33,9 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 ```
 
 **Roles:**
-1. **1-description.md** - Main entry point: Problem, scope, acceptance criteria
+1. **1-description.md** - Main entry point: Problem and scope
 2. **2-analysis.md** - Detailed analysis: Findings, complexity, risk
-3. **3-solution.md** - Implementation plan with a TDD approach
+3. **3-solution.md** - Behavior delta, acceptance criteria and implementation plan with a TDD approach
 4. **4-status.md** - Living document: Progress and status
 
 ---
@@ -44,7 +44,7 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 ### 1-description
 
-**Purpose:** Give an overview of the issue, the scope and the acceptance criteria.
+**Purpose:** Give an overview of the issue and the scope.
 
 **Structure:**
 ```markdown
@@ -56,7 +56,6 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 - Description
 - Problem
 - Scope
-- Acceptance criteria
 
 ---
 
@@ -85,10 +84,6 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 **Affected files/components:** [count from the analysis]
 **Estimated effort:** [time based on findings]
 
-## Acceptance criteria
-
-[Criteria for when the issue/plan is done]
-
 ```
 
 **Key points:**
@@ -97,6 +92,7 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 - The Description section is editable for manual additional information
 - The Problem section is copied verbatim (do not rewrite)
 - No code examples (they belong in 3-solution.md)
+- No acceptance criteria (they are part of the solution — 3-solution.md)
 
 ---
 
@@ -180,6 +176,8 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 - Approaches
 - Recommended solution
+- Behavior delta
+- Acceptance criteria
 - Implementation plan
 - Testing
 - References
@@ -211,6 +209,18 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 // fil/path.tsx:123
 [new code]
 ```
+
+---
+
+## Behavior delta
+
+**Adds:** [new behavior] · **Modifies:** [before → after] · **Removes:** [behavior that goes away]
+
+---
+
+## Acceptance criteria
+
+1. **Given** [precondition] **when** [action] **then** [expected outcome]
 
 ---
 
@@ -251,6 +261,10 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 **Key points:**
 - Approaches with pros/cons
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
+- Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
+  current behavior — not just which files change
+- Acceptance criteria as given/when/then scenarios; the RED phase writes
+  at least one failing test per criterion
 - TDD approach with RED-GREEN-REFACTOR phases
 
 ---
@@ -309,11 +323,12 @@ reports/<NN>-slug/          # flat structure, same for JIRA and TODO
 |----------------------------|-------------------|
 | Problem description        | 1-description.md  |
 | Metadata                   | 1-description.md  |
-| Acceptance criteria        | 1-description.md  |
 | Mapping/findings           | 2-analysis.md      |
 | Complexity analysis        | 2-analysis.md      |
 | Risk analysis              | 2-analysis.md      |
 | Approaches                 | 3-solution.md      |
+| Behavior delta             | 3-solution.md      |
+| Acceptance criteria        | 3-solution.md      |
 | Before/after examples      | 3-solution.md      |
 | Implementation plan        | 3-solution.md      |
 | Testing strategy           | 3-solution.md      |
