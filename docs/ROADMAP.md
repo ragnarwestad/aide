@@ -78,10 +78,11 @@ Done in August 2026:
       "Project commands" in `core/rules/tools-and-scripts.md`. The pnpm
       blocks in skills are labeled examples.
 - [x] **Per-project setup.** Optional `.aide/config` in the project root
-      (KEY=value): `AIDE_JIRA_BASE_URL` plus `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/
-      `AIDE_BUILD_CMD` overrides. Shell scripts read it via `aide_config_get`
-      in `_aide-spec-lib.sh`. No init step — the file is created the first
-      time a skill needs a value it cannot detect.
+      (KEY=value): `AIDE_JIRA_BASE_URL`, `AIDE_SPECS_PATH` (spec 73) plus
+      `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/`AIDE_BUILD_CMD` overrides. Shell
+      scripts read it via `aide_config_get` in `_aide-spec-lib.sh`. No init
+      step — the file is created the first time a skill needs a value it
+      cannot detect.
 
 ## Phase 4: Ideas borrowed from other tools
 
@@ -157,7 +158,11 @@ All four verified in live `codex exec` sessions against 0.147.0.
 - `AIDE_SPECS_PATH` in a project's `.aide/config` (optional) redirects
   that project's spec output to an external directory/repo — aide's
   equivalent of OpenSpec's "Stores" idea, scoped per project since
-  spec 73 (the global environment variable is retired).
+  spec 73 (the global environment variable is retired). Convention when
+  several projects share one specs repo: one subfolder per project
+  (`aide-specs/<project>/`), each with its own number sequence and
+  `archive/` — pointing every project at the repo ROOT would recreate
+  the shared pool.
 - The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
   upgrades Copilot/Codex/opencode via mise and Claude Code via
   `claude update`.
