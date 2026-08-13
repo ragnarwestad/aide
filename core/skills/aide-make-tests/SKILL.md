@@ -63,7 +63,8 @@ For each function that lacks tests:
 - Error cases (error handling)
 
 STEP 3: RUN TESTS AND VERIFY
-- Run: pnpm test -- --run <test file>
+- Run the new tests with the project's own test command, in single-run mode
+  (pnpm example: pnpm test -- --run <test file>)
 - Verify that all new tests pass
 - Fix any failures
 

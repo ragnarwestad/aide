@@ -22,7 +22,7 @@ Analyze the codebase for a JIRA issue or TODO plan.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word starts with `PROJ-`
+**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
 - Example: `/aide-analyze PROJ-7890`
 
 **TODO mode:** If the first word is a number or starts with `TODO-`

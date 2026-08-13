@@ -5,7 +5,7 @@
 - [Every change ships with its test](#every-change-ships-with-its-test)
 - [Core rule](#core-rule)
 - [Test commands](#test-commands)
-  - [Unit tests (Vitest)](#unit-tests-vitest)
+  - [Unit tests](#unit-tests)
   - [E2E tests (Playwright)](#e2e-tests-playwright)
 - [Workflow](#workflow)
   - [Example of a correct workflow](#example-of-a-correct-workflow)
@@ -47,7 +47,7 @@ spec — but never leave the change with nothing at all.
 
 **ALWAYS run tests when you create or modify them!**
 
-**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright); the AI runs them in Atlasaurus and PaceUp, and asks elsewhere. Everything below about running tests applies to UNIT tests.
+**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright); the AI runs them only in projects on the quick-suite list kept there, and asks elsewhere. Everything below about running tests applies to UNIT tests.
 
 ### ❌ NEVER
 - Create tests without running them
@@ -68,7 +68,15 @@ spec — but never leave the change with nothing at all.
 
 ## Test commands
 
-### Unit tests (Vitest)
+### Unit tests
+
+Use the project's own test command — take it from `AIDE_TEST_CMD` in
+`.aide/config` if set, otherwise detect it from the lockfile/build files
+(see "Project commands" in the tools-and-scripts rules). Always in
+single-run mode.
+
+Example for a pnpm/Vitest project:
+
 ```bash
 # All tests (ALWAYS use --run to avoid watch mode!)
 pnpm test -- --run
@@ -82,8 +90,9 @@ pnpm run test:coverage
 
 ### E2E tests (Playwright)
 
-**The AI may run the e2e suite where the project's own run is quick and reliable — Atlasaurus is, since
-3 August 2026, and PaceUp is too. Elsewhere, ask the user to run it.**
+**The AI may run the e2e suite where the project's own run is quick and reliable. Keep that list
+explicit — on this machine it is currently Atlasaurus (since 3 August 2026) and PaceUp. Elsewhere,
+ask the user to run it.**
 
 The ban was absolute until then, for one reason: the runs hung. A suite launched by the AI blocked the
 session for many minutes with nothing to show for it, and it happened often enough that the user said so
@@ -94,8 +103,8 @@ Where it is allowed:
 
 - ✅ Say what you are starting and roughly what it costs BEFORE launching it — the same courtesy as any
   open-ended job
-- ✅ Run it when a change touched INTERACTION behaviour, not as routine after every edit; `pnpm check`
-  stays the ordinary gate
+- ✅ Run it when a change touched INTERACTION behaviour, not as routine after every edit; the
+  project's ordinary check command stays the gate
 - ✅ Report the result plainly, failures included, with the output
 - ❌ Never let it run unbounded: if a run overshoots what you told the user it would take, kill it, say
   so, and hand the suite back rather than sitting on it
@@ -108,6 +117,9 @@ Where it is allowed:
 ## Workflow
 
 ### Example of a correct workflow
+
+The steps below use a pnpm/Vitest project; swap in the project's own commands.
+
 ```text
 1. Created test: src/utils/country.test.ts
 2. Run: pnpm test -- --run country.test.ts
@@ -185,6 +197,8 @@ pnpm test -- --run
 ### CRITICAL: All tests MUST terminate after running
 
 **IMPORTANT:** Tests must always be run so that the process exits when the tests are done.
+The examples are Vitest; the rule applies to any runner with a watch or interactive mode
+(Jest, `gradle --continuous`, `cargo watch`, …).
 
 ```bash
 # ✅ CORRECT - Tests run and the process exits
@@ -255,6 +269,6 @@ kill <PID>                   # Replace <PID> with the process ID
 2. ✅ Run unit tests **immediately** after creating/modifying them
 3. ✅ Verify that **all tests pass** before committing
 4. ✅ Use **TDD** (Red → Green → Refactor) for new features
-5. ✅ **Run the e2e suite where it is quick** (Atlasaurus, PaceUp) and say so first; ask the user to run it where it is not
+5. ✅ **Run the e2e suite only where it is quick** (per the E2E section's list) and say so first; ask the user to run it where it is not
 
 **This rule ALWAYS applies - testing is not optional!**

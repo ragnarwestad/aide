@@ -125,7 +125,7 @@ test('should [description]', () => {
 
 ### Phase 3: Verify that the tests pass (GREEN)
 
-- [ ] Run unit tests: `pnpm test -- --run [filename]`
+- [ ] Run unit tests: `<project test command> [filename]`
 - [ ] Run integration tests if relevant
 - [ ] Verify that all new tests are green
 
@@ -133,10 +133,10 @@ test('should [description]', () => {
 
 **Goal:** Ensure that no existing functionality was broken.
 
-- [ ] Run the full test suite: `pnpm test -- --run`
+- [ ] Run the full test suite: `<project test command>`
 - [ ] Check for regressions
 - [ ] Update snapshot tests if necessary
-- [ ] Run linting: `pnpm run lint`
+- [ ] Run linting: `<project lint command>`
 
 ---
 

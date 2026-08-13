@@ -211,9 +211,9 @@ reports/05-PROJ-7894-class-to-functional/
 ### Phase 4: Verify
 
 **Manual step:**
-1. Run all tests: `pnpm test -- --run`
-2. Run linting: `pnpm run lint`
-3. Build the application: `pnpm run build`
+1. Run all tests with the project's test command (e.g. `pnpm test -- --run`)
+2. Run the project's lint command (e.g. `pnpm run lint`)
+3. Build with the project's build command (e.g. `pnpm run build`)
 4. Test manually in the browser
 5. Run `/ultrareview` for a cloud-based code review of the branch (user-triggered, requires a git repo)
 6. Commit changes

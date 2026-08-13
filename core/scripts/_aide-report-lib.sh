@@ -24,27 +24,44 @@ aide_reports_root() {
 }
 
 # Resolve input to a folder name under the reports root. Echoes the folder name, possibly empty.
-# Input: NN | todo-NN | PROJ-XXXX | full <NN>-slug
+# Input: NN | todo-NN | <JIRA-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
 aide_resolve_report() {
   local input="$1" root="$2" dir="" num
   if [ -d "$root/$input" ]; then
     dir="$input"                                          # direct full-ID match
-  elif echo "$input" | grep -qE '^PROJ-[0-9]+$'; then
-    # JIRA: the key is part of the slug
-    dir=$(find "$root" -maxdepth 1 -type d -iname "*${input}*" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
-  elif echo "$input" | grep -qE '^(todo-)?[0-9]+$'; then
+  elif echo "$input" | grep -qiE '^(todo-)?[0-9]+$'; then
     # Number shorthand ("27", "05" or "todo-27"); base 10 avoids octal errors
-    num=$(echo "$input" | sed 's/^todo-//')
+    num=$(echo "$input" | sed 's/^[Tt][Oo][Dd][Oo]-//')
     dir=$(find "$root" -maxdepth 1 -type d -name "$(printf '%02d' "$((10#$num))")-*" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+  elif echo "$input" | grep -qE '^[A-Z][A-Z0-9]*-[0-9]+$'; then
+    # JIRA key (any project prefix): the key is part of the slug
+    dir=$(find "$root" -maxdepth 1 -type d -iname "*${input}*" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
   else
     dir="$input"                                          # assume full folder ID
   fi
   echo "$dir"
 }
 
-# JIRA issue vs TODO plan based on the folder name
+# JIRA issue vs TODO plan based on the folder name.
+# JIRA folders are <NN>-<jira-key>-slug, so a key (letters, hyphen, digits)
+# right after the number means JIRA. Keys deeper in the slug do not count —
+# a folder like 13-upgrade-react-17-to-react-18 is a TODO plan.
 aide_doc_type() {
-  if echo "$1" | grep -qi "PROJ-"; then echo "JIRA issue"; else echo "TODO plan"; fi
+  if echo "$1" | grep -qiE '^[0-9]+-[A-Za-z][A-Za-z0-9]*-[0-9]+(-|$)'; then
+    echo "JIRA issue"
+  else
+    echo "TODO plan"
+  fi
+}
+
+# Read a key from the per-project config file <project-root>/.aide/config
+# (KEY=value lines, # comments). Echoes the value, or nothing if the file
+# or key is missing. Usage: aide_config_get KEY [project-root]
+aide_config_get() {
+  local key="$1" root="${2:-.}" file
+  file="$root/.aide/config"
+  [ -f "$file" ] || return 0
+  sed -n "s/^${key}=//p" "$file" | head -1
 }
 
 # Readable name from folder ID (NN-slug → Title Case)

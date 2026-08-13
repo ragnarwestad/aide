@@ -32,6 +32,9 @@ effort: high
 
 ## The TDD cycle
 
+The commands below are from a pnpm/Vitest project — substitute the project's
+own commands (see "Project commands" in the tools-and-scripts rules).
+
 ### 1. RED PHASE
 
 **Write tests first (based on requirements)**

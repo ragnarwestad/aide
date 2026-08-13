@@ -21,7 +21,7 @@ Implement the solution for a JIRA issue or TODO plan with TDD.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word starts with `PROJ-`
+**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
 - Example: `/aide-implement PROJ-7890`
 
 **TODO mode:** If the first word is a number or starts with `TODO-`
@@ -82,7 +82,11 @@ IMPORTANT:
 
 ---
 
-## Quality check (frontend)
+## Quality check
+
+Use the project's own test/lint/build commands — detect them, never assume
+a toolchain (see the "Project commands" section of the tools-and-scripts
+rules). Example for a pnpm/TypeScript project:
 
 ```bash
 pnpm test -- --run    # All tests
@@ -91,11 +95,11 @@ pnpm run eslint       # ESLint
 pnpm run build        # Build
 ```
 
-## Quality check (backend)
+Example for a Maven/Gradle backend:
 
 ```bash
-scripts/run-tests.sh -pl <module> -Dtest=<TestClass>    # Unit tests
-scripts/run-tests.sh -pl integrationtest -am --integration   # Integration tests
+./gradlew test        # or: mvn test
+./gradlew build       # or: mvn verify
 ```
 
 ---

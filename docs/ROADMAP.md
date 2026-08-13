@@ -52,16 +52,21 @@ only — do not develop there).
 
 ## Phase 3: Make the tool truly generic
 
-The content is generic, but some behavior is still shaped by its origin:
+The content is generic, but some behavior was still shaped by its origin.
+Done in August 2026:
 
-- [ ] **Configurable JIRA prefix.** Skills and scripts detect JIRA issues
-      by a `PROJ-` example prefix. Make the prefix (and JIRA base URL)
-      per-project configuration instead of hardcoded examples.
-- [ ] **Project-agnostic commands.** Test/lint/build commands in skills
-      assume a pnpm/Vitest frontend or Kotlin backend. Detect or configure
-      per project.
-- [ ] **Per-project setup.** Consider a small init step (or convention)
-      for project-level config: JIRA prefix, test commands, reports path.
+- [x] **JIRA keys need no configuration.** Skills and scripts now recognize
+      any JIRA key by pattern (`[A-Z][A-Z0-9]*-[0-9]+`) instead of the
+      `PROJ-` example prefix. `PROJ-` remains in illustrative examples only.
+- [x] **Project-agnostic commands.** Test/lint/build commands are detected
+      from what the project ships (lockfiles, gradlew, pom.xml, …) — see
+      "Project commands" in `core/rules/tools-and-scripts.md`. The pnpm
+      blocks in skills are labeled examples.
+- [x] **Per-project setup.** Optional `.aide/config` in the project root
+      (KEY=value): `AIDE_JIRA_BASE_URL` plus `AIDE_TEST_CMD`/`AIDE_LINT_CMD`/
+      `AIDE_BUILD_CMD` overrides. Shell scripts read it via `aide_config_get`
+      in `_aide-report-lib.sh`. No init step — the file is created the first
+      time a skill needs a value it cannot detect.
 
 ## Phase 4: Ideas borrowed from other tools
 

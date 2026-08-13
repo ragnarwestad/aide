@@ -1,5 +1,9 @@
 # TDD phases: Detailed workflow
 
+The commands below are from a pnpm/Vitest project — substitute the project's
+own test/typecheck/lint/build commands (see "Project commands" in the
+tools-and-scripts rules).
+
 ## Phase 1: RED — Write failing tests
 
 1. Read "Step 0" from 3-solution.md

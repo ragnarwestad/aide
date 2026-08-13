@@ -20,9 +20,12 @@ Create the document structure for a JIRA issue or TODO plan.
 
 Parse `$ARGUMENTS`:
 
-**JIRA mode:** If the first word starts with `PROJ-`
+**JIRA mode:** If the first word is a JIRA key: `[A-Z][A-Z0-9]*-[0-9]+` (any project prefix, e.g. `PROJ-7890`, `MEL-123`). `TODO-` is never a JIRA key — TODO mode wins.
 - Example: `/aide-create PROJ-7890`
 - Title: JIRA key, description: fetch from JIRA if possible
+- JIRA base URL: read `AIDE_JIRA_BASE_URL` from `.aide/config` in the project
+  root. If the file or key is missing, ask the user once and offer to save it
+  there. Never guess the URL.
 
 **TODO mode (with name):** If the first word starts with `TODO-` (but is not just `TODO`)
 - Example: `/aide-create TODO-redux-form-migration Move all forms`
