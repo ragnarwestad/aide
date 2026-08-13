@@ -10,7 +10,7 @@
 # AI-specific scripts are handled by the individual
 # installer, not here.
 
-COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html mise-upgrade-ai-tools _aide-report-lib.sh"
+COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html upgrade-ai-tools _aide-report-lib.sh"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_common_bin() {

@@ -22,7 +22,7 @@ It runs each AI implementation's own `install.sh`. Each installer is
 self-contained and sets up:
 
 - **Shared:** scripts from `core/scripts/` → `~/.local/bin/`
-  (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
+  (`aide-generate-pdf`, `aide-generate-html`, `upgrade-ai-tools`)
 - **Claude Code:** skills, agents, rules → `~/.claude/`, LSP plugins
 - **Copilot:** `AGENTS.md` → `~/.copilot/`, keybindings
 - **Codex:** custom instructions, MCP servers

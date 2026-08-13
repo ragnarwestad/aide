@@ -70,7 +70,7 @@ The CLI tools are kept up to date automatically:
 - **Copilot and Codex** are managed by [mise](https://mise.jdx.dev/), pinned to
   `latest` in `~/.config/mise/config.toml`.
 
-`core/scripts/mise-upgrade-ai-tools` runs `mise upgrade` on the tools +
+`core/scripts/upgrade-ai-tools` runs `mise upgrade` on the tools +
 `claude update`. It is installed to `~/.local/bin/` by each AI installer (via
 `core/scripts/_install-bin.sh`).
 
@@ -79,7 +79,7 @@ The script runs daily via cron — set it up once per machine:
 ```bash
 crontab -e
 # Add:
-0 8 * * * ~/.local/bin/mise-upgrade-ai-tools
+0 8 * * * ~/.local/bin/upgrade-ai-tools
 ```
 
 The matrix (`docs/AI_SUPPORT_MATRIX.md`) reflects the *last verified* versions and

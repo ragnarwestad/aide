@@ -100,7 +100,7 @@ cd doc-aide/implementations/copilot
 **What does install.sh do?**
 1. ✅ Installs shared scripts to `~/.local/bin/`:
    - `aide-generate-pdf`, `aide-generate-html` - Document generation
-   - `mise-upgrade-ai-tools` - Updates the AI CLIs
+   - `upgrade-ai-tools` - Updates the AI CLIs
 2. ✅ Installs `AGENTS.md` as global Copilot instructions in `~/.copilot/copilot-instructions.md`
 3. ✅ Verifies PATH and the GitHub Copilot extension
 
@@ -114,7 +114,7 @@ cd doc-aide/implementations/copilot
 1️⃣  Installing scripts to ~/.local/bin/...
    ✅ Installed: ~/.local/bin/aide-generate-pdf
    ✅ Installed: ~/.local/bin/aide-generate-html
-   ✅ Installed: ~/.local/bin/mise-upgrade-ai-tools
+   ✅ Installed: ~/.local/bin/upgrade-ai-tools
 
 2️⃣  Installing global Copilot instructions...
    ✅ Installed: ~/.copilot/copilot-instructions.md

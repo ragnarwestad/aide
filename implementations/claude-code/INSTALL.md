@@ -38,7 +38,7 @@ claude
 
 1. **Installs scripts** to `~/.local/bin/`:
    - `aide-generate-pdf`, `aide-generate-html` - PDF/HTML export
-   - `mise-upgrade-ai-tools` - Updates the AI CLIs
+   - `upgrade-ai-tools` - Updates the AI CLIs
 
 2. **Installs globally** to `~/.claude/`:
    - `skills/` - skills (experts + aide-* workflows)
@@ -130,7 +130,7 @@ If you have a JIRA MCP server, it can be used instead of cookie-based authentica
 |--------|-------------|
 | `aide-generate-pdf` | Generate PDF from a report |
 | `aide-generate-html` | Generate HTML from a report |
-| `mise-upgrade-ai-tools` | Update the AI CLIs |
+| `upgrade-ai-tools` | Update the AI CLIs |
 
 Document creation happens via the slash command `/aide-create` (not a terminal script).
 

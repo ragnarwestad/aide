@@ -117,6 +117,6 @@ reason to adopt whippletree.
   ("Innholdsfortegnelse") for old reports.
 - `AIDE_REPORTS_PATH` (optional) redirects report output to an external
   directory/repo — doc-aide's equivalent of OpenSpec's "Stores" idea.
-- The daily cron job `0 8 * * * ~/.local/bin/mise-upgrade-ai-tools`
+- The daily cron job `0 8 * * * ~/.local/bin/upgrade-ai-tools`
   upgrades Copilot/Codex/Junie/opencode via mise and Claude Code via
   `claude update`.

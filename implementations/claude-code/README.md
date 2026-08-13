@@ -131,7 +131,7 @@ cd doc-aide/implementations/claude-code
 ```
 
 **The script installs globally:**
-- ✅ Scripts → `~/.local/bin/` (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
+- ✅ Scripts → `~/.local/bin/` (`aide-generate-pdf`, `aide-generate-html`, `upgrade-ai-tools`)
 - ✅ Skills, agents and rules → `~/.claude/`
 - ✅ LSP plugins (typescript, kotlin, jdtls)
 
@@ -266,7 +266,7 @@ doc-aide/
 ```text
 ~/.local/bin/aide-generate-pdf               # Installed from core/scripts/
 ~/.local/bin/aide-generate-html              # Installed from core/scripts/
-~/.local/bin/mise-upgrade-ai-tools           # Installed from core/scripts/
+~/.local/bin/upgrade-ai-tools           # Installed from core/scripts/
 
 $AIDE_PROJECTS_PATH/
 ├── CLAUDE.md                           # Shared AI instructions

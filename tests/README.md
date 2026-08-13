@@ -41,7 +41,7 @@
 
 This test suite verifies the functionality of the doc-aide tool, including:
 
-- Core scripts (`aide-generate-pdf`, `aide-generate-html`, `mise-upgrade-ai-tools`)
+- Core scripts (`aide-generate-pdf`, `aide-generate-html`, `upgrade-ai-tools`)
 - Implementation-specific commands (Claude Code, Codex, Copilot)
 - The template system and placeholder replacement
 - Environment variable handling

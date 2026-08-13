@@ -170,7 +170,7 @@ The easiest path is to install for all the AI tools at once, from the repo root:
 
 It runs each AI implementation's own installer. Each installer is
 **self-contained** and sets up both the shared scripts (`core/scripts/` → `~/.local/bin/`,
-including `aide-generate-pdf`, `aide-generate-html` and `mise-upgrade-ai-tools`)
+including `aide-generate-pdf`, `aide-generate-html` and `upgrade-ai-tools`)
 and its own AI-specific setup.
 
 In Claude Code you can run the `/install-all` skill instead. `./uninstall-all.sh`
@@ -210,7 +210,7 @@ The sections below describe what each individual installer does.
 
    **The script installs globally:**
     - ✅ Skills, agents and rules → `~/.claude/`
-    - ✅ Scripts (incl. `mise-upgrade-ai-tools`) → `~/.local/bin/`
+    - ✅ Scripts (incl. `upgrade-ai-tools`) → `~/.local/bin/`
     - ✅ LSP plugins (typescript, kotlin, jdtls)
 
    **💡 Tip:** If you set environment variables in Step 3, run `source ~/.zshrc` before setup.
