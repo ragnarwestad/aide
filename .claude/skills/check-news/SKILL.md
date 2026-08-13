@@ -107,14 +107,18 @@ proposals, and **ask the user to approve** before you edit:
 Proposed changes (approve before I edit):
 
 AI_SUPPORT_MATRIX.md:
-- [ ] Update version Claude Code → vX.Y.Z
 - [ ] Add mechanism: ...
+- [ ] Adjust fidelity grade: ...
 
 ai-tools-reference.md:
 - [ ] Update skill path table: ...
 ```
 
 Once the user has approved, make **surgical** changes to the relevant files.
+
+**Version rows are never edited by hand:** run `scripts/stamp-versions` —
+it probes the installed CLIs and stamps the "Supported versions" table
+with what each tool actually reports.
 
 ## Step 6: Summarize
 

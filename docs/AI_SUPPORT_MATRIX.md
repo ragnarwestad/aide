@@ -8,6 +8,8 @@ and which configuration files each tool reads.
 ## Table of contents
 
 - [Supported versions](#supported-versions)
+- [Fidelity levels](#fidelity-levels)
+- [How the aide pieces land](#how-the-aide-pieces-land)
 - [Current models](#current-models)
 - [Cross-tool capabilities](#cross-tool-capabilities)
 - [Open follow-up items](#open-follow-up-items)
@@ -24,17 +26,48 @@ and which configuration files each tool reads.
 
 | Tool | Version | Last verified | Status |
 |---------|---------|-----------------|--------|
-| Claude Code | 2.1.150 | 2026-05-23 | ✅ Supported |
-| GitHub Copilot CLI | v1.0.51 | 2026-05-23 | ✅ Supported |
+| Claude Code | 2.1.231 | 2026-08-13 | ✅ Supported |
+| GitHub Copilot CLI | 1.0.79 | 2026-08-13 | ✅ Supported |
 | Codex CLI | 0.133.0 | 2026-05-23 | ✅ Supported |
 
-Check installed versions:
+**The Version and Last verified columns are stamped from probing — do not
+edit them by hand.** Run:
 
 ```bash
-claude --version
-copilot --version
-codex --version
+scripts/stamp-versions
 ```
+
+It asks each CLI (`claude --version` etc.) and writes what the tool
+actually reports; a tool that is not on PATH keeps its old row.
+
+---
+
+## Fidelity levels
+
+Yes/no hides the difference that matters: WHO guarantees that a piece is
+followed. Every cell in the next table carries one of these grades:
+
+| Grade | Meaning | Guaranteed by |
+|-------|---------|---------------|
+| **E — Enforced** | The tool mechanically enforces it (a hook blocks, config is applied) | The tool |
+| **H — Heuristic** | A tool feature usually triggers it (skill activation on description match) | The tool, best-effort |
+| **I — Instruction** | Plain text the model usually follows — nothing checks it | The model |
+| **—** | Does not land in this tool at all | Nobody |
+
+An **I** is not worthless — most of aide IS instructions — but an I that
+everyone believed was an E is how rules break silently.
+
+---
+
+## How the aide pieces land
+
+| aide piece | Claude Code | Copilot | Codex |
+|-----------|-------------|---------|-------|
+| Rules (git, testing, workflows, …) | **E** — auto-loaded from `~/.claude/rules/` | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md` |
+| Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.claude/skills/` | **I** — only as workflow text in AGENTS.md |
+| Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **—** (Codex hooks are experimental; not ported) |
+| Agents (task-analyzer) | **H** — invoked via the Agent tool | **—** | **—** |
+| Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **I** — AGENTS.md text |
 
 ---
 
@@ -94,7 +127,7 @@ Which files each tool reads automatically:
 
 ## Claude Code
 
-**Version:** 2.1.150 | **Last verified:** 2026-05-23
+**Version and last verified:** see [Supported versions](#supported-versions)
 
 ### Instruction files (read automatically)
 
@@ -135,7 +168,7 @@ implementations/claude-code/
 
 ## GitHub Copilot
 
-**Version:** Copilot CLI v1.0.51 | **Last verified:** 2026-05-23
+**Version and last verified:** see [Supported versions](#supported-versions)
 
 ### Instruction files (read automatically)
 
@@ -194,7 +227,7 @@ implementations/copilot/
 
 ## Codex CLI
 
-**Version:** 0.133.0 | **Last verified:** 2026-05-23
+**Version and last verified:** see [Supported versions](#supported-versions)
 
 ### Instruction files (read automatically)
 

@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# stamp-versions - Stamp docs/AI_SUPPORT_MATRIX.md's "Supported versions"
+# table from what the tools actually report, instead of hand-editing.
+#
+# For each tool that is on PATH, its row gets the probed version and
+# today's date. A missing tool leaves its row untouched (with a warning) —
+# the stamp records what was verified, never a guess.
+#
+# Usage:
+#   scripts/stamp-versions [path-to-matrix]   # default: docs/AI_SUPPORT_MATRIX.md
+
+set -e
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MATRIX="${1:-$SCRIPT_DIR/../docs/AI_SUPPORT_MATRIX.md}"
+
+if [ ! -f "$MATRIX" ]; then
+  echo "❌ Matrix file not found: $MATRIX"
+  exit 1
+fi
+
+TODAY="$(date +%F)"
+
+# Probe a CLI and echo the first X.Y.Z-looking token, or nothing.
+probe_version() {
+  command -v "$1" >/dev/null 2>&1 || return 0
+  "$1" --version 2>/dev/null | head -1 \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+}
+
+# Replace one table row: | <label> | <version> | <date> | <status kept> |
+stamp_row() {
+  local label="$1" version="$2" tmp
+  if [ -z "$version" ]; then
+    echo "⚠️  $label: tool not found on PATH — row left unchanged"
+    return 0
+  fi
+  tmp="$(mktemp)"
+  awk -v label="$label" -v version="$version" -v today="$TODAY" '
+    BEGIN { FS = OFS = "|" }
+    $2 ~ "^ *"label" *$" && NF >= 5 { $3 = " "version" "; $4 = " "today" " }
+    { print }
+  ' "$MATRIX" > "$tmp" && mv "$tmp" "$MATRIX"
+  echo "✅ $label: $version ($TODAY)"
+}
+
+stamp_row "Claude Code"        "$(probe_version claude)"
+stamp_row "GitHub Copilot CLI" "$(probe_version copilot)"
+stamp_row "Codex CLI"          "$(probe_version codex)"
+
+echo ""
+echo "Stamped: $MATRIX"

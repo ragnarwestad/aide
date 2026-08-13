@@ -112,14 +112,16 @@ three-line shell script. Three of its ideas are worth taking anyway:
       `~/.claude/skills/`; rules reach Copilot/Codex via AGENTS.md). Each
       installer runs it first; informational only, never blocks. Also ships
       to `~/.local/bin` for standalone runs.
-- [ ] **Fidelity levels in the support matrix.** `docs/AI_SUPPORT_MATRIX.md`
-      records yes/no per feature. Whippletree's T1–T4 ladder records *how
-      well*: enforced by the tool, heuristic, or merely an instruction the
-      model usually follows. Our rules land as an enforced hook in Claude Code
-      and as plain instructions in Copilot — the matrix should say so.
-- [ ] **Stamp versions from probing, not by hand.** The matrix's "last
-      verified" line is maintained manually via `/check-news`. Record the
-      version each tool actually reports instead.
+- [x] **Fidelity levels in the support matrix.** Done August 2026: the
+      matrix defines an E/H/I ladder (Enforced by the tool / Heuristic
+      tool feature / Instruction the model usually follows) and grades how
+      each aide piece lands per tool in "How the aide pieces land" —
+      e.g. rules are E in Claude Code but I in Copilot/Codex.
+- [x] **Stamp versions from probing, not by hand.** Done August 2026:
+      `scripts/stamp-versions` asks each CLI and stamps the "Supported
+      versions" table with what the tool actually reports; a missing tool
+      keeps its old row. `/check-news` now points to the script instead of
+      hand-editing.
 
 Related gap the reading exposed: the four hooks in
 `implementations/claude-code/settings.json` — markdownlint on markdown, the
