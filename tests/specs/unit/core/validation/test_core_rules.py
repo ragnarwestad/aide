@@ -30,6 +30,39 @@ def rule_paths(rule_file: Path) -> list[str]:
     return re.findall(r'-\s*"([^"]+)"', match.group(1))
 
 
+# Documents that only existed in the melosys workspace. The shared rules
+# are installed globally, so a routing reference to one of these is a dead
+# end in every other project (spec 74 in aide-specs).
+PHANTOM_DOC_NAMES = [
+    "frontend code standard",
+    "backend overview",
+    "backend patterns",
+    "API mapping guide",
+    "API quick reference",
+]
+
+SHARED_CONTENT_DIRS = ["core/rules", "core/skills", "implementations/claude-code/agents"]
+
+
+@pytest.mark.validation
+class TestNoPhantomDocReferences:
+    """Shared content must not route to documents projects do not have."""
+
+    def test_no_phantom_document_names(self):
+        root = Path(__file__).parents[5]
+        offenders = []
+        for rel in SHARED_CONTENT_DIRS:
+            for path in (root / rel).rglob("*.md"):
+                content = path.read_text(encoding="utf-8")
+                for name in PHANTOM_DOC_NAMES:
+                    if name in content:
+                        offenders.append(f"{path.relative_to(root)}: '{name}'")
+        assert not offenders, (
+            "Shared content references documents that only existed in the "
+            "melosys workspace:\n  " + "\n  ".join(sorted(offenders))
+        )
+
+
 @pytest.mark.validation
 class TestSpecStructureRuleScope:
     @pytest.mark.parametrize("sample", SAMPLE_SPEC_PATHS)

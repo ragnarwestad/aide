@@ -188,23 +188,27 @@ in the project root. There is no environment variable.
 
 ## Problem type routing (Quick Reference)
 
-| Problem type | Start with documentation | Workflow |
-|-------------|------------------------|----------|
-| **Frontend UI bug** | `frontend code standard` | Reproduce - Identify component - Check API - TDD |
-| **Backend API error** | `backend overview` + `patterns.md` | Identify endpoint - Check ripple effects - TDD |
-| **Cross-project** | `API mapping guide` | Backend first - Test - Frontend - Full stack test |
-| **Refactoring** | `the testing rules` | Secure tests - Refactor - Verify green tests |
-| **Test generation** | `the testing rules` | Read code - Identify edge cases - Write tests |
-| **New functionality** | `the workflows rules` | Read JIRA/TODO - Analyze scope - TDD |
-| **Database change** | `backend patterns` | Identify ripple effects - Flyway - Test |
-| **Performance** | `frontend code standard` | Profile - Find root cause - Benchmark - Optimize |
+Start every problem type from the project's OWN documentation when it has
+any (a coding standard, an architecture overview, API docs) — check the
+README and the docs folder first. A project without such docs is normal:
+the code itself is the source, so search it instead of hunting for
+documents.
+
+| Problem type | Workflow |
+|-------------|----------|
+| **Frontend UI bug** | Reproduce - Identify component - Check API - TDD |
+| **Backend API error** | Identify endpoint - Check ripple effects - TDD |
+| **Cross-project** | Backend first - Test - Frontend - Full stack test |
+| **Refactoring** | Secure tests - Refactor - Verify green tests |
+| **Test generation** | Read code - Identify edge cases - Write tests |
+| **New functionality** | Read JIRA/TODO - Analyze scope - TDD |
+| **Database change** | Identify ripple effects - Migration script - Test |
+| **Performance** | Profile - Find root cause - Benchmark - Optimize |
 
 **Quick reference:**
-- **Frontend problem?** See `frontend code standard`
-- **Backend problem?** See `backend overview` + `patterns.md`
-- **Cross-project?** See `API mapping guide`
 - **Testing?** See `the testing rules`
 - **Git/Commit?** See `the git rules`
+- **Everything else:** the project's own docs if they exist, the code if not
 
 ---
 
@@ -371,15 +375,17 @@ Same as the [JIRA issue workflow](#jira-issue-workflow).
 
 ### Workflow
 
-1. **Read the API mapping guide**
-   - `API mapping guide`
+1. **Check what API documentation the project has**
+   - An OpenAPI/Swagger spec, an API mapping document, or nothing —
+     all three are normal
 2. **Identify API calls**
    - Search for endpoints in the frontend code
-   - Example: `'api/sak/' + sakId`
+   - Example: `'api/case/' + caseId`
 
-3. **Look up in the mapping**
-   - Use the `API quick reference` for fast lookup
-   - Find the exact backend file and line number
+3. **Locate the backend side**
+   - With API docs: look the endpoint up there
+   - Without: search the backend code for the route (controller
+     annotations, router registrations) — find the exact file and line
 
 4. **Assess the impact**
    - **Frontend only?** UI changes without API changes

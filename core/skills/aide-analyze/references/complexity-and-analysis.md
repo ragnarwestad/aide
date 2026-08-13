@@ -25,7 +25,7 @@ See the workflows rules § Complexity detection for details.
 1. Find the main file
 2. Read it and identify dependencies (imports/exports)
 3. Find related files (tests, consumers of the component)
-4. Check API impact (use the API mapping guide)
+4. Check API impact (use the project's API docs if any, else search the backend code)
 5. Document all affected files with file:line (100-200 lines)
 
 ### HIGH (Broad analysis, 1-3 hours)

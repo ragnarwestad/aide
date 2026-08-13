@@ -144,4 +144,4 @@ Use the API mapping to identify:
 
 - `workflow rules` - Complete workflow documentation
 - `documentation standard` - 4-file structure standard
-- API mapping guide
+- The project's own API documentation (OpenAPI/mapping), if it has any
