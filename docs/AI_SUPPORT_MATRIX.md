@@ -64,10 +64,14 @@ everyone believed was an E is how rules break silently.
 | aide piece | Claude Code | Copilot | Codex |
 |-----------|-------------|---------|-------|
 | Rules (git, testing, workflows, …) | **E** — auto-loaded from `~/.claude/rules/` | **I** — text in `~/.copilot/copilot-instructions.md` | **I** — text in `~/.codex/AGENTS.md` |
-| Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.claude/skills/` | **I** — only as workflow text in AGENTS.md |
+| Skills (`/aide-create`, `/aide-explore`, …) | **H** — native, activated on description match | **H** — read from `~/.claude/skills/` | **H** — read from `~/.agents/skills/` |
 | Hooks (markdownlint, `git add .` block, watch-mode block, Stop) | **E** — enforced via `settings.json` | **—** | **E** — enforced via `~/.codex/hooks.json` + `~/.codex/hooks/aide-*.sh` |
 | Agents (task-analyzer) | **H** — invoked via the Agent tool | **—** | **—** |
-| Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **I** — AGENTS.md text |
+| Report workflow (explore → create → … → archive) | **H** — the skills carry it | **H** — the skills carry it | **H** — the skills carry it |
+
+Copilot discovers skills in both `~/.claude/skills/` and `~/.agents/skills/`;
+after a full install the aide skills exist in both places, which some Copilot
+versions may list twice. Cosmetic only — the instructions are identical.
 
 ---
 

@@ -65,6 +65,8 @@ and the cron job depend on them. Only `uninstall-all.sh` calls
 |-------|-----------------|
 | `core/AGENTS.md` | `~/.codex/AGENTS.md` |
 | `core/scripts/` | `~/.local/bin/` |
+| `core/skills/` | `~/.agents/skills/` |
+| `implementations/codex/hooks/` | `~/.codex/hooks.json` + `~/.codex/hooks/` |
 
 ## Updating the AI tools
 

@@ -31,7 +31,7 @@ implementations/codex/
 ├── README.md                           # This file
 ├── config.toml                         # Codex config (sandbox, MCP)
 ├── hooks/                              # hooks.json + scripts → ~/.codex/
-└── install.sh / uninstall.sh           # Global install: ~/.codex/AGENTS.md + hooks
+└── install.sh / uninstall.sh           # Global install: AGENTS.md, hooks, skills
 ```
 
 **Reuses:**
@@ -302,8 +302,9 @@ Codex supports the TDD cycle:
 
 ## Slash commands
 
-Codex reads the same skills as Claude Code (from `~/.agents/skills/`), so the
-aide workflows are available as skills in a `codex` session.
+Codex reads skills from `~/.agents/skills/`. `install.sh` copies every skill
+in `core/skills/` there, so the aide workflows (`/aide-create`,
+`/aide-analyze`, …) are available as skills in a `codex` session.
 
 ---
 

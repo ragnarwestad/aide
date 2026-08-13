@@ -63,6 +63,7 @@ preflight_codex() {
   echo "   core/AGENTS.md → ~/.codex/AGENTS.md   ($(state "$HOME/.codex/AGENTS.md"))"
   echo "   core/scripts/  → ~/.local/bin/        ($(state "$HOME/.local/bin"))"
   echo "   implementations/codex/hooks/ → ~/.codex/hooks.json + ~/.codex/hooks/   ($(state "$HOME/.codex/hooks.json"))"
+  echo "   core/skills/   → ~/.agents/skills/    ($(state "$HOME/.agents/skills"))"
   echo ""
 }
 

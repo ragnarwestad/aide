@@ -69,8 +69,21 @@ fi
 
 echo ""
 
-# 4. Verify that ~/.local/bin is in PATH
-echo "4️⃣  Verifying PATH..."
+# 4. Install skills to ~/.agents/skills/ (Codex reads SKILL.md from there)
+echo "4️⃣  Installing skills to ~/.agents/skills/..."
+
+mkdir -p "$HOME/.agents/skills"
+for skill_dir in "$WORKSPACE_ROOT/core/skills/"*/; do
+  skill=$(basename "$skill_dir")
+  rm -rf "${HOME:?}/.agents/skills/$skill"
+  cp -R "${skill_dir%/}" "$HOME/.agents/skills/$skill"
+  echo "   ✅ Installed: ~/.agents/skills/$skill"
+done
+
+echo ""
+
+# 5. Verify that ~/.local/bin is in PATH
+echo "5️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
@@ -81,8 +94,8 @@ else
   echo ""
 fi
 
-# 5. Check if Codex CLI is installed
-echo "5️⃣  Checking Codex CLI..."
+# 6. Check if Codex CLI is installed
+echo "6️⃣  Checking Codex CLI..."
 
 if command -v codex &> /dev/null; then
   echo "   ✅ Codex CLI is installed: $(codex --version 2>/dev/null || echo 'version unknown')"
@@ -97,8 +110,8 @@ else
   echo ""
 fi
 
-# 6. Check if Browser Testing MCP is configured
-echo "6️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
+# 7. Check if Browser Testing MCP is configured
+echo "7️⃣  Checking Browser Testing MCP (Playwright & Chrome DevTools)..."
 
 CODEX_CONFIG_FILE="$HOME/.codex/config.toml"
 BROWSER_MCP_INSTALLED=false
@@ -185,8 +198,8 @@ EOF
   fi
 fi
 
-# 7. Check if Context7 MCP is configured
-echo "7️⃣  Checking Context7 MCP (Up-to-date documentation)..."
+# 8. Check if Context7 MCP is configured
+echo "8️⃣  Checking Context7 MCP (Up-to-date documentation)..."
 
 CONTEXT7_INSTALLED=false
 
@@ -265,6 +278,7 @@ echo ""
 echo "📋 Installed:"
 echo "   ~/.codex/AGENTS.md"
 echo "   ~/.codex/hooks.json + ~/.codex/hooks/aide-*.sh"
+echo "   ~/.agents/skills/ (all core/skills/)"
 echo ""
 echo "📝 Next steps:"
 echo "   1. Start Codex in a project:"
