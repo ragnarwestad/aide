@@ -11,6 +11,7 @@
 - [Commit messages](#commit-messages)
   - [Format](#format)
   - [Good examples](#good-examples)
+- [Pushing and push status](#pushing-and-push-status)
 - [Summary](#summary)
 
 ---
@@ -130,11 +131,47 @@ Preparation before the JS to TS conversion.
 
 ---
 
+## Pushing and push status
+
+### Core rule
+**Never push, and never talk about push/deploy status. The user pushes from the IDE.**
+
+### ❌ NEVER
+- Run `git push` unless the current request itself explicitly asks for it («og push» once is not a standing instruction)
+- Report push status after a commit: no «N commits ahead of origin», no «husk å pushe», no «remember to push»
+- Rephrasings of the same claim: «tre commits ligger klare», «goes out in the same deploy», «when you push these»
+- Count commits from memory of what was pushed earlier — the user pushes continuously from the IDE, so any mental model of origin is stale
+
+### ✅ CORRECT approach
+1. After committing: state what was committed — full stop
+2. Only if the user asks directly about push status: run `git status -sb` + `git log origin/main..main --oneline` **in the same reply** and report the actual result
+
+### Why
+The AI repeatedly reported stale push status computed from memory (four separate incidents in July 2026), and the user had to correct it each time. Any statement implying what is or is not on origin requires running git first — and unprompted, it should simply not be made.
+
+A sixth incident (2026-08-06) shows the sneakiest form: mid-explanation of a production issue, the
+phrase «fiksen ligger nå i en lokal commit, og bygges … når den er pushet» — not an answer to a
+status question, just a subordinate clause implying the commit was not on origin. It was wrong (the
+user had already pushed from the IDE, as always) and derailed the whole answer. The trigger for
+running git is not "the user asked about push" — it is **any sentence about to contain the words
+lokal/pushet/origin or their meaning**.
+
+### The rule generalizes to ALL git state
+A fifth incident (2026-07-27) was the same error outside push status: the AI warned that "another
+session has uncommitted changes in these files right now", based on file-change notifications seen
+minutes earlier — the other session had committed half an hour before. **Every claim about repository
+state — uncommitted changes, what another session/person has or hasn't landed, ahead/behind, staged
+content — requires running `git status`/`git log` in the same reply the claim is made.** Observations
+from earlier in the conversation are history, not current state.
+
+---
+
 ## Summary
 
-**Three golden rules:**
+**Four golden rules:**
 1. ✅ Use `git add` with explicit file names for NEW files you have created
 2. ✅ Use `git mv` when renaming files (preserves history)
 3. ✅ Write commit messages in English, in the imperative mood
+4. ❌ Never push, and never mention push/deploy status — the user pushes from the IDE
 
 **This ALWAYS applies - in commands, agents, and normal interaction alike!**

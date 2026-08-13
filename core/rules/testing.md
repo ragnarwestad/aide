@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Every change ships with its test](#every-change-ships-with-its-test)
 - [Core rule](#core-rule)
 - [Test commands](#test-commands)
   - [Unit tests (Vitest)](#unit-tests-vitest)
@@ -14,9 +15,39 @@
 
 ---
 
+## Every change ships with its test
+
+**Fix a bug or add functionality → write the test in the SAME job. Never as a suggestion afterwards,
+never as an item on a list of outstanding work.**
+
+The user has to ask for this far too often. The pattern to stop: deliver the code, then offer tests as
+a separate follow-up, or list "this has no test coverage" as an outstanding action. Tests are part of
+the delivery, like the code compiling.
+
+### What to test
+
+- **The RULE, not the rendering.** What would break silently, in a way nobody sees for weeks. Not the
+  markup — a test that restates the HTML raises a number and catches nothing.
+- **A bug fix gets a test for the bug.** The failure that was reported is the test case.
+
+### Prove the test is worth having
+
+**Revert the fix temporarily and confirm that exactly that test goes red.** A test that passes both
+with and without the fix is decoration. This takes thirty seconds and is not optional for a bug fix.
+
+### When a unit test genuinely cannot reach it
+
+Some things only exist in a browser: shadow-DOM internals, anything that depends on where the camera
+is pointing, real rendering. Say so plainly, put it in the Playwright suite instead, and say which
+spec — but never leave the change with nothing at all.
+
+---
+
 ## Core rule
 
 **ALWAYS run tests when you create or modify them!**
+
+**E2E tests (Playwright) have their own rules** — see [E2E tests (Playwright)](#e2e-tests-playwright); the AI runs them in Atlasaurus and PaceUp, and asks elsewhere. Everything below about running tests applies to UNIT tests.
 
 ### ❌ NEVER
 - Create tests without running them
@@ -50,16 +81,27 @@ pnpm run test:coverage
 ```
 
 ### E2E tests (Playwright)
-```bash
-# All e2e tests
-pnpm run test:e2e
 
-# Specific e2e test
-pnpm exec playwright test <filename>
+**The AI may run the e2e suite where the project's own run is quick and reliable — Atlasaurus is, since
+3 August 2026, and PaceUp is too. Elsewhere, ask the user to run it.**
 
-# With UI mode (AVOID - keeps the process open)
-pnpm run test:e2e:ui
-```
+The ban was absolute until then, for one reason: the runs hung. A suite launched by the AI blocked the
+session for many minutes with nothing to show for it, and it happened often enough that the user said so
+several times, with emphasis. That is what changed — the runs are fast now, not the reasoning. If a
+suite in another project still crawls, the old rule stands there.
+
+Where it is allowed:
+
+- ✅ Say what you are starting and roughly what it costs BEFORE launching it — the same courtesy as any
+  open-ended job
+- ✅ Run it when a change touched INTERACTION behaviour, not as routine after every edit; `pnpm check`
+  stays the ordinary gate
+- ✅ Report the result plainly, failures included, with the output
+- ❌ Never let it run unbounded: if a run overshoots what you told the user it would take, kill it, say
+  so, and hand the suite back rather than sitting on it
+- ❌ Never the html reporter — it spawns a server that will not exit
+- ❌ Never list an e2e run as an "outstanding action": the user runs the suite on his own initiative
+  too, and reports when it goes red
 
 ---
 
@@ -148,12 +190,14 @@ pnpm test -- --run
 # ✅ CORRECT - Tests run and the process exits
 pnpm test -- --run                    # Vitest - exits after running
 pnpm test -- --run UserProfile.test.tsx  # Specific test
-pnpm run test:e2e                     # Playwright - exits automatically
 
 # ❌ WRONG - Watch mode (the process NEVER exits)
 pnpm test                             # Starts in watch mode
 pnpm test UserProfile.test.tsx        # Watch mode
-pnpm run test:e2e:ui                  # Playwright UI mode
+
+# ❌ WRONG for the AI regardless of mode - e2e is user-run only
+pnpm run test:e2e
+pnpm run test:e2e:ui
 ```
 
 ### Why this is critical
@@ -206,9 +250,11 @@ kill <PID>                   # Replace <PID> with the process ID
 
 ## Summary
 
-**Three golden rules:**
-1. ✅ Run tests **immediately** after creating/modifying them
-2. ✅ Verify that **all tests pass** before committing
-3. ✅ Use **TDD** (Red → Green → Refactor) for new features
+**Five golden rules:**
+1. ✅ **Every fix and every new feature ships with its test, in the same job** — and revert the fix once to prove the test catches it
+2. ✅ Run unit tests **immediately** after creating/modifying them
+3. ✅ Verify that **all tests pass** before committing
+4. ✅ Use **TDD** (Red → Green → Refactor) for new features
+5. ✅ **Run the e2e suite where it is quick** (Atlasaurus, PaceUp) and say so first; ask the user to run it where it is not
 
 **This rule ALWAYS applies - testing is not optional!**

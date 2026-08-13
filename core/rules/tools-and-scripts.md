@@ -9,10 +9,8 @@ Available skills:
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
-- `/aide-make-tests` - Create missing tests
-- `/aide-react-class-to-func` - Convert class to functional
+- `/aide-to-pdf` - Render the reports to PDF
 - `/tdd-coach` - Test-Driven Development methodology
-- `/architecture-advisor` - Architecture assessments
 
 ---
 

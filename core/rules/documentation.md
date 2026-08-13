@@ -46,9 +46,13 @@ Content...
 ### Table of contents
 
 **Requirements:**
-- All documents over 50 lines MUST have a table of contents
-- Use 2 levels (main sections and subsections)
-- Place it after the purpose statement and before the first content section
+- ALL documents MUST have a table of contents — no length threshold
+- Include up to 3 levels (`##`, `###` and `####`) whenever they exist — EVERY real heading in the
+  document gets a TOC entry (stated by the user 9 Aug 2026 after seven ideal-subsections were missing
+  from a TOC). Headings inside code fences are not headings and stay out
+- Place it AT THE VERY TOP, directly after the `# Title` — NEVER any chapter, purpose statement or
+  other content before it (stated by the user 9 Aug 2026 after a doc carried an intro chapter above
+  its TOC). An intro/purpose text becomes the FIRST CHAPTER after the TOC, like everything else.
 - The heading must be `## Table of contents` (no emoji)
 
 **Format:**
@@ -57,6 +61,7 @@ Content...
 
 - [Main section](#main-section)
   - [Subsection](#subsection)
+    - [Sub-subsection](#sub-subsection)
 ```
 
 ### Formatting
