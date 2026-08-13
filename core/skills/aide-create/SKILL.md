@@ -63,10 +63,12 @@ Examples:
 
 ### Step 2: Find the next available number
 
-- List directories in the reports root (`ls`)
-- Find the highest number from the `NN-slug` format
-- Next number = highest + 1 (or 01 if none exist)
-- Format with a leading zero: `01`, `02`, ... `99`
+- Find the highest number from the `NN-slug` format in the reports root
+  AND in `<reports-root>/archive/` — archived reports keep their number,
+  and a number must never be reused
+- Next number = highest + 1 (or 01 if none exist), leading zero: `01`, `02`, ...
+- Helper: `aide_next_report_number <reports-root>` in `_aide-report-lib.sh`
+  does exactly this
 
 ### Step 3: Generate a slug from the title
 

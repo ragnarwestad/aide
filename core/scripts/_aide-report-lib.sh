@@ -23,31 +23,57 @@ aide_reports_root() {
   fi
 }
 
-# Resolve input to a folder name under the reports root. Echoes the folder name, possibly empty.
+# Search one directory for a folder matching a find pattern; echoes the basename.
+_aide_find_report() {
+  local dir="$1" flag="$2" pattern="$3"
+  find "$dir" -maxdepth 1 -type d "$flag" "$pattern" 2>/dev/null | head -1 | xargs basename 2>/dev/null
+}
+
+# Resolve input to a folder name under the reports root. Echoes the folder
+# name (possibly prefixed "archive/"), or nothing. Active reports win over
+# archived ones with the same number.
 # Input: NN | todo-NN | <JIRA-KEY> (e.g. PROJ-7637, MEL-123) | full <NN>-slug
 aide_resolve_report() {
-  local input="$1" root="$2" dir="" num
+  local input="$1" root="$2" dir="" flag="" pattern="" num
   if [ -d "$root/$input" ]; then
-    dir="$input"                                          # direct full-ID match
+    echo "$input"                                         # direct full-ID match
+    return
   elif echo "$input" | grep -qiE '^(todo-)?[0-9]+$'; then
     # Number shorthand ("27", "05" or "todo-27"); base 10 avoids octal errors
     num=$(echo "$input" | sed 's/^[Tt][Oo][Dd][Oo]-//')
-    dir=$(find "$root" -maxdepth 1 -type d -name "$(printf '%02d' "$((10#$num))")-*" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+    flag="-name"; pattern="$(printf '%02d' "$((10#$num))")-*"
   elif echo "$input" | grep -qE '^[A-Z][A-Z0-9]*-[0-9]+$'; then
     # JIRA key (any project prefix): the key is part of the slug
-    dir=$(find "$root" -maxdepth 1 -type d -iname "*${input}*" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+    flag="-iname"; pattern="*${input}*"
   else
-    dir="$input"                                          # assume full folder ID
+    echo "$input"                                         # assume full folder ID
+    return
+  fi
+  dir=$(_aide_find_report "$root" "$flag" "$pattern")
+  if [ -z "$dir" ] && [ -d "$root/archive" ]; then
+    dir=$(_aide_find_report "$root/archive" "$flag" "$pattern")
+    [ -n "$dir" ] && dir="archive/$dir"
   fi
   echo "$dir"
 }
 
-# JIRA issue vs TODO plan based on the folder name.
+# Next free report number across the root AND archive/, zero-padded.
+# Archived reports keep their number — scanning both means a number is
+# never reused after its report is archived.
+aide_next_report_number() {
+  local root="$1" max
+  max=$( { ls -1 "$root" 2>/dev/null; ls -1 "$root/archive" 2>/dev/null; } \
+    | sed -n 's/^\([0-9][0-9]*\)-.*/\1/p' | sort -n | tail -1)
+  printf '%02d\n' "$(( 10#${max:-0} + 1 ))"
+}
+
+# JIRA issue vs TODO plan based on the folder name (works for archived
+# folders too, which arrive as "archive/<NN>-slug").
 # JIRA folders are <NN>-<jira-key>-slug, so a key (letters, hyphen, digits)
 # right after the number means JIRA. Keys deeper in the slug do not count —
 # a folder like 13-upgrade-react-17-to-react-18 is a TODO plan.
 aide_doc_type() {
-  if echo "$1" | grep -qiE '^[0-9]+-[A-Za-z][A-Za-z0-9]*-[0-9]+(-|$)'; then
+  if echo "$1" | grep -qiE '^(archive/)?[0-9]+-[A-Za-z][A-Za-z0-9]*-[0-9]+(-|$)'; then
     echo "JIRA issue"
   else
     echo "TODO plan"

@@ -78,6 +78,7 @@ class TestDocType:
             "05-proj-7894-class-to-functional",
             "45-MEL-1234-fix-login",
             "45-mel-1234-fix-login",
+            "archive/45-MEL-1234-fix-login",
         ],
     )
     def test_jira_folders(self, workspace_root, folder):
@@ -93,6 +94,51 @@ class TestDocType:
     )
     def test_todo_folders(self, workspace_root, folder):
         assert _call(workspace_root, f'aide_doc_type "{folder}"') == "TODO plan"
+
+
+@pytest.mark.validation
+class TestArchiveAwareness:
+    """Archived reports keep their number and stay findable.
+
+    Archiving moves NN-slug into archive/ unchanged. Numbering must scan
+    archive/ too — otherwise archiving the highest-numbered report would
+    make its number get reused, and "report 17" would become ambiguous.
+    """
+
+    def test_next_number_scans_root(self, workspace_root, reports_root):
+        out = _call(workspace_root, f'aide_next_report_number "{reports_root}"')
+        assert out == "46"
+
+    def test_next_number_scans_archive_too(self, workspace_root, reports_root):
+        archive = reports_root / "archive"
+        archive.mkdir()
+        (archive / "88-archived-big-migration").mkdir()
+        out = _call(workspace_root, f'aide_next_report_number "{reports_root}"')
+        assert out == "89"
+
+    def test_next_number_on_empty_root(self, workspace_root, tmp_path):
+        out = _call(workspace_root, f'aide_next_report_number "{tmp_path}"')
+        assert out == "01"
+
+    def test_resolve_falls_back_to_archive(self, workspace_root, reports_root):
+        archive = reports_root / "archive"
+        archive.mkdir()
+        (archive / "12-old-jira-PROJ-1111-cleanup").mkdir()
+        out = _call(
+            workspace_root,
+            f'aide_resolve_report "12" "{reports_root}"',
+        )
+        assert out == "archive/12-old-jira-PROJ-1111-cleanup"
+
+    def test_resolve_prefers_root_over_archive(self, workspace_root, reports_root):
+        archive = reports_root / "archive"
+        archive.mkdir()
+        (archive / "17-clean-up-console-log").mkdir()
+        out = _call(
+            workspace_root,
+            f'aide_resolve_report "17" "{reports_root}"',
+        )
+        assert out == "17-clean-up-console-log"
 
 
 @pytest.mark.validation

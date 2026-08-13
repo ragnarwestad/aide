@@ -13,6 +13,7 @@
   - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
   - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
   - [Phase 4: Verify](#phase-4-verify)
+  - [Phase 5: Archive](#phase-5-archive)
 - [TODO plan workflow](#todo-plan-workflow)
 - [API impact analysis](#api-impact-analysis)
 - [Cross-project issues](#cross-project-issues)
@@ -163,7 +164,7 @@ After analysis/solution, the **Tracking info** section is updated with which rep
 
 ### Overall flow
 ```text
-Create - Analyze - Solve - Verify
+Create - Analyze - Solve - Verify - Archive
 ```
 
 ### Phase 1: Create document structure
@@ -218,13 +219,23 @@ reports/05-PROJ-7894-class-to-functional/
 5. Run `/ultrareview` for a cloud-based code review of the branch (user-triggered, requires a git repo)
 6. Commit changes
 
+### Phase 5: Archive
+
+When the work is done, run `/aide-archive <ID>`:
+
+1. Verifies that `4-status.md` shows finished work
+2. Feeds durable knowledge (decisions, conventions, gotchas) back into the
+   project's living documentation
+3. Stamps the archive date in `4-status.md` and moves the folder to
+   `<reports-root>/archive/` — the number is never reused
+
 ---
 
 ## TODO plan workflow
 
 ### Overall flow
 ```text
-Create - Analyze - Solve - Verify
+Create - Analyze - Solve - Verify - Archive
 ```
 
 ### Phase 1: Create document structure
@@ -246,7 +257,7 @@ reports/17-clean-up-console-log/
 └── 4-status.md            (⏳ empty)
 ```
 
-### Phase 2-4: Analyze, Solve and Verify
+### Phase 2-5: Analyze, Solve, Verify and Archive
 
 Same as the [JIRA issue workflow](#jira-issue-workflow).
 
@@ -403,7 +414,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 
 **Three key principles:**
 1. **Detect complexity** early and match the documentation to the task
-2. Follow the **linear flow**: Create - Analyze - Solve - Verify
+2. Follow the **linear flow**: Create - Analyze - Solve - Verify - Archive
 3. Always assess **API impact** (use the mapping)
 
 **Best practices:**

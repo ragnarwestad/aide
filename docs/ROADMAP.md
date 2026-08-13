@@ -75,11 +75,13 @@ Done in August 2026:
 From the comparison with [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 (see its docs/overview.md for the concepts):
 
-- [ ] **Archive step that closes the loop.** OpenSpec's key trick: when a
-      change is done, its delta merges back into a persistent source of
-      truth (`specs/`), and the change folder is archived with a date
-      stamp. aide reports are write-only today — nothing feeds back
-      into living documentation. Design an `aide-archive` step.
+- [x] **Archive step that closes the loop.** Done August 2026: `/aide-archive`
+      verifies `4-status.md`, feeds durable knowledge back into the project's
+      living docs, stamps the date in `4-status.md` and moves the folder to
+      `<reports-root>/archive/` with its name unchanged (the date lives in
+      the status file, so resolution stays unambiguous). Numbers are never
+      reused — `aide_next_report_number` scans `archive/` too, and the
+      pdf/html scripts fall back to `archive/` when resolving.
 - [ ] **Delta thinking in requirements.** Describe what a change ADDS /
       MODIFIES / REMOVES relative to current behavior, not just which
       files change.

@@ -18,6 +18,7 @@ Available skills:
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-implement` - Implement with TDD
+- `/aide-archive` - Archive a finished report and feed durable knowledge back into the docs
 - `/aide-to-pdf` - Render the reports to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 
