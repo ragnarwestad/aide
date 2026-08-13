@@ -30,7 +30,7 @@ def rule_paths(rule_file: Path) -> list[str]:
     return re.findall(r'-\s*"([^"]+)"', match.group(1))
 
 
-# Documents that only existed in the melosys workspace. The shared rules
+# Documents that only existed in the original customer workspace. The shared rules
 # are installed globally, so a routing reference to one of these is a dead
 # end in every other project (spec 74 in aide-specs).
 PHANTOM_DOC_NAMES = [
@@ -59,7 +59,7 @@ class TestNoPhantomDocReferences:
                         offenders.append(f"{path.relative_to(root)}: '{name}'")
         assert not offenders, (
             "Shared content references documents that only existed in the "
-            "melosys workspace:\n  " + "\n  ".join(sorted(offenders))
+            "original customer workspace:\n  " + "\n  ".join(sorted(offenders))
         )
 
 

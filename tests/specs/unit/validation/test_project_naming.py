@@ -12,21 +12,25 @@ import pytest
 
 PROJECT_NAME = "aide"
 
-# Former names, as (label, pattern). Patterns are built with concatenation so
-# this file does not match itself.
+# Banned names, as (label, pattern). Patterns are built with concatenation so
+# this file does not match itself. The customer domain name is banned
+# outright (2026-08-13): the repo must be neutral — say "the customer
+# project" instead of naming it.
 FORMER_NAMES = [
     ("doc" + "-aide", re.compile(r"doc" + r"[ _-]?aide", re.IGNORECASE)),
-    ("melosys" + "-aide", re.compile(r"melosys" + r"[ _-]?aide", re.IGNORECASE)),
+    ("melo" + "sys", re.compile(r"melo" + r"sys", re.IGNORECASE)),
 ]
 
-# Deliberate historical mentions — the origin story in the roadmap names the
-# project the repo was extracted from. Keyed by repo-relative path.
-ALLOWED_MENTIONS = {
-    "docs/ROADMAP.md": {"melosys" + "-aide"},
-}
+# No allowed mentions — not even the roadmap's origin story names the
+# customer project anymore.
+ALLOWED_MENTIONS = {}
 
 # Directories that are not ours to rename, plus generated and ignored output.
-SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", "specs", ".pytest_cache"}
+SKIP_DIRS = {".git", ".venv", "node_modules", "__pycache__", ".pytest_cache"}
+
+# Skipped only at the repo ROOT — "specs" also names the test tree
+# (tests/specs/), which must be scanned.
+ROOT_SKIP_DIRS = {"specs"}
 
 # Only text we author. Anything else is skipped rather than guessed at.
 TEXT_SUFFIXES = {
@@ -39,7 +43,8 @@ def _text_files(workspace_root):
     for path in workspace_root.rglob("*"):
         if not path.is_file():
             continue
-        if SKIP_DIRS & set(path.relative_to(workspace_root).parts):
+        parts = path.relative_to(workspace_root).parts
+        if SKIP_DIRS & set(parts) or parts[0] in ROOT_SKIP_DIRS:
             continue
         # Shell scripts in core/scripts have no suffix at all.
         if path.suffix and path.suffix not in TEXT_SUFFIXES:

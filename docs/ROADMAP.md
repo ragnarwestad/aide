@@ -17,8 +17,8 @@ New contributors (human or AI): read this first.
 
 ## Background
 
-aide started as *melosys-aide*, an internal AI-tooling workspace for a
-NAV project. In July 2026 it was extracted into this repo with a clean
+aide started as an internal AI-tooling workspace for a customer
+project. In July 2026 it was extracted into this repo with a clean
 history, stripped of all domain content, translated from Norwegian to
 English, and slimmed down. The git history documents each step.
 
@@ -31,8 +31,8 @@ The documents themselves were renamed from "reports" to "specs" in August
 aide-specs: they are specifications more than reports. The old technical
 identifiers are banned by `tests/specs/unit/validation/test_spec_vocabulary.py`.
 
-The frozen original lives at `~/develop/nav/melosys-aide` (local reference
-only — do not develop there).
+A frozen copy of the original customer workspace exists locally as
+reference only — do not develop there.
 
 ## Architecture decisions
 

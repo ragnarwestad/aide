@@ -1,6 +1,6 @@
 """The documents are SPECS, not reports. No old identifier may survive.
 
-melosys-reports was renamed aide-specs because the documents are
+The documents repo was renamed to aide-specs because the documents are
 specifications more than reports (spec 72). The technical vocabulary was
 renamed with it: env var, default directory, rule file, shared lib and
 its functions. This test bans the old identifiers repo-wide so the
