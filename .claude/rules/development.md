@@ -83,13 +83,48 @@ The CLI tools are kept up to date automatically:
 `claude update`. It is installed to `~/.local/bin/` by each AI installer (via
 `core/scripts/_install-bin.sh`).
 
-The script runs daily via cron — set it up once per machine:
+The script runs daily at 08:00 — set it up once per machine, and pick the
+mechanism by whether the machine sleeps:
+
+**Always-on machine (desktop, server):** plain cron.
 
 ```bash
 crontab -e
 # Add:
 0 8 * * * ~/.local/bin/upgrade-ai-tools
 ```
+
+**Laptop:** a launchd agent instead. cron silently skips any run the machine
+sleeps through and never catches up, so a lid shut past 08:00 means no upgrade
+that day. launchd runs a missed `StartCalendarInterval` job on the next wake.
+Save as `~/Library/LaunchAgents/com.<user>.upgrade-ai-tools.plist`, then
+`launchctl bootstrap gui/$(id -u) <path>`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.USER.upgrade-ai-tools</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/USER/.local/bin/upgrade-ai-tools</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>8</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/USER/Library/Logs/upgrade-ai-tools.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/USER/Library/Logs/upgrade-ai-tools.log</string>
+</dict>
+</plist>
+```
+
+Do not run both — remove the cron line when installing the launchd agent.
 
 The matrix (`docs/AI_SUPPORT_MATRIX.md`) reflects the *last verified* versions and
 is updated manually via `/check-news` — not by the cron job.
