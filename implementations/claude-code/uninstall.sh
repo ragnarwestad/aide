@@ -57,6 +57,7 @@ SKILLS=(
   "aide-implement"
   "aide-create"
   "aide-react-class-to-func"
+  "aide-review-plan"
   "aide-to-html"
   "aide-to-pdf"
   "architecture-advisor"

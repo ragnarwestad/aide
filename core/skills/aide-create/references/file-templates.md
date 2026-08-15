@@ -45,6 +45,7 @@ Structure - follow the spec structure § 3-solution:
 
 - `# TITLE - Solution`
 - TOC with: Tracking info, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Implementation plan, Testing
+  (a "Plan review" section is added after Acceptance criteria by /aide-review-plan)
 - **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`,
   Repo=`[not prepared yet]` (filled as `repo/branch @ commit`, one line per repo)
 - **Approaches:** Placeholder for 2 approaches with pros/cons/estimate

@@ -28,6 +28,7 @@ Available skills:
 - `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
+- `/aide-review-plan` - Review the plan before implementation (feasibility, scope, coherence)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
 - `/aide-to-pdf` - Render the specs to PDF
@@ -109,6 +110,7 @@ in the project root. There is no environment variable.
 - [JIRA issue workflow](#jira-issue-workflow)
   - [Phase 1: Create document structure](#phase-1-create-document-structure)
   - [Phase 2: Analyze the codebase](#phase-2-analyze-the-codebase)
+  - [Phase 2.5: Review the plan](#phase-25-review-the-plan)
   - [Phase 3: Implement the solution](#phase-3-implement-the-solution)
   - [Phase 4: Verify](#phase-4-verify)
   - [Phase 5: Archive](#phase-5-archive)
@@ -270,7 +272,7 @@ be recorded where the solution lives.
 
 ### Overall flow
 ```text
-(Explore) - Create - Analyze - Solve - Verify - Archive
+(Explore) - Create - Analyze - (Review) - Solve - Verify - Archive
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
@@ -307,6 +309,15 @@ specs/05-PROJ-7894-class-to-functional/
 6. Updates all 4 document files
 
 **Can be re-run** when the codebase changes.
+
+### Phase 2.5: Review the plan
+
+**Optional for LOW specs, expected for MEDIUM/HIGH.** `/aide-review-plan`
+lets reviewers with distinct perspectives (feasibility, scope guardian,
+coherence) attack `3-solution.md` BEFORE any test is written — where
+mistakes are cheapest to catch. Findings land in a "Plan review" section
+of `3-solution.md`, and the plan is REVISED for every must-fix finding,
+not just annotated.
 
 ### Phase 3: Implement the solution
 

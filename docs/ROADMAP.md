@@ -161,7 +161,7 @@ projects, running processes, approvals, cost. Three layers: knowledge
 The plan and the backlog live as specs in aide-specs — the detail is
 THERE, not here (we eat our own dog food):
 
-- [ ] Stage 0 — plan review step → spec 77
+- [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`)
 - [ ] Stage 1 — project manifest → spec 78
 - [ ] Stage 2 — read-only dashboard → spec 79
 - [ ] Stage 3 — live process events → spec 80

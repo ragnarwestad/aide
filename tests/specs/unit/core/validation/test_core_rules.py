@@ -64,6 +64,24 @@ class TestNoPhantomDocReferences:
 
 
 @pytest.mark.validation
+class TestPlanReviewIsWired:
+    """The plan review step (spec 77) must be part of the documented flow.
+
+    A step that exists only as a skill is invisible: the workflow rule
+    and the skills list are what tell the model (and the user) that the
+    step exists between analyze and implement.
+    """
+
+    @pytest.mark.parametrize("rule", ["workflows.md", "tools-and-scripts.md"])
+    def test_docs_mention_the_review_step(self, rule):
+        content = (RULES_DIR / rule).read_text(encoding="utf-8")
+        assert "aide-review-plan" in content, (
+            f"{rule} does not mention aide-review-plan — the step is "
+            "not wired into the documented workflow"
+        )
+
+
+@pytest.mark.validation
 class TestSpecStructureRuleScope:
     @pytest.mark.parametrize("sample", SAMPLE_SPEC_PATHS)
     def test_globs_match_spec_files_wherever_they_live(self, sample):

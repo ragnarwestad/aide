@@ -109,6 +109,6 @@ IMPORTANT:
 ## Next step
 
 ```text
-/aide-implement PROJ-XXXX   # For JIRA issue
-/aide-implement 55              # For task (number)
+/aide-review-plan 55      # MEDIUM/HIGH: review the plan first
+/aide-implement 55         # LOW: straight to implementation
 ```
