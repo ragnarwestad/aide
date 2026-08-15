@@ -162,7 +162,7 @@ The plan and the backlog live as specs in aide-specs — the detail is
 THERE, not here (we eat our own dog food):
 
 - [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`)
-- [ ] Stage 1 — project manifest → spec 78
+- [x] Stage 1 — project manifest → spec 78 (done August 2026: `/aide-manifest` + `.aide/project.yaml`)
 - [ ] Stage 2 — read-only dashboard → spec 79
 - [ ] Stage 3 — live process events → spec 80
 - [ ] Stage 4 — queue and runner → spec 81

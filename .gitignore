@@ -18,5 +18,5 @@ venv/
 /dist/
 
 
-# Per-project aide config (personal)
-/.aide/
+# Per-project aide config (personal; project.yaml is tracked team knowledge)
+/.aide/config

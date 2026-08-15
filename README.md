@@ -92,8 +92,10 @@ AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 
 **Default:** specs are written to `specs/` in the project root. The path
 is per-project configuration, not an environment variable — two projects
-can point at two different spec repos. Keep personal configs out of git
-with a global personal gitignore (`core.excludesFile`) containing `.aide/`.
+can point at two different spec repos. Keep the personal config out of git
+with a global personal gitignore (`core.excludesFile`) containing
+`.aide/config` — the manifest `.aide/project.yaml` is team knowledge
+and belongs in git.
 
 ---
 

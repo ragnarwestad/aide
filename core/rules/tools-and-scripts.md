@@ -19,6 +19,7 @@ Available skills:
 - `/aide-create` - Create JIRA/TODO documentation
 - `/aide-analyze` - Analyze the codebase
 - `/aide-review-plan` - Review the plan before implementation (feasibility, scope, coherence)
+- `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
 - `/aide-to-pdf` - Render the specs to PDF
@@ -73,6 +74,13 @@ Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.
 Shell scripts read the file via `aide_config_get KEY <project-root>` from
 `_aide-spec-lib.sh`.
+
+**The project manifest is the config's team-owned sibling:**
+`.aide/project.yaml` describes what the project IS (stack, dependencies,
+deployment, logging, statistics, reports, docs) and belongs in git.
+`/aide-manifest` drafts and refreshes it; `/aide-analyze` reads it for
+project context. Only `.aide/config` is personal and gitignored — never
+ignore the whole `.aide/` directory.
 
 ---
 

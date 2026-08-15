@@ -1,0 +1,25 @@
+# .aide/project.yaml — the project's identity card (spec 78).
+# TEAM knowledge, committed to git. All keys optional: leave out what
+# is unknown rather than guessing. Links over prose.
+name: example-project
+description: One line on what the project is
+generated: 2026-08-15          # stamped by /aide-manifest; staleness signal
+stack:
+  frontend: TypeScript/Vite
+  backend: none                # e.g. Kotlin/Spring, or none
+  database: none               # e.g. PostgreSQL, or none
+dependencies:                  # services/projects this depends on
+  - goatcounter (statistics)
+deployment:
+  host: Cloudflare Pages
+  command: pnpm run deploy
+  url: https://example.com
+logging:
+  where: Cloudflare dashboard -> Pages -> logs
+statistics:                    # live dashboards
+  - https://stats.example.com
+reports:                       # generated reports, uniform shape
+  - title: Daily traffic (Claude artifact)
+    url: https://claude.ai/code/artifact/example
+docs:
+  - README.md

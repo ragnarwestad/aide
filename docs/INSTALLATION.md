@@ -111,8 +111,10 @@ AIDE_SPECS_PATH=/Users/you/develop/my-specs-repo
 
 **Benefit:** specs stay out of the project repo and each project can have
 its own location. Not an environment variable — the key lives in the
-project's `.aide/config`. Add `.aide/` to your global personal gitignore
-(`git config core.excludesFile`) so personal configs never get committed.
+project's `.aide/config`. Add `.aide/config` to your global personal gitignore
+(`git config core.excludesFile`) so the personal config never gets
+committed — the manifest `.aide/project.yaml` is team knowledge and
+belongs in git.
 
 #### AIDE_INSTALLATION_PATH
 

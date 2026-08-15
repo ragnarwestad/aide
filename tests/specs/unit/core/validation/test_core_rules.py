@@ -91,3 +91,33 @@ class TestSpecStructureRuleScope:
             f"none of the paths globs {globs} match {sample!r} — the rule "
             "never activates for the files it is about"
         )
+
+
+@pytest.mark.validation
+class TestManifestIsWired:
+    """The project manifest (spec 78) must be documented, consumed and
+    not hidden by the old wide-ignore recommendation."""
+
+    ROOT = Path(__file__).parents[5]
+
+    def test_tools_and_scripts_documents_the_manifest(self):
+        content = (RULES_DIR / "tools-and-scripts.md").read_text(encoding="utf-8")
+        assert "aide-manifest" in content and "project.yaml" in content, (
+            "tools-and-scripts.md does not document the project manifest"
+        )
+
+    def test_aide_analyze_reads_the_manifest(self):
+        skill = self.ROOT / "core" / "skills" / "aide-analyze" / "SKILL.md"
+        assert ".aide/project.yaml" in skill.read_text(encoding="utf-8"), (
+            "aide-analyze never reads the manifest — the description's "
+            "whole payoff (context-aware analyses) is missing"
+        )
+
+    @pytest.mark.parametrize("doc", ["README.md", "docs/INSTALLATION.md"])
+    def test_no_wide_ignore_recommendation_survives(self, doc):
+        content = (self.ROOT / doc).read_text(encoding="utf-8")
+        assert "`.aide/`" not in content, (
+            f"{doc} still recommends ignoring the whole .aide/ directory — "
+            "the manifest is committable team knowledge; only .aide/config "
+            "is personal"
+        )

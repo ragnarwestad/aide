@@ -54,6 +54,7 @@ SKILLS=(
   "aide-archive"
   "aide-explore"
   "aide-make-tests"
+  "aide-manifest"
   "aide-implement"
   "aide-create"
   "aide-react-class-to-func"

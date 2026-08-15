@@ -49,6 +49,9 @@ Examples:
 ### Step 1: Read the description
 
 - Read `specs/XX-slug/1-description.md`
+- Read `.aide/project.yaml` in the project root if it exists — the
+  project manifest gives deployment, logging and dependency context
+  the analysis should use (refresh it with `/aide-manifest`)
 - Identify: What should change? What is the scope? Migration or single fix?
 
 ### Step 2: Detect complexity
