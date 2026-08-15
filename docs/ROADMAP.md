@@ -152,36 +152,22 @@ All four verified in live `codex exec` sessions against 0.147.0.
 
 ## Phase 5: The dashboard — toward spec-driven, observable runs
 
-The long-term direction (spec 76 in aide-specs, August 2026): write
-specifications that agents solve over hours, and have ONE web UI with
-overview and control — projects, running processes, approvals, cost.
-The vision decomposes into three layers — knowledge (what each project
-is), state (what is running and how far), execution (starting and
-gating runs) — and builds in five stages, each useful on its own:
+The long-term direction (August 2026): write specifications that agents
+solve over hours, and have ONE web UI with overview and control —
+projects, running processes, approvals, cost. Three layers: knowledge
+(what each project is), state (what is running and how far), execution
+(starting and gating runs).
 
-- [ ] **Stage 0 — plan review step** (LOW): 2-3 reviewers with distinct
-      lenses (feasibility, scope, coherence) attack `3-solution.md`
-      before the RED phase. Independent of everything else.
-- [ ] **Stage 1 — project manifest** (MEDIUM): `.aide/project.yaml` per
-      project — dependencies, deployment, logging, statistics, backend,
-      database, links to generated reports. `/aide-analyze` drafts it
-      from the codebase. Pilot: Atlasaurus.
-- [ ] **Stage 2 — read-only dashboard** (MEDIUM): one page rendering
-      the manifests + spec state (phases from `4-status.md`, archive).
-      Starts as generated HTML on the always-on machine beside
-      claude-usage; the extend-vs-sibling ownership decision is taken
-      here.
-- [ ] **Stage 3 — live processes** (MEDIUM): aide skills emit
-      spec/phase/session events to the claude-usage server, closing the
-      one missing correlation; the dashboard shows runs in flight with
-      subagents and token cost.
-- [ ] **Stage 4 — queue and runner** (HIGH): start and approve from the
-      UI; headless phases (`claude -p "/aide-implement N"`) run on the
-      always-on machine; phase gates pause and notify; spend caps and
-      stuck limits from day one (the AgentOS video's $500-a-day lesson).
+The plan and the backlog live as specs in aide-specs — the detail is
+THERE, not here (we eat our own dog food):
 
-Each stage becomes its own spec when started. The full wish list and
-the grounding live in spec 76.
+- [ ] Stage 0 — plan review step → spec 77
+- [ ] Stage 1 — project manifest → spec 78
+- [ ] Stage 2 — read-only dashboard → spec 79
+- [ ] Stage 3 — live process events → spec 80
+- [ ] Stage 4 — queue and runner → spec 81
+
+The wish list and the grounding are in spec 76 (archived).
 
 ## Known quirks
 
