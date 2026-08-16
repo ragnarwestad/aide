@@ -181,6 +181,11 @@ tr.archived td { color: #999; }
 .enqueue { margin: 0.8rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .enqueue .steps { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .enqueue .stepbox { font-size: 0.9rem; }
+.enqueue .field { display: flex; flex-direction: column; gap: 0.15rem; }
+.enqueue .fieldlabel { font-size: 0.75rem; font-weight: 600; color: #777;
+  text-transform: uppercase; letter-spacing: 0.04em; }
+.enqueue .gate { align-self: end; }
+main h2 { font-size: 1.05rem; margin: 1.4rem 0 0.2rem; }
 td form { margin: 0; }
 @media (max-width: 40rem) {
   .layout { flex-direction: column; }
@@ -196,15 +201,22 @@ function pageShell(
   body: string,
   generatedAt: string,
   refreshSeconds?: number,
+  opts: { refreshInNoscript?: boolean; script?: string } = {},
 ): string {
-  const refresh = refreshSeconds ? `\n<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
+  // A meta refresh is fine on a page you only read. On a page with a
+  // FORM it is hostile: it wipes what you were half-way through
+  // filling in. /queue therefore refreshes its table from script and
+  // keeps the blunt refresh only as a no-JS fallback.
+  const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
+  const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
+  const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
 <title>${esc(title)}</title>
-<style>${CSS}</style>
+<style>${CSS}</style>${script}
 </head>
 <body>
 <div class="layout">
@@ -371,13 +383,55 @@ function enqueueForm(opts: QueuePageOptions): string {
       `<label class="stepbox"><input type="checkbox" name="steps" value="${esc(s)}"` +
       `${s === "analyze" ? " checked" : ""}> ${esc(s)}</label>`,
   ).join("");
+  // The gate choice is SHOWN and off by default. Hiding it made the
+  // button quietly create a job that stops for approval after every
+  // step — the opposite of what pressing it looks like it does.
   return (
+    `<h2>Queue a job</h2>\n` +
     `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
-    `<select name="target">${options}</select> ` +
-    `<span class="steps">${boxes}</span> ` +
+    `<label class="field"><span class="fieldlabel">Spec</span>` +
+    `<select name="target">${options}</select></label>` +
+    `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
+    `<span class="steps">${boxes}</span></span>` +
+    `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
+    `stop for approval between steps</label>` +
     `<button type="submit">Queue it</button></form>`
   );
 }
+
+// The rows alone, so the page can refresh its table from script
+// without touching a form someone is half-way through filling in.
+export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions): string {
+  if (rows.length === 0) return `<tr><td colspan="7" class="muted">No jobs queued yet.</td></tr>`;
+  return rows
+    .map((r) => {
+      const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
+      const spec = r.branchUrl ? `<a href="${esc(r.branchUrl)}">${esc(r.specFolder)}</a>` : esc(r.specFolder);
+      const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
+      return (
+        `<tr class="${done ? "archived" : "active"}">` +
+        `<td>${spec}</td><td>${esc(r.project)}</td>` +
+        `<td>${esc(step)} <span class="muted">(${r.stepIndex + 1} of ${r.steps.length})</span></td>` +
+        `<td>${esc(stateLabel(r))}${r.error ? ` <span class="muted">${esc(r.error)}</span>` : ""}</td>` +
+        `<td>${esc(r.createdAt)}</td><td>$${r.spentUsd.toFixed(2)}</td>` +
+        `<td>${actionForm(r, opts.token)}</td></tr>`
+      );
+    })
+    .join("");
+}
+
+// Vanilla, tiny, and the only script on any page: swap the table body
+// every few seconds. The generated static pages stay script-free.
+const QUEUE_SCRIPT = `
+setInterval(async () => {
+  try {
+    const res = await fetch('/queue?rows=1', { headers: { 'accept': 'text/html' } });
+    if (!res.ok) return;
+    const body = document.getElementById('jobrows');
+    if (body) body.innerHTML = await res.text();
+  } catch (e) { /* a blip is not worth a broken page */ }
+}, 5000);
+`.trim();
 
 // Server-rendered /queue page in the site's layout (spec 81). No JS:
 // plain forms and a meta refresh.
@@ -388,28 +442,9 @@ export function renderQueuePage(
   opts: QueuePageOptions,
 ): string {
   const table =
-    rows.length === 0
-      ? `<p class="muted">No jobs queued yet.</p>`
-      : `<table><thead><tr><th>Spec</th><th>Project</th><th>Step</th><th>State</th>` +
-        `<th>Queued</th><th>Cost</th><th>Action</th></tr></thead><tbody>` +
-        rows
-          .map((r) => {
-            const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
-            const spec = r.branchUrl
-              ? `<a href="${esc(r.branchUrl)}">${esc(r.specFolder)}</a>`
-              : esc(r.specFolder);
-            const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
-            return (
-              `<tr class="${done ? "archived" : "active"}">` +
-              `<td>${spec}</td><td>${esc(r.project)}</td>` +
-              `<td>${esc(step)} <span class="muted">(${r.stepIndex + 1} of ${r.steps.length})</span></td>` +
-              `<td>${esc(stateLabel(r))}${r.error ? ` <span class="muted">${esc(r.error)}</span>` : ""}</td>` +
-              `<td>${esc(r.createdAt)}</td><td>$${r.spentUsd.toFixed(2)}</td>` +
-              `<td>${actionForm(r, opts.token)}</td></tr>`
-            );
-          })
-          .join("") +
-        `</tbody></table>`;
+    `<table><thead><tr><th>Spec</th><th>Project</th><th>Step</th><th>State</th>` +
+    `<th>Queued</th><th>Cost</th><th>Action</th></tr></thead>` +
+    `<tbody id="jobrows">${renderQueueRows(rows, opts)}</tbody></table>`;
   const notice = opts.runnerAvailable
     ? ""
     : `<p class="muted">No runner is installed on this machine yet (slice 81b) — ` +
@@ -420,9 +455,12 @@ export function renderQueuePage(
     `its own budget and a wall clock. A job that hits a cap is <em>stopped</em>, ` +
     `not failed.</p>\n` +
     enqueueForm(opts) +
-    "\n" +
+    `\n<h2>Jobs</h2>\n` +
     table;
-  return pageShell("Queue", entries, "/queue", body, generatedAt, 10);
+  return pageShell("Queue", entries, "/queue", body, generatedAt, 10, {
+    refreshInNoscript: true,
+    script: QUEUE_SCRIPT,
+  });
 }
 
 export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {

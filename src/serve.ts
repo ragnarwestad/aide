@@ -20,6 +20,7 @@ import {
   navEntries,
   renderLivePage,
   renderQueuePage,
+  renderQueueRows,
   type NavEntry,
   type ProjectView,
   type QueueRowView,
@@ -130,6 +131,11 @@ function bodyToObject(text: string, contentType: string | null): unknown {
     }
     if (typeof out.steps === "string") out.steps = [out.steps];
     if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
+    // A form posts a checkbox only when it is ticked. Unticked means
+    // "run straight through", which must be said explicitly — the
+    // schema's default is to gate after every step.
+    if (out.gateAfter === undefined) out.gateAfter = out.gate ? undefined : [];
+    delete out.gate;
     for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
       if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
     }
@@ -361,10 +367,18 @@ export function createServer(opts: ServerOptions) {
 
     if (path === "/queue") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const html = renderQueuePage(queue.list().map(jobRow), new Date().toISOString(), nav(), {
+      const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: targets(),
-      });
+      };
+      // The rows alone: the page swaps them from script every few
+      // seconds, so a half-filled form is never wiped by a refresh.
+      if (url.searchParams.get("rows")) {
+        return new Response(renderQueueRows(queue.list().map(jobRow), view), {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      }
+      const html = renderQueuePage(queue.list().map(jobRow), new Date().toISOString(), nav(), view);
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
       // Hand the token over ONCE, as an HttpOnly cookie, so the forms
       // never have to carry it in their markup.

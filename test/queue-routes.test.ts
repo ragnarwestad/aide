@@ -1,7 +1,12 @@
 // Criterion 9 (spec 81): the queue surface is behind the token — read
-// routes included — while /live and POST /api/aide-run stay open, and
-// the page renders without JS. A token that a page hands to anyone who
-// can load the page is not a secret, so GET /queue is checked too.
+// routes included — while /live and POST /api/aide-run stay open. A
+// token that a page hands to anyone who can load the page is not a
+// secret, so GET /queue is checked too.
+//
+// The no-JS rule is SPLIT here, deliberately: the generated static
+// pages and /live carry no script, but /queue does. It has a form, and
+// a meta refresh that reloads the page every ten seconds would wipe
+// whatever someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -169,20 +174,76 @@ describe("token configured", () => {
 });
 
 describe("GET /queue (HTML)", () => {
-  test("layout, meta refresh, forms, no script, and the runner notice", async () => {
+  test("layout, forms, labels, and the runner notice", async () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain("<nav>");
-    expect(html).toContain('http-equiv="refresh"');
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form method="post"');
-    expect(html).not.toContain("<script");
     expect(html).toMatch(/<a class="current" href="\/queue"/);
+    // Every control says what it is: an unlabelled select next to some
+    // checkboxes tells the reader nothing.
+    expect(html).toContain("Queue a job");
+    expect(html).toContain("Steps, in order");
+    expect(html).toContain("stop for approval between steps");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
+  });
+
+  test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    // A page with a form must not reload underneath someone filling it
+    // in; the script swaps the table body instead.
+    expect(html).toContain("<noscript><meta http-equiv=\"refresh\"");
+    expect(html).toContain("<script");
+    expect(html).toContain('id="jobrows"');
+  });
+
+  test("/live and the generated pages stay script-free", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const live = await (await fetch(`${base}/live`)).text();
+    expect(live).not.toContain("<script");
+    expect(live).toContain('http-equiv="refresh"');
+    const { renderSite } = await import("../src/render.ts");
+    for (const page of renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "x")) {
+      expect(page.html).not.toContain("<script");
+    }
+  });
+
+  test("?rows=1 returns the table body alone, for the script to swap in", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
+    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(rows).toContain("<tr");
+    expect(rows).toContain("81-queue-and-runner");
+    expect(rows).not.toContain("<html");
+    expect(rows).not.toContain("<form method=\"post\" action=\"/api/queue\"");
+  });
+
+  test("the gate checkbox decides: unticked runs straight through", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const post = (body: URLSearchParams) =>
+      fetch(`${base}/api/queue`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+        body,
+      });
+    await post(new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }));
+    const params = new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" });
+    params.append("gate", "on");
+    await post(params);
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })
+    ).json()) as { jobs: { gateAfter: string[] }[] };
+    // Newest first: the gated one, then the straight-through one.
+    expect(listed.jobs[0].gateAfter).toEqual(["analyze"]);
+    expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
   test("generated pages carry the Queue nav entry", async () => {
