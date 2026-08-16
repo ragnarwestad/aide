@@ -112,6 +112,11 @@ describe("overview (criterion 3)", () => {
     expect(index).toContain("<h2>Projects</h2>");
   });
 
+  test("intro text and an aggregate summary line", () => {
+    expect(index).toContain("read-only overview");
+    expect(index).toContain("2 projects · 1 active · 1 archived");
+  });
+
   test("linked name, description and normative counts per project", () => {
     expect(index).toContain('href="goodproj.html"');
     expect(index).toContain("A healthy project");

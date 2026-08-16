@@ -166,6 +166,7 @@ main { flex: 1; padding: 1rem 1.5rem; max-width: 60rem; }
 .proj-row.error { border-color: #c0392b; }
 .error-text { color: #c0392b; }
 .counts { color: #777; margin-left: 0.6rem; font-size: 0.9rem; }
+.summary { color: #777; font-size: 0.9rem; }
 .desc { margin-top: 0; }
 .row { margin: 0.3rem 0; }
 .row ul { margin: 0.1rem 0 0.4rem; padding-left: 1.4rem; }
@@ -245,8 +246,27 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 
+  const totalActive = projects.reduce(
+    (n, p) => n + p.specs.filter((s) => !s.archived).length,
+    0,
+  );
+  const totalArchived = projects.reduce(
+    (n, p) => n + p.specs.filter((s) => s.archived).length,
+    0,
+  );
+  const intro =
+    `<p class="intro">aide-dashboard is the read-only overview of ` +
+    `AI-assisted development across the projects on this machine: every ` +
+    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
+    `showing what the project IS (stack, deployment, logging, statistics, ` +
+    `docs) and where its specs stand (phase and progress, active and ` +
+    `archived). The site is static — regenerate and publish with ` +
+    `<code>make publish</code>.</p>\n` +
+    `<p class="summary">${projects.length} projects · ` +
+    `${totalActive} active · ${totalArchived} archived</p>`;
   const overview =
-    `<h2>Projects</h2>\n` +
+    intro +
+    `\n<h2>Projects</h2>\n` +
     ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
   const pages: Page[] = [
     {
