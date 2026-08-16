@@ -12,6 +12,7 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
   - [AIDE_PROJECTS_PATH](#aide_projects_path-optional)
   - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
+- [Running a workflow step headless (opt-in)](#running-a-workflow-step-headless-opt-in)
 - [Resources](#resources)
 
 ---
@@ -130,6 +131,39 @@ All AI tools follow the same basic workflow:
 ```
 
 **See:** [core/rules/workflows.md](core/rules/workflows.md) for details.
+
+---
+
+## Running a workflow step headless (opt-in)
+
+`aide-run-spec` runs ONE workflow step for ONE spec without a human in
+the chair — the guards are the point, not the invocation:
+
+```bash
+aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
+              --budget-usd 3 --timeout-sec 1200 \
+              --permission-mode acceptEdits \
+              --result-file /tmp/step.json [--push none|branch|pr] [--pull]
+```
+
+It refuses to start when either git root is dirty, when the spec folder
+does not exist, or when a required value is missing; `--permission-mode`
+is never defaulted, because the most dangerous knob has to be typed out
+by whoever starts the run. It enforces its own wall clock (SIGTERM to
+the process group, then SIGKILL), commits whatever the step managed to
+write in BOTH roots — the project and the specs repo — and writes one
+JSON line to stdout and to `--result-file`.
+
+**Installing aide gives nobody a queue.** The script does nothing until
+it is invoked, and it is what a scheduler drives (the aide-dashboard
+queue does exactly that). `--dry-run` prints the command line it would
+use and starts nothing.
+
+`aide-emit-run` is the same kind of opt-in: inert unless `AIDE_RUN_URL`
+is set. Besides the `UserPromptSubmit` hook it has a phase mode
+(`aide-emit-run --phase red|green|refactor --spec N`) that the
+`/aide-implement` skill calls at each TDD boundary, so a headless run
+can be followed while it works.
 
 ---
 

@@ -258,6 +258,50 @@ def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_cl
     assert copy.read_text().startswith("#!/bin/bash"), "the replacement really happened"
 
 
+def test_a_stale_self_copy_marker_never_deletes_the_installed_script(runner, workspace, fake_claude, tmp_path):
+    """The private copy unlinks itself, and it recognises itself by an
+    environment variable. That variable is inherited by everything the
+    step spawns — including `claude` — so a nested run (a test, a
+    terminal inside the run, the next job) would think the INSTALLED
+    script was the throwaway copy and delete it. Measured 2026-08-16:
+    one test run removed core/scripts/aide-run-spec from the worktree.
+    """
+    copy = tmp_path / "aide-run-spec-under-test"
+    copy.write_bytes(pathlib.Path(runner).read_bytes())
+    copy.chmod(0o755)
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    env_marker = str(tmp_path / "some-other-path")
+    old = os.environ.get("AIDE_RUN_SPEC_SELF_COPY")
+    os.environ["AIDE_RUN_SPEC_SELF_COPY"] = env_marker
+    try:
+        rc, out, _ = run(runner, workspace, claude, runner_path=copy)
+    finally:
+        if old is None:
+            os.environ.pop("AIDE_RUN_SPEC_SELF_COPY", None)
+        else:
+            os.environ["AIDE_RUN_SPEC_SELF_COPY"] = old
+    assert rc == 0, out
+    assert copy.exists(), "the script the caller pointed at must survive its own run"
+
+
+def test_the_self_copy_marker_does_not_reach_the_step(runner, workspace, fake_claude, tmp_path):
+    """Belt and braces for the same bug: the marker must not be in the
+    environment claude runs in, or anything that step starts inherits
+    it."""
+    seen = tmp_path / "marker-seen.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'printf "%s\\n" "${{AIDE_RUN_SPEC_SELF_COPY:-none}}" > {seen}\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert seen.read_text().strip() == "none"
+
+
 def test_a_run_starts_from_the_default_branch_not_the_last_job_s(runner, workspace, fake_claude):
     """The previous job leaves its spec branch checked out. Starting
     there would base new work on stale code — and if that branch was
@@ -390,3 +434,168 @@ def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fak
     assert marker.exists(), "SIGTERM must reach the child"
     assert elapsed < 9, "the run should end when the child exits, not wait out the whole grace"
     assert out["terminalReason"] == "timeout"
+
+
+# --- Criterion 11: the push modes --------------------------------------------
+# `push` is a setting, not a decision baked into the code: none commits
+# locally, branch also pushes the spec's branch, pr also opens a pull
+# request. Every level is exercised here against a LOCAL bare repo and a
+# fake `gh`, so nothing reaches GitHub.
+
+
+@pytest.fixture
+def origin(workspace, tmp_path):
+    """Bare repos standing in for GitHub.
+
+    The project's `origin` keeps a real GitHub fetch URL (that is where
+    the compare link comes from) while its PUSH url points at the bare
+    repo — so a push is observable without a network.
+    """
+    project_bare = tmp_path / "origin.git"
+    specs_bare = tmp_path / "specs-origin.git"
+    for bare in (project_bare, specs_bare):
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", "git@github.com:ragnarwestad/aide.git")
+    git(workspace["project"], "remote", "set-url", "--push", "origin", str(project_bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    git(workspace["specs"], "remote", "add", "origin", str(specs_bare))
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    return {"project": project_bare, "specs": specs_bare}
+
+
+@pytest.fixture
+def fake_gh(tmp_path):
+    """Factory for a stand-in `gh`. Records argv, then behaves as asked."""
+    calls = tmp_path / "gh-calls.txt"
+
+    def make(body: str = 'echo "https://github.com/ragnarwestad/aide/pull/7"'):
+        path = tmp_path / "fake-gh"
+        path.write_text("#!/usr/bin/env bash\n" f'printf "%s\\n" "$*" >> {calls}\n' f"{body}\n")
+        path.chmod(0o755)
+        return path
+
+    make.calls = calls  # type: ignore[attr-defined]
+    return make
+
+
+def writing_claude(fake_claude, workspace):
+    """A claude that leaves work behind in both roots, the way a real
+    step does."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        f'echo "written by the step" > "{workspace["project"]}/new-code.txt"\n'
+        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def run_with_gh(runner, workspace, claude, gh, **kwargs):
+    env_gh = str(gh) if gh else None
+    old = os.environ.get("AIDE_GH_BIN")
+    if env_gh:
+        os.environ["AIDE_GH_BIN"] = env_gh
+    try:
+        return run(runner, workspace, claude, **kwargs)
+    finally:
+        if old is None:
+            os.environ.pop("AIDE_GH_BIN", None)
+        else:
+            os.environ["AIDE_GH_BIN"] = old
+
+
+def test_push_none_keeps_everything_on_this_machine(runner, workspace, fake_claude, fake_gh, origin):
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh()
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="none")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert git(origin["project"], "branch", "--list", branch) == "", "nothing may leave the machine in `none`"
+    assert not fake_gh.calls.exists(), "gh is only for `pr`"
+    assert out.get("prUrl") is None
+
+
+def test_the_default_is_to_push_nothing(runner, workspace, fake_claude, origin):
+    """A hand-run must not publish anything nobody asked it to. The
+    dashboard passes `--push branch` from its config."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert git(origin["project"], "branch", "--list", "aide/81-queue-and-runner") == ""
+
+
+def test_push_branch_publishes_the_branch_and_links_to_the_diff(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh()
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert branch in git(origin["project"], "branch", "--list", branch)
+    assert not fake_gh.calls.exists(), "gh is only for `pr`"
+    # The compare page is the diff view a reviewer opens on a phone.
+    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+
+
+def test_push_branch_also_publishes_the_spec_work(runner, workspace, fake_claude, origin):
+    """An `analyze` step changes nothing in the project and everything in
+    the specs repo. Pushing only the project would leave the analysis
+    stranded on the machine that wrote it."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch")
+    assert rc == 0, out
+    log = subprocess.run(
+        ["git", "-C", str(origin["specs"]), "log", "-1", "--pretty=%s", "main"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    assert "analyze" in log
+
+
+def test_push_pr_opens_a_pull_request_and_reports_its_url(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh()
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert branch in git(origin["project"], "branch", "--list", branch), "pr pushes too"
+    called = fake_gh.calls.read_text()
+    assert "pr create" in called
+    assert branch in called
+    assert out["prUrl"] == "https://github.com/ragnarwestad/aide/pull/7"
+    assert out.get("prError") is None
+
+
+def test_a_broken_gh_never_fails_a_finished_run(runner, workspace, fake_claude, fake_gh, origin):
+    """`gh` on the mini needs an interactive re-auth only the user can
+    do. A run whose work succeeded must not be reported as failed
+    because the PR could not be opened."""
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh('echo "the token in default is invalid" >&2; exit 1')
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="pr")
+    assert rc == 0
+    assert out["ok"] is True, "the step did its work"
+    assert out["terminalReason"] == "completed"
+    assert out["prError"], "but the failure is recorded, not swallowed"
+    assert "aide/81-queue-and-runner" in git(
+        origin["project"], "branch", "--list", "aide/81-queue-and-runner"
+    ), "the push still happened"
+
+
+def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, workspace, fake_claude):
+    """No origin at all: the work is committed locally, and the run says
+    so instead of failing."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, push="branch")
+    assert rc == 0
+    assert out["ok"] is True
+    assert out["pushError"], "a push that did not happen must not be silent"
+
+
+def test_an_unknown_push_mode_is_refused_before_anything_starts(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, push="everywhere")
+    assert rc == 2
+    assert "push" in out["error"].lower()
+    assert not fake_claude.calls.exists()

@@ -178,7 +178,12 @@ THERE, not here (we eat our own dog food):
 - [x] Stage 3 — live process events → spec 80 (done August 2026:
       `aide-emit-run` hook + the aide-dashboard server's `/live`, enriched
       read-only from claude-usage's `/api/live`)
-- [ ] Stage 4 — queue and runner → spec 81
+- [x] Stage 4 — queue and runner → spec 81 (done August 2026: aide's
+      `aide-run-spec` runs one workflow step headless with its guards and
+      caps; the aide-dashboard `/queue` page, scheduler, gates,
+      notifications and `push = none | branch | pr` drive it from the
+      mac mini. `aide-emit-run --phase` reports the TDD boundaries from
+      inside a run)
 
 The wish list and the grounding are in spec 76 (archived).
 
