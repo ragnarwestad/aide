@@ -139,6 +139,7 @@ function nav(entries: NavEntry[], currentPath: string): string {
   const [overview, ...projects] = entries;
   const lis = [
     link(overview),
+    link({ label: "Live", path: "/live" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),
   ];
@@ -189,12 +190,14 @@ function pageShell(
   currentPath: string,
   body: string,
   generatedAt: string,
+  refreshSeconds?: number,
 ): string {
+  const refresh = refreshSeconds ? `\n<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
 <title>${esc(title)}</title>
 <style>${CSS}</style>
 </head>
@@ -238,13 +241,67 @@ function projectBody(p: ProjectView): string {
   return manifestBlock(p.manifest.data) + `<h3>Specs</h3>` + specTable(p.specs);
 }
 
-export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
+export type { NavEntry };
+
+// The nav entries for a project set — shared by the generator and the
+// server (which renders /live through the same layout).
+export function navEntries(projects: ProjectView[]): NavEntry[] {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  const entries: NavEntry[] = [
+  return [
     { label: "Overview", path: "index.html" },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
+}
+
+export interface LiveRowView {
+  spec?: string;
+  command: string;
+  project?: string;
+  sessionId: string;
+  receivedAt: string;
+  live: string;
+  subagents: number | null;
+  costUsd: number | null;
+}
+
+// Server-rendered /live page in the site's layout (spec 80). No JS:
+// a meta refresh keeps it current.
+export function renderLivePage(
+  rows: LiveRowView[],
+  notice: string | null,
+  generatedAt: string,
+  entries: NavEntry[],
+): string {
+  const table =
+    rows.length === 0
+      ? `<p class="muted">No aide runs received yet.</p>`
+      : `<table><thead><tr><th>Spec</th><th>Phase</th><th>Project</th><th>Session</th>` +
+        `<th>Started</th><th>Live</th><th>Subagents</th><th>Cost so far</th></tr></thead><tbody>` +
+        rows
+          .map(
+            (r) =>
+              `<tr class="${esc(r.live === "not-live" ? "archived" : "active")}">` +
+              `<td>${esc(r.spec ?? "–")}</td><td>${esc(r.command)}</td>` +
+              `<td>${esc(r.project ?? "–")}</td><td>${esc(r.sessionId.slice(0, 8))}</td>` +
+              `<td>${esc(r.receivedAt)}</td><td>${esc(r.live)}</td>` +
+              `<td>${r.subagents === null ? "–" : r.subagents}</td>` +
+              `<td>${r.costUsd === null ? "–" : `$${r.costUsd.toFixed(2)}`}</td></tr>`,
+          )
+          .join("") +
+        `</tbody></table>`;
+  const body =
+    (notice ? `<p class="muted">${esc(notice)}</p>\n` : "") +
+    `<p class="intro">aide runs linked to their sessions — liveness, subagents and ` +
+    `cost so far come from claude-usage and lag a little for remote machines.</p>\n` +
+    table;
+  return pageShell("Live", entries, "/live", body, generatedAt, 10);
+}
+
+export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
+  const slugs = assignSlugs(projects);
+  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
+  const entries = navEntries(projects);
 
   const totalActive = projects.reduce(
     (n, p) => n + p.specs.filter((s) => !s.archived).length,
