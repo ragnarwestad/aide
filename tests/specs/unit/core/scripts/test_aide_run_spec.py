@@ -749,3 +749,90 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert "up to date" in out["error"] or "conflict" in out["error"]
     # And the tree is left clean, not mid-merge.
     assert git(project, "status", "--porcelain") == ""
+
+
+# --- passenger projects (spec 83) --------------------------------------------
+# A job's work often spans more than the project and its specs repo: spec
+# 81's own implement step wrote to a third repository the run knew nothing
+# about, so half the work was left uncommitted on the machine while the
+# result reported success.
+
+@pytest.fixture
+def passenger(tmp_path):
+    return init_repo(tmp_path / "passenger")
+
+
+def test_a_passenger_repo_is_committed_on_the_branch_and_handed_back_clean(
+    runner, workspace, fake_claude, passenger
+):
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'echo "written by the step" > "{passenger}/new-code.txt"\n'
+        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", branch)
+    assert git(passenger, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert git(passenger, "status", "--porcelain") == ""
+    roots = {r["root"]: r for r in out["repos"]}
+    assert roots[str(passenger)]["changedFiles"] == 1
+
+
+def test_a_dirty_passenger_repo_refuses_before_anything_is_spent(
+    runner, workspace, fake_claude, passenger
+):
+    (passenger / "someone-elses-wip.txt").write_text("in progress\n")
+    marker = passenger / "claude-ran.txt"
+    claude = fake_claude(f'touch "{marker}"\n' "cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert str(passenger) in out["error"]
+    assert not marker.exists(), "the step must not start"
+
+
+def test_a_passenger_that_is_not_a_git_repo_refuses(runner, workspace, fake_claude, tmp_path):
+    plain = tmp_path / "not-a-repo"
+    plain.mkdir()
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(plain))
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert str(plain) in out["error"]
+
+
+def test_a_passenger_that_does_not_exist_refuses(runner, workspace, fake_claude, tmp_path):
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(tmp_path / "nope"))
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+
+
+def test_a_passenger_repo_is_pushed_on_its_branch_not_its_main(
+    runner, workspace, fake_claude, passenger, tmp_path
+):
+    """The code half of a cross-repo job is the half that needs reviewing.
+    Publishing it straight to main is the one thing `--push branch` exists
+    to prevent."""
+    bare = tmp_path / "passenger-origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(passenger, "remote", "add", "origin", "git@github.com:ragnarwestad/passenger.git")
+    git(passenger, "remote", "set-url", "--push", "origin", str(bare))
+    git(passenger, "push", "-q", "origin", "main")
+    main_before = git(bare, "rev-parse", "main")
+
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'echo "written by the step" > "{passenger}/new-code.txt"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert branch in git(bare, "branch", "--list", branch)
+    assert git(bare, "rev-parse", "main") == main_before, "main must not move"
+    urls = {e["url"] for e in out["branchUrls"]}
+    assert f"https://github.com/ragnarwestad/passenger/compare/main...{branch}" in urls

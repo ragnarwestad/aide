@@ -56,6 +56,11 @@ WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
+# Repos beyond the project and its specs root that this job is expected
+# to touch. Spec 81's own implement step wrote to a third repository
+# the run knew nothing about: that half was left uncommitted on the
+# machine while the result reported success.
+extra_dirs=()
 # Default `none`: a run started by hand publishes nothing nobody asked
 # for. The queue passes the mode from its config, where the default is
 # `branch`.
@@ -74,6 +79,7 @@ while [ $# -gt 0 ]; do
     --session-id) session_id="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; shift 2 ;;
+    --extra-project-dir) extra_dirs+=("${2:-}"); shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
     *) printf '{"ok":false,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
@@ -151,10 +157,26 @@ specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true
 roots=("$project_root")
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 
+# Passenger repos get exactly the same treatment as every other root:
+# checked, pulled, branched, committed and pushed. A name that is already
+# a root is ignored rather than watched twice.
+for extra in ${extra_dirs[@]+"${extra_dirs[@]}"}; do
+  [ -n "$extra" ] || refuse "empty --extra-project-dir"
+  [ -d "$extra" ] || refuse "no such --extra-project-dir: $extra"
+  extra_root="$(git -C "$extra" rev-parse --show-toplevel 2>/dev/null)" \
+    || refuse "not a git repository: $extra"
+  already="no"
+  for root in "${roots[@]}"; do
+    [ "$root" = "$extra_root" ] && already="yes"
+  done
+  [ "$already" = "yes" ] || roots+=("$extra_root")
+done
+
 for root in "${roots[@]}"; do
   if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
     label="project"
-    [ "$root" != "$project_root" ] && label="specs"
+    [ "$root" = "$specs_repo" ] && label="specs"
+    [ "$root" != "$project_root" ] && [ "$root" != "$specs_repo" ] && label="extra project"
     refuse "the $label tree is dirty: $root"
   fi
 done
