@@ -1,0 +1,25 @@
+# .aide/project.yaml — the project's identity card.
+# TEAM knowledge, committed to git. All keys optional: leave out what
+# is unknown rather than guessing. Links over prose.
+name: aide
+description: Configuration and tooling for AI-assisted development — skills, rules, hooks and installers for Claude Code, Codex and Copilot
+generated: 2026-08-16
+stack:
+  frontend: none
+  backend: shell scripts (installers, CLI) + Python/pytest test suite
+  database: none
+dependencies:
+  - pandoc (aide-generate-pdf / aide-generate-html)
+  - mise (keeps the Codex/Copilot CLIs updated, daily cron)
+  - markdownlint-cli2 via npx (lint gate)
+deployment:
+  host: local machines — installed globally to ~/.claude, ~/.codex, ~/.copilot, ~/.agents/skills and ~/.local/bin
+  command: ./install-all.sh (or per-tool implementations/<ai>/install.sh)
+docs:
+  - README.md
+  - docs/ROADMAP.md
+  - docs/INSTALLATION.md
+  - docs/AI_SUPPORT_MATRIX.md
+  - docs/SKILL_GUIDE.md
+  - .claude/rules/development.md
+  - .claude/rules/ai-tools-reference.md
