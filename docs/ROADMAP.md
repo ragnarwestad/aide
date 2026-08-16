@@ -65,6 +65,15 @@ reference only — do not develop there.
   allowlist test. Behavior-critical fields are banned; that class of
   divergence is what made `disable-model-invocation` block "ask the
   assistant in prose" while Copilot/Codex ignored the field entirely.
+- **claude-usage is consumed, never modified** (spec 80, August 2026).
+  `~/develop/claude-usage` is a pristine clone of RuneLind/claude-usage
+  — an actively developed personal tool with no support promise.
+  aide's dashboard reads its HTTP API (`/api/live`: session state,
+  subagents, `sessionCostUSD` in one row) and keeps every aide-specific
+  receiver in aide-dashboard. Patching claude-usage would be permanent
+  fork drift. Two facts that bit: its server on the mini binds its
+  Tailscale IP only (not localhost), and its `/api/live` advances live
+  state on each poll — so poll it lazily, never on a standing timer.
 
 ## Phase 3: Make the tool truly generic
 
