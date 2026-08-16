@@ -166,7 +166,9 @@ THERE, not here (we eat our own dog food):
 - [x] Stage 2 — read-only dashboard → spec 79 (done August 2026: the
       `aide-dashboard` repo — static generator on the laptop reading
       the manifests and specs roots, served on the mac mini, port 8788)
-- [ ] Stage 3 — live process events → spec 80
+- [x] Stage 3 — live process events → spec 80 (done August 2026:
+      `aide-emit-run` hook + the aide-dashboard server's `/live`, enriched
+      read-only from claude-usage's `/api/live`)
 - [ ] Stage 4 — queue and runner → spec 81
 
 The wish list and the grounding are in spec 76 (archived).
