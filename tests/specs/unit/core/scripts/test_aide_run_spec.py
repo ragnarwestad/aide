@@ -86,12 +86,14 @@ def fake_claude(tmp_path):
         path.write_text(
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
+            f'printf "%s\\n" "$PWD" >> {tmp_path / "claude-cwd.txt"}\n'
             f"{body}\n"
         )
         path.chmod(0o755)
         return path
 
     make.calls = calls  # type: ignore[attr-defined]
+    make.cwd_log = tmp_path / "claude-cwd.txt"  # type: ignore[attr-defined]
     return make
 
 
@@ -218,6 +220,16 @@ def test_a_successful_run_carries_cost_session_and_subtype(runner, workspace, fa
     assert str(workspace["specs"]) in roots
 
 
+def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, workspace, fake_claude):
+    """A skill resolves the project from its working directory. The
+    first real job ran with the server's cwd and analysed the wrong
+    repository — it cost $0.45 to find out, so it gets a test."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert fake_claude.cwd_log.read_text().strip() == str(workspace["project"].resolve())
+
+
 def test_budget_exhausted_is_stopped_not_a_generic_failure(runner, workspace, fake_claude):
     """A cap-stop is a common, healthy outcome under tight caps. It must
     be distinguishable from an agent that broke."""
@@ -287,6 +299,27 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # so the tree is clean for the next run.
     assert git(workspace["project"], "status", "--porcelain") == ""
     assert "stopped: timeout" in git(workspace["project"], "log", "-1", "--pretty=%s%n%b")
+
+
+def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, workspace, fake_claude):
+    """Measured on the mini 2026-08-16: a SIGTERM'd `claude -p` DOES
+    flush its result JSON — but with subtype error_during_execution and
+    total_cost_usd 0. Trusting that number would under-charge exactly
+    the runs that ran longest, so a stop is charged its full budget
+    whether or not a result was written."""
+    flushed = {
+        "type": "result", "subtype": "error_during_execution",
+        "is_error": True, "session_id": "abc", "total_cost_usd": 0,
+    }
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"trap 'echo {json.dumps(json.dumps(flushed))}; exit 143' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="5")
+    assert out["terminalReason"] == "timeout"
+    assert out["costUsd"] == pytest.approx(3.0), "the flushed $0 must not be believed"
+    assert out["costMeasured"] is False
 
 
 def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fake_claude, tmp_path):

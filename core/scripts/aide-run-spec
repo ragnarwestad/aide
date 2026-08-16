@@ -181,7 +181,12 @@ started_at="$(date +%s)"
 # is not a bound. No pipeline here: with one, $! is the last command and
 # the group id would be someone else's.
 set -m
-"${argv[@]}" < "$work_dir/prompt" > "$work_dir/out" 2> "$work_dir/err" &
+# cd into the project FIRST. A skill resolves the project from its
+# working directory, so inheriting the caller's cwd (a server's, say)
+# makes the run analyse the wrong repository — measured on the first
+# real job, 2026-08-16, which cost $0.45 to discover. `exec` keeps the
+# pid, so $! is still the process group we later signal.
+( cd "$project_root" && exec "${argv[@]}" ) < "$work_dir/prompt" > "$work_dir/out" 2> "$work_dir/err" &
 child=$!
 set +m
 
