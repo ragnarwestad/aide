@@ -205,6 +205,18 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
 .listhead { font-size: 0.78rem; font-weight: 700; color: #888; margin: 1.6rem 0 0.4rem;
   text-transform: uppercase; letter-spacing: 0.07em; }
 .listnote { margin: 0.4rem 0 0; }
+/* One list, cut and ordered on demand — the filter answers "is anything
+   running?" without a second table standing there when nothing is. */
+.listcontrols { display: flex; flex-wrap: wrap; gap: 0.5rem 1.6rem; align-items: center;
+  margin: 0 0 0.7rem; }
+.filtergroup { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+.filtergroup a { text-decoration: none; color: inherit; font-size: 0.88rem;
+  padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid transparent; }
+.filtergroup a:hover { background: #8881; }
+.filtergroup a[aria-current] { font-weight: 700; background: #8881; border-color: #8884; }
+table.jobs thead a { text-decoration: none; color: inherit; }
+table.jobs thead a:hover { text-decoration: underline; }
+.sortmark { color: #3b82f6; }
 .refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
   background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
 .specinfo { margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px solid #8883;
@@ -451,6 +463,17 @@ export interface QueuePageOptions {
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;
+  /** How the list is cut and ordered, straight from the query string.
+   *  Anything unrecognised falls back to the default rather than
+   *  emptying the page. */
+  filter?: QueueFilter;
+}
+
+export interface QueueFilter {
+  state?: string;
+  project?: string;
+  sort?: string;
+  dir?: string;
 }
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -603,38 +626,156 @@ export function specSummary(t: QueueTarget): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
-const ACTIVE_STATES = new Set(["queued", "running", "awaiting-approval"]);
-const RECENT_SHOWN = 10;
+const SHOWN = 25;
+
+// The four questions actually asked of this list. "Problems" holds
+// everything that did not simply finish — a cap-stop and a crash are
+// different, but both are things you go looking for on purpose.
+const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
+  { key: "all", label: "All" },
+  { key: "active", label: "Active", states: ["queued", "running", "awaiting-approval"] },
+  { key: "done", label: "Done", states: ["done"] },
+  { key: "problem", label: "Problems", states: ["failed", "stopped", "interrupted", "cancelled"] },
+];
+
+const SORTS = ["started", "spec", "state", "cost"];
+// Each column has the direction you almost always want first: newest
+// run, dearest job, but names from A.
+const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
+  started: "desc", cost: "desc", spec: "asc", state: "asc",
+};
+
+function stateFilter(key: string | undefined): { key: string; states?: string[] } {
+  return STATE_FILTERS.find((f) => f.key === key) ?? STATE_FILTERS[0]!;
+}
+
+function applyFilter(rows: QueueRowView[], f: QueueFilter): QueueRowView[] {
+  const states = stateFilter(f.state).states;
+  return rows.filter(
+    (r) => (!states || states.includes(r.state)) && (!f.project || r.project === f.project),
+  );
+}
+
+function sortRows(rows: QueueRowView[], f: QueueFilter): QueueRowView[] {
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  const sign = dir === "asc" ? 1 : -1;
+  const key = (r: QueueRowView): number | string =>
+    sort === "cost" ? r.spentUsd
+    : sort === "spec" ? r.specFolder
+    : sort === "state" ? r.state
+    : Date.parse(r.startedAt ?? r.createdAt) || 0;
+  return [...rows].sort((a, b) => {
+    const x = key(a), y = key(b);
+    return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x as number) - (y as number)) * sign;
+  });
+}
+
+// Links, not script: the filter lives in the URL, so it survives a
+// reload, can be shared, and works with JavaScript switched off. The
+// page's own code intercepts the click to avoid reloading a form
+// someone is half-way through.
+function queueHref(f: QueueFilter, patch: QueueFilter): string {
+  const merged = { ...f, ...patch };
+  const q = Object.entries(merged)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  return esc(q ? `/queue?${q}` : "/queue");
+}
+
+function filterBar(rows: QueueRowView[], f: QueueFilter): string {
+  const chips = (
+    name: string,
+    label: string,
+    entries: { key: string; label: string; count: number; on: boolean; patch: QueueFilter }[],
+  ) =>
+    `<span class="filtergroup" data-filter="${esc(name)}"><span class="fieldlabel">${esc(label)}</span>` +
+    entries
+      .map(
+        (e) =>
+          `<a data-nav href="${queueHref(f, e.patch)}"${e.on ? ` aria-current="true"` : ""}>` +
+          `${esc(e.label)} <span class="tabcount">${e.count}</span></a>`,
+      )
+      .join("") +
+    `</span>`;
+
+  const current = stateFilter(f.state).key;
+  // Counts are of what the OTHER filter already allows, so the numbers
+  // add up to the table you are looking at rather than to some list
+  // nobody asked for.
+  const byProject = rows.filter((r) => !f.project || r.project === f.project);
+  const states = chips(
+    "state",
+    "Show",
+    STATE_FILTERS.map((s) => ({
+      key: s.key,
+      label: s.label,
+      count: byProject.filter((r) => !s.states || s.states.includes(r.state)).length,
+      on: s.key === current,
+      patch: { state: s.key === "all" ? "" : s.key },
+    })),
+  );
+
+  const names = [...new Set(rows.map((r) => r.project))].sort();
+  if (names.length < 2) return `<div class="listcontrols">${states}</div>`;
+  const byState = applyFilter(rows, { state: f.state });
+  const projects = chips("project", "Project", [
+    { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
+    ...names.map((p) => ({
+      key: p,
+      label: p,
+      count: byState.filter((r) => r.project === p).length,
+      on: f.project === p,
+      patch: { project: p },
+    })),
+  ]);
+  return `<div class="listcontrols">${states}${projects}</div>`;
+}
+
+function sortableHead(f: QueueFilter): string {
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
+  const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
+  const th = (key: string, label: string, cls = "") => {
+    const on = key === sort;
+    // Clicking the column you are already sorted by turns it round.
+    const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
+    const mark = on ? ` <span class="sortmark">${dir === "asc" ? "▴" : "▾"}</span>` : "";
+    const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
+    return (
+      `<th class="${cls}"${aria}>` +
+      `<a data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
+      `${esc(label)}${mark}</a></th>`
+    );
+  };
+  return (
+    `<thead><tr>${th("spec", "Spec")}<th>Step</th>${th("state", "State")}` +
+    `${th("started", "Started")}${th("cost", "Cost", "num")}<th></th></tr></thead>`
+  );
+}
 
 // The rows alone, so the page can refresh its table from script
 // without touching a form someone is half-way through filling in.
 //
-// Split in two, because one list answering both "is anything running?"
-// and "what has this machine ever done?" answers neither: the two rows
-// for spec 84 sat side by side, one done and one cancelled, and the
-// question you actually had was whether anything was running.
+// One list, cut and ordered on demand. It used to be two — a fixed
+// "Active" section above a "Recent" one — which answered the single
+// question "is anything running?" and no other. A filter answers that
+// one too, and every other one besides.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
-  const active = rows.filter((r) => ACTIVE_STATES.has(r.state));
-  const finished = rows.filter((r) => !ACTIVE_STATES.has(r.state));
-  const hidden = Math.max(0, finished.length - RECENT_SHOWN);
-
-  const table = (heading: string, body: string, note = "") =>
-    `<h3 class="listhead">${heading}</h3>${note}` +
-    `<table class="jobs"><thead><tr><th>Spec</th><th>Step</th><th>State</th>` +
-    `<th>Started</th><th class="num">Cost</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
-
-  const empty = (text: string) => `<tr><td colspan="6" class="empty muted">${text}</td></tr>`;
-
+  const f = opts.filter ?? {};
+  const matched = sortRows(applyFilter(rows, f), f);
+  const hidden = Math.max(0, matched.length - SHOWN);
+  const body = matched.length
+    ? jobRows(matched.slice(0, SHOWN), opts, now)
+    : `<tr><td colspan="6" class="empty muted">` +
+      (rows.length
+        ? "No job matches this filter."
+        : "Nothing has run yet. Pick a spec above and press “Queue it”.") +
+      `</td></tr>`;
   return (
-    table(
-      "Active",
-      active.length ? jobRows(active, opts, now) : empty("Nothing running. Pick a spec above and press “Queue it”."),
-    ) +
-    table(
-      "Recent",
-      finished.length ? jobRows(finished.slice(0, RECENT_SHOWN), opts, now) : empty("Nothing has finished yet."),
-      hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "run" : "runs"} not shown.</p>` : "",
-    )
+    filterBar(rows, f) +
+    `<table class="jobs">${sortableHead(f)}<tbody>${body}</tbody></table>` +
+    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "run" : "runs"} not shown.</p>` : "")
   );
 }
 

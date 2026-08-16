@@ -545,6 +545,16 @@ export function createServer(opts: ServerOptions) {
         })),
         error: url.searchParams.get("error") ?? undefined,
         projects: [...new Set(targets().map((t) => t.project))].sort(),
+        // Straight from the query string: how the list is cut and
+        // ordered lives in the URL, so it survives a reload and can be
+        // sent to someone else. Nothing here is trusted — the renderer
+        // falls back to its defaults for anything it does not know.
+        filter: {
+          state: url.searchParams.get("state") ?? undefined,
+          project: url.searchParams.get("project") ?? undefined,
+          sort: url.searchParams.get("sort") ?? undefined,
+          dir: url.searchParams.get("dir") ?? undefined,
+        },
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.

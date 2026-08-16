@@ -12,7 +12,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../src/serve.ts";
-import { renderQueuePage, type QueueRowView } from "../src/render.ts";
+import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
 
 const TOKEN = "s3cret-token";
 const failFetch = (async () => {
@@ -613,71 +613,131 @@ describe("a refused form post says so on the page", () => {
   });
 });
 
-// A list that mixes what is happening now with everything that has ever
-// happened stops being a status view: the two 84 rows sat next to each
-// other, one done and one cancelled, and neither was the answer to "is
-// anything running?".
-describe("active work is separated from finished work", () => {
-  const row = (id: string, state: string): QueueRowView => ({
+// One list, with the sorting and filtering that makes a fixed "Active"
+// section unnecessary: asking for the running jobs is a filter, not a
+// second table.
+describe("the job list sorts and filters", () => {
+  const row = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
     id,
     project: "aide",
     specFolder: `${id}-spec`,
     steps: ["analyze"],
     stepIndex: 0,
-    state: state as QueueRowView["state"],
+    state: "done",
     spentUsd: 0,
     timeoutSec: 1200,
     createdAt: "2026-08-16T00:00:00Z",
+    ...extra,
   });
 
-  const page = (rows: QueueRowView[]) =>
+  const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
       runnerAvailable: true,
       targets: [],
+      filter,
     });
 
-  test("running and queued jobs sit above the finished ones", () => {
-    const html = page([row("a", "running"), row("b", "done"), row("c", "queued")]);
-    const active = html.indexOf("Active");
-    const recent = html.indexOf("Recent");
-    expect(active).toBeGreaterThan(-1);
-    expect(recent).toBeGreaterThan(active);
-    // The running job is in the first section, the done one in the second.
-    expect(html.indexOf("a-spec")).toBeGreaterThan(active);
-    expect(html.indexOf("a-spec")).toBeLessThan(recent);
-    expect(html.indexOf("b-spec")).toBeGreaterThan(recent);
+  test("one table holds every job — no fixed section above it", () => {
+    const html = page([row("a", { state: "running" }), row("b")]);
+    expect(html.match(/<table class="jobs"/g)).toHaveLength(1);
+    expect(html).toContain("a-spec");
+    expect(html).toContain("b-spec");
   });
 
-  test("with nothing running, the active section says so instead of vanishing", () => {
-    const html = page([row("b", "done")]);
-    expect(html).toContain("Active");
-    expect(html).toContain("Nothing running");
+  test("the state filter is offered with a count on each choice", () => {
+    const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
+    expect(html).toMatch(/>All <span class="tabcount">3<\/span>/);
+    expect(html).toMatch(/>Active <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Problems <span class="tabcount">1<\/span>/);
   });
 
-  test("a job waiting for approval counts as active — it is what you came to look for", () => {
-    const html = page([row("a", "awaiting-approval")]);
-    expect(html.indexOf("a-spec")).toBeLessThan(html.indexOf("Recent"));
-    expect(html).not.toContain("Nothing running");
+  test("asking for active work leaves the finished jobs out", () => {
+    const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "awaiting-approval" })];
+    const html = page(rows, { state: "active" });
+    expect(html).toContain("a-spec");
+    expect(html).toContain("c-spec");
+    expect(html).not.toContain("b-spec");
   });
 
-  test("the finished list is capped, and says how many it left out", () => {
-    const html = page(Array.from({ length: 14 }, (_, i) => row(`j${i}`, "done")));
+  test("a stopped job is a problem, not a success", () => {
+    const html = page([row("a", { state: "stopped" }), row("b")], { state: "problem" });
+    expect(html).toContain("a-spec");
+    expect(html).not.toContain("b-spec");
+  });
+
+  test("the project filter appears once there is more than one project", () => {
+    const rows = [row("a"), row("b", { project: "aide-dashboard" })];
+    expect(page([row("a")])).not.toContain("data-filter=\"project\"");
+    const html = page(rows, { project: "aide-dashboard" });
+    expect(html).toContain("data-filter=\"project\"");
+    expect(html).toContain("b-spec");
+    expect(html).not.toContain("a-spec");
+  });
+
+  test("newest first is the default order", () => {
+    const html = page([
+      row("old", { startedAt: "2026-08-16T09:00:00Z" }),
+      row("new", { startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    expect(html.indexOf("new-spec")).toBeLessThan(html.indexOf("old-spec"));
+  });
+
+  test("sorting by cost puts the expensive job on top", () => {
+    const html = page([row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })], {
+      sort: "cost",
+    });
+    expect(html.indexOf("dear-spec")).toBeLessThan(html.indexOf("cheap-spec"));
+  });
+
+  test("the same column clicked again turns the order round", () => {
+    const html = page([row("cheap", { spentUsd: 0.5 }), row("dear", { spentUsd: 12 })], {
+      sort: "cost",
+      dir: "asc",
+    });
+    expect(html.indexOf("cheap-spec")).toBeLessThan(html.indexOf("dear-spec"));
+  });
+
+  test("sorting by spec is alphabetical", () => {
+    const html = page([row("zz"), row("aa")], { sort: "spec" });
+    expect(html.indexOf("aa-spec")).toBeLessThan(html.indexOf("zz-spec"));
+  });
+
+  test("a column header is a link that keeps the filter you are already in", () => {
+    const html = page([row("a", { state: "running" })], { state: "active" });
+    expect(html).toContain('href="/queue?state=active&amp;sort=cost"');
+  });
+
+  test("the sorted column says which way it is going", () => {
+    const html = page([row("a")], { sort: "cost" });
+    expect(html).toMatch(/aria-sort="descending"/);
+  });
+
+  test("a filter that matches nothing says so instead of showing a bare table", () => {
+    const html = page([row("a")], { state: "active" });
+    expect(html).toContain("No job matches");
+  });
+
+  test("the list is capped, and says how many it left out", () => {
+    const html = page(Array.from({ length: 29 }, (_, i) => row(`j${i}`)));
     expect(html).toContain("j0-spec");
-    expect(html).toContain("j9-spec");
-    expect(html).not.toContain("j10-spec");
+    expect(html).toContain("j24-spec");
+    expect(html).not.toContain("j25-spec");
     expect(html).toContain("4 older");
   });
 
-  test("the partial refresh carries both sections, so neither is lost on a tick", async () => {
+  test("the partial refresh carries the controls too, so the filter survives a tick", async () => {
     const { base } = start({ queueToken: TOKEN });
     await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-aide-token": TOKEN, accept: "application/json" },
       body: JSON.stringify(JOB),
     });
-    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(rows).toContain("Active");
-    expect(rows).toContain("Recent");
+    const rows = await (
+      await fetch(`${base}/queue?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(rows).toContain('data-filter="state"');
+    expect(rows).toMatch(/aria-current="true"[^>]*>Active/);
   });
 });
 
