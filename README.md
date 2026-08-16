@@ -11,7 +11,7 @@
   - [Caps](#caps)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
-- [Serving on the mac mini](#serving-on-the-mac-mini)
+- [Serving on the Mac mini](#serving-on-the-mac-mini)
 
 ---
 
@@ -22,7 +22,7 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 parses spec progress/phase from `4-status.md` files, and renders a
 small static site — an overview page plus one page per project, all
 sharing a left-column nav. Generated on the laptop (where the repos
-live), served on the always-on mac mini, port 8788, by a small Bun
+live), served on the always-on Mac mini, port 8788, by a small Bun
 server that also receives live aide-run events.
 
 ## URL scheme
@@ -46,7 +46,7 @@ Keep the scheme stable: the pages are linked from outside.
 ```bash
 make test           # tsc + bun test (single-run)
 make generate       # write the site to out/
-make publish        # generate + rsync out/ to the mac mini (--delete:
+make publish        # generate + rsync out/ to the Mac mini (--delete:
                     # pages removed locally disappear remotely too)
 make install-serve  # clone/pull + bun install + launchd job on the mini
 make deploy-serve   # same — for updates
@@ -142,7 +142,7 @@ what it could not measure, never the other way round.
 
 ### Gates and notifications
 
-A gate sits BETWEEN steps, never inside one. By default every step
+A gate sits BETWEEN steps, never inside one. By default, every step
 gates: the job parks in `awaiting-approval`, the notifier fires once,
 and nothing starts until someone presses Approve. A job posted with
 `gateAfter: []` runs straight through.
@@ -172,7 +172,7 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
 - `pr` — also open a pull request. Needs `gh auth login` on the mini;
   a broken `gh` records the error and leaves the run successful.
 
-## Serving on the mac mini
+## Serving on the Mac mini
 
 `deploy/com.ragnarwestad.aide-dashboard-serve.plist` runs
 `bun run src/serve.ts serve --site ~/aide-dashboard/site --port 8788`

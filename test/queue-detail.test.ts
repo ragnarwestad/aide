@@ -6,18 +6,12 @@
 // The two new routes are queue routes like every other: the token guard
 // covers them, and an id that names no job is a 404, never a blank page.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createServer, type ServerOptions } from "../src/serve.ts";
+import type { ServerOptions } from "../src/serve.ts";
+import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
-const failFetch = (async () => {
-  throw new Error("down");
-}) as unknown as typeof fetch;
-
-const servers: { stop: () => void }[] = [];
-const dirs: string[] = [];
 
 const DESCRIPTION =
   "# A running job is a black box - Description\n\n" +
@@ -26,35 +20,14 @@ const DESCRIPTION =
   "what the job IS, and nothing about what it is doing.\n\n---\n\n" +
   "## Related documents\n\n- [2-analysis.md](./2-analysis.md)\n";
 
-function start(extra: Partial<ServerOptions> = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "aide-queue-detail-"));
-  dirs.push(dir);
-  writeFileSync(join(dir, "index.html"), "<p>overview</p>");
-  const root = join(dir, "root");
-  const proj = join(root, "aide");
-  mkdirSync(join(proj, ".aide"), { recursive: true });
-  writeFileSync(join(proj, ".aide", "project.yaml"), "name: aide\n");
-  mkdirSync(join(proj, "specs", "81-queue-and-runner"), { recursive: true });
-  writeFileSync(join(proj, "specs", "81-queue-and-runner", "1-description.md"), DESCRIPTION);
-  const server = createServer({
-    siteDir: dir,
-    port: 0,
-    claudeUsageFetch: failFetch,
-    mirrorPath: join(dir, "runs.json"),
-    queueMirrorPath: join(dir, "queue.json"),
-    projectRoot: root,
-    queueProjects: ["aide"],
-    queueToken: TOKEN,
-    ...extra,
-  });
-  servers.push(server);
-  return { base: `http://127.0.0.1:${server.port}`, dir };
-}
+const harness = queueHarness("aide-queue-detail-");
 
-afterEach(() => {
-  while (servers.length) servers.pop()!.stop();
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
-});
+// Every test here is behind the token, so it is part of the fixture
+// rather than something each call has to remember.
+const start = (extra: Partial<ServerOptions> = {}) =>
+  harness.start({ description: DESCRIPTION, extra: { queueToken: TOKEN, ...extra } });
+
+afterEach(() => harness.cleanup());
 
 const auth = { headers: { "x-aide-token": TOKEN } };
 

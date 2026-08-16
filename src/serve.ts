@@ -2,7 +2,7 @@
 // site, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout, enriched lazily from
 // claude-usage's /api/live. Replaces the python3 static server on the
-// mac mini — same port, same launchd label.
+// Mac mini — same port, same launchd label.
 //
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
@@ -90,6 +90,19 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+
+// Read a request body, refusing anything over the limit. Both checks
+// matter and neither replaces the other: the header is a claim a client
+// can lie about, and the actual text is the only thing that has to be
+// held in memory. Written once because a size guard kept in two copies
+// is a size guard that will one day disagree with itself.
+async function readBounded(req: Request): Promise<{ text: string } | { refusal: Response }> {
+  const claimed = Number(req.headers.get("content-length") ?? "0");
+  if (claimed > MAX_BODY) return { refusal: json({ error: "payload too large" }, 413) };
+  const text = await req.text();
+  if (text.length > MAX_BODY) return { refusal: json({ error: "payload too large" }, 413) };
+  return { text };
 }
 
 // Nav for /live when no project set is injected: reconstruct entries
@@ -180,7 +193,7 @@ function queueClientScript(): string | undefined {
 //   * analyze — 2-analysis.md is no longer the placeholder
 //   * review-plan — 3-solution.md carries a "Plan review" section
 //   * implement — the status file reports 100%
-// A finished step is MARKED, not forbidden: re-analysing after the code
+// A finished step is MARKED, not forbidden: re-analyzing after the code
 // has moved on is a legitimate thing to want.
 function stepsAlreadyDone(specDir: string, percent: number | undefined): string[] {
   const done: string[] = [];
@@ -468,13 +481,11 @@ export function createServer(opts: ServerOptions) {
 
       if (path === "/api/aide-run") {
         if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-        const len = Number(req.headers.get("content-length") ?? "0");
-        if (len > MAX_BODY) return json({ error: "payload too large" }, 413);
-        const text = await req.text();
-        if (text.length > MAX_BODY) return json({ error: "payload too large" }, 413);
+        const body = await readBounded(req);
+        if ("refusal" in body) return body.refusal;
         let raw: unknown;
         try {
-          raw = JSON.parse(text);
+          raw = JSON.parse(body.text);
         } catch {
           return json({ error: "malformed json" }, 400);
         }
@@ -579,13 +590,11 @@ export function createServer(opts: ServerOptions) {
         return json({ generatedAt: new Date().toISOString(), jobs: queue.list() });
       }
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-      const len = Number(req.headers.get("content-length") ?? "0");
-      if (len > MAX_BODY) return json({ error: "payload too large" }, 413);
-      const text = await req.text();
-      if (text.length > MAX_BODY) return json({ error: "payload too large" }, 413);
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
       let raw: unknown;
       try {
-        raw = bodyToObject(text, req.headers.get("content-type"));
+        raw = bodyToObject(body.text, req.headers.get("content-type"));
       } catch {
         return json({ error: "malformed body" }, 400);
       }

@@ -64,7 +64,7 @@ const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
 // A step the spec has already had is marked done and left unticked;
 // the first one it has NOT had is ticked, because that is what you
-// almost always came to run. Nothing is disabled: re-analysing after
+// almost always came to run. Nothing is disabled: re-analyzing after
 // the code moved on is a legitimate thing to want.
 export function stepBoxes(target: QueueTarget | undefined): string {
   const done = new Set(target?.done ?? []);

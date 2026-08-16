@@ -13,51 +13,21 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../src/serve.ts";
 import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
+import { failFetch, queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
-const failFetch = (async () => {
-  throw new Error("down");
-}) as unknown as typeof fetch;
 
-const servers: { stop: () => void }[] = [];
-const dirs: string[] = [];
+const harness = queueHarness("aide-queue-routes-");
 
-function start(extra: Partial<ServerOptions> = {}, alsoProjects: string[] = []) {
-  const dir = mkdtempSync(join(tmpdir(), "aide-queue-routes-"));
-  dirs.push(dir);
-  writeFileSync(join(dir, "index.html"), "<p>overview</p>");
-  // A project root the server can discover: one manifest, one spec.
-  const root = join(dir, "root");
-  const proj = join(root, "aide");
-  mkdirSync(join(proj, ".aide"), { recursive: true });
-  writeFileSync(join(proj, ".aide", "project.yaml"), "name: aide\n");
-  mkdirSync(join(proj, "specs", "81-queue-and-runner"), { recursive: true });
-  writeFileSync(join(proj, "specs", "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
-  // More discoverable projects, for the tests about jobs that span repos.
-  for (const name of alsoProjects) {
-    const other = join(root, name);
-    mkdirSync(join(other, ".aide"), { recursive: true });
-    writeFileSync(join(other, ".aide", "project.yaml"), `name: ${name}\n`);
-    mkdirSync(join(other, "specs", "01-first"), { recursive: true });
-    writeFileSync(join(other, "specs", "01-first", "1-description.md"), "# First - Description\n");
-  }
-  const server = createServer({
-    siteDir: dir,
-    port: 0,
-    claudeUsageFetch: failFetch,
-    mirrorPath: join(dir, "runs.json"),
-    queueMirrorPath: join(dir, "queue.json"),
-    projectRoot: root,
-    queueProjects: ["aide"],
-    ...extra,
-  });
-  servers.push(server);
-  return { base: `http://127.0.0.1:${server.port}`, dir };
-}
+const start = (extra: Partial<ServerOptions> = {}, alsoProjects: string[] = []) =>
+  harness.start({ extra, alsoProjects });
+
+/** Temp directories this suite makes for itself, outside the harness. */
+const ownDirs: string[] = [];
 
 afterEach(() => {
-  while (servers.length) servers.pop()!.stop();
-  while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
+  harness.cleanup();
+  while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
 });
 
 const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
@@ -400,7 +370,7 @@ describe("the runner invocation", () => {
 
   test("the push mode, the permission mode and the model all reach the command line", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-queue-spawn-"));
-    dirs.push(dir);
+    ownDirs.push(dir);
     const { bin, argvFile } = stub(dir);
     const { base } = start({
       queueToken: TOKEN,
