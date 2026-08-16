@@ -18,7 +18,7 @@ LABEL = com.ragnarwestad.aide-dashboard-serve
 # deps, install the plist and (re)start the launchd job. Idempotent.
 install-serve:
 	ssh $(MINI) 'if [ -d $(MINI_SRC)/.git ]; then git -C $(MINI_SRC) pull -q --ff-only; \
-		else git clone -q https://github.com/ragnarwestad/aide-dashboard.git $(MINI_SRC); fi && \
+		else git clone -q git@github.com:ragnarwestad/aide-dashboard.git $(MINI_SRC); fi && \
 		cd $(MINI_SRC) && ~/.local/share/mise/shims/bun install --silent'
 	scp -q deploy/$(LABEL).plist $(MINI):Library/LaunchAgents/
 	ssh $(MINI) 'mkdir -p Library/Logs/aide-dashboard aide-dashboard/site && \
