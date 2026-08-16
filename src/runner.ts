@@ -172,7 +172,7 @@ export class Runner {
     if (!job || !job.resultFile) return;
     const raw = this.o.readResult(job.resultFile);
     if (raw) {
-      this.complete(job, raw as StepOutcome);
+      this.complete(job, raw as Partial<StepOutcome>);
       return;
     }
     // No result yet. If the process is also gone, the run died without
@@ -194,7 +194,7 @@ export class Runner {
       if (job.pid !== undefined && this.o.isAlive(job.pid)) continue; // still going — keep watching
       const raw = job.resultFile ? this.o.readResult(job.resultFile) : null;
       if (raw) {
-        this.complete(job, raw as StepOutcome);
+        this.complete(job, raw as Partial<StepOutcome>);
       } else {
         this.o.store.update(job.id, {
           state: "interrupted",
@@ -220,7 +220,13 @@ export class Runner {
     });
   }
 
-  private complete(job: Job, outcome: StepOutcome): void {
+  // `Partial`, and deliberately so: the outcome is whatever JSON another
+  // process left in the result file, so every field is a question rather
+  // than a promise. That is what makes `!!outcome.ok` and
+  // `costMeasured !== false` load-bearing instead of noise — an IDE
+  // inspection offering to "simplify" them is offering to turn a missing
+  // flag into the wrong answer.
+  private complete(job: Job, outcome: Partial<StepOutcome>): void {
     const step = job.steps[job.stepIndex];
     const cost = typeof outcome.costUsd === "number" ? outcome.costUsd : 0;
     this.addSpentToday(cost);
@@ -231,7 +237,7 @@ export class Runner {
         ok: !!outcome.ok,
         costUsd: cost,
         costMeasured: outcome.costMeasured !== false,
-        terminalReason: outcome.terminalReason,
+        terminalReason: outcome.terminalReason ?? "no reason recorded",
         subtype: outcome.subtype,
         // What the run reported, or failing that the id we gave it — a
         // step whose result carried no session was still run under one.

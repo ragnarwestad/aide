@@ -679,9 +679,12 @@ export function createServer(opts: ServerOptions) {
 
   return {
     port: server.port,
+    // `server.stop` resolves once the last connection is closed. Nothing
+    // here waits for that — the caller is shutting down — so the promise
+    // is dropped on purpose rather than by accident.
     stop: () => {
       if (timer) clearInterval(timer);
-      server.stop(true);
+      void server.stop(true);
     },
   };
 }

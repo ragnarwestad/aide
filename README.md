@@ -66,8 +66,12 @@ the prompt text. It is inert until `AIDE_RUN_URL` is set. aide's
 in `~/.claude/settings.json` as:
 
 ```json
-"UserPromptSubmit": [{ "hooks": [{ "type": "command",
-  "command": "AIDE_RUN_URL=\"http://rw-macmini-m2:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command",
+      "command": "AIDE_RUN_URL=\"http://rw-macmini-m2:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
+  }
+}
 ```
 
 `/live` merges the stored runs with claude-usage's `/api/live`

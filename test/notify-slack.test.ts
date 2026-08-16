@@ -31,6 +31,8 @@ function webhook() {
       return new Response("ok");
     },
   });
+  // Awaited by the callers: the next test starts its own server, and a
+  // port still closing is a flake waiting to happen.
   return { posted, url: `http://127.0.0.1:${server.port}/hook`, stop: () => server.stop(true) };
 }
 
@@ -72,7 +74,7 @@ describe("the line a phone shows at 02:00", () => {
       expect(text).toContain("$2.1");
       expect(text).toContain(GATE.branchUrl);
     } finally {
-      hook.stop();
+      await hook.stop();
     }
   });
 
@@ -83,7 +85,7 @@ describe("the line a phone shows at 02:00", () => {
       expect(hook.posted[0]!.text).toContain("stopped: budget");
       expect(hook.posted[0]!.text).not.toContain("failed");
     } finally {
-      hook.stop();
+      await hook.stop();
     }
   });
 });

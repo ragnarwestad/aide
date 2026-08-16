@@ -167,6 +167,35 @@ describe("steps and cost", () => {
   });
 });
 
+// The result file is written by another process and read back as
+// whatever JSON happens to be in it. Every field is therefore a
+// question, not a promise, and the defaults are the answer.
+describe("a result file that left fields out", () => {
+  test("a cost with no measured flag counts as measured, not as an estimate", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ok: true, costUsd: 2, terminalReason: "completed" }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.costMeasured).toBe(true);
+  });
+
+  test("a result with no ok flag fails the job rather than passing it", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ costUsd: 1 }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.state).toBe("failed");
+  });
+
+  test("a result with no reason still records one", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ok: true, costUsd: 1 }) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.terminalReason).toBeTruthy();
+  });
+});
+
 describe("caps are checked before a step starts", () => {
   test("the daily cap holds a job back, and says so", () => {
     const job = enqueue();
