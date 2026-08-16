@@ -16,6 +16,8 @@
     <string>8788</string>
     <string>--mirror</string>
     <string>/Users/ragnarwestad/aide-dashboard/aide-runs.json</string>
+    <string>--claude-usage</string>
+    <string>http://100.115.106.17:8787</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/ragnarwestad/develop/aide-dashboard</string>

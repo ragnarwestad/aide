@@ -62,7 +62,9 @@ in `~/.claude/settings.json` as:
 ```
 
 `/live` merges the stored runs with claude-usage's `/api/live`
-(same host, `localhost:8787`, fetched lazily and cached 5 s): liveness
+(same host — but claude-usage there binds its Tailscale IP only, so
+the plist passes `--claude-usage http://100.115.106.17:8787`; fetched
+lazily and cached 5 s): liveness
 state, subagent count and cost so far. claude-usage unreachable →
 rows render without enrichment and a notice; never an error. Runs are
 kept in memory (LRU 512) and mirrored to `~/aide-dashboard/aide-runs.json`
