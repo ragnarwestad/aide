@@ -258,6 +258,28 @@ def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_cl
     assert copy.read_text().startswith("#!/bin/bash"), "the replacement really happened"
 
 
+def test_a_run_starts_from_the_default_branch_not_the_last_job_s(runner, workspace, fake_claude):
+    """The previous job leaves its spec branch checked out. Starting
+    there would base new work on stale code — and if that branch was
+    merged and deleted upstream, the pull fails outright, which is how
+    this was found."""
+    stale = "aide/99-previous-job"
+    subprocess.run(["git", "-C", str(workspace["project"]), "switch", "-q", "-c", stale], check=True)
+    (workspace["project"] / "leftover.txt").write_text("from the last job\n")
+    subprocess.run(["git", "-C", str(workspace["project"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["project"]), "commit", "-qm", "old work"], check=True)
+
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    # The new branch came off main, so the previous job's file is absent.
+    assert not (workspace["project"] / "leftover.txt").exists()
+    # And the checkout is handed back on the default branch, so the NEXT
+    # job does not inherit this one either.
+    assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert stale in git(workspace["project"], "branch", "--list", stale)
+
+
 def test_budget_exhausted_is_stopped_not_a_generic_failure(runner, workspace, fake_claude):
     """A cap-stop is a common, healthy outcome under tight caps. It must
     be distinguishable from an agent that broke."""
@@ -286,8 +308,11 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
     )
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "aide/81-queue-and-runner"
-    assert "analyze" in git(workspace["project"], "log", "-1", "--pretty=%s")
+    branch = "aide/81-queue-and-runner"
+    # The work is ON the branch; the checkout is handed back on main so
+    # the next job starts clean.
+    assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert "analyze" in git(workspace["project"], "log", "-1", "--pretty=%s", branch)
     assert "analyze" in git(workspace["specs"], "log", "-1", "--pretty=%s")
     # Both roots clean afterwards: an uncommitted leftover would block
     # every later run through the dirty-tree refusal.
@@ -326,7 +351,9 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # Whatever the step managed to write is committed, with the reason,
     # so the tree is clean for the next run.
     assert git(workspace["project"], "status", "--porcelain") == ""
-    assert "stopped: timeout" in git(workspace["project"], "log", "-1", "--pretty=%s%n%b")
+    assert "stopped: timeout" in git(
+        workspace["project"], "log", "-1", "--pretty=%s%n%b", "aide/81-queue-and-runner"
+    )
 
 
 def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, workspace, fake_claude):

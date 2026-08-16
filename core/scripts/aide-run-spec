@@ -138,13 +138,31 @@ for root in "${roots[@]}"; do
   fi
 done
 
-if [ "$do_pull" = "yes" ]; then
-  for root in "${roots[@]}"; do
-    if git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-      git -C "$root" pull -q --ff-only 2>/dev/null || refuse "cannot fast-forward $root"
-    fi
+# The default branch, not whatever a previous run left checked out. A
+# job that started on the last job's spec branch would pull that branch
+# (whose upstream may be gone after a merge) and base its work on stale
+# code. Measured 2026-08-16: exactly that refused a run.
+default_branch() {
+  local root="$1" ref
+  ref="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"
+  if [ -n "$ref" ]; then
+    echo "${ref#origin/}"
+    return
+  fi
+  for candidate in main master; do
+    git -C "$root" show-ref --verify --quiet "refs/heads/$candidate" && { echo "$candidate"; return; }
   done
-fi
+  git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
+}
+
+for root in "${roots[@]}"; do
+  base="$(default_branch "$root")"
+  [ -n "$base" ] || refuse "cannot work out the default branch in $root"
+  git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
+  if [ "$do_pull" = "yes" ] && git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+    git -C "$root" pull -q --ff-only 2>/dev/null || refuse "cannot fast-forward $base in $root"
+  fi
+done
 
 # --- the invocation ----------------------------------------------------------
 claude_bin="${AIDE_CLAUDE_BIN:-}"
@@ -299,6 +317,11 @@ line="$(jq -cn \
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:
 # a detached child has no pipe home, so this file is the contract.
+# Leave the project on its default branch: the next job must not
+# inherit this one's branch. The work stays on the spec branch, which
+# is what a reviewer looks at.
+git -C "$project_root" switch -q "$(default_branch "$project_root")" 2>/dev/null || true
+
 printf '%s\n' "$line" > "$result_file.tmp" && mv "$result_file.tmp" "$result_file"
 printf '%s\n' "$line"
 exit 0
