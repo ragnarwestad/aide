@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { QueueStore, parseJobRequest, type QueueDefaults } from "../src/queue.ts";
+import { QueueStore, mergeQueueDefaults, parseJobRequest, type QueueDefaults } from "../src/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -152,5 +152,28 @@ describe("QueueStore", () => {
   test("a corrupt mirror is survivable — the store starts empty", () => {
     writeFileSync(mirrorPath, "{not json");
     expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list()).toEqual([]);
+  });
+});
+
+describe("mergeQueueDefaults", () => {
+  test("a config file overrides what it names and keeps the rest", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, {
+      budgetUsd: 15,
+      jobCapUsd: 50,
+      model: { implement: "opus", "review-plan": "sonnet" },
+    });
+    expect(merged.budgetUsd).toBe(15);
+    expect(merged.jobCapUsd).toBe(50);
+    expect(merged.dailyCapUsd).toBe(20); // untouched
+    expect(merged.timeoutSec).toBe(1200);
+    expect(merged.model["review-plan"]).toBe("sonnet");
+    expect(merged.permissionMode.implement).toBe("bypassPermissions");
+  });
+
+  test("nonsense is ignored rather than obeyed — failing towards spending less", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, { budgetUsd: -5, dailyCapUsd: "lots", model: 7 });
+    expect(merged.budgetUsd).toBe(3);
+    expect(merged.dailyCapUsd).toBe(20);
+    expect(merged.model).toEqual(DEFAULTS.model);
   });
 });

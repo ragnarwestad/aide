@@ -14,7 +14,7 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
-import { QueueStore, type QueueDefaults, type ProjectResolver } from "./queue.ts";
+import { QueueStore, mergeQueueDefaults, type QueueDefaults, type ProjectResolver } from "./queue.ts";
 import { Runner } from "./runner.ts";
 import {
   navEntries,
@@ -440,6 +440,7 @@ function parseArgs(argv: string[]): ServerOptions {
   const opts: ServerOptions = { siteDir: join(homedir(), "aide-dashboard", "site"), port: 8788 };
   let root: string | undefined;
   let tokenFile: string | undefined;
+  let queueConfigFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const v = argv[i + 1];
@@ -453,6 +454,7 @@ function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
     else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
+    else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
     // The token is read from a FILE, never an argument: `ps` shows
     // arguments to every user on the machine.
     else if (a === "--token-file" && v) tokenFile = argv[++i];
@@ -470,6 +472,19 @@ function parseArgs(argv: string[]): ServerOptions {
       else console.error(`token file ${tokenFile} is empty — the queue stays off`);
     } catch {
       console.error(`cannot read ${tokenFile} — the queue stays off`);
+    }
+  }
+  if (queueConfigFile) {
+    // A missing or broken config leaves the built-in caps in place —
+    // the tight ones. Failing towards "spends less" is the only safe
+    // direction here.
+    try {
+      opts.queueDefaults = mergeQueueDefaults(
+        QUEUE_DEFAULTS,
+        JSON.parse(readFileSync(queueConfigFile, "utf-8")) as unknown,
+      );
+    } catch {
+      console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
     }
   }
   if (root) {
@@ -495,7 +510,7 @@ if (import.meta.main) {
       "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
         "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
         "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
-        "                     [--runner-bin PATH] [--result-dir DIR]",
+        "                     [--runner-bin PATH] [--result-dir DIR] [--queue-config FILE]",
     );
     process.exit(2);
   }

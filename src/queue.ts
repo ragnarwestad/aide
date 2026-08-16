@@ -197,6 +197,32 @@ function parseStoredJob(raw: unknown): Job | null {
   };
 }
 
+// Caps and per-step policy belong in a file on the machine that runs
+// the jobs, never in the code: a number that turns out wrong should
+// cost a config edit and a restart, not a release.
+export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefaults {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback;
+  const table = (v: unknown, fallback: Record<string, string>) => {
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+    const out: Record<string, string> = { ...fallback };
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (typeof val === "string" && val) out[k] = val;
+    }
+    return out;
+  };
+  return {
+    budgetUsd: num(r.budgetUsd, base.budgetUsd),
+    jobCapUsd: num(r.jobCapUsd, base.jobCapUsd),
+    dailyCapUsd: num(r.dailyCapUsd, base.dailyCapUsd),
+    timeoutSec: num(r.timeoutSec, base.timeoutSec),
+    permissionMode: table(r.permissionMode, base.permissionMode),
+    model: table(r.model, base.model),
+  };
+}
+
 export interface QueueOptions {
   defaults: QueueDefaults;
   resolve: ProjectResolver;

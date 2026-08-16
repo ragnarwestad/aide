@@ -32,6 +32,8 @@
     <string>/Users/ragnarwestad/.local/bin/aide-run-spec</string>
     <string>--result-dir</string>
     <string>/Users/ragnarwestad/aide-dashboard/jobs</string>
+    <string>--queue-config</string>
+    <string>/Users/ragnarwestad/aide-dashboard/queue-config.json</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/ragnarwestad/develop/aide-dashboard</string>
