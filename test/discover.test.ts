@@ -80,9 +80,9 @@ describe("discoverProjects", () => {
     const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
     const byFolder = Object.fromEntries(a.specs.map((s) => [s.folder, s]));
     expect(byFolder["01-first-thing"].archived).toBe(false);
-    expect(byFolder["01-first-thing"].title).toBe("The first thing - Description");
+    expect(byFolder["01-first-thing"].title).toBe("The first thing");
     expect(byFolder["02-old-thing"].archived).toBe(true);
-    expect(byFolder["02-old-thing"].title).toBe("The old thing - Description");
+    expect(byFolder["02-old-thing"].title).toBe("The old thing");
   });
 
   test("a nonexistent specs root yields zero specs, no error", () => {

@@ -35,7 +35,10 @@ function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");
   if (!existsSync(desc)) return null;
   const m = readFileSync(desc, "utf-8").match(/^#\s+(.+)$/m);
-  return m ? m[1].trim() : null;
+  if (!m) return null;
+  // The H1 convention is "<title> - Description" — the doc-type
+  // suffix is noise in a spec listing.
+  return m[1].trim().replace(/\s*-\s*Description$/i, "");
 }
 
 function specFolders(root: string, archived: boolean): SpecRef[] {
