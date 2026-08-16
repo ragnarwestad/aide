@@ -214,7 +214,10 @@ export function createServer(opts: ServerOptions) {
               ...(model ? ["--model", model] : []),
             ],
             detached: true,
-            stdio: ["ignore", "ignore", "ignore"],
+            // stdout is ignored (the result FILE is the contract), but
+            // stderr goes to a per-job log: when the runner died
+            // mid-job the first time, nothing on this machine said why.
+            stdio: ["ignore", "ignore", Bun.file(`${resultFile}.log`)],
           });
           proc.unref();
           return { pid: proc.pid, pgid: proc.pid };
