@@ -143,7 +143,11 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     argv = out["argv"]
     assert argv[0] == str(claude), "the claude path must be resolved, never a bare name"
     assert "-p" in argv
-    assert argv[argv.index("--output-format") + 1] == "json"
+    # stream-json is the only format that emits anything DURING the run,
+    # and print mode refuses it without --verbose (probed against the
+    # real CLI 2026-08-16, version 2.1.233).
+    assert argv[argv.index("--output-format") + 1] == "stream-json"
+    assert "--verbose" in argv
     assert argv[argv.index("--max-budget-usd") + 1] == "3"
     assert argv[argv.index("--permission-mode") + 1] == "bypassPermissions"
     # The spec ID is the folder's numeric prefix.
@@ -836,3 +840,144 @@ def test_a_passenger_repo_is_pushed_on_its_branch_not_its_main(
     assert git(bare, "rev-parse", "main") == main_before, "main must not move"
     urls = {e["url"] for e in out["branchUrls"]}
     assert f"https://github.com/ragnarwestad/passenger/compare/main...{branch}" in urls
+
+
+# --- Spec 02: keeping the stream ---------------------------------------------
+# The output existed and was thrown away: the whole $work_dir goes with
+# the EXIT trap, so nothing of what happened during a 25-minute run
+# survived it. --stream-file is opt-in, so every existing caller keeps
+# today's behaviour byte for byte.
+
+STREAM_NOISE = [
+    {"type": "system", "subtype": "init", "cwd": "/x"},
+    {"type": "assistant", "message": {"content": [{"type": "text", "text": "Reading queue.ts"}]}},
+]
+
+
+def stream_body(result, before=STREAM_NOISE, after=None, exit_code=0):
+    """A fake claude that emits NDJSON the way --output-format
+    stream-json does: many events, the result among them."""
+    lines = "".join(f"echo '{json.dumps(e)}'\n" for e in before)
+    lines += f"echo '{json.dumps(result)}'\n"
+    for e in after or []:
+        lines += f"echo '{json.dumps(e)}'\n"
+    return "cat > /dev/null\n" + lines + f"exit {exit_code}"
+
+
+def test_the_kept_stream_survives_the_work_dir_cleanup(runner, workspace, fake_claude, tmp_path):
+    stream = tmp_path / "job.stream.jsonl"
+    claude = fake_claude(stream_body(RESULT_OK))
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
+    assert rc == 0, out
+    assert stream.exists(), "the transcript must outlive the run's temporary directory"
+    lines = [l for l in stream.read_text().splitlines() if l.strip()]
+    assert len(lines) == 3
+    assert json.loads(lines[0])["type"] == "system"
+    assert json.loads(lines[-1])["type"] == "result"
+
+
+def test_the_terminal_result_is_selected_by_type_not_by_position(runner, workspace, fake_claude, tmp_path):
+    """A trailing event after the result would silently corrupt cost,
+    session and terminal reason for every run if the parser just took
+    the last line."""
+    stream = tmp_path / "job.stream.jsonl"
+    trailing = [{"type": "system", "subtype": "shutdown"}, {"type": "rate_limit_event"}]
+    claude = fake_claude(stream_body(RESULT_OK, after=trailing))
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
+    assert rc == 0, out
+    assert out["sessionId"] == RESULT_OK["session_id"]
+    assert out["costUsd"] == pytest.approx(0.5357)
+    assert out["costMeasured"] is True
+    assert out["terminalReason"] == "completed"
+
+
+def test_a_truncated_last_line_does_not_lose_the_result(runner, workspace, fake_claude, tmp_path):
+    """A killed run leaves half a line behind. Refusing the whole file
+    over it would throw away a result event that arrived intact."""
+    stream = tmp_path / "job.stream.jsonl"
+    # The half-line goes BEFORE the exit, or it is never written at all.
+    claude = fake_claude(
+        stream_body(RESULT_OK, exit_code=0).replace(
+            "exit 0", 'printf \'{"type":"assist\'\nexit 0'
+        )
+    )
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert out["costUsd"] == pytest.approx(0.5357)
+
+
+def test_the_stream_is_kept_when_the_budget_stops_the_run(runner, workspace, fake_claude, tmp_path):
+    stream = tmp_path / "job.stream.jsonl"
+    claude = fake_claude(stream_body(RESULT_BUDGET, exit_code=1))
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
+    assert rc == 0, out
+    assert out["terminalReason"] == "budget"
+    assert stream.exists()
+    assert '"error_max_budget_usd"' in stream.read_text()
+
+
+def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, fake_claude, tmp_path):
+    """The longest runs are exactly the ones whose transcript is worth
+    keeping, and they are the ones that get killed."""
+    stream = tmp_path / "job.stream.jsonl"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"echo '{json.dumps(STREAM_NOISE[0])}'\n"
+        "trap '' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream),
+                     timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    assert stream.exists(), "a killed run's transcript must survive too"
+    assert '"init"' in stream.read_text()
+
+
+def test_the_stream_is_kept_when_the_cli_produces_no_result(runner, workspace, fake_claude, tmp_path):
+    stream = tmp_path / "job.stream.jsonl"
+    claude = fake_claude("cat > /dev/null\necho 'not json at all'\nexit 1")
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(stream))
+    assert out["terminalReason"] == "cli-error"
+    assert stream.exists()
+    assert "not json at all" in stream.read_text()
+
+
+def test_without_the_flag_nothing_is_kept_and_nothing_changes(runner, workspace, fake_claude, tmp_path):
+    """Opt-in means opt-in: a caller that does not ask still gets
+    today's behaviour, temporary directory discarded and all."""
+    stream = tmp_path / "job.stream.jsonl"
+    claude = fake_claude(stream_body(RESULT_OK))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert out["sessionId"] == RESULT_OK["session_id"]
+    assert not stream.exists()
+    assert not list(tmp_path.glob("**/*.stream.jsonl"))
+
+
+def test_an_unwritable_stream_path_never_fails_a_finished_run(runner, workspace, fake_claude, tmp_path):
+    """Keeping a transcript is a convenience. A run whose work
+    succeeded must not be reported as failed because a directory was
+    missing."""
+    claude = fake_claude(stream_body(RESULT_OK))
+    rc, out, _ = run(runner, workspace, claude, stream_file=str(tmp_path / "nope" / "x.jsonl"))
+    assert rc == 0, out
+    assert out["ok"] is True
+    assert out["terminalReason"] == "completed"
+
+
+def test_the_session_id_we_supplied_is_the_one_the_run_reports(runner, workspace, fake_claude):
+    """The queue generates the id BEFORE spawning, so it can watch the
+    session while the step runs. That is worth nothing unless the id it
+    passed is the id the run actually used."""
+    chosen = "11111111-2222-4333-8444-555555555555"
+    echoed = {**RESULT_OK, "session_id": chosen}
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"echo '{json.dumps(echoed)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, session_id=chosen)
+    assert rc == 0, out
+    assert f"--session-id {chosen}" in fake_claude.calls.read_text()
+    assert out["sessionId"] == chosen

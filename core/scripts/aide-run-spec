@@ -14,6 +14,10 @@
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | budget | timeout | refused | spawn-failed | cli-error
 #
+# --stream-file PATH keeps the claude transcript (stream-json, one event
+# per line) at PATH instead of discarding it with the working directory.
+# Opt-in: without it, nothing about this script's behaviour changes.
+#
 # Exit: 0 when a run happened and was reported (stopped runs included),
 #       2 when the run was refused before anything started.
 
@@ -56,6 +60,10 @@ WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
+# Where to keep the claude transcript. Opt-in: without it the captured
+# output goes with the rest of $work_dir, exactly as it always has, so
+# no existing caller changes behaviour.
+stream_file=""
 # Repos beyond the project and its specs root that this job is expected
 # to touch. Spec 81's own implement step wrote to a third repository
 # the run knew nothing about: that half was left uncommitted on the
@@ -77,6 +85,7 @@ while [ $# -gt 0 ]; do
     --result-file) result_file="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
+    --stream-file) stream_file="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; shift 2 ;;
     --extra-project-dir) extra_dirs+=("${2:-}"); shift 2 ;;
@@ -219,7 +228,14 @@ fi
 [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 
 prompt="/aide-$command_name $spec_id"
-argv=("$claude_bin" -p --output-format json
+# stream-json, not json: `json` prints ONE object at the very end, so a
+# 25-minute run says nothing at all until it is over. stream-json emits
+# one event per line as it happens, and its last result event is the same
+# object this script already reads. In print mode the CLI REFUSES
+# stream-json without --verbose ("When using --print,
+# --output-format=stream-json requires --verbose") — verified 2026-08-16,
+# version 2.1.233.
+argv=("$claude_bin" -p --output-format stream-json --verbose
       --max-budget-usd "$budget_usd" --permission-mode "$permission_mode")
 [ -n "$model" ] && argv+=(--model "$model")
 [ -n "$session_id" ] && argv+=(--session-id "$session_id")
@@ -269,7 +285,22 @@ for root in "${roots[@]}"; do
 done
 
 work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
+
+# The transcript is copied out of $work_dir before the directory goes,
+# and from the TRAP rather than from the happy path: a run that is
+# killed outright still leaves its transcript behind, and those are
+# the longest runs, the ones worth reading. Best effort throughout —
+# a transcript that could not be copied must never turn a finished run
+# into a failed one.
+keep_stream() {
+  [ -n "$stream_file" ] || return 0
+  [ -f "$work_dir/out" ] || return 0
+  if cp "$work_dir/out" "$stream_file.tmp" 2>/dev/null; then
+    mv "$stream_file.tmp" "$stream_file" 2>/dev/null || rm -f "$stream_file.tmp" 2>/dev/null
+  fi
+  return 0
+}
+trap 'keep_stream; rm -rf "$work_dir"' EXIT
 printf '%s' "$prompt" > "$work_dir/prompt"
 
 started_at="$(date +%s)"
@@ -314,10 +345,20 @@ duration=$(( $(date +%s) - started_at ))
 # --- reading what came back --------------------------------------------------
 session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
 
-if jq -e . "$work_dir/out" >/dev/null 2>&1; then
-  session_out="$(jq -r '.session_id // empty' "$work_dir/out")"
-  subtype="$(jq -r '.subtype // empty' "$work_dir/out")"
-  cost="$(jq -r '.total_cost_usd // 0' "$work_dir/out")"
+# The stream holds one event per line, so the result must be SELECTED by
+# `type == "result"`, never taken positionally: the CLI emits shutdown
+# and rate-limit events after it, and "the last line" would silently
+# report the wrong cost, session and terminal reason for every run.
+# `-R` + `fromjson?` reads line by line and skips anything that does not
+# parse, so a half-written final line from a killed run costs nothing
+# rather than discarding a result event that arrived intact.
+result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
+  "$work_dir/out" 2>/dev/null | tail -n 1)"
+
+if [ -n "$result_json" ]; then
+  session_out="$(jq -r '.session_id // empty' <<<"$result_json")"
+  subtype="$(jq -r '.subtype // empty' <<<"$result_json")"
+  cost="$(jq -r '.total_cost_usd // 0' <<<"$result_json")"
   cost_measured="true"
 fi
 
@@ -331,7 +372,7 @@ elif [ "$cost_measured" = "true" ]; then
   case "$subtype" in
     success) terminal_reason="completed" ;;
     error_max_budget_usd) terminal_reason="budget"; error_msg="the step's budget was reached" ;;
-    *) terminal_reason="cli-error"; error_msg="$(jq -r '(.errors // []) | join("; ")' "$work_dir/out")" ;;
+    *) terminal_reason="cli-error"; error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")" ;;
   esac
 else
   terminal_reason="cli-error"
