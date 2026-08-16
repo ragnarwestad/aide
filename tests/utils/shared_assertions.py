@@ -43,7 +43,6 @@ def assert_jira_output_correct(specs_dir: Path, issue_key: str = "PROJ-1234"):
     # Should contain required sections
     assert "## Metadata" in content, "Should contain Metadata section"
     assert "## Description" in content, "Should contain Description section"
-    assert "## Scope" in content, "Should contain Scope section"
 
     # Should NOT contain unreplaced placeholders
     assert "{{ISSUE_KEY}}" not in content, "Should not have unreplaced ISSUE_KEY"

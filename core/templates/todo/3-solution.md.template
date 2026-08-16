@@ -3,6 +3,10 @@
 ## Table of contents
 
 - [Tracking info](#tracking-info)
+- [Scope](#scope)
+  - [Files to change](#files-to-change)
+  - [Complexity](#complexity)
+  - [Estimate](#estimate)
 - [Approaches](#approaches)
   - [Approach 1: [Name] (recommended)](#approach-1-name-recommended)
   - [Approach 2: [Name]](#approach-2-name)
@@ -10,6 +14,7 @@
   - [Before/After examples](#beforeafter-examples)
 - [Behavior delta](#behavior-delta)
 - [Acceptance criteria](#acceptance-criteria)
+- [Risk analysis](#risk-analysis)
 - [Implementation plan](#implementation-plan)
   - [TDD approach (Red-Green-Refactor)](#tdd-approach-red-green-refactor)
   - [Phase 1: Write tests that identify the problem (RED)](#phase-1-write-tests-that-identify-the-problem-red)
@@ -33,6 +38,29 @@
 **Repositories used during analysis:**
 - **repo-name:** `branch` @ `commit`
 -->
+
+---
+
+## Scope
+
+### Files to change
+
+1. `file/path.tsx:123-145` - [what changes here]
+2. `file/path2.tsx:67` - [what changes here]
+
+### Complexity
+
+**[High/Medium/Low]**
+
+[What drove the classification - number of files, dependencies, etc.]
+
+**Factors:**
+- [list of complexity factors]
+
+### Estimate
+
+- **Manual development:** [X hours/days]
+- **AI-assisted development:** [Y hours/days] (Z% faster)
 
 ---
 
@@ -93,7 +121,7 @@
 ## Behavior delta
 
 What the chosen solution changes in BEHAVIOR, relative to how the system
-works today — not which files change (that is the analysis's scope).
+works today — not which files change (those are listed under Scope).
 
 **Adds:**
 - [new behavior that does not exist today]
@@ -113,6 +141,22 @@ writes at least one failing test per criterion.
 
 1. **Given** [precondition] **when** [action] **then** [expected outcome]
 2. **Given** [precondition] **when** [action] **then** [expected outcome]
+
+---
+
+## Risk analysis
+
+### [High/Medium/Low risk]
+
+**[Risk 1 name]**
+- **Consequence:** [what can go wrong]
+- **Probability:** [High/Medium/Low]
+- **Mitigation:** [how to reduce the risk]
+
+**[Risk 2 name]**
+- **Consequence:** [what can go wrong]
+- **Probability:** [High/Medium/Low]
+- **Mitigation:** [how to reduce the risk]
 
 ---
 

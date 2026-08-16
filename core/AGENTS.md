@@ -1510,9 +1510,9 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ```
 
 **Roles:**
-1. **1-description.md** - Main entry point: Problem and scope
-2. **2-analysis.md** - Detailed analysis: Findings, complexity, risk
-3. **3-solution.md** - Behavior delta, acceptance criteria and implementation plan with a TDD approach
+1. **1-description.md** - Main entry point: The problem as reported
+2. **2-analysis.md** - Detailed analysis: Mapping and findings
+3. **3-solution.md** - Scope, behavior delta, acceptance criteria, risk and implementation plan with a TDD approach
 4. **4-status.md** - Living document: Progress and status
 
 ---
@@ -1521,7 +1521,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 ### 1-description
 
-**Purpose:** Give an overview of the issue and the scope.
+**Purpose:** Describe the problem as it was reported.
 
 **Structure:**
 ```markdown
@@ -1532,7 +1532,6 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 - Metadata
 - Description
 - Problem
-- Scope
 
 ---
 
@@ -1556,11 +1555,6 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 [Description copied from JIRA or written by the developer]
 
-## Scope
-
-**Affected files/components:** [count from the analysis]
-**Estimated effort:** [time based on findings]
-
 ```
 
 **Key points:**
@@ -1570,6 +1564,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 - The Problem section is copied verbatim (do not rewrite)
 - No code examples (they belong in 3-solution.md)
 - No acceptance criteria (they are part of the solution — 3-solution.md)
+- No scope or estimate (they are commitments about the solution — 3-solution.md)
 
 ---
 
@@ -1583,31 +1578,22 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 ## Table of contents
 
-- Scope
-- Complexity
+- Mapping
 - Findings
-- Risk analysis
 
 ---
 
-## Scope
+## Mapping
 
-**Number of affected files/components:** [count]
 **Last analyzed**: [date]
+
+[How the analysis was performed - search terms, methods, tools used]
+
+## Findings
 
 **Affected files/components:**
 1. `fil/path.tsx:123-145` - [description]
 2. `fil/path2.tsx:67` - [description]
-
-## Complexity
-
-### [High/Medium/Low complexity]
-
-**Estimate:**
-- **Manual development:** [time]
-- **AI-assisted development:** [time]
-
-## Findings
 
 ### Codebase analysis
 
@@ -1621,22 +1607,14 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 **Existing tests:** [list]
 **Missing tests:** [gaps]
-
-## Risk analysis
-
-### [High/Medium/Low risk]
-
-**[Risk 1]**
-- **Consequence:** [description]
-- **Probability:** [High/Medium/Low]
-- **Mitigation:** [how to reduce]
 ```
 
 **Key points:**
 - Focus on ANALYSIS (not solution)
 - Include specific files with line numbers
-- Estimates for both manual and AI-assisted development
 - No implementation plan or solution proposals
+- No complexity grade, estimate or risk analysis — those judge the
+  solution we intend to build, and belong in 3-solution.md
 
 ---
 
@@ -1651,13 +1629,30 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 ## Table of contents
 
+- Scope
 - Approaches
 - Recommended solution
 - Behavior delta
 - Acceptance criteria
+- Risk analysis
 - Implementation plan
 - Testing
 - References
+
+---
+
+## Scope
+
+**Files to change:** [list, from the analysis]
+
+### Complexity
+
+[High/Medium/Low, with the factors that drove the classification]
+
+### Estimate
+
+- **Manual development:** [time]
+- **AI-assisted development:** [time]
 
 ---
 
@@ -1701,6 +1696,17 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 ---
 
+## Risk analysis
+
+### [High/Medium/Low risk]
+
+**[Risk 1]**
+- **Consequence:** [description]
+- **Probability:** [High/Medium/Low]
+- **Mitigation:** [how to reduce]
+
+---
+
 ## Implementation plan
 
 ### TDD approach (Red-Green-Refactor)
@@ -1736,6 +1742,8 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ````
 
 **Key points:**
+- Scope, complexity, estimate and risk analysis live here: they judge the
+  solution we intend to build, not what the investigation found
 - Approaches with pros/cons
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
 - Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
@@ -1801,8 +1809,9 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 | Problem description        | 1-description.md  |
 | Metadata                   | 1-description.md  |
 | Mapping/findings           | 2-analysis.md      |
-| Complexity analysis        | 2-analysis.md      |
-| Risk analysis              | 2-analysis.md      |
+| Scope (files, estimate)    | 3-solution.md      |
+| Complexity analysis        | 3-solution.md      |
+| Risk analysis              | 3-solution.md      |
 | Approaches                 | 3-solution.md      |
 | Behavior delta             | 3-solution.md      |
 | Acceptance criteria        | 3-solution.md      |

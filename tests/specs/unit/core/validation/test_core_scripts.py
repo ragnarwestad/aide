@@ -6,6 +6,8 @@ import subprocess
 
 import pytest
 
+from tests.specs.unit.core.validation.test_templates import structure_block
+
 # Template placeholders such as {{DOMAIN}} — none may survive into core/scripts.
 PLACEHOLDER_PATTERN = re.compile(r"\{\{[A-Za-z_]+\}\}")
 
@@ -128,6 +130,42 @@ class TestBuildAgentsMd:
             "rule frontmatter leaked into AGENTS.md — build-agents-md.sh "
             "must strip the leading YAML block from each rule"
         )
+
+    def test_output_carries_the_corrected_spec_layout(self, workspace_root, tmp_path):
+        """AGENTS.md is Copilot's and Codex's copy of the spec layout.
+
+        It is generated, never hand-edited, so a rule change that is not
+        regenerated leaves those two tools serving the old layout.
+        """
+        agents_md = self._build(workspace_root, tmp_path)
+
+        description = structure_block(agents_md, "1-description")
+        assert "## Scope" not in description, \
+            "AGENTS.md still puts Scope in 1-description — regenerate it"
+
+        analysis = structure_block(agents_md, "2-analysis")
+        for heading in ("## Scope", "## Complexity", "## Risk analysis"):
+            assert heading not in analysis, \
+                f"AGENTS.md still puts '{heading}' in 2-analysis — regenerate it"
+
+    @staticmethod
+    def _build(workspace_root, tmp_path):
+        core = tmp_path / "core"
+        (core / "scripts").mkdir(parents=True)
+        shutil.copy(
+            workspace_root / "core" / "scripts" / "build-agents-md.sh",
+            core / "scripts" / "build-agents-md.sh",
+        )
+        shutil.copy(workspace_root / "core" / "agents-intro.md", core / "agents-intro.md")
+        shutil.copytree(workspace_root / "core" / "rules", core / "rules")
+
+        result = subprocess.run(
+            ["bash", str(core / "scripts" / "build-agents-md.sh")],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        return (core / "AGENTS.md").read_text()
 
 
 class TestGenerateHtmlForArchivedSpec:

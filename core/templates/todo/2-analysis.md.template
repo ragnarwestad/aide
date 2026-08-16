@@ -3,19 +3,14 @@
 ## Table of contents
 
 - [Tracking info](#tracking-info)
-- [Scope](#scope)
-  - [Mapping](#mapping)
-  - [Affected files/components](#affected-filescomponents)
-- [Complexity](#complexity)
-  - [Factors](#factors)
-  - [Estimate](#estimate)
+- [Mapping](#mapping)
 - [Findings](#findings)
+  - [Affected files/components](#affected-filescomponents)
   - [Codebase analysis](#codebase-analysis)
   - [Affected components](#affected-components)
   - [Patterns and anti-patterns](#patterns-and-anti-patterns)
   - [Test coverage](#test-coverage)
   - [API dependencies](#api-dependencies)
-- [Risk analysis](#risk-analysis)
 
 ---
 
@@ -31,33 +26,18 @@
 
 ---
 
-## Scope
-
-**Number of affected files/components:** [filled in by analysis]
-
-**Mapping:**
+## Mapping
 
 [How the analysis was performed - search terms, methods, tools used]
 
-**Affected files/components:**
+## Findings
+
+### Affected files/components
+
+**Number of affected files/components:** [filled in by analysis]
 
 1. `file/path.tsx:123-145` - [description of change]
 2. `file/path2.tsx:67` - [description of change]
-
-## Complexity
-
-### [High/Medium/Low complexity]
-
-[Detailed description of complexity based on number of files, dependencies, etc.]
-
-**Factors:**
-- [list of complexity factors]
-
-**Estimate:**
-- **Manual development:** [X hours/days]
-- **AI-assisted development:** [Y hours/days] (Z% faster)
-
-## Findings
 
 ### Codebase analysis
 
@@ -85,20 +65,6 @@
 
 **Endpoints used:**
 - `GET /api/endpoint` - [description]
-
-## Risk analysis
-
-### [High/Medium/Low risk]
-
-**[Risk 1 name]**
-- **Consequence:** [what can go wrong]
-- **Likelihood:** [High/Medium/Low]
-- **Mitigation:** [how to reduce the risk]
-
-**[Risk 2 name]**
-- **Consequence:** [what can go wrong]
-- **Likelihood:** [High/Medium/Low]
-- **Mitigation:** [how to reduce the risk]
 
 ---
 

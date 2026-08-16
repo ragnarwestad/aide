@@ -4,10 +4,6 @@
 
 - [Tracking info](#tracking-info)
 - [Description](#description)
-- [Scope](#scope)
-  - [Affected files/components](#affected-filescomponents)
-  - [Estimated effort](#estimated-effort)
-  - [Affected systems](#affected-systems)
 
 ---
 
@@ -23,16 +19,6 @@
 {{DESCRIPTION}}
 
 _(This field can be edited manually to add extra context or clarifications and will not be overwritten by aide commands)_
-
----
-
-## Scope
-
-**Affected files/components:** [filled in by `/aide-analyze`]
-
-**Estimated effort:** [filled in by `/aide-analyze`]
-
-**Affected systems:** [filled in by `/aide-analyze`]
 
 ---
 
