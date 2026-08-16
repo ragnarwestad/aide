@@ -30,6 +30,10 @@ export type JobState = (typeof JOB_STATES)[number];
 // cannot tell it from a broken agent will start ignoring both.
 export type StopReason = "budget" | "timeout";
 
+/** States where a job still owns its work. Anything else has released
+ *  it, and the same step may be queued again. */
+const UNFINISHED = new Set<string>(["queued", "running", "awaiting-approval"]);
+
 export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
@@ -309,9 +313,32 @@ export class QueueStore {
     this.load();
   }
 
+  /** An unfinished job for the same spec that already covers one of
+   *  these steps. Two of those is never what anyone meant: it happened
+   *  when the same analyze was posted from the API and from the page
+   *  seconds apart, and the queue took both without a word. */
+  private clashing(job: Job): { job: Job; step: WorkflowStep } | null {
+    for (const other of this.jobs.values()) {
+      if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
+      if (!UNFINISHED.has(other.state)) continue;
+      const step = job.steps.find((s) => other.steps.includes(s));
+      if (step) return { job: other, step };
+    }
+    return null;
+  }
+
   enqueue(raw: unknown): ParseResult {
     const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: this.defaults });
     if (!parsed.ok) return parsed;
+    const clash = this.clashing(parsed.job);
+    if (clash) {
+      return {
+        ok: false,
+        error:
+          `${clash.step} on ${parsed.job.specFolder} is already ${clash.job.state} ` +
+          `(job ${clash.job.id.slice(0, 8)}) — cancel that one first if you want to start over`,
+      };
+    }
     this.jobs.set(parsed.job.id, parsed.job);
     while (this.jobs.size > this.cap) {
       this.jobs.delete(this.jobs.keys().next().value as string);

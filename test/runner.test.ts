@@ -91,7 +91,9 @@ afterEach(() => rmSync(dir, { recursive: true, force: true }));
 describe("one job at a time", () => {
   test("a second job waits while the first is running", () => {
     const a = enqueue();
-    const b = enqueue();
+    // A different step: the queue refuses the same one twice while the
+    // first is unfinished (its own rule, its own tests).
+    const b = enqueue({ steps: ["implement"] });
     const runner = makeRunner();
     runner.tick();
     runner.tick();
@@ -102,7 +104,7 @@ describe("one job at a time", () => {
 
   test("a finished step frees the slot", () => {
     const a = enqueue();
-    enqueue();
+    enqueue({ steps: ["implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
     runner.tick();
     runner.poll(); // the first job's result lands

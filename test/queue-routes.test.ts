@@ -128,7 +128,9 @@ describe("token configured", () => {
     const json = await fetch(`${base}/api/queue`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
-      body: JSON.stringify(JOB),
+      // A different step: the same one is refused while the first is
+      // unfinished, which is a separate rule with its own tests.
+      body: JSON.stringify({ ...JOB, steps: ["implement"] }),
     });
     expect(json.status).toBe(200);
     const listed = (await (await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })).json()) as {
@@ -235,14 +237,17 @@ describe("GET /queue (HTML)", () => {
         body,
       });
     await post(new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }));
-    const params = new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" });
+    // A different step: the same one twice is refused, and that is a
+    // separate rule with its own tests. The gate flag is what this one
+    // is about.
+    const params = new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "implement" });
     params.append("gate", "on");
     await post(params);
     const listed = (await (
       await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })
     ).json()) as { jobs: { gateAfter: string[] }[] };
     // Newest first: the gated one, then the straight-through one.
-    expect(listed.jobs[0].gateAfter).toEqual(["analyze"]);
+    expect(listed.jobs[0].gateAfter).toEqual(["implement"]);
     expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
@@ -550,5 +555,52 @@ describe("picking a model for a job", () => {
     const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
     expect(body.job.model).toEqual({ implement: "opus" });
     expect(body.job.budgetUsd).toBe(3);
+  });
+});
+
+// A refusal has to land where the person who pressed the button can
+// read it. Answering a form post with a JSON body puts the reason on a
+// blank page with no way back.
+describe("a refused form post says so on the page", () => {
+  test("a duplicate returns to /queue carrying the reason, and the page shows it", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const post = () =>
+      fetch(`${base}/api/queue`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+        body: new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }),
+      });
+    expect((await post()).status).toBe(303);
+
+    const again = await post();
+    expect(again.status).toBe(303);
+    const location = again.headers.get("location") ?? "";
+    expect(location.startsWith("/queue?")).toBe(true);
+    expect(decodeURIComponent(location)).toContain("already queued");
+
+    const html = await (
+      await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(html).toContain("already queued");
+    // And only one job was made.
+    const listed = (await (
+      await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })
+    ).json()) as { jobs: unknown[] };
+    expect(listed.jobs.length).toBe(1);
+  });
+
+  test("a JSON caller still gets a 400 with the reason, not a redirect", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const post = () =>
+      fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+        body: JSON.stringify(JOB),
+      });
+    expect((await post()).status).toBe(200);
+    const again = await post();
+    expect(again.status).toBe(400);
+    expect(((await again.json()) as { error: string }).error).toContain("already");
   });
 });

@@ -464,6 +464,7 @@ export function createServer(opts: ServerOptions) {
           name,
           budgetUsd: c.budgetUsd,
         })),
+        error: url.searchParams.get("error") ?? undefined,
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.
@@ -499,7 +500,16 @@ export function createServer(opts: ServerOptions) {
         return json({ error: "malformed body" }, 400);
       }
       const result = queue.enqueue(raw);
-      if (!result.ok) return json({ error: result.error }, 400);
+      if (!result.ok) {
+        // A person who pressed a button gets the reason on the page
+        // they pressed it from; an API caller gets a status code.
+        return wantsJson
+          ? json({ error: result.error }, 400)
+          : new Response(null, {
+              status: 303,
+              headers: { location: `/queue?error=${encodeURIComponent(result.error)}` },
+            });
+      }
       runner?.tick();
       return wantsJson
         ? json({ ok: true, job: result.job })

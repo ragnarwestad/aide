@@ -202,6 +202,8 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
   border-radius: 6px; border: 1px solid #8886; background: #8882; color: inherit;
   cursor: pointer; }
 .enqueue button:hover { background: #8883; }
+.refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
+  background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
 .specinfo { margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px solid #8883;
   font-size: 0.9rem; }
 
@@ -411,6 +413,9 @@ export interface QueuePageOptions {
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
   modelChoices?: { name: string; budgetUsd: number }[];
+  /** Why the last attempt was refused. Shown on the form, because the
+   *  person who pressed the button is the one who needs to read it. */
+  error?: string;
 }
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -511,9 +516,11 @@ function enqueueForm(opts: QueuePageOptions): string {
   // The selection has to SHOW something. A dropdown that changes
   // nothing visible reads as broken, however correct it is.
   const first = opts.targets[0];
+  const refusal = opts.error ? `<p class="refusal">${esc(opts.error)}</p>` : "";
   return (
     `<section class="panel">` +
     `<h2>Queue a job</h2>\n` +
+    refusal +
     `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
     `<label class="field"><span class="fieldlabel">Spec</span>` +
     `<select name="target" id="target">${options}</select></label>` +

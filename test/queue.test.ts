@@ -132,8 +132,11 @@ describe("QueueStore", () => {
 
   test("the oldest job is dropped at the cap", () => {
     const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, cap: 3 });
-    const ids = [1, 2, 3, 4].map(() => {
-      const r = store.enqueue(REQ);
+    // Distinct steps: the queue refuses the same step twice while the
+    // first is unfinished, so four identical requests would not make
+    // four jobs to drop one of.
+    const ids = ["analyze", "implement", "archive", "manifest"].map((step) => {
+      const r = store.enqueue({ ...REQ, steps: [step] });
       return r.ok ? r.job.id : "";
     });
     expect(store.list().length).toBe(3);
@@ -321,4 +324,58 @@ describe("per-job model choice", () => {
   test("a config with no choices leaves the field absent", () => {
     expect(mergeQueueDefaults(DEFAULTS, { budgetUsd: 15 }).modelChoices).toBeUndefined();
   });
+});
+
+// Two jobs for the same spec and the same step is never what anyone
+// meant: it happened on 2026-08-16 when the same analyze was posted
+// from the API and from the page seconds apart, and the queue took
+// both without a word.
+describe("the same work is not queued twice", () => {
+  const queued = (extra: Record<string, unknown> = {}) => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const first = store.enqueue({ ...REQ, ...extra });
+    if (!first.ok) throw new Error(first.error);
+    return { store, first: first.job };
+  };
+
+  test("the same step on the same spec is refused while the first is unfinished", () => {
+    const { store } = queued();
+    const again = store.enqueue(REQ);
+    expect(again.ok).toBe(false);
+    if (again.ok) return;
+    expect(again.error).toContain("analyze");
+    expect(again.error).toContain("81-queue-and-runner");
+  });
+
+  test("a job waiting for approval still blocks — it is not finished", () => {
+    const { store, first } = queued();
+    store.update(first.id, { state: "awaiting-approval" });
+    expect(store.enqueue(REQ).ok).toBe(false);
+  });
+
+  test("overlapping by one step is enough to refuse", () => {
+    const { store } = queued({ steps: ["analyze", "implement"] });
+    const again = store.enqueue({ ...REQ, steps: ["implement", "archive"] });
+    expect(again.ok).toBe(false);
+    if (again.ok) return;
+    expect(again.error).toContain("implement");
+  });
+
+  test("a different step on the same spec is fine — analyze now, implement after", () => {
+    const { store } = queued({ steps: ["analyze"] });
+    expect(store.enqueue({ ...REQ, steps: ["implement"] }).ok).toBe(true);
+  });
+
+  test("the same step on another spec is fine", () => {
+    const { store } = queued();
+    expect(store.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] }).ok).toBe(true);
+  });
+
+  for (const state of ["done", "cancelled", "failed", "stopped", "interrupted"] as const) {
+    test(`a ${state} job does not block the next one`, () => {
+      const { store, first } = queued();
+      store.update(first.id, { state });
+      expect(store.enqueue(REQ).ok).toBe(true);
+    });
+  }
 });
