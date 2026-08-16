@@ -13,6 +13,7 @@ the next run can start from.
 """
 import json
 import os
+import pathlib
 import subprocess
 import time
 
@@ -99,7 +100,7 @@ def fake_claude(tmp_path):
 
 def run(runner, ws, claude=None, **kwargs):
     """Invoke the runner; return (returncode, parsed json line, stdout)."""
-    args = [str(runner)]
+    args = [str(kwargs.pop("runner_path", runner))]
     defaults = {
         "--project-dir": str(ws["project"]),
         "--command": "analyze",
@@ -228,6 +229,33 @@ def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, wo
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert fake_claude.cwd_log.read_text().strip() == str(workspace["project"].resolve())
+
+
+def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_claude, tmp_path):
+    """An aide `implement` step reinstalls aide, which copies this very
+    script over itself. Bash reads a script incrementally from disk, so
+    without a private copy the runner dies mid-job — measured on the
+    first end-to-end run, eight minutes in, after the work had already
+    succeeded."""
+    copy = tmp_path / "aide-run-spec-under-test"
+    copy.write_bytes(pathlib.Path(runner).read_bytes())
+    copy.chmod(0o755)
+    # The shared library lives beside the script; the copy resolves it
+    # from the ORIGINAL directory, so give this stand-in one too.
+    (tmp_path / "_aide-spec-lib.sh").write_bytes(
+        (pathlib.Path(runner).parent / "_aide-spec-lib.sh").read_bytes()
+    )
+    # The fake claude overwrites the running script, exactly as the
+    # installer would.
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'printf "#!/bin/bash\\necho REPLACED\\n" > {copy}\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, runner_path=copy)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", "the run must finish even though its file was replaced"
+    assert copy.read_text().startswith("#!/bin/bash"), "the replacement really happened"
 
 
 def test_budget_exhausted_is_stopped_not_a_generic_failure(runner, workspace, fake_claude):

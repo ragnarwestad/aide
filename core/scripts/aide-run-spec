@@ -19,7 +19,24 @@
 
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Run from a private copy of ourselves. Bash reads a script
+# incrementally from disk by byte offset, so replacing the file
+# mid-execution kills the run — and an aide `implement` step reinstalls
+# aide, which copies this very script over itself. Measured 2026-08-16:
+# that took the runner down eight minutes into a job whose work had
+# already succeeded, leaving no result file. The copy unlinks itself
+# immediately; the open file handle keeps it alive for as long as we
+# run.
+if [ -z "${AIDE_RUN_SPEC_SELF_COPY:-}" ]; then
+  _self_copy="$(mktemp -t aide-run-spec)" || exit 2
+  cp "${BASH_SOURCE[0]}" "$_self_copy" && chmod +x "$_self_copy" || exit 2
+  AIDE_RUN_SPEC_SELF_COPY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
+    exec "$_self_copy" "$@"
+fi
+# In the copy: drop the file, keep the directory the original came from
+# (the shared library lives beside it).
+rm -f "$0"
+SCRIPT_DIR="$AIDE_RUN_SPEC_SELF_COPY"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
