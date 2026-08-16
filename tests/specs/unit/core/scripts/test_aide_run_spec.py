@@ -664,3 +664,88 @@ def test_an_unknown_push_mode_is_refused_before_anything_starts(runner, workspac
     assert rc == 2
     assert "push" in out["error"].lower()
     assert not fake_claude.calls.exists()
+
+
+# --- a reused branch must not carry stale code -------------------------------
+
+def is_ancestor(repo, a, b):
+    return subprocess.run(
+        ["git", "-C", str(repo), "merge-base", "--is-ancestor", a, b]
+    ).returncode == 0
+
+
+def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, fake_claude):
+    """A spec's branch survives between steps, so analyze, review-plan and
+    implement build on each other. But the default branch moves on, and a
+    branch left over from the morning made the step read the morning's
+    code. Measured 2026-08-16: a review-plan reviewed a file whose bug had
+    been fixed hours earlier."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    git(project, "switch", "-q", "main")
+    (project / "moved-on.txt").write_text("landed on main after the branch was made\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "later work on main")
+
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'test -f "{project}/moved-on.txt" && echo yes > "{project}/saw-it.txt"\n'
+        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "saw-it.txt" in git(project, "show", "--name-only", "--pretty=", branch), \
+        "the step must see what landed on main after the branch was made"
+    assert is_ancestor(project, "main", branch), "the branch must contain main"
+
+
+def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
+    """Bringing the branch up to date must not throw away the previous
+    step's commits — that is the whole reason the branch is reused."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-the-earlier-step.txt").write_text("analyze wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier step")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+    (project / "moved-on.txt").write_text("meanwhile\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "later work on main")
+
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, earlier, branch), "the earlier step's work must survive"
+    assert is_ancestor(project, "main", branch), "and main must be in there too"
+
+
+def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, workspace, fake_claude):
+    """A conflict between the branch and main is a human's problem. Running
+    the step anyway would spend money producing work on a tree nobody can
+    merge."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "contested.txt").write_text("the branch's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "branch side")
+    git(project, "switch", "-q", "main")
+    (project / "contested.txt").write_text("main's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main side")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "up to date" in out["error"] or "conflict" in out["error"]
+    # And the tree is left clean, not mid-merge.
+    assert git(project, "status", "--porcelain") == ""

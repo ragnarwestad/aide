@@ -220,9 +220,23 @@ fi
 # branch` exists to prevent. Measured 2026-08-16 on spec 84.
 branch="aide/$spec_folder"
 for root in "${roots[@]}"; do
-  git -C "$root" switch -q "$branch" 2>/dev/null \
-    || git -C "$root" switch -q -c "$branch" 2>/dev/null \
-    || refuse "cannot switch to $branch in $root"
+  if git -C "$root" switch -q "$branch" 2>/dev/null; then
+    # The branch already exists, because the previous step for this spec
+    # made it — and that reuse is deliberate: analyze, review-plan and
+    # implement build on each other's work. But the default branch has
+    # moved on since, and a branch left over from the morning made the
+    # step read the morning's code. Measured 2026-08-16: a review-plan
+    # reviewed a file whose bug had been fixed hours earlier.
+    base="$(default_branch "$root")"
+    if ! git -C "$root" merge -q --ff-only "$base" 2>/dev/null; then
+      if ! git -C "$root" merge -q --no-edit "$base" >/dev/null 2>&1; then
+        git -C "$root" merge --abort >/dev/null 2>&1 || true
+        refuse "cannot bring $branch up to date with $base in $root (conflict — merge it by hand)"
+      fi
+    fi
+  elif ! git -C "$root" switch -q -c "$branch" 2>/dev/null; then
+    refuse "cannot switch to $branch in $root"
+  fi
 done
 
 # Parallel indexed arrays, not an associative one: macOS ships bash 3.2,
