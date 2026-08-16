@@ -18,6 +18,16 @@
     <string>/Users/ragnarwestad/aide-dashboard/aide-runs.json</string>
     <string>--claude-usage</string>
     <string>http://100.115.106.17:8787</string>
+    <string>--bind</string>
+    <string>100.115.106.17</string>
+    <string>--root</string>
+    <string>/Users/ragnarwestad/develop</string>
+    <string>--token-file</string>
+    <string>/Users/ragnarwestad/aide-dashboard/queue-token</string>
+    <string>--queue-mirror</string>
+    <string>/Users/ragnarwestad/aide-dashboard/aide-queue.json</string>
+    <string>--queue-projects</string>
+    <string>aide,aide-dashboard</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/ragnarwestad/develop/aide-dashboard</string>

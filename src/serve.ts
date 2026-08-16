@@ -6,6 +6,7 @@
 //
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, normalize, resolve, sep } from "node:path";
@@ -13,9 +14,29 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
-import { navEntries, renderLivePage, type NavEntry, type ProjectView } from "./render.ts";
+import { QueueStore, type QueueDefaults, type ProjectResolver } from "./queue.ts";
+import {
+  navEntries,
+  renderLivePage,
+  renderQueuePage,
+  type NavEntry,
+  type ProjectView,
+  type QueueRowView,
+} from "./render.ts";
 
 const MAX_BODY = 4096;
+
+// The caps decided in spec 81: deliberately tight. An `analyze` step
+// fits; an `implement` on Opus will stop early, on purpose, until the
+// per-step value is raised from a measurement.
+const QUEUE_DEFAULTS: QueueDefaults = {
+  budgetUsd: 3,
+  jobCapUsd: 10,
+  dailyCapUsd: 20,
+  timeoutSec: 1200,
+  permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
+  model: { implement: "opus", default: "sonnet" },
+};
 
 export interface ServerOptions {
   siteDir: string;
@@ -26,6 +47,21 @@ export interface ServerOptions {
   // Nav entries for /live: derived from --root's manifests when given,
   // else from the site dir's project pages.
   navEntries?: NavEntry[];
+  /** Where to listen. Default 0.0.0.0; the mini pins its Tailscale
+   *  address, the way claude-usage's plist does. */
+  bindHost?: string;
+  /** Without it the queue surface answers 503: off loudly, rather than
+   *  open quietly. */
+  queueToken?: string;
+  queueMirrorPath?: string;
+  /** Root scanned for `.aide/project.yaml` — the queue resolves project
+   *  NAMES against it, so a request never carries a path. */
+  projectRoot?: string;
+  /** The allowlist. Empty or absent means no project may be queued. */
+  queueProjects?: string[];
+  queueDefaults?: QueueDefaults;
+  /** 81b sets this once a runner exists. */
+  runnerAvailable?: boolean;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -51,6 +87,51 @@ function navFromSite(siteDir: string): NavEntry[] {
   return entries;
 }
 
+// Digest both sides first: timingSafeEqual throws on unequal lengths,
+// so comparing raw strings would leak length and crash on a mismatch.
+function tokenMatches(provided: string | null | undefined, expected: string): boolean {
+  if (!provided) return false;
+  return timingSafeEqual(
+    createHash("sha256").update(provided).digest(),
+    createHash("sha256").update(expected).digest(),
+  );
+}
+
+function cookieValue(header: string | null, name: string): string | null {
+  for (const part of (header ?? "").split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+}
+
+// A body may arrive as JSON (API) or urlencoded (a no-JS form).
+function bodyToObject(text: string, contentType: string | null): unknown {
+  if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams(text);
+    const out: Record<string, unknown> = {};
+    for (const key of new Set(params.keys())) {
+      const all = params.getAll(key);
+      out[key] = all.length > 1 ? all : all[0];
+    }
+    // The form posts one "project/specFolder" value; the API posts the
+    // two fields separately.
+    if (typeof out.target === "string") {
+      const [project, ...folder] = out.target.split("/");
+      out.project = project;
+      out.specFolder = folder.join("/");
+      delete out.target;
+    }
+    if (typeof out.steps === "string") out.steps = [out.steps];
+    if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
+    for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
+      if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
+    }
+    return out;
+  }
+  return JSON.parse(text) as unknown;
+}
+
 function serveStatic(siteDir: string, pathname: string): Response {
   const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
   const root = resolve(siteDir);
@@ -69,12 +150,68 @@ export function createServer(opts: ServerOptions) {
   });
   const nav = () => opts.navEntries ?? navFromSite(opts.siteDir);
 
+  // Project names resolve through a short-lived scan: fresh enough that
+  // a new spec shows up, cheap enough for a page that refreshes.
+  const allowed = new Set(opts.queueProjects ?? []);
+  let scan: { at: number; targets: { project: string; specFolder: string }[] } | null = null;
+  const targets = () => {
+    const now = Date.now();
+    if (scan && now - scan.at < 5000) return scan.targets;
+    const found: { project: string; specFolder: string }[] = [];
+    if (opts.projectRoot) {
+      for (const p of discoverProjects(opts.projectRoot)) {
+        if (!allowed.has(p.name)) continue;
+        for (const s of p.specs) if (!s.archived) found.push({ project: p.name, specFolder: s.folder });
+      }
+    }
+    scan = { at: now, targets: found };
+    return found;
+  };
+  const resolveProject: ProjectResolver = (project) => {
+    if (!allowed.has(project)) return null;
+    const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
+    return folders.length > 0 ? { specFolders: folders } : null;
+  };
+  const queue = new QueueStore({
+    mirrorPath: opts.queueMirrorPath,
+    defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
+    resolve: resolveProject,
+  });
+
+  const queueToken = opts.queueToken;
+  const isQueuePath = (path: string) => path === "/queue" || path === "/api/queue" || path.startsWith("/api/queue/");
+
+  // The WHOLE queue surface is behind the token, read routes included:
+  // a token that a page hands to anyone who can load the page is not a
+  // secret. `POST /api/aide-run` is exempt on purpose — spec 80's
+  // emitter sends no credential and swallows the answer, so a 401 there
+  // would silently empty /live.
+  function queueGuard(req: Request, url: URL): Response | null {
+    if (!queueToken) {
+      return new Response("the queue is off: no token is configured on this server\n", {
+        status: 503,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      });
+    }
+    const provided =
+      req.headers.get("x-aide-token") ??
+      url.searchParams.get("token") ??
+      cookieValue(req.headers.get("cookie"), "aide_token");
+    return tokenMatches(provided, queueToken) ? null : new Response("unauthorized", { status: 401 });
+  }
+
   const server = Bun.serve({
     port: opts.port,
-    hostname: "0.0.0.0",
+    hostname: opts.bindHost ?? "0.0.0.0",
     async fetch(req) {
       const url = new URL(req.url);
       const path = url.pathname;
+
+      if (isQueuePath(path)) {
+        const denied = queueGuard(req, url);
+        if (denied) return denied;
+        return handleQueue(req, url, path);
+      }
 
       if (path === "/api/aide-run") {
         if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -115,6 +252,87 @@ export function createServer(opts: ServerOptions) {
     },
   });
 
+  function jobRow(job: ReturnType<QueueStore["list"]>[number]): QueueRowView {
+    return {
+      id: job.id,
+      project: job.project,
+      specFolder: job.specFolder,
+      steps: job.steps,
+      stepIndex: job.stepIndex,
+      state: job.state,
+      spentUsd: job.spentUsd,
+      timeoutSec: job.timeoutSec,
+      createdAt: job.createdAt,
+      startedAt: job.startedAt,
+      stopReason: job.stopReason,
+      error: job.error,
+    };
+  }
+
+  async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
+    const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
+
+    if (path === "/queue") {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const html = renderQueuePage(queue.list().map(jobRow), new Date().toISOString(), nav(), {
+        runnerAvailable: opts.runnerAvailable ?? false,
+        targets: targets(),
+      });
+      const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
+      // Hand the token over ONCE, as an HttpOnly cookie, so the forms
+      // never have to carry it in their markup.
+      if (url.searchParams.get("token") && queueToken) {
+        headers["set-cookie"] =
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+      }
+      return new Response(html, { headers });
+    }
+
+    if (path === "/api/queue") {
+      if (req.method === "GET") {
+        return json({ generatedAt: new Date().toISOString(), jobs: queue.list() });
+      }
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const len = Number(req.headers.get("content-length") ?? "0");
+      if (len > MAX_BODY) return json({ error: "payload too large" }, 413);
+      const text = await req.text();
+      if (text.length > MAX_BODY) return json({ error: "payload too large" }, 413);
+      let raw: unknown;
+      try {
+        raw = bodyToObject(text, req.headers.get("content-type"));
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const result = queue.enqueue(raw);
+      if (!result.ok) return json({ error: result.error }, 400);
+      return wantsJson
+        ? json({ ok: true, job: result.job })
+        : new Response(null, { status: 303, headers: { location: "/queue" } });
+    }
+
+    const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel)$/);
+    if (action) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, id, verb] = action;
+      const job = queue.get(id);
+      if (!job) return json({ error: "no such job" }, 404);
+      if (verb === "cancel") {
+        // 81b also kills the running process group; here the state is
+        // the whole of it.
+        queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
+      } else {
+        if (job.state !== "awaiting-approval") return json({ error: `cannot approve a ${job.state} job` }, 409);
+        // Approving a gate releases the job back into the queue.
+        queue.update(id, { state: "queued" });
+      }
+      return wantsJson
+        ? json({ ok: true, job: queue.get(id) })
+        : new Response(null, { status: 303, headers: { location: "/queue" } });
+    }
+
+    return new Response("not found", { status: 404 });
+  }
+
   return {
     port: server.port,
     stop: () => server.stop(true),
@@ -124,6 +342,7 @@ export function createServer(opts: ServerOptions) {
 function parseArgs(argv: string[]): ServerOptions {
   const opts: ServerOptions = { siteDir: join(homedir(), "aide-dashboard", "site"), port: 8788 };
   let root: string | undefined;
+  let tokenFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const v = argv[i + 1];
@@ -132,9 +351,29 @@ function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--claude-usage" && v) opts.claudeUsageUrl = argv[++i];
     else if (a === "--mirror" && v) opts.mirrorPath = argv[++i];
     else if (a === "--root" && v) root = argv[++i];
+    else if (a === "--bind" && v) opts.bindHost = argv[++i];
+    else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
+    else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
+    // The token is read from a FILE, never an argument: `ps` shows
+    // arguments to every user on the machine.
+    else if (a === "--token-file" && v) tokenFile = argv[++i];
     else throw new Error(`unknown argument: ${a}`);
   }
   if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");
+  if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), "aide-dashboard", "aide-queue.json");
+  if (tokenFile) {
+    // A missing or unreadable token file must not crash the server:
+    // launchd would restart it in a loop and take the whole dashboard
+    // down over a feature that is meant to fail closed, not loud.
+    try {
+      const token = readFileSync(tokenFile, "utf-8").trim();
+      if (token) opts.queueToken = token;
+      else console.error(`token file ${tokenFile} is empty — the queue stays off`);
+    } catch {
+      console.error(`cannot read ${tokenFile} — the queue stays off`);
+    }
+  }
+  if (root) opts.projectRoot = root;
   if (root) {
     const projects: ProjectView[] = discoverProjects(root).map((p) => ({
       name: p.name,
@@ -149,7 +388,11 @@ function parseArgs(argv: string[]): ServerOptions {
 if (import.meta.main) {
   const argv = process.argv.slice(2);
   if (argv[0] !== "serve") {
-    console.error("usage: serve.ts serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]");
+    console.error(
+      "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
+        "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
+        "                     [--queue-mirror FILE] [--queue-projects a,b]",
+    );
     process.exit(2);
   }
   const opts = parseArgs(argv.slice(1));

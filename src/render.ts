@@ -140,6 +140,7 @@ function nav(entries: NavEntry[], currentPath: string): string {
   const lis = [
     link(overview),
     link({ label: "Live", path: "/live" }),
+    link({ label: "Queue", path: "/queue" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),
   ];
@@ -177,6 +178,10 @@ table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; }
 thead th { border-bottom: 1px solid #8886; }
 tr.archived td { color: #999; }
+.enqueue { margin: 0.8rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.enqueue .steps { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.enqueue .stepbox { font-size: 0.9rem; }
+td form { margin: 0; }
 @media (max-width: 40rem) {
   .layout { flex-direction: column; }
   .layout > nav { flex: none; border-right: none; border-bottom: 1px solid #8884; }
@@ -296,6 +301,128 @@ export function renderLivePage(
     `cost so far come from claude-usage and lag a little for remote machines.</p>\n` +
     table;
   return pageShell("Live", entries, "/live", body, generatedAt, 10);
+}
+
+export interface QueueRowView {
+  id: string;
+  project: string;
+  specFolder: string;
+  steps: string[];
+  stepIndex: number;
+  state:
+    | "queued" | "running" | "awaiting-approval" | "done"
+    | "stopped" | "failed" | "cancelled" | "interrupted";
+  spentUsd: number;
+  timeoutSec: number;
+  createdAt: string;
+  startedAt?: string;
+  stopReason?: "budget" | "timeout";
+  branchUrl?: string;
+  error?: string;
+}
+
+export interface QueuePageOptions {
+  /** 81a ships no runner: the page says so rather than leaving jobs in
+   *  "queued" with no explanation. */
+  runnerAvailable: boolean;
+  targets: { project: string; specFolder: string }[];
+  token?: string;
+}
+
+// A stopped job is NOT a failed one, and the two must never render as
+// the same string: with tight caps a cap-stop is a common, healthy
+// outcome, and a reader who cannot tell them apart ignores both.
+function stateLabel(r: QueueRowView): string {
+  if (r.state === "awaiting-approval") return "waiting for approval";
+  if (r.state === "stopped") {
+    return r.stopReason === "timeout"
+      ? `stopped — ${Math.round(r.timeoutSec / 60)} min`
+      : "stopped — budget";
+  }
+  return r.state;
+}
+
+function actionForm(r: QueueRowView, token?: string): string {
+  const action =
+    r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
+  if (!action) return "–";
+  const hidden = token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+  return (
+    `<form method="post" action="/api/queue/${esc(r.id)}/${action}">${hidden}` +
+    `<button type="submit">${action === "approve" ? "Approve" : "Cancel"}</button></form>`
+  );
+}
+
+const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
+
+function enqueueForm(opts: QueuePageOptions): string {
+  if (opts.targets.length === 0) {
+    return `<p class="muted">No project on this machine has both a manifest and the queue's permission.</p>`;
+  }
+  const hidden = opts.token ? `<input type="hidden" name="token" value="${esc(opts.token)}">` : "";
+  const options = opts.targets
+    .map((t) => {
+      const value = `${t.project}/${t.specFolder}`;
+      return `<option value="${esc(value)}">${esc(value)}</option>`;
+    })
+    .join("");
+  const boxes = QUEUE_STEPS.map(
+    (s) =>
+      `<label class="stepbox"><input type="checkbox" name="steps" value="${esc(s)}"` +
+      `${s === "analyze" ? " checked" : ""}> ${esc(s)}</label>`,
+  ).join("");
+  return (
+    `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
+    `<select name="target">${options}</select> ` +
+    `<span class="steps">${boxes}</span> ` +
+    `<button type="submit">Queue it</button></form>`
+  );
+}
+
+// Server-rendered /queue page in the site's layout (spec 81). No JS:
+// plain forms and a meta refresh.
+export function renderQueuePage(
+  rows: QueueRowView[],
+  generatedAt: string,
+  entries: NavEntry[],
+  opts: QueuePageOptions,
+): string {
+  const table =
+    rows.length === 0
+      ? `<p class="muted">No jobs queued yet.</p>`
+      : `<table><thead><tr><th>Spec</th><th>Project</th><th>Step</th><th>State</th>` +
+        `<th>Queued</th><th>Cost</th><th>Action</th></tr></thead><tbody>` +
+        rows
+          .map((r) => {
+            const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
+            const spec = r.branchUrl
+              ? `<a href="${esc(r.branchUrl)}">${esc(r.specFolder)}</a>`
+              : esc(r.specFolder);
+            const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
+            return (
+              `<tr class="${done ? "archived" : "active"}">` +
+              `<td>${spec}</td><td>${esc(r.project)}</td>` +
+              `<td>${esc(step)} <span class="muted">(${r.stepIndex + 1} of ${r.steps.length})</span></td>` +
+              `<td>${esc(stateLabel(r))}${r.error ? ` <span class="muted">${esc(r.error)}</span>` : ""}</td>` +
+              `<td>${esc(r.createdAt)}</td><td>$${r.spentUsd.toFixed(2)}</td>` +
+              `<td>${actionForm(r, opts.token)}</td></tr>`
+            );
+          })
+          .join("") +
+        `</tbody></table>`;
+  const notice = opts.runnerAvailable
+    ? ""
+    : `<p class="muted">No runner is installed on this machine yet (slice 81b) — ` +
+      `queued jobs stay queued, and nothing here spends money.</p>\n`;
+  const body =
+    notice +
+    `<p class="intro">Queued aide runs: one job at a time, every step bounded by ` +
+    `its own budget and a wall clock. A job that hits a cap is <em>stopped</em>, ` +
+    `not failed.</p>\n` +
+    enqueueForm(opts) +
+    "\n" +
+    table;
+  return pageShell("Queue", entries, "/queue", body, generatedAt, 10);
 }
 
 export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
