@@ -8,12 +8,12 @@
 // a form, and a meta refresh every ten seconds would wipe whatever
 // someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer, type ServerOptions } from "../src/serve.ts";
+import type { ServerOptions } from "../src/serve.ts";
 import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
-import { failFetch, queueHarness } from "./helpers/queue-server.ts";
+import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
 
