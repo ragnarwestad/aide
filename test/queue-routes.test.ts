@@ -408,3 +408,47 @@ describe("the runner invocation", () => {
     expect(argv).toContain("--command implement");
   });
 });
+
+describe("what the queue has run counts too", () => {
+  test("a step the queue completed is marked done, whatever the percentage says", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    // Analysed and reviewed already; the status says 95% because the
+    // remaining task is the USER's, not the machine's.
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
+
+    // Before the queue has run it, implement is what you came for.
+    let html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toMatch(/value="implement" checked/);
+
+    // Record a completed implement in the queue's own history, exactly
+    // as a finished step does.
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST", headers, body: JSON.stringify({ ...JOB, steps: ["implement"] }),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
+    mirror[0].results = [
+      { step: "implement", ok: true, costUsd: 12.34, costMeasured: true,
+        terminalReason: "completed", at: "2026-08-16T18:00:00Z" },
+    ];
+    writeFileSync(join(dir, "queue.json"), JSON.stringify(mirror));
+    expect(made.job.id).toBeTruthy();
+
+    // A server reading that history offers the NEXT step instead.
+    // Same specs, same history — a fresh process reading both.
+    const second = start({
+      queueToken: TOKEN,
+      queueMirrorPath: join(dir, "queue.json"),
+      projectRoot: join(dir, "root"),
+    });
+    html = await (await fetch(`${second.base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).not.toMatch(/value="implement" checked/);
+    expect(html).toMatch(/value="archive" checked/);
+    expect(html).toContain('class="stepbox isdone" data-step="implement"');
+  });
+});

@@ -263,6 +263,21 @@ export class QueueStore {
     return [...this.jobs.values()].reverse(); // newest first
   }
 
+  /** Which steps this spec has actually HAD, according to the queue's
+   *  own history. More reliable than reading the spec's files: a
+   *  completed step is recorded here with its cost and session, whereas
+   *  a status percentage mixes the machine's work with the user's. */
+  stepsCompletedFor(project: string, specFolder: string): string[] {
+    const done = new Set<string>();
+    for (const job of this.jobs.values()) {
+      if (job.project !== project || job.specFolder !== specFolder) continue;
+      for (const r of job.results) {
+        if (r.ok && r.step) done.add(r.step);
+      }
+    }
+    return [...done];
+  }
+
   get(id: string): Job | undefined {
     return this.jobs.get(id);
   }

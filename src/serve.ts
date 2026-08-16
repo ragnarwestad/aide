@@ -214,6 +214,8 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
+  // Declared before `targets`, which asks it what has already run.
+  let queue: QueueStore;
   let scan: { at: number; targets: QueueTarget[] } | null = null;
   const targets = (): QueueTarget[] => {
     const now = Date.now();
@@ -238,7 +240,16 @@ export function createServer(opts: ServerOptions) {
             title: s.title ?? undefined,
             phase: status?.phase ?? undefined,
             percent: status?.progress?.percent,
-            done: stepsAlreadyDone(s.dir, status?.progress?.percent),
+            // Two sources, union: what the files show, and what the
+            // queue actually ran. Neither alone is enough — a spec can
+            // be analysed by hand, and a percentage counts the user's
+            // own tasks too.
+            done: [
+              ...new Set([
+                ...stepsAlreadyDone(s.dir, status?.progress?.percent),
+                ...queue.stepsCompletedFor(p.name, s.folder),
+              ]),
+            ],
           });
         }
       }
@@ -251,7 +262,7 @@ export function createServer(opts: ServerOptions) {
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
     return folders.length > 0 ? { specFolders: folders } : null;
   };
-  const queue = new QueueStore({
+  queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
