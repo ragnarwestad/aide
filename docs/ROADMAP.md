@@ -163,7 +163,9 @@ THERE, not here (we eat our own dog food):
 
 - [x] Stage 0 — plan review step → spec 77 (done August 2026: `/aide-review-plan`)
 - [x] Stage 1 — project manifest → spec 78 (done August 2026: `/aide-manifest` + `.aide/project.yaml`)
-- [ ] Stage 2 — read-only dashboard → spec 79
+- [x] Stage 2 — read-only dashboard → spec 79 (done August 2026: the
+      `aide-dashboard` repo — static generator on the laptop reading
+      the manifests and specs roots, served on the mac mini, port 8788)
 - [ ] Stage 3 — live process events → spec 80
 - [ ] Stage 4 — queue and runner → spec 81
 
