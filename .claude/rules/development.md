@@ -145,6 +145,27 @@ is updated manually via `/check-news` — not by the cron job.
 2. Run `core/scripts/build-agents-md.sh` (regenerates `core/AGENTS.md`)
 3. Run `implementations/claude-code/install.sh` (rules → `~/.claude/rules/`), `implementations/copilot/install.sh` and `implementations/codex/install.sh` (new AGENTS.md → `~/.copilot/` and `~/.codex/`)
 
+### Changing the spec structure
+
+The 4-file layout is written down in more places than you would guess.
+Spec 82 found them the hard way: fixing the templates alone left
+`/aide-analyze` instructing the model to put complexity and risk in
+`2-analysis.md`, so the next run rebuilt the bug.
+
+1. `core/rules/spec-structure.md` — the rule itself
+2. `core/templates/todo/*.template` — what a new spec starts from
+3. `core/skills/aide-create/references/file-templates.md`
+4. `core/skills/aide-analyze/SKILL.md` and
+   `core/skills/task-workflow-assistant/SKILL.md` — the instructions
+   that decide where an AI actually writes what
+5. `core/AGENTS.md` — generated; run `core/scripts/build-agents-md.sh`
+6. `tests/specs/unit/core/validation/test_templates.py` plus the three
+   e2e files, which assert the layout
+
+`test_templates.py` enforces items 1-4, so a partial change fails the
+suite rather than escaping quietly. Change all six, regenerate,
+reinstall.
+
 ### install.sh and uninstall.sh
 
 These MUST always mirror each other. When changing one, update the other.
