@@ -11,12 +11,11 @@ tools-and-scripts rules).
 3. Create the test files (follow the testing rules and the frontend coding standard)
 4. Run: `pnpm test -- --run <test file>`
 5. Verify that the tests FAIL (expected!)
-6. **STOP** — ask the user for confirmation
+6. Report the result and continue to GREEN
 
 Show:
 - Number of tests written
 - All fail as expected
-- "Ready for the GREEN phase?"
 
 ## Phase 2: GREEN — Implement until tests pass
 
@@ -29,12 +28,11 @@ For each step in 3-solution.md:
 5. Repeat for all steps
 
 When all steps are implemented:
-6. **STOP** — ask the user for confirmation
+6. Report the result and continue to REFACTOR
 
 Show:
 - Number of steps implemented
 - All tests pass
-- "Ready for the REFACTOR phase?"
 
 ## Phase 3: REFACTOR — Quality check and cleanup
 
@@ -69,7 +67,7 @@ Test files created:
 
 Status: 5/5 tests fail (expected in the RED phase)
 
-STOP: Ready for the GREEN phase?
+Continuing to GREEN.
 ```
 
 ### After GREEN:
@@ -83,7 +81,7 @@ Implementation completed:
 
 Status: 7/7 tests pass
 
-STOP: Ready for the REFACTOR phase?
+Continuing to REFACTOR.
 ```
 
 ### After REFACTOR:

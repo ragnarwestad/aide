@@ -335,7 +335,8 @@ not just annotated.
    - **RED**: Writes tests that prove the problem (should fail)
    - **GREEN**: Implements the solution (the tests should pass)
    - **REFACTOR**: Runs regression tests (verifies nothing broke)
-3. Asks for confirmation before each phase
+3. Runs all three phases through, reporting each phase's result —
+   stops only when genuinely blocked
 4. Updates `4-status.md` along the way
 
 ### Phase 4: Verify

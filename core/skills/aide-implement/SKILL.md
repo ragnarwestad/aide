@@ -55,14 +55,14 @@ Usage:
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
 2. Create test files — at least one failing test per acceptance criterion
 3. Run the tests — verify that they FAIL
-4. **STOP** — ask the user for confirmation before GREEN
+4. Report the RED result briefly and continue to GREEN
 
 ### Phase 2: GREEN — Implement until tests pass
 
 1. Implement each step from 3-solution.md
 2. Run the tests after each step
 3. Verify that the tests PASS
-4. **STOP** — ask the user for confirmation before REFACTOR
+4. Report the GREEN result briefly and continue to REFACTOR
 
 ### Phase 3: REFACTOR — Quality check
 
@@ -77,7 +77,10 @@ See `references/tdd-phases.md` for the detailed workflow with commands
 and expected output per phase.
 
 IMPORTANT:
-- **STOP** at every phase transition and ask for confirmation
+- Run all three phases through WITHOUT stopping to ask for
+  confirmation — report each phase's result as you pass it. Stop only
+  when genuinely blocked (a decision only the user can make, or a
+  phase that cannot be completed)
 - NEVER skip tests
 - Follow the coding standard strictly
 - Code blocks ALWAYS end with just ` ``` `
