@@ -745,8 +745,12 @@ function stepResults(results: JobStepResultView[]): string {
 const JOB_TABS = ["overview", "activity", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
-function jobTab(name: string | undefined): JobTab {
-  return (JOB_TABS as readonly string[]).includes(name ?? "") ? (name as JobTab) : "overview";
+// While a step is running, what it is DOING is what the page was
+// opened for; a job that has stopped has nothing running, so its facts
+// open instead.
+function jobTab(name: string | undefined, job: JobDetailView): JobTab {
+  if ((JOB_TABS as readonly string[]).includes(name ?? "")) return name as JobTab;
+  return job.state === "running" ? "activity" : "overview";
 }
 
 function tabBar(job: JobDetailView, current: JobTab): string {
@@ -773,7 +777,7 @@ export function renderJobDetailPage(
   opts: { tab?: string; now?: number } = {},
 ): string {
   const now = opts.now ?? Date.now();
-  const tab = jobTab(opts.tab);
+  const tab = jobTab(opts.tab, job);
   const pips = job.steps
     .map((s, i) => {
       const cls = i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo";
