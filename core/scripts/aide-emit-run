@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# aide-emit-run — UserPromptSubmit hook: link a Claude Code session to
+# the aide spec it works on (spec 80 in aide-specs).
+#
+# Reads the hook JSON from stdin. If the prompt is a slash-launched aide
+# command (`/aide-<command> [<spec>]`, tolerating the leading space real
+# prompts carry) AND AIDE_RUN_URL is set, POSTs one small event:
+#   {host, sessionId, command, spec?, project?, capturedAt}
+# to that URL. Only the parsed command and spec reference leave the
+# machine — never the prompt body.
+#
+# Prompt-hook discipline (non-negotiable):
+#   * stdout is injected into the model's context -> silence it, line one
+#   * a non-zero exit blocks the prompt -> always exit 0
+#   * never block: curl is backgrounded with a 1 s cap
+exec >/dev/null 2>&1
+trap 'exit 0' EXIT
+
+[ -n "${AIDE_RUN_URL:-}" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+command -v curl >/dev/null 2>&1 || exit 0
+
+input="$(cat)"
+prompt="$(printf '%s' "$input" | jq -r '.prompt // empty')"
+[ -n "$prompt" ] || exit 0
+
+# Anchored: optional leading whitespace, then /aide-<command>, then an
+# optional argument. NEVER an unanchored search — prose that merely
+# mentions a command must not match.
+re='^[[:space:]]*/aide-(explore|create|analyze|review-plan|implement|archive|manifest|make-tests|to-pdf|to-html|react-class-to-func)([[:space:]]+([^[:space:]]+))?'
+[[ "$prompt" =~ $re ]] || exit 0
+cmd="${BASH_REMATCH[1]}"
+spec="${BASH_REMATCH[3]:-}"
+
+session_id="$(printf '%s' "$input" | jq -r '.session_id // empty')"
+[[ "$session_id" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || exit 0
+
+cwd="$(printf '%s' "$input" | jq -r '.cwd // empty')"
+project=""
+if [ -n "$cwd" ] && [ -d "$cwd" ]; then
+  top="$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null || true)"
+  project="$(basename "${top:-$cwd}")"
+fi
+
+host="$(hostname -s 2>/dev/null || hostname)"
+captured_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+payload="$(jq -cn \
+  --arg host "$host" --arg sid "$session_id" --arg cmd "$cmd" \
+  --arg spec "$spec" --arg project "$project" --arg at "$captured_at" \
+  '{host: $host, sessionId: $sid, command: $cmd, capturedAt: $at}
+   + (if $spec != "" then {spec: $spec} else {} end)
+   + (if $project != "" then {project: $project} else {} end)')"
+
+curl -s --max-time 1 -X POST -H 'content-type: application/json' \
+  --data "$payload" "$AIDE_RUN_URL" >/dev/null 2>&1 &
+exit 0

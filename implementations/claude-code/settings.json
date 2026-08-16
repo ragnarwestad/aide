@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AIDE_RUN_URL=\"\" \"$HOME/.local/bin/aide-emit-run\"",
+            "_comment": "aide-emit-run links the session to the aide spec it works on (spec 80). Opt-in: set AIDE_RUN_URL to your aide-dashboard's /api/aide-run; empty keeps it inert. install.sh prints a ready-to-paste block with the absolute path."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
