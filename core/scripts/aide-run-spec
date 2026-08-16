@@ -27,16 +27,27 @@ set -uo pipefail
 # already succeeded, leaving no result file. The copy unlinks itself
 # immediately; the open file handle keeps it alive for as long as we
 # run.
-if [ -z "${AIDE_RUN_SPEC_SELF_COPY:-}" ]; then
+#
+# The marker holds the copy's OWN path, and both markers are unset
+# before anything else runs. An earlier version marked "I am a copy"
+# with a bare flag and left it exported: `claude` inherited it, so every
+# nested invocation — a test, a terminal inside the run, the next step —
+# believed the INSTALLED script was the throwaway copy and deleted it.
+# Measured 2026-08-16, one test run removed core/scripts/aide-run-spec
+# from the worktree.
+if [ "${AIDE_RUN_SPEC_SELF_COPY:-}" != "$0" ]; then
   _self_copy="$(mktemp -t aide-run-spec)" || exit 2
   cp "${BASH_SOURCE[0]}" "$_self_copy" && chmod +x "$_self_copy" || exit 2
-  AIDE_RUN_SPEC_SELF_COPY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
+  AIDE_RUN_SPEC_SELF_COPY="$_self_copy" \
+  AIDE_RUN_SPEC_SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" \
     exec "$_self_copy" "$@"
 fi
-# In the copy: drop the file, keep the directory the original came from
-# (the shared library lives beside it).
+# In the copy: keep the directory the original came from (the shared
+# library lives beside it), then drop the file — it is ours, and only
+# ours, because the marker matched our own path.
+SCRIPT_DIR="${AIDE_RUN_SPEC_SOURCE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
 rm -f "$0"
-SCRIPT_DIR="$AIDE_RUN_SPEC_SELF_COPY"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
@@ -45,6 +56,10 @@ WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
+# Default `none`: a run started by hand publishes nothing nobody asked
+# for. The queue passes the mode from its config, where the default is
+# `branch`.
+push_mode="none"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -58,6 +73,7 @@ while [ $# -gt 0 ]; do
     --model) model="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
+    --push) push_mode="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
     *) printf '{"ok":false,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
@@ -97,6 +113,11 @@ is_positive_number "$timeout_sec" || refuse "invalid --timeout-sec: $timeout_sec
 case " $WORKFLOW_STEPS " in
   *" $command_name "*) ;;
   *) refuse "invalid --command: $command_name (not an aide workflow step)" ;;
+esac
+
+case "$push_mode" in
+  none|branch|pr) ;;
+  *) refuse "invalid --push: $push_mode (none, branch or pr)" ;;
 esac
 
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
@@ -302,16 +323,92 @@ for root in "${roots[@]}"; do
   i=$(( i + 1 ))
 done
 
+# --- publishing the work -----------------------------------------------------
+# Push mode is a SETTING, not a decision baked in here. Nothing in this
+# section may fail the run: the step's work is already committed, and a
+# push or a PR that did not happen is reported, never fatal.
+push_error=""; branch_url=""; pr_url=""; pr_error=""
+
+# The compare page is the diff view a reviewer opens; it only exists for
+# GitHub remotes, so a local or self-hosted origin simply gets no link.
+github_web_url() {
+  local url="$1"
+  case "$url" in
+    git@github.com:*) url="https://github.com/${url#git@github.com:}" ;;
+    ssh://git@github.com/*) url="https://github.com/${url#ssh://git@github.com/}" ;;
+    https://github.com/*) ;;
+    *) return ;;
+  esac
+  printf '%s' "${url%.git}"
+}
+
+note_push_error() {
+  [ -z "$push_error" ] && push_error="$1" || push_error="$push_error; $1"
+}
+
+if [ "$push_mode" != "none" ]; then
+  if git -C "$project_root" remote get-url origin >/dev/null 2>&1; then
+    if err="$(git -C "$project_root" push -q -u origin "$branch" 2>&1)"; then
+      web="$(github_web_url "$(git -C "$project_root" remote get-url origin 2>/dev/null)")"
+      [ -n "$web" ] && branch_url="$web/compare/$(default_branch "$project_root")...$branch"
+    else
+      note_push_error "cannot push $branch: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    fi
+  else
+    note_push_error "no origin remote in $project_root"
+  fi
+
+  # The specs repo too. An `analyze` step changes nothing in the project
+  # and everything here, so pushing only the project would leave the
+  # work stranded on the machine that wrote it.
+  for root in "${roots[@]}"; do
+    [ "$root" = "$project_root" ] && continue
+    if git -C "$root" remote get-url origin >/dev/null 2>&1; then
+      err="$(git -C "$root" push -q origin HEAD 2>&1)" \
+        || note_push_error "cannot push $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    fi
+  done
+fi
+
+# A pull request is the same work, one level more public. `gh` on an
+# unattended machine needs an interactive re-auth only a human can do,
+# so a broken gh records its error and leaves the run successful.
+if [ "$push_mode" = "pr" ]; then
+  gh_bin="${AIDE_GH_BIN:-$(command -v gh 2>/dev/null || true)}"
+  if [ -z "$gh_bin" ] || [ ! -x "$gh_bin" ]; then
+    pr_error="cannot find the gh binary (set AIDE_GH_BIN, or run gh auth login)"
+  elif [ -n "$push_error" ]; then
+    pr_error="no pull request: the branch was not pushed"
+  else
+    if pr_out="$(cd "$project_root" && "$gh_bin" pr create \
+        --base "$(default_branch "$project_root")" --head "$branch" \
+        --title "Run /aide-$command_name for $spec_folder" \
+        --body "Headless aide run ($command_name, $spec_folder)$suffix." 2>&1)"; then
+      pr_url="$(printf '%s\n' "$pr_out" | grep -o 'https://[^[:space:]]*' | tail -1)"
+      [ -n "$pr_url" ] || pr_error="gh reported no pull request URL"
+    else
+      pr_error="$(printf '%s' "$pr_out" | tr '\n' ' ' | tail -c 200)"
+    fi
+  fi
+fi
+
 line="$(jq -cn \
   --argjson ok "$ok" --argjson exitCode "$exit_code" \
   --arg sessionId "${session_out:-$session_id}" \
   --argjson costUsd "$cost" --argjson costMeasured "$cost_measured" \
   --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
   --argjson durationSec "$duration" --argjson repos "$repos_json" \
-  --arg error "$error_msg" --arg branch "$branch" \
+  --arg error "$error_msg" --arg branch "$branch" --arg push "$push_mode" \
+  --arg branchUrl "$branch_url" --arg prUrl "$pr_url" \
+  --arg prError "$pr_error" --arg pushError "$push_error" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, costUsd:$costUsd,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
+    push:$push,
+    branchUrl:(if $branchUrl == "" then null else $branchUrl end),
+    prUrl:(if $prUrl == "" then null else $prUrl end),
+    prError:(if $prError == "" then null else $prError end),
+    pushError:(if $pushError == "" then null else $pushError end),
     repos:$repos, error:(if $error == "" then null else $error end)}')"
 
 # The result file is written LAST and by rename, so a reader never sees a

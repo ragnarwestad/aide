@@ -39,6 +39,21 @@ shared script list is defined in one place — `core/scripts/_install-bin.sh` �
 each installer sources (`install_common_bin`). The list is therefore copied
 multiple times during `install-all`, but maintained in only one place.
 
+The list today: `aide-generate-pdf`, `aide-generate-html`, `aide-preflight`,
+`aide-emit-run`, `aide-run-spec`, `validate-env`, `upgrade-ai-tools` and the
+shared library `_aide-spec-lib.sh`. Two of them are opt-in and inert until
+something invokes them: `aide-emit-run` (needs `AIDE_RUN_URL`; it is both a
+`UserPromptSubmit` hook and the `--phase` reporter the aide-implement skill
+calls) and `aide-run-spec` (one headless workflow step — installing aide
+gives nobody a queue). Both are documented in the README.
+
+**`aide-run-spec` runs from a private copy of itself, and that is
+load-bearing:** an `implement` step reinstalls aide, which copies the script
+over itself while bash is still reading it by byte offset. The copy's marker
+holds its own path and is unset before `claude` starts — an earlier version
+exported a bare flag, `claude` inherited it, and the next nested invocation
+deleted the installed script.
+
 **Individual uninstallers never remove the shared scripts** — other AI tools
 and the cron job depend on them. The same goes for the skills in
 `~/.agents/skills/` (read by both Copilot and Codex, installed via

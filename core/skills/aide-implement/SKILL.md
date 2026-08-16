@@ -53,25 +53,42 @@ Usage:
 ### Phase 1: RED — Write failing tests
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
-2. Create test files — at least one failing test per acceptance criterion
-3. Run the tests — verify that they FAIL
-4. Report the RED result briefly and continue to GREEN
+2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))
+3. Create test files — at least one failing test per acceptance criterion
+4. Run the tests — verify that they FAIL
+5. Report the RED result briefly and continue to GREEN
 
 ### Phase 2: GREEN — Implement until tests pass
 
-1. Implement each step from 3-solution.md
-2. Run the tests after each step
-3. Verify that the tests PASS
-4. Report the GREEN result briefly and continue to REFACTOR
+1. Run `aide-emit-run --phase green --spec <ID>`
+2. Implement each step from 3-solution.md
+3. Run the tests after each step
+4. Verify that the tests PASS
+5. Report the GREEN result briefly and continue to REFACTOR
 
 ### Phase 3: REFACTOR — Quality check
 
-1. Full test suite (no regressions)
-2. TypeScript check
-3. ESLint
-4. Build
-5. Update 4-status.md
-6. Show a summary — ready for commit
+1. Run `aide-emit-run --phase refactor --spec <ID>`
+2. Full test suite (no regressions)
+3. TypeScript check
+4. ESLint
+5. Build
+6. Update 4-status.md
+7. Show a summary — ready for commit
+
+### Reporting the phase
+
+One Bash call at the start of each phase, with the spec's ID:
+
+```bash
+aide-emit-run --phase red --spec 81
+```
+
+It is a fire-and-forget report, not a gate: it prints nothing, never
+asks anything, always exits 0, and does nothing at all unless
+`AIDE_RUN_URL` is set. A run that reports its phases can be followed
+from the dashboard while it works; the three phases still run through
+without stopping.
 
 See `references/tdd-phases.md` for the detailed workflow with commands
 and expected output per phase.
