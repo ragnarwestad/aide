@@ -144,6 +144,22 @@ function bodyToObject(text: string, contentType: string | null): unknown {
   return JSON.parse(text) as unknown;
 }
 
+// Page code is TypeScript (src/queue-client.ts); the browser needs
+// JavaScript. Transpile once, on first use, and keep it — Bun has the
+// transpiler in-process, so this needs no build step and no bundle
+// checked into the repo.
+let queueScript: string | null = null;
+function queueClientScript(): string | undefined {
+  if (queueScript !== null) return queueScript || undefined;
+  try {
+    const source = readFileSync(join(import.meta.dir, "queue-client.ts"), "utf-8");
+    queueScript = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(source);
+  } catch {
+    queueScript = ""; // the page still works: the noscript refresh takes over
+  }
+  return queueScript || undefined;
+}
+
 function serveStatic(siteDir: string, pathname: string): Response {
   const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
   const root = resolve(siteDir);
@@ -370,6 +386,7 @@ export function createServer(opts: ServerOptions) {
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: targets(),
+        script: queueClientScript(),
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.

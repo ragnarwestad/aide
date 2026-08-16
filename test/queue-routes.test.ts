@@ -3,10 +3,10 @@
 // token that a page hands to anyone who can load the page is not a
 // secret, so GET /queue is checked too.
 //
-// The no-JS rule is SPLIT here, deliberately: the generated static
-// pages and /live carry no script, but /queue does. It has a form, and
-// a meta refresh that reloads the page every ten seconds would wipe
-// whatever someone was half-way through filling in.
+// /queue carries page code; /live and the generated pages do not —
+// not by rule, but because they have nothing that needs it. /queue has
+// a form, and a meta refresh every ten seconds would wipe whatever
+// someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -203,7 +203,7 @@ describe("GET /queue (HTML)", () => {
     expect(html).toContain('id="jobrows"');
   });
 
-  test("/live and the generated pages stay script-free", async () => {
+  test("/live and the generated pages carry no page code — they need none", async () => {
     const { base } = start({ queueToken: TOKEN });
     const live = await (await fetch(`${base}/live`)).text();
     expect(live).not.toContain("<script");

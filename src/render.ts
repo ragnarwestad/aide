@@ -1,6 +1,8 @@
 // Render data -> a small static site: index.html (overview) + one
-// page per project, every page self-contained (inline CSS, no JS, no
-// external references) and carrying the shared left-column nav.
+// page per project, every page self-contained (inline CSS, no external
+// references) and carrying the shared left-column nav. These pages
+// carry no page code because they need none; /queue does, and gets it
+// (compiled from queue-client.ts).
 // Every populated manifest key is shown on the project page; a
 // project whose manifest failed to parse gets an error page and an
 // error row on the overview.
@@ -206,7 +208,8 @@ function pageShell(
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
   // filling in. /queue therefore refreshes its table from script and
-  // keeps the blunt refresh only as a no-JS fallback.
+  // keeps the blunt refresh as the fallback for a browser that did not
+  // run it.
   const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
   const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
@@ -339,6 +342,10 @@ export interface QueuePageOptions {
   runnerAvailable: boolean;
   targets: { project: string; specFolder: string }[];
   token?: string;
+  /** Browser code for this page, compiled from `queue-client.ts` by the
+   *  server. Nothing is hardcoded as a string here: page code is
+   *  TypeScript like everything else, and the compiler checks it. */
+  script?: string;
 }
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -420,19 +427,6 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions): s
     .join("");
 }
 
-// Vanilla, tiny, and the only script on any page: swap the table body
-// every few seconds. The generated static pages stay script-free.
-const QUEUE_SCRIPT = `
-setInterval(async () => {
-  try {
-    const res = await fetch('/queue?rows=1', { headers: { 'accept': 'text/html' } });
-    if (!res.ok) return;
-    const body = document.getElementById('jobrows');
-    if (body) body.innerHTML = await res.text();
-  } catch (e) { /* a blip is not worth a broken page */ }
-}, 5000);
-`.trim();
-
 // Server-rendered /queue page in the site's layout (spec 81). No JS:
 // plain forms and a meta refresh.
 export function renderQueuePage(
@@ -458,8 +452,8 @@ export function renderQueuePage(
     `\n<h2>Jobs</h2>\n` +
     table;
   return pageShell("Queue", entries, "/queue", body, generatedAt, 10, {
-    refreshInNoscript: true,
-    script: QUEUE_SCRIPT,
+    refreshInNoscript: !!opts.script,
+    script: opts.script,
   });
 }
 
