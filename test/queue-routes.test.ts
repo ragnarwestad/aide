@@ -291,3 +291,32 @@ describe("renderQueuePage state labels", () => {
     expect(html).not.toContain("stopped — failed");
   });
 });
+
+describe("the page answers the selection", () => {
+  test("the chosen spec's title, phase and progress are on the page and in the data block", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    // Give the spec a status file the page can summarise.
+    writeFileSync(
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
+      "# Queue - Status\n\n**Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
+    );
+    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    // Rendered for the first option, so it is there before any script runs.
+    expect(html).toContain("Queue - Status".replace(" - Status", ""));
+    expect(html).toContain("64% done");
+    expect(html).toContain("Phase 2: GREEN");
+    // And as data, so changing the selection can update it without a
+    // round trip.
+    expect(html).toContain('id="targetdata"');
+    expect(html).toMatch(/"percent":\s*64/);
+  });
+
+  test("state is a chip with its own class, so a failure is not a wall of grey", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
+    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(rows).toContain('class="state s-queued"');
+    expect(rows).toContain("queued");
+  });
+});

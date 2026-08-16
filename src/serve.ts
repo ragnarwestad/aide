@@ -14,6 +14,7 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
+import { parseStatus } from "./parse-status.ts";
 import { QueueStore, mergeQueueDefaults, type QueueDefaults, type ProjectResolver } from "./queue.ts";
 import { Runner } from "./runner.ts";
 import {
@@ -24,6 +25,7 @@ import {
   type NavEntry,
   type ProjectView,
   type QueueRowView,
+  type QueueTarget,
 } from "./render.ts";
 
 const MAX_BODY = 4096;
@@ -181,15 +183,32 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
-  let scan: { at: number; targets: { project: string; specFolder: string }[] } | null = null;
-  const targets = () => {
+  let scan: { at: number; targets: QueueTarget[] } | null = null;
+  const targets = (): QueueTarget[] => {
     const now = Date.now();
     if (scan && now - scan.at < 5000) return scan.targets;
-    const found: { project: string; specFolder: string }[] = [];
+    const found: QueueTarget[] = [];
     if (opts.projectRoot) {
       for (const p of discoverProjects(opts.projectRoot)) {
         if (!allowed.has(p.name)) continue;
-        for (const s of p.specs) if (!s.archived) found.push({ project: p.name, specFolder: s.folder });
+        for (const s of p.specs) {
+          if (s.archived) continue;
+          // What a reader needs to CHOOSE a spec: what it is called and
+          // how far it has got. Both are already on disk.
+          let status: ReturnType<typeof parseStatus> | null = null;
+          try {
+            status = parseStatus(readFileSync(join(s.dir, "4-status.md"), "utf-8"));
+          } catch {
+            status = null;
+          }
+          found.push({
+            project: p.name,
+            specFolder: s.folder,
+            title: s.title ?? undefined,
+            phase: status?.phase ?? undefined,
+            percent: status?.progress?.percent,
+          });
+        }
       }
     }
     scan = { at: now, targets: found };

@@ -180,15 +180,52 @@ table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; }
 thead th { border-bottom: 1px solid #8886; }
 tr.archived td { color: #999; }
-.enqueue { margin: 0.8rem 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.enqueue .steps { display: flex; gap: 0.6rem; flex-wrap: wrap; }
-.enqueue .stepbox { font-size: 0.9rem; }
-.enqueue .field { display: flex; flex-direction: column; gap: 0.15rem; }
-.enqueue .fieldlabel { font-size: 0.75rem; font-weight: 600; color: #777;
-  text-transform: uppercase; letter-spacing: 0.04em; }
-.enqueue .gate { align-self: end; }
-main h2 { font-size: 1.05rem; margin: 1.4rem 0 0.2rem; }
+main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
+.small { font-size: 0.82rem; }
+
+/* The form is a panel, not three controls loose on the page. */
+.panel { border: 1px solid #8884; border-radius: 10px; padding: 0.9rem 1.1rem 1rem;
+  margin: 1rem 0 1.6rem; background: #8881; }
+.panel h2 { margin-top: 0; }
+.enqueue { display: flex; flex-wrap: wrap; gap: 0.9rem 1.2rem; align-items: end; }
+.enqueue .field { display: flex; flex-direction: column; gap: 0.25rem; }
+.enqueue .fieldlabel { font-size: 0.72rem; font-weight: 600; color: #888;
+  text-transform: uppercase; letter-spacing: 0.06em; }
+.enqueue select { font: inherit; padding: 0.35rem 0.5rem; border-radius: 6px;
+  border: 1px solid #8886; background: transparent; color: inherit; min-width: 15rem; }
+.enqueue .steps { display: flex; gap: 0.7rem; flex-wrap: wrap; padding-bottom: 0.35rem; }
+.enqueue .stepbox { font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.3rem; }
+.enqueue .gate { color: #888; padding-bottom: 0.35rem; }
+.enqueue button { font: inherit; font-weight: 600; padding: 0.4rem 0.9rem;
+  border-radius: 6px; border: 1px solid #8886; background: #8882; color: inherit;
+  cursor: pointer; }
+.enqueue button:hover { background: #8883; }
+.specinfo { margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px solid #8883;
+  font-size: 0.9rem; }
+
+/* State carries colour, but the word is always there too. */
+.chip, .state { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px;
+  font-size: 0.8rem; border: 1px solid #8886; }
+.state { font-weight: 600; }
+.s-running { background: #3b82f622; border-color: #3b82f688; }
+.s-queued { background: #8881; }
+.s-awaiting-approval { background: #a855f722; border-color: #a855f788; }
+.s-done { background: #22c55e22; border-color: #22c55e88; }
+.s-stopped { background: #f59e0b22; border-color: #f59e0b88; }
+.s-failed, .s-interrupted { background: #ef444422; border-color: #ef444488; }
+.s-cancelled { background: #8881; color: #888; }
+
+table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882; }
+table.jobs .speccell { font-weight: 600; }
+table.jobs .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.jobs .empty { padding: 1.2rem 0; }
+.pips { display: flex; gap: 3px; margin-top: 0.3rem; }
+.pip { width: 14px; height: 4px; border-radius: 2px; background: #8884; }
+.pip.past { background: #22c55e99; }
+.pip.now { background: #3b82f6; }
 td form { margin: 0; }
+td button { font: inherit; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 5px;
+  border: 1px solid #8886; background: transparent; color: inherit; cursor: pointer; }
 @media (max-width: 40rem) {
   .layout { flex-direction: column; }
   .layout > nav { flex: none; border-right: none; border-bottom: 1px solid #8884; }
@@ -336,11 +373,19 @@ export interface QueueRowView {
   error?: string;
 }
 
+export interface QueueTarget {
+  project: string;
+  specFolder: string;
+  title?: string;
+  phase?: string;
+  percent?: number;
+}
+
 export interface QueuePageOptions {
   /** 81a ships no runner: the page says so rather than leaving jobs in
    *  "queued" with no explanation. */
   runnerAvailable: boolean;
-  targets: { project: string; specFolder: string }[];
+  targets: QueueTarget[];
   token?: string;
   /** Browser code for this page, compiled from `queue-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
@@ -359,6 +404,28 @@ function stateLabel(r: QueueRowView): string {
       : "stopped — budget";
   }
   return r.state;
+}
+
+// A wall of identical grey rows hides the one thing you came to see.
+// Colour carries the state; the label still says it in words, so the
+// colour is never the only signal.
+function stateChip(r: QueueRowView): string {
+  return `<span class="state s-${esc(r.state)}">${esc(stateLabel(r))}</span>`;
+}
+
+// "4 min ago" beats an ISO timestamp for the question actually being
+// asked, which is "is this recent?". The exact stamp stays in the
+// tooltip.
+function relTime(iso: string, now: number): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return esc(iso);
+  const secs = Math.max(0, Math.round((now - then) / 1000));
+  const label =
+    secs < 45 ? "just now"
+    : secs < 5400 ? `${Math.round(secs / 60)} min ago`
+    : secs < 172800 ? `${Math.round(secs / 3600)} h ago`
+    : `${Math.round(secs / 86400)} d ago`;
+  return `<span title="${esc(iso)}">${label}</span>`;
 }
 
 function actionForm(r: QueueRowView, token?: string): string {
@@ -393,34 +460,59 @@ function enqueueForm(opts: QueuePageOptions): string {
   // The gate choice is SHOWN and off by default. Hiding it made the
   // button quietly create a job that stops for approval after every
   // step — the opposite of what pressing it looks like it does.
+  // The selection has to SHOW something. A dropdown that changes
+  // nothing visible reads as broken, however correct it is.
+  const first = opts.targets[0];
   return (
+    `<section class="panel">` +
     `<h2>Queue a job</h2>\n` +
     `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
     `<label class="field"><span class="fieldlabel">Spec</span>` +
-    `<select name="target">${options}</select></label>` +
+    `<select name="target" id="target">${options}</select></label>` +
     `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
     `<span class="steps">${boxes}</span></span>` +
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>` +
-    `<button type="submit">Queue it</button></form>`
+    `<button type="submit">Queue it</button></form>` +
+    `<p class="specinfo" id="specinfo">${first ? specSummary(first) : ""}</p>` +
+    `<script type="application/json" id="targetdata">${JSON.stringify(opts.targets).replace(/</g, "\\u003c")}</script>` +
+    `</section>`
   );
+}
+
+// One line about the chosen spec: what it is, and how far it has got.
+export function specSummary(t: QueueTarget): string {
+  const bits: string[] = [];
+  if (t.title) bits.push(esc(t.title));
+  if (t.phase) bits.push(`<span class="chip">${esc(t.phase)}</span>`);
+  if (typeof t.percent === "number") bits.push(`${t.percent}% done`);
+  return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
 // The rows alone, so the page can refresh its table from script
 // without touching a form someone is half-way through filling in.
-export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions): string {
-  if (rows.length === 0) return `<tr><td colspan="7" class="muted">No jobs queued yet.</td></tr>`;
+export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
+  if (rows.length === 0) {
+    return `<tr><td colspan="6" class="empty muted">Nothing queued. Pick a spec above and press “Queue it”.</td></tr>`;
+  }
   return rows
     .map((r) => {
       const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
       const spec = r.branchUrl ? `<a href="${esc(r.branchUrl)}">${esc(r.specFolder)}</a>` : esc(r.specFolder);
       const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
+      const steps = r.steps
+        .map((s, i) => {
+          const cls = i < r.stepIndex ? "past" : i === r.stepIndex ? "now" : "todo";
+          return `<span class="pip ${cls}" title="${esc(s)}"></span>`;
+        })
+        .join("");
       return (
         `<tr class="${done ? "archived" : "active"}">` +
-        `<td>${spec}</td><td>${esc(r.project)}</td>` +
-        `<td>${esc(step)} <span class="muted">(${r.stepIndex + 1} of ${r.steps.length})</span></td>` +
-        `<td>${esc(stateLabel(r))}${r.error ? ` <span class="muted">${esc(r.error)}</span>` : ""}</td>` +
-        `<td>${esc(r.createdAt)}</td><td>$${r.spentUsd.toFixed(2)}</td>` +
+        `<td><div class="speccell">${spec}</div><div class="muted small">${esc(r.project)}</div></td>` +
+        `<td><div>${esc(step)}</div><div class="pips">${steps}</div></td>` +
+        `<td>${stateChip(r)}${r.error ? `<div class="muted small">${esc(r.error)}</div>` : ""}</td>` +
+        `<td>${relTime(r.startedAt ?? r.createdAt, now)}</td>` +
+        `<td class="num">${r.spentUsd > 0 ? `$${r.spentUsd.toFixed(2)}` : "–"}</td>` +
         `<td>${actionForm(r, opts.token)}</td></tr>`
       );
     })
@@ -436,8 +528,8 @@ export function renderQueuePage(
   opts: QueuePageOptions,
 ): string {
   const table =
-    `<table><thead><tr><th>Spec</th><th>Project</th><th>Step</th><th>State</th>` +
-    `<th>Queued</th><th>Cost</th><th>Action</th></tr></thead>` +
+    `<table class="jobs"><thead><tr><th>Spec</th><th>Step</th><th>State</th>` +
+    `<th>Started</th><th class="num">Cost</th><th></th></tr></thead>` +
     `<tbody id="jobrows">${renderQueueRows(rows, opts)}</tbody></table>`;
   const notice = opts.runnerAvailable
     ? ""
