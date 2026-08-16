@@ -638,7 +638,9 @@ export function createServer(opts: ServerOptions) {
         return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });
       }
       if (api) return json({ generatedAt: new Date().toISOString(), job });
-      const html = renderJobDetailPage(await jobDetailView(job), new Date().toISOString(), nav());
+      const html = renderJobDetailPage(await jobDetailView(job), new Date().toISOString(), nav(), {
+        tab: url.searchParams.get("tab") ?? undefined,
+      });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 

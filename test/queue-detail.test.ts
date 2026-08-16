@@ -156,10 +156,21 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
 
     // A fresh server reloads the mirror.
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/queue/${id}`, auth)).text();
+    const html = await (await fetch(`${base2}/queue/${id}?tab=steps`, auth)).text();
     expect(html).toContain("analyze");
     expect(html).toContain("review-plan");
     expect(html).toContain("$0.42");
     expect(html).toContain("$1.07");
+  });
+
+  // The tab is a link, so the route has to honour it — a page that
+  // ignored `?tab=` would always show the overview and the tabs would
+  // be decoration.
+  test("the route opens the tab the link asked for", async () => {
+    const { base } = start();
+    const id = await enqueue(base, ["analyze"]);
+    const html = await (await fetch(`${base}/queue/${id}?tab=activity`, auth)).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
+    expect(html).toContain("Nothing has been captured");
   });
 });

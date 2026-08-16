@@ -236,6 +236,20 @@ ul.activity { list-style: none; margin: 0.3rem 0; padding: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
 ul.activity li { padding: 0.12rem 0; border-bottom: 1px solid #8882;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* One job says four different things. Under plain headings they ran
+   together and a reader scrolled past the one they came for. */
+.tabs { display: flex; flex-wrap: wrap; gap: 0.2rem; margin: 1rem 0 0;
+  border-bottom: 1px solid #8884; }
+.tabs a { text-decoration: none; color: inherit; font-size: 0.92rem;
+  padding: 0.45rem 0.9rem; margin-bottom: -1px; border: 1px solid transparent;
+  border-bottom: none; border-radius: 8px 8px 0 0; }
+.tabs a:hover { background: #8881; }
+.tabs a[aria-current] { font-weight: 700; background: #8881; border-color: #8884; }
+.tabcount { display: inline-block; margin-left: 0.35rem; padding: 0 0.4rem;
+  border-radius: 999px; background: #8883; font-size: 0.75rem; font-weight: 600;
+  color: #666; }
+.tabpanel { padding-top: 0.8rem; }
+.tabpanel > h2:first-child { margin-top: 0.4rem; }
 .pips { display: flex; gap: 3px; margin-top: 0.3rem; }
 .pip { width: 14px; height: 4px; border-radius: 2px; background: #8884; }
 .pip.past { background: #22c55e99; }
@@ -725,14 +739,41 @@ function stepResults(results: JobStepResultView[]): string {
   );
 }
 
+// The page's tabs. The choice lives in the URL, not in script: the page
+// reloads itself every 10 seconds, and a tab held only in memory would
+// snap back to the first one on every reload.
+const JOB_TABS = ["overview", "activity", "steps"] as const;
+export type JobTab = (typeof JOB_TABS)[number];
+
+function jobTab(name: string | undefined): JobTab {
+  return (JOB_TABS as readonly string[]).includes(name ?? "") ? (name as JobTab) : "overview";
+}
+
+function tabBar(job: JobDetailView, current: JobTab): string {
+  const counts: Record<string, number> = {
+    activity: job.activity?.length ?? 0,
+    steps: job.results.length,
+  };
+  const links = JOB_TABS.map((t) => {
+    const label = t[0]!.toUpperCase() + t.slice(1);
+    const n = counts[t] ?? 0;
+    const count = n > 0 ? ` <span class="tabcount">${n}</span>` : "";
+    const mark = t === current ? ` aria-current="page"` : "";
+    return `<a href="/queue/${esc(job.id)}?tab=${t}"${mark}>${label}${count}</a>`;
+  });
+  return `<nav class="tabs">${links.join("")}</nav>`;
+}
+
 // Server-rendered /queue/<id> in the site's layout. Poll-and-refresh
 // like every other page here — no new transport for one panel.
 export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  now = Date.now(),
+  opts: { tab?: string; now?: number } = {},
 ): string {
+  const now = opts.now ?? Date.now();
+  const tab = jobTab(opts.tab);
   const pips = job.steps
     .map((s, i) => {
       const cls = i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo";
@@ -741,11 +782,15 @@ export function renderJobDetailPage(
     .join("");
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1] ?? "–";
 
-  const head =
+  // State and title stay ABOVE the tabs: whichever tab is open, the
+  // reader still needs to know which job this is and how it is doing.
+  const banner =
     `<p class="pagehead">${stateChip(job)}` +
     (job.error ? ` <span class="muted small">${esc(job.error)}</span>` : "") +
     `</p>` +
-    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "") +
+    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");
+
+  const head =
     (job.description ? `<p class="desc specdesc">${esc(job.description)}</p>` : "") +
     labelled([
       ["Project", esc(job.project)],
@@ -778,18 +823,18 @@ export function renderJobDetailPage(
           : `<p class="muted">unknown — no session is linked to this step yet.</p>`);
 
   const activity =
-    `<h2>What it has been doing</h2>` +
-    (job.activity && job.activity.length > 0
+    job.activity && job.activity.length > 0
       ? `<ul class="activity">${job.activity.map((a) => `<li>${a}</li>`).join("")}</ul>`
-      : `<p class="muted">Nothing has been captured from this run yet.</p>`);
+      : `<p class="muted">Nothing has been captured from this run yet.</p>`;
+
+  const panel =
+    tab === "activity" ? activity : tab === "steps" ? stepResults(job.results) : head + live;
 
   const body =
     `<p class="intro"><a href="/queue">← all jobs</a></p>\n` +
-    head +
-    live +
-    activity +
-    `<h2>Steps run</h2>` +
-    stepResults(job.results);
+    banner +
+    tabBar(job, tab) +
+    `<div class="tabpanel">${panel}</div>`;
 
   return pageShell(job.specFolder, entries, "/queue", body, generatedAt, 10);
 }

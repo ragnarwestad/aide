@@ -264,6 +264,7 @@ describe("renderJobDetailPage", () => {
       }),
       "2026-08-16T10:05:00Z",
       NAV,
+      { tab: "steps" },
     );
     expect(html).toContain("analyze");
     expect(html).toContain("review-plan");
@@ -272,7 +273,7 @@ describe("renderJobDetailPage", () => {
   });
 
   test("a job with no finished steps says so rather than showing an empty table", () => {
-    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
     expect(html).toContain("No step has finished yet");
   });
 
@@ -311,13 +312,16 @@ describe("renderJobDetailPage", () => {
       detail({ activity: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")] }),
       "2026-08-16T10:05:00Z",
       NAV,
+      { tab: "activity" },
     );
     expect(html).toContain("&lt;code&gt;");
     expect(html).not.toContain("<code>ls</code>");
   });
 
   test("a job with no stream kept says so, rather than showing a blank panel", () => {
-    const html = renderJobDetailPage(detail({ activity: [] }), "2026-08-16T10:05:00Z", NAV);
+    const html = renderJobDetailPage(detail({ activity: [] }), "2026-08-16T10:05:00Z", NAV, {
+      tab: "activity",
+    });
     expect(html).toContain("Nothing has been captured");
   });
 
@@ -336,5 +340,89 @@ describe("renderJobDetailPage", () => {
       NAV,
     );
     expect(html).not.toContain("Live right now");
+  });
+});
+
+// The four things the page says — what the job is, what it is doing,
+// what it has done — ran together under plain headings, so a reader
+// scrolled past the one they came for. One tab each.
+describe("the job page is split into tabs", () => {
+  const withParts = (extra: Partial<JobDetailView> = {}): JobDetailView =>
+    detail({
+      title: "A running job is a black box",
+      activity: ["Bash ls"],
+      results: [
+        {
+          step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+        },
+      ],
+      ...extra,
+    });
+
+  test("every tab is offered as a link back to this job", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain('href="/queue/job-1234?tab=overview"');
+    expect(html).toContain('href="/queue/job-1234?tab=activity"');
+    expect(html).toContain('href="/queue/job-1234?tab=steps"');
+  });
+
+  test("the open tab is marked, and it is the only one", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "activity" });
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
+  });
+
+  test("without a choice the overview opens, and the other panels stay shut", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain("A running job is a black box");
+    expect(html).not.toContain("Bash ls");
+    expect(html).not.toContain("$0.42");
+  });
+
+  test("the activity tab shows the run's lines and nothing else", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "activity" });
+    expect(html).toContain("Bash ls");
+    expect(html).not.toContain("$0.42");
+  });
+
+  test("the steps tab shows every step that has run", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
+    expect(html).toContain("$0.42");
+    expect(html).not.toContain("Bash ls");
+  });
+
+  test("a tab name nobody offers falls back to the overview instead of a blank page", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "../secrets" });
+    expect(html).toContain("A running job is a black box");
+    expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
+  });
+
+  test("the live panel belongs to the overview — it is about what is happening now", () => {
+    const job = withParts({
+      sessionId: "11111111-2222-4333-8444-555555555555",
+      live: { state: "working", subagents: 7, costUsd: 1.25, enriched: true },
+    });
+    expect(renderJobDetailPage(job, "2026-08-16T10:05:00Z", NAV)).toContain("Live right now");
+    expect(renderJobDetailPage(job, "2026-08-16T10:05:00Z", NAV, { tab: "steps" })).not.toContain(
+      "Live right now",
+    );
+  });
+
+  test("the tab says how much is behind it, so a reader knows before clicking", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toMatch(/>Activity <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Steps <span class="tabcount">1<\/span>/);
+  });
+
+  test("an empty tab is still offered, and says why it is empty", () => {
+    const html = renderJobDetailPage(
+      detail({ activity: [] }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+      { tab: "activity" },
+    );
+    expect(html).toContain('href="/queue/job-1234?tab=activity"');
+    expect(html).toContain("Nothing has been captured");
   });
 });
