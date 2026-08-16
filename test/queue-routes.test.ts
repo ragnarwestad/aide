@@ -22,7 +22,7 @@ const failFetch = (async () => {
 const servers: { stop: () => void }[] = [];
 const dirs: string[] = [];
 
-function start(extra: Partial<ServerOptions> = {}) {
+function start(extra: Partial<ServerOptions> = {}, alsoProjects: string[] = []) {
   const dir = mkdtempSync(join(tmpdir(), "aide-queue-routes-"));
   dirs.push(dir);
   writeFileSync(join(dir, "index.html"), "<p>overview</p>");
@@ -33,6 +33,14 @@ function start(extra: Partial<ServerOptions> = {}) {
   writeFileSync(join(proj, ".aide", "project.yaml"), "name: aide\n");
   mkdirSync(join(proj, "specs", "81-queue-and-runner"), { recursive: true });
   writeFileSync(join(proj, "specs", "81-queue-and-runner", "1-description.md"), "# Queue - Description\n");
+  // More discoverable projects, for the tests about jobs that span repos.
+  for (const name of alsoProjects) {
+    const other = join(root, name);
+    mkdirSync(join(other, ".aide"), { recursive: true });
+    writeFileSync(join(other, ".aide", "project.yaml"), `name: ${name}\n`);
+    mkdirSync(join(other, "specs", "01-first"), { recursive: true });
+    writeFileSync(join(other, "specs", "01-first", "1-description.md"), "# First - Description\n");
+  }
   const server = createServer({
     siteDir: dir,
     port: 0,
@@ -670,5 +678,94 @@ describe("active work is separated from finished work", () => {
     const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain("Active");
     expect(rows).toContain("Recent");
+  });
+});
+
+// Spec 83: a job says up front which other repos it expects to touch, so
+// the run watches, commits and pushes them instead of leaving half the
+// work uncommitted on the machine.
+describe("passenger projects reach the runner", () => {
+  test("every named project becomes an --extra-project-dir", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const job = {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["implement"],
+      budgetUsd: 15,
+      timeoutSec: 2700,
+      permissionMode: { implement: "bypassPermissions" },
+      model: { implement: "opus" },
+      extraProjects: ["aide-dashboard"],
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectRoot: "/home/dev",
+      push: "branch",
+    });
+    expect(argv).toContain("--extra-project-dir");
+    expect(argv[argv.indexOf("--extra-project-dir") + 1]).toBe("/home/dev/aide-dashboard");
+    // The primary is still the project dir, not a passenger.
+    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide");
+  });
+
+  test("a job that names none passes no such flag", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const job = {
+      project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"],
+      budgetUsd: 3, timeoutSec: 1200, permissionMode: {}, model: {}, extraProjects: [],
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+    });
+    expect(argv).not.toContain("--extra-project-dir");
+  });
+
+  test("one ticked checkbox arrives as a list, not a bare string", async () => {
+    const { base } = start(
+      { queueToken: TOKEN, queueProjects: ["aide", "aide-dashboard"] },
+      ["aide-dashboard"],
+    );
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        target: "aide/81-queue-and-runner",
+        steps: "analyze",
+        extraProjects: "aide-dashboard",
+      }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { extraProjects: string[] } };
+    expect(body.job.extraProjects).toEqual(["aide-dashboard"]);
+  });
+});
+
+describe("the form asks which other repos a job will touch", () => {
+  const page = (projects: string[]) =>
+    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      projects,
+    });
+
+  test("one checkbox per project, so a cross-repo job can say so up front", () => {
+    const html = page(["aide", "aide-dashboard"]);
+    expect(html).toContain('name="extraProjects"');
+    expect(html).toContain('value="aide-dashboard"');
+    expect(html).toContain('value="aide"');
+  });
+
+  test("with a single project there is nothing to add, and no field is shown", () => {
+    expect(page(["aide"])).not.toContain('name="extraProjects"');
+  });
+
+  test("none is ticked by default — a job watches only what it says it will", () => {
+    const html = page(["aide", "aide-dashboard"]);
+    const field = html.slice(html.indexOf('name="extraProjects"'));
+    expect(field.slice(0, 200)).not.toContain("checked");
   });
 });

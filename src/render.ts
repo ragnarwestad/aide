@@ -416,6 +416,10 @@ export interface QueuePageOptions {
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
   modelChoices?: { name: string; budgetUsd: number }[];
+  /** Every allowlisted project. A job may name others it expects to
+   *  touch, so the run watches and commits them instead of leaving half
+   *  the work uncommitted on the machine. */
+  projects?: string[];
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;
@@ -520,6 +524,23 @@ function enqueueForm(opts: QueuePageOptions): string {
   // nothing visible reads as broken, however correct it is.
   const first = opts.targets[0];
   const refusal = opts.error ? `<p class="refusal">${esc(opts.error)}</p>` : "";
+  // Only worth asking when there is more than one repo to choose from.
+  // The box for the spec's own project is disabled from script as the
+  // selection changes — it is already watched.
+  const others = opts.projects ?? [];
+  const extraField =
+    others.length > 1
+      ? `<span class="field"><span class="fieldlabel">Also touches</span>` +
+        `<span class="steps" id="extraprojects">` +
+        others
+          .map(
+            (p) =>
+              `<label class="stepbox" data-project="${esc(p)}">` +
+              `<input type="checkbox" name="extraProjects" value="${esc(p)}"> ${esc(p)}</label>`,
+          )
+          .join("") +
+        `</span></span>`
+      : "";
   return (
     `<section class="panel">` +
     `<h2>Queue a job</h2>\n` +
@@ -530,6 +551,7 @@ function enqueueForm(opts: QueuePageOptions): string {
     `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
     `<span class="steps" id="steps">${boxes}</span></span>` +
     modelField +
+    extraField +
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>` +
     `<button type="submit">Queue it</button></form>` +

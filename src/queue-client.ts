@@ -66,6 +66,19 @@ function showSteps(target: QueueTarget | undefined): void {
   }
 }
 
+// The spec's own project is already watched, so offering to add it
+// again is an error waiting to be submitted.
+function showExtraProjects(project: string | undefined): void {
+  for (const label of Array.from(document.querySelectorAll<HTMLLabelElement>("#extraprojects .stepbox"))) {
+    const box = label.querySelector<HTMLInputElement>("input");
+    if (!box) continue;
+    const isOwn = label.dataset.project === project;
+    box.disabled = isOwn;
+    if (isOwn) box.checked = false;
+    label.classList.toggle("isdone", isOwn);
+  }
+}
+
 function showSelection(): void {
   const select = document.getElementById("target") as HTMLSelectElement | null;
   const info = document.getElementById("specinfo");
@@ -74,6 +87,7 @@ function showSelection(): void {
   const match = targets().find((t) => t.project === project && t.specFolder === folder);
   info.innerHTML = match ? summary(match) : "";
   showSteps(match);
+  showExtraProjects(project);
 }
 
 async function swapRows(): Promise<void> {

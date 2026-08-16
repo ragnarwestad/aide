@@ -16,7 +16,7 @@ import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 import { parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
-import { QueueStore, mergeQueueDefaults, type QueueDefaults, type ProjectResolver } from "./queue.ts";
+import { QueueStore, mergeQueueDefaults, type Job, type QueueDefaults, type ProjectResolver } from "./queue.ts";
 import { Runner } from "./runner.ts";
 import {
   navEntries,
@@ -140,6 +140,7 @@ function bodyToObject(text: string, contentType: string | null): unknown {
     }
     if (typeof out.steps === "string") out.steps = [out.steps];
     if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
+    if (typeof out.extraProjects === "string") out.extraProjects = [out.extraProjects];
     // A form posts a checkbox only when it is ticked. Unticked means
     // "run straight through", which must be said explicitly — the
     // schema's default is to gate after every step.
@@ -201,6 +202,34 @@ function serveStatic(siteDir: string, pathname: string): Response {
   if (!existsSync(target) || !statSync(target).isFile()) return new Response("not found", { status: 404 });
   const type = target.endsWith(".html") ? "text/html; charset=utf-8" : "application/octet-stream";
   return new Response(readFileSync(target), { headers: { "content-type": type } });
+}
+
+/** The argv `aide-run-spec` is started with. Extracted so it can be read
+ *  in a test: an unattended run's arguments are the whole contract, and
+ *  a missing `--extra-project-dir` loses half a job's work silently. */
+export function runnerArgv(
+  job: Job,
+  step: string,
+  resultFile: string,
+  o: { runnerBin: string; projectRoot: string; push: string },
+): string[] {
+  const model = job.model[step];
+  return [
+    o.runnerBin,
+    "--project-dir", join(o.projectRoot, job.project),
+    "--command", step,
+    "--spec", job.specFolder,
+    "--budget-usd", String(job.budgetUsd),
+    "--timeout-sec", String(job.timeoutSec),
+    "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
+    "--result-file", resultFile,
+    "--push", o.push,
+    "--pull",
+    ...(model ? ["--model", model] : []),
+    // Every other repo this job said it would touch, by name, resolved
+    // against the same root the primary project comes from.
+    ...(job.extraProjects ?? []).flatMap((p) => ["--extra-project-dir", join(o.projectRoot, p)]),
+  ];
 }
 
 export function createServer(opts: ServerOptions) {
@@ -284,21 +313,12 @@ export function createServer(opts: ServerOptions) {
         today: () => new Date().toISOString().slice(0, 10),
         spawn: (job, step, resultFile) => {
           mkdirSync(dirname(resultFile), { recursive: true });
-          const model = job.model[step];
           const proc = Bun.spawn({
-            cmd: [
-              opts.queueRunnerBin!,
-              "--project-dir", join(opts.queueProjectRoot ?? "", job.project),
-              "--command", step,
-              "--spec", job.specFolder,
-              "--budget-usd", String(job.budgetUsd),
-              "--timeout-sec", String(job.timeoutSec),
-              "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
-              "--result-file", resultFile,
-              "--push", opts.queuePush ?? "branch",
-              "--pull",
-              ...(model ? ["--model", model] : []),
-            ],
+            cmd: runnerArgv(job, step, resultFile, {
+              runnerBin: opts.queueRunnerBin!,
+              projectRoot: opts.queueProjectRoot ?? "",
+              push: opts.queuePush ?? "branch",
+            }),
             detached: true,
             // stdout is ignored (the result FILE is the contract), but
             // stderr goes to a per-job log: when the runner died
@@ -465,6 +485,7 @@ export function createServer(opts: ServerOptions) {
           budgetUsd: c.budgetUsd,
         })),
         error: url.searchParams.get("error") ?? undefined,
+        projects: [...new Set(targets().map((t) => t.project))].sort(),
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.

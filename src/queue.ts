@@ -61,6 +61,12 @@ export interface Job {
   /** The model picked for this whole job, when one was picked. Absent
    *  means the per-step configuration decided. */
   modelChoice?: string;
+  /** Other allowlisted projects this job is expected to touch. They are
+   *  watched, branched, committed and pushed exactly like the primary —
+   *  spec 81's own implement step wrote to a third repository the run
+   *  knew nothing about, and that half sat uncommitted on the machine
+   *  while the result reported success. */
+  extraProjects: string[];
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -168,6 +174,25 @@ export function parseJobRequest(
     }
   }
 
+  // Passenger projects: NAMES, resolved against the same allowlist as
+  // the primary. A request never carries a path.
+  const extraProjects: string[] = [];
+  if (r.extraProjects !== undefined && r.extraProjects !== null) {
+    if (!Array.isArray(r.extraProjects)) return { ok: false, error: "extraProjects must be a list" };
+    if (r.extraProjects.length > 4) return { ok: false, error: "extraProjects: at most 4" };
+    for (const p of r.extraProjects) {
+      if (typeof p !== "string" || !NAME_RE.test(p)) {
+        return { ok: false, error: `invalid entry in extraProjects: ${String(p)}` };
+      }
+      if (p === r.project) {
+        return { ok: false, error: `extraProjects repeats the job's own project: ${p}` };
+      }
+      if (extraProjects.includes(p)) return { ok: false, error: `extraProjects repeats ${p}` };
+      if (!opts.resolve(p)) return { ok: false, error: `unknown or not-allowed project in extraProjects: ${p}` };
+      extraProjects.push(p);
+    }
+  }
+
   // A model may be picked for the whole job — that is how the heaviest
   // model is reserved for the heaviest work. The NAME comes from the
   // request; everything it is granted comes from the config.
@@ -215,6 +240,7 @@ export function parseJobRequest(
         ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
         : perStep(steps, defaults.model),
       modelChoice,
+      extraProjects,
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,
@@ -239,6 +265,7 @@ function parseStoredJob(raw: unknown): Job | null {
     ...(r as unknown as Job),
     steps: r.steps as WorkflowStep[],
     gateAfter: Array.isArray(r.gateAfter) ? (r.gateAfter as WorkflowStep[]) : [],
+    extraProjects: Array.isArray(r.extraProjects) ? (r.extraProjects as string[]) : [],
     results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
     stepIndex: typeof r.stepIndex === "number" ? r.stepIndex : 0,

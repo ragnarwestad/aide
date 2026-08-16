@@ -3,7 +3,7 @@
 // unknown fields are ignored; per-job overrides may only tighten the
 // configured caps, never loosen them; the mirror survives a restart.
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, mergeQueueDefaults, parseJobRequest, type QueueDefaults } from "../src/queue.ts";
@@ -378,4 +378,77 @@ describe("the same work is not queued twice", () => {
       expect(store.enqueue(REQ).ok).toBe(true);
     });
   }
+});
+
+// Spec 83: a job's work often spans more than the project and its specs
+// repo. Spec 81's own implement step wrote to a third repository the run
+// knew nothing about, so half the work sat uncommitted on the machine
+// while the result reported success. A job may now name the other
+// projects it expects to touch — by NAME, resolved against the same
+// allowlist as the primary, never as a path.
+describe("passenger projects", () => {
+  test("an allowlisted extra project is carried on the job", () => {
+    const r = parseJobRequest({ ...REQ, extraProjects: ["aide-dashboard"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.extraProjects).toEqual(["aide-dashboard"]);
+  });
+
+  test("no extra projects named leaves an empty list, not undefined", () => {
+    const r = parseJobRequest(REQ, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.extraProjects).toEqual([]);
+  });
+
+  test("a project outside the allowlist is refused", () => {
+    const r = parseJobRequest({ ...REQ, extraProjects: ["claude-usage"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("extraProjects");
+    expect(r.error).toContain("claude-usage");
+  });
+
+  test("naming the primary project again is refused — it is already watched", () => {
+    const r = parseJobRequest({ ...REQ, extraProjects: ["aide"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+  });
+
+  test("a repeated entry is refused", () => {
+    const r = parseJobRequest(
+      { ...REQ, extraProjects: ["aide-dashboard", "aide-dashboard"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  test("more than four is refused", () => {
+    const many = ["a", "b", "c", "d", "e"];
+    const r = parseJobRequest({ ...REQ, extraProjects: many }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+  });
+
+  test("a non-list is refused", () => {
+    const r = parseJobRequest({ ...REQ, extraProjects: "aide-dashboard" }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+  });
+
+  test("it survives a restart", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue({ ...REQ, extraProjects: ["aide-dashboard"] });
+    if (!r.ok) throw new Error(r.error);
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get(r.job.id)?.extraProjects).toEqual(["aide-dashboard"]);
+  });
+
+  test("a job mirrored before this change reloads with an empty list", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    for (const job of raw) delete job.extraProjects;
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get(r.job.id)?.extraProjects).toEqual([]);
+  });
 });
