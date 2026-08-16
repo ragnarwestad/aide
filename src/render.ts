@@ -196,6 +196,8 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
 .enqueue .steps { display: flex; gap: 0.7rem; flex-wrap: wrap; padding-bottom: 0.35rem; }
 .enqueue .stepbox { font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.3rem; }
 .enqueue .gate { color: #888; padding-bottom: 0.35rem; }
+.enqueue .stepbox.isdone { color: #888; }
+.enqueue .tick { color: #22c55e; font-weight: 700; }
 .enqueue button { font: inherit; font-weight: 600; padding: 0.4rem 0.9rem;
   border-radius: 6px; border: 1px solid #8886; background: #8882; color: inherit;
   cursor: pointer; }
@@ -384,6 +386,8 @@ export interface QueueTarget {
   title?: string;
   phase?: string;
   percent?: number;
+  /** Steps this spec has already had. Marked, never forbidden. */
+  done?: string[];
 }
 
 export interface QueuePageOptions {
@@ -446,6 +450,23 @@ function actionForm(r: QueueRowView, token?: string): string {
 
 const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
+// A step the spec has already had is marked done and left unticked;
+// the first one it has NOT had is ticked, because that is what you
+// almost always came to run. Nothing is disabled: re-analysing after
+// the code moved on is a legitimate thing to want.
+export function stepBoxes(target: QueueTarget | undefined): string {
+  const done = new Set(target?.done ?? []);
+  const next = QUEUE_STEPS.find((s) => !done.has(s));
+  return QUEUE_STEPS.map((s) => {
+    const isDone = done.has(s);
+    return (
+      `<label class="stepbox${isDone ? " isdone" : ""}" data-step="${esc(s)}">` +
+      `<input type="checkbox" name="steps" value="${esc(s)}"${s === next ? " checked" : ""}> ` +
+      `${esc(s)}${isDone ? ' <span class="tick" title="already done">✓</span>' : ""}</label>`
+    );
+  }).join("");
+}
+
 function enqueueForm(opts: QueuePageOptions): string {
   if (opts.targets.length === 0) {
     return `<p class="muted">No project on this machine has both a manifest and the queue's permission.</p>`;
@@ -458,11 +479,7 @@ function enqueueForm(opts: QueuePageOptions): string {
       return `<option value="${esc(value)}">${esc(t.specFolder)}${done}</option>`;
     })
     .join("");
-  const boxes = QUEUE_STEPS.map(
-    (s) =>
-      `<label class="stepbox"><input type="checkbox" name="steps" value="${esc(s)}"` +
-      `${s === "analyze" ? " checked" : ""}> ${esc(s)}</label>`,
-  ).join("");
+  const boxes = stepBoxes(opts.targets[0]);
   // The gate choice is SHOWN and off by default. Hiding it made the
   // button quietly create a job that stops for approval after every
   // step — the opposite of what pressing it looks like it does.
@@ -476,7 +493,7 @@ function enqueueForm(opts: QueuePageOptions): string {
     `<label class="field"><span class="fieldlabel">Spec</span>` +
     `<select name="target" id="target">${options}</select></label>` +
     `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
-    `<span class="steps">${boxes}</span></span>` +
+    `<span class="steps" id="steps">${boxes}</span></span>` +
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>` +
     `<button type="submit">Queue it</button></form>` +

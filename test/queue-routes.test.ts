@@ -337,3 +337,29 @@ describe("page code placement", () => {
     expect(html.indexOf("</head>")).toBeLessThan(script);
   });
 });
+
+describe("the step boxes follow the spec", () => {
+  test("a step the spec has already had is marked done and left unticked", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    // analyze and review-plan are done; implement is what you came for.
+    expect(html).toMatch(/data-step="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
+    expect(html).toMatch(/data-step="implement"[^]*?value="implement" checked/);
+    expect(html).toContain('class="stepbox isdone" data-step="analyze"');
+    expect(html).toMatch(/"done":\["analyze","review-plan"\]/);
+  });
+
+  test("a fresh spec offers analyze first", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
+      "# Analysis\n\n[filled in by /aide-analyze]\n",
+    );
+    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toMatch(/value="analyze" checked/);
+    expect(html).not.toContain('class="stepbox isdone"');
+  });
+});

@@ -14,7 +14,10 @@ interface QueueTarget {
   title?: string;
   phase?: string;
   percent?: number;
+  done?: string[];
 }
+
+const STEP_ORDER = ["analyze", "review-plan", "implement", "archive"];
 
 const REFRESH_MS = 5000;
 
@@ -40,6 +43,29 @@ function summary(t: QueueTarget): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
+// The step boxes belong to the SPEC, not to the page: switching to a
+// spec that has already been analysed must not leave "analyze" ticked.
+function showSteps(target: QueueTarget | undefined): void {
+  const done = new Set(target?.done ?? []);
+  const next = STEP_ORDER.find((s) => !done.has(s));
+  for (const label of Array.from(document.querySelectorAll<HTMLLabelElement>("#steps .stepbox"))) {
+    const step = label.dataset.step;
+    if (!step) continue;
+    const box = label.querySelector<HTMLInputElement>("input");
+    const isDone = done.has(step);
+    label.classList.toggle("isdone", isDone);
+    label.querySelector(".tick")?.remove();
+    if (isDone) {
+      const tick = document.createElement("span");
+      tick.className = "tick";
+      tick.title = "already done";
+      tick.textContent = "✓";
+      label.append(" ", tick);
+    }
+    if (box) box.checked = step === next;
+  }
+}
+
 function showSelection(): void {
   const select = document.getElementById("target") as HTMLSelectElement | null;
   const info = document.getElementById("specinfo");
@@ -47,6 +73,7 @@ function showSelection(): void {
   const [project, folder] = select.value.split("/");
   const match = targets().find((t) => t.project === project && t.specFolder === folder);
   info.innerHTML = match ? summary(match) : "";
+  showSteps(match);
 }
 
 async function swapRows(): Promise<void> {

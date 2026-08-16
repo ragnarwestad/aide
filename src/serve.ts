@@ -162,6 +162,30 @@ function queueClientScript(): string | undefined {
   return queueScript || undefined;
 }
 
+// Which workflow steps a spec has already had. Read off the files
+// themselves, so the answer cannot drift from what is on disk:
+//   * analyze — 2-analysis.md is no longer the placeholder
+//   * review-plan — 3-solution.md carries a "Plan review" section
+//   * implement — the status file reports 100%
+// A finished step is MARKED, not forbidden: re-analysing after the code
+// has moved on is a legitimate thing to want.
+function stepsAlreadyDone(specDir: string, percent: number | undefined): string[] {
+  const done: string[] = [];
+  const read = (name: string): string => {
+    try {
+      return readFileSync(join(specDir, name), "utf-8");
+    } catch {
+      return "";
+    }
+  };
+  const analysis = read("2-analysis.md");
+  if (analysis.length > 400 && !analysis.includes("[filled in by")) done.push("analyze");
+  const solution = read("3-solution.md");
+  if (/^##\s+Plan review/m.test(solution)) done.push("review-plan");
+  if (percent === 100) done.push("implement");
+  return done;
+}
+
 function serveStatic(siteDir: string, pathname: string): Response {
   const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
   const root = resolve(siteDir);
@@ -207,6 +231,7 @@ export function createServer(opts: ServerOptions) {
             title: s.title ?? undefined,
             phase: status?.phase ?? undefined,
             percent: status?.progress?.percent,
+            done: stepsAlreadyDone(s.dir, status?.progress?.percent),
           });
         }
       }
