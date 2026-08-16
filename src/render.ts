@@ -1,7 +1,9 @@
-// Render data -> ONE self-contained HTML page: inline CSS, no JS, no
-// external references. Every populated manifest key is shown; a
-// project whose manifest failed to parse gets an error card while the
-// rest render fully.
+// Render data -> a small static site: index.html (overview) + one
+// page per project, every page self-contained (inline CSS, no JS, no
+// external references) and carrying the shared left-column nav.
+// Every populated manifest key is shown on the project page; a
+// project whose manifest failed to parse gets an error page and an
+// error row on the overview.
 
 import type { SpecRef } from "./discover.ts";
 import type { StatusInfo } from "./parse-status.ts";
@@ -15,6 +17,11 @@ export interface ProjectView {
   name: string;
   manifest: ManifestResult;
   specs: SpecView[];
+}
+
+export interface Page {
+  path: string;
+  html: string;
 }
 
 function esc(s: string): string {
@@ -96,33 +103,60 @@ function specTable(specs: SpecView[]): string {
   );
 }
 
-function projectCard(p: ProjectView): string {
-  if (!p.manifest.ok) {
-    return (
-      `<section class="card error"><h2>${esc(p.name)}</h2>` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p></section>`
-    );
+// Slug assignment: lowercase, non-alphanumeric runs -> one hyphen,
+// trimmed. `index` is pre-reserved (the overview owns index.html);
+// a taken or empty slug gets -2, -3, ... — never a silent overwrite.
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
+  const used = new Set(["index"]);
+  const slugs = new Map<ProjectView, string>();
+  for (const p of [...projects].sort((a, b) => a.name.localeCompare(b.name))) {
+    const base = slugify(p.name) || "project";
+    let slug = base;
+    for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
+    used.add(slug);
+    slugs.set(p, slug);
   }
-  return (
-    `<section class="card"><h2>${esc(p.name)}</h2>` +
-    manifestBlock(p.manifest.data) +
-    `<h3>Specs</h3>` +
-    specTable(p.specs) +
-    `</section>`
-  );
+  return slugs;
+}
+
+interface NavEntry {
+  label: string;
+  path: string;
+}
+
+function nav(entries: NavEntry[], currentPath: string): string {
+  const lis = entries.map((e) => {
+    const cls = e.path === currentPath ? ' class="current"' : "";
+    return `<li><a${cls} href="${esc(e.path)}">${esc(e.label)}</a></li>`;
+  });
+  return `<nav><ul>${lis.join("")}</ul></nav>`;
 }
 
 const CSS = `
 :root { color-scheme: light dark; }
-body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0 auto;
-       max-width: 60rem; padding: 1rem; }
-header { display: flex; justify-content: space-between; align-items: baseline;
-         flex-wrap: wrap; gap: 0.5rem; }
+body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; }
+.layout { display: flex; min-height: 100vh; }
+.layout > nav { flex: 0 0 14rem; padding: 1rem; border-right: 1px solid #8884; }
+.layout > nav ul { list-style: none; margin: 0; padding: 0; }
+.layout > nav li { margin: 0.3rem 0; }
+.layout > nav a { text-decoration: none; }
+.layout > nav a.current { font-weight: 700; }
+main { flex: 1; padding: 1rem 1.5rem; max-width: 60rem; }
+.pagehead { display: flex; justify-content: space-between; align-items: baseline;
+            flex-wrap: wrap; gap: 0.5rem; }
 .stamp { color: #777; font-size: 0.85rem; }
-.card { border: 1px solid #8884; border-radius: 8px; padding: 1rem;
-        margin: 1rem 0; }
-.card.error { border-color: #c0392b; }
+.proj-row { border: 1px solid #8884; border-radius: 8px; padding: 0.8rem 1rem;
+            margin: 0.8rem 0; }
+.proj-row.error { border-color: #c0392b; }
 .error-text { color: #c0392b; }
+.counts { color: #777; margin-left: 0.6rem; font-size: 0.9rem; }
 .desc { margin-top: 0; }
 .row { margin: 0.3rem 0; }
 .row ul { margin: 0.1rem 0 0.4rem; padding-left: 1.4rem; }
@@ -132,22 +166,89 @@ table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; }
 thead th { border-bottom: 1px solid #8886; }
 tr.archived td { color: #999; }
+@media (max-width: 40rem) {
+  .layout { flex-direction: column; }
+  .layout > nav { flex: none; border-right: none; border-bottom: 1px solid #8884; }
+  .layout > nav li { display: inline-block; margin-right: 0.8rem; }
+}
 `;
 
-export function renderPage(projects: ProjectView[], generatedAt: string): string {
-  const cards = projects.map(projectCard).join("\n");
+function pageShell(
+  title: string,
+  entries: NavEntry[],
+  currentPath: string,
+  body: string,
+  generatedAt: string,
+): string {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>aide dashboard</title>
+<title>${esc(title)}</title>
 <style>${CSS}</style>
 </head>
 <body>
-<header><h1>aide dashboard</h1><span class="stamp">Generated ${esc(generatedAt)}</span></header>
-${cards}
+<div class="layout">
+${nav(entries, currentPath)}
+<main>
+<div class="pagehead"><h1>${esc(title)}</h1><span class="stamp">Generated ${esc(generatedAt)}</span></div>
+${body}
+</main>
+</div>
 </body>
 </html>
 `;
+}
+
+function overviewRow(p: ProjectView, path: string): string {
+  if (!p.manifest.ok) {
+    return (
+      `<div class="proj-row error"><a href="${esc(path)}">${esc(p.name)}</a>` +
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p></div>`
+    );
+  }
+  const active = p.specs.filter((s) => !s.archived).length;
+  const archived = p.specs.length - active;
+  const desc = p.manifest.data.description
+    ? `<p class="desc">${esc(p.manifest.data.description)}</p>`
+    : "";
+  return (
+    `<div class="proj-row"><a href="${esc(path)}">${esc(p.name)}</a>` +
+    `<span class="counts">${active} active · ${archived} archived</span>` +
+    desc +
+    `</div>`
+  );
+}
+
+function projectBody(p: ProjectView): string {
+  if (!p.manifest.ok) {
+    return `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>`;
+  }
+  return manifestBlock(p.manifest.data) + `<h3>Specs</h3>` + specTable(p.specs);
+}
+
+export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
+  const slugs = assignSlugs(projects);
+  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
+  const entries: NavEntry[] = [
+    { label: "Overview", path: "index.html" },
+    ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
+  ];
+
+  const overview = ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
+  const pages: Page[] = [
+    {
+      path: "index.html",
+      html: pageShell("aide dashboard", entries, "index.html", overview, generatedAt),
+    },
+  ];
+  for (const p of ordered) {
+    const path = `${slugs.get(p)!}.html`;
+    pages.push({
+      path,
+      html: pageShell(p.name, entries, path, projectBody(p), generatedAt),
+    });
+  }
+  return pages;
 }
