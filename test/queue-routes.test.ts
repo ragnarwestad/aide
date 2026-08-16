@@ -320,3 +320,20 @@ describe("the page answers the selection", () => {
     expect(rows).toContain("queued");
   });
 });
+
+describe("page code placement", () => {
+  test("the script comes AFTER the elements it wires up", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const select = html.indexOf('id="target"');
+    const rows = html.indexOf('id="jobrows"');
+    const script = html.indexOf("<script>");
+    expect(select).toBeGreaterThan(-1);
+    expect(script).toBeGreaterThan(-1);
+    // An inline script in <head> runs before the DOM exists, so every
+    // listener attaches to nothing — and the failure is silent.
+    expect(script).toBeGreaterThan(select);
+    expect(script).toBeGreaterThan(rows);
+    expect(html.indexOf("</head>")).toBeLessThan(script);
+  });
+});

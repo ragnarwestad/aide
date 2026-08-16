@@ -249,6 +249,11 @@ function pageShell(
   // run it.
   const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
   const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
+  // At the END of the body, never in <head>: an inline script in the
+  // head runs before the elements exist, so every listener it tries to
+  // attach silently attaches to nothing. (Which is exactly what
+  // happened: the table still refreshed on its timer, so it looked
+  // like the code was running.)
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   return `<!doctype html>
 <html lang="en">
@@ -256,7 +261,7 @@ function pageShell(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
 <title>${esc(title)}</title>
-<style>${CSS}</style>${script}
+<style>${CSS}</style>
 </head>
 <body>
 <div class="layout">
@@ -265,7 +270,7 @@ ${nav(entries, currentPath)}
 <div class="pagehead"><h1>${esc(title)}</h1><span class="stamp">Generated ${esc(generatedAt)}</span></div>
 ${body}
 </main>
-</div>
+</div>${script}
 </body>
 </html>
 `;
@@ -449,7 +454,8 @@ function enqueueForm(opts: QueuePageOptions): string {
   const options = opts.targets
     .map((t) => {
       const value = `${t.project}/${t.specFolder}`;
-      return `<option value="${esc(value)}">${esc(value)}</option>`;
+      const done = t.percent === 100 ? " ✓" : typeof t.percent === "number" ? ` — ${t.percent}%` : "";
+      return `<option value="${esc(value)}">${esc(t.specFolder)}${done}</option>`;
     })
     .join("");
   const boxes = QUEUE_STEPS.map(
