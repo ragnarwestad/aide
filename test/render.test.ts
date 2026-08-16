@@ -82,6 +82,12 @@ describe("slugs and filenames (criterion 1)", () => {
 });
 
 describe("nav (criterion 2)", () => {
+  test("a Projects label separates the overview entry from the project links", () => {
+    for (const page of site) {
+      expect(page.html).toContain('<li class="nav-label">Projects</li>');
+    }
+  });
+
   test("every page links to the overview and every project page", () => {
     for (const page of site) {
       expect(page.html).toContain('href="index.html"');

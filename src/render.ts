@@ -132,10 +132,16 @@ interface NavEntry {
 }
 
 function nav(entries: NavEntry[], currentPath: string): string {
-  const lis = entries.map((e) => {
+  const link = (e: NavEntry) => {
     const cls = e.path === currentPath ? ' class="current"' : "";
     return `<li><a${cls} href="${esc(e.path)}">${esc(e.label)}</a></li>`;
-  });
+  };
+  const [overview, ...projects] = entries;
+  const lis = [
+    link(overview),
+    `<li class="nav-label">Projects</li>`,
+    ...projects.map(link),
+  ];
   return `<nav><ul>${lis.join("")}</ul></nav>`;
 }
 
@@ -148,6 +154,9 @@ body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; }
 .layout > nav li { margin: 0.3rem 0; }
 .layout > nav a { text-decoration: none; }
 .layout > nav a.current { font-weight: 700; }
+.layout > nav .nav-label { margin-top: 0.9rem; font-size: 0.8rem;
+  font-weight: 600; color: #777; text-transform: uppercase;
+  letter-spacing: 0.05em; }
 main { flex: 1; padding: 1rem 1.5rem; max-width: 60rem; }
 .pagehead { display: flex; justify-content: space-between; align-items: baseline;
             flex-wrap: wrap; gap: 0.5rem; }
