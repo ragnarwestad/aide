@@ -17,65 +17,65 @@
 
 ## Sporingsinfo
 
-| Felt | Verdi |
-|------|-------|
-| **Oppgave** | `70-flytte-aide-til-projects-path/` |
-| **Sist oppdatert** | 2026-02-20 |
+| Felt               | Verdi                               |
+|--------------------|-------------------------------------|
+| **Oppgave**        | `70-flytte-aide-til-projects-path/` |
+| **Sist oppdatert** | 2026-02-20                          |
 
 ---
 
 ## Fase 1: Forbered infrastruktur
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| `git init` i ~/develop/nav/ | ⬜ | Workaround for oppstartsheng |
-| Opprett .gitignore | ⬜ | Ignorer alt unntatt Claude-filer |
-| Kjor install.sh mot nav/ | ⬜ | Eksisterende script |
+| Oppgave                     | Status | Notater                          |
+|-----------------------------|--------|----------------------------------|
+| `git init` i ~/develop/nav/ | ⬜     | Workaround for oppstartsheng     |
+| Opprett .gitignore          | ⬜     | Ignorer alt unntatt Claude-filer |
+| Kjor install.sh mot nav/    | ⬜     | Eksisterende script              |
 
 ---
 
 ## Fase 2: Tilpass konfigurasjon
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Oppdater CLAUDE.md sti-referanser | ⬜ | Legg til repo-prefiks |
-| Oppdater system-paths.md | ⬜ | Legg til repo-prefiks i tabeller |
-| Verifiser settings.json | ⬜ | Allerede `~/develop/nav/**` |
+| Oppgave                           | Status | Notater                          |
+|-----------------------------------|--------|----------------------------------|
+| Oppdater CLAUDE.md sti-referanser | ⬜     | Legg til repo-prefiks            |
+| Oppdater system-paths.md          | ⬜     | Legg til repo-prefiks i tabeller |
+| Verifiser settings.json           | ⬜     | Allerede `~/develop/nav/**`      |
 
 ---
 
 ## Fase 3: Verifiser
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Start Claude fra nav-niva | ⬜ | Warp terminal |
-| Verifiser skills lastes | ⬜ | |
-| Verifiser rules lastes | ⬜ | |
-| Test git -C operasjoner | ⬜ | |
-| Test /aide-* kommandoer | ⬜ | |
-| Test tverrfaglig oppgave | ⬜ | |
+| Oppgave                   | Status | Notater       |
+|---------------------------|--------|---------------|
+| Start Claude fra nav-niva | ⬜     | Warp terminal |
+| Verifiser skills lastes   | ⬜     |               |
+| Verifiser rules lastes    | ⬜     |               |
+| Test git -C operasjoner   | ⬜     |               |
+| Test /aide-* kommandoer   | ⬜     |               |
+| Test tverrfaglig oppgave  | ⬜     |               |
 
 ---
 
 ## Fase 4: Rydd opp
 
-| Oppgave | Status | Notater |
-|---------|--------|---------|
-| Fjern .claude/ fra melosys-web | ⬜ | Valgfritt |
-| Fjern .claude/ fra melosys-api | ⬜ | Valgfritt |
-| Oppdater INSTALL.md | ⬜ | Dokumenter foreldre-mappe oppsett |
+| Oppgave                        | Status | Notater                           |
+|--------------------------------|--------|-----------------------------------|
+| Fjern .claude/ fra melosys-web | ⬜     | Valgfritt                         |
+| Fjern .claude/ fra melosys-api | ⬜     | Valgfritt                         |
+| Oppdater INSTALL.md            | ⬜     | Dokumenter foreldre-mappe oppsett |
 
 ---
 
 ## Notasjon
 
-| Symbol | Betydning |
-|--------|-----------|
-| ⬜ | Ikke startet |
-| 🔄 | Under arbeid |
-| ✅ | Fullfort |
-| ❌ | Blokkert |
-| ⚠️ | Venter |
+| Symbol | Betydning    |
+|--------|--------------|
+| ⬜     | Ikke startet |
+| 🔄     | Under arbeid |
+| ✅     | Fullfort     |
+| ❌     | Blokkert     |
+| ⚠️     | Venter       |
 
 ---
 

@@ -31,13 +31,13 @@
 
 ## Phase 2: GREEN
 
-| Task                                         | Status | Notes |
-|----------------------------------------------|--------|-------|
-| SKILL.md written (lenses, scaling, handoffs) | ✅     |       |
-| Docs wired (workflows, skills list, template)| ✅     |       |
-| uninstall.sh SKILLS list                     | ✅     |       |
-| ROADMAP stage 0 checked off                  | ✅     |       |
-| AGENTS.md regenerated + reinstall            | ✅     |       |
+| Task                                          | Status | Notes |
+|-----------------------------------------------|--------|-------|
+| SKILL.md written (lenses, scaling, handoffs)  | ✅     |       |
+| Docs wired (workflows, skills list, template) | ✅     |       |
+| uninstall.sh SKILLS list                      | ✅     |       |
+| ROADMAP stage 0 checked off                   | ✅     |       |
+| AGENTS.md regenerated + reinstall             | ✅     |       |
 
 ---
 
