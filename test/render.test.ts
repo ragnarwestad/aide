@@ -102,6 +102,10 @@ describe("nav (criterion 2)", () => {
 describe("overview (criterion 3)", () => {
   const index = byPath.get("index.html")!;
 
+  test("a Projects heading above the project rows", () => {
+    expect(index).toContain("<h2>Projects</h2>");
+  });
+
   test("linked name, description and normative counts per project", () => {
     expect(index).toContain('href="goodproj.html"');
     expect(index).toContain("A healthy project");

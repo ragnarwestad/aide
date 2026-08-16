@@ -236,7 +236,9 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 
-  const overview = ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
+  const overview =
+    `<h2>Projects</h2>\n` +
+    ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
   const pages: Page[] = [
     {
       path: "index.html",
