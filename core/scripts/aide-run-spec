@@ -214,10 +214,16 @@ if [ "$dry_run" = "yes" ]; then
   exit 0
 fi
 
+# EVERY root goes on the branch, not just the project. An `analyze`
+# step changes only the specs repo, and branching just the project left
+# that work committed on main and pushed there — the one thing `push
+# branch` exists to prevent. Measured 2026-08-16 on spec 84.
 branch="aide/$spec_folder"
-git -C "$project_root" switch -q "$branch" 2>/dev/null \
-  || git -C "$project_root" switch -q -c "$branch" 2>/dev/null \
-  || refuse "cannot switch to $branch in $project_root"
+for root in "${roots[@]}"; do
+  git -C "$root" switch -q "$branch" 2>/dev/null \
+    || git -C "$root" switch -q -c "$branch" 2>/dev/null \
+    || refuse "cannot switch to $branch in $root"
+done
 
 # Parallel indexed arrays, not an associative one: macOS ships bash 3.2,
 # where `declare -A` does not exist.
@@ -309,9 +315,11 @@ suffix=""
 [ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
 
 repos_json="[]"
+changed_per_root=()   # parallel to roots — bash 3.2 has no associative arrays
 i=0
 for root in "${roots[@]}"; do
   changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+  changed_per_root+=("$changed")
   if [ "$changed" -gt 0 ]; then
     git -C "$root" add -A >/dev/null 2>&1
     git -C "$root" commit -q -m "Run /aide-$command_name for $spec_folder (headless)$suffix" >/dev/null 2>&1 || true
@@ -346,26 +354,34 @@ note_push_error() {
   [ -z "$push_error" ] && push_error="$1" || push_error="$push_error; $1"
 }
 
+branch_urls_json="[]"
 if [ "$push_mode" != "none" ]; then
-  if git -C "$project_root" remote get-url origin >/dev/null 2>&1; then
-    if err="$(git -C "$project_root" push -q -u origin "$branch" 2>&1)"; then
-      web="$(github_web_url "$(git -C "$project_root" remote get-url origin 2>/dev/null)")"
-      [ -n "$web" ] && branch_url="$web/compare/$(default_branch "$project_root")...$branch"
-    else
-      note_push_error "cannot push $branch: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
-    fi
-  else
-    note_push_error "no origin remote in $project_root"
-  fi
-
-  # The specs repo too. An `analyze` step changes nothing in the project
-  # and everything here, so pushing only the project would leave the
-  # work stranded on the machine that wrote it.
+  # Only a repo that CHANGED is pushed. An analyze step touches nothing
+  # in the project, and publishing an empty branch there produced a
+  # compare page with no diff on it — which is what a reader clicking
+  # the link actually got.
+  i=0
   for root in "${roots[@]}"; do
-    [ "$root" = "$project_root" ] && continue
-    if git -C "$root" remote get-url origin >/dev/null 2>&1; then
-      err="$(git -C "$root" push -q origin HEAD 2>&1)" \
-        || note_push_error "cannot push $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
+    changed="${changed_per_root[$i]:-0}"
+    i=$(( i + 1 ))
+    [ "$changed" -gt 0 ] || continue
+    if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
+      note_push_error "no origin remote in $root"
+      continue
+    fi
+    if err="$(git -C "$root" push -q -u origin "$branch" 2>&1)"; then
+      web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
+      [ -n "$web" ] || continue
+      url="$web/compare/$(default_branch "$root")...$branch"
+      branch_urls_json="$(jq -c --arg root "$root" --arg url "$url" \
+        '. + [{root:$root, url:$url}]' <<<"$branch_urls_json")"
+      # One link for a reader who wants one: the project's when the
+      # project changed, otherwise the repo that did.
+      if [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; then
+        branch_url="$url"
+      fi
+    else
+      note_push_error "cannot push $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
     fi
   done
 fi
@@ -399,13 +415,15 @@ line="$(jq -cn \
   --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
   --argjson durationSec "$duration" --argjson repos "$repos_json" \
   --arg error "$error_msg" --arg branch "$branch" --arg push "$push_mode" \
-  --arg branchUrl "$branch_url" --arg prUrl "$pr_url" \
+  --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
+  --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, costUsd:$costUsd,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
     push:$push,
     branchUrl:(if $branchUrl == "" then null else $branchUrl end),
+    branchUrls:$branchUrls,
     prUrl:(if $prUrl == "" then null else $prUrl end),
     prError:(if $prError == "" then null else $prError end),
     pushError:(if $pushError == "" then null else $pushError end),
@@ -417,7 +435,9 @@ line="$(jq -cn \
 # Leave the project on its default branch: the next job must not
 # inherit this one's branch. The work stays on the spec branch, which
 # is what a reviewer looks at.
-git -C "$project_root" switch -q "$(default_branch "$project_root")" 2>/dev/null || true
+for root in "${roots[@]}"; do
+  git -C "$root" switch -q "$(default_branch "$root")" 2>/dev/null || true
+done
 
 printf '%s\n' "$line" > "$result_file.tmp" && mv "$result_file.tmp" "$result_file"
 printf '%s\n' "$line"

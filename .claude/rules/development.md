@@ -47,6 +47,14 @@ something invokes them: `aide-emit-run` (needs `AIDE_RUN_URL`; it is both a
 calls) and `aide-run-spec` (one headless workflow step — installing aide
 gives nobody a queue). Both are documented in the README.
 
+**`aide-run-spec` branches EVERY repo it touches, not just the project.**
+An `analyze` step changes only the specs repo, so branching the project
+alone left the analysis committed on `main` and pushed there — the one
+thing `push branch` exists to prevent. A repo with no changes is not
+pushed at all, and the compare link is built from the repos that
+actually changed (`branchUrls` in the result; `branchUrl` keeps the
+single most interesting one).
+
 **`aide-run-spec` runs from a private copy of itself, and that is
 load-bearing:** an `implement` step reinstalls aide, which copies the script
 over itself while bash is still reading it by byte offset. The copy's marker

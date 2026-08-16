@@ -356,8 +356,12 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
     # The work is ON the branch; the checkout is handed back on main so
     # the next job starts clean.
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert git(workspace["specs"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert "analyze" in git(workspace["project"], "log", "-1", "--pretty=%s", branch)
-    assert "analyze" in git(workspace["specs"], "log", "-1", "--pretty=%s")
+    # The specs repo is branched too, and handed back on main — the
+    # analysis lives on the branch, not on main.
+    assert "analyze" in git(workspace["specs"], "log", "-1", "--pretty=%s", branch)
+    assert "analyze" not in git(workspace["specs"], "log", "-1", "--pretty=%s", "main")
     # Both roots clean afterwards: an uncommitted leftover would block
     # every later run through the dirty-tree refusal.
     assert git(workspace["project"], "status", "--porcelain") == ""
@@ -458,7 +462,8 @@ def origin(workspace, tmp_path):
     git(workspace["project"], "remote", "add", "origin", "git@github.com:ragnarwestad/aide.git")
     git(workspace["project"], "remote", "set-url", "--push", "origin", str(project_bare))
     git(workspace["project"], "push", "-q", "origin", "main")
-    git(workspace["specs"], "remote", "add", "origin", str(specs_bare))
+    git(workspace["specs"], "remote", "add", "origin", "git@github.com:ragnarwestad/aide-specs.git")
+    git(workspace["specs"], "remote", "set-url", "--push", "origin", str(specs_bare))
     git(workspace["specs"], "push", "-q", "origin", "main")
     return {"project": project_bare, "specs": specs_bare}
 
@@ -537,18 +542,78 @@ def test_push_branch_publishes_the_branch_and_links_to_the_diff(
     assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
 
 
-def test_push_branch_also_publishes_the_spec_work(runner, workspace, fake_claude, origin):
-    """An `analyze` step changes nothing in the project and everything in
-    the specs repo. Pushing only the project would leave the analysis
-    stranded on the machine that wrote it."""
+def specs_only_claude(fake_claude, workspace):
+    """An `analyze` step: it changes the specs repo and nothing else.
+    This is the shape of most of what the queue actually runs."""
+    return fake_claude(
+        "cat > /dev/null\n"
+        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_push_branch_puts_the_spec_work_on_the_branch_too(runner, workspace, fake_claude, origin):
+    """The whole point of `branch` is that unattended work lands
+    somewhere a human looks at it before it reaches main. Pushing the
+    specs repo's HEAD while only the project was branched sent every
+    analysis straight to main — measured 2026-08-16 on spec 84."""
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, push="branch")
     assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert branch in git(origin["specs"], "branch", "--list", branch), "the analysis must be on the branch"
     log = subprocess.run(
-        ["git", "-C", str(origin["specs"]), "log", "-1", "--pretty=%s", "main"],
+        ["git", "-C", str(origin["specs"]), "log", "-1", "--pretty=%s", branch],
         capture_output=True, text=True, check=True,
     ).stdout
     assert "analyze" in log
+
+
+def test_a_run_never_moves_main_in_the_specs_repo(runner, workspace, fake_claude, origin):
+    before = subprocess.run(
+        ["git", "-C", str(origin["specs"]), "rev-parse", "main"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    after = subprocess.run(
+        ["git", "-C", str(origin["specs"]), "rev-parse", "main"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert before == after, "unattended work must not land on main"
+
+
+def test_a_repo_with_no_changes_gets_no_branch(runner, workspace, fake_claude, origin):
+    """An analyze step touches nothing in the project. Pushing an empty
+    branch there gave a compare page with no diff on it — which is
+    exactly what you get when you click the link."""
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert git(origin["project"], "branch", "--list", branch) == "", "nothing changed there"
+    assert branch in git(origin["specs"], "branch", "--list", branch)
+
+
+def test_the_link_points_at_the_repo_that_actually_changed(runner, workspace, fake_claude, origin):
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide-specs/compare/main...{branch}"
+
+
+def test_every_changed_repo_is_listed_with_its_own_link(runner, workspace, fake_claude, origin):
+    """Both changed, so both are reviewable. `branchUrl` stays the
+    project's for the reader who wants one link; `branchUrls` carries
+    the rest."""
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert out["branchUrl"] == f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+    urls = {e["url"] for e in out["branchUrls"]}
+    assert urls == {
+        f"https://github.com/ragnarwestad/aide/compare/main...{branch}",
+        f"https://github.com/ragnarwestad/aide-specs/compare/main...{branch}",
+    }
 
 
 def test_push_pr_opens_a_pull_request_and_reports_its_url(
