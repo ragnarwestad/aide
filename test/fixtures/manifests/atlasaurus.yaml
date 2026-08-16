@@ -1,0 +1,38 @@
+# .aide/project.yaml — the project's identity card.
+# TEAM knowledge, committed to git. All keys optional: leave out what
+# is unknown rather than guessing. Links over prose.
+name: atlasaurus
+description: Interactive world map on a WebGL globe — explore, quizzes, saved places, sun/moon journeys
+generated: 2026-08-16
+stack:
+  frontend: TypeScript/Vite + MapLibre GL (framework-free; Lit on two stateful components)
+  backend: Supabase Edge Functions (feedback, search-miss) — otherwise static
+  database: Supabase Postgres (feedback + search_misses tables, RLS-closed to clients)
+dependencies:
+  - GoatCounter (statistics)
+  - Sentry (prod errors, EU region)
+  - Supabase (feedback dialog + empty-search reports)
+  - jsDelivr CDN (Natural Earth geodata, mledoze/countries, protomaps glyphs)
+  - flagcdn (flags)
+  - basemap tiles — CARTO, Esri, OpenFreeMap (all key-free)
+  - NOAA SWPC (space weather) + NASA SDO (sun imagery)
+deployment:
+  host: Cloudflare Pages — builds on every push to main (pnpm build -> dist)
+  url: https://atlasaurus.online
+logging:
+  where: Sentry, org atlasaurus-w7, project atlasaurus (de.sentry.io — EU; prod-only by design)
+statistics:
+  - https://atlasaurus.goatcounter.com
+  - Google Search Console, domain property atlasaurus.online
+  - https://supabase.com/dashboard/project/ybpumverjdhntlsglhyt/editor (feedback + search_misses rows)
+reports:
+  - title: Daily traffic analysis (claude.ai routine 00:08 UTC -> Slack DM + dashboard artifact)
+    url: https://claude.ai/code/artifact/c9163ac9-fc42-44b5-901b-407e74808ba4
+    recipe: docs/claude-ai-cloud-routines/TRAFFIC-ANALYSIS.md
+docs:
+  - README.md
+  - CLAUDE.md (+ path-scoped rules in .claude/rules/)
+  - docs/DESIGN-AND-ARCHITECTURE.md
+  - docs/GROWTH-ACCOUNTS-TIERS.md
+  - docs/CLIENT-TO-CLIENT-SYNC.md
+  - docs/GEODATA-SOURCES.md

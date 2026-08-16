@@ -1,0 +1,31 @@
+# .aide/project.yaml — prosjektets identitetskort.
+# Lagres i git, i motsetning til .aide/config som er personlig.
+name: paceup
+description: Web-app for å lage og kjøre skreddersydde treningsrutiner med nedtellingstimer
+generated: 2026-08-16
+stack:
+  frontend: React 19 + TypeScript + Vite (Mantine v8, installerbar PWA)
+  backend: Supabase Edge Functions (Deno) — invite-user, delete-user
+  database: PostgreSQL (Supabase), skjema og tilgangsregler i supabase/migrations/
+dependencies:
+  - Supabase (innlogging, database, filer)
+  - MyMemory Translation API (oversettelse av brukerdata)
+  - GoatCounter (statistikk)
+  - Web Speech API (talevarsling i nettleseren)
+deployment:
+  host: GitHub Pages
+  command: automatisk ved push til master (.github/workflows/deploy.yml)
+  url: https://ragnarwestad.github.io/paceup/
+  note: migrasjoner og Edge Functions rulles ut for hånd, ikke av arbeidsflyten
+logging:
+  where:
+    - Supabase-dashbordet -> Logs & Analytics (Edge Functions og Postgres)
+    - GitHub Actions -> deploy.yml (bygge- og utrullingsfeil)
+    - Nettleserkonsollen på brukerens enhet (kjøretidsfeil i appen)
+statistics:
+  - https://paceup.goatcounter.com
+docs:
+  - README.md
+  - docs/SPEC.md
+  - docs/PROVETILGANG.md
+  - docs/COMPETITOR-ANALYSIS.md

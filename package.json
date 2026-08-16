@@ -1,0 +1,12 @@
+{
+  "name": "aide-dashboard",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "yaml": "^2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1",
+    "typescript": "^7.0.2"
+  }
+}

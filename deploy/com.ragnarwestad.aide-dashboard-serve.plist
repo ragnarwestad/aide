@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ragnarwestad.aide-dashboard-serve</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>-m</string>
+    <string>http.server</string>
+    <string>8788</string>
+    <string>--directory</string>
+    <string>/Users/ragnarwestad/aide-dashboard/site</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/ragnarwestad/Library/Logs/aide-dashboard/serve.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/ragnarwestad/Library/Logs/aide-dashboard/serve.log</string>
+</dict>
+</plist>
