@@ -427,6 +427,9 @@ export function createServer(opts: ServerOptions) {
   });
 
   function jobRow(job: ReturnType<QueueStore["list"]>[number]): QueueRowView {
+    // The step whose model the row is about: the one running, or the
+    // last one for a job that has finished.
+    const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
     return {
       id: job.id,
       project: job.project,
@@ -434,6 +437,7 @@ export function createServer(opts: ServerOptions) {
       steps: job.steps,
       stepIndex: job.stepIndex,
       state: job.state,
+      model: job.modelChoice ?? (step ? job.model[step] : undefined),
       spentUsd: job.spentUsd,
       timeoutSec: job.timeoutSec,
       createdAt: job.createdAt,
@@ -453,6 +457,13 @@ export function createServer(opts: ServerOptions) {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: targets(),
         script: queueClientScript(),
+        // Only what the config granted a budget to is offerable: a
+        // dropdown naming a model the machine has not agreed to pay for
+        // would be a way around the caps.
+        modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, c]) => ({
+          name,
+          budgetUsd: c.budgetUsd,
+        })),
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.

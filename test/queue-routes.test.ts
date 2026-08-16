@@ -452,3 +452,103 @@ describe("what the queue has run counts too", () => {
     expect(html).toContain('class="stepbox isdone" data-step="implement"');
   });
 });
+
+// Reserving the heaviest model for the heaviest jobs. The page offers
+// exactly what the config lists — a dropdown that could name a model
+// the server has not granted a budget to would be a way to spend more
+// than the machine agreed to.
+describe("picking a model for a job", () => {
+  const CHOICES = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: 1200,
+    permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  test("the form offers the configured models, and says what each is granted", () => {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      modelChoices: [
+        { name: "sonnet", budgetUsd: 3 },
+        { name: "fable", budgetUsd: 12 },
+      ],
+    });
+    expect(html).toContain('name="model"');
+    expect(html).toContain("fable");
+    expect(html).toContain("$12");
+    // The per-step configuration must stay reachable — picking a model
+    // is an override, not the only way to queue anything.
+    expect(html).toContain('value=""');
+  });
+
+  test("with nothing configured the page offers no model at all", () => {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+    });
+    expect(html).not.toContain('name="model"');
+  });
+
+  test("a row says which model it ran on, so a cost can be read against it", () => {
+    const html = renderQueuePage(
+      [
+        {
+          id: "a", project: "aide", specFolder: "81-queue-and-runner",
+          steps: ["implement"], stepIndex: 0, state: "done", spentUsd: 24.5,
+          timeoutSec: 1200, createdAt: "2026-08-16T00:00:00Z", model: "fable",
+        },
+      ],
+      "2026-08-16T00:00:00Z",
+      [{ label: "Overview", path: "index.html" }],
+      { runnerAvailable: true, targets: [] },
+    );
+    expect(html).toContain("fable");
+  });
+
+  test("posting a chosen model runs every step on it, with the config's budget", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        target: "aide/81-queue-and-runner",
+        steps: "implement",
+        model: "fable",
+      }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number } };
+    expect(body.job.model).toEqual({ implement: "fable" });
+    expect(body.job.budgetUsd).toBe(12);
+    expect(body.job.jobCapUsd).toBe(30);
+  });
+
+  test("an empty model field means 'use the configuration', not an error", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        target: "aide/81-queue-and-runner",
+        steps: "implement",
+        model: "",
+      }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    expect(body.job.model).toEqual({ implement: "opus" });
+    expect(body.job.budgetUsd).toBe(3);
+  });
+});

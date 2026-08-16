@@ -54,6 +54,9 @@ export interface Job {
   timeoutSec: number;
   permissionMode: Record<string, string>;
   model: Record<string, string>;
+  /** The model picked for this whole job, when one was picked. Absent
+   *  means the per-step configuration decided. */
+  modelChoice?: string;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -69,6 +72,15 @@ export interface Job {
   error?: string;
 }
 
+/** What one pickable model is granted. The budget lives HERE, not in
+ *  the request: a hungrier model needs more headroom per step, and the
+ *  only place allowed to grant headroom is the config file on the
+ *  machine that runs the jobs. */
+export interface ModelChoice {
+  budgetUsd: number;
+  jobCapUsd?: number;
+}
+
 export interface QueueDefaults {
   budgetUsd: number;
   jobCapUsd: number;
@@ -77,6 +89,10 @@ export interface QueueDefaults {
   /** Per step, with a `default` fallback. Config-only — see the header. */
   permissionMode: Record<string, string>;
   model: Record<string, string>;
+  /** Which models a job may be asked to run on, and what each is
+   *  granted. Absent means no choice is offered and naming one is
+   *  refused — off by default, like the rest of the queue. */
+  modelChoices?: Record<string, ModelChoice>;
 }
 
 /** Resolves a project NAME to its real spec folders, or null if it is
@@ -148,9 +164,28 @@ export function parseJobRequest(
     }
   }
 
-  const budgetUsd = tighten(r.budgetUsd, defaults.budgetUsd, "budgetUsd");
+  // A model may be picked for the whole job — that is how the heaviest
+  // model is reserved for the heaviest work. The NAME comes from the
+  // request; everything it is granted comes from the config.
+  let modelChoice: string | undefined;
+  let choice: ModelChoice | undefined;
+  if (r.model !== undefined && r.model !== null && r.model !== "") {
+    if (typeof r.model !== "string" || !NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
+    choice = defaults.modelChoices?.[r.model];
+    if (!choice) {
+      return {
+        ok: false,
+        error: defaults.modelChoices
+          ? `unknown or not-allowed model: ${r.model}`
+          : "no model choice is configured on this server",
+      };
+    }
+    modelChoice = r.model;
+  }
+
+  const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
-  const jobCapUsd = tighten(r.jobCapUsd, defaults.jobCapUsd, "jobCapUsd");
+  const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
   if (jobCapUsd instanceof Error) return { ok: false, error: jobCapUsd.message };
   const timeoutSec = tighten(r.timeoutSec, defaults.timeoutSec, "timeoutSec");
   if (timeoutSec instanceof Error) return { ok: false, error: timeoutSec.message };
@@ -169,7 +204,13 @@ export function parseJobRequest(
       jobCapUsd,
       timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
-      model: perStep(steps, defaults.model),
+      // A picked model applies to EVERY step: "reserve the heavy model
+      // for the heavy job" is a decision about the job, not about one
+      // step inside it. Run a single step as its own job to be finer.
+      model: modelChoice
+        ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
+        : perStep(steps, defaults.model),
+      modelChoice,
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,
@@ -216,6 +257,25 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     }
     return out;
   };
+  // A malformed entry is DROPPED, not defaulted: a model whose budget
+  // is a typo would otherwise silently inherit the general one, and the
+  // whole point of listing it is that its number is different.
+  const choices = (v: unknown): Record<string, ModelChoice> | undefined => {
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return base.modelChoices;
+    const out: Record<string, ModelChoice> = {};
+    for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
+      if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+      const e = entry as Record<string, unknown>;
+      if (typeof e.budgetUsd !== "number" || !Number.isFinite(e.budgetUsd) || e.budgetUsd <= 0) continue;
+      const cap =
+        typeof e.jobCapUsd === "number" && Number.isFinite(e.jobCapUsd) && e.jobCapUsd > 0
+          ? e.jobCapUsd
+          : undefined;
+      out[name] = cap === undefined ? { budgetUsd: e.budgetUsd } : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
+
   return {
     budgetUsd: num(r.budgetUsd, base.budgetUsd),
     jobCapUsd: num(r.jobCapUsd, base.jobCapUsd),
@@ -223,6 +283,7 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     timeoutSec: num(r.timeoutSec, base.timeoutSec),
     permissionMode: table(r.permissionMode, base.permissionMode),
     model: table(r.model, base.model),
+    modelChoices: choices(r.modelChoices),
   };
 }
 

@@ -382,6 +382,9 @@ export interface QueueRowView {
   stopReason?: "budget" | "timeout";
   branchUrl?: string;
   error?: string;
+  /** What this job ran on. Shown next to the cost, because a figure
+   *  without its model cannot be compared with the next one. */
+  model?: string;
 }
 
 export interface QueueTarget {
@@ -404,6 +407,10 @@ export interface QueuePageOptions {
    *  server. Nothing is hardcoded as a string here: page code is
    *  TypeScript like everything else, and the compiler checks it. */
   script?: string;
+  /** The models a job may be asked to run on, from the config. Empty or
+   *  absent means the per-step configuration is the only answer and the
+   *  page offers no choice at all. */
+  modelChoices?: { name: string; budgetUsd: number }[];
 }
 
 // A stopped job is NOT a failed one, and the two must never render as
@@ -484,6 +491,20 @@ function enqueueForm(opts: QueuePageOptions): string {
     })
     .join("");
   const boxes = stepBoxes(opts.targets[0]);
+  // The heavy model is worth reserving for heavy work, so the choice is
+  // explicit and the default is "whatever the config says per step".
+  // Each option carries what it is granted per step, because that is
+  // the number that decides whether the job can finish.
+  const models = opts.modelChoices ?? [];
+  const modelField = models.length
+    ? `<label class="field"><span class="fieldlabel">Model</span>` +
+      `<select name="model" id="model">` +
+      `<option value="">as configured per step</option>` +
+      models
+        .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
+        .join("") +
+      `</select></label>`
+    : "";
   // The gate choice is SHOWN and off by default. Hiding it made the
   // button quietly create a job that stops for approval after every
   // step — the opposite of what pressing it looks like it does.
@@ -498,6 +519,7 @@ function enqueueForm(opts: QueuePageOptions): string {
     `<select name="target" id="target">${options}</select></label>` +
     `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
     `<span class="steps" id="steps">${boxes}</span></span>` +
+    modelField +
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>` +
     `<button type="submit">Queue it</button></form>` +
@@ -536,7 +558,9 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
       return (
         `<tr class="${done ? "archived" : "active"}">` +
         `<td><div class="speccell">${spec}</div><div class="muted small">${esc(r.project)}</div></td>` +
-        `<td><div>${esc(step)}</div><div class="pips">${steps}</div></td>` +
+        `<td><div>${esc(step)}</div><div class="pips">${steps}</div>` +
+        (r.model ? `<div class="muted small">${esc(r.model)}</div>` : "") +
+        `</td>` +
         `<td>${stateChip(r)}${r.error ? `<div class="muted small">${esc(r.error)}</div>` : ""}</td>` +
         `<td>${relTime(r.startedAt ?? r.createdAt, now)}</td>` +
         `<td class="num">${r.spentUsd > 0 ? `$${r.spentUsd.toFixed(2)}` : "–"}</td>` +
