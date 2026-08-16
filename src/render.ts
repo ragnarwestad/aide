@@ -321,6 +321,9 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
 export interface LiveRowView {
   spec?: string;
   command: string;
+  /** The TDD phase an implement run last reported, when it reported
+   *  one (spec 81 §2). */
+  phase?: string;
   project?: string;
   sessionId: string;
   receivedAt: string;
@@ -346,7 +349,8 @@ export function renderLivePage(
           .map(
             (r) =>
               `<tr class="${esc(r.live === "not-live" ? "archived" : "active")}">` +
-              `<td>${esc(r.spec ?? "–")}</td><td>${esc(r.command)}</td>` +
+              `<td>${esc(r.spec ?? "–")}</td>` +
+              `<td>${esc(r.phase ? `${r.command} · ${r.phase}` : r.command)}</td>` +
               `<td>${esc(r.project ?? "–")}</td><td>${esc(r.sessionId.slice(0, 8))}</td>` +
               `<td>${esc(r.receivedAt)}</td><td>${esc(r.live)}</td>` +
               `<td>${r.subagents === null ? "–" : r.subagents}</td>` +

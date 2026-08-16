@@ -13,6 +13,11 @@ export const AIDE_COMMANDS = [
 ] as const;
 export type AideCommand = (typeof AIDE_COMMANDS)[number];
 
+// The three TDD phases and nothing else: a typo must not reach the
+// page as if it were a phase (spec 81, criterion 10).
+export const TDD_PHASES = ["red", "green", "refactor"] as const;
+export type TddPhase = (typeof TDD_PHASES)[number];
+
 const HOST_RE = /^[A-Za-z0-9._-]{1,64}$/;
 const SESSION_RE = /^[A-Za-z0-9._-]{1,128}$/;
 const SHORT_RE = /^[A-Za-z0-9._-]{1,64}$/;
@@ -23,6 +28,10 @@ export interface AideRun {
   command: AideCommand;
   spec?: string;
   project?: string;
+  /** Reported from inside an /aide-implement run, at each TDD phase
+   *  boundary. The row is keyed on the session, so a later phase
+   *  replaces the earlier one rather than adding a line. */
+  phase?: TddPhase;
   capturedAt?: string;
 }
 
@@ -58,6 +67,13 @@ export function parseAideRun(raw: unknown): ParseResult {
   if (spec instanceof Error) return { ok: false, error: spec.message };
   const project = optShort(r.project, "project");
   if (project instanceof Error) return { ok: false, error: project.message };
+  let phase: TddPhase | undefined;
+  if (r.phase !== undefined && r.phase !== null) {
+    if (typeof r.phase !== "string" || !(TDD_PHASES as readonly string[]).includes(r.phase)) {
+      return { ok: false, error: "invalid phase" };
+    }
+    phase = r.phase as TddPhase;
+  }
   let capturedAt: string | undefined;
   if (r.capturedAt !== undefined && r.capturedAt !== null) {
     const d = new Date(r.capturedAt as string | number);
@@ -67,6 +83,7 @@ export function parseAideRun(raw: unknown): ParseResult {
   const run: AideRun = { host: r.host, sessionId: r.sessionId, command: r.command as AideCommand };
   if (spec) run.spec = spec;
   if (project) run.project = project;
+  if (phase) run.phase = phase;
   if (capturedAt) run.capturedAt = capturedAt;
   return { ok: true, run };
 }

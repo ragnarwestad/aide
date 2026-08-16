@@ -62,6 +62,9 @@ export interface Job {
   resultFile?: string;
   results: StepResult[];
   spentUsd: number;
+  /** Where the work can be read: the compare page for the spec's
+   *  branch, or the pull request when the push mode opened one. */
+  branchUrl?: string;
   stopReason?: StopReason;
   error?: string;
 }

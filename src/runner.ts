@@ -16,6 +16,7 @@
 // The spawner, the clock and the liveness check are injected, so the
 // tests start no processes.
 
+import type { NotifyEvent } from "./notify.ts";
 import type { Job, QueueStore, WorkflowStep } from "./queue.ts";
 
 export interface SpawnResult {
@@ -32,6 +33,9 @@ export interface StepOutcome {
   terminalReason: string;
   subtype?: string;
   sessionId?: string;
+  /** The compare or PR page for the branch this step wrote to, when the
+   *  push mode produced one. */
+  branchUrl?: string;
   error?: string;
 }
 
@@ -50,6 +54,10 @@ export interface RunnerOptions {
   clearResult?: (path: string) => void;
   now: () => string;
   today: () => string;
+  /** Every ENDING is announced: a gate, a finish, a stop, a failure. A
+   *  job that parked at 02:00 must not wait for someone to open the
+   *  page. Injected, so the tests spawn nothing. */
+  notify?: (event: NotifyEvent) => void;
 }
 
 export class Runner {
@@ -108,11 +116,13 @@ export class Runner {
     // Both caps are checked BEFORE the step starts: a cap that only
     // stops you afterwards is a report, not a cap.
     if (job.spentUsd + job.budgetUsd > job.jobCapUsd) {
-      this.o.store.update(job.id, {
+      const reason = `the job cap ($${job.jobCapUsd}) would be exceeded by the next step`;
+      const stopped = this.o.store.update(job.id, {
         state: "stopped",
         finishedAt: this.o.now(),
-        error: `the job cap ($${job.jobCapUsd}) would be exceeded by the next step`,
+        error: reason,
       });
+      this.announce(stopped ?? job, "stopped", step, reason);
       return;
     }
     if (this.spentToday() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
@@ -175,6 +185,20 @@ export class Runner {
     }
   }
 
+  private announce(job: Job, event: NotifyEvent["event"], step: WorkflowStep | undefined, reason?: string): void {
+    this.o.notify?.({
+      event,
+      project: job.project,
+      spec: job.specFolder,
+      step,
+      jobId: job.id,
+      reason,
+      costUsd: job.spentUsd,
+      branchUrl: job.branchUrl,
+      at: this.o.now(),
+    });
+  }
+
   private complete(job: Job, outcome: StepOutcome): void {
     const step = job.steps[job.stepIndex];
     const cost = typeof outcome.costUsd === "number" ? outcome.costUsd : 0;
@@ -195,6 +219,7 @@ export class Runner {
     const base = {
       results,
       spentUsd: job.spentUsd + cost,
+      branchUrl: outcome.branchUrl ?? job.branchUrl,
       pid: undefined,
       pgid: undefined,
     };
@@ -203,32 +228,41 @@ export class Runner {
     // Under tight caps this is a common, healthy outcome, and a reader
     // who cannot tell it from a broken agent will ignore both.
     if (outcome.terminalReason === "budget" || outcome.terminalReason === "timeout") {
-      this.o.store.update(job.id, {
+      const stopped = this.o.store.update(job.id, {
         ...base,
         state: "stopped",
         stopReason: outcome.terminalReason,
         finishedAt: this.o.now(),
         error: outcome.error,
       });
+      this.announce(stopped ?? job, "stopped", step, outcome.terminalReason);
       return;
     }
     if (!outcome.ok) {
-      this.o.store.update(job.id, {
+      const failed = this.o.store.update(job.id, {
         ...base,
         state: "failed",
         finishedAt: this.o.now(),
         error: outcome.error ?? outcome.terminalReason,
       });
+      this.announce(failed ?? job, "failed", step, outcome.error ?? outcome.terminalReason);
       return;
     }
 
     const nextIndex = job.stepIndex + 1;
     if (nextIndex >= job.steps.length) {
-      this.o.store.update(job.id, { ...base, state: "done", stepIndex: nextIndex - 1, finishedAt: this.o.now() });
+      const done = this.o.store.update(job.id, {
+        ...base,
+        state: "done",
+        stepIndex: nextIndex - 1,
+        finishedAt: this.o.now(),
+      });
+      this.announce(done ?? job, "finished", step);
       return;
     }
     if (step && job.gateAfter.includes(step)) {
-      this.o.store.update(job.id, { ...base, state: "awaiting-approval", stepIndex: nextIndex });
+      const parked = this.o.store.update(job.id, { ...base, state: "awaiting-approval", stepIndex: nextIndex });
+      this.announce(parked ?? job, "gate", step);
       return;
     }
     this.o.store.update(job.id, { ...base, state: "queued", stepIndex: nextIndex });

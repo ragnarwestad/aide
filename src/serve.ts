@@ -15,6 +15,7 @@ import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 import { parseStatus } from "./parse-status.ts";
+import { Notifier } from "./notify.ts";
 import { QueueStore, mergeQueueDefaults, type QueueDefaults, type ProjectResolver } from "./queue.ts";
 import { Runner } from "./runner.ts";
 import {
@@ -70,6 +71,12 @@ export interface ServerOptions {
   /** Where each allowlisted project is checked out on this machine. */
   queueProjectRoot?: string;
   queueResultDir?: string;
+  /** How far a finished step publishes its work: none, branch or pr.
+   *  From the queue config; `branch` when unset. */
+  queuePush?: string;
+  /** argv for the gate notifier — claude-usage's contract, run with no
+   *  shell. Absent means no notifications are sent. */
+  queueNotifyCommand?: string[];
   runnerAvailable?: boolean;
 }
 
@@ -255,6 +262,7 @@ export function createServer(opts: ServerOptions) {
   // child survives `launchctl bootout`, so a redeploy does not kill a
   // run — and the group is what SIGTERM must reach, since claude spawns
   // children of its own.
+  const notifier = new Notifier({ command: opts.queueNotifyCommand });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -276,6 +284,7 @@ export function createServer(opts: ServerOptions) {
               "--timeout-sec", String(job.timeoutSec),
               "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
               "--result-file", resultFile,
+              "--push", opts.queuePush ?? "branch",
               "--pull",
               ...(model ? ["--model", model] : []),
             ],
@@ -303,6 +312,7 @@ export function createServer(opts: ServerOptions) {
             return null;
           }
         },
+        notify: (event) => notifier.notify(event),
         clearResult: (path) => {
           try {
             rmSync(path, { force: true });
@@ -417,6 +427,7 @@ export function createServer(opts: ServerOptions) {
       timeoutSec: job.timeoutSec,
       createdAt: job.createdAt,
       startedAt: job.startedAt,
+      branchUrl: job.branchUrl,
       stopReason: job.stopReason,
       error: job.error,
     };
@@ -557,10 +568,15 @@ function parseArgs(argv: string[]): ServerOptions {
     // the tight ones. Failing towards "spends less" is the only safe
     // direction here.
     try {
-      opts.queueDefaults = mergeQueueDefaults(
-        QUEUE_DEFAULTS,
-        JSON.parse(readFileSync(queueConfigFile, "utf-8")) as unknown,
-      );
+      const raw = JSON.parse(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
+      opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
+      // The notify command is an argv ARRAY: it is run with no shell,
+      // so a string would have to be split by someone, and that someone
+      // would get quoting wrong.
+      if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
+        opts.queueNotifyCommand = raw.notifyCommand as string[];
+      }
+      if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
     } catch {
       console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
     }

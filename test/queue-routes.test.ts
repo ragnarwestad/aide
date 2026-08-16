@@ -8,7 +8,7 @@
 // a form, and a meta refresh every ten seconds would wipe whatever
 // someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../src/serve.ts";
@@ -361,5 +361,50 @@ describe("the step boxes follow the spec", () => {
     const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="analyze" checked/);
     expect(html).not.toContain('class="stepbox isdone"');
+  });
+});
+
+// Slice 81c: what the server actually hands the runner. The binary is a
+// recording stub — one tiny local process, no claude, no network.
+describe("the runner invocation", () => {
+  function stub(dir: string): { bin: string; argvFile: string } {
+    const argvFile = join(dir, "runner-argv.txt");
+    const bin = join(dir, "fake-run-spec");
+    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${argvFile}\n`, { mode: 0o755 });
+    return { bin, argvFile };
+  }
+
+  async function argvOf(argvFile: string): Promise<string> {
+    for (let i = 0; i < 100; i++) {
+      try {
+        return readFileSync(argvFile, "utf-8");
+      } catch {
+        await Bun.sleep(50);
+      }
+    }
+    throw new Error("the runner was never invoked");
+  }
+
+  test("the push mode, the permission mode and the model all reach the command line", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-spawn-"));
+    dirs.push(dir);
+    const { bin, argvFile } = stub(dir);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      queuePush: "branch",
+    });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    const argv = await argvOf(argvFile);
+    expect(argv).toContain("--push branch");
+    expect(argv).toContain("--permission-mode bypassPermissions");
+    expect(argv).toContain("--model opus");
+    expect(argv).toContain("--command implement");
   });
 });

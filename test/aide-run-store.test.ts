@@ -29,6 +29,27 @@ describe("parseAideRun (schema)", () => {
     expect(parseAideRun({ ...valid, command: "rm-rf" }).ok).toBe(false);
   });
 
+  // Criterion 10 (spec 81, slice 81c): an /aide-implement run reports
+  // its TDD phase from inside the step. Same row, same session — the
+  // phase is what moves.
+  test("accepts a TDD phase, and refuses an invented one", () => {
+    const r = parseAideRun({ ...valid, phase: "green" });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.run.phase).toBe("green");
+    expect(parseAideRun({ ...valid, phase: "deploy" }).ok).toBe(false);
+  });
+
+  test("a later phase replaces the row rather than adding one", () => {
+    const store = new AideRunStore();
+    const red = parseAideRun({ ...valid, phase: "red" });
+    const green = parseAideRun({ ...valid, phase: "green" });
+    if (!red.ok || !green.ok) throw new Error("fixtures must parse");
+    store.put(red.run, "2026-08-16T10:00:00Z");
+    store.put(green.run, "2026-08-16T10:05:00Z");
+    expect(store.list().length).toBe(1);
+    expect(store.list()[0]!.phase).toBe("green");
+  });
+
   test("ignores unknown fields", () => {
     const r = parseAideRun({ ...valid, prompt: "secret text" });
     expect(r.ok).toBe(true);

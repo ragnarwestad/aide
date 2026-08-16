@@ -84,6 +84,25 @@ describe("GET /live", () => {
   });
 });
 
+describe("TDD phases on /live (criterion 10, spec 81)", () => {
+  test("a phase reported from inside an implement run is stored and shown", async () => {
+    const res = await fetch(`${base}/api/aide-run`, {
+      method: "POST",
+      body: JSON.stringify({
+        host: "h", sessionId: "s-phase", command: "implement",
+        spec: "81", project: "aide", phase: "green",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const runs = (await (await fetch(`${base}/api/aide-runs`)).json()) as {
+      rows: { sessionId: string; phase?: string }[];
+    };
+    expect(runs.rows.find((r) => r.sessionId === "s-phase")?.phase).toBe("green");
+    const html = await (await fetch(`${base}/live`)).text();
+    expect(html).toContain("implement · green");
+  });
+});
+
 describe("generated site nav (criterion 5)", () => {
   test("every page links to /live", () => {
     const pages = renderSite(

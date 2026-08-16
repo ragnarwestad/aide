@@ -11,6 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../src/queue.ts";
+import type { NotifyEvent } from "../src/notify.ts";
 import { Runner, type SpawnResult, type Spawner } from "../src/runner.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -28,6 +29,7 @@ const resolve = (project: string) =>
 let dir: string;
 let store: QueueStore;
 let spawns: { jobId: string; step: string; resultFile: string }[];
+let events: NotifyEvent[];
 let now: number;
 
 function makeRunner(opts: {
@@ -50,6 +52,7 @@ function makeRunner(opts: {
       }),
     isAlive: opts.alive ?? (() => true),
     readResult: opts.readResult ?? (() => null),
+    notify: (event) => void events.push(event),
   });
 }
 
@@ -79,6 +82,7 @@ beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-runner-"));
   store = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
   spawns = [];
+  events = [];
   now = Date.parse("2026-08-16T10:00:00Z");
 });
 
@@ -235,7 +239,7 @@ describe("reconciliation after a restart", () => {
   });
 });
 
-describe("gates (built in 81c, wired here)", () => {
+describe("gates and notifications (criterion 7)", () => {
   test("a step whose name is in gateAfter parks the job for approval", () => {
     const job = enqueue({ steps: ["analyze", "implement"], gateAfter: ["analyze"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
@@ -244,5 +248,91 @@ describe("gates (built in 81c, wired here)", () => {
     expect(store.get(job.id)?.state).toBe("awaiting-approval");
     runner.tick();
     expect(spawns.length).toBe(1); // nothing starts until it is approved
+  });
+
+  test("the gate notifies exactly once, and approval starts exactly one more step", () => {
+    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: ["analyze"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    runner.poll();
+    runner.poll(); // a second poll must not notify again
+    runner.tick();
+    expect(events.length).toBe(1);
+    expect(events[0]!.event).toBe("gate");
+    expect(events[0]!.step).toBe("analyze");
+    expect(events[0]!.spec).toBe("81-queue-and-runner");
+    expect(events[0]!.project).toBe("aide");
+    expect(events[0]!.jobId).toBe(job.id);
+    expect(events[0]!.costUsd).toBeCloseTo(1);
+
+    // Approve, the way the route does it.
+    store.update(job.id, { state: "queued" });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    runner.tick();
+    expect(spawns.length).toBe(2);
+  });
+
+  test("a finished job notifies once, with the branch to look at", () => {
+    enqueue({ steps: ["analyze"], gateAfter: [] });
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), branchUrl: "https://example.test/compare" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(events.map((e) => e.event)).toEqual(["finished"]);
+    expect(events[0]!.branchUrl).toBe("https://example.test/compare");
+  });
+
+  test("a stop notifies with its reason — the 02:00 case", () => {
+    enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(3), ok: false, terminalReason: "budget" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(events.map((e) => e.event)).toEqual(["stopped"]);
+    expect(events[0]!.reason).toBe("budget");
+  });
+
+  test("a failure notifies too", () => {
+    enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "refused", error: "the tree is dirty" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(events.map((e) => e.event)).toEqual(["failed"]);
+    expect(events[0]!.reason).toContain("dirty");
+  });
+
+  test("a job stopped by its own cap notifies as well — nothing ends in silence", () => {
+    enqueue({ steps: ["analyze", "implement"], gateAfter: [], jobCapUsd: 4 });
+    const runner = makeRunner({ readResult: () => okResult(3) });
+    runner.tick();
+    runner.poll();
+    runner.tick(); // the next step would breach the job cap
+    expect(events.map((e) => e.event)).toEqual(["stopped"]);
+    expect(events[0]!.reason).toContain("job cap");
+  });
+
+  test("a job held back by the daily cap is not an ending, and does not notify", () => {
+    enqueue();
+    const runner = makeRunner();
+    runner.addSpentToday(18);
+    runner.tick();
+    expect(events).toEqual([]);
+  });
+});
+
+describe("what the page needs from a step", () => {
+  test("the branch link from the result is kept on the job", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(1), branchUrl: "https://example.test/compare" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.branchUrl).toBe("https://example.test/compare");
   });
 });
