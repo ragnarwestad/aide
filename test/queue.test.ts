@@ -158,6 +158,49 @@ describe("QueueStore", () => {
   });
 });
 
+// Criterion 3's data layer (spec 02): the session of the step that is
+// running right now. It is worth nothing unless it survives a restart —
+// the very case where the run is still going and the page has to say
+// what it is doing.
+describe("the running step's session", () => {
+  test("sessionId and streamFile round-trip through the mirror", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error("enqueue failed");
+    store.update(r.job.id, {
+      state: "running",
+      sessionId: "3f7a1c2e-0000-4000-8000-000000000001",
+      streamFile: "/tmp/jobs/x.stream.jsonl",
+    });
+
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    expect(reloaded.sessionId).toBe("3f7a1c2e-0000-4000-8000-000000000001");
+    expect(reloaded.streamFile).toBe("/tmp/jobs/x.stream.jsonl");
+  });
+
+  test("a malformed sessionId is dropped, not carried — the mirror is validated, never trusted", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error("enqueue failed");
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    raw[0].sessionId = 42;
+    raw[0].streamFile = { path: "/tmp/x" };
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    expect(reloaded.sessionId).toBeUndefined();
+    expect(reloaded.streamFile).toBeUndefined();
+  });
+
+  test("a job mirrored before this change reloads without one", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error("enqueue failed");
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).get(r.job.id)!;
+    expect(reloaded.sessionId).toBeUndefined();
+  });
+});
+
 describe("mergeQueueDefaults", () => {
   test("a config file overrides what it names and keeps the rest", () => {
     const merged = mergeQueueDefaults(DEFAULTS, {

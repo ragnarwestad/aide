@@ -6,7 +6,15 @@
 // tables; project pages carry the full manifest block and spec
 // table; every page is self-contained.
 import { describe, expect, test } from "bun:test";
-import { renderSite, type Page, type ProjectView } from "../src/render.ts";
+import {
+  renderJobDetailPage,
+  renderQueueRows,
+  renderSite,
+  type JobDetailView,
+  type Page,
+  type ProjectView,
+  type QueueRowView,
+} from "../src/render.ts";
 
 function project(name: string, overrides: Partial<ProjectView> = {}): ProjectView {
   return {
@@ -36,6 +44,7 @@ const healthy: ProjectView = {
       dir: "/x/01-active-spec",
       archived: false,
       title: "Active spec",
+      description: null,
       status: { progress: { percent: 50, done: 1, total: 2 }, phase: "Phase 2: GREEN" },
     },
     {
@@ -43,6 +52,7 @@ const healthy: ProjectView = {
       dir: "/x/archive/02-archived-spec",
       archived: true,
       title: "Archived spec",
+      description: null,
       status: { progress: { percent: 100, done: 4, total: 4 }, phase: "done" },
     },
   ],
@@ -166,5 +176,165 @@ describe("self-contained (criterion 5)", () => {
       expect(page.html).not.toContain("<link ");
       expect(page.html).not.toMatch(/<img[^>]+src="https?:/);
     }
+  });
+});
+
+// --- spec 02: a running job is a black box -----------------------------------
+
+const NAV = [{ label: "Overview", path: "index.html" }];
+
+const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
+  id: "job-1234",
+  project: "aide-dashboard",
+  specFolder: "02-job-detail-view",
+  steps: ["analyze"],
+  stepIndex: 0,
+  state: "running",
+  spentUsd: 0,
+  timeoutSec: 1200,
+  createdAt: "2026-08-16T10:00:00Z",
+  results: [],
+  ...extra,
+});
+
+// Criterion 12: the row a reader actually watches is the way in.
+describe("the queue row links to the job (criterion 12)", () => {
+  const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id: "job-1234",
+    project: "aide",
+    specFolder: "81-queue-and-runner",
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "running",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T00:00:00Z",
+    ...extra,
+  });
+
+  test("the spec cell links to /queue/<id>", () => {
+    const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
+    expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
+  });
+
+  test("an existing branch link stays beside it, never replaced by it", () => {
+    const html = renderQueueRows([row({ branchUrl: "https://example.test/compare" })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
+    expect(html).toContain('href="https://example.test/compare"');
+  });
+});
+
+// Criteria 1, 2, 4, 5: what the job IS, everything it has already run,
+// and what it is doing right now.
+describe("renderJobDetailPage", () => {
+  test("shows the spec's title and description without leaving the dashboard (criterion 1)", () => {
+    const html = renderJobDetailPage(
+      detail({
+        title: "A running job is a black box",
+        description: "The queue shows state, step and cost — and <nothing> about what the job IS.",
+      }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain("A running job is a black box");
+    expect(html).toContain("The queue shows state, step and cost");
+    // Spec prose is arbitrary text from a file, not markup.
+    expect(html).toContain("&lt;nothing&gt;");
+    expect(html).not.toContain("<nothing>");
+  });
+
+  test("every finished step gets its own row, not just the current one (criterion 2)", () => {
+    const html = renderJobDetailPage(
+      detail({
+        steps: ["analyze", "review-plan", "implement"],
+        stepIndex: 2,
+        results: [
+          {
+            step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+          },
+          {
+            step: "review-plan", ok: true, costUsd: 1.07, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-16T10:03:00Z",
+          },
+        ],
+      }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain("analyze");
+    expect(html).toContain("review-plan");
+    expect(html).toContain("$0.42");
+    expect(html).toContain("$1.07");
+  });
+
+  test("a job with no finished steps says so rather than showing an empty table", () => {
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain("No step has finished yet");
+  });
+
+  test("a live session shows state, subagents and cost so far (criterion 4)", () => {
+    const html = renderJobDetailPage(
+      detail({
+        sessionId: "11111111-2222-4333-8444-555555555555",
+        live: { state: "working", subagents: 7, costUsd: 1.25, enriched: true },
+      }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain("Live right now");
+    expect(html).toContain("working");
+    expect(html).toMatch(/Subagents<\/td><td[^>]*>7</);
+    expect(html).toContain("$1.25");
+  });
+
+  test("an unreachable claude-usage says unknown and keeps the rest of the page (criterion 5)", () => {
+    const html = renderJobDetailPage(
+      detail({
+        title: "A running job is a black box",
+        sessionId: "11111111-2222-4333-8444-555555555555",
+        live: { state: "unknown", subagents: null, costUsd: null, enriched: false },
+      }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain("unknown");
+    expect(html).toContain("A running job is a black box");
+    expect(html).toContain("</html>");
+  });
+
+  test("the activity list is rendered as the parser produced it, already escaped", () => {
+    const html = renderJobDetailPage(
+      detail({ activity: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")] }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain("&lt;code&gt;");
+    expect(html).not.toContain("<code>ls</code>");
+  });
+
+  test("a job with no stream kept says so, rather than showing a blank panel", () => {
+    const html = renderJobDetailPage(detail({ activity: [] }), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain("Nothing has been captured");
+  });
+
+  test("the page is self-contained and carries the shared nav", () => {
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).not.toContain("<script src");
+    expect(html).not.toContain("<link ");
+    // The job page belongs to /queue, so that nav entry is the current one.
+    expect(html).toContain('<a class="current" href="/queue">Queue</a>');
+  });
+
+  test("a finished job shows no live panel — there is no session to follow", () => {
+    const html = renderJobDetailPage(
+      detail({ state: "done", sessionId: undefined, live: null }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).not.toContain("Live right now");
   });
 });

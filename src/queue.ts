@@ -42,6 +42,10 @@ export interface StepResult {
   terminalReason: string;
   subtype?: string;
   sessionId?: string;
+  /** Where this step's claude transcript was kept, when one was. Recorded
+   *  per step, so a finished step stays readable after the next one has
+   *  overwritten the job's live pointers. */
+  streamFile?: string;
   at: string;
 }
 
@@ -73,6 +77,14 @@ export interface Job {
   pid?: number;
   pgid?: number;
   resultFile?: string;
+  /** The session of the step running RIGHT NOW, generated before the
+   *  spawn rather than read out of the result afterwards. Cleared the
+   *  moment the step ends: a finished job that still advertises a live
+   *  session is a lie the page would render as "running somewhere". */
+  sessionId?: string;
+  /** Where that step's transcript is being written, alongside
+   *  `resultFile` and from the same source of truth. */
+  streamFile?: string;
   results: StepResult[];
   spentUsd: number;
   /** Where the work can be read: the compare page for the spec's
@@ -269,6 +281,10 @@ function parseStoredJob(raw: unknown): Job | null {
     results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
     stepIndex: typeof r.stepIndex === "number" ? r.stepIndex : 0,
+    // Anything but a string here would be handed to a fetch and to a
+    // file read. Dropped, like every other malformed field.
+    sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
+    streamFile: typeof r.streamFile === "string" ? r.streamFile : undefined,
   };
 }
 

@@ -11,6 +11,9 @@ export interface SpecRef {
   dir: string;
   archived: boolean;
   title: string | null;
+  /** What the spec is ABOUT. The title says `02-job-detail-view`; this
+   *  says why anyone queued it (spec 02). */
+  description: string | null;
 }
 
 export interface DiscoveredProject {
@@ -41,6 +44,29 @@ function specTitle(dir: string): string | null {
   return m[1].trim().replace(/\s*-\s*Description$/i, "");
 }
 
+// The prose under `## Description` — the section every 1-description.md
+// the templates produce has, and the one a reader currently leaves the
+// dashboard to read. No markdown parser: the section runs to the next
+// heading or the next `---`, and that is the whole rule.
+export function specDescription(dir: string): string | null {
+  const desc = join(dir, "1-description.md");
+  if (!existsSync(desc)) return null;
+  let text: string;
+  try {
+    text = readFileSync(desc, "utf-8");
+  } catch {
+    return null;
+  }
+  const start = text.match(/^##\s+Description\s*$/m);
+  if (!start || start.index === undefined) return null;
+  const body = text.slice(start.index + start[0].length);
+  const end = body.search(/^(#{1,6}\s|---\s*$)/m);
+  return (end === -1 ? body : body.slice(0, end))
+    // The template's own note about the field is not part of it.
+    .replace(/^_\(This field can be edited manually[^\n]*\n?/gm, "")
+    .trim() || null;
+}
+
 function specFolders(root: string, archived: boolean): SpecRef[] {
   if (!existsSync(root)) return [];
   const out: SpecRef[] = [];
@@ -48,7 +74,7 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
     if (!/^\d+-/.test(entry)) continue;
     const dir = join(root, entry);
     if (!statSync(dir).isDirectory()) continue;
-    out.push({ folder: entry, dir, archived, title: specTitle(dir) });
+    out.push({ folder: entry, dir, archived, title: specTitle(dir), description: specDescription(dir) });
   }
   return out;
 }

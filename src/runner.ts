@@ -24,7 +24,16 @@ export interface SpawnResult {
   pgid: number;
 }
 
-export type Spawner = (job: Job, step: WorkflowStep, resultFile: string) => SpawnResult;
+// The session id and the stream file are decided HERE and handed down,
+// not learned from the result afterwards: by the time a result exists
+// the step is over, and there is nothing left to watch.
+export type Spawner = (
+  job: Job,
+  step: WorkflowStep,
+  resultFile: string,
+  sessionId: string,
+  streamFile: string,
+) => SpawnResult;
 
 export interface StepOutcome {
   ok: boolean;
@@ -54,6 +63,9 @@ export interface RunnerOptions {
   clearResult?: (path: string) => void;
   now: () => string;
   today: () => string;
+  /** The session id a step will run under. Injected like the clock, so a
+   *  test can assert on the id it chose rather than on "some string". */
+  newSessionId?: () => string;
   /** Every ENDING is announced: a gate, a finish, a stop, a failure. A
    *  job that parked at 02:00 must not wait for someone to open the
    *  page. Injected, so the tests spawn nothing. */
@@ -133,13 +145,20 @@ export class Runner {
     }
 
     const resultFile = `${this.o.resultDir}/${job.id}.json`;
+    // One id per STEP, not per job: two steps of the same job are two
+    // separate claude sessions, and reusing an id would make the live
+    // panel follow the wrong one.
+    const streamFile = `${this.o.resultDir}/${job.id}.stream.jsonl`;
+    const sessionId = (this.o.newSessionId ?? (() => crypto.randomUUID()))();
     this.o.clearResult?.(resultFile);
-    const { pid, pgid } = this.o.spawn(job, step, resultFile);
+    const { pid, pgid } = this.o.spawn(job, step, resultFile, sessionId, streamFile);
     this.o.store.update(job.id, {
       state: "running",
       pid,
       pgid,
       resultFile,
+      sessionId,
+      streamFile,
       startedAt: job.startedAt ?? this.o.now(),
       error: undefined,
     });
@@ -162,6 +181,7 @@ export class Runner {
       this.o.store.update(job.id, {
         state: "interrupted",
         finishedAt: this.o.now(),
+        sessionId: undefined,
         error: "the run vanished without leaving a result",
       });
     }
@@ -179,6 +199,7 @@ export class Runner {
         this.o.store.update(job.id, {
           state: "interrupted",
           finishedAt: this.o.now(),
+          sessionId: undefined,
           error: "the server restarted while this step was running, and it left no result",
         });
       }
@@ -212,7 +233,10 @@ export class Runner {
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason,
         subtype: outcome.subtype,
-        sessionId: outcome.sessionId,
+        // What the run reported, or failing that the id we gave it — a
+        // step whose result carried no session was still run under one.
+        sessionId: outcome.sessionId ?? job.sessionId,
+        streamFile: job.streamFile,
         at: this.o.now(),
       },
     ];
@@ -222,6 +246,9 @@ export class Runner {
       branchUrl: outcome.branchUrl ?? job.branchUrl,
       pid: undefined,
       pgid: undefined,
+      // The step is over: nothing is live under this id any more, and a
+      // page that kept showing it would say the job is still working.
+      sessionId: undefined,
     };
 
     // A cap or the clock ending a run is `stopped` — never `failed`.

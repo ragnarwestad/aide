@@ -226,6 +226,16 @@ table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882;
 table.jobs .speccell { font-weight: 600; }
 table.jobs .num { text-align: right; font-variant-numeric: tabular-nums; }
 table.jobs .empty { padding: 1.2rem 0; }
+/* One job, in full: facts on the left, values on the right. */
+table.facts { width: auto; margin: 0.6rem 0 1rem; }
+table.facts td { padding: 0.15rem 1rem 0.15rem 0; }
+table.facts .label { color: #777; font-weight: 600; white-space: nowrap; }
+table.facts .pips { display: inline-flex; margin: 0 0 0 0.5rem; vertical-align: middle; }
+.specdesc { white-space: pre-wrap; max-width: 46rem; }
+ul.activity { list-style: none; margin: 0.3rem 0; padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
+ul.activity li { padding: 0.12rem 0; border-bottom: 1px solid #8882;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pips { display: flex; gap: 3px; margin-top: 0.3rem; }
 .pip { width: 14px; height: 4px; border-radius: 2px; background: #8884; }
 .pip.past { background: #22c55e99; }
@@ -396,6 +406,10 @@ export interface QueueTarget {
   project: string;
   specFolder: string;
   title?: string;
+  /** What the spec is about, from `## Description` in 1-description.md.
+   *  Shown on the job page, so a reader stops leaving the dashboard to
+   *  find out what a job called `02-job-detail-view` actually is. */
+  description?: string;
   phase?: string;
   percent?: number;
   /** Steps this spec has already had. Marked, never forbidden. */
@@ -556,7 +570,12 @@ function enqueueForm(opts: QueuePageOptions): string {
     `stop for approval between steps</label>` +
     `<button type="submit">Queue it</button></form>` +
     `<p class="specinfo" id="specinfo">${first ? specSummary(first) : ""}</p>` +
-    `<script type="application/json" id="targetdata">${JSON.stringify(opts.targets).replace(/</g, "\\u003c")}</script>` +
+    // Without the descriptions: this blob only feeds the one-line spec
+    // summary, and every spec's full prose would be several pages of
+    // markup nobody on this page reads.
+    `<script type="application/json" id="targetdata">${JSON.stringify(
+      opts.targets.map(({ description: _drop, ...t }) => t),
+    ).replace(/</g, "\\u003c")}</script>` +
     `</section>`
   );
 }
@@ -609,7 +628,12 @@ function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): str
   return rows
     .map((r) => {
       const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
-      const spec = r.branchUrl ? `<a href="${esc(r.branchUrl)}">${esc(r.specFolder)}</a>` : esc(r.specFolder);
+      // The spec name is the way IN to the job: what it is, every step it
+      // has run, and what it is doing now. The diff link moves beside it
+      // rather than being replaced by it — nothing a reader uses today
+      // disappears.
+      const spec = `<a href="/queue/${esc(r.id)}">${esc(r.specFolder)}</a>`;
+      const diff = r.branchUrl ? ` <a class="small" href="${esc(r.branchUrl)}">diff</a>` : "";
       const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
       const steps = r.steps
         .map((s, i) => {
@@ -619,7 +643,7 @@ function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): str
         .join("");
       return (
         `<tr class="${done ? "archived" : "active"}">` +
-        `<td><div class="speccell">${spec}</div><div class="muted small">${esc(r.project)}</div></td>` +
+        `<td><div class="speccell">${spec}${diff}</div><div class="muted small">${esc(r.project)}</div></td>` +
         `<td><div>${esc(step)}</div><div class="pips">${steps}</div>` +
         (r.model ? `<div class="muted small">${esc(r.model)}</div>` : "") +
         `</td>` +
@@ -630,6 +654,144 @@ function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): str
       );
     })
     .join("");
+}
+
+// --- one job, in full (spec 02) ---------------------------------------------
+
+export interface JobStepResultView {
+  step?: string;
+  ok: boolean;
+  costUsd: number;
+  costMeasured: boolean;
+  terminalReason: string;
+  subtype?: string;
+  sessionId?: string;
+  at: string;
+}
+
+export interface JobLiveView {
+  state: string;
+  subagents: number | null;
+  costUsd: number | null;
+  /** False when claude-usage could not be reached at all — the page says
+   *  "unknown" rather than pretending the run is idle. */
+  enriched: boolean;
+}
+
+export interface JobDetailView extends QueueRowView {
+  /** The spec's H1 and its `## Description` prose. */
+  title?: string;
+  description?: string;
+  finishedAt?: string;
+  sessionId?: string;
+  results: JobStepResultView[];
+  /** The running step's session, when there is one to look up. */
+  live?: JobLiveView | null;
+  /** Already-escaped lines from `parse-stream.ts`. */
+  activity?: string[];
+}
+
+function labelled(rows: [string, string][]): string {
+  return (
+    `<table class="facts"><tbody>` +
+    rows.map(([k, v]) => `<tr><td class="label">${esc(k)}</td><td>${v}</td></tr>`).join("") +
+    `</tbody></table>`
+  );
+}
+
+function money(n: number | null | undefined): string {
+  return typeof n === "number" ? `$${n.toFixed(2)}` : "–";
+}
+
+function stepResults(results: JobStepResultView[]): string {
+  // /queue shows one row per JOB, so a three-step job shows one line and
+  // its finished steps are invisible — even though every one of them is
+  // recorded with its cost, its session and how it ended.
+  if (results.length === 0) return `<p class="muted">No step has finished yet.</p>`;
+  const rows = results
+    .map(
+      (r) =>
+        `<tr><td>${esc(r.step ?? "–")}</td>` +
+        `<td>${r.ok ? "ok" : esc(r.terminalReason || "failed")}</td>` +
+        `<td class="num">${money(r.costUsd)}${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
+        `<td>${esc(r.terminalReason)}</td>` +
+        `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
+        `<td class="muted small">${esc(r.at)}</td></tr>`,
+    )
+    .join("");
+  return (
+    `<table><thead><tr><th>Step</th><th>Outcome</th><th class="num">Cost</th>` +
+    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}</tbody></table>`
+  );
+}
+
+// Server-rendered /queue/<id> in the site's layout. Poll-and-refresh
+// like every other page here — no new transport for one panel.
+export function renderJobDetailPage(
+  job: JobDetailView,
+  generatedAt: string,
+  entries: NavEntry[],
+  now = Date.now(),
+): string {
+  const pips = job.steps
+    .map((s, i) => {
+      const cls = i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo";
+      return `<span class="pip ${cls}" title="${esc(s)}"></span>`;
+    })
+    .join("");
+  const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1] ?? "–";
+
+  const head =
+    `<p class="pagehead">${stateChip(job)}` +
+    (job.error ? ` <span class="muted small">${esc(job.error)}</span>` : "") +
+    `</p>` +
+    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "") +
+    (job.description ? `<p class="desc specdesc">${esc(job.description)}</p>` : "") +
+    labelled([
+      ["Project", esc(job.project)],
+      ["Spec", esc(job.specFolder)],
+      ["Step", `${esc(step)}<span class="pips">${pips}</span>`],
+      ["Model", esc(job.model ?? "as configured")],
+      ["Cost so far", money(job.spentUsd)],
+      ["Started", relTime(job.startedAt ?? job.createdAt, now)],
+      ...(job.branchUrl
+        ? ([["Work", `<a href="${esc(job.branchUrl)}">${esc(job.branchUrl)}</a>`]] as [string, string][])
+        : []),
+    ]);
+
+  // Only while a step is actually running: a finished job has no session
+  // to follow, and a panel that still showed one would read as "working".
+  const live =
+    job.state !== "running"
+      ? ""
+      : `<h2>Live right now</h2>` +
+        (job.live
+          ? labelled([
+              ["State", esc(job.live.state)],
+              ["Subagents", job.live.subagents === null ? "–" : String(job.live.subagents)],
+              ["Cost so far", money(job.live.costUsd)],
+              ["Session", esc(job.sessionId ? job.sessionId.slice(0, 8) : "–")],
+            ]) +
+            (job.live.enriched
+              ? ""
+              : `<p class="muted small">claude-usage is unreachable — liveness, subagents and cost are unknown right now.</p>`)
+          : `<p class="muted">unknown — no session is linked to this step yet.</p>`);
+
+  const activity =
+    `<h2>What it has been doing</h2>` +
+    (job.activity && job.activity.length > 0
+      ? `<ul class="activity">${job.activity.map((a) => `<li>${a}</li>`).join("")}</ul>`
+      : `<p class="muted">Nothing has been captured from this run yet.</p>`);
+
+  const body =
+    `<p class="intro"><a href="/queue">← all jobs</a></p>\n` +
+    head +
+    live +
+    activity +
+    `<h2>Steps run</h2>` +
+    stepResults(job.results);
+
+  return pageShell(job.specFolder, entries, "/queue", body, generatedAt, 10);
 }
 
 // Server-rendered /queue page in the site's layout (spec 81). No JS:

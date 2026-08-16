@@ -7,7 +7,9 @@
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import {
+  closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
@@ -18,11 +20,14 @@ import { parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import { QueueStore, mergeQueueDefaults, type Job, type QueueDefaults, type ProjectResolver } from "./queue.ts";
 import { Runner } from "./runner.ts";
+import { summarizeStream } from "./parse-stream.ts";
 import {
   navEntries,
+  renderJobDetailPage,
   renderLivePage,
   renderQueuePage,
   renderQueueRows,
+  type JobDetailView,
   type NavEntry,
   type ProjectView,
   type QueueRowView,
@@ -194,6 +199,38 @@ function stepsAlreadyDone(specDir: string, percent: number | undefined): string[
   return done;
 }
 
+// The tail of a file, without reading the rest of it. A 25-minute
+// implement run's transcript is not something a page render should ever
+// pull into memory whole — and the tail is the part that answers "what
+// is it doing". The first line of the window is usually cut in half;
+// parse-stream drops what does not parse, so it costs nothing.
+const STREAM_TAIL_BYTES = 256 * 1024;
+
+function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {
+  let fd: number | null = null;
+  try {
+    fd = openSync(path, "r");
+    const size = fstatSync(fd).size;
+    const start = Math.max(0, size - maxBytes);
+    const length = size - start;
+    if (length === 0) return "";
+    const buf = Buffer.alloc(length);
+    readSync(fd, buf, 0, length, start);
+    const text = buf.toString("utf-8");
+    return start > 0 ? text.slice(text.indexOf("\n") + 1) : text;
+  } catch {
+    return ""; // no transcript kept, or not readable — the page says so
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* already gone */
+      }
+    }
+  }
+}
+
 function serveStatic(siteDir: string, pathname: string): Response {
   const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
   const root = resolve(siteDir);
@@ -212,6 +249,8 @@ export function runnerArgv(
   step: string,
   resultFile: string,
   o: { runnerBin: string; projectRoot: string; push: string },
+  sessionId?: string,
+  streamFile?: string,
 ): string[] {
   const model = job.model[step];
   return [
@@ -226,6 +265,11 @@ export function runnerArgv(
     "--push", o.push,
     "--pull",
     ...(model ? ["--model", model] : []),
+    // Chosen by the runner BEFORE the spawn, so the queue can watch the
+    // session while the step runs instead of learning it from a result
+    // that only exists once the step is over.
+    ...(sessionId ? ["--session-id", sessionId] : []),
+    ...(streamFile ? ["--stream-file", streamFile] : []),
     // Every other repo this job said it would touch, by name, resolved
     // against the same root the primary project comes from.
     ...(job.extraProjects ?? []).flatMap((p) => ["--extra-project-dir", join(o.projectRoot, p)]),
@@ -267,6 +311,7 @@ export function createServer(opts: ServerOptions) {
             project: p.name,
             specFolder: s.folder,
             title: s.title ?? undefined,
+            description: s.description ?? undefined,
             phase: status?.phase ?? undefined,
             percent: status?.progress?.percent,
             // Two sources, union: what the files show, and what the
@@ -311,14 +356,21 @@ export function createServer(opts: ServerOptions) {
         resultDir: opts.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
         now: () => new Date().toISOString(),
         today: () => new Date().toISOString().slice(0, 10),
-        spawn: (job, step, resultFile) => {
+        spawn: (job, step, resultFile, sessionId, streamFile) => {
           mkdirSync(dirname(resultFile), { recursive: true });
           const proc = Bun.spawn({
-            cmd: runnerArgv(job, step, resultFile, {
-              runnerBin: opts.queueRunnerBin!,
-              projectRoot: opts.queueProjectRoot ?? "",
-              push: opts.queuePush ?? "branch",
-            }),
+            cmd: runnerArgv(
+              job,
+              step,
+              resultFile,
+              {
+                runnerBin: opts.queueRunnerBin!,
+                projectRoot: opts.queueProjectRoot ?? "",
+                push: opts.queuePush ?? "branch",
+              },
+              sessionId,
+              streamFile,
+            ),
             detached: true,
             // stdout is ignored (the result FILE is the contract), but
             // stderr goes to a per-job log: when the runner died
@@ -366,7 +418,14 @@ export function createServer(opts: ServerOptions) {
   timer?.unref?.();
 
   const queueToken = opts.queueToken;
-  const isQueuePath = (path: string) => path === "/queue" || path === "/api/queue" || path.startsWith("/api/queue/");
+  // `/queue/<id>` joins the guarded set HERE, never as a special case
+  // further down: a read route outside the guard is exactly the silent
+  // bypass this check exists to prevent.
+  const isQueuePath = (path: string) =>
+    path === "/queue" ||
+    path === "/api/queue" ||
+    path.startsWith("/api/queue/") ||
+    path.startsWith("/queue/");
 
   // The WHOLE queue surface is behind the token, read routes included:
   // a token that a page hands to anyone who can load the page is not a
@@ -566,7 +625,44 @@ export function createServer(opts: ServerOptions) {
         : new Response(null, { status: 303, headers: { location: "/queue" } });
     }
 
+    // One job, in full: what it IS (the spec's title and description),
+    // every step it has already run, and — while a step is running —
+    // what that session is doing. Deliberately AFTER the approve/cancel
+    // match above, so the new route cannot swallow those.
+    const detail = path.match(/^\/(api\/)?queue\/([A-Za-z0-9-]+)$/);
+    if (detail) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const [, api, id] = detail;
+      const job = queue.get(id!);
+      if (!job) {
+        return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });
+      }
+      if (api) return json({ generatedAt: new Date().toISOString(), job });
+      const html = renderJobDetailPage(await jobDetailView(job), new Date().toISOString(), nav());
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
     return new Response("not found", { status: 404 });
+  }
+
+  async function jobDetailView(job: Job): Promise<JobDetailView> {
+    const target = targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
+    // The step running now, or failing that the last one that ran: a
+    // reader opening a finished job still wants to see what it did.
+    const streamFile = job.streamFile ?? job.results[job.results.length - 1]?.streamFile;
+    // Degrade, never throw: an unreachable claude-usage leaves the rest
+    // of the page intact and says the session is unknown.
+    const live = job.state === "running" && job.sessionId ? await enricher.lookup(job.sessionId) : null;
+    return {
+      ...jobRow(job),
+      title: target?.title,
+      description: target?.description,
+      finishedAt: job.finishedAt,
+      sessionId: job.sessionId,
+      results: job.results,
+      live,
+      activity: streamFile ? summarizeStream(tailFile(streamFile)) : [],
+    };
   }
 
   return {
