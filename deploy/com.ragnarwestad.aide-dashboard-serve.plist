@@ -28,6 +28,10 @@
     <string>/Users/ragnarwestad/aide-dashboard/aide-queue.json</string>
     <string>--queue-projects</string>
     <string>aide,aide-dashboard</string>
+    <string>--runner-bin</string>
+    <string>/Users/ragnarwestad/.local/bin/aide-run-spec</string>
+    <string>--result-dir</string>
+    <string>/Users/ragnarwestad/aide-dashboard/jobs</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/ragnarwestad/develop/aide-dashboard</string>

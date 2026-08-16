@@ -7,14 +7,15 @@
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, normalize, resolve, sep } from "node:path";
+import { dirname, join, normalize, resolve, sep } from "node:path";
 import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 import { QueueStore, type QueueDefaults, type ProjectResolver } from "./queue.ts";
+import { Runner } from "./runner.ts";
 import {
   navEntries,
   renderLivePage,
@@ -60,7 +61,12 @@ export interface ServerOptions {
   /** The allowlist. Empty or absent means no project may be queued. */
   queueProjects?: string[];
   queueDefaults?: QueueDefaults;
-  /** 81b sets this once a runner exists. */
+  /** Path to `aide-run-spec`. Without it the queue only stores jobs —
+   *  nothing is ever started, and the page says so. */
+  queueRunnerBin?: string;
+  /** Where each allowlisted project is checked out on this machine. */
+  queueProjectRoot?: string;
+  queueResultDir?: string;
   runnerAvailable?: boolean;
 }
 
@@ -178,6 +184,77 @@ export function createServer(opts: ServerOptions) {
     resolve: resolveProject,
   });
 
+  // The runner exists only when a binary is configured. Spawned
+  // DETACHED, in its own process group: measured on the mini, such a
+  // child survives `launchctl bootout`, so a redeploy does not kill a
+  // run — and the group is what SIGTERM must reach, since claude spawns
+  // children of its own.
+  const runner = opts.queueRunnerBin
+    ? new Runner({
+        store: queue,
+        projectDir: (project) => join(opts.queueProjectRoot ?? "", project),
+        runnerBin: opts.queueRunnerBin,
+        resultDir: opts.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
+        now: () => new Date().toISOString(),
+        today: () => new Date().toISOString().slice(0, 10),
+        spawn: (job, step, resultFile) => {
+          mkdirSync(dirname(resultFile), { recursive: true });
+          const model = job.model[step];
+          const proc = Bun.spawn({
+            cmd: [
+              opts.queueRunnerBin!,
+              "--project-dir", join(opts.queueProjectRoot ?? "", job.project),
+              "--command", step,
+              "--spec", job.specFolder,
+              "--budget-usd", String(job.budgetUsd),
+              "--timeout-sec", String(job.timeoutSec),
+              "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
+              "--result-file", resultFile,
+              "--pull",
+              ...(model ? ["--model", model] : []),
+            ],
+            detached: true,
+            stdio: ["ignore", "ignore", "ignore"],
+          });
+          proc.unref();
+          return { pid: proc.pid, pgid: proc.pid };
+        },
+        isAlive: (pid) => {
+          try {
+            process.kill(pid, 0);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        readResult: (path) => {
+          try {
+            return JSON.parse(readFileSync(path, "utf-8")) as unknown;
+          } catch {
+            return null;
+          }
+        },
+        clearResult: (path) => {
+          try {
+            rmSync(path, { force: true });
+          } catch {
+            /* nothing to clear */
+          }
+        },
+      })
+    : null;
+
+  // On boot, resolve every job left `running` by the last restart
+  // before anything new is started.
+  runner?.reconcile();
+  const timer = runner
+    ? setInterval(() => {
+        runner.poll();
+        runner.tick();
+      }, 2000)
+    : null;
+  timer?.unref?.();
+
   const queueToken = opts.queueToken;
   const isQueuePath = (path: string) => path === "/queue" || path === "/api/queue" || path.startsWith("/api/queue/");
 
@@ -197,7 +274,14 @@ export function createServer(opts: ServerOptions) {
       req.headers.get("x-aide-token") ??
       url.searchParams.get("token") ??
       cookieValue(req.headers.get("cookie"), "aide_token");
-    return tokenMatches(provided, queueToken) ? null : new Response("unauthorized", { status: 401 });
+    if (tokenMatches(provided, queueToken)) return null;
+    return new Response(
+      "unauthorized\n\n" +
+        "The queue needs its token. Open /queue?token=<the token> once and the\n" +
+        "browser keeps it in a cookie; API callers send it as X-Aide-Token.\n" +
+        "The token lives in the file this server was started with.\n",
+      { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } },
+    );
   }
 
   const server = Bun.serve({
@@ -275,7 +359,7 @@ export function createServer(opts: ServerOptions) {
     if (path === "/queue") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const html = renderQueuePage(queue.list().map(jobRow), new Date().toISOString(), nav(), {
-        runnerAvailable: opts.runnerAvailable ?? false,
+        runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: targets(),
       });
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
@@ -305,6 +389,7 @@ export function createServer(opts: ServerOptions) {
       }
       const result = queue.enqueue(raw);
       if (!result.ok) return json({ error: result.error }, 400);
+      runner?.tick();
       return wantsJson
         ? json({ ok: true, job: result.job })
         : new Response(null, { status: 303, headers: { location: "/queue" } });
@@ -317,13 +402,22 @@ export function createServer(opts: ServerOptions) {
       const job = queue.get(id);
       if (!job) return json({ error: "no such job" }, 404);
       if (verb === "cancel") {
-        // 81b also kills the running process group; here the state is
-        // the whole of it.
+        // SIGTERM to the GROUP, never a bare pid: claude spawns
+        // children, and a kill that only reaches the parent is not a
+        // bound.
+        if (job.pgid !== undefined) {
+          try {
+            process.kill(-job.pgid, "SIGTERM");
+          } catch {
+            /* already gone */
+          }
+        }
         queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
       } else {
         if (job.state !== "awaiting-approval") return json({ error: `cannot approve a ${job.state} job` }, 409);
         // Approving a gate releases the job back into the queue.
         queue.update(id, { state: "queued" });
+        runner?.tick();
       }
       return wantsJson
         ? json({ ok: true, job: queue.get(id) })
@@ -335,7 +429,10 @@ export function createServer(opts: ServerOptions) {
 
   return {
     port: server.port,
-    stop: () => server.stop(true),
+    stop: () => {
+      if (timer) clearInterval(timer);
+      server.stop(true);
+    },
   };
 }
 
@@ -354,6 +451,8 @@ function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--bind" && v) opts.bindHost = argv[++i];
     else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
     else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
+    else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
+    else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
     // The token is read from a FILE, never an argument: `ps` shows
     // arguments to every user on the machine.
     else if (a === "--token-file" && v) tokenFile = argv[++i];
@@ -373,7 +472,11 @@ function parseArgs(argv: string[]): ServerOptions {
       console.error(`cannot read ${tokenFile} — the queue stays off`);
     }
   }
-  if (root) opts.projectRoot = root;
+  if (root) {
+    opts.projectRoot = root;
+    // The checkouts and the manifests live under the same root here.
+    opts.queueProjectRoot = root;
+  }
   if (root) {
     const projects: ProjectView[] = discoverProjects(root).map((p) => ({
       name: p.name,
@@ -391,7 +494,8 @@ if (import.meta.main) {
     console.error(
       "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
         "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
-        "                     [--queue-mirror FILE] [--queue-projects a,b]",
+        "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
+        "                     [--runner-bin PATH] [--result-dir DIR]",
     );
     process.exit(2);
   }
