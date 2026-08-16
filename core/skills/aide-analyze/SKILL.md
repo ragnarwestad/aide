@@ -71,16 +71,25 @@ See `references/complexity-and-analysis.md` for detailed steps per level.
 ### Step 4: Update 2-analysis.md
 
 Write to `specs/XX-slug/2-analysis.md`. Follow the spec structure § 2-analysis.
-Include: Tracking info, affected files with file:line, complexity,
-API impact, test coverage, risk analysis, estimate.
+Include: Tracking info, mapping, affected files with file:line, API impact,
+test coverage.
+
+Nothing that judges the solution goes here — complexity, estimate and risk
+analysis belong to 3-solution.md (spec structure § Separation of content).
 
 ### Step 5: Create the implementation plan (3-solution.md)
 
 Write to `specs/XX-slug/3-solution.md`. Follow the spec structure § 3-solution.
 
+**Scope:** the files to change, the complexity grade with the factors behind
+it, and the estimate for manual and AI-assisted development.
+
 **Behavior delta:** state what the chosen solution ADDS / MODIFIES / REMOVES
 in behavior, relative to how the system works today — not just which files
-change (that is the analysis's scope).
+change (those are listed under Scope).
+
+**Risk analysis:** the risks the chosen solution carries, each with
+consequence, probability and mitigation.
 
 **Acceptance criteria:** testable given/when/then scenarios. Each criterion
 must be verifiable by a test — if you cannot phrase the test, the criterion

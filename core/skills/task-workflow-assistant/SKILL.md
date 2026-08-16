@@ -24,7 +24,7 @@ effort: high
 
 **Content:**
 - JIRA data (title, description, acceptance criteria)
-- Scope (what will be done, what will NOT be done)
+- The problem as reported
 - Prerequisites and dependencies
 
 **Structure:** Follow the `spec structure` § 1-description
@@ -32,9 +32,8 @@ effort: high
 ### 2. analysis.md
 
 **Content:**
+- Mapping (how the analysis was performed)
 - Affected files (with **file:line** references)
-- Complexity (simple/medium/complex)
-- Risk analysis
 - API impact (frontend ↔ backend)
 
 **Structure:** Follow the `spec structure` § 2-analysis
@@ -55,10 +54,12 @@ effort: high
 ### 3. solution.md
 
 **Content:**
+- Scope (files to change, complexity, estimate)
 - TDD-based implementation plan
 - Step 0: Write tests (RED phase)
 - Steps 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
+- Risk analysis
 - Each step: concrete, testable, with time estimate
 
 **Structure:** Follow the `spec structure` § 3-solution

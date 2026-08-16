@@ -24,6 +24,10 @@ class TestAideAnalyserJira:
         # Simulate analysis update
         analyse_content = """# Analysis: PROJ-1234
 
+## Mapping
+
+Grepped for the validation helpers, then read each caller.
+
 ## Affected files
 
 ### Frontend
@@ -32,29 +36,16 @@ class TestAideAnalyserJira:
 
 ### Backend
 - `com/example/api/UserController.kt:78` - Must update DTO
-
-## Complexity
-
-**Assessment:** Medium
-
-**Rationale:**
-- 3 files affected
-- Minor API changes
-- Estimated 4-6 hours
-
-## Risk analysis
-
-- Risk of regressions in existing validation
-- API change may affect other consumers
 """
         (jira_dir / "2-analysis.md").write_text(analyse_content)
 
         content = (jira_dir / "2-analysis.md").read_text()
 
-        # Verify required sections
+        # Verify required sections — complexity and risk belong to 3-solution
+        assert "## Mapping" in content
         assert "## Affected files" in content
-        assert "## Complexity" in content
-        assert "## Risk analysis" in content
+        assert "## Complexity" not in content
+        assert "## Risk analysis" not in content
 
     def test_analysis_includes_fil_linje_references(self, mock_workspace, monkeypatch):
         """Verify file:line references are included."""
@@ -155,26 +146,23 @@ class TestAideAnalyserTodo:
 
         analyse_content = """# Analysis: TODO-01
 
+## Mapping
+
+Read the component and its single test.
+
 ## Affected files
 
 - `src/components/Test.tsx:45`
-
-## Complexity
-
-**Assessment:** Simple
-
-## Risk analysis
-
-- Low risk
 """
         (todo_dir / "2-analysis.md").write_text(analyse_content)
 
         content = (todo_dir / "2-analysis.md").read_text()
 
         # Same required sections as JIRA
+        assert "## Mapping" in content
         assert "## Affected files" in content
-        assert "## Complexity" in content
-        assert "## Risk analysis" in content
+        assert "## Complexity" not in content
+        assert "## Risk analysis" not in content
 
 
 def _assess_complexity(affected_files: int, has_api_changes: bool, estimated_hours: float) -> str:

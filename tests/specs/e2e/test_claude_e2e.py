@@ -43,8 +43,7 @@ TEMPLATE_PLACEHOLDERS = [
 
 # Required sections in 2-analysis.md
 REQUIRED_SECTIONS_2_ANALYSE = [
-    "## Scope",
-    "## Complexity",
+    "## Mapping",
     "## Findings",
 ]
 
