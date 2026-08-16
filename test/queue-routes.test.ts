@@ -604,3 +604,71 @@ describe("a refused form post says so on the page", () => {
     expect(((await again.json()) as { error: string }).error).toContain("already");
   });
 });
+
+// A list that mixes what is happening now with everything that has ever
+// happened stops being a status view: the two 84 rows sat next to each
+// other, one done and one cancelled, and neither was the answer to "is
+// anything running?".
+describe("active work is separated from finished work", () => {
+  const row = (id: string, state: string): QueueRowView => ({
+    id,
+    project: "aide",
+    specFolder: `${id}-spec`,
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: state as QueueRowView["state"],
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T00:00:00Z",
+  });
+
+  const page = (rows: QueueRowView[]) =>
+    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [],
+    });
+
+  test("running and queued jobs sit above the finished ones", () => {
+    const html = page([row("a", "running"), row("b", "done"), row("c", "queued")]);
+    const active = html.indexOf("Active");
+    const recent = html.indexOf("Recent");
+    expect(active).toBeGreaterThan(-1);
+    expect(recent).toBeGreaterThan(active);
+    // The running job is in the first section, the done one in the second.
+    expect(html.indexOf("a-spec")).toBeGreaterThan(active);
+    expect(html.indexOf("a-spec")).toBeLessThan(recent);
+    expect(html.indexOf("b-spec")).toBeGreaterThan(recent);
+  });
+
+  test("with nothing running, the active section says so instead of vanishing", () => {
+    const html = page([row("b", "done")]);
+    expect(html).toContain("Active");
+    expect(html).toContain("Nothing running");
+  });
+
+  test("a job waiting for approval counts as active — it is what you came to look for", () => {
+    const html = page([row("a", "awaiting-approval")]);
+    expect(html.indexOf("a-spec")).toBeLessThan(html.indexOf("Recent"));
+    expect(html).not.toContain("Nothing running");
+  });
+
+  test("the finished list is capped, and says how many it left out", () => {
+    const html = page(Array.from({ length: 14 }, (_, i) => row(`j${i}`, "done")));
+    expect(html).toContain("j0-spec");
+    expect(html).toContain("j9-spec");
+    expect(html).not.toContain("j10-spec");
+    expect(html).toContain("4 older");
+  });
+
+  test("the partial refresh carries both sections, so neither is lost on a tick", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-aide-token": TOKEN, accept: "application/json" },
+      body: JSON.stringify(JOB),
+    });
+    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(rows).toContain("Active");
+    expect(rows).toContain("Recent");
+  });
+});

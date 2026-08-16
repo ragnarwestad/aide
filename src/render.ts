@@ -202,6 +202,9 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
   border-radius: 6px; border: 1px solid #8886; background: #8882; color: inherit;
   cursor: pointer; }
 .enqueue button:hover { background: #8883; }
+.listhead { font-size: 0.78rem; font-weight: 700; color: #888; margin: 1.6rem 0 0.4rem;
+  text-transform: uppercase; letter-spacing: 0.07em; }
+.listnote { margin: 0.4rem 0 0; }
 .refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
   background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
 .specinfo { margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px solid #8883;
@@ -545,12 +548,42 @@ export function specSummary(t: QueueTarget): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
+const ACTIVE_STATES = new Set(["queued", "running", "awaiting-approval"]);
+const RECENT_SHOWN = 10;
+
 // The rows alone, so the page can refresh its table from script
 // without touching a form someone is half-way through filling in.
+//
+// Split in two, because one list answering both "is anything running?"
+// and "what has this machine ever done?" answers neither: the two rows
+// for spec 84 sat side by side, one done and one cancelled, and the
+// question you actually had was whether anything was running.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
-  if (rows.length === 0) {
-    return `<tr><td colspan="6" class="empty muted">Nothing queued. Pick a spec above and press “Queue it”.</td></tr>`;
-  }
+  const active = rows.filter((r) => ACTIVE_STATES.has(r.state));
+  const finished = rows.filter((r) => !ACTIVE_STATES.has(r.state));
+  const hidden = Math.max(0, finished.length - RECENT_SHOWN);
+
+  const table = (heading: string, body: string, note = "") =>
+    `<h3 class="listhead">${heading}</h3>${note}` +
+    `<table class="jobs"><thead><tr><th>Spec</th><th>Step</th><th>State</th>` +
+    `<th>Started</th><th class="num">Cost</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+
+  const empty = (text: string) => `<tr><td colspan="6" class="empty muted">${text}</td></tr>`;
+
+  return (
+    table(
+      "Active",
+      active.length ? jobRows(active, opts, now) : empty("Nothing running. Pick a spec above and press “Queue it”."),
+    ) +
+    table(
+      "Recent",
+      finished.length ? jobRows(finished.slice(0, RECENT_SHOWN), opts, now) : empty("Nothing has finished yet."),
+      hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "run" : "runs"} not shown.</p>` : "",
+    )
+  );
+}
+
+function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): string {
   return rows
     .map((r) => {
       const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
@@ -585,10 +618,9 @@ export function renderQueuePage(
   entries: NavEntry[],
   opts: QueuePageOptions,
 ): string {
-  const table =
-    `<table class="jobs"><thead><tr><th>Spec</th><th>Step</th><th>State</th>` +
-    `<th>Started</th><th class="num">Cost</th><th></th></tr></thead>` +
-    `<tbody id="jobrows">${renderQueueRows(rows, opts)}</tbody></table>`;
+  // One container, two tables inside it: the script swaps the
+  // container's contents, so a refresh can never drop a section.
+  const table = `<div id="jobrows">${renderQueueRows(rows, opts)}</div>`;
   const notice = opts.runnerAvailable
     ? ""
     : `<p class="muted">No runner is installed on this machine yet (slice 81b) — ` +
@@ -599,7 +631,7 @@ export function renderQueuePage(
     `its own budget and a wall clock. A job that hits a cap is <em>stopped</em>, ` +
     `not failed.</p>\n` +
     enqueueForm(opts) +
-    `\n<h2>Jobs</h2>\n` +
+    `\n` +
     table;
   return pageShell("Queue", entries, "/queue", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,
