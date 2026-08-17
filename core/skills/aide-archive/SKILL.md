@@ -55,12 +55,16 @@ something behind.
 Otherwise, propose where each item belongs — the project's docs,
 `CLAUDE.md`/rules, or a README — with the concrete text to add.
 
-Then check `AIDE_HEADLESS` (`echo "${AIDE_HEADLESS:-}"`) before deciding
-how to close the loop:
+Then decide how to close the loop. **If the prompt said the run is
+headless, or `AIDE_HEADLESS` is set, nobody can answer** — do not ask.
+The prompt is the reliable signal of the two: an archive run on
+2026-08-17 was told to check the variable, grepped the repo for it while
+reading the spec that introduced it, never checked its own, and stopped
+to ask a question no one could hear.
 
-- **Unset (interactive):** ask for confirmation, then write it — the
-  judgment call is worth having when someone can make it.
-- **Set (headless — nobody is there to answer):** do NOT ask. Append the
+- **Someone is there (interactive):** ask for confirmation, then write
+  it — the judgment call is worth having when someone can make it.
+- **Nobody is there (headless):** do NOT ask. Append the
   proposal to `4-status.md` under a new `## Deferred documentation
   feedback` heading, one item per entry: the destination file and the
   exact text proposed. Then continue straight to Step 4.

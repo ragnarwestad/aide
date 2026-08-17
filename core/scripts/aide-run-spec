@@ -234,7 +234,17 @@ if [ -z "$claude_bin" ]; then
 fi
 [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 
-prompt="/aide-$command_name $spec_id"
+# The prompt SAYS the run is headless. AIDE_HEADLESS is still exported
+# (a shell step can read it), but the environment turned out to be the
+# wrong place to put a fact the model has to act on: it has to remember
+# to go and look. Measured 2026-08-17 — an archive run grepped the repo
+# for AIDE_HEADLESS while analysing the spec that introduced it, never
+# checked its own, stopped to ask a question nobody could answer, and
+# reported success. Put it where the model is already reading.
+prompt="/aide-$command_name $spec_id
+(This run is headless: no one is at a keyboard and no question can be
+answered. Never stop to ask for confirmation — decide, or write down
+what you would have asked, and finish the step.)"
 # stream-json, not json: `json` prints ONE object at the very end, so a
 # 25-minute run says nothing at all until it is over. stream-json emits
 # one event per line as it happens, and its last result event is the same
