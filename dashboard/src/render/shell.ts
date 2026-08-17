@@ -19,7 +19,7 @@ export function nav(entries: NavEntry[], currentPath: string): string {
   const lis = [
     link(overview),
     link({ label: "Live", path: "/live" }),
-    link({ label: "Queue", path: "/queue" }),
+    link({ label: "Specs", path: "/specs" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),
   ];
@@ -37,7 +37,7 @@ export function pageShell(
 ): string {
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
-  // filling in. /queue therefore refreshes its table from script and
+  // filling in. /specs therefore refreshes its table from script and
   // keeps the blunt refresh as the fallback for a browser that did not
   // run it.
   const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";

@@ -13,6 +13,7 @@ import {
   type JobDetailView,
   type Page,
   type ProjectView,
+  type QueuePageOptions,
   type QueueRowView,
 } from "../src/render.ts";
 
@@ -212,9 +213,9 @@ const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
 
 // Criterion 12: the row a reader actually watches is the way in.
 describe("the queue row links to the job (criterion 12)", () => {
-  test("the spec cell links to /queue/<id>", () => {
+  test("the spec cell links to /specs/<id>", () => {
     const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
-    expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
+    expect(html).toContain('<a href="/specs/job-1234">81-queue-and-runner</a>');
   });
 
   test("an existing branch link stays beside it, never replaced by it", () => {
@@ -222,7 +223,7 @@ describe("the queue row links to the job (criterion 12)", () => {
       runnerAvailable: true,
       targets: [],
     });
-    expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
+    expect(html).toContain('<a href="/specs/job-1234">81-queue-and-runner</a>');
     expect(html).toContain('href="https://example.test/compare"');
   });
 });
@@ -415,8 +416,8 @@ describe("renderJobDetailPage", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
     expect(html).not.toContain("<link ");
-    // The job page belongs to /queue, so that nav entry is the current one.
-    expect(html).toContain('<a class="current" href="/queue">Queue</a>');
+    // The job page belongs to /specs, so that nav entry is the current one.
+    expect(html).toContain('<a class="current" href="/specs">Specs</a>');
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -448,9 +449,9 @@ describe("the job page is split into tabs", () => {
 
   test("every tab is offered as a link back to this job", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toContain('href="/queue/job-1234?tab=overview"');
-    expect(html).toContain('href="/queue/job-1234?tab=activity"');
-    expect(html).toContain('href="/queue/job-1234?tab=steps"');
+    expect(html).toContain('href="/specs/job-1234?tab=overview"');
+    expect(html).toContain('href="/specs/job-1234?tab=activity"');
+    expect(html).toContain('href="/specs/job-1234?tab=steps"');
   });
 
   test("the open tab is marked, and it is the only one", () => {
@@ -535,7 +536,7 @@ describe("the job page is split into tabs", () => {
       NAV,
       { tab: "activity" },
     );
-    expect(html).toContain('href="/queue/job-1234?tab=activity"');
+    expect(html).toContain('href="/specs/job-1234?tab=activity"');
     expect(html).toContain("Nothing has been captured");
   });
 });
@@ -579,8 +580,8 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("newer", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('href="/queue/newer"');
-    expect(analyze).not.toContain('href="/queue/older"');
+    expect(analyze).toContain('href="/specs/newer"');
+    expect(analyze).not.toContain('href="/specs/older"');
     expect(analyze).toContain("2 attempts");
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
   });
@@ -643,8 +644,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     ]);
     expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
     expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel">/g)).toHaveLength(1);
+    // Approve/cancel is the SPEC's one action and belongs on the header.
+    // A phase line carries its own run form (spec 87) and nothing else.
     for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
-      expect(subRow(html, phase)).not.toContain("<form");
+      expect(subRow(html, phase)).not.toContain("/cancel");
+      expect(subRow(html, phase)).not.toContain("/approve");
     }
   });
 
@@ -657,6 +661,83 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "create")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["analyze", "review-plan", "implement", "archive", "create"]);
-    expect(subRow(html, "create")).toContain('href="/queue/j2"');
+    expect(subRow(html, "create")).toContain('href="/specs/j2"');
+  });
+});
+
+// --- spec 87: a phase runs from where it sits --------------------------------
+
+// The place where you can SEE that review-plan has not run was not the
+// place where you could run it. Now it is: every phase line carries the
+// one-step job it names, and the model to run it on.
+describe("a phase runs from its own line (criteria 1-6)", () => {
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "87-run-from-the-list", steps: [step], stepIndex: 0, state: "done", ...extra });
+
+  const rows = (list: QueueRowView[], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets: [], ...opts },
+      Date.parse("2026-08-17T12:00:00Z"),
+    );
+
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  test("the form posts the one step its line names, to the endpoint the top form uses", () => {
+    const html = rows([job("j1", "analyze")]);
+    const implement = subRow(html, "implement");
+    expect(implement).toContain('<form method="post" action="/api/queue"');
+    expect(implement).toContain('name="project" value="aide"');
+    expect(implement).toContain('name="specFolder" value="87-run-from-the-list"');
+    expect(implement).toContain('name="steps" value="implement"');
+    // One step per form: the analyze line must not offer to run implement.
+    expect(subRow(html, "analyze")).toContain('name="steps" value="analyze"');
+  });
+
+  test("a phase never run says Run; one that has says Rerun (criteria 1-2)", () => {
+    const html = rows([job("j1", "analyze")]);
+    expect(subRow(html, "analyze")).toContain(">Rerun<");
+    expect(subRow(html, "review-plan")).toContain(">Run<");
+  });
+
+  test("the line offers the configured models, and a default that changes nothing (criteria 3-4)", () => {
+    const html = rows([job("j1", "analyze")], {
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+    });
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain('name="model"');
+    expect(analyze).toContain('value="fable"');
+    expect(analyze).toContain('<option value="">');
+  });
+
+  test("with no model configured the line offers no dropdown at all", () => {
+    const html = rows([job("j1", "analyze")]);
+    expect(subRow(html, "analyze")).not.toContain('name="model"');
+  });
+
+  test("the token rides along when the page carries one", () => {
+    const html = rows([job("j1", "analyze")], { token: "s3cret" });
+    expect(subRow(html, "analyze")).toContain('name="token" value="s3cret"');
+  });
+
+  test("a phase with an unfinished attempt is disabled; its siblings are not (criterion 5)", () => {
+    for (const state of ["queued", "running", "awaiting-approval"] as const) {
+      const html = rows([
+        job("j1", "analyze", { state, startedAt: "2026-08-17T11:00:00Z" }),
+        job("j2", "implement", { state: "done", startedAt: "2026-08-17T10:00:00Z" }),
+      ], { modelChoices: [{ name: "fable", budgetUsd: 12 }] });
+      const analyze = subRow(html, "analyze");
+      expect(analyze).toContain("<button type=\"submit\" disabled>");
+      // The dropdown goes with it: a choice you cannot act on is a trap.
+      expect(analyze).toContain('<select name="model" disabled>');
+      expect(subRow(html, "implement")).not.toContain("disabled");
+      expect(subRow(html, "archive")).not.toContain("disabled");
+    }
+  });
+
+  test("once the attempt finishes the same line is enabled again (criterion 6)", () => {
+    const html = rows([job("j1", "analyze", { state: "done" })]);
+    expect(subRow(html, "analyze")).not.toContain("disabled");
   });
 });

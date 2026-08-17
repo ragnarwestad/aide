@@ -2,8 +2,8 @@
 //
 //   render/site.ts        index.html + one page per project (static)
 //   render/live.ts        /live
-//   render/queue-list.ts  /queue — the form and the job list
-//   render/job-page.ts    /queue/<id> — one job, in full
+//   render/queue-list.ts  /specs — the form and the spec list
+//   render/job-page.ts    /specs/<id> — one job, in full
 //   render/shell.ts       the frame all four sit in
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting

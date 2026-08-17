@@ -1,6 +1,7 @@
-// /queue: the form that queues a job, and the one list of every spec
+// /specs: the form that starts a run, and the one list of every spec
 // this machine has run — cut and ordered on demand, one line per spec
-// with its workflow phases beneath it.
+// with its workflow phases beneath it, each phase runnable from where
+// it sits.
 //
 // The page carries browser code (compiled from queue-client.ts) so the
 // list can refresh without reloading a form someone is half-way through
@@ -67,6 +68,12 @@ export interface QueueFilter {
 
 const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
+// Every form on this page posts to the guarded surface, so every one of
+// them carries the token when the page has one. Written once: a form
+// that forgot it would be refused with a 401 the reader cannot act on.
+const tokenField = (token?: string): string =>
+  token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+
 // A step the spec has already had is marked done and left unticked;
 // the first one it has NOT had is ticked, because that is what you
 // almost always came to run. Nothing is disabled: re-analyzing after
@@ -95,9 +102,9 @@ export function specSummary(t: QueueTarget): string {
 
 function enqueueForm(opts: QueuePageOptions): string {
   if (opts.targets.length === 0) {
-    return `<p class="muted">No project on this machine has both a manifest and the queue's permission.</p>`;
+    return `<p class="muted">No project on this machine has both a manifest and permission to run.</p>`;
   }
-  const hidden = opts.token ? `<input type="hidden" name="token" value="${esc(opts.token)}">` : "";
+  const hidden = tokenField(opts.token);
   const options = opts.targets
     .map((t) => {
       const value = `${t.project}/${t.specFolder}`;
@@ -154,7 +161,7 @@ function enqueueForm(opts: QueuePageOptions): string {
       : "";
   return (
     `<section class="panel">` +
-    `<h2>Queue a job</h2>\n` +
+    `<h2>Run a spec</h2>\n` +
     refusal +
     `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
     `<label class="field"><span class="fieldlabel">Spec</span>` +
@@ -165,7 +172,7 @@ function enqueueForm(opts: QueuePageOptions): string {
     extraField +
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>` +
-    `<button type="submit">Queue it</button></form>` +
+    `<button type="submit">Run it</button></form>` +
     `<p class="specinfo" id="specinfo">${first ? specSummary(first) : ""}</p>` +
     // Without the descriptions: this blob only feeds the one-line spec
     // summary, and every spec's full prose would be several pages of
@@ -316,7 +323,7 @@ function queueHref(f: QueueFilter, patch: QueueFilter): string {
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
-  return esc(q ? `/queue?${q}` : "/queue");
+  return esc(q ? `/specs?${q}` : "/specs");
 }
 
 function filterBar(groups: SpecGroup[], f: QueueFilter): string {
@@ -398,7 +405,7 @@ function actionForm(r: QueueRowView, token?: string): string {
   const action =
     r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
   if (!action) return "–";
-  const hidden = token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+  const hidden = tokenField(token);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/${action}">${hidden}` +
     `<button type="submit">${action === "approve" ? "Approve" : "Cancel"}</button></form>`
@@ -422,7 +429,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string 
   // The spec name is the way IN: the job it points at is whatever is
   // running, or the last thing that happened. The diff link sits beside
   // it rather than replacing it — nothing a reader uses today disappears.
-  const spec = `<a href="/queue/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`;
+  const spec = `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`;
   const branch = g.branchOf;
   const diff = branch
     ? ` <a class="small" href="${esc(branch.branchUrl!)}">diff</a>${unmergedBadge(branch)}`
@@ -455,12 +462,12 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string 
 // One line per phase, in the workflow's own order, whether or not it has
 // happened. A phase nobody has run yet is the point of the fixed order:
 // it says what is still ahead without anyone counting rows.
-function phaseSubRows(g: SpecGroup, now: number): string {
+function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   return g.phases
     .map((p) => {
       const latest = p.attempts[0];
       const name = latest
-        ? `<a href="/queue/${esc(latest.id)}">${esc(p.step)}</a>`
+        ? `<a href="/specs/${esc(latest.id)}">${esc(p.step)}</a>`
         : `<span class="muted">${esc(p.step)}</span>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
@@ -478,14 +485,46 @@ function phaseSubRows(g: SpecGroup, now: number): string {
         `<td>${latest ? stateCell(latest) : `<span class="muted small">not run yet</span>`}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, "") : ""}</td>` +
-        `<td></td></tr>`
+        `<td>${runForm(g, p, opts)}</td></tr>`
       );
     })
     .join("");
 }
 
+// The line where you can SEE that review-plan has not run is the line
+// where you run it. One step, one job, posted to the endpoint the form
+// at the top already posts to — nothing new on the server.
+//
+// Model only. A gate cannot mean anything for a single-step job (the
+// runner only parks BETWEEN steps), and a run needing extra projects or
+// a tightened cap is a deliberate job, which is what the form is for.
+function runForm(g: SpecGroup, p: Phase, opts: QueuePageOptions): string {
+  // The backend refuses a step that is already queued or running; the
+  // button says so BEFORE the press rather than answering with a
+  // refusal. The 5-second refresh redraws these rows, so a phase that
+  // finishes gets its button back without anything else happening.
+  const busy = p.attempts.some(inFlight);
+  const off = busy ? " disabled" : "";
+  const hidden = tokenField(opts.token);
+  const models = opts.modelChoices ?? [];
+  const select = models.length
+    ? `<select name="model"${off}>` +
+      `<option value="">as configured</option>` +
+      models.map((m) => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("") +
+      `</select>`
+    : "";
+  return (
+    `<form method="post" action="/api/queue" class="rowrun">${hidden}` +
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `<input type="hidden" name="steps" value="${esc(p.step)}">` +
+    select +
+    `<button type="submit"${off}>${p.attempts.length ? "Rerun" : "Run"}</button></form>`
+  );
+}
+
 function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number): string {
-  return groups.map((g) => specHeadRow(g, opts, now) + phaseSubRows(g, now)).join("");
+  return groups.map((g) => specHeadRow(g, opts, now) + phaseSubRows(g, opts, now)).join("");
 }
 
 // The controls and the rows alone, so the page can refresh its table
@@ -511,7 +550,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
     : `<tr><td colspan="6" class="empty muted">` +
       (rows.length
         ? "No job matches this filter."
-        : "Nothing has run yet. Pick a spec above and press “Queue it”.") +
+        : "Nothing has run yet. Pick a spec above and press “Run it”.") +
       `</td></tr>`;
   return (
     filterBar(groups, f) +
@@ -535,13 +574,13 @@ export function renderQueuePage(
       `queued jobs stay queued, and nothing here spends money.</p>\n`;
   const body =
     notice +
-    `<p class="intro">Queued aide runs: one job at a time, every step bounded by ` +
-    `its own budget and a wall clock. A job that hits a cap is <em>stopped</em>, ` +
-    `not failed.</p>\n` +
+    `<p class="intro">aide runs on this machine: one job at a time, every step ` +
+    `bounded by its own budget and a wall clock. A job that hits a cap is ` +
+    `<em>stopped</em>, not failed.</p>\n` +
     enqueueForm(opts) +
     `\n` +
     table;
-  return pageShell("Queue", entries, "/queue", body, generatedAt, 10, {
+  return pageShell("Specs", entries, "/specs", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,
     script: opts.script,
   });

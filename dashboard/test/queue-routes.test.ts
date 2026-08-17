@@ -37,6 +37,8 @@ describe("no token configured", () => {
     const { base } = start();
     for (const [path, init] of [
       ["/queue", {}],
+      ["/specs", {}],
+      ["/specs/abc", {}],
       ["/api/queue", {}],
       ["/api/queue/abc/approve", { method: "POST" }],
       ["/api/queue/abc/cancel", { method: "POST" }],
@@ -59,9 +61,11 @@ describe("token configured", () => {
   test("a queue request without the token is 401", async () => {
     const { base } = start({ queueToken: TOKEN });
     expect((await fetch(`${base}/queue`)).status).toBe(401);
+    expect((await fetch(`${base}/specs`)).status).toBe(401);
     expect((await fetch(`${base}/api/queue`)).status).toBe(401);
     expect((await fetch(`${base}/api/queue`, { method: "POST", body: JSON.stringify(JOB) })).status).toBe(401);
     expect((await fetch(`${base}/queue?token=wrong`)).status).toBe(401);
+    expect((await fetch(`${base}/specs?token=wrong`)).status).toBe(401);
   });
 
   test("the spec 80 emitter route stays open — a 401 there would empty /live silently", async () => {
@@ -74,15 +78,15 @@ describe("token configured", () => {
     expect((await fetch(`${base}/live`)).status).toBe(200);
   });
 
-  test("GET /queue?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
+  test("GET /specs?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/queue?token=${TOKEN}`, { redirect: "manual" });
+    const res = await fetch(`${base}/specs?token=${TOKEN}`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Strict");
     const jar = cookie.split(";")[0];
-    expect((await fetch(`${base}/queue`, { headers: { cookie: jar } })).status).toBe(200);
+    expect((await fetch(`${base}/specs`, { headers: { cookie: jar } })).status).toBe(200);
   });
 
   test("the header works for API callers", async () => {
@@ -92,7 +96,7 @@ describe("token configured", () => {
     expect(await res.json()).toMatchObject({ jobs: [] });
   });
 
-  test("a form POST answers 303 to /queue; a JSON caller gets JSON", async () => {
+  test("a form POST answers 303 to /specs; a JSON caller gets JSON", async () => {
     const { base } = start({ queueToken: TOKEN });
     const form = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -101,7 +105,7 @@ describe("token configured", () => {
       body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
     });
     expect(form.status).toBe(303);
-    expect(form.headers.get("location")).toBe("/queue");
+    expect(form.headers.get("location")).toBe("/specs");
 
     const json = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -153,19 +157,186 @@ describe("token configured", () => {
   });
 });
 
-describe("GET /queue (HTML)", () => {
+// Spec 87: the page is about SPECS. That a queue orders the runs is an
+// implementation detail, and it stopped being the name a reader reads.
+// The old address keeps working: people bookmark this page, and the
+// token arrives in the query string of exactly such a bookmark.
+describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+
+  test("GET /queue redirects to /specs with the query string intact (criterion 7)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/queue?token=${TOKEN}&state=active&sort=cost`, {
+      ...auth,
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`/specs?token=${TOKEN}&state=active&sort=cost`);
+  });
+
+  test("GET /queue/<id> redirects to /specs/<id>, tab and all (criterion 8)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const res = await fetch(`${base}/queue/${made.job.id}?tab=steps`, { ...auth, redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`/specs/${made.job.id}?tab=steps`);
+  });
+
+  test("the renamed page says Specs in its nav, heading and title (criterion 9)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    expect(html).toContain("<title>Specs</title>");
+    expect(html).toContain("<h1>Specs</h1>");
+    expect(html).toContain('<a class="current" href="/specs">Specs</a>');
+    // Not one label left saying it either — the button and the form's
+    // heading were the other two places the retired word was read.
+    expect(html).not.toContain("Queue a job");
+    expect(html).not.toContain("Queue it");
+  });
+
+  // The whole page, with fixtures that carry no "queue" of their own:
+  // the check above cannot sweep for the word, because this machine's
+  // own spec 81 is CALLED `81-queue-and-runner`.
+  test("nothing a reader reads on the page says Queue (criterion 9)", () => {
+    const html = renderQueuePage(
+      [
+        {
+          id: "j1", project: "aide", specFolder: "87-run-from-the-list",
+          steps: ["analyze"], stepIndex: 0, state: "done", spentUsd: 1,
+          timeoutSec: 1200, createdAt: "2026-08-17T00:00:00Z",
+        },
+      ],
+      "2026-08-17T00:00:00Z",
+      [{ label: "Overview", path: "index.html" }],
+      { runnerAvailable: true, targets: [{ project: "aide", specFolder: "87-run-from-the-list" }] },
+    );
+    // Attribute values and the stylesheet are addresses and identifiers
+    // — `action="/api/queue"`, `class="enqueue"` — never read by anyone.
+    // What is left is the words on the page.
+    const read = html.replace(/<style>[\s\S]*?<\/style>/, "").replace(/="[^"]*"/g, "");
+    expect(read).not.toMatch(/queue/i);
+  });
+
+  test("the JSON surface is not renamed and no redirect swallows it (criterion 12)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
+    expect(made.status).toBe(200);
+    const id = ((await made.json()) as { job: { id: string } }).job.id;
+
+    const list = await fetch(`${base}/api/queue`, { ...auth, redirect: "manual" });
+    expect(list.status).toBe(200);
+    expect(((await list.json()) as { jobs: unknown[] }).jobs.length).toBe(1);
+
+    const one = await fetch(`${base}/api/queue/${id}`, { ...auth, redirect: "manual" });
+    expect(one.status).toBe(200);
+    expect(((await one.json()) as { job: { id: string } }).job.id).toBe(id);
+
+    const approve = await fetch(`${base}/api/queue/${id}/approve`, {
+      method: "POST", headers, redirect: "manual",
+    });
+    // A queued job cannot be approved — the same 409 as before the rename.
+    expect(approve.status).toBe(409);
+    const cancel = await fetch(`${base}/api/queue/${id}/cancel`, {
+      method: "POST", headers, redirect: "manual",
+    });
+    expect(cancel.status).toBe(200);
+  });
+});
+
+// The phase line is where you SEE that a step has not run; spec 87 makes
+// it where you run it. One step, one job, on the model the line picked.
+describe("running one phase from its own line (criteria 1-4, 11)", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+  const CHOICES = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: 1200,
+    permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  /** Exactly what the sub-row's form posts: no target, no gate, no caps. */
+  const postSubRow = (base: string, fields: Record<string, string>) =>
+    fetch(`${base}/api/queue`, {
+      method: "POST",
+      redirect: "manual",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams(fields).toString(),
+    });
+
+  test("the sub-row's fields queue that one step, on the model it picked (criteria 1-3)", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await postSubRow(base, {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "implement",
+      model: "fable",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      job: { steps: string[]; gateAfter: string[]; model: Record<string, string> };
+    };
+    expect(body.job.steps).toEqual(["implement"]);
+    expect(body.job.model).toEqual({ implement: "fable" });
+    // No gate control on the line, and none is meant: a one-step job has
+    // nothing to gate between.
+    expect(body.job.gateAfter).toEqual([]);
+  });
+
+  test("the default option queues no override at all (criterion 4)", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await postSubRow(base, {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "implement",
+      model: "",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    expect(body.job.model).toEqual({ implement: "opus" });
+    expect(body.job.budgetUsd).toBe(3);
+  });
+
+  test("the top form still offers all four steps — it is the way a spec starts (criterion 11)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(html).toContain(`<input type="checkbox" name="steps" value="${step}"`);
+    }
+  });
+
+  test("a spec nothing has ever run gets no row, so the form is its only way in (criterion 10)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    // Offered by the form's dropdown, but absent from the table.
+    expect(html).toContain('<option value="aide/81-queue-and-runner"');
+    expect(html).not.toContain('<tr class="spechead');
+  });
+});
+
+describe("GET /specs (HTML)", () => {
   test("layout, forms, labels, and the runner notice", async () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain("<nav>");
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form method="post"');
-    expect(html).toMatch(/<a class="current" href="\/queue"/);
+    expect(html).toMatch(/<a class="current" href="\/specs"/);
     // Every control says what it is: an unlabelled select next to some
     // checkboxes tells the reader nothing.
-    expect(html).toContain("Queue a job");
+    expect(html).toContain("Run a spec");
     expect(html).toContain("Steps, in order");
     expect(html).toContain("stop for approval between steps");
     // 81a ships no runner: the page must say so rather than leave a
@@ -175,7 +346,7 @@ describe("GET /queue (HTML)", () => {
 
   test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     // A page with a form must not reload underneath someone filling it
     // in; the script swaps the table body instead.
     expect(html).toContain("<noscript><meta http-equiv=\"refresh\"");
@@ -198,11 +369,14 @@ describe("GET /queue (HTML)", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (await fetch(`${base}/specs?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
-    expect(rows).not.toContain("<form method=\"post\" action=\"/api/queue\"");
+    // The top form is what must not come along — a swap that replaced it
+    // would wipe what someone was half-way through filling in. The phase
+    // lines' own run forms are part of the table and belong here.
+    expect(rows).not.toContain('class="enqueue"');
   });
 
   test("the gate checkbox decides: unticked runs straight through", async () => {
@@ -229,10 +403,10 @@ describe("GET /queue (HTML)", () => {
     expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
-  test("generated pages carry the Queue nav entry", async () => {
+  test("generated pages carry the Specs nav entry", async () => {
     const { renderSite } = await import("../src/render.ts");
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
-    for (const p of pages) expect(p.html).toContain('<a href="/queue">Queue</a>');
+    for (const p of pages) expect(p.html).toContain('<a href="/specs">Specs</a>');
   });
 });
 
@@ -291,7 +465,7 @@ describe("the page answers the selection", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
       "# Queue - Status\n\n**Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
     );
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     // Rendered for the first option, so it is there before any script runs.
     expect(html).toContain("Queue - Status".replace(" - Status", ""));
     expect(html).toContain("64% done");
@@ -306,7 +480,7 @@ describe("the page answers the selection", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/queue?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (await fetch(`${base}/specs?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain('class="state s-queued"');
     expect(rows).toContain("queued");
   });
@@ -315,7 +489,7 @@ describe("the page answers the selection", () => {
 describe("page code placement", () => {
   test("the script comes AFTER the elements it wires up", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     const select = html.indexOf('id="target"');
     const rows = html.indexOf('id="jobrows"');
     const script = html.indexOf("<script>");
@@ -335,7 +509,7 @@ describe("the step boxes follow the spec", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     // analyze and review-plan are done; implement is what you came for.
     expect(html).toMatch(/data-step="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
     expect(html).toMatch(/data-step="implement"[^]*?value="implement" checked/);
@@ -349,7 +523,7 @@ describe("the step boxes follow the spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
-    const html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="analyze" checked/);
     expect(html).not.toContain('class="stepbox isdone"');
   });
@@ -411,7 +585,7 @@ describe("what the queue has run counts too", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
 
     // Before the queue has run it, implement is what you came for.
-    let html = await (await fetch(`${base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    let html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
 
     // Record a completed implement in the queue's own history, exactly
@@ -437,7 +611,7 @@ describe("what the queue has run counts too", () => {
       queueMirrorPath: join(dir, "queue.json"),
       projectRoot: join(dir, "root"),
     });
-    html = await (await fetch(`${second.base}/queue`, { headers: { "x-aide-token": TOKEN } })).text();
+    html = await (await fetch(`${second.base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).not.toMatch(/value="implement" checked/);
     expect(html).toMatch(/value="archive" checked/);
     expect(html).toContain('class="stepbox isdone" data-step="implement"');
@@ -572,7 +746,7 @@ describe("picking a model for a job", () => {
 // read it. Answering a form post with a JSON body puts the reason on a
 // blank page with no way back.
 describe("a refused form post says so on the page", () => {
-  test("a duplicate returns to /queue carrying the reason, and the page shows it", async () => {
+  test("a duplicate returns to /specs carrying the reason, and the page shows it", async () => {
     const { base } = start({ queueToken: TOKEN });
     const post = () =>
       fetch(`${base}/api/queue`, {
@@ -586,7 +760,7 @@ describe("a refused form post says so on the page", () => {
     const again = await post();
     expect(again.status).toBe(303);
     const location = again.headers.get("location") ?? "";
-    expect(location.startsWith("/queue?")).toBe(true);
+    expect(location.startsWith("/specs?")).toBe(true);
     expect(decodeURIComponent(location)).toContain("already queued");
 
     const html = await (
@@ -707,7 +881,7 @@ describe("the job list sorts and filters", () => {
 
   test("a column header is a link that keeps the filter you are already in", () => {
     const html = page([row("a", { state: "running" })], { state: "active" });
-    expect(html).toContain('href="/queue?state=active&amp;sort=cost"');
+    expect(html).toContain('href="/specs?state=active&amp;sort=cost"');
   });
 
   test("the sorted column says which way it is going", () => {
@@ -736,7 +910,7 @@ describe("the job list sorts and filters", () => {
       body: JSON.stringify(JOB),
     });
     const rows = await (
-      await fetch(`${base}/queue?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/specs?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(rows).toContain('data-filter="state"');
     expect(rows).toMatch(/aria-current="true"[^>]*>Active/);
@@ -785,8 +959,8 @@ describe("filtering and sorting work on specs, not jobs", () => {
     // Its finished job comes along with it — the spec is one line, and
     // that line carries every phase it has had, filter or no filter.
     expect(html.match(/<tr class="spechead/g)).toHaveLength(1);
-    expect(html).toContain('href="/queue/a1"');
-    expect(html).toContain('href="/queue/a2"');
+    expect(html).toContain('href="/specs/a1"');
+    expect(html).toContain('href="/specs/a2"');
   });
 
   test("the filter tabs count specs, not jobs (criterion 9)", () => {

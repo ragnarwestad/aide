@@ -441,14 +441,18 @@ export function createServer(opts: ServerOptions) {
   timer?.unref?.();
 
   const queueToken = opts.queueToken;
-  // `/queue/<id>` joins the guarded set HERE, never as a special case
+  // `/specs/<id>` joins the guarded set HERE, never as a special case
   // further down: a read route outside the guard is exactly the silent
-  // bypass this check exists to prevent.
+  // bypass this check exists to prevent. The retired `/queue` paths are
+  // guarded too — a redirect that answers before the token is checked
+  // would tell an unauthenticated caller the page exists.
   const isQueuePath = (path: string) =>
     path === "/queue" ||
+    path === "/specs" ||
     path === "/api/queue" ||
     path.startsWith("/api/queue/") ||
-    path.startsWith("/queue/");
+    path.startsWith("/queue/") ||
+    path.startsWith("/specs/");
 
   // The WHOLE queue surface is behind the token, read routes included:
   // a token that a page hands to anyone who can load the page is not a
@@ -469,7 +473,7 @@ export function createServer(opts: ServerOptions) {
     if (tokenMatches(provided, queueToken)) return null;
     return new Response(
       "unauthorized\n\n" +
-        "The queue needs its token. Open /queue?token=<the token> once and the\n" +
+        "This needs its token. Open /specs?token=<the token> once and the\n" +
         "browser keeps it in a cookie; API callers send it as X-Aide-Token.\n" +
         "The token lives in the file this server was started with.\n",
       { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } },
@@ -557,7 +561,19 @@ export function createServer(opts: ServerOptions) {
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
     const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
 
-    if (path === "/queue") {
+    // The page is about SPECS; that a queue orders the runs is an
+    // implementation detail. The old address keeps answering, because
+    // people bookmark this page — and the token arrives in the query
+    // string of exactly such a bookmark, so the search goes on verbatim.
+    // `/api/queue*` is an API contract and is deliberately not matched.
+    if (path === "/queue" || path.startsWith("/queue/")) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: `/specs${path.slice("/queue".length)}${url.search}` },
+      });
+    }
+
+    if (path === "/specs") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
@@ -628,13 +644,13 @@ export function createServer(opts: ServerOptions) {
           ? json({ error: result.error }, 400)
           : new Response(null, {
               status: 303,
-              headers: { location: `/queue?error=${encodeURIComponent(result.error)}` },
+              headers: { location: `/specs?error=${encodeURIComponent(result.error)}` },
             });
       }
       runner?.tick();
       return wantsJson
         ? json({ ok: true, job: result.job })
-        : new Response(null, { status: 303, headers: { location: "/queue" } });
+        : new Response(null, { status: 303, headers: { location: "/specs" } });
     }
 
     const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel)$/);
@@ -663,17 +679,22 @@ export function createServer(opts: ServerOptions) {
       }
       return wantsJson
         ? json({ ok: true, job: queue.get(id) })
-        : new Response(null, { status: 303, headers: { location: "/queue" } });
+        : new Response(null, { status: 303, headers: { location: "/specs" } });
     }
 
     // One job, in full: what it IS (the spec's title and description),
     // every step it has already run, and — while a step is running —
     // what that session is doing. Deliberately AFTER the approve/cancel
     // match above, so the new route cannot swallow those.
-    const detail = path.match(/^\/(api\/)?queue\/([A-Za-z0-9-]+)$/);
+    // `/specs/<id>` for the page, `/api/queue/<id>` for its JSON twin:
+    // the page was renamed, the API contract was not. The first group
+    // therefore says WHICH of the two answered, rather than merely
+    // whether an `api/` prefix was there.
+    const detail = path.match(/^\/(api\/queue|specs)\/([A-Za-z0-9-]+)$/);
     if (detail) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const [, api, id] = detail;
+      const [, surface, id] = detail;
+      const api = surface !== "specs";
       const job = queue.get(id!);
       if (!job) {
         return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });

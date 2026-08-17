@@ -1,4 +1,4 @@
-// The /queue page's browser code. TypeScript like the rest of the
+// The /specs page's browser code. TypeScript like the rest of the
 // repo — `tsc --noEmit` covers it, and the server transpiles it on the
 // way out.
 //
@@ -100,7 +100,7 @@ async function swapRows(): Promise<void> {
   params.delete("token");
   params.set("rows", "1");
   try {
-    const res = await fetch(`/queue?${params}`, { headers: { accept: "text/html" } });
+    const res = await fetch(`/specs?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
     body.innerHTML = await res.text();
   } catch {

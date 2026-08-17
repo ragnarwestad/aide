@@ -1,4 +1,4 @@
-// /queue/<id>: one job, in full (spec 02). Its four parts — what the
+// /specs/<id>: one job, in full (spec 02). Its four parts — what the
 // job is, what is happening now, what it has been doing, what it has
 // run — sit behind tabs, because under plain headings they ran together
 // and a reader scrolled past the one they came for.
@@ -49,7 +49,7 @@ function labelled(rows: [string, string][]): string {
 }
 
 function stepResults(results: JobStepResultView[]): string {
-  // /queue shows one line per SPEC, and attributes a job to the single
+  // /specs shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
   // session and how it ended.
@@ -95,7 +95,7 @@ function tabBar(job: JobDetailView, current: JobTab): string {
     const n = counts[t] ?? 0;
     const count = n > 0 ? ` <span class="tabcount">${n}</span>` : "";
     const mark = t === current ? ` aria-current="page"` : "";
-    return `<a href="/queue/${esc(job.id)}?tab=${t}"${mark}>${label}${count}</a>`;
+    return `<a href="/specs/${esc(job.id)}?tab=${t}"${mark}>${label}${count}</a>`;
   });
   return `<nav class="tabs">${links.join("")}</nav>`;
 }
@@ -178,10 +178,10 @@ export function renderJobDetailPage(
     tab === "activity" ? activity : tab === "steps" ? stepResults(job.results) : head + live;
 
   const body =
-    `<p class="intro"><a href="/queue">← all jobs</a></p>\n` +
+    `<p class="intro"><a href="/specs">← all jobs</a></p>\n` +
     banner +
     tabBar(job, tab) +
     `<div class="tabpanel">${panel}</div>`;
 
-  return pageShell(job.specFolder, entries, "/queue", body, generatedAt, 10);
+  return pageShell(job.specFolder, entries, "/specs", body, generatedAt, 10);
 }

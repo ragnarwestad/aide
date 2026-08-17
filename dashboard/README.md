@@ -6,7 +6,7 @@
 - [URL scheme](#url-scheme)
 - [Usage](#usage)
 - [Live runs (spec 80)](#live-runs-spec-80)
-- [The queue (spec 81)](#the-queue-spec-81)
+- [Running specs (spec 81)](#running-specs-spec-81)
   - [The token](#the-token)
   - [Caps](#caps)
   - [Gates and notifications](#gates-and-notifications)
@@ -39,10 +39,14 @@ no host is named anywhere in this repo.
 - `/live` — aide runs in flight (server-rendered, refreshes every 10 s)
 - `/api/aide-runs` — the same rows as JSON; `POST /api/aide-run`
   receives one event
-- `/queue` — one row per spec, its workflow phases beneath; start a run,
-  watch one, approve a gate (token required)
+- `/specs` — one row per spec, its workflow phases beneath; run any
+  phase from its own line, watch one, approve a gate (token required)
+- `/specs/<id>` — one job, in full
+- `/queue` and `/queue/<id>` — where the page used to live; both
+  redirect, query string intact, so an old bookmark still lands
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
-  `POST /api/queue/<id>/approve` and `/cancel` act on one
+  `POST /api/queue/<id>/approve` and `/cancel` act on one. The API keeps
+  the queue's own name: it is a contract, not a page anyone reads.
 
 Keep the scheme stable: the pages are linked from outside.
 
@@ -94,12 +98,25 @@ rows render without enrichment and a notice; never an error. Runs are
 kept in memory (LRU 512) and mirrored to `~/aide-dashboard/aide-runs.json`
 so restarts keep them.
 
-## The queue (spec 81)
+## Running specs (spec 81)
 
-`/queue` runs aide workflow steps headless on this machine: one job at a
+`/specs` runs aide workflow steps headless on this machine: one job at a
 time, each step a `claude -p "/aide-<step> <spec>"` process started by
 aide's `aide-run-spec`. A job is an ordered list of steps; a step that
 ends either advances the job, parks it for approval, or ends it.
+
+Two ways in, and they do different jobs. The form at the top queues
+SEVERAL steps as one job, gated between them if asked, and is the only
+entry point for a spec nothing has run yet — a spec with no job has no
+row to run one from. Every phase line under a spec carries its own run
+button and model dropdown: one step, straight through, on the model the
+line picked. A phase already queued or running shows its button
+disabled, because the queue would refuse it anyway (see
+[the duplicate guard](#gates-and-notifications)).
+
+The page was called Queue until spec 87. That a queue orders the runs is
+an implementation detail — `QueueStore`, `/api/queue`, `QUEUE_PROJECTS`
+and the rest keep the name; what a reader reads does not.
 
 Nothing is guessed at across a restart: the runner spawns detached, in
 its own process group (measured: such a child survives
@@ -113,9 +130,10 @@ tell it from a broken agent will start ignoring both.
 
 ### The token
 
-The whole queue surface — `GET /queue` included — needs a token; a token
-a page hands to anyone who can load the page is not a secret. Open
-`/queue?token=<the token>` once and the browser keeps an `HttpOnly`
+The whole queue surface — `GET /specs` and the old `/queue` included —
+needs a token; a token a page hands to anyone who can load the page is
+not a secret. Open
+`/specs?token=<the token>` once and the browser keeps an `HttpOnly`
 cookie; API callers send `X-Aide-Token`. The token is read from a file
 (`--token-file`), never an argument: `ps` shows arguments to every user
 on the machine.
@@ -179,7 +197,7 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
 - `none` — commit locally and stop. Review by fetching from the host
   that ran it.
 - `branch` (default) — also push `aide/<spec-folder>`, and the specs
-  repo's own commits. The queue page and the notification then link to
+  repo's own commits. The specs page and the notification then link to
   the GitHub compare page.
 - `pr` — also open a pull request. Needs `gh auth login` on the serving
   host; a broken `gh` records the error and leaves the run successful.

@@ -1,5 +1,5 @@
 // Criteria 1, 2, 6, 7 (spec 02): the per-job detail page and its JSON
-// counterpart. `/queue` shows one row per JOB, so a three-step job shows
+// counterpart. `/specs` shows one row per JOB, so a three-step job shows
 // one line and its finished steps are invisible; and the row says
 // `02-job-detail-view` without saying what that spec is about.
 //
@@ -41,11 +41,11 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
   return body.job.id;
 }
 
-describe("GET /queue/<id>", () => {
+describe("GET /specs/<id>", () => {
   test("shows what the job IS: its spec's title and description (criterion 1)", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    const res = await fetch(`${base}/queue/${id}`, auth);
+    const res = await fetch(`${base}/specs/${id}`, auth);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -56,14 +56,14 @@ describe("GET /queue/<id>", () => {
 
   test("an unknown id is a 404, not an empty page (criterion 6)", async () => {
     const { base } = start();
-    const res = await fetch(`${base}/queue/no-such-job`, auth);
+    const res = await fetch(`${base}/specs/no-such-job`, auth);
     expect(res.status).toBe(404);
   });
 
   test("without the token it is refused exactly like every other queue path (criterion 7)", async () => {
     const { base } = start();
     const id = await enqueue(base);
-    for (const path of [`/queue/${id}`, `/api/queue/${id}`, "/queue/no-such-job"]) {
+    for (const path of [`/specs/${id}`, `/api/queue/${id}`, "/specs/no-such-job"]) {
       const res = await fetch(`${base}${path}`);
       expect(res.status).toBe(401);
     }
@@ -71,7 +71,7 @@ describe("GET /queue/<id>", () => {
 
   test("with no token configured at all the whole surface is 503, these routes included", async () => {
     const { base } = start({ queueToken: undefined });
-    for (const path of ["/queue/abc", "/api/queue/abc"]) {
+    for (const path of ["/specs/abc", "/api/queue/abc"]) {
       expect((await fetch(`${base}${path}`)).status).toBe(503);
     }
   });
@@ -129,7 +129,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
 
     // A fresh server reloads the mirror.
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/queue/${id}?tab=steps`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
     expect(html).toContain("analyze");
     expect(html).toContain("review-plan");
     expect(html).toContain("$0.42");
@@ -142,7 +142,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
   test("the route opens the tab the link asked for", async () => {
     const { base } = start();
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/queue/${id}?tab=activity`, auth)).text();
+    const html = await (await fetch(`${base}/specs/${id}?tab=activity`, auth)).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
     expect(html).toContain("Nothing has been captured");
   });
@@ -179,17 +179,17 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
   test("an unmerged branch is called out on both pages (criteria 1, 3)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
-    expect(await (await fetch(`${base}/queue`, auth)).text()).toContain("not merged");
-    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("not merged");
   });
 
   test("once the branch has landed the caveat is gone (criterion 2)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(0) });
-    const list = await (await fetch(`${base}/queue`, auth)).text();
+    const list = await (await fetch(`${base}/specs`, auth)).text();
     expect(list).not.toContain("not merged");
     expect(list).toContain(BRANCH);
-    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).not.toContain("not merged");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("not merged");
   });
 
   // Criterion 5: uncertainty never hides the caveat. A git that cannot
@@ -203,7 +203,7 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
         throw new Error("not a git repository");
       },
     });
-    expect(await (await fetch(`${base}/queue`, auth)).text()).toContain("not merged");
-    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("not merged");
   });
 });

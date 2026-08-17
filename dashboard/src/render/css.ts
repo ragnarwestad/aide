@@ -106,6 +106,18 @@ table.jobs tr.subrow td { border-bottom: none; padding-top: 0.1rem; padding-bott
   font-size: 0.9rem; }
 table.jobs tr.subrow:last-child td { padding-bottom: 0.6rem; }
 table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
+/* A phase runs from its own line, so the control has to fit ON that
+   line: the row is 0.9rem text with 0.1rem of padding, and a
+   full-sized select would double its height. */
+.rowrun { display: flex; gap: 0.4rem; align-items: center; }
+.rowrun select, .rowrun button { font: inherit; font-size: 0.82rem;
+  padding: 0.1rem 0.4rem; border-radius: 5px; border: 1px solid #8886;
+  background: transparent; color: inherit; }
+.rowrun button { font-weight: 600; background: #8882; cursor: pointer; }
+.rowrun button:hover:not(:disabled) { background: #8883; }
+/* Disabled while that phase is already queued or running. Dimmed rather
+   than hidden: a button that vanishes reads as a page that broke. */
+.rowrun button:disabled, .rowrun select:disabled { opacity: 0.4; cursor: default; }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
 table.jobs tr.untried td { opacity: 0.55; }
