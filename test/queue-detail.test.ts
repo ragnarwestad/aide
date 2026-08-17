@@ -147,3 +147,63 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
     expect(html).toContain("Nothing has been captured");
   });
 });
+
+// --- spec 04: a finished job does not say its work is unmerged ---------------
+
+// The badge is derived from git at render time, not stored on the job,
+// so the only way to prove it reaches the page is through the real
+// routes with the git call injected.
+describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
+  const BRANCH = "https://example.test/compare/aide/81-queue-and-runner";
+
+  /** Seed a done job with a branch link, the way a finished step leaves
+   *  it, and hand back a mirror a second server can read. */
+  async function seeded(): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(await Bun.file(mirror).text()) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === id)!;
+    job.state = "done";
+    job.branchUrl = BRANCH;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id };
+  }
+
+  const gitAnswering = (isAncestorExit: number) => async (_dir: string, args: string[]) => {
+    if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (args[0] === "merge-base") return { code: isAncestorExit, stdout: "" };
+    return { code: 0, stdout: "" };
+  };
+
+  test("an unmerged branch is called out on both pages (criteria 1, 3)", async () => {
+    const { mirror, id } = await seeded();
+    const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
+    expect(await (await fetch(`${base}/queue`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).toContain("not merged");
+  });
+
+  test("once the branch has landed the caveat is gone (criterion 2)", async () => {
+    const { mirror, id } = await seeded();
+    const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(0) });
+    const list = await (await fetch(`${base}/queue`, auth)).text();
+    expect(list).not.toContain("not merged");
+    expect(list).toContain(BRANCH);
+    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).not.toContain("not merged");
+  });
+
+  // Criterion 5: uncertainty never hides the caveat. A git that cannot
+  // answer at all — no checkout, an offline remote, a timeout — must
+  // leave the page saying what it said before the check existed.
+  test("a git that cannot answer still shows the caveat (criterion 5)", async () => {
+    const { mirror, id } = await seeded();
+    const { base } = start({
+      queueMirrorPath: mirror,
+      gitRun: async () => {
+        throw new Error("not a git repository");
+      },
+    });
+    expect(await (await fetch(`${base}/queue`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/queue/${id}`, auth)).text()).toContain("not merged");
+  });
+});

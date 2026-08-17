@@ -8,7 +8,7 @@
 
 import { esc, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { stateChip, type QueueRowView } from "./job-state.ts";
+import { stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
 
 export interface QueueTarget {
   project: string;
@@ -326,7 +326,9 @@ function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): str
       // rather than being replaced by it — nothing a reader uses today
       // disappears.
       const spec = `<a href="/queue/${esc(r.id)}">${esc(r.specFolder)}</a>`;
-      const diff = r.branchUrl ? ` <a class="small" href="${esc(r.branchUrl)}">diff</a>` : "";
+      const diff = r.branchUrl
+        ? ` <a class="small" href="${esc(r.branchUrl)}">diff</a>${unmergedBadge(r)}`
+        : "";
       const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
       const steps = r.steps
         .map((s, i) => {

@@ -19,6 +19,10 @@ export interface QueueRowView {
   startedAt?: string;
   stopReason?: "budget" | "timeout";
   branchUrl?: string;
+  /** Whether that branch has landed on the project's default branch.
+   *  Derived live from git at render time, never stored on the job —
+   *  the answer changes long after the job stops running. */
+  branchMerged?: boolean;
   error?: string;
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
@@ -43,4 +47,14 @@ export function stateLabel(r: QueueRowView): string {
 // colour is never the only signal.
 export function stateChip(r: QueueRowView): string {
   return `<span class="state s-${esc(r.state)}">${esc(stateLabel(r))}</span>`;
+}
+
+// A branch link says where the work IS, never whether it landed, so a
+// finished job reads as a delivered one. The caveat sits beside the link
+// on both pages, and disappears the moment the branch is an ancestor of
+// the default branch — which is the whole point of asking git live.
+// Anything unproven keeps the caveat: uncertainty must not read as done.
+export function unmergedBadge(r: QueueRowView): string {
+  if (!r.branchUrl || r.branchMerged) return "";
+  return ` <span class="chip unmerged">not merged</span>`;
 }

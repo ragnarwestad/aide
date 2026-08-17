@@ -88,6 +88,8 @@ table.jobs thead a:hover { text-decoration: underline; }
 .s-stopped { background: #f59e0b22; border-color: #f59e0b88; }
 .s-failed, .s-interrupted { background: #ef444422; border-color: #ef444488; }
 .s-cancelled { background: #8881; color: #888; }
+/* Worth noticing, not alarming — the same amber a cap-stop already uses. */
+.unmerged { background: #f59e0b22; border-color: #f59e0b88; }
 
 table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882; }
 table.jobs .speccell { font-weight: 600; }

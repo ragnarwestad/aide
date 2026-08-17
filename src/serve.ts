@@ -13,6 +13,9 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
+import {
+  BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
+} from "./branch-status.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
@@ -82,6 +85,9 @@ export interface ServerOptions {
   /** argv for the gate notifier — claude-usage's contract, run with no
    *  shell. Absent means no notifications are sent. */
   queueNotifyCommand?: string[];
+  /** How the merge check runs git. A test seam: the real one spawns a
+   *  subprocess, which no test should. */
+  gitRun?: GitRunner;
   runnerAvailable?: boolean;
 }
 
@@ -361,10 +367,14 @@ export function createServer(opts: ServerOptions) {
   // run — and the group is what SIGTERM must reach, since claude spawns
   // children of its own.
   const notifier = new Notifier({ command: opts.queueNotifyCommand });
+  // One resolution, two users: the runner runs a spec in this directory,
+  // and the merge check asks git about the branch it pushed from there.
+  const projectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
+  const branchStatus = new BranchStatusChecker({ run: opts.gitRun ?? createGitRunner() });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
-        projectDir: (project) => join(opts.queueProjectRoot ?? "", project),
+        projectDir,
         runnerBin: opts.queueRunnerBin,
         resultDir: opts.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
         now: () => new Date().toISOString(),
@@ -516,10 +526,15 @@ export function createServer(opts: ServerOptions) {
     },
   });
 
-  function jobRow(job: ReturnType<QueueStore["list"]>[number]): QueueRowView {
+  async function jobRow(job: ReturnType<QueueStore["list"]>[number]): Promise<QueueRowView> {
     // The step whose model the row is about: the one running, or the
     // last one for a job that has finished.
     const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
+    // Only worth asking git when there is a branch to ask about. Cached
+    // inside the checker, so the 5 s poll does not spawn git per tick.
+    const branchMerged = job.branchUrl
+      ? await branchStatus.isMerged(projectDir(job.project), specBranch(job.specFolder))
+      : false;
     return {
       id: job.id,
       project: job.project,
@@ -533,6 +548,7 @@ export function createServer(opts: ServerOptions) {
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       branchUrl: job.branchUrl,
+      branchMerged,
       stopReason: job.stopReason,
       error: job.error,
     };
@@ -571,11 +587,16 @@ export function createServer(opts: ServerOptions) {
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.
       if (url.searchParams.get("rows")) {
-        return new Response(renderQueueRows(queue.list().map(jobRow), view), {
+        return new Response(renderQueueRows(await Promise.all(queue.list().map(jobRow)), view), {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
       }
-      const html = renderQueuePage(queue.list().map(jobRow), new Date().toISOString(), nav(), view);
+      const html = renderQueuePage(
+        await Promise.all(queue.list().map(jobRow)),
+        new Date().toISOString(),
+        nav(),
+        view,
+      );
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
       // Hand the token over ONCE, as an HttpOnly cookie, so the forms
       // never have to carry it in their markup.
@@ -676,7 +697,7 @@ export function createServer(opts: ServerOptions) {
     // of the page intact and says the session is unknown.
     const live = job.state === "running" && job.sessionId ? await enricher.lookup(job.sessionId) : null;
     return {
-      ...jobRow(job),
+      ...(await jobRow(job)),
       title: target?.title,
       description: target?.description,
       finishedAt: job.finishedAt,

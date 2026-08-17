@@ -197,21 +197,21 @@ const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
   ...extra,
 });
 
+const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
+  id: "job-1234",
+  project: "aide",
+  specFolder: "81-queue-and-runner",
+  steps: ["analyze"],
+  stepIndex: 0,
+  state: "running",
+  spentUsd: 0,
+  timeoutSec: 1200,
+  createdAt: "2026-08-16T00:00:00Z",
+  ...extra,
+});
+
 // Criterion 12: the row a reader actually watches is the way in.
 describe("the queue row links to the job (criterion 12)", () => {
-  const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id: "job-1234",
-    project: "aide",
-    specFolder: "81-queue-and-runner",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: "running",
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T00:00:00Z",
-    ...extra,
-  });
-
   test("the spec cell links to /queue/<id>", () => {
     const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
     expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
@@ -224,6 +224,44 @@ describe("the queue row links to the job (criterion 12)", () => {
     });
     expect(html).toContain('<a href="/queue/job-1234">81-queue-and-runner</a>');
     expect(html).toContain('href="https://example.test/compare"');
+  });
+});
+
+// --- spec 04: a finished job does not say its work is unmerged ---------------
+
+// Criteria 1-4: the branch link alone says where the work IS, never
+// whether it landed. A reader who sees only the link reads a finished
+// job as a delivered one.
+describe("the unmerged badge (criteria 1-4)", () => {
+  const BRANCH = "https://example.test/compare";
+  const queueRows = (extra: Partial<QueueRowView>) =>
+    renderQueueRows([row(extra)], { runnerAvailable: true, targets: [] });
+  const jobPage = (extra: Partial<JobDetailView>) =>
+    renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
+
+  test("an unmerged branch is called out on the queue row (criterion 1)", () => {
+    const html = queueRows({ branchUrl: BRANCH, branchMerged: false });
+    expect(html).toContain("not merged");
+    // The link a reader already uses is untouched beside it.
+    expect(html).toContain(`href="${BRANCH}"`);
+  });
+
+  test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
+    const html = queueRows({ branchUrl: BRANCH, branchMerged: true });
+    expect(html).not.toContain("not merged");
+    expect(html).toContain(`href="${BRANCH}"`);
+  });
+
+  test("the job page's Work row says the same thing (criterion 3)", () => {
+    expect(jobPage({ branchUrl: BRANCH, branchMerged: false })).toContain("not merged");
+    expect(jobPage({ branchUrl: BRANCH, branchMerged: true })).not.toContain("not merged");
+  });
+
+  test("no branch, no badge — on either page (criterion 4)", () => {
+    expect(queueRows({ branchMerged: false })).not.toContain("not merged");
+    expect(queueRows({})).not.toContain("not merged");
+    expect(jobPage({ branchMerged: false })).not.toContain("not merged");
+    expect(jobPage({})).not.toContain("not merged");
   });
 });
 
