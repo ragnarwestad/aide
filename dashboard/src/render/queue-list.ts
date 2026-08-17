@@ -244,6 +244,36 @@ function currentStep(r: QueueRowView): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }
 
+/** Every step this job has anything to say about: the ones it finished,
+ *  plus the one it is on. */
+function stepsTouched(r: QueueRowView): string[] {
+  const finished = (r.results ?? []).map((x) => x.step).filter((s): s is string => !!s);
+  return [...new Set([...finished, currentStep(r)])];
+}
+
+/** The job as ONE of its steps saw it. Same shape as the job, so every
+ *  cell that renders a job renders a step without knowing the
+ *  difference — but with that step's own outcome and its own cost, not
+ *  the job's running total. A step the job finished is done (or failed,
+ *  and then it keeps the error); a step it has not reached yet is not an
+ *  attempt at all. */
+function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
+  const res = (r.results ?? []).find((x) => x.step === step);
+  if (res) {
+    return {
+      ...r,
+      state: res.ok ? "done" : r.state === "done" ? "failed" : r.state,
+      spentUsd: res.costUsd,
+      error: res.ok ? undefined : r.error,
+    };
+  }
+  if (currentStep(r) !== step) return null;
+  // What the finished steps did not account for. A job's `spentUsd` is
+  // the sum over its steps, so the step in flight owns the remainder.
+  const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
+  return { ...r, spentUsd: Math.max(0, r.spentUsd - counted) };
+}
+
 function activityMs(r: QueueRowView): number {
   return Date.parse(r.startedAt ?? r.createdAt) || 0;
 }
@@ -344,7 +374,7 @@ function jobGroup(all: QueueRowView[]): SpecGroup {
   // readable at a glance. A step outside them (explore, create,
   // manifest) is appended rather than dropped: a job that ran is
   // never invisible.
-  const extra = [...new Set(all.map(currentStep))].filter((s) => !QUEUE_STEPS.includes(s));
+  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !QUEUE_STEPS.includes(s));
   return {
     project: lead.project,
     specFolder: lead.specFolder,
@@ -356,7 +386,9 @@ function jobGroup(all: QueueRowView[]): SpecGroup {
     branches: branchesOf(recent),
     phases: [...QUEUE_STEPS, ...extra].map((step) => ({
       step,
-      attempts: recent.filter((r) => currentStep(r) === step),
+      attempts: recent
+        .map((r) => attemptFor(r, step))
+        .filter((a): a is QueueRowView => a !== null),
     })),
   };
 }

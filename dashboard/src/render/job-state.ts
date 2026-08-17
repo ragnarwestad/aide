@@ -42,6 +42,23 @@ export interface QueueRowView {
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
+  /** One entry per step the job has FINISHED, in the order they ran.
+   *  A job is not one step: `steps[stepIndex]` names only the last one
+   *  it reached, and placing a two-step job by that alone left the
+   *  first step's line speaking for an older attempt (measured on spec
+   *  90, 2026-08-17: a finished analysis read as failed). */
+  results?: StepResultView[];
+}
+
+/** The little of a step's result the LIST needs. The job page's
+ *  `JobStepResultView` carries more and stays assignable to this — one
+ *  shape, seen at two altitudes. `step` is optional because a result
+ *  written by an older runner has no step name; such an entry matches no
+ *  phase rather than the wrong one. */
+export interface StepResultView {
+  step?: string;
+  ok: boolean;
+  costUsd: number;
 }
 
 // A stopped job is NOT a failed one, and the two must never render as

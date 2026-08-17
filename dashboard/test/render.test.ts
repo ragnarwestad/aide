@@ -722,6 +722,105 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
   });
 });
 
+// --- a job that ran several steps belongs on all of them ---------------------
+
+// Measured 2026-08-17 on spec 90: one job ran `analyze` and then
+// `review-plan`, finished, and appeared ONLY on the review-plan line —
+// because a job was placed by `steps[stepIndex]`, which is a single
+// step. The analyze line was left showing an older attempt that had
+// failed on `unknown spec`, so a finished analysis read as failed.
+describe("a multi-step job is shown on every step it ran", () => {
+  const rows = (list: QueueRowView[]) =>
+    renderQueueRows(list, { runnerAvailable: true, targets: [] }, Date.parse("2026-08-17T12:00:00Z"));
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  const twoStep = (extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({
+      id: "both",
+      specFolder: "90-grouped",
+      steps: ["analyze", "review-plan"],
+      stepIndex: 1,
+      state: "done",
+      spentUsd: 18.68,
+      startedAt: "2026-08-17T11:00:00Z",
+      results: [
+        { step: "analyze", ok: true, costUsd: 5.95 },
+        { step: "review-plan", ok: true, costUsd: 12.73 },
+      ],
+      ...extra,
+    });
+
+  test("both of its steps link to it", () => {
+    const html = rows([twoStep()]);
+    expect(subRow(html, "analyze")).toContain('href="/specs/both"');
+    expect(subRow(html, "review-plan")).toContain('href="/specs/both"');
+  });
+
+  test("an older failed attempt does not speak for a step that has since passed", () => {
+    const html = rows([
+      row({
+        id: "old",
+        specFolder: "90-grouped",
+        steps: ["analyze"],
+        stepIndex: 0,
+        state: "failed",
+        error: "unknown spec",
+        startedAt: "2026-08-17T09:00:00Z",
+      }),
+      twoStep(),
+    ]);
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain('href="/specs/both"');
+    expect(analyze).toContain("s-done");
+    expect(analyze).not.toContain("unknown spec");
+    expect(analyze).toContain("2 attempts");
+  });
+
+  test("each step carries its own cost, so the two do not both show the total", () => {
+    const html = rows([twoStep()]);
+    expect(subRow(html, "analyze")).toContain("$5.95");
+    expect(subRow(html, "review-plan")).toContain("$12.73");
+    // The header still totals the JOB, which is what was spent on the spec.
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain("$18.68");
+  });
+
+  test("a finished step reads as done while the next one is still running", () => {
+    const html = rows([
+      twoStep({ state: "running", spentUsd: 5.95, results: [{ step: "analyze", ok: true, costUsd: 5.95 }] }),
+    ]);
+    expect(subRow(html, "analyze")).toContain("s-done");
+    expect(subRow(html, "review-plan")).toContain("s-running");
+  });
+
+  test("the step that failed keeps the error; the steps before it do not", () => {
+    const html = rows([
+      twoStep({
+        state: "failed",
+        error: "cannot fast-forward main",
+        spentUsd: 5.95,
+        results: [
+          { step: "analyze", ok: true, costUsd: 5.95 },
+          { step: "review-plan", ok: false, costUsd: 0 },
+        ],
+      }),
+    ]);
+    expect(subRow(html, "analyze")).toContain("s-done");
+    expect(subRow(html, "analyze")).not.toContain("cannot fast-forward");
+    expect(subRow(html, "review-plan")).toContain("s-failed");
+    expect(subRow(html, "review-plan")).toContain("cannot fast-forward");
+  });
+
+  test("a job with no per-step results still lands on the step it is on", () => {
+    const html = rows([
+      row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
+    ]);
+    expect(subRow(html, "implement")).toContain('href="/specs/plain"');
+    expect(subRow(html, "analyze")).toContain("not run yet");
+  });
+});
+
 // --- spec 87: a phase runs from where it sits --------------------------------
 
 // The place where you can SEE that review-plan has not run was not the

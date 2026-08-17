@@ -588,6 +588,7 @@ export function createServer(opts: ServerOptions) {
       branchUrls,
       stopReason: job.stopReason,
       error: job.error,
+      results: job.results.map((r) => ({ step: r.step, ok: r.ok, costUsd: r.costUsd })),
     };
   }
 
