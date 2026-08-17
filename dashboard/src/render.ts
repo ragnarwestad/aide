@@ -15,7 +15,7 @@
 // published as plain files. /queue is the one page that carries browser
 // code, compiled from queue-client.ts.
 
-export { renderSite, navEntries } from "./render/site.ts";
+export { ABOUT_PAGE, renderSite, navEntries } from "./render/site.ts";
 export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
 export type { NavEntry } from "./render/shell.ts";
