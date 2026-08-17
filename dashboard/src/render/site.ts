@@ -100,7 +100,9 @@ function slugify(name: string): string {
 }
 
 function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
-  const used = new Set(["index"]);
+  // `index` and `about` are ours: a project called either would
+  // otherwise overwrite a page the nav links to by name.
+  const used = new Set(["index", "about"]);
   const slugs = new Map<ProjectView, string>();
   for (const p of [...projects].sort((a, b) => a.name.localeCompare(b.name))) {
     const base = slugify(p.name) || "project";
@@ -121,6 +123,22 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
     { label: "Overview", path: "index.html" },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
+}
+
+/** The one generated page that is not a project. The server's fallback
+ *  nav reads the site directory and would otherwise list it as one. */
+export const ABOUT_PAGE = "about.html";
+
+function aboutBody(): string {
+  return (
+    `<p class="intro">aide-dashboard is the read-only overview of ` +
+    `AI-assisted development across the projects on this machine: every ` +
+    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
+    `showing what the project IS (stack, deployment, logging, statistics, ` +
+    `docs) and where its specs stand (phase and progress, active and ` +
+    `archived). The site is static — regenerate and publish with ` +
+    `<code>make publish</code>.</p>`
+  );
 }
 
 function overviewRow(p: ProjectView, path: string): string {
@@ -163,14 +181,10 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
     (n, p) => n + p.specs.filter((s) => s.archived).length,
     0,
   );
+  // The counts, and nothing else. Read on a phone the explanation
+  // filled the screen before anything the reader came for; it is
+  // documentation, and documentation has its own page in the menu.
   const intro =
-    `<p class="intro">aide-dashboard is the read-only overview of ` +
-    `AI-assisted development across the projects on this machine: every ` +
-    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
-    `showing what the project IS (stack, deployment, logging, statistics, ` +
-    `docs) and where its specs stand (phase and progress, active and ` +
-    `archived). The site is static — regenerate and publish with ` +
-    `<code>make publish</code>.</p>\n` +
     `<p class="summary">${projects.length} projects · ` +
     `${totalActive} active · ${totalArchived} archived</p>`;
   const overview =
@@ -183,6 +197,10 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
       html: pageShell("aide dashboard", entries, "index.html", overview, generatedAt),
     },
   ];
+  pages.push({
+    path: ABOUT_PAGE,
+    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(), generatedAt),
+  });
   for (const p of ordered) {
     const path = `${slugs.get(p)!}.html`;
     pages.push({

@@ -25,6 +25,7 @@ import { QueueStore, mergeQueueDefaults, type Job, type QueueDefaults, type Proj
 import { Runner } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
+  ABOUT_PAGE,
   navEntries,
   renderJobDetailPage,
   renderLivePage,
@@ -118,7 +119,9 @@ function navFromSite(siteDir: string): NavEntry[] {
   try {
     const { readdirSync } = require("node:fs") as typeof import("node:fs");
     for (const f of readdirSync(siteDir).sort()) {
-      if (!f.endsWith(".html") || f === "index.html") continue;
+      // About is a generated page, not a project — listing it under
+      // Projects would invent one that does not exist.
+      if (!f.endsWith(".html") || f === "index.html" || f === ABOUT_PAGE) continue;
       entries.push({ label: f.replace(/\.html$/, ""), path: f });
     }
   } catch {

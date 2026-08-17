@@ -73,10 +73,16 @@ const byPath = new Map(site.map((p: Page) => [p.path, p.html]));
 describe("slugs and filenames (criterion 1)", () => {
   test("collisions and the reserved index name get numeric suffixes", () => {
     const tricky = renderSite(
-      [project("My Proj"), project("my-proj"), project("index"), project("Claude Certified Architect")],
+      [project("My Proj"), project("my-proj"), project("index"), project("About"),
+       project("Claude Certified Architect")],
       generatedAt,
     );
+    // `about` is reserved like `index`: both name a page the nav links
+    // to, so a project called either gets suffixed instead of
+    // overwriting it.
     expect(tricky.map((p) => p.path).sort()).toEqual([
+      "about-2.html",
+      "about.html",
       "claude-certified-architect.html",
       "index-2.html",
       "index.html",
@@ -123,9 +129,12 @@ describe("overview (criterion 3)", () => {
     expect(index).toContain("<h2>Projects</h2>");
   });
 
-  test("intro text and an aggregate summary line", () => {
-    expect(index).toContain("read-only overview");
+  // Read on a phone, the explanation filled the screen before anything
+  // the reader came for. It is documentation, not status: the counts
+  // belong here, the rest belongs on its own page in the menu.
+  test("the counts are here; the explanation is not", () => {
     expect(index).toContain("2 projects · 1 active · 1 archived");
+    expect(index).not.toContain("read-only overview");
   });
 
   test("linked name, description and normative counts per project", () => {
@@ -143,6 +152,36 @@ describe("overview (criterion 3)", () => {
     expect(index).toContain(generatedAt);
     expect(index).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     expect(index).not.toContain("<table");
+  });
+});
+
+describe("the About page", () => {
+  test("it is generated, and holds the explanation the front page lost", () => {
+    const page = byPath.get("about.html");
+    expect(page).toBeDefined();
+    expect(page!).toContain("read-only overview");
+    expect(page!).toContain("make publish");
+  });
+
+  test("every page links to it from the menu", () => {
+    for (const p of site) {
+      expect(p.html).toContain('href="about.html"');
+    }
+  });
+
+  test("it carries the shared nav and marks itself current", () => {
+    const page = byPath.get("about.html")!;
+    expect(page).toContain('<li class="nav-label">Projects</li>');
+    expect(page).toContain('<a class="current" href="about.html">About</a>');
+  });
+
+  // The nav lists one entry per PROJECT page. About is a page too, and
+  // the server's fallback nav reads the site directory — so it must not
+  // be mistaken for a project.
+  test("it is not listed under Projects", () => {
+    const page = byPath.get("about.html")!;
+    const projects = page.slice(page.indexOf('class="nav-label"'));
+    expect(projects).not.toContain('href="about.html"');
   });
 });
 

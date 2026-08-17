@@ -20,6 +20,7 @@ export function nav(entries: NavEntry[], currentPath: string): string {
     link(overview),
     link({ label: "Live", path: "/live" }),
     link({ label: "Specs", path: "/specs" }),
+    link({ label: "About", path: "about.html" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),
   ];
