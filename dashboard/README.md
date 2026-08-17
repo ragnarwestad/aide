@@ -131,6 +131,15 @@ name. The fold is a link and lives in the query string
 table's own five-second refresh — and what makes it work with JavaScript
 switched off.
 
+`queue-client.ts`, the page's own browser-side script, cannot `import`
+anything: `queueClientScript()` runs `Bun.Transpiler.transformSync` over
+it and inlines the result into a plain `<script>` tag — that transpiles,
+it does not bundle. An `import` survives as an ESM import inside a
+classic inline script (a 404, since this server does not serve that
+path), and an `export` is a syntax error. Any shared, unit-testable
+browser module needs a bundle step or a `type="module"` tag first; the
+fold was built to need neither.
+
 The page was called Queue until spec 87. That a queue orders the runs is
 an implementation detail — `QueueStore`, `/api/queue`, `QUEUE_PROJECTS`
 and the rest keep the name; what a reader reads does not.
