@@ -67,8 +67,14 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
 .filtergroup { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
 .filtergroup a { text-decoration: none; color: inherit; font-size: 0.88rem;
   padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid transparent; }
-.filtergroup a:hover { background: #8881; }
-.filtergroup a[aria-current] { font-weight: 700; background: #8881; border-color: #8884; }
+/* Selected and hover were the SAME grey (#8881, 6% alpha): moving the
+   mouse over any chip made it look as selected as the one that was.
+   The chosen filter is filled with the accent the pips already use;
+   hover stays a hint. */
+.filtergroup a:hover { background: #8882; }
+.filtergroup a[aria-current] { font-weight: 700; background: #3b82f6;
+  border-color: #3b82f6; color: #fff; }
+.filtergroup a[aria-current] .tabcount { background: #ffffff33; color: #fff; }
 table.jobs thead a { text-decoration: none; color: inherit; }
 table.jobs thead a:hover { text-decoration: underline; }
 .sortmark { color: #3b82f6; }
