@@ -15,6 +15,7 @@ import {
   type ProjectView,
   type QueuePageOptions,
   type QueueRowView,
+  type QueueTarget,
 } from "../src/render.ts";
 
 function project(name: string, overrides: Partial<ProjectView> = {}): ProjectView {
@@ -795,5 +796,215 @@ describe("a phase runs from its own line (criteria 1-6)", () => {
   test("once the attempt finishes the same line is enabled again (criterion 6)", () => {
     const html = rows([job("j1", "analyze", { state: "done" })]);
     expect(subRow(html, "analyze")).not.toContain("disabled");
+  });
+});
+
+// --- spec 90: every spec is a row, and analyze starts from it ----------------
+
+// The dropdown at the top and the list held the same things: one showed
+// specs that had not started, the other specs that had. A spec crossed
+// from one to the other the first time it ran, and nothing about that
+// crossing was meaningful to the reader.
+describe("every spec is a row (criteria 1-10)", () => {
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "90-has-run", steps: [step], stepIndex: 0, state: "done", ...extra });
+
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-17T12:00:00Z"),
+    );
+
+  const heads = (html: string) => html.match(/<tr class="[^"]*spechead[^"]*"[^>]*>/g) ?? [];
+  // One header row and everything up to the next `<tr`, which is the
+  // whole header line and nothing else.
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  test("a target with no jobs gets a header row and four phase lines (criterion 1)", () => {
+    const html = rows([], [target("90-never-run")]);
+    expect(heads(html)).toHaveLength(1);
+    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
+    for (const phase of order) expect(subRow(html, phase!)).toContain("not run yet");
+  });
+
+  test("the analyze line of a never-run spec runs it (criterion 2)", () => {
+    const html = rows([], [target("90-never-run")]);
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain('<form method="post" action="/api/queue"');
+    expect(analyze).toContain('name="project" value="aide"');
+    expect(analyze).toContain('name="specFolder" value="90-never-run"');
+    expect(analyze).toContain('name="steps" value="analyze"');
+    expect(analyze).toContain(">Run<");
+    expect(analyze).not.toContain("disabled");
+  });
+
+  test("a never-run spec reads 'not started' and links to no job (criterion 3)", () => {
+    const html = rows([], [target("90-never-run")]);
+    const line = head(html, "90-never-run");
+    // Hyphen in the class, space in the text: one is the filter key, the
+    // other is what the reader sees.
+    expect(line).toContain('<span class="state s-not-started">not started</span>');
+    // The absence of the JOB link, not of an anchor — the fold control
+    // is an anchor and lives in the same cell.
+    expect(line).not.toMatch(/href="\/specs\/[^"]+"/);
+    expect(line).toContain("90-never-run");
+  });
+
+  test("a spec that is both a target and has jobs gets one row (criterion 4)", () => {
+    const html = rows([job("j1", "analyze")], [target("90-has-run")]);
+    expect(heads(html)).toHaveLength(1);
+    expect(html).toContain('href="/specs/j1"');
+  });
+
+  test("a job group whose spec is no longer a target is off the page (criterion 5)", () => {
+    const html = rows([job("j1", "analyze")], [target("90-something-else")]);
+    expect(html).not.toContain("90-has-run");
+    expect(heads(html)).toHaveLength(1);
+  });
+
+  test("a project with no targets at all keeps every group it has (criterion 6)", () => {
+    // An empty target list is "we do not know", never "everything is
+    // archived": a specs root that is not checked out on this host looks
+    // exactly the same from here.
+    const html = rows([job("j1", "analyze")], [target("01-first", { project: "paceup" })]);
+    expect(html).toContain("90-has-run");
+    expect(html).toContain("01-first");
+  });
+
+  test("never-run specs form a stable block at the bottom (criterion 7)", () => {
+    const html = rows(
+      [job("j1", "analyze", { startedAt: "2026-08-16T09:00:00Z" })],
+      [target("90-has-run"), target("88-never"), target("89-never")],
+    );
+    const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    // The higher-numbered folder comes first within the block.
+    expect(order).toEqual(["90-has-run", "89-never", "88-never"]);
+  });
+
+  test("two specs that have both RUN keep the order they have today (criterion 7)", () => {
+    // A general folder tie-break would reverse this pair. It must reach
+    // only groups where `activityAt` is 0 on both sides.
+    const html = rows(
+      [
+        job("j1", "analyze", { specFolder: "aa-spec", startedAt: "2026-08-16T09:00:00Z" }),
+        job("j2", "analyze", { specFolder: "bb-spec", startedAt: "2026-08-16T09:00:00Z" }),
+      ],
+      [],
+    );
+    const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    expect(order).toEqual(["aa-spec", "bb-spec"]);
+  });
+
+  test("the state chips count and cut the never-run specs (criterion 8)", () => {
+    const list = [job("j1", "analyze", { state: "done" })];
+    const targets = [target("90-has-run"), target("90-never-run")];
+    const html = rows(list, targets);
+    expect(html).toMatch(/>All <span class="tabcount">2<\/span>/);
+    expect(html).toMatch(/>Not started <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Active <span class="tabcount">0<\/span>/);
+    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Problems <span class="tabcount">0<\/span>/);
+
+    const only = rows(list, targets, { filter: { state: "not-started" } });
+    expect(only).toContain("90-never-run");
+    expect(head(only, "90-has-run")).toBe("");
+  });
+
+  test("a never-run spec's Cost and Started are dashes (criterion 9)", () => {
+    const line = head(rows([], [target("90-never-run")]), "90-never-run");
+    expect(line).not.toContain("$0.00");
+    expect(line).not.toContain("Invalid Date");
+    expect(line).not.toContain("NaN");
+    // Two dashes: one for Started, one for Cost — plus the action cell.
+    expect(line.match(/–/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("with neither jobs nor targets the page says there is no spec (criterion 10)", () => {
+    const html = rows([], []);
+    expect(html).toContain("No spec");
+    expect(html).not.toContain("Pick a spec above");
+  });
+});
+
+// --- spec 90: a spec's phases fold away --------------------------------------
+
+// Adding a row for every spec that has never run makes the list longer,
+// and folding is what keeps it readable. The state is a query parameter,
+// so it survives the five-second swap of the table by the mechanism the
+// filter and the sort already ride on.
+describe("a spec's phases fold away (criteria 11-15)", () => {
+  const target = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
+
+  const rows = (targets: QueueTarget[], filter?: QueuePageOptions["filter"]) =>
+    renderQueueRows(
+      [],
+      { runnerAvailable: true, targets, filter },
+      Date.parse("2026-08-17T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
+  test("every spec row carries an expanded fold control (criterion 11)", () => {
+    const html = rows([target("90-x")]);
+    const line = head(html, "90-x");
+    expect(line).toContain('aria-expanded="true"');
+    // Percent-encoded, because `queueHref` encodes each value. The raw
+    // key appears in no href under any implementation.
+    expect(line).toContain("fold=aide%2F90-x");
+  });
+
+  test("a folded spec loses its phase lines, not its header (criterion 12)", () => {
+    const html = rows([target("90-x")], { fold: "aide/90-x" });
+    const line = head(html, "90-x");
+    expect(line).not.toBe("");
+    expect(html).not.toContain('<tr class="subrow');
+    expect(line).toContain('aria-expanded="false"');
+    // Its own control now UNfolds: the encoded key is gone from its href.
+    expect(line).not.toContain("fold=aide%2F90-x");
+  });
+
+  test("folding one spec leaves the other's phases alone (criterion 13)", () => {
+    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x" });
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(html).toContain(`data-step="${step}"`);
+    }
+    // The other spec's own fold href gains the folded key too — the
+    // whole filter travels through `queueHref`.
+    expect(head(html, "90-y")).toContain("fold=aide%2F90-x%2Caide%2F90-y");
+  });
+
+  test("a fold key naming no spec leaves every real spec expanded (criterion 14)", () => {
+    const html = rows([target("90-x")], { fold: "aide/nope" });
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(head(html, "90-x")).toContain('aria-expanded="true"');
+  });
+
+  test("the filter, sort and project links keep the fold (criterion 15)", () => {
+    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x", state: "not-started" });
+    // Every state chip and every sortable column header keeps it.
+    const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
+    expect(links.length).toBeGreaterThan(4);
+    for (const href of links) expect(href).toContain("fold=aide%2F90-x");
   });
 });

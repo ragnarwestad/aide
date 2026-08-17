@@ -40,8 +40,10 @@ no host is named anywhere in this repo.
 - `/live` — aide runs in flight (server-rendered, refreshes every 10 s)
 - `/api/aide-runs` — the same rows as JSON; `POST /api/aide-run`
   receives one event
-- `/specs` — one row per spec, its workflow phases beneath; run any
-  phase from its own line, watch one, approve a gate (token required)
+- `/specs` — one row per spec — every non-archived spec of every
+  allowlisted project, whether or not it has ever run — with its
+  workflow phases beneath, foldable away; run any phase from its own
+  line, watch one, approve a gate (token required)
 - `/specs/<id>` — one job, in full
 - `/queue` and `/queue/<id>` — where the page used to live; both
   redirect, query string intact, so an old bookmark still lands
@@ -107,13 +109,26 @@ aide's `aide-run-spec`. A job is an ordered list of steps; a step that
 ends either advances the job, parks it for approval, or ends it.
 
 Two ways in, and they do different jobs. The form at the top queues
-SEVERAL steps as one job, gated between them if asked, and is the only
-entry point for a spec nothing has run yet — a spec with no job has no
-row to run one from. Every phase line under a spec carries its own run
-button and model dropdown: one step, straight through, on the model the
-line picked. A phase already queued or running shows its button
-disabled, because the queue would refuse it anyway (see
+SEVERAL steps as one job, gated between them if asked. Every phase line
+under a spec carries its own run button and model dropdown: one step,
+straight through, on the model the line picked — including `analyze`,
+because a spec is a row from the moment its folder exists rather than
+from the moment it first runs. A phase already queued or running shows
+its button disabled, because the queue would refuse it anyway (see
 [the duplicate guard](#gates-and-notifications)).
+
+The list holds SPECS, not the machine's whole run history: a spec that
+has been archived leaves the page along with the jobs it had. Nothing is
+destroyed — `/api/queue` still returns every job and `/specs/<id>` still
+renders each one. A project the server knows no specs for at all keeps
+every row it has: an empty spec list means "we cannot tell", never
+"everything here is archived".
+
+A spec's four phase lines fold away behind the control in front of its
+name. The fold is a link and lives in the query string
+(`?fold=<project>/<folder>,…`), which is what makes it survive the
+table's own five-second refresh — and what makes it work with JavaScript
+switched off.
 
 The page was called Queue until spec 87. That a queue orders the runs is
 an implementation detail — `QueueStore`, `/api/queue`, `QUEUE_PROJECTS`

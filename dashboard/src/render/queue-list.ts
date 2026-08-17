@@ -1,7 +1,12 @@
 // /specs: the form that starts a run, and the one list of every spec
-// this machine has run — cut and ordered on demand, one line per spec
-// with its workflow phases beneath it, each phase runnable from where
-// it sits.
+// there IS — cut and ordered on demand, one line per spec with its
+// workflow phases beneath it, each phase runnable from where it sits.
+//
+// A spec is a row from the moment its folder exists, not from the moment
+// it first runs: the dropdown and the list held the same things, and a
+// spec crossing from one to the other told the reader nothing. Archived
+// specs leave the page — but only where their project's absence can be
+// PROVEN, never because a specs root happened to be unreadable.
 //
 // The page carries browser code (compiled from queue-client.ts) so the
 // list can refresh without reloading a form someone is half-way through
@@ -62,6 +67,13 @@ export interface QueueFilter {
   project?: string;
   sort?: string;
   dir?: string;
+  /** Which specs are folded shut: `<project>/<folder>`, comma-separated.
+   *  It rides in the query string with the rest of the filter, which is
+   *  the whole reason it survives the five-second swap of the table —
+   *  `swapRows` sends `location.search` back on every tick. Never
+   *  rendered as text: only compared for membership, and re-encoded
+   *  through `queueHref`. */
+  fold?: string;
 }
 
 // --- the form ---------------------------------------------------------------
@@ -191,8 +203,12 @@ const SHOWN = 25;
 // The four questions actually asked of this list. "Problems" holds
 // everything that did not simply finish — a cap-stop and a crash are
 // different, but both are things you go looking for on purpose.
+// "Not started" comes AFTER "All", which must stay first: `stateFilter`
+// falls back to `STATE_FILTERS[0]`, so moving it changes the default
+// filter for every reader.
 const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
   { key: "all", label: "All" },
+  { key: "not-started", label: "Not started", states: ["not-started"] },
   { key: "active", label: "Active", states: ["queued", "running", "awaiting-approval"] },
   { key: "done", label: "Done", states: ["done"] },
   { key: "problem", label: "Problems", states: ["failed", "stopped", "interrupted", "cancelled"] },
@@ -244,13 +260,18 @@ interface SpecGroup {
   project: string;
   specFolder: string;
   /** The job the header speaks for: whatever is in flight, or failing
-   *  that the most recently active one. */
-  lead: QueueRowView;
+   *  that the most recently active one. Absent for a spec nothing has
+   *  ever run — there is no job page to link to, and no honest answer
+   *  to "is it in flight?". */
+  lead?: QueueRowView;
   /** The most recently active job, in flight or not. The "Started"
    *  column shows ITS time, so the column and the sort answer the same
    *  question: when did anything last happen to this spec? */
-  latest: QueueRowView;
-  state: QueueRowView["state"];
+  latest?: QueueRowView;
+  /** `not-started` is this page's own pseudo-state, not a job's: a spec
+   *  that exists and has never been run. It is the filter key and the
+   *  CSS suffix; the words the reader sees are "not started". */
+  state: QueueRowView["state"] | "not-started";
   spentUsd: number;
   activityAt: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
@@ -274,38 +295,70 @@ function branchesOf(recent: QueueRowView[]): BranchView[] {
   return [...byLabel.values()];
 }
 
-function groupBySpec(rows: QueueRowView[]): SpecGroup[] {
+const groupKey = (project: string, specFolder: string): string => `${project}/${specFolder}`;
+
+// A spec with no job is still a spec. It is the ONLY row on this page
+// where the whole workflow is still ahead of you, which is exactly the
+// row the analyze button belongs on.
+function emptyGroup(t: QueueTarget): SpecGroup {
+  return {
+    project: t.project,
+    specFolder: t.specFolder,
+    state: "not-started",
+    spentUsd: 0,
+    activityAt: 0,
+    branches: [],
+    phases: QUEUE_STEPS.map((step) => ({ step, attempts: [] })),
+  };
+}
+
+function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
-    const key = `${r.project}/${r.specFolder}`;
+    const key = groupKey(r.project, r.specFolder);
     const list = byKey.get(key);
     if (list) list.push(r);
     else byKey.set(key, [r]);
   }
-  return [...byKey.values()].map((all) => {
-    const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
-    const lead = recent.find(inFlight) ?? recent[0]!;
-    // The four the form offers, always, in order — a phase nobody has
-    // run yet still holds its place, which is what makes progress
-    // readable at a glance. A step outside them (explore, create,
-    // manifest) is appended rather than dropped: a job that ran is
-    // never invisible.
-    const extra = [...new Set(all.map(currentStep))].filter((s) => !QUEUE_STEPS.includes(s));
-    return {
-      project: lead.project,
-      specFolder: lead.specFolder,
-      lead,
-      latest: recent[0]!,
-      state: lead.state,
-      spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
-      activityAt: activityMs(recent[0]!),
-      branches: branchesOf(recent),
-      phases: [...QUEUE_STEPS, ...extra].map((step) => ({
-        step,
-        attempts: recent.filter((r) => currentStep(r) === step),
-      })),
-    };
-  });
+  const known = new Set(targets.map((t) => groupKey(t.project, t.specFolder)));
+  // Which projects we are entitled to judge. An empty target list is
+  // "we do not know", never "everything is archived": a specs root that
+  // is not checked out on this host looks exactly the same from here,
+  // and a project losing its whole history to a momentarily unreadable
+  // disk is not recoverable by a filter.
+  const judgeable = new Set(targets.map((t) => t.project));
+  const fromJobs = [...byKey.entries()]
+    .filter(([key, all]) => known.has(key) || !judgeable.has(all[0]!.project))
+    .map(([, all]) => jobGroup(all));
+  return [
+    ...fromJobs,
+    ...targets.filter((t) => !byKey.has(groupKey(t.project, t.specFolder))).map(emptyGroup),
+  ];
+}
+
+function jobGroup(all: QueueRowView[]): SpecGroup {
+  const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
+  const lead = recent.find(inFlight) ?? recent[0]!;
+  // The four the form offers, always, in order — a phase nobody has
+  // run yet still holds its place, which is what makes progress
+  // readable at a glance. A step outside them (explore, create,
+  // manifest) is appended rather than dropped: a job that ran is
+  // never invisible.
+  const extra = [...new Set(all.map(currentStep))].filter((s) => !QUEUE_STEPS.includes(s));
+  return {
+    project: lead.project,
+    specFolder: lead.specFolder,
+    lead,
+    latest: recent[0]!,
+    state: lead.state,
+    spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
+    activityAt: activityMs(recent[0]!),
+    branches: branchesOf(recent),
+    phases: [...QUEUE_STEPS, ...extra].map((step) => ({
+      step,
+      attempts: recent.filter((r) => currentStep(r) === step),
+    })),
+  };
 }
 
 function applyFilter(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
@@ -326,7 +379,17 @@ function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     : g.activityAt;
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);
-    return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x as number) - (y as number)) * sign;
+    const cmp =
+      (typeof x === "string" ? String(x).localeCompare(String(y)) : (x as number) - (y as number)) * sign;
+    if (cmp !== 0) return cmp;
+    // Only between two specs that have BOTH never run. A general folder
+    // tie-break is not free: 29 job fixtures sharing one `createdAt` all
+    // tie on `activityAt` today and keep their insertion order, and
+    // reversing them moves the 25-row cap onto the wrong end of the
+    // list. Never-run specs have no insertion order worth keeping —
+    // theirs is whatever the disk scan happened to produce.
+    if (a.activityAt === 0 && b.activityAt === 0) return b.specFolder.localeCompare(a.specFolder);
+    return 0;
   });
 }
 
@@ -341,6 +404,28 @@ function queueHref(f: QueueFilter, patch: QueueFilter): string {
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
   return esc(q ? `/specs?${q}` : "/specs");
+}
+
+const foldedSet = (f: QueueFilter): Set<string> =>
+  new Set((f.fold ?? "").split(",").filter(Boolean));
+
+// The fold is a LINK, not a button, and the state is in the URL. That
+// buys three things at once for no browser code at all: it works with
+// script off, `queue-client.ts` already intercepts `a[data-nav]` inside
+// `#jobrows` so a click neither reloads the page nor wipes a half-filled
+// form, and the choice survives the table swapping itself every five
+// seconds — the same mechanism the filter and the sort ride on.
+function foldControl(g: SpecGroup, f: QueueFilter, folded: Set<string>): string {
+  const key = groupKey(g.project, g.specFolder);
+  const shut = folded.has(key);
+  const next = shut ? [...folded].filter((k) => k !== key) : [...folded, key];
+  return (
+    `<a class="fold" data-nav href="${queueHref(f, { fold: next.join(",") })}" ` +
+    // The key is never the visible content — anything in `?fold=` is
+    // attacker-chosen text, and a glyph cannot be mistaken for markup.
+    `aria-expanded="${shut ? "false" : "true"}" ` +
+    `title="${shut ? "show" : "hide"} the phases of ${esc(g.specFolder)}">${shut ? "▸" : "▾"}</a>`
+  );
 }
 
 function filterBar(groups: SpecGroup[], f: QueueFilter): string {
@@ -444,7 +529,9 @@ function actionForm(r: QueueRowView, token?: string): string {
 // merging an unfinished spec is a choice rather than a surprise.
 function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
   const open = g.branches.filter((b) => !b.merged);
-  if (open.length === 0) return "";
+  // No lead means no job, which means no branch — the guard is for the
+  // type checker, and it holds for the same reason the `if` above does.
+  if (open.length === 0 || !g.lead) return "";
   const names = open.map((b) => b.label).join(", ");
   return (
     `<form method="post" action="/api/queue/${esc(g.lead.id)}/merge" class="mergeform">${tokenField(opts.token)}` +
@@ -482,12 +569,19 @@ const costCell = (spentUsd: number, blank: string): string =>
 
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and the one action there is to take on it.
-function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string {
-  const done = !inFlight(g.lead);
+function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: Set<string>): string {
+  // Three answers, not two. `archived` greys the row out (css.ts), which
+  // is the last thing a spec with the whole workflow still ahead of it
+  // should look like.
+  const rowClass = !g.lead ? "notstarted" : inFlight(g.lead) ? "active" : "archived";
   // The spec name is the way IN: the job it points at is whatever is
   // running, or the last thing that happened. The diff link sits beside
   // it rather than replacing it — nothing a reader uses today disappears.
-  const spec = `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`;
+  // A spec that has never run has no job page to point at, so the name
+  // is text: a link to nothing is worse than no link.
+  const spec = g.lead
+    ? `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`
+    : esc(g.specFolder);
   const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
@@ -503,17 +597,22 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string 
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
-    `<tr class="spechead ${done ? "archived" : "active"}" data-folder="${esc(g.specFolder)}">` +
-    `<td><div class="speccell">${spec}${diff}</div><div class="muted small">${esc(g.project)}</div></td>` +
+    `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
+    `<td><div class="speccell">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
+    `<div class="muted small">${esc(g.project)}</div></td>` +
     `<td><div class="pips">${pips}</div>` +
     `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
-    `<td>${stateCell(g.lead)}</td>` +
-    `<td>${relTime(g.latest.startedAt ?? g.latest.createdAt, now)}</td>` +
+    // Written inline rather than through `stateChip`, which needs a job
+    // this group does not have — and which would print the hyphenated
+    // VALUE where the reader wants the words. `not-started` is the
+    // filter key and the CSS suffix; "not started" is the text.
+    `<td>${g.lead ? stateCell(g.lead) : `<span class="state s-not-started">not started</span>`}</td>` +
+    `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Approve/cancel is about the RUN; Merge is about the work it left
     // behind. Both live in the one action cell, and a spec with neither
     // still owes the reader a dash.
-    `<td>${actionForm(g.lead, opts.token) + mergeForm(g, opts) || "–"}</td></tr>`
+    `<td>${(g.lead ? actionForm(g.lead, opts.token) : "") + mergeForm(g, opts) || "–"}</td></tr>`
   );
 }
 
@@ -581,8 +680,17 @@ function runForm(g: SpecGroup, p: Phase, opts: QueuePageOptions): string {
   );
 }
 
-function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number): string {
-  return groups.map((g) => specHeadRow(g, opts, now) + phaseSubRows(g, opts, now)).join("");
+// Folding OMITS the phase lines rather than hiding them: the state is in
+// the URL, so the server knows before it draws. A `<details>` cannot do
+// this — it breaks the table — and a checkbox's state would be destroyed
+// by the innerHTML swap every five seconds.
+function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, folded: Set<string>): string {
+  return groups
+    .map((g) => {
+      const head = specHeadRow(g, opts, now, folded);
+      return folded.has(groupKey(g.project, g.specFolder)) ? head : head + phaseSubRows(g, opts, now);
+    })
+    .join("");
 }
 
 // The controls and the rows alone, so the page can refresh its table
@@ -600,15 +708,19 @@ function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number): st
 // gets one line, with its phases beneath it.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(rows);
+  const groups = groupBySpec(rows, opts.targets);
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? groupRows(matched.slice(0, SHOWN), opts, now)
+    ? groupRows(matched.slice(0, SHOWN), opts, now, foldedSet(f))
     : `<tr><td colspan="6" class="empty muted">` +
-      (rows.length
-        ? "No job matches this filter."
-        : "Nothing has run yet. Pick a spec above and press “Run it”.") +
+      // Two different emptinesses. "Nothing matches what you asked for"
+      // is answered by changing the filter; "there is no spec here at
+      // all" is not, and telling that reader to pick one above is
+      // pointing at an empty dropdown.
+      (groups.length
+        ? "No spec matches this filter."
+        : "No spec to show — no project on this machine has one to run.") +
       `</td></tr>`;
   return (
     filterBar(groups, f) +

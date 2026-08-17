@@ -35,6 +35,10 @@ table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; }
 thead th { border-bottom: 1px solid #8886; }
 tr.archived td { color: #999; }
+/* Deliberately not the archived grey: a spec nobody has started yet is
+   the opposite of finished work, and greying it out says the opposite
+   of what the row is for. */
+tr.notstarted td { color: inherit; }
 main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
 .small { font-size: 0.82rem; }
 
@@ -97,6 +101,8 @@ table.jobs thead a:hover { text-decoration: underline; }
 .s-stopped { background: #f59e0b22; border-color: #f59e0b88; }
 .s-failed, .s-interrupted { background: #ef444422; border-color: #ef444488; }
 .s-cancelled { background: #8881; color: #888; }
+/* Quiet, but not greyed out: the whole workflow is still ahead of it. */
+.s-not-started { background: #8881; }
 /* Worth noticing, not alarming — the same amber a cap-stop already uses. */
 .unmerged { background: #f59e0b22; border-color: #f59e0b88; }
 
@@ -125,6 +131,11 @@ table.jobs tr.subrow td { border-bottom: none; padding-top: 0.1rem; padding-bott
   font-size: 0.9rem; }
 table.jobs tr.subrow:last-child td { padding-bottom: 0.6rem; }
 table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
+/* Small and quiet: the control sits in front of the spec's own name,
+   which is what a reader is scanning this column for. */
+.fold { text-decoration: none; color: #888; font-size: 0.8rem;
+  display: inline-block; width: 1rem; }
+.fold:hover { color: inherit; }
 /* A phase runs from its own line, so the control has to fit ON that
    line: the row is 0.9rem text with 0.1rem of padding, and a
    full-sized select would double its height. */

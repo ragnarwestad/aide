@@ -315,12 +315,30 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
     }
   });
 
-  test("a spec nothing has ever run gets no row, so the form is its only way in (criterion 10)", async () => {
+  // Spec 87's criterion 10 said the opposite — "a spec nothing has ever
+  // run gets no row, so the form is its only way in". Spec 90 reverses
+  // it deliberately: the dropdown and the list held the same things, and
+  // a spec crossing from one to the other told the reader nothing.
+  test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/specs`, auth)).text();
-    // Offered by the form's dropdown, but absent from the table.
+    // Still offered by the form's dropdown — the form stays as the way
+    // to queue several steps as one gated job.
     expect(html).toContain('<option value="aide/81-queue-and-runner"');
-    expect(html).not.toContain('<tr class="spechead');
+    expect(html).toContain('<tr class="spechead');
+    expect(html).toContain('data-folder="81-queue-and-runner"');
+    expect(html).toContain('<input type="hidden" name="steps" value="analyze">');
+    expect(html).toContain('<span class="state s-not-started">not started</span>');
+  });
+
+  test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const key = encodeURIComponent("aide/81-queue-and-runner");
+    const open = await (await fetch(`${base}/specs?rows=1`, auth)).text();
+    expect(open).toContain('<tr class="subrow');
+    const folded = await (await fetch(`${base}/specs?rows=1&fold=${key}`, auth)).text();
+    expect(folded).toContain('data-folder="81-queue-and-runner"');
+    expect(folded).not.toContain('<tr class="subrow');
   });
 });
 
@@ -891,7 +909,9 @@ describe("the job list sorts and filters", () => {
 
   test("a filter that matches nothing says so instead of showing a bare table", () => {
     const html = page([row("a")], { state: "active" });
-    expect(html).toContain("No job matches");
+    // "spec", not "job": the table has been one line per spec since
+    // spec 86, and since spec 90 it lists specs that have no job at all.
+    expect(html).toContain("No spec matches");
   });
 
   test("the list is capped, and says how many it left out", () => {
