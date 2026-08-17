@@ -2,7 +2,7 @@
 // site, receives aide-run events (POST /api/aide-run), and renders
 // /live through the generator's layout, enriched lazily from
 // claude-usage's /api/live. Replaces the python3 static server on the
-// Mac mini — same port, same launchd label.
+// serving host — same port, same launchd label.
 //
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
