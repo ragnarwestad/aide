@@ -91,8 +91,23 @@ install-serve: require-host
 		$(if $(CLAUDE_USAGE),--claude-usage "$(CLAUDE_USAGE)") \
 		> "$$plist" && \
 	scp -q "$$plist" $(MINI):Library/LaunchAgents/$(LABEL).plist
-	ssh $(MINI) 'mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site && \
-		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null; \
+	@# `bootout` returns before the job is gone. Bootstrapping into that
+	@# gap fails with "Bootstrap failed: 5: Input/output error" and
+	@# leaves NOTHING running — the old job is already dead. Measured on
+	@# the 2026-08-17 move into aide/dashboard, after five earlier
+	@# deploys where the old process happened to die fast enough. Wait
+	@# for the label to actually disappear, and say so if it never does
+	@# rather than bootstrapping into a failure.
+	ssh $(MINI) 'set -e; mkdir -p Library/Logs/aide-dashboard $(REMOTE_STATE)/site; \
+		launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true; \
+		for i in $$(seq 1 50); do \
+			launchctl print gui/$$(id -u)/$(LABEL) >/dev/null 2>&1 || break; \
+			sleep 0.2; \
+		done; \
+		if launchctl print gui/$$(id -u)/$(LABEL) >/dev/null 2>&1; then \
+			echo "$(LABEL) is still loaded after 10s — not bootstrapping over it" >&2; \
+			exit 1; \
+		fi; \
 		launchctl bootstrap gui/$$(id -u) Library/LaunchAgents/$(LABEL).plist'
 
 # Update an already-installed server: pull, deps, restart.
