@@ -1,12 +1,20 @@
 #!/bin/bash
-# Publish the out/ site directory to the mac mini's serve directory.
+# Publish the out/ site directory to the serving host's site directory.
 # Directory sync WITH --delete: stale pages disappear on publish.
 # openrsync-compatible flags only — macOS ships Apple's openrsync,
 # so no GNU-only options (--info=progress2 etc.).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-HOST="${AIDE_DASH_HOST:-rw-macmini-m2}"
+# The host is required, never defaulted: this syncs with --delete, and a
+# default would aim that at a machine nobody asked for.
+if [ -z "${AIDE_DASH_HOST:-}" ]; then
+  echo "AIDE_DASH_HOST is not set — name the host to publish to" >&2
+  echo "(example: AIDE_DASH_HOST=my-server make publish)" >&2
+  exit 1
+fi
+
+HOST="$AIDE_DASH_HOST"
 DEST="${AIDE_DASH_DEST:-aide-dashboard/site}"
 
 if [ ! -f out/index.html ]; then

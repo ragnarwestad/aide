@@ -11,7 +11,9 @@
   - [Caps](#caps)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
-- [Serving on the Mac mini](#serving-on-the-mac-mini)
+- [Deploying](#deploying)
+  - [On a second host](#on-a-second-host)
+  - [On one machine](#on-one-machine)
 
 ---
 
@@ -21,9 +23,10 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 `.aide/project.yaml` manifests, resolves each project's specs root,
 parses spec progress/phase from `4-status.md` files, and renders a
 small static site — an overview page plus one page per project, all
-sharing a left-column nav. Generated on the laptop (where the repos
-live), served on the always-on Mac mini, port 8788, by a small Bun
-server that also receives live aide-run events.
+sharing a left-column nav. Generated where the repos live and served on
+port 8788 by a small Bun server that also receives live aide-run
+events. Generator and server can run on the same machine or on two —
+no host is named anywhere in this repo.
 
 ## URL scheme
 
@@ -44,17 +47,23 @@ Keep the scheme stable: the pages are linked from outside.
 ## Usage
 
 ```bash
-make test           # tsc + bun test (single-run)
-make generate       # write the site to out/
-make publish        # generate + rsync out/ to the Mac mini (--delete:
-                    # pages removed locally disappear remotely too)
-make install-serve  # clone/pull + bun install + launchd job on the mini
-make deploy-serve   # same — for updates
+make test                           # tsc + bun test (single-run)
+make generate                       # write the site to out/
+make serve-local                    # generate + serve out/ on this machine
+AIDE_DASH_HOST=<host> make publish  # generate + rsync out/ to that host
+                                    # (--delete: pages removed locally
+                                    # disappear remotely too)
+MINI=<host> make install-serve      # clone/pull + deps + launchd job there
+MINI=<host> make deploy-serve       # same — for updates
 ```
 
-The remote site directory (`~/aide-dashboard/site` on the mini) must
-remain exclusively the dashboard's: publish syncs with `--delete`, so
-anything else placed there is removed on the next publish.
+Both `AIDE_DASH_HOST` and `MINI` are required and have no default: a
+sync with `--delete` aimed at a machine nobody named is worse than one
+that refuses to start.
+
+The remote site directory (`~/aide-dashboard/site` on the serving host)
+must remain exclusively the dashboard's: publish syncs with `--delete`,
+so anything else placed there is removed on the next publish.
 
 ## Live runs (spec 80)
 
@@ -69,15 +78,15 @@ in `~/.claude/settings.json` as:
 {
   "hooks": {
     "UserPromptSubmit": [{ "hooks": [{ "type": "command",
-      "command": "AIDE_RUN_URL=\"http://rw-macmini-m2:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
+      "command": "AIDE_RUN_URL=\"http://<serving-host>:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
   }
 }
 ```
 
-`/live` merges the stored runs with claude-usage's `/api/live`
-(same host — but claude-usage there binds its Tailscale IP only, so
-the plist passes `--claude-usage http://100.115.106.17:8787`; fetched
-lazily and cached 5 s): liveness
+`/live` merges the stored runs with claude-usage's `/api/live` (same
+host — but if claude-usage there binds one address only, pass it
+explicitly: `CLAUDE_USAGE=http://<address>:8787 make install-serve`;
+fetched lazily and cached 5 s): liveness
 state, subagent count and cost so far. claude-usage unreachable →
 rows render without enrichment and a notice; never an error. Runs are
 kept in memory (LRU 512) and mirrored to `~/aide-dashboard/aide-runs.json`
@@ -132,7 +141,7 @@ afterwards is a report, not a cap. They live in the queue config
   },
   "model": { "implement": "opus", "default": "sonnet" },
   "push": "branch",
-  "notifyCommand": ["/Users/ragnarwestad/aide-dashboard/notify-slack.sh"]
+  "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
 }
 ```
 
@@ -165,17 +174,48 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
 
 `push` in the queue config, passed on to `aide-run-spec`:
 
-- `none` — commit locally and stop. Review by fetching from the mini.
+- `none` — commit locally and stop. Review by fetching from the host
+  that ran it.
 - `branch` (default) — also push `aide/<spec-folder>`, and the specs
   repo's own commits. The queue page and the notification then link to
   the GitHub compare page.
-- `pr` — also open a pull request. Needs `gh auth login` on the mini;
-  a broken `gh` records the error and leaves the run successful.
+- `pr` — also open a pull request. Needs `gh auth login` on the serving
+  host; a broken `gh` records the error and leaves the run successful.
 
-## Serving on the Mac mini
+## Deploying
 
-`deploy/com.ragnarwestad.aide-dashboard-serve.plist` runs
-`bun run src/serve.ts serve --site ~/aide-dashboard/site --port 8788`
-from a checkout at `~/develop/aide-dashboard` (bun via the mise shim
-path — bare `bun` is not on launchd's PATH). Logs:
-`~/Library/Logs/aide-dashboard/serve.log`.
+### On a second host
+
+`MINI=<host> make install-serve` clones or pulls the repo there (the
+clone URL comes from this checkout's own `origin`), installs deps,
+renders a launchd plist and starts the job. No plist is committed:
+`deploy/render-plist.ts` builds it per invocation from the target's own
+`$HOME`, resolved over ssh at install time. Logs go to
+`~/Library/Logs/aide-dashboard/serve.log` on that host.
+
+Everything is overridable, nothing personal is baked in:
+
+All paths are relative to the serving host's own `$HOME`.
+
+| Variable | Default | What it is |
+| --- | --- | --- |
+| `MINI` | — required | the ssh target |
+| `PORT` | `8788` | port to serve on |
+| `MINI_SRC` | `develop/aide-dashboard` | the checkout |
+| `REMOTE_STATE` | `aide-dashboard` | site, mirrors, queue state |
+| `REMOTE_BUN` | `.local/share/mise/shims/bun` | bun on that host |
+| `LABEL` | `com.aide-dashboard.serve` | launchd job label |
+| `QUEUE_PROJECTS` | `aide,aide-dashboard` | what the queue may run |
+| `ROOT` | unset | project root there (omitted when unset) |
+| `BIND` | unset | address to bind (omitted when unset) |
+| `CLAUDE_USAGE` | unset | claude-usage URL (omitted when unset) |
+
+Publishing the generated site to that host is separate:
+`AIDE_DASH_HOST=<host> make publish`.
+
+### On one machine
+
+`make serve-local` generates the site and serves `out/` from the same
+machine — no ssh, no rsync, no launchd, no second host involved. `PORT=`
+and an optional `ROOT=` (the directory to scan for projects) are the
+only knobs. This is the whole thing running in one place.
