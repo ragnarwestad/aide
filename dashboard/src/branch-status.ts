@@ -115,10 +115,22 @@ export class BranchStatusChecker {
     return merged;
   }
 
+  /** Drop one cached answer. A merge performed by this process changes
+   *  the answer it just cached, and a reader who presses Merge and
+   *  reloads must not be told "not merged" for the rest of the TTL. */
+  invalidate(projectDir: string, branch: string): void {
+    this.cache.delete(JSON.stringify([projectDir, branch]));
+  }
+
   /** Not uniform across projects: this repo is `master`, others `main`.
    *  origin/HEAD is set by a normal clone and is the honest answer;
-   *  the probe is for a checkout where that ref is somehow absent. */
-  private async defaultBranch(projectDir: string): Promise<string | null> {
+   *  the probe is for a checkout where that ref is somehow absent.
+   *
+   *  Public because the merge path needs the SAME answer this check
+   *  uses — two resolvers for one question would eventually disagree,
+   *  and the one that decides where a merge lands is not the one to get
+   *  it wrong. */
+  async defaultBranch(projectDir: string): Promise<string | null> {
     const head = await this.run(projectDir, ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"]);
     if (head.code === 0) {
       const name = head.stdout.trim().replace(/^refs\/remotes\/origin\//, "");

@@ -49,6 +49,30 @@ export interface StepResult {
   at: string;
 }
 
+/** One repo a step pushed the spec's branch to, and the compare page for
+ *  it. `aide-run-spec` emits one of these per repo it actually changed —
+ *  a job that touches two repositories makes a branch of the same name in
+ *  both, with different contents and two separate compare pages. */
+export interface BranchRef {
+  root: string;
+  url: string;
+}
+
+/** Fold `next` into `prev` BY ROOT. A step that touched fewer repos than
+ *  an earlier one must not erase the others: analyze changes only the
+ *  specs repo, implement changes both, and a wholesale replace would make
+ *  the project's branch disappear from a spec that has one. */
+export function mergeBranchRefs(prev: BranchRef[] | undefined, next: BranchRef[] | undefined): BranchRef[] {
+  const out = [...(prev ?? [])];
+  for (const ref of next ?? []) {
+    if (!ref || typeof ref.root !== "string" || typeof ref.url !== "string") continue;
+    const at = out.findIndex((r) => r.root === ref.root);
+    if (at >= 0) out[at] = ref;
+    else out.push(ref);
+  }
+  return out;
+}
+
 export interface Job {
   id: string;
   project: string;
@@ -88,8 +112,14 @@ export interface Job {
   results: StepResult[];
   spentUsd: number;
   /** Where the work can be read: the compare page for the spec's
-   *  branch, or the pull request when the push mode opened one. */
+   *  branch, or the pull request when the push mode opened one. ONE
+   *  link, kept because a Slack ping wants exactly one — see
+   *  `branchUrls` for the answer to "which repos". */
   branchUrl?: string;
+  /** Every repo this job's steps pushed to, accumulated by root. Absent
+   *  on a job written before spec 89; the page falls back to
+   *  `branchUrl` for those, which is the behaviour they already had. */
+  branchUrls?: BranchRef[];
   stopReason?: StopReason;
   error?: string;
 }
@@ -285,6 +315,10 @@ function parseStoredJob(raw: unknown): Job | null {
     // file read. Dropped, like every other malformed field.
     sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
     streamFile: typeof r.streamFile === "string" ? r.streamFile : undefined,
+    // Each `root` here becomes a git working directory on the merge
+    // path, so a malformed entry is dropped rather than carried — the
+    // same rule the two fields above already follow.
+    branchUrls: Array.isArray(r.branchUrls) ? mergeBranchRefs([], r.branchUrls as BranchRef[]) : undefined,
   };
 }
 
@@ -407,6 +441,27 @@ export class QueueStore {
       }
     }
     return [...done];
+  }
+
+  /** Which repos this spec has a branch in right now, across every job
+   *  that ever ran for it. The merge route re-derives this itself on
+   *  every POST rather than trusting a root the browser sent back —
+   *  what the browser gets is labels and URLs, never a path to act on.
+   *
+   *  Same shape as `stepsCompletedFor`: the queue's own history is more
+   *  reliable than re-deriving "which repos" from disk, because
+   *  `aide-run-spec` already recorded exactly the repos it pushed. */
+  branchesFor(project: string, specFolder: string): BranchRef[] {
+    // Oldest first, so a later job's URL for the same root overwrites an
+    // earlier one — `startedAt ?? createdAt` is the same recency signal
+    // the render side already sorts specs by.
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
+    const mine = [...this.jobs.values()]
+      .filter((j) => j.project === project && j.specFolder === specFolder)
+      .sort((a, b) => recency(a) - recency(b));
+    let out: BranchRef[] = [];
+    for (const job of mine) out = mergeBranchRefs(out, job.branchUrls);
+    return out;
   }
 
   get(id: string): Job | undefined {

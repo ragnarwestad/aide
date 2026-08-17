@@ -17,7 +17,7 @@
 // tests start no processes.
 
 import type { NotifyEvent } from "./notify.ts";
-import type { Job, QueueStore, WorkflowStep } from "./queue.ts";
+import { mergeBranchRefs, type BranchRef, type Job, type QueueStore, type WorkflowStep } from "./queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -43,8 +43,14 @@ export interface StepOutcome {
   subtype?: string;
   sessionId?: string;
   /** The compare or PR page for the branch this step wrote to, when the
-   *  push mode produced one. */
+   *  push mode produced one. One link: `aide-run-spec`'s own "single
+   *  most interesting one". */
   branchUrl?: string;
+  /** Every repo the step pushed to, one entry each. `aide-run-spec`
+   *  emits this right beside `branchUrl` in the same object; reading
+   *  only the singular neighbour is what left a two-repo job showing
+   *  one link and one merge state for both. */
+  branchUrls?: BranchRef[];
   error?: string;
 }
 
@@ -250,6 +256,9 @@ export class Runner {
       results,
       spentUsd: job.spentUsd + cost,
       branchUrl: outcome.branchUrl ?? job.branchUrl,
+      // Accumulated BY ROOT, never replaced: a step that pushed to one
+      // repo must not erase the repo an earlier step pushed to.
+      branchUrls: mergeBranchRefs(job.branchUrls, outcome.branchUrls),
       pid: undefined,
       pgid: undefined,
       // The step is over: nothing is live under this id any more, and a

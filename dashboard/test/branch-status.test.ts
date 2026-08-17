@@ -6,25 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { BranchStatusChecker, specBranch, type GitRunner } from "../src/branch-status.ts";
-
-interface Call {
-  dir: string;
-  args: string[];
-}
-
-/** A runner that answers from a table of `argv[0] argv[1]` prefixes and
- *  records everything it was asked. */
-function fakeGit(answers: Record<string, { code: number; stdout?: string }>) {
-  const calls: Call[] = [];
-  const run: GitRunner = async (dir, args) => {
-    calls.push({ dir, args });
-    for (const [prefix, answer] of Object.entries(answers)) {
-      if (args.join(" ").startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
-    }
-    return { code: 1, stdout: "" };
-  };
-  return { run, calls };
-}
+import { fakeGit } from "./helpers/fake-git.ts";
 
 const SYMREF_MASTER = {
   "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
@@ -137,5 +119,83 @@ describe("BranchStatusChecker.isMerged", () => {
     const checker = new BranchStatusChecker({ run: git.run, now: () => 1000 });
     expect(await checker.isMerged("/repo", "aide/merged")).toBe(true);
     expect(await checker.isMerged("/repo", "aide/open")).toBe(false);
+  });
+
+  // Spec 89: one boolean per JOB was the bug. The cache key already
+  // carried the directory, so the same branch name in two repos must
+  // never share an answer — that is exactly how the page gave a
+  // confident wrong "merged" for a specs repo it never asked.
+  test("the cache is per repo too — the same branch name in two repos", async () => {
+    const git = fakeGit({
+      ...SYMREF_MASTER,
+      "merge-base": { code: 1 },
+    });
+    const merged = fakeGit({ ...SYMREF_MASTER, "merge-base": { code: 0 } });
+    const a = new BranchStatusChecker({ run: merged.run, now: () => 1000 });
+    const b = new BranchStatusChecker({ run: git.run, now: () => 1000 });
+    expect(await a.isMerged("/repos/aide", "aide/89-x")).toBe(true);
+    expect(await b.isMerged("/repos/aide-specs", "aide/89-x")).toBe(false);
+  });
+});
+
+// Spec 89: the merge code needs the same default branch the check
+// already resolves, and a merge it just performed must be visible
+// without waiting out the TTL of the answer it invalidates.
+describe("BranchStatusChecker.defaultBranch", () => {
+  test("is callable from outside, and answers from origin/HEAD", async () => {
+    const git = fakeGit({ "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.defaultBranch("/repo")).toBe("main");
+  });
+
+  test("falls back to probing main, then master", async () => {
+    const git = fakeGit({
+      "symbolic-ref": { code: 128 },
+      "show-ref --verify --quiet refs/remotes/origin/main": { code: 1 },
+      "show-ref --verify --quiet refs/remotes/origin/master": { code: 0 },
+    });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.defaultBranch("/repo")).toBe("master");
+  });
+
+  test("a repo with no resolvable default branch answers null, never a guess", async () => {
+    const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.defaultBranch("/repo")).toBeNull();
+  });
+});
+
+describe("BranchStatusChecker.invalidate", () => {
+  test("a merged branch shows as merged on the next load, not 30 s later", async () => {
+    // The answer is cached as "not merged", then the merge happens and
+    // the entry is dropped. The clock does NOT move: without the drop
+    // the second call would return the stale answer from cache.
+    let ancestor = 1;
+    const calls: string[] = [];
+    const run: GitRunner = async (_dir, args) => {
+      calls.push(args[0]!);
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "merge-base") return { code: ancestor, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.isMerged("/repo", "aide/89-x")).toBe(false);
+    ancestor = 0;
+    expect(await checker.isMerged("/repo", "aide/89-x")).toBe(false); // still cached
+    checker.invalidate("/repo", "aide/89-x");
+    expect(await checker.isMerged("/repo", "aide/89-x")).toBe(true);
+  });
+
+  test("only the one entry goes — another repo's answer still stands", async () => {
+    const git = fakeGit({ ...SYMREF_MASTER, "merge-base": { code: 0 } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isMerged("/repos/aide", "aide/89-x");
+    await checker.isMerged("/repos/aide-specs", "aide/89-x");
+    const before = git.calls.length;
+    checker.invalidate("/repos/aide", "aide/89-x");
+    await checker.isMerged("/repos/aide-specs", "aide/89-x"); // untouched: still cached
+    expect(git.calls.length).toBe(before);
+    await checker.isMerged("/repos/aide", "aide/89-x"); // dropped: asked again
+    expect(git.calls.length).toBeGreaterThan(before);
   });
 });

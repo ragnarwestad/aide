@@ -26,7 +26,7 @@ export type { LiveRowView } from "./render/live.ts";
 export { renderQueuePage, renderQueueRows, specSummary, stepBoxes } from "./render/queue-list.ts";
 export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-list.ts";
 
-export type { QueueRowView } from "./render/job-state.ts";
+export type { BranchView, QueueRowView } from "./render/job-state.ts";
 
 export { renderJobDetailPage } from "./render/job-page.ts";
 export type { JobDetailView, JobLiveView, JobStepResultView, JobTab } from "./render/job-page.ts";

@@ -1120,3 +1120,191 @@ describe("the form asks which other repos a job will touch", () => {
     expect(field.slice(0, 200)).not.toContain("checked");
   });
 });
+
+// --- spec 89: merging a spec's branches from the page ------------------------
+
+// The same mistake happened three times on 2026-08-17: a spec's work
+// was merged in `aide-specs` and forgotten in `aide`, or the other way
+// round. The route merges every repo the spec has a branch in, and
+// reports each one on its own — never one collective "ok".
+describe("POST /api/queue/<id>/merge", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const PROJECT_REPO = "/repos/aide";
+  const SPECS_REPO = "/repos/aide-specs";
+
+  /** A git that answers per repo. `conflicting` names the roots whose
+   *  real merge fails, so a two-repo spec can have one of each. */
+  function gitFor(conflicting: string[] = []) {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only")) return { code: 1, stdout: "" };
+      if (a.startsWith("merge -q --no-edit")) {
+        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      }
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  /** Seed a finished job whose steps pushed to these repos, and hand
+   *  back a mirror a second server can read. */
+  async function seeded(
+    branchUrls: { root: string; url: string }[],
+    steps: string[] = ["analyze"],
+  ): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify({ ...JOB, steps }) })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "done";
+    job.branchUrls = branchUrls;
+    job.branchUrl = branchUrls[0]?.url;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  test("a single-repo spec merges and pushes, and says which repo it did", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    const git = gitFor();
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; results: { root: string; ok: boolean }[] };
+    expect(body.ok).toBe(true);
+    expect(body.results).toEqual([{ root: PROJECT_REPO, ok: true }]);
+    expect(git.calls.some((c) => c.dir === PROJECT_REPO && c.args[0] === "push")).toBe(true);
+  });
+
+  // Decided up front #2: several repos cannot be merged atomically, so
+  // a single green tick would recreate today's problem mirrored.
+  test("one repo merging and another conflicting is reported per repo", async () => {
+    const { mirror, id } = await seeded([
+      { root: PROJECT_REPO, url: "https://example.test/aide" },
+      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+    ]);
+    const git = gitFor([SPECS_REPO]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
+    const body = (await res.json()) as { ok: boolean; results: { root: string; ok: boolean; error?: string }[] };
+    expect(body.ok).toBe(false);
+    expect(body.results.find((r) => r.root === PROJECT_REPO)!.ok).toBe(true);
+    const refused = body.results.find((r) => r.root === SPECS_REPO)!;
+    expect(refused.ok).toBe(false);
+    expect(refused.error).toContain(SPECS_REPO);
+    // The conflicting repo left nothing half-merged, and nothing of it
+    // reached origin.
+    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(false);
+    // The repo that DID merge was still pushed — one failure never
+    // rolls back another repo's success.
+    expect(git.calls.some((c) => c.dir === PROJECT_REPO && c.args[0] === "push")).toBe(true);
+  });
+
+  // Decided up front #4: every step makes branches, and merging after
+  // `analyze` is a legitimate thing to want. Nothing here gates on
+  // which step ran — only on a branch existing.
+  test("a spec that has only been analyzed still merges", async () => {
+    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }], ["analyze"]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor().run });
+    const body = (await (
+      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
+    ).json()) as { ok: boolean; results: { root: string }[] };
+    expect(body.ok).toBe(true);
+    expect(body.results.map((r) => r.root)).toEqual([SPECS_REPO]);
+  });
+
+  test("an unknown job id is a 404", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    expect((await fetch(`${base}/api/queue/nope/merge`, { method: "POST", headers: AUTH })).status).toBe(404);
+  });
+
+  test("a spec with no branch recorded is refused, and no git is run at all", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const git = gitFor();
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const { base: base2 } = start({ queueToken: TOKEN, gitRun: git.run });
+    const res = await fetch(`${base2}/api/queue/${made.job.id}/merge`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(404); // the second server does not know this job
+    // …and the one that does refuses it with 400, having run nothing.
+    const own = await fetch(`${base}/api/queue/${made.job.id}/merge`, { method: "POST", headers: AUTH });
+    expect(own.status).toBe(400);
+    expect(git.calls.length).toBe(0);
+  });
+
+  // Criterion 8. `isMerged()` caches for 30 s, so the page that
+  // triggered the merge is exactly the page that would show its own
+  // result as "not merged" — the one place a stale answer is certain
+  // rather than unlikely. The clock does not move in this test: only
+  // the invalidation can account for the change.
+  test("the page shows the merge it just did, without waiting out the cache", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    // A git that starts out saying "not merged" and starts saying
+    // "merged" once the branch has actually been pushed to the base.
+    const pushed = new Set<string>();
+    const run = async (dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
+      if (a.startsWith("push")) {
+        pushed.add(dir);
+        return { code: 0, stdout: "" };
+      }
+      if (a.startsWith("merge-base")) return { code: pushed.has(dir) ? 0 : 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
+    const auth = { headers: { "x-aide-token": TOKEN } };
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
+    expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
+    expect(await (await fetch(`${base}/specs`, auth)).text()).not.toContain("not merged");
+  });
+
+  test("GET is not a way to merge anything", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    const git = gitFor();
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
+    expect((await fetch(`${base}/api/queue/${id}/merge`, { headers: AUTH })).status).toBe(405);
+    expect(git.calls.length).toBe(0);
+  });
+
+  // Not a new guard: `isQueuePath` already covers every `/api/queue/`
+  // path, and this confirms the new route inherited it rather than
+  // needing its own.
+  test("it is behind the same token as every other queue route", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor().run });
+    expect((await fetch(`${base}/api/queue/${id}/merge`, { method: "POST" })).status).toBe(401);
+    const { base: off } = start({ queueMirrorPath: mirror, gitRun: gitFor().run });
+    expect((await fetch(`${off}/api/queue/${id}/merge`, { method: "POST" })).status).toBe(503);
+  });
+
+  // A person pressing a button on a page gets the answer on that page,
+  // not a JSON blob — the same shape the enqueue form already uses.
+  test("a plain form post lands back on /specs, with the refusal in the query string", async () => {
+    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor([SPECS_REPO]).run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/specs?error=")).toBe(true);
+    expect(decodeURIComponent(location)).toContain(SPECS_REPO);
+  });
+});

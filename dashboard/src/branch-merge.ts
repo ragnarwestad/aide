@@ -1,0 +1,101 @@
+// Spec 89: the dashboard's first WRITE path. Until now it only ever
+// asked git a question (`branch-status.ts`); this merges a spec's branch
+// into a repo's default branch and pushes the result.
+//
+// The shape is `aide-run-spec`'s, run the other way round. That script
+// brings a REUSED spec branch up to date with the default branch —
+// ff-only first, a real merge as the fallback, `merge --abort` and a
+// named refusal on conflict (`core/scripts/aide-run-spec:262-284`) — and
+// has done so on every headless job. Merging the spec branch INTO the
+// default branch is the same three decisions in the other direction, so
+// it is the same three decisions here rather than a second opinion.
+//
+// Two properties are the point, not tidiness:
+//
+//   * NO half-merged tree is ever left behind. A conflict aborts and
+//     refuses by name, so the next thing to touch that checkout — a
+//     queued `aide-run-spec` run, or a person — finds it clean.
+//   * ONE repo, ONE result. Several repos cannot be merged atomically,
+//     and a single collective "ok" over two repos is exactly the blind
+//     spot this whole spec exists to remove.
+
+import type { GitRunner } from "./branch-status.ts";
+
+export interface RepoMergeResult {
+  root: string;
+  ok: boolean;
+  /** Why not, naming the repo — a refusal that does not say WHERE is
+   *  the same failure as no refusal at all when two repos are in play. */
+  error?: string;
+}
+
+const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
+
+/** Merge `branch` into `base` in `root`, and push. `base` is passed in
+ *  rather than re-derived: the caller already resolved it through
+ *  `BranchStatusChecker.defaultBranch()`, and one resolver for "which
+ *  branch is the default" is the whole reason that method is public.
+ *
+ *  Never throws: a git that cannot run at all is a refusal like any
+ *  other, because the caller is merging several repos and one of them
+ *  blowing up must not take the report for the others with it. */
+export async function mergeBranchIntoDefault(
+  run: GitRunner,
+  root: string,
+  branch: string,
+  base: string,
+): Promise<RepoMergeResult> {
+  try {
+    // 1. A dirty tree is refused BEFORE anything that could touch
+    //    history. `aide-run-spec` refuses on the same condition, which
+    //    is what makes a lock unnecessary between the two: whichever
+    //    gets there first leaves the tree dirty (the other refuses) or
+    //    clean-but-moved (the other proceeds against the new state).
+    const status = await run(root, ["status", "--porcelain"]);
+    if (status.code !== 0) return refuse(root, `cannot read the working tree in ${root}`);
+    if (status.stdout.trim()) return refuse(root, `the tree is dirty in ${root} — commit or stash it first`);
+
+    // 2. Best effort, exactly as `isMerged()` does it: whatever the
+    //    checkout already knows beats no answer at all.
+    await run(root, ["fetch", "--quiet", "origin", base, branch]);
+
+    // 3. Stand on the default branch, and bring it up to origin's. A
+    //    push from a base that is behind would be rejected anyway, and
+    //    a merge onto a stale base is a merge nobody reviewed.
+    const switched = await run(root, ["switch", "-q", base]);
+    if (switched.code !== 0) return refuse(root, `cannot switch to ${base} in ${root}`);
+    const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
+    if (upstream.code === 0) {
+      const pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
+    }
+
+    // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
+    //      This host is not the machine `aide-run-spec` ran on, so a
+    //      local ref of that name may be absent, or left over from an
+    //      older run of the same spec. The remote-tracking ref is the
+    //      one `isMerged()` already trusts, and step 2 made it current.
+    const ref = `refs/remotes/origin/${branch}`;
+    const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
+    if (ff.code !== 0) {
+      const real = await run(root, ["merge", "-q", "--no-edit", ref]);
+      if (real.code !== 0) {
+        await run(root, ["merge", "--abort"]);
+        return refuse(root, `cannot merge ${branch} into ${base} in ${root} (conflict — merge it by hand)`);
+      }
+    }
+
+    // 6. `isMerged()` only trusts what reached origin, so a merge this
+    //    action does not push would show as "not merged" on the very
+    //    page that triggered it. A push that fails is REPORTED and
+    //    never rolled back — `aide-run-spec`'s own precedent is that a
+    //    push problem is not a reason to undo committed work.
+    const pushed = await run(root, ["push", "-q", "origin", base]);
+    if (pushed.code !== 0) {
+      return refuse(root, `merged locally in ${root}, but the push of ${base} failed`);
+    }
+    return { root, ok: true };
+  } catch (err) {
+    return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}

@@ -269,6 +269,65 @@ describe("stepsCompletedFor", () => {
   });
 });
 
+// Spec 89: which repos does this spec have a branch in RIGHT NOW? A
+// spec is taken through its steps as several jobs, and each job knows
+// only about the repos its own steps pushed to. The merge route needs
+// the union — and never trusts the browser for it.
+describe("branchesFor", () => {
+  const seed = (store: QueueStore, steps: string[], branchUrls: { root: string; url: string }[]) => {
+    const r = store.enqueue({ ...REQ, steps });
+    if (!r.ok) throw new Error(r.error);
+    store.update(r.job.id, { state: "done", branchUrls, startedAt: "2026-08-17T10:00:00Z" });
+    return r.job.id;
+  };
+
+  test("a spec with no branch anywhere has nothing to merge", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const r = store.enqueue(REQ);
+    if (!r.ok) throw new Error(r.error);
+    expect(store.branchesFor("aide", "81-queue-and-runner")).toEqual([]);
+  });
+
+  test("two jobs for one spec union their repos", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    seed(store, ["analyze"], [{ root: "/repos/aide-specs", url: "https://example.test/specs" }]);
+    seed(store, ["implement"], [{ root: "/repos/aide", url: "https://example.test/aide" }]);
+    expect(new Set(store.branchesFor("aide", "81-queue-and-runner"))).toEqual(
+      new Set([
+        { root: "/repos/aide-specs", url: "https://example.test/specs" },
+        { root: "/repos/aide", url: "https://example.test/aide" },
+      ]),
+    );
+  });
+
+  test("when both jobs recorded the same root, the most recent one wins", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const older = store.enqueue({ ...REQ, steps: ["analyze"] });
+    if (!older.ok) throw new Error(older.error);
+    store.update(older.job.id, {
+      state: "done",
+      startedAt: "2026-08-17T09:00:00Z",
+      branchUrls: [{ root: "/repos/aide", url: "https://example.test/old" }],
+    });
+    const newer = store.enqueue({ ...REQ, steps: ["implement"] });
+    if (!newer.ok) throw new Error(newer.error);
+    store.update(newer.job.id, {
+      state: "done",
+      startedAt: "2026-08-17T11:00:00Z",
+      branchUrls: [{ root: "/repos/aide", url: "https://example.test/new" }],
+    });
+    expect(store.branchesFor("aide", "81-queue-and-runner")).toEqual([
+      { root: "/repos/aide", url: "https://example.test/new" },
+    ]);
+  });
+
+  test("another spec's branches are not this spec's", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    seed(store, ["analyze"], [{ root: "/repos/aide", url: "https://example.test/aide" }]);
+    expect(store.branchesFor("aide-dashboard", "01-first")).toEqual([]);
+  });
+});
+
 // Reserving the heaviest model for the heaviest jobs (per-job model
 // choice). Two rules do the work here:
 //   * the CONFIG lists which models may be picked, so a request can

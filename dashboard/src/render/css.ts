@@ -100,6 +100,16 @@ table.jobs thead a:hover { text-decoration: underline; }
 /* Worth noticing, not alarming — the same amber a cap-stop already uses. */
 .unmerged { background: #f59e0b22; border-color: #f59e0b88; }
 
+/* One entry per repo the spec pushed to. They wrap rather than stretch
+   the column: three repos is a real case, and the spec's own name is
+   what a reader is scanning for on this line. */
+.branchlist { display: inline-flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; }
+.branch { white-space: nowrap; }
+/* Beside the approve/cancel form, not instead of it: a spec can have a
+   step waiting for approval and finished work to merge at the same time. */
+.mergeform { display: inline-block; }
+.mergeform + form, form + .mergeform { margin-left: 0.3rem; }
+
 table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882; }
 table.jobs .speccell { font-weight: 600; }
 table.jobs .num { text-align: right; font-variant-numeric: tabular-nums; }

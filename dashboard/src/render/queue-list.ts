@@ -10,7 +10,7 @@
 
 import { esc, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
+import { stateChip, unmergedBadge, type BranchView, type QueueRowView } from "./job-state.ts";
 
 export interface QueueTarget {
   project: string;
@@ -253,8 +253,25 @@ interface SpecGroup {
   state: QueueRowView["state"];
   spentUsd: number;
   activityAt: number;
-  branchOf?: QueueRowView;
+  /** Every repo this SPEC has a branch in, however many jobs made them.
+   *  Folded by label from rows already on the page — the server folds
+   *  the same thing by root when the Merge button posts back, and that
+   *  one is the authority. Nothing here decides where git runs. */
+  branches: BranchView[];
   phases: Phase[];
+}
+
+/** Fold branch entries by label, most-recently-active row winning a
+ *  given label. The rows arrive newest-first, so the first sighting of
+ *  a label is the one to keep. */
+function branchesOf(recent: QueueRowView[]): BranchView[] {
+  const byLabel = new Map<string, BranchView>();
+  for (const row of recent) {
+    for (const b of row.branchUrls ?? []) {
+      if (!byLabel.has(b.label)) byLabel.set(b.label, b);
+    }
+  }
+  return [...byLabel.values()];
 }
 
 function groupBySpec(rows: QueueRowView[]): SpecGroup[] {
@@ -282,7 +299,7 @@ function groupBySpec(rows: QueueRowView[]): SpecGroup[] {
       state: lead.state,
       spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
       activityAt: activityMs(recent[0]!),
-      branchOf: recent.find((r) => r.branchUrl),
+      branches: branchesOf(recent),
       phases: [...QUEUE_STEPS, ...extra].map((step) => ({
         step,
         attempts: recent.filter((r) => currentStep(r) === step),
@@ -404,11 +421,52 @@ function sortableHead(f: QueueFilter): string {
 function actionForm(r: QueueRowView, token?: string): string {
   const action =
     r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
-  if (!action) return "–";
+  if (!action) return "";
   const hidden = tokenField(token);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/${action}">${hidden}` +
     `<button type="submit">${action === "approve" ? "Approve" : "Cancel"}</button></form>`
+  );
+}
+
+// The merging still belongs to the user — the button is pressed, never
+// scheduled. What moves onto the page is the EXECUTION, which is the
+// part that got forgotten: a spec's work merged in one repo and left in
+// the other, three times on 2026-08-17.
+//
+// One button for the whole spec, not one per repo. The report that
+// comes back is per repo, because several repos cannot be merged
+// atomically — but a spec with three repos growing three near-identical
+// buttons to find and press in turn is not what "sørger for å gjøre det
+// rett" asked for.
+//
+// The count and the names are on the button BEFORE it is pressed, so
+// merging an unfinished spec is a choice rather than a surprise.
+function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
+  const open = g.branches.filter((b) => !b.merged);
+  if (open.length === 0) return "";
+  const names = open.map((b) => b.label).join(", ");
+  return (
+    `<form method="post" action="/api/queue/${esc(g.lead.id)}/merge" class="mergeform">${tokenField(opts.token)}` +
+    `<button type="submit" title="${esc(names)}">Merge (${open.length})</button></form>`
+  );
+}
+
+// Every repo the spec pushed to, each with its own compare link and its
+// own merge state. Never one link standing in for two: the two branches
+// share a NAME and nothing else.
+function branchList(branches: BranchView[]): string {
+  if (branches.length === 0) return "";
+  return (
+    `<span class="branchlist">` +
+    branches
+      .map(
+        (b) =>
+          `<span class="branch"><a class="small" href="${esc(b.url)}" ` +
+          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>${unmergedBadge(b)}</span>`,
+      )
+      .join("") +
+    `</span>`
   );
 }
 
@@ -430,10 +488,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string 
   // running, or the last thing that happened. The diff link sits beside
   // it rather than replacing it — nothing a reader uses today disappears.
   const spec = `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`;
-  const branch = g.branchOf;
-  const diff = branch
-    ? ` <a class="small" href="${esc(branch.branchUrl!)}">diff</a>${unmergedBadge(branch)}`
-    : "";
+  const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
@@ -455,7 +510,10 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string 
     `<td>${stateCell(g.lead)}</td>` +
     `<td>${relTime(g.latest.startedAt ?? g.latest.createdAt, now)}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
-    `<td>${actionForm(g.lead, opts.token)}</td></tr>`
+    // Approve/cancel is about the RUN; Merge is about the work it left
+    // behind. Both live in the one action cell, and a spec with neither
+    // still owes the reader a dash.
+    `<td>${actionForm(g.lead, opts.token) + mergeForm(g, opts) || "–"}</td></tr>`
   );
 }
 

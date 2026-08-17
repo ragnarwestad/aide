@@ -12,6 +12,7 @@
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
+  - [Branches, and merging them](#branches-and-merging-them)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -212,10 +213,44 @@ shows its LATEST attempt with the count beside it, because a re-run is
 ordinary: one spec needed three `archive` runs.
 
 The header carries what belongs to the spec rather than to one run: the
-summed cost, the branch link with its "not merged" text, and the state
-that matters most right now — whatever is in flight, else the most
-recent outcome. The approve/cancel action sits there too, once per spec
+summed cost, one link per repo the spec pushed to, and the state that
+matters most right now — whatever is in flight, else the most recent
+outcome. The approve/cancel action sits there too, once per spec
 instead of once per job.
+
+### Branches, and merging them
+
+A job that touches two repositories makes a branch of the same name in
+both — `aide/89-merge-from-the-dashboard` exists in the project and in
+the specs repo, with different contents and two separate compare pages.
+Merging one does nothing for the other, and that went unnoticed three
+times on one day. So the header names **every** repo the spec pushed
+to, each with its own compare link and its own "not merged" text, each
+asked of that repo's own checkout. A project whose specs live inside it
+(`paceup`, `atlasaurus`) has one repo and reads as a list of one —
+the same code, not a special case.
+
+Beside the approve/cancel action sits **Merge (N)**, where N is how
+many repos are still unmerged; the button's tooltip names them. It
+merges the spec branch into each repo's default branch and pushes,
+one repo at a time:
+
+- **A conflict refuses and names the repo.** The failed merge is
+  aborted, so no half-merged tree is left behind — the same shape
+  `aide-run-spec` already uses when it brings a reused branch up to
+  date.
+- **A dirty tree refuses before anything touches history.** That is
+  also what makes a lock against a concurrent run unnecessary: both
+  operations already refuse on the same condition.
+- **The report is per repo, never one collective "ok".** Several repos
+  cannot be merged atomically, and one succeeding while another fails
+  is exactly what has to be readable.
+- **Nothing is deleted.** A merged branch is still worth reading, and
+  deleting is the one step that cannot be undone cheaply.
+
+An unfinished spec may be merged — every step makes branches, and
+merging after `analyze` is a legitimate thing to want. The count on the
+button says what it will take before it is pressed.
 
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside

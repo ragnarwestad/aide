@@ -135,9 +135,23 @@ export function renderJobDetailPage(
       ["Model", esc(job.model ?? "as configured")],
       ["Cost so far", money(job.spentUsd)],
       ["Started", relTime(job.startedAt ?? job.createdAt, now)],
-      ...(job.branchUrl
+      // One line per repo. A job that touched two repositories made a
+      // branch of the same name in both, with different contents and
+      // two separate compare pages — so each is named, linked and
+      // badged on its own. A one-repo job renders the same way, with a
+      // list of one.
+      ...(job.branchUrls?.length
         ? ([
-            ["Work", `<a href="${esc(job.branchUrl)}">${esc(job.branchUrl)}</a>${unmergedBadge(job)}`],
+            [
+              "Work",
+              job.branchUrls
+                .map(
+                  (b) =>
+                    `<div class="branch"><span class="muted small">${esc(b.label)}</span> ` +
+                    `<a href="${esc(b.url)}">${esc(b.url)}</a>${unmergedBadge(b)}</div>`,
+                )
+                .join(""),
+            ],
           ] as [string, string][])
         : []),
     ]);

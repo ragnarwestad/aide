@@ -258,10 +258,10 @@ describe("the queue row links to the job (criterion 12)", () => {
   });
 
   test("an existing branch link stays beside it, never replaced by it", () => {
-    const html = renderQueueRows([row({ branchUrl: "https://example.test/compare" })], {
-      runnerAvailable: true,
-      targets: [],
-    });
+    const html = renderQueueRows(
+      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
+      { runnerAvailable: true, targets: [] },
+    );
     expect(html).toContain('<a href="/specs/job-1234">81-queue-and-runner</a>');
     expect(html).toContain('href="https://example.test/compare"');
   });
@@ -274,34 +274,53 @@ describe("the queue row links to the job (criterion 12)", () => {
 // job as a delivered one.
 describe("the unmerged badge (criteria 1-4)", () => {
   const BRANCH = "https://example.test/compare";
+  // Spec 89: one entry per repo. A one-repo spec — `paceup`,
+  // `atlasaurus`, and every job before this field existed — is a list
+  // of one, through the same code a two-repo spec uses.
+  const at = (merged: boolean) => [{ label: "aide", url: BRANCH, merged }];
   const queueRows = (extra: Partial<QueueRowView>) =>
     renderQueueRows([row(extra)], { runnerAvailable: true, targets: [] });
   const jobPage = (extra: Partial<JobDetailView>) =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
 
   test("an unmerged branch is called out on the queue row (criterion 1)", () => {
-    const html = queueRows({ branchUrl: BRANCH, branchMerged: false });
+    const html = queueRows({ branchUrls: at(false) });
     expect(html).toContain("not merged");
     // The link a reader already uses is untouched beside it.
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
   test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
-    const html = queueRows({ branchUrl: BRANCH, branchMerged: true });
+    const html = queueRows({ branchUrls: at(true) });
     expect(html).not.toContain("not merged");
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
   test("the job page's Work row says the same thing (criterion 3)", () => {
-    expect(jobPage({ branchUrl: BRANCH, branchMerged: false })).toContain("not merged");
-    expect(jobPage({ branchUrl: BRANCH, branchMerged: true })).not.toContain("not merged");
+    expect(jobPage({ branchUrls: at(false) })).toContain("not merged");
+    expect(jobPage({ branchUrls: at(true) })).not.toContain("not merged");
   });
 
   test("no branch, no badge — on either page (criterion 4)", () => {
-    expect(queueRows({ branchMerged: false })).not.toContain("not merged");
+    expect(queueRows({ branchUrls: [] })).not.toContain("not merged");
     expect(queueRows({})).not.toContain("not merged");
-    expect(jobPage({ branchMerged: false })).not.toContain("not merged");
+    expect(jobPage({ branchUrls: [] })).not.toContain("not merged");
     expect(jobPage({})).not.toContain("not merged");
+  });
+
+  // Spec 89: the two branches share a NAME and nothing else. One badge
+  // over both was the blind spot — the project's landed, the specs
+  // repo's did not, and the page said nothing.
+  test("two repos get two links and two independent badges", () => {
+    const html = queueRows({
+      branchUrls: [
+        { label: "aide", url: "https://example.test/aide", merged: true },
+        { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
+      ],
+    });
+    expect(html.match(/not merged/g)).toHaveLength(1);
+    expect(html).toContain("https://example.test/aide-specs");
+    expect(html).toContain("aide-specs");
   });
 });
 
@@ -659,13 +678,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([
       job("j1", "analyze", {
         startedAt: "2026-08-16T09:00:00Z",
-        branchUrl: "https://example.test/old",
-        branchMerged: false,
+        branchUrls: [{ label: "aide", url: "https://example.test/old", merged: false }],
       }),
       job("j2", "implement", {
         startedAt: "2026-08-16T11:00:00Z",
-        branchUrl: "https://example.test/compare",
-        branchMerged: false,
+        branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
       }),
     ]);
     expect(html.match(/not merged/g)).toHaveLength(1);

@@ -446,4 +446,82 @@ describe("what the page needs from a step", () => {
     runner.poll();
     expect(store.get(job.id)?.branchUrl).toBe("https://example.test/compare");
   });
+
+  // Spec 89: `aide-run-spec` reports one entry per repo it pushed, and
+  // the runner read only the singular neighbour. A job that touches two
+  // repos makes two branches, and one link for both was the whole bug.
+  test("every repo the step pushed to is kept, not just the representative one", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(1),
+        branchUrl: "https://example.test/aide/compare",
+        branchUrls: [
+          { root: "/repos/aide", url: "https://example.test/aide/compare" },
+          { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+        ],
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.branchUrls).toEqual([
+      { root: "/repos/aide", url: "https://example.test/aide/compare" },
+      { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+    ]);
+  });
+
+  // An analyze step changes only the specs repo; the implement step
+  // after it changes both. Replacing the list wholesale would make the
+  // project's branch vanish from a spec that has one.
+  test("a later step touching fewer repos does not erase the earlier ones", () => {
+    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    let call = 0;
+    const runner = makeRunner({
+      readResult: () => {
+        call += 1;
+        return call === 1
+          ? {
+              ...okResult(1),
+              branchUrls: [
+                { root: "/repos/aide", url: "https://example.test/aide/old" },
+                { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+              ],
+            }
+          : {
+              ...okResult(1),
+              branchUrls: [{ root: "/repos/aide", url: "https://example.test/aide/new" }],
+            };
+      },
+    });
+    runner.tick();
+    runner.poll(); // analyze lands
+    runner.tick();
+    runner.poll(); // implement lands
+    expect(store.get(job.id)?.branchUrls).toEqual([
+      // The root both steps touched carries the LATEST url…
+      { root: "/repos/aide", url: "https://example.test/aide/new" },
+      // …and the one only the first step touched is still there.
+      { root: "/repos/aide-specs", url: "https://example.test/aide-specs/compare" },
+    ]);
+  });
+
+  test("a step that pushed nowhere leaves what earlier steps recorded", () => {
+    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    let call = 0;
+    const runner = makeRunner({
+      readResult: () => {
+        call += 1;
+        return call === 1
+          ? { ...okResult(1), branchUrls: [{ root: "/repos/aide", url: "https://example.test/aide" }] }
+          : okResult(1);
+      },
+    });
+    runner.tick();
+    runner.poll();
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.branchUrls).toEqual([
+      { root: "/repos/aide", url: "https://example.test/aide" },
+    ]);
+  });
 });

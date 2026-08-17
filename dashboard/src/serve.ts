@@ -16,12 +16,16 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
+import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
 import { discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 import { parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
-import { QueueStore, mergeQueueDefaults, type Job, type QueueDefaults, type ProjectResolver } from "./queue.ts";
+import {
+  QueueStore, mergeQueueDefaults,
+  type BranchRef, type Job, type QueueDefaults, type ProjectResolver,
+} from "./queue.ts";
 import { Runner } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
@@ -373,7 +377,10 @@ export function createServer(opts: ServerOptions) {
   // One resolution, two users: the runner runs a spec in this directory,
   // and the merge check asks git about the branch it pushed from there.
   const projectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
-  const branchStatus = new BranchStatusChecker({ run: opts.gitRun ?? createGitRunner() });
+  // One runner, two users now: the read path asks whether a branch
+  // landed, the write path lands it.
+  const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
+  const branchStatus = new BranchStatusChecker({ run: gitRun });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -533,15 +540,39 @@ export function createServer(opts: ServerOptions) {
     },
   });
 
+  // Which repos this ONE job has a branch in. A job written before spec
+  // 89 has `branchUrl` and no `branchUrls`; synthesising a one-entry
+  // list from it reproduces the old single-repo behaviour verbatim,
+  // rather than making every pre-existing job's link vanish on deploy.
+  const jobBranches = (job: Job): BranchRef[] =>
+    job.branchUrls?.length
+      ? job.branchUrls
+      : job.branchUrl
+        ? [{ root: projectDir(job.project), url: job.branchUrl }]
+        : [];
+
+  // A repo's directory basename — `aide`, `aide-specs` — which is the
+  // vocabulary the problem was described in. The full path is never sent
+  // to the browser: the server re-derives every root itself on a POST.
+  const repoLabel = (root: string): string => root.split(sep).filter(Boolean).pop() ?? root;
+
   async function jobRow(job: ReturnType<QueueStore["list"]>[number]): Promise<QueueRowView> {
     // The step whose model the row is about: the one running, or the
     // last one for a job that has finished.
     const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-    // Only worth asking git when there is a branch to ask about. Cached
-    // inside the checker, so the 5 s poll does not spawn git per tick.
-    const branchMerged = job.branchUrl
-      ? await branchStatus.isMerged(projectDir(job.project), specBranch(job.specFolder))
-      : false;
+    // Asked of EACH repo's own checkout. Asking `projectDir(job.project)`
+    // about a branch that lives in the specs repo was not merely a
+    // missing warning: a stale remote-tracking ref of the same name in
+    // the project answered it cleanly, and the page said "merged" about
+    // work that was not (1-description.md, "Measured again").
+    const branch = specBranch(job.specFolder);
+    const branchUrls = await Promise.all(
+      jobBranches(job).map(async (b) => ({
+        label: repoLabel(b.root),
+        url: b.url,
+        merged: await branchStatus.isMerged(b.root, branch),
+      })),
+    );
     return {
       id: job.id,
       project: job.project,
@@ -554,11 +585,40 @@ export function createServer(opts: ServerOptions) {
       timeoutSec: job.timeoutSec,
       createdAt: job.createdAt,
       startedAt: job.startedAt,
-      branchUrl: job.branchUrl,
-      branchMerged,
+      branchUrls,
       stopReason: job.stopReason,
       error: job.error,
     };
+  }
+
+  /** Merge every repo this spec has a branch in, one at a time, and
+   *  report each on its own. Several repos cannot be merged atomically:
+   *  if one succeeds and another fails, saying so plainly is the whole
+   *  point — a single green tick would recreate the problem this route
+   *  exists to solve, mirrored. */
+  async function mergeSpecBranches(job: Job): Promise<RepoMergeResult[]> {
+    const branch = specBranch(job.specFolder);
+    // The queue's own history, re-derived HERE from the job id. Nothing
+    // the browser sent is used to decide which directory git runs in.
+    const known = queue.branchesFor(job.project, job.specFolder);
+    const branches = known.length ? known : jobBranches(job);
+    const results: RepoMergeResult[] = [];
+    for (const b of branches) {
+      const base = await branchStatus.defaultBranch(b.root);
+      if (!base) {
+        // No mutation is attempted on a repo whose default branch we
+        // cannot name — guessing which branch to merge INTO is the one
+        // guess with no safe direction.
+        results.push({ root: b.root, ok: false, error: `cannot work out the default branch in ${b.root}` });
+        continue;
+      }
+      const result = await mergeBranchIntoDefault(gitRun, b.root, branch, base);
+      // The check caches for 30 s. Without this, the page that triggered
+      // the merge would show its own result as "not merged".
+      if (result.ok) branchStatus.invalidate(b.root, branch);
+      results.push(result);
+    }
+    return results;
   }
 
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
@@ -656,12 +716,27 @@ export function createServer(opts: ServerOptions) {
         : new Response(null, { status: 303, headers: { location: "/specs" } });
     }
 
-    const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel)$/);
+    const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel|merge)$/);
     if (action) {
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
       const [, id, verb] = action;
       const job = queue.get(id);
       if (!job) return json({ error: "no such job" }, 404);
+      if (verb === "merge") {
+        const results = await mergeSpecBranches(job);
+        if (results.length === 0) {
+          return json({ error: "no branch has been recorded for this spec" }, 400);
+        }
+        const ok = results.every((r) => r.ok);
+        if (wantsJson) return json({ ok, results });
+        // A person who pressed a button gets the answer on the page they
+        // pressed it from, per repo — never a bare "something failed".
+        const summary = results.filter((r) => !r.ok).map((r) => r.error).join("; ");
+        return new Response(null, {
+          status: 303,
+          headers: { location: ok ? "/specs" : `/specs?error=${encodeURIComponent(summary)}` },
+        });
+      }
       if (verb === "cancel") {
         // SIGTERM to the GROUP, never a bare pid: claude spawns
         // children, and a kill that only reaches the parent is not a
