@@ -1,4 +1,4 @@
-# Flytte melosys-aide installasjon til MELOSYS_PROJECTS_PATH - Status
+# Flytte example-aide installasjon til EXAMPLE_PROJECTS_PATH - Status
 
 **Total fremgang:** 0% (0 av 4 faser fullfort)
 **Estimat:** 2-4 timer (tilnaerming 1)
@@ -61,8 +61,8 @@
 
 | Oppgave                        | Status | Notater                           |
 |--------------------------------|--------|-----------------------------------|
-| Fjern .claude/ fra melosys-web | ⬜     | Valgfritt                         |
-| Fjern .claude/ fra melosys-api | ⬜     | Valgfritt                         |
+| Fjern .claude/ fra example-web | ⬜     | Valgfritt                         |
+| Fjern .claude/ fra example-api | ⬜     | Valgfritt                         |
 | Oppdater INSTALL.md            | ⬜     | Dokumenter foreldre-mappe oppsett |
 
 ---

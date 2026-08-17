@@ -23,7 +23,7 @@
 
 **Repositories brukt under analyse/implementering:**
 
-- **melosys-web-ai-workspace:** `refactor-ny-struktur` @ `ac5bcb3`
+- **example-web-ai-workspace:** `refactor-ny-struktur` @ `ac5bcb3`
 
 ---
 
@@ -65,7 +65,7 @@
 | Oppgave                                        | Status | Notater                                                             |
 |------------------------------------------------|--------|---------------------------------------------------------------------|
 | Test-case 1: Kjør /aide-analyser på JIRA-sak   | ⬜     | Valgfri - kan testes ved neste JIRA-analyse                         |
-| Test-case 2: Kjør /aide-analyser på TODO-plan  | ✅     | TODO-25 fullført - sporingsinfo korrekt (melosys-web + melosys-api) |
+| Test-case 2: Kjør /aide-analyser på TODO-plan  | ✅     | TODO-25 fullført - sporingsinfo korrekt (example-web + example-api) |
 | Test-case 3: Kjør /aide-løs (verifisering kun) | ⬜     | Valgfri - kan testes ved neste implementering                       |
 | Test-case 4: Manglende repo                    | ⬜     | Valgfri - eksisterende feilhåndtering i Steg 0.5 fungerer allerede  |
 
@@ -101,12 +101,12 @@
 
 **Rettelse etter review (2025-11-07):**
 
-- **Problem oppdaget:** Første implementering brukte hardkodede default repos ("melosys-web melosys-api")
-- **Konsekvens:** TODO-24 (workspace-endringer) fikk feil Sporingsinfo (sa melosys-web i stedet for workspace)
+- **Problem oppdaget:** Første implementering brukte hardkodede default repos ("example-web example-api")
+- **Konsekvens:** TODO-24 (workspace-endringer) fikk feil Sporingsinfo (sa example-web i stedet for workspace)
 - **Rettelse:** Endret logikk til å detektere current repo først, deretter legge til relaterte repos
 - **Ny logikk:**
-    - Current repo = melosys-web → Inkluder også melosys-api
-    - Current repo = melosys-api → Inkluder også melosys-web
+    - Current repo = example-web → Inkluder også example-api
+    - Current repo = example-api → Inkluder også example-web
     - Current repo = workspace → Kun workspace
     - Current repo = ukjent → Kun current repo
 - **Resultat:** Sporingsinfo blir nå alltid korrekt basert på hvor arbeidet faktisk gjøres
@@ -114,7 +114,7 @@
 **Implementering fullført (2025-11-07):**
 
 - ✅ Alle agent-filer oppdatert med automatisk repo-deteksjon
-- ✅ Testet med TODO-25: Sporingsinfo viser korrekt melosys-web + melosys-api
+- ✅ Testet med TODO-25: Sporingsinfo viser korrekt example-web + example-api
 - ✅ Committed til workspace: `refactor-ny-struktur` branch
 - ⏳ 3 valgfrie test-cases kan kjøres ved behov (JIRA-test, /aide-løs, manglende repo)
 

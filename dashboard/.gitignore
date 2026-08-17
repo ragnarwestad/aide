@@ -8,9 +8,3 @@ out/
 # Which machines YOU deploy to. The tracked repo names none of them
 # (spec 03) — .env.deploy.example shows the shape.
 .env.deploy
-
-# The global ignore (~/.config/git/ignore) keeps .aide/config out of every repo.
-# Here it is tracked: the only value it carries is the specs path, the same on
-# every machine this repo is developed on. A repo .gitignore outranks
-# core.excludesFile, so this negation is what puts it back.
-!.aide/config

@@ -14,7 +14,10 @@ const ROOT = join(import.meta.dir, "..");
 const FILES = [
   "Makefile",
   "README.md",
-  ".aide/project.yaml",
+  // One level up since spec 85: the dashboard's manifest was folded
+  // into aide's root one, and its `deployment.host` — the field this
+  // guard was written for — went with it.
+  "../.aide/project.yaml",
   "deploy/rsync-publish.sh",
   "deploy/notify-slack.sh",
   "deploy/render-plist.ts",

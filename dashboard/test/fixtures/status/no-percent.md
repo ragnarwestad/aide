@@ -38,7 +38,7 @@
 
 **Repositories brukt:**
 
-- **melosys-aide:** `main` @ `32b997e` (workspace-analyse og implementering)
+- **example-aide:** `main` @ `32b997e` (workspace-analyse og implementering)
 
 ---
 
@@ -242,8 +242,8 @@
     - Kjører validate-docs.sh automatisk hvis tilgjengelig
     - Fallback-melding hvis scriptet ikke finnes
 
-5. **systems/melosys-web/README.md** (ny fil, ~45 linjer)
-    - Workspace-dokumentasjon for melosys-web
+5. **systems/example-web/README.md** (ny fil, ~45 linjer)
+    - Workspace-dokumentasjon for example-web
     - Referanser til docs/ filer
     - Ekstern kodebase-informasjon
     - Relaterte systemer
@@ -291,10 +291,10 @@
 - Kjører scriptet hvis tilgjengelig
 - Gir warning hvis ikke funnet (graceful degradation)
 
-**3.5 melosys-web README:**
+**3.5 example-web README:**
 
 - Opprettet for å fikse validate-docs.sh kritisk feil
-- Forklarer at melosys-web er workspace-dokumentasjon (ikke kodebase)
+- Forklarer at example-web er workspace-dokumentasjon (ikke kodebase)
 - Refererer til docs/ for faktisk dokumentasjon
 - Tydelig skille mellom workspace og ekstern kodebase
 
@@ -309,13 +309,13 @@ Kjørt `validate-docs.sh` etter implementering:
   ✅ api-mapping - README.md
   ⚠️  api-mapping - Mangler architecture.md
   ⚠️  api-mapping - Mangler dependencies.md
-  ✅ melosys-api - Alle filer
-  ✅ melosys-dokgen - Alle filer
-  ✅ melosys-eessi - Alle filer
-  ✅ melosys-trygdeavtale - Alle filer
-  ✅ melosys-web - README.md
-  ⚠️  melosys-web - Mangler architecture.md
-  ⚠️  melosys-web - Mangler dependencies.md
+  ✅ example-api - Alle filer
+  ✅ example-dokgen - Alle filer
+  ✅ example-eessi - Alle filer
+  ✅ example-trygdeavtale - Alle filer
+  ✅ example-web - README.md
+  ⚠️  example-web - Mangler architecture.md
+  ⚠️  example-web - Mangler dependencies.md
 
 🔗 Sjekker CLAUDE.md referanser...
   (ingen output = alle referanser er gyldige)
@@ -327,7 +327,7 @@ Advarsler er ikke kritiske, men bør adresseres for komplett dokumentasjon.
 ```
 
 **Exit code:** 0 (success)
-**Kritiske feil:** 0 **Advarsler:** 4 (manglende architecture.md og dependencies.md i api-mapping og melosys-web)
+**Kritiske feil:** 0 **Advarsler:** 4 (manglende architecture.md og dependencies.md i api-mapping og example-web)
 
 ### Neste steg
 
@@ -343,8 +343,8 @@ Forbedringene implementert:
 
 - Legg til architecture.md i systems/api-mapping/
 - Legg til dependencies.md i systems/api-mapping/
-- Legg til architecture.md i systems/melosys-web/
-- Legg til dependencies.md i systems/melosys-web/
+- Legg til architecture.md i systems/example-web/
+- Legg til dependencies.md i systems/example-web/
 
 **Estimat for valgfrie forbedringer:** 1-2 timer
 

@@ -11,6 +11,12 @@ core/
   agents-intro.md    Neutral intro placed before the shared rules
   AGENTS.md          Generated (intro + core/rules/) — Copilot's and Codex's instruction file
 
+dashboard/           The aide dashboard — renders the manifests and spec progress
+  src/               Site generator + the Bun server behind /live and /queue
+  deploy/            rsync publish, launchd plist rendering
+  test/              bun test — its OWN suite, not part of pytest
+  Makefile           generate / publish / serve-local / install-serve
+
 implementations/     AI-specific adaptations — this is the PRODUCT
   claude-code/       agents/, settings.json, install.sh, uninstall.sh
   copilot/           install.sh, uninstall.sh
@@ -18,6 +24,15 @@ implementations/     AI-specific adaptations — this is the PRODUCT
 
 docs/                Documentation for developers (not read by AI tools)
 ```
+
+**Two toolchains, deliberately separate.** The repo root is pytest
+(`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
+(`dashboard/bun.lock`). Project-command detection reads the ROOT only, so
+aide's test command stays `pytest` — a `package.json` at the root would
+silently redirect it, which
+`tests/specs/unit/core/validation/test_dashboard_merge.py` guards
+against. Run the dashboard's own suite from inside `dashboard/`:
+`bunx tsc --noEmit && bun test`.
 
 ## What gets installed where
 

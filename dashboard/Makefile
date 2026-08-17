@@ -39,7 +39,12 @@ serve-local: generate
 # nobody named is worse than a deploy that refuses to start.
 # Every path below is relative to that host's own $HOME, resolved over
 # ssh at install time — never assumed from this machine.
-MINI_SRC ?= develop/aide-dashboard
+# Two paths, not one: the dashboard's source is a subdirectory of the
+# aide repo (spec 85), so the thing to clone is not the thing bun runs
+# in. They were the same path back when the dashboard was its own repo,
+# which is why one variable used to do both jobs.
+MINI_REPO ?= develop/aide
+MINI_SRC ?= $(MINI_REPO)/dashboard
 REMOTE_STATE ?= aide-dashboard
 # bun via the mise shim: bare `bun` is not on launchd's PATH.
 REMOTE_BUN ?= .local/share/mise/shims/bun
@@ -59,8 +64,8 @@ require-host:
 # install deps, render and install the plist, (re)start the launchd job.
 # Idempotent.
 install-serve: require-host
-	ssh $(MINI) 'if [ -d $(MINI_SRC)/.git ]; then git -C $(MINI_SRC) pull -q --ff-only; \
-		else git clone -q $(REPO_URL) $(MINI_SRC); fi && \
+	ssh $(MINI) 'if [ -d $(MINI_REPO)/.git ]; then git -C $(MINI_REPO) pull -q --ff-only; \
+		else git clone -q $(REPO_URL) $(MINI_REPO); fi && \
 		cd $(MINI_SRC) && ~/$(REMOTE_BUN) install --silent'
 	@home=$$(ssh $(MINI) 'echo $$HOME') && \
 	plist=$$(mktemp -t aide-dashboard-plist) && \

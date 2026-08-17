@@ -29,7 +29,7 @@
 | 5    | Fjern INSTALLATION_PATH fra commands/scripts             | ✅     | `fed2255` | aide-to-html/pdf commands og aide-generate-html/pdf scripts                                                                            |
 | 6    | Oppdater CLAUDE.md og install.sh                         | ✅     | `801811d` | Fjernet INSTALLATION_PATH fra base.md, before.md, INSTALL.md, build-dist.py                                                            |
 | 7    | Copilot - verifiser self-contained                       | ✅     | `0c69958` | Erstattet core/docs/ og systems/ i copilot after.md og tips-base.md                                                                    |
-| 8    | Fiks steg 2 — installer docs og api-mapping til .claude/ | ✅     | `811c575` | build-dist.py kopierer systems/melosys-web/docs/ og api-mapping/ til .claude/docs/ og .claude/api-mapping/. SYSTEM_PATHS.md oppdatert. |
+| 8    | Fiks steg 2 — installer docs og api-mapping til .claude/ | ✅     | `811c575` | build-dist.py kopierer systems/example-web/docs/ og api-mapping/ til .claude/docs/ og .claude/api-mapping/. SYSTEM_PATHS.md oppdatert. |
 | 9    | Fiks gjenværende gamle stier i kildefiler                | ✅     | `c91c301` | docs/KODESTANDARD.md → .claude/docs/, api-mapping/ → .claude/api-mapping/ i skills og instruksjoner                                    |
 
 ---
@@ -40,11 +40,11 @@ Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i ins
 
 | Søketerm                                            | Claude Code `.claude/` | Copilot `.github/` + `prompts/` | Plugin |
 |-----------------------------------------------------|------------------------|---------------------------------|--------|
-| `MELOSYS_AIDE_INSTALLATION_PATH`                    | 0                      | 0                               | 0      |
+| `EXAMPLE_AIDE_INSTALLATION_PATH`                    | 0                      | 0                               | 0      |
 | `core/docs/`                                        | 0                      | 0                               | 0      |
 | `core/templates/`                                   | 0                      | 0                               | 0      |
 | `../../core/`                                       | 0                      | 0                               | 0      |
-| `systems/melosys-web/`                              | 0                      | 0                               | 0      |
+| `systems/example-web/`                              | 0                      | 0                               | 0      |
 | `docs/KODESTANDARD` (uten `.claude/`-prefiks)       | 0                      | —                               | —      |
 | `api-mapping/API_MAPPING` (uten `.claude/`-prefiks) | 0                      | —                               | —      |
 | `.claude/docs/KODESTANDARD.md` finnes               | ✅                     | —                               | —      |
@@ -58,7 +58,7 @@ Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i ins
 | `.claude/rules/testing.md`          | `testing-reglene`          |
 | `.claude/rules/git.md`              | `git-reglene`              |
 | `.claude/rules/documentation.md`    | `dokumentasjonsstandarden` |
-| `.claude/rules/report-structure.md` | `rapport-strukturen`       |
+| `.claude/rules/spec-structure.md` | `spec-strukturen`       |
 | `.claude/rules/markdown-linting.md` | `markdown-linting-reglene` |
 
 ---
