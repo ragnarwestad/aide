@@ -159,10 +159,19 @@ export function renderJobDetailPage(
               : `<p class="muted small">claude-usage is unreachable — liveness, subagents and cost are unknown right now.</p>`)
           : `<p class="muted">unknown — no session is linked to this step yet.</p>`);
 
+  // A run the runner REFUSED never started claude, so there is no
+  // transcript and never will be. "Nothing has been captured" reads as
+  // a lost transcript; the reader opened this tab to find out what
+  // happened, so say what happened.
+  const refused = job.results.some((r) => r.terminalReason === "refused");
   const activity =
     job.activity && job.activity.length > 0
       ? `<ul class="activity">${job.activity.map((a) => `<li>${a}</li>`).join("")}</ul>`
-      : `<p class="muted">Nothing has been captured from this run yet.</p>`;
+      : refused
+        ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
+          `no transcript exists.</p>` +
+          (job.error ? `<p class="refusal">${esc(job.error)}</p>` : "")
+        : `<p class="muted">Nothing has been captured from this run yet.</p>`;
 
   const panel =
     tab === "activity" ? activity : tab === "steps" ? stepResults(job.results) : head + live;

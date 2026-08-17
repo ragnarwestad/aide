@@ -359,6 +359,51 @@ describe("renderJobDetailPage", () => {
     expect(html).not.toContain("<code>ls</code>");
   });
 
+  // A run refused by aide-run-spec never starts claude, so there is no
+  // transcript to keep — and "nothing has been captured" reads as a
+  // lost transcript rather than a run that never began. The reader is
+  // on this tab precisely because they want to know what happened.
+  test("a run refused before it started says THAT, not that nothing was captured", () => {
+    const html = renderJobDetailPage(
+      detail({
+        state: "failed",
+        activity: [],
+        error: "cannot fast-forward main in /x/develop/aide",
+        results: [
+          {
+            step: "archive", ok: false, costUsd: 0, costMeasured: false,
+            terminalReason: "refused", at: "2026-08-17T10:00:00Z",
+          },
+        ],
+      }),
+      "2026-08-17T10:05:00Z",
+      NAV,
+      { tab: "activity" },
+    );
+    expect(html).toContain("refused before it started");
+    expect(html).toContain("cannot fast-forward main");
+    expect(html).not.toContain("Nothing has been captured");
+  });
+
+  test("a refusal with no error text still says the run never started", () => {
+    const html = renderJobDetailPage(
+      detail({
+        state: "failed",
+        activity: [],
+        results: [
+          {
+            step: "archive", ok: false, costUsd: 0, costMeasured: false,
+            terminalReason: "refused", at: "2026-08-17T10:00:00Z",
+          },
+        ],
+      }),
+      "2026-08-17T10:05:00Z",
+      NAV,
+      { tab: "activity" },
+    );
+    expect(html).toContain("refused before it started");
+  });
+
   test("a job with no stream kept says so, rather than showing a blank panel", () => {
     const html = renderJobDetailPage(detail({ activity: [] }), "2026-08-16T10:05:00Z", NAV, {
       tab: "activity",
