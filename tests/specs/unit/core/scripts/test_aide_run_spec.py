@@ -934,6 +934,60 @@ def test_the_stream_is_kept_when_the_deadline_kills_the_run(runner, workspace, f
     assert '"init"' in stream.read_text()
 
 
+def test_the_stream_is_readable_while_the_run_is_still_going(
+    runner, workspace, fake_claude, tmp_path
+):
+    """The dashboard's "what it has been doing" panel reads this file to
+    show a RUNNING job. Copying it out of $work_dir at exit filled the
+    panel the instant the job stopped needing it: five minutes into a
+    live analyze, the panel was empty and the run looked stuck."""
+    stream = tmp_path / "job.stream.jsonl"
+    ready, go = tmp_path / "ready", tmp_path / "go"
+    # Emit one event, announce it, and hold until the test releases us.
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f"echo '{json.dumps(STREAM_NOISE[0])}'\n"
+        f"touch {ready}\n"
+        f"while [ ! -f {go} ]; do sleep 0.05; done\n"
+        f"echo '{json.dumps(RESULT_OK)}'\n"
+        "exit 0"
+    )
+    proc = subprocess.Popen(
+        [
+            str(runner),
+            "--project-dir", str(workspace["project"]),
+            "--command", "analyze",
+            "--spec", workspace["folder"],
+            "--budget-usd", "3",
+            "--timeout-sec", "30",
+            "--permission-mode", "acceptEdits",
+            "--result-file", str(workspace["project"].parent / "result.json"),
+            "--stream-file", str(stream),
+        ],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
+    )
+    try:
+        deadline = time.time() + 30
+        while not ready.exists() and time.time() < deadline:
+            if proc.poll() is not None:
+                raise AssertionError(f"the run ended early: {proc.communicate()}")
+            time.sleep(0.05)
+        assert ready.exists(), "the fake claude never started"
+        # THE POINT: mid-run, with claude still holding, the events it
+        # has already emitted must be on disk where the dashboard looks.
+        assert stream.exists(), "the stream file must exist while the run is going"
+        assert '"init"' in stream.read_text(), "already-emitted events must be readable mid-run"
+    finally:
+        go.touch()
+        proc.wait(timeout=30)
+    # And the run still finishes normally, with the result parsed out of
+    # the same file.
+    out = json.loads(proc.stdout.read().strip().splitlines()[-1])
+    assert out["terminalReason"] == "completed"
+    assert json.loads(stream.read_text().splitlines()[-1])["type"] == "result"
+
+
 def test_the_stream_is_kept_when_the_cli_produces_no_result(runner, workspace, fake_claude, tmp_path):
     stream = tmp_path / "job.stream.jsonl"
     claude = fake_claude("cat > /dev/null\necho 'not json at all'\nexit 1")

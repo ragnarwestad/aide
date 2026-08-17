@@ -292,10 +292,27 @@ work_dir="$(mktemp -d)"
 # the longest runs, the ones worth reading. Best effort throughout —
 # a transcript that could not be copied must never turn a finished run
 # into a failed one.
+#
+# When a --stream-file is asked for, claude writes STRAIGHT to it
+# instead: the whole point of the file is to be read while the run is
+# going, and copying it out at exit filled the reader's panel the
+# instant the job stopped needing it. Writing there directly keeps the
+# killed-run property too — the file is already on disk, so there is
+# nothing left to rescue. keep_stream then only has work to do for the
+# case it was written for: no --stream-file, nothing to keep.
+# Only if we can actually write there. Keeping a transcript is a
+# convenience, and a run whose work succeeded must never be reported as
+# failed because a directory was missing — which is exactly what
+# redirecting claude's stdout at an unwritable path would do.
+transcript="$work_dir/out"
+if [ -n "$stream_file" ] && : > "$stream_file" 2>/dev/null; then
+  transcript="$stream_file"
+fi
 keep_stream() {
   [ -n "$stream_file" ] || return 0
-  [ -f "$work_dir/out" ] || return 0
-  if cp "$work_dir/out" "$stream_file.tmp" 2>/dev/null; then
+  [ "$transcript" != "$stream_file" ] || return 0
+  [ -f "$transcript" ] || return 0
+  if cp "$transcript" "$stream_file.tmp" 2>/dev/null; then
     mv "$stream_file.tmp" "$stream_file" 2>/dev/null || rm -f "$stream_file.tmp" 2>/dev/null
   fi
   return 0
@@ -315,7 +332,7 @@ set -m
 # makes the run analyse the wrong repository — measured on the first
 # real job, 2026-08-16, which cost $0.45 to discover. `exec` keeps the
 # pid, so $! is still the process group we later signal.
-( cd "$project_root" && exec "${argv[@]}" ) < "$work_dir/prompt" > "$work_dir/out" 2> "$work_dir/err" &
+( cd "$project_root" && exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
 child=$!
 set +m
 
@@ -353,7 +370,7 @@ session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason="";
 # parse, so a half-written final line from a killed run costs nothing
 # rather than discarding a result event that arrived intact.
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
-  "$work_dir/out" 2>/dev/null | tail -n 1)"
+  "$transcript" 2>/dev/null | tail -n 1)"
 
 if [ -n "$result_json" ]; then
   session_out="$(jq -r '.session_id // empty' <<<"$result_json")"
