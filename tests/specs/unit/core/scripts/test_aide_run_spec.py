@@ -46,20 +46,46 @@ def init_repo(path):
 @pytest.fixture
 def workspace(tmp_path):
     """A project repo plus a SEPARATE specs repo, the way a real aide
-    project is laid out (AIDE_SPECS_PATH in .aide/config)."""
+    project is laid out (AIDE_SPECS_PATH in .aide/config).
+
+    Since spec 91 the project also carries a gitignored dependency
+    directory and an AIDE_WORKTREE_LINKS line naming it: a worktree
+    checks out TRACKED files only, so anything a test run needs — `.venv`
+    here, `deps/` in the fixture — has to be linked in or it is simply
+    absent.
+    """
     project = init_repo(tmp_path / "proj")
     specs = init_repo(tmp_path / "specs")
     (specs / "81-queue-and-runner").mkdir()
     (specs / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
     subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(specs), "commit", "-qm", "add spec"], check=True)
+    (project / ".gitignore").write_text("/deps/\n")
+    (project / "deps").mkdir()
+    (project / "deps" / "marker.txt").write_text("the dependency tree\n")
     (project / ".aide").mkdir()
-    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs}\n")
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\nAIDE_WORKTREE_LINKS=deps\n"
+    )
     # -f: the user's global gitignore covers .aide/config, and an
     # untracked file would read as a dirty tree here.
-    subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config"], check=True)
+    subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".gitignore"], check=True)
     subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
-    return {"project": project, "specs": specs, "folder": "81-queue-and-runner"}
+    return {
+        "project": project,
+        "specs": specs,
+        "folder": "81-queue-and-runner",
+        "wtbase": tmp_path / "worktrees",
+    }
+
+
+# The fake `claude` writes RELATIVE to its own working directory, and
+# resolves the specs root the way a skill does: out of the .aide/config
+# it finds there. Writing by absolute path into the main checkouts —
+# which is what these tests did before spec 91 — writes to the wrong tree
+# the moment the step runs in a worktree, and the run would then commit
+# nothing while reporting success.
+READ_SPECS = 'specs="$(sed -n "s|^AIDE_SPECS_PATH=||p" "$PWD/.aide/config" | head -1)"\n'
 
 
 RESULT_OK = {
@@ -88,6 +114,10 @@ def fake_claude(tmp_path):
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
             f'printf "%s\\n" "$PWD" >> {tmp_path / "claude-cwd.txt"}\n'
+            # The worktree is gone by the time a test reads anything, so
+            # what has to be observed DURING the run is recorded here.
+            f'git rev-parse --abbrev-ref HEAD >> {tmp_path / "claude-branch.txt"} 2>/dev/null\n'
+            f'git rev-parse --show-toplevel >> {tmp_path / "claude-toplevel.txt"} 2>/dev/null\n'
             f'env >> {tmp_path / "claude-env.txt"}\n'
             f"{body}\n"
         )
@@ -97,6 +127,8 @@ def fake_claude(tmp_path):
     make.calls = calls  # type: ignore[attr-defined]
     make.cwd_log = tmp_path / "claude-cwd.txt"  # type: ignore[attr-defined]
     make.env_log = tmp_path / "claude-env.txt"  # type: ignore[attr-defined]
+    make.branch_log = tmp_path / "claude-branch.txt"  # type: ignore[attr-defined]
+    make.toplevel_log = tmp_path / "claude-toplevel.txt"  # type: ignore[attr-defined]
     return make
 
 
@@ -111,6 +143,9 @@ def run(runner, ws, claude=None, **kwargs):
         "--timeout-sec": "30",
         "--permission-mode": "acceptEdits",
         "--result-file": str(ws["project"].parent / "result.json"),
+        # Never $HOME/aide-worktrees in a test: a suite that writes there
+        # would fight the machine's own runs.
+        "--worktree-base": str(ws["wtbase"]),
     }
     for key, value in kwargs.items():
         flag = "--" + key.replace("_", "-")
@@ -250,11 +285,20 @@ def test_a_successful_run_carries_cost_session_and_subtype(runner, workspace, fa
 def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, workspace, fake_claude):
     """A skill resolves the project from its working directory. The
     first real job ran with the server's cwd and analysed the wrong
-    repository — it cost $0.45 to find out, so it gets a test."""
+    repository — it cost $0.45 to find out, so it gets a test.
+
+    Since spec 91 the directory is the project's WORKTREE rather than its
+    main checkout (criterion 2), but the property is the same one: the
+    step must stand in the tree the run will commit from.
+    """
     claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    assert fake_claude.cwd_log.read_text().strip() == str(workspace["project"].resolve())
+    cwd = fake_claude.cwd_log.read_text().strip()
+    assert cwd != str(workspace["project"].resolve()), "the step must not stand in the main checkout"
+    assert cwd.startswith(str(workspace["wtbase"])), cwd
+    assert fake_claude.branch_log.read_text().strip() == "aide/81-queue-and-runner"
+    assert fake_claude.toplevel_log.read_text().strip() == cwd, "and it is a checkout of its own"
 
 
 def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_claude):
@@ -343,20 +387,31 @@ def test_a_run_starts_from_the_default_branch_not_the_last_job_s(runner, workspa
     """The previous job leaves its spec branch checked out. Starting
     there would base new work on stale code — and if that branch was
     merged and deleted upstream, the pull fails outright, which is how
-    this was found."""
+    this was found.
+
+    Restated for spec 91: the step no longer runs in the main checkout at
+    all, so what is asserted is the branch the WORKTREE was cut from. The
+    main checkout's own branch is criterion 1's business.
+    """
     stale = "aide/99-previous-job"
     subprocess.run(["git", "-C", str(workspace["project"]), "switch", "-q", "-c", stale], check=True)
     (workspace["project"] / "leftover.txt").write_text("from the last job\n")
     subprocess.run(["git", "-C", str(workspace["project"]), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(workspace["project"]), "commit", "-qm", "old work"], check=True)
 
-    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    saw = workspace["project"].parent / "saw-leftover.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        f'test -f "$PWD/leftover.txt" && echo yes > {saw}\n'
+        f'echo "written by the step" > "$PWD/new-code.txt"\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    # The new branch came off main, so the previous job's file is absent.
-    assert not (workspace["project"] / "leftover.txt").exists()
-    # And the checkout is handed back on the default branch, so the NEXT
-    # job does not inherit this one either.
+    # The worktree came off main, so the previous job's file is absent.
+    assert not saw.exists(), "the step must not see the previous job's work"
+    # And the main checkout is on the default branch, so the NEXT job
+    # does not inherit this one either.
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert stale in git(workspace["project"], "branch", "--list", stale)
 
@@ -381,17 +436,11 @@ def test_the_result_file_is_written_as_well_as_stdout(runner, workspace, fake_cl
 
 
 def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_claude):
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        f'echo "written by the step" > "{workspace["project"]}/new-code.txt"\n'
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
-    # The work is ON the branch; the checkout is handed back on main so
-    # the next job starts clean.
+    # The work is ON the branch; the main checkout never left main.
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert git(workspace["specs"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert "analyze" in git(workspace["project"], "log", "-1", "--pretty=%s", branch)
@@ -413,7 +462,7 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
 def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, workspace, fake_claude):
     claude = fake_claude(
         "cat > /dev/null\n"
-        f'echo "half-written" > "{workspace["project"]}/half.txt"\n'
+        'echo "half-written" > "$PWD/half.txt"\n'
         "trap '' TERM\n"
         "while true; do sleep 0.2; done"
     )
@@ -522,12 +571,15 @@ def fake_gh(tmp_path):
 
 def writing_claude(fake_claude, workspace):
     """A claude that leaves work behind in both roots, the way a real
-    step does."""
+    step does — in ITS OWN working directory and in the specs root its
+    own .aide/config names, never by absolute path into a main checkout.
+    """
     return fake_claude(
         "cat > /dev/null\n"
-        f'echo "written by the step" > "{workspace["project"]}/new-code.txt"\n'
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
+        + READ_SPECS
+        + f'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
     )
 
 
@@ -584,8 +636,9 @@ def specs_only_claude(fake_claude, workspace):
     This is the shape of most of what the queue actually runs."""
     return fake_claude(
         "cat > /dev/null\n"
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
     )
 
 
@@ -727,9 +780,10 @@ def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, 
 
     claude = fake_claude(
         "cat > /dev/null\n"
-        f'test -f "{project}/moved-on.txt" && echo yes > "{project}/saw-it.txt"\n'
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
+        + READ_SPECS
+        + 'test -f "$PWD/moved-on.txt" && echo yes > "$PWD/saw-it.txt"\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
@@ -753,11 +807,7 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "later work on main")
 
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert is_ancestor(project, earlier, branch), "the earlier step's work must survive"
@@ -799,14 +849,27 @@ def passenger(tmp_path):
     return init_repo(tmp_path / "passenger")
 
 
+# A passenger repo is addressed by absolute path and nothing else, so
+# since spec 91 the PROMPT names its worktree — the same answer the
+# script already uses for a fact the step cannot infer (headlessness).
+# The fake claude reads the prompt off stdin and works where it is told,
+# exactly as a step would.
+PASSENGER_FROM_PROMPT = (
+    'prompt="$(cat)"\n'
+    'pwt="$(printf "%s\\n" "$prompt" | sed -n "s|^The repo passenger is checked out '
+    'for this run at \\(.*\\)\\.$|\\1|p" | head -1)"\n'
+)
+
+
 def test_a_passenger_repo_is_committed_on_the_branch_and_handed_back_clean(
     runner, workspace, fake_claude, passenger
 ):
     claude = fake_claude(
-        "cat > /dev/null\n"
-        f'echo "written by the step" > "{passenger}/new-code.txt"\n'
-        f'echo "analysis" > "{workspace["specs"]}/{workspace["folder"]}/2-analysis.md"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
+        PASSENGER_FROM_PROMPT
+        + READ_SPECS
+        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
     assert rc == 0, out
@@ -862,9 +925,9 @@ def test_a_passenger_repo_is_pushed_on_its_branch_not_its_main(
     main_before = git(bare, "rev-parse", "main")
 
     claude = fake_claude(
-        "cat > /dev/null\n"
-        f'echo "written by the step" > "{passenger}/new-code.txt"\n'
-        f"echo '{json.dumps(RESULT_OK)}'"
+        PASSENGER_FROM_PROMPT
+        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
     )
     rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger), push="branch")
     assert rc == 0, out
@@ -996,6 +1059,7 @@ def test_the_stream_is_readable_while_the_run_is_still_going(
             "--permission-mode", "acceptEdits",
             "--result-file", str(workspace["project"].parent / "result.json"),
             "--stream-file", str(stream),
+            "--worktree-base", str(workspace["wtbase"]),
         ],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         text=True, env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
@@ -1068,3 +1132,563 @@ def test_the_session_id_we_supplied_is_the_one_the_run_reports(runner, workspace
     assert rc == 0, out
     assert f"--session-id {chosen}" in fake_claude.calls.read_text()
     assert out["sessionId"] == chosen
+
+
+# --- Spec 91, slice 91a: one throwaway checkout per run ----------------------
+# The queue ran one job at a time for one reason: every run switched the
+# real working tree of every repo it touched, so two at once would fight
+# over it — whichever switched last would decide what the other was
+# compiling, testing and committing. Since spec 91 a run works in `git
+# worktree` checkouts of its own, and the main ones are only ever put
+# back ON their default branch.
+#
+# Criteria 1-19 of 3-solution.md.
+
+BRANCH = "aide/81-queue-and-runner"
+
+
+def worktrees(repo):
+    """The worktree paths git knows about in `repo`, main one included."""
+    out = git(repo, "worktree", "list", "--porcelain")
+    return [l[len("worktree "):] for l in out.splitlines() if l.startswith("worktree ")]
+
+
+def probing_claude(fake_claude, workspace, extra="", result=RESULT_OK):
+    """A claude that records the main checkouts' branches DURING the run —
+    the only moment at which the question can be asked."""
+    log = workspace["project"].parent / "main-branches.txt"
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'git -C "{workspace["project"]}" rev-parse --abbrev-ref HEAD >> {log}\n'
+        + f'git -C "{workspace["specs"]}" rev-parse --abbrev-ref HEAD >> {log}\n'
+        + extra
+        + f"echo '{json.dumps(result)}'"
+    ), log
+
+
+# --- Criterion 1: the main checkouts never leave their default branch --------
+
+def test_the_main_checkout_never_leaves_its_default_branch(runner, workspace, fake_claude):
+    """The whole point. Two runs on the same repo pair are independent
+    only if neither of them moves the shared tree."""
+    claude, log = probing_claude(
+        fake_claude, workspace,
+        extra=(
+            'echo "written by the step" > "$PWD/new-code.txt"\n'
+            f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        ),
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert log.read_text().split() == ["main", "main"], "during the run, both trees stay on main"
+    assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert git(workspace["specs"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    # And the work really did land on the branch, so this is not a test
+    # that passes because nothing happened.
+    assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+
+
+# --- Criterion 3: the specs root is re-pointed at the specs worktree ---------
+
+def test_the_worktree_specs_path_points_at_the_specs_worktree(runner, workspace, fake_claude):
+    """A worktree of the PROJECT isolates nothing an analyze step writes:
+    AIDE_SPECS_PATH is an absolute path into another repository, and it
+    resolves to the shared checkout from inside a worktree just as well as
+    from outside it."""
+    seen = workspace["project"].parent / "specs-seen.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "$specs" > {seen}\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    resolved = seen.read_text().strip()
+    assert resolved.startswith(str(workspace["wtbase"])), resolved
+    assert not resolved.startswith(str(workspace["specs"]) + "/"), "not the shared specs checkout"
+    # What the step wrote there is committed on the branch in the specs
+    # REPO — the worktree is a view of it, not a copy.
+    assert "2-analysis.md" in git(workspace["specs"], "show", "--name-only", "--pretty=", BRANCH)
+    assert "2-analysis.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", "main")
+
+
+# --- Criterion 4: the re-pointed config is never dirty, never committed ------
+
+def test_the_repointed_config_is_never_dirty_and_never_committed(runner, workspace, fake_claude):
+    """.aide/config is TRACKED in this repo, so rewriting it in a worktree
+    would dirty the tree — and `git add -A` would commit the rewrite onto
+    the spec branch. `update-index --skip-worktree` is what stops both."""
+    status = workspace["project"].parent / "wt-status.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'git status --porcelain > {status}\n'
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert ".aide/config" not in status.read_text(), "the rewrite must never read as a change"
+    files = git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+    assert ".aide/config" not in files, files
+    # The main checkout's own config is untouched.
+    assert f"AIDE_SPECS_PATH={workspace['specs']}" in (
+        workspace["project"] / ".aide" / "config"
+    ).read_text()
+
+
+# --- Criteria 5 and 6: the dependencies a worktree lacks ---------------------
+
+def test_a_linked_dependency_is_available_inside_the_worktree(runner, workspace, fake_claude):
+    """`git worktree add` checks out TRACKED files only, so every
+    gitignored path is absent — in this repo that is `.venv` and
+    `dashboard/node_modules`, without which pytest and bun both fail for a
+    reason that has nothing to do with the change."""
+    seen = workspace["project"].parent / "dep-seen.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + f'cat "$PWD/deps/marker.txt" > {seen} 2>&1\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert seen.read_text().strip() == "the dependency tree"
+
+
+def test_a_linked_dependency_is_never_staged_and_leaves_the_repo_unchanged(
+    runner, workspace, fake_claude, origin
+):
+    """A `dir/` gitignore rule matches directories only, and a symlink is
+    a file to git — so the link reads as untracked and `git add -A` would
+    commit it. Two absolute-path symlinks on every spec branch is the
+    small half; the large half is that every repo then counts as changed,
+    so an analyze step that touched nothing in the project pushes a branch
+    and a compare link anyway."""
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    roots = {r["root"]: r for r in out["repos"]}
+    assert roots[str(workspace["project"])]["changedFiles"] == 0, "the link is not a change"
+    assert git(origin["project"], "branch", "--list", BRANCH) == "", "and no branch is pushed"
+    assert BRANCH in git(origin["specs"], "branch", "--list", BRANCH)
+
+
+# --- Criterion 7: the reported root is the MAIN checkout ---------------------
+
+def test_the_reported_root_is_the_main_checkout_and_head_is_the_worktrees(
+    runner, workspace, fake_claude
+):
+    """A worktree path is deleted when the run ends. Reported as `root` it
+    would make the page's labels read as job ids, `isMerged` answer false
+    forever, and Merge fail in a directory that no longer exists."""
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    roots = {r["root"]: r for r in out["repos"]}
+    assert set(roots) == {str(workspace["project"]), str(workspace["specs"])}
+    for main, repo in roots.items():
+        assert pathlib.Path(main).is_dir(), "a reported root must still exist afterwards"
+        assert repo["worktree"].startswith(str(workspace["wtbase"])), repo
+        # headAfter is the step's commit, read in the tree the work
+        # happened in — not the default branch's HEAD.
+        assert repo["headAfter"] == git(main, "rev-parse", BRANCH)
+        assert repo["headAfter"] != git(main, "rev-parse", "main")
+
+
+# --- Criterion 8: no worktree survives the run ------------------------------
+
+def test_no_worktree_survives_a_completed_run(runner, workspace, fake_claude):
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    for repo in (workspace["project"], workspace["specs"]):
+        assert worktrees(repo) == [str(repo)], "only the main worktree may remain"
+    assert not list(workspace["wtbase"].glob("*/*/*")), "and nothing is left on disk"
+
+
+def test_no_worktree_survives_a_budget_stop(runner, workspace, fake_claude):
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_BUDGET)}'; exit 1")
+    rc, out, _ = run(runner, workspace, claude)
+    assert out["terminalReason"] == "budget"
+    assert worktrees(workspace["project"]) == [str(workspace["project"])]
+
+
+def test_no_worktree_survives_a_deadline_kill(runner, workspace, fake_claude):
+    claude = fake_claude("cat > /dev/null\ntrap '' TERM\nwhile true; do sleep 0.2; done")
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    assert worktrees(workspace["project"]) == [str(workspace["project"])]
+    assert worktrees(workspace["specs"]) == [str(workspace["specs"])]
+
+
+def test_no_worktree_survives_a_refusal_in_the_branch_block(runner, workspace, fake_claude):
+    """The trap has to be installed BEFORE the first `worktree add`: a
+    refusal between the two would orphan a worktree, and an orphan locks
+    its branch out of every later run."""
+    project = workspace["project"]
+    git(project, "switch", "-q", "-c", BRANCH)
+    (project / "contested.txt").write_text("the branch's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "branch side")
+    git(project, "switch", "-q", "main")
+    (project / "contested.txt").write_text("main's version\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "main side")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert worktrees(project) == [str(project)], "a refusal must clean up after itself"
+    assert worktrees(workspace["specs"]) == [str(workspace["specs"])]
+
+
+# --- Criterion 9: a leftover worktree is swept BY BRANCH ---------------------
+
+def test_a_leftover_worktree_at_another_path_is_swept_by_branch(
+    runner, workspace, fake_claude, tmp_path
+):
+    """SIGKILL cannot be trapped, so a killed run leaves a checkout
+    behind — and after `git worktree prune` a leftover at a DIFFERENT path
+    still gives `fatal: '<branch>' is already used by worktree at …`.
+    Sweeping this run's own path is therefore not enough."""
+    orphan = tmp_path / "orphan-worktree"
+    git(workspace["project"], "worktree", "add", "-q", "-b", BRANCH, str(orphan))
+    assert len(worktrees(workspace["project"])) == 2
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert worktrees(workspace["project"]) == [str(workspace["project"])]
+
+
+# --- Criterion 10: two runs, same repos, at the same time -------------------
+
+def test_two_runs_on_the_same_repos_do_not_see_each_other(runner, workspace, fake_claude, tmp_path):
+    """The measured problem. Two jobs for two specs against one pair of
+    repositories used to be impossible; the only honest way to test that
+    they are now independent is to run both at once."""
+    specs = workspace["specs"]
+    second = "82-second-spec"
+    (specs / second).mkdir()
+    (specs / second / "1-description.md").write_text("# Second - Description\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "add second spec")
+
+    gates = {}
+    procs = {}
+    for folder, name in ((workspace["folder"], "first"), (second, "second")):
+        ready, go = tmp_path / f"{name}-ready", tmp_path / f"{name}-go"
+        gates[name] = (ready, go)
+        body = (
+            "cat > /dev/null\n"
+            + READ_SPECS
+            + f'echo "{name}" > "$PWD/{name}-code.txt"\n'
+            + f'echo "{name}" > "$specs/{folder}/2-analysis.md"\n'
+            + f"touch {ready}\n"
+            + f"while [ ! -f {go} ]; do sleep 0.05; done\n"
+            + f"echo '{json.dumps(RESULT_OK)}'\n"
+        )
+        claude = tmp_path / f"fake-claude-{name}"
+        claude.write_text("#!/usr/bin/env bash\n" + body)
+        claude.chmod(0o755)
+        procs[name] = subprocess.Popen(
+            [
+                str(runner),
+                "--project-dir", str(workspace["project"]),
+                "--command", "analyze",
+                "--spec", folder,
+                "--budget-usd", "3",
+                "--timeout-sec", "60",
+                "--permission-mode", "acceptEdits",
+                "--result-file", str(tmp_path / f"result-{name}.json"),
+                "--worktree-base", str(workspace["wtbase"]),
+            ],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            env={**os.environ, "AIDE_CLAUDE_BIN": str(claude)},
+        )
+    try:
+        deadline = time.time() + 60
+        while time.time() < deadline and not all(g[0].exists() for g in gates.values()):
+            for name, p in procs.items():
+                if p.poll() is not None:
+                    raise AssertionError(f"{name} ended early: {p.communicate()}")
+            time.sleep(0.05)
+        assert all(g[0].exists() for g in gates.values()), "both runs must be going at once"
+        # BOTH are inside their step, in different checkouts, against the
+        # same two repositories.
+        assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+        assert git(specs, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    finally:
+        for _, go in gates.values():
+            go.touch()
+        for p in procs.values():
+            p.wait(timeout=60)
+
+    for name, p in procs.items():
+        out = json.loads(p.stdout.read().strip().splitlines()[-1])
+        assert out["terminalReason"] == "completed", (name, out)
+    first_branch, second_branch = f"aide/{workspace['folder']}", f"aide/{second}"
+    assert "first-code.txt" in git(workspace["project"], "ls-tree", "-r", "--name-only", first_branch)
+    assert "second-code.txt" not in git(workspace["project"], "ls-tree", "-r", "--name-only", first_branch)
+    assert "second-code.txt" in git(workspace["project"], "ls-tree", "-r", "--name-only", second_branch)
+    assert "first-code.txt" not in git(workspace["project"], "ls-tree", "-r", "--name-only", second_branch)
+
+
+# --- Criteria 11 and 12: the new refusals -----------------------------------
+
+def test_a_worktree_base_inside_a_root_is_refused(runner, workspace, fake_claude):
+    """A worktree inside a root would be untracked, and `git add -A`
+    would commit a whole second checkout onto the spec branch."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(
+        runner, workspace, claude,
+        worktree_base=str(workspace["project"] / "wt"),
+    )
+    assert rc == 2, out
+    assert str(workspace["project"]) in out["error"]
+    assert not fake_claude.calls.exists()
+
+
+def test_a_worktree_base_inside_the_specs_repo_is_refused(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, worktree_base=str(workspace["specs"] / "wt"))
+    assert rc == 2, out
+    assert str(workspace["specs"]) in out["error"]
+
+
+@pytest.mark.parametrize("entry", ["/etc", "../escape", "deps/../../escape"])
+def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude, entry):
+    claude = fake_claude("exit 1")
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS={entry}\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "a bad link")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert entry in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+# --- Criterion 15: a main checkout on the spec branch is healed --------------
+
+def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, workspace, fake_claude):
+    """git refuses to check out one branch in two worktrees. A main
+    checkout left on `aide/<spec>` — by a cancel, or by any refusal after
+    the branch block in an older version — would lock that branch out of
+    every later run, with no self-healing path."""
+    git(workspace["project"], "switch", "-q", "-c", BRANCH)
+    claude, log = probing_claude(
+        fake_claude, workspace,
+        extra='echo "written by the step" > "$PWD/new-code.txt"\n',
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert log.read_text().split() == ["main", "main"], "healed before the worktree was made"
+    assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+
+
+# --- Criterion 16: the pull is a courtesy, and it advances the DEFAULT branch -
+
+def test_a_failed_pull_is_recorded_not_fatal(runner, workspace, fake_claude, tmp_path):
+    """The worktree is cut from origin/<base>, so a pull that loses a race
+    with a concurrent run costs a staler spec list and nothing else. It
+    used to refuse the whole run."""
+    bare = tmp_path / "gone.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(bare))
+    git(workspace["project"], "push", "-q", "-u", "origin", "main")
+    # The remote is then made unreachable, which is what a fetch failure
+    # looks like from here.
+    git(workspace["project"], "remote", "set-url", "origin", str(tmp_path / "not-there.git"))
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["pullError"], "a pull that did not happen must not be silent"
+    assert "new-code.txt" in git(workspace["project"], "show", "--name-only", "--pretty=", BRANCH)
+
+
+def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
+    runner, workspace, fake_claude, tmp_path
+):
+    """`git pull --ff-only` acts on the CURRENT branch. A main checkout
+    stuck on an old spec branch would be advanced on that branch every
+    run, and the dashboard would keep listing its archived spec as
+    runnable — the second problem this spec exists to fix, surviving the
+    fix."""
+    bare = tmp_path / "shared.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(bare))
+    git(workspace["project"], "push", "-q", "-u", "origin", "main")
+    # Someone else lands a commit on main.
+    other = init_repo(tmp_path / "other-clone")
+    git(other, "remote", "add", "origin", str(bare))
+    git(other, "fetch", "-q", "origin")
+    git(other, "reset", "-q", "--hard", "origin/main")
+    (other / "from-elsewhere.txt").write_text("landed on main from another machine\n")
+    git(other, "add", "-A")
+    git(other, "commit", "-q", "-m", "elsewhere")
+    git(other, "push", "-q", "origin", "main")
+    # And this checkout is sitting on a stale spec branch.
+    git(workspace["project"], "switch", "-q", "-c", "aide/79-yesterdays-spec")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace), pull=True)
+    assert rc == 0, out
+    assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert (workspace["project"] / "from-elsewhere.txt").exists(), \
+        "the DEFAULT branch is what gets fast-forwarded"
+
+
+# --- Criterion 17: a passenger repo is named in the prompt ------------------
+
+def test_a_passenger_repo_is_worktreed_and_named_in_the_prompt(
+    runner, workspace, fake_claude, passenger
+):
+    """A passenger is addressed only by absolute path, and that path still
+    points at the main checkout. Nothing told the step its worktree
+    existed, so the step wrote into the main tree, the commit loop
+    committed nothing, and the run reported success — spec 83's failure
+    recreated."""
+    seen = workspace["project"].parent / "passenger-wt.txt"
+    claude = fake_claude(
+        PASSENGER_FROM_PROMPT
+        + f'printf "%s\\n" "$pwt" > {seen}\n'
+        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
+    assert rc == 0, out
+    named = seen.read_text().strip()
+    assert named.startswith(str(workspace["wtbase"])), named
+    assert named != str(passenger)
+    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", BRANCH)
+    assert git(passenger, "rev-parse", "--abbrev-ref", "HEAD") == "main"
+    assert git(passenger, "status", "--porcelain") == "", "the main passenger tree stays clean"
+
+
+# --- Criterion 18: the re-point happens AFTER the branch is brought up to date
+
+def test_a_reused_branch_whose_base_changed_the_config_does_not_false_conflict(
+    runner, workspace, fake_claude
+):
+    """With .aide/config marked skip-worktree and rewritten, and its
+    committed content changed on the base branch, `git merge` fails with
+    "local changes would be overwritten" while `git status` calls the tree
+    clean and `merge --abort` has nothing to abort. Reachable the day
+    AIDE_WORKTREE_LINKS lands on main."""
+    project = workspace["project"]
+    git(project, "switch", "-q", "-c", BRANCH)
+    git(project, "switch", "-q", "main")
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps\n# a later comment\n"
+    )
+    git(project, "add", "-f", ".aide/config")
+    git(project, "commit", "-q", "-m", "change the config on main")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert is_ancestor(project, "main", BRANCH)
+
+
+# --- Criterion 19: an untracked .aide/config --------------------------------
+
+def test_an_untracked_aide_config_is_copied_into_the_worktree(runner, workspace, fake_claude):
+    """.aide/config is tracked in aide's own repo only, because its
+    .gitignore negates the global ignore for it. Everywhere else a
+    worktree has no config at all — so AIDE_SPECS_PATH and AIDE_TEST_CMD
+    would simply vanish for the step."""
+    project = workspace["project"]
+    git(project, "rm", "-q", "--cached", ".aide/config")
+    (project / ".gitignore").write_text("/deps/\n/.aide/\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "stop tracking the config")
+    assert git(project, "status", "--porcelain") == ""
+
+    seen = project.parent / "specs-seen.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "$specs" > {seen}\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    resolved = seen.read_text().strip()
+    assert resolved.startswith(str(workspace["wtbase"])), resolved
+    files = git(project, "show", "--name-only", "--pretty=", BRANCH)
+    assert ".aide/config" not in files, files
+    assert "new-code.txt" in files
+
+
+# --- Criterion 14: the other two specs-root layouts -------------------------
+
+def test_a_gitignored_specs_root_inside_the_project_is_linked_and_not_committed(
+    runner, workspace, fake_claude, tmp_path
+):
+    """aide's own default: `specs/` inside the project and gitignored
+    (.gitignore:2). A worktree checks out tracked files only, so the specs
+    root would simply not be there — and linking it in walks straight into
+    the symlink-is-not-a-directory problem."""
+    project = init_repo(tmp_path / "inside")
+    (project / ".gitignore").write_text("/specs/\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "ignore specs")
+    (project / "specs" / "81-queue-and-runner").mkdir(parents=True)
+    (project / "specs" / "81-queue-and-runner" / "1-description.md").write_text("# X\n")
+    ws = {
+        "project": project, "specs": project / "specs",
+        "folder": "81-queue-and-runner", "wtbase": tmp_path / "wt-inside",
+    }
+    seen = tmp_path / "inside-seen.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + f'echo "analysis" > "$PWD/specs/{ws["folder"]}/2-analysis.md"\n'
+        + f'ls "$PWD/specs" > {seen}\n'
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude)
+    assert rc == 0, out
+    assert "81-queue-and-runner" in seen.read_text()
+    # The analysis reached the REAL specs directory, and nothing about it
+    # was committed to the project's branch.
+    assert (project / "specs" / "81-queue-and-runner" / "2-analysis.md").exists()
+    files = git(project, "show", "--name-only", "--pretty=", BRANCH)
+    assert "new-code.txt" in files
+    assert "specs/" not in files, files
+
+
+def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
+    runner, workspace, fake_claude, tmp_path
+):
+    """`specs_repo` empty is a shape that exists today. Such a specs root
+    was never committed or pushed by this script, and that has to keep
+    being true."""
+    project = init_repo(tmp_path / "proj-loose")
+    loose = tmp_path / "loose-specs"
+    (loose / "81-queue-and-runner").mkdir(parents=True)
+    (loose / "81-queue-and-runner" / "1-description.md").write_text("# X\n")
+    (project / ".aide").mkdir()
+    (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={loose}\n")
+    git(project, "add", "-f", ".aide/config")
+    git(project, "commit", "-q", "-m", "config")
+    ws = {
+        "project": project, "specs": loose,
+        "folder": "81-queue-and-runner", "wtbase": tmp_path / "wt-loose",
+    }
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{ws["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude)
+    assert rc == 0, out
+    assert (loose / "81-queue-and-runner" / "2-analysis.md").exists()
+    assert [r["root"] for r in out["repos"]] == [str(project)]

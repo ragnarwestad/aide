@@ -116,6 +116,23 @@ project's `.aide/config`. Add `.aide/config` to your global personal gitignore
 committed — the manifest `.aide/project.yaml` is team knowledge and
 belongs in git.
 
+#### AIDE_WORKTREE_LINKS (per project, in .aide/config)
+
+Only for machines that run headless steps through `aide-run-spec`. Each
+run gets a `git worktree` of its own, and a worktree carries **tracked
+files only** — so a gitignored directory the test command depends on is
+simply not there:
+
+```text
+# <project>/.aide/config
+AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+```
+
+Those paths are symlinked in from the main checkout and excluded from the
+commit. Set it before the first headless run in a project, not after: the
+symptom of leaving it out is a step that fails on "command not found" for
+a reason that has nothing to do with its change.
+
 #### AIDE_INSTALLATION_PATH
 
 Points to the workspace root (for templates and configuration):

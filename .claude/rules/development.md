@@ -80,6 +80,23 @@ pushed at all, and the compare link is built from the repos that
 actually changed (`branchUrls` in the result; `branchUrl` keeps the
 single most interesting one).
 
+**It branches them in `git worktree` checkouts of its own** (spec 91),
+under `$HOME/aide-worktrees/<project>/<spec>/`. The real checkouts are
+put back **onto** their default branch before the worktrees are made and
+never leave it, so several runs can go at once, the dashboard's spec list
+stops describing whatever branch a running job is on, and a person can
+use the checkout meanwhile. Two consequences worth knowing before
+changing anything here:
+
+- The result's `repos[].root` is the MAIN checkout, not the directory the
+  work happened in — four places on the dashboard spawn git in that path
+  after the run is over, and a worktree path is deleted when the run
+  ends. `repos[].worktree` carries the throwaway one.
+- A worktree carries tracked files only, so `.venv` and
+  `dashboard/node_modules` reach it through `AIDE_WORKTREE_LINKS` in
+  `.aide/config` — symlinked in, and excluded from `git add -A` by
+  pathspec, because a `dir/` gitignore rule does not match a symlink.
+
 **A repo beyond the project and its specs root has to be NAMED**, with
 `--extra-project-dir` (repeatable; the queue's form calls it "Also
 touches"). The run only watches, commits and pushes the roots it knows
@@ -88,7 +105,10 @@ had told it about, and that half was left uncommitted on the machine
 while the result reported success. A named repo gets exactly the same
 treatment as the others — checked for a clean tree first, branched,
 committed, pushed — and a name that is already a root is ignored rather
-than watched twice (spec 83).
+than watched twice (spec 83). Since spec 91 the run also **names each
+passenger's worktree in the prompt**: a passenger is addressed by
+absolute path and nothing else, so a step that was not told would write
+into the main checkout and the commit loop would commit nothing.
 
 **`aide-run-spec` runs from a private copy of itself, and that is
 load-bearing:** an `implement` step reinstalls aide, which copies the script

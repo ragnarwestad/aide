@@ -18,6 +18,8 @@ export interface StartOptions {
   extra?: Partial<ServerOptions>;
   /** Further discoverable projects, for jobs that span repos. */
   alsoProjects?: string[];
+  /** Further spec folders in `aide`, for jobs that run side by side. */
+  alsoSpecs?: string[];
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
 }
@@ -33,12 +35,16 @@ export function queueHarness(prefix: string): QueueHarness {
   const dirs: string[] = [];
 
   return {
-    start({ extra = {}, alsoProjects = [], description = "# Queue - Description\n" } = {}) {
+    start({ extra = {}, alsoProjects = [], alsoSpecs = [], description = "# Queue - Description\n" } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
       writeFileSync(join(dir, "index.html"), "<p>overview</p>");
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description);
+      for (const folder of alsoSpecs) {
+        mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
+        writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
+      }
       for (const name of alsoProjects) {
         project(root, name, "01-first", "# First - Description\n");
       }

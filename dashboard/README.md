@@ -9,6 +9,7 @@
 - [Running specs (spec 81)](#running-specs-spec-81)
   - [The token](#the-token)
   - [Caps](#caps)
+  - [How many run at once](#how-many-run-at-once)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
@@ -177,6 +178,7 @@ afterwards is a report, not a cap. They live in the queue config
   },
   "model": { "implement": "opus", "default": "sonnet" },
   "push": "branch",
+  "concurrency": 2,
   "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
 }
 ```
@@ -184,6 +186,31 @@ afterwards is a report, not a cap. They live in the queue config
 A job may only TIGHTEN a cap, and cannot set the permission mode at all.
 A timed-out step is charged its full budget: the accounting over-charges
 what it could not measure, never the other way round.
+
+The daily cap counts the budgets of the steps **already in flight**, not
+only what has been recorded. Recording happens at completion, so with
+several slots N jobs would otherwise each pass the same check on the same
+numbers, and the cap be exceeded by (N−1) budgets before anything
+noticed. A job the daily cap holds back does not block the queue either:
+a cheaper job behind it may take the free slot.
+
+### How many run at once
+
+`concurrency`, two by default. **1 to 4 is accepted and anything else —
+missing, non-numeric, out of range — falls back to two**; it does not
+clamp, because `concurrency: 9` would otherwise have to be both 4 and 2
+depending on which rule you read. The upper bound is the only thing
+between a typo in this file and sixteen `claude` sessions on the serving
+host.
+
+`1` reproduces the behaviour the queue had before spec 91 exactly, so
+rolling back is a config edit and a restart.
+
+Two jobs for the same spec are never started at the same time — analyze
+and implement for one spec are ordered by nature. Beyond that the jobs
+are genuinely independent: each `aide-run-spec` run works in `git
+worktree` checkouts of its own, so the main checkouts never leave their
+default branch and no run can see another's.
 
 ### Gates and notifications
 
@@ -254,9 +281,18 @@ one repo at a time:
   aborted, so no half-merged tree is left behind — the same shape
   `aide-run-spec` already uses when it brings a reused branch up to
   date.
-- **A dirty tree refuses before anything touches history.** That is
-  also what makes a lock against a concurrent run unnecessary: both
-  operations already refuse on the same condition.
+- **A dirty tree refuses before anything touches history.** A lock
+  against a concurrent run is still unnecessary, though not for the
+  reason it once was: a run no longer dirties the main tree at all,
+  since it works in a worktree of its own and only ever fast-forwards
+  this one. What the two can collide over is git's `index.lock`, and
+  there the run yields — its pull is a courtesy, recorded and never
+  fatal, while a merge that loses the race is a named refusal.
+- **More conflicts than before are expected, not a regression.** Two
+  branches touching the same file conflict at merge time, and running
+  several specs side by side means it happens more often. Both sides
+  refuse and name the repo rather than corrupting anything, which is
+  what turns this into a merge to do by hand.
 - **The report is per repo, never one collective "ok".** Several repos
   cannot be merged atomically, and one succeeding while another fails
   is exactly what has to be readable.
