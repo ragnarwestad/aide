@@ -88,6 +88,7 @@ def fake_claude(tmp_path):
             "#!/usr/bin/env bash\n"
             f'printf "%s\\n" "$*" >> {calls}\n'
             f'printf "%s\\n" "$PWD" >> {tmp_path / "claude-cwd.txt"}\n'
+            f'env >> {tmp_path / "claude-env.txt"}\n'
             f"{body}\n"
         )
         path.chmod(0o755)
@@ -95,6 +96,7 @@ def fake_claude(tmp_path):
 
     make.calls = calls  # type: ignore[attr-defined]
     make.cwd_log = tmp_path / "claude-cwd.txt"  # type: ignore[attr-defined]
+    make.env_log = tmp_path / "claude-env.txt"  # type: ignore[attr-defined]
     return make
 
 
@@ -233,6 +235,17 @@ def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, wo
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert fake_claude.cwd_log.read_text().strip() == str(workspace["project"].resolve())
+
+
+def test_the_child_process_always_gets_aide_headless(runner, workspace, fake_claude):
+    """This runner is the only caller that runs a workflow step with
+    nobody there to answer. A skill cannot tell that from inside, so the
+    runner states it: three archive jobs stopped on a confirmation
+    question, reported `done` and moved nothing."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "AIDE_HEADLESS=1" in fake_claude.env_log.read_text().splitlines()
 
 
 def test_survives_its_own_file_being_replaced_mid_run(runner, workspace, fake_claude, tmp_path):

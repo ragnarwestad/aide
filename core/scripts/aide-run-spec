@@ -20,6 +20,13 @@
 #
 # Exit: 0 when a run happened and was reported (stopped runs included),
 #       2 when the run was refused before anything started.
+#
+# Sets AIDE_HEADLESS=1 in the child's environment. This script is the
+# only caller that runs a workflow step with nobody there to answer, and
+# a skill cannot tell that from inside: three archive jobs stopped on a
+# confirmation question, reported `done` and moved nothing. A skill that
+# has a question only a person can answer branches on this and writes
+# the question down instead of asking it.
 
 set -uo pipefail
 
@@ -332,7 +339,7 @@ set -m
 # makes the run analyse the wrong repository — measured on the first
 # real job, 2026-08-16, which cost $0.45 to discover. `exec` keeps the
 # pid, so $! is still the process group we later signal.
-( cd "$project_root" && exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
+( cd "$project_root" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
 child=$!
 set +m
 

@@ -49,10 +49,25 @@ Read all four spec files and identify what should OUTLIVE the spec:
 - New conventions or patterns the change introduced
 - Gotchas discovered during implementation (things that will bite again)
 
-Propose where each item belongs — the project's docs, `CLAUDE.md`/rules,
-or a README — with the concrete text to add. Ask for confirmation, then
-write it. If nothing qualifies, say so plainly; not every spec leaves
+If nothing qualifies, say so plainly and move on; not every spec leaves
 something behind.
+
+Otherwise, propose where each item belongs — the project's docs,
+`CLAUDE.md`/rules, or a README — with the concrete text to add.
+
+Then check `AIDE_HEADLESS` (`echo "${AIDE_HEADLESS:-}"`) before deciding
+how to close the loop:
+
+- **Unset (interactive):** ask for confirmation, then write it — the
+  judgment call is worth having when someone can make it.
+- **Set (headless — nobody is there to answer):** do NOT ask. Append the
+  proposal to `4-status.md` under a new `## Deferred documentation
+  feedback` heading, one item per entry: the destination file and the
+  exact text proposed. Then continue straight to Step 4.
+
+The question must never block the move: a headless run that stops here
+archives nothing, reports success anyway, and leaves the spec in the
+active list with its lesson unrecorded.
 
 ### Step 4: Stamp and move
 
