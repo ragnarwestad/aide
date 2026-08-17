@@ -539,3 +539,124 @@ describe("the job page is split into tabs", () => {
     expect(html).toContain("Nothing has been captured");
   });
 });
+
+// --- spec 86: one row per spec, with its phases beneath ----------------------
+
+// A spec taken through analyze, review-plan, implement and archive as
+// four separate jobs used to occupy four rows, repeating its own name on
+// every one. It is ONE spec, and how far it has got should read without
+// counting rows.
+describe("the queue list groups by spec (criteria 1-7, 12)", () => {
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "86-grouped", steps: [step], stepIndex: 0, state: "done", ...extra });
+
+  const rows = (list: QueueRowView[]) =>
+    renderQueueRows(list, { runnerAvailable: true, targets: [] }, Date.parse("2026-08-17T12:00:00Z"));
+
+  const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
+  // The cell for one phase, from its name to the end of the row.
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  test("two jobs for one spec make one header row, not two (criterion 1)", () => {
+    const html = rows([
+      job("j1", "analyze", { startedAt: "2026-08-16T09:00:00Z" }),
+      job("j2", "implement", { startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    expect(heads(html)).toHaveLength(1);
+  });
+
+  test("a phase that never ran keeps its place in the order (criterion 2)", () => {
+    const html = rows([job("j1", "analyze"), job("j2", "implement")]);
+    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
+    expect(subRow(html, "review-plan")).toContain("not run yet");
+  });
+
+  test("a phase run twice shows the latest attempt and the count (criterion 3)", () => {
+    const html = rows([
+      job("older", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
+      job("newer", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain('href="/queue/newer"');
+    expect(analyze).not.toContain('href="/queue/older"');
+    expect(analyze).toContain("2 attempts");
+    expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
+  });
+
+  test("the header shows what is in flight, not what finished (criterion 4)", () => {
+    const html = rows([
+      job("j1", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
+      job("j2", "implement", { state: "running", startedAt: "2026-08-16T09:00:00Z" }),
+    ]);
+    expect(heads(html)[0]).toBeDefined();
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain('class="state s-running"');
+    expect(head).not.toContain('class="state s-done"');
+  });
+
+  test("with nothing in flight the header shows the latest outcome (criterion 5)", () => {
+    const html = rows([
+      job("j1", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
+      job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain('class="state s-done"');
+    expect(head).not.toContain('class="state s-failed"');
+  });
+
+  test("the header's cost is the whole spec's, not one job's (criterion 6)", () => {
+    const html = rows([
+      job("j1", "analyze", { spentUsd: 1.2 }),
+      job("j2", "implement", { spentUsd: 0.8 }),
+    ]);
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain("$2.00");
+  });
+
+  test("the unmerged badge appears once, on the header (criterion 7)", () => {
+    const html = rows([
+      job("j1", "analyze", {
+        startedAt: "2026-08-16T09:00:00Z",
+        branchUrl: "https://example.test/old",
+        branchMerged: false,
+      }),
+      job("j2", "implement", {
+        startedAt: "2026-08-16T11:00:00Z",
+        branchUrl: "https://example.test/compare",
+        branchMerged: false,
+      }),
+    ]);
+    expect(html.match(/not merged/g)).toHaveLength(1);
+    // The link comes from the most recently active job, not an older one.
+    expect(html).toContain("https://example.test/compare");
+    expect(html).not.toContain("https://example.test/old");
+    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
+    expect(head).toContain("not merged");
+  });
+
+  test("the action sits once on the header, never on a phase line (criterion 12)", () => {
+    const html = rows([
+      job("j1", "analyze", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
+      job("j2", "implement", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel">/g)).toHaveLength(1);
+    for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(subRow(html, phase)).not.toContain("<form");
+    }
+  });
+
+  test("two different specs keep their own header rows", () => {
+    const html = rows([job("j1", "analyze"), job("j2", "analyze", { specFolder: "87-other" })]);
+    expect(heads(html)).toHaveLength(2);
+  });
+
+  test("a step outside the four is still shown, never silently dropped", () => {
+    const html = rows([job("j1", "analyze"), job("j2", "create")]);
+    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["analyze", "review-plan", "implement", "archive", "create"]);
+    expect(subRow(html, "create")).toContain('href="/queue/j2"');
+  });
+});

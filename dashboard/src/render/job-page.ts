@@ -49,9 +49,10 @@ function labelled(rows: [string, string][]): string {
 }
 
 function stepResults(results: JobStepResultView[]): string {
-  // /queue shows one row per JOB, so a three-step job shows one line and
-  // its finished steps are invisible — even though every one of them is
-  // recorded with its cost, its session and how it ended.
+  // /queue shows one line per SPEC, and attributes a job to the single
+  // step it is on — so a three-step job's finished steps are invisible
+  // there, even though every one of them is recorded with its cost, its
+  // session and how it ended.
   if (results.length === 0) return `<p class="muted">No step has finished yet.</p>`;
   const rows = results
     .map(

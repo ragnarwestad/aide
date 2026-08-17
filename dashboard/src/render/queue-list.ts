@@ -1,5 +1,6 @@
-// /queue: the form that queues a job, and the one list of every job
-// this machine has run — cut and ordered on demand.
+// /queue: the form that queues a job, and the one list of every spec
+// this machine has run — cut and ordered on demand, one line per spec
+// with its workflow phases beneath it.
 //
 // The page carries browser code (compiled from queue-client.ts) so the
 // list can refresh without reloading a form someone is half-way through
@@ -201,23 +202,105 @@ function stateFilter(key: string | undefined): { key: string; states?: string[] 
   return STATE_FILTERS.find((f) => f.key === key) ?? STATE_FILTERS[0]!;
 }
 
-function applyFilter(rows: QueueRowView[], f: QueueFilter): QueueRowView[] {
+// --- one spec, however many jobs it took -------------------------------------
+
+// The list is about SPECS. A spec taken through analyze, review-plan,
+// implement and archive as four separate jobs is still one spec, and
+// how far it has got should read without counting rows.
+
+/** Which states mean "still going". Read off the "Active" filter rather
+ *  than written out a second time: a state added to one and forgotten in
+ *  the other is exactly the drift this page cannot afford. */
+const IN_FLIGHT = STATE_FILTERS.find((f) => f.key === "active")!.states!;
+
+const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state);
+
+/** The step a job is on, or — once it has stopped — the last one it
+ *  reached. The same expression the flat list used per row. */
+function currentStep(r: QueueRowView): string {
+  return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
+}
+
+function activityMs(r: QueueRowView): number {
+  return Date.parse(r.startedAt ?? r.createdAt) || 0;
+}
+
+interface Phase {
+  step: string;
+  /** Every job whose current/last step is this phase, newest first. A
+   *  phase can be re-run — `85-dashboard-into-aide` archived three
+   *  times — so this is a list, not a job. */
+  attempts: QueueRowView[];
+}
+
+interface SpecGroup {
+  project: string;
+  specFolder: string;
+  /** The job the header speaks for: whatever is in flight, or failing
+   *  that the most recently active one. */
+  lead: QueueRowView;
+  /** The most recently active job, in flight or not. The "Started"
+   *  column shows ITS time, so the column and the sort answer the same
+   *  question: when did anything last happen to this spec? */
+  latest: QueueRowView;
+  state: QueueRowView["state"];
+  spentUsd: number;
+  activityAt: number;
+  branchOf?: QueueRowView;
+  phases: Phase[];
+}
+
+function groupBySpec(rows: QueueRowView[]): SpecGroup[] {
+  const byKey = new Map<string, QueueRowView[]>();
+  for (const r of rows) {
+    const key = `${r.project}/${r.specFolder}`;
+    const list = byKey.get(key);
+    if (list) list.push(r);
+    else byKey.set(key, [r]);
+  }
+  return [...byKey.values()].map((all) => {
+    const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
+    const lead = recent.find(inFlight) ?? recent[0]!;
+    // The four the form offers, always, in order — a phase nobody has
+    // run yet still holds its place, which is what makes progress
+    // readable at a glance. A step outside them (explore, create,
+    // manifest) is appended rather than dropped: a job that ran is
+    // never invisible.
+    const extra = [...new Set(all.map(currentStep))].filter((s) => !QUEUE_STEPS.includes(s));
+    return {
+      project: lead.project,
+      specFolder: lead.specFolder,
+      lead,
+      latest: recent[0]!,
+      state: lead.state,
+      spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
+      activityAt: activityMs(recent[0]!),
+      branchOf: recent.find((r) => r.branchUrl),
+      phases: [...QUEUE_STEPS, ...extra].map((step) => ({
+        step,
+        attempts: recent.filter((r) => currentStep(r) === step),
+      })),
+    };
+  });
+}
+
+function applyFilter(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   const states = stateFilter(f.state).states;
-  return rows.filter(
-    (r) => (!states || states.includes(r.state)) && (!f.project || r.project === f.project),
+  return groups.filter(
+    (g) => (!states || states.includes(g.state)) && (!f.project || g.project === f.project),
   );
 }
 
-function sortRows(rows: QueueRowView[], f: QueueFilter): QueueRowView[] {
+function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
-  const key = (r: QueueRowView): number | string =>
-    sort === "cost" ? r.spentUsd
-    : sort === "spec" ? r.specFolder
-    : sort === "state" ? r.state
-    : Date.parse(r.startedAt ?? r.createdAt) || 0;
-  return [...rows].sort((a, b) => {
+  const key = (g: SpecGroup): number | string =>
+    sort === "cost" ? g.spentUsd
+    : sort === "spec" ? g.specFolder
+    : sort === "state" ? g.state
+    : g.activityAt;
+  return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);
     return (typeof x === "string" ? String(x).localeCompare(String(y)) : (x as number) - (y as number)) * sign;
   });
@@ -236,7 +319,7 @@ function queueHref(f: QueueFilter, patch: QueueFilter): string {
   return esc(q ? `/queue?${q}` : "/queue");
 }
 
-function filterBar(rows: QueueRowView[], f: QueueFilter): string {
+function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   const chips = (
     name: string,
     label: string,
@@ -255,29 +338,30 @@ function filterBar(rows: QueueRowView[], f: QueueFilter): string {
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
-  // nobody asked for.
-  const byProject = rows.filter((r) => !f.project || r.project === f.project);
+  // nobody asked for. They count SPECS, because that is what the table
+  // holds one line per.
+  const byProject = groups.filter((g) => !f.project || g.project === f.project);
   const states = chips(
     "state",
     "Show",
     STATE_FILTERS.map((s) => ({
       key: s.key,
       label: s.label,
-      count: byProject.filter((r) => !s.states || s.states.includes(r.state)).length,
+      count: byProject.filter((g) => !s.states || s.states.includes(g.state)).length,
       on: s.key === current,
       patch: { state: s.key === "all" ? "" : s.key },
     })),
   );
 
-  const names = [...new Set(rows.map((r) => r.project))].sort();
+  const names = [...new Set(groups.map((g) => g.project))].sort();
   if (names.length < 2) return `<div class="listcontrols">${states}</div>`;
-  const byState = applyFilter(rows, { state: f.state });
+  const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
     ...names.map((p) => ({
       key: p,
       label: p,
-      count: byState.filter((r) => r.project === p).length,
+      count: byState.filter((g) => g.project === p).length,
       on: f.project === p,
       patch: { project: p },
     })),
@@ -301,7 +385,11 @@ function sortableHead(f: QueueFilter): string {
     );
   };
   return (
-    `<thead><tr>${th("spec", "Spec")}<th>Step</th>${th("state", "State")}` +
+    // "Progress", not "Step": the column stopped holding a step name the
+    // moment the list became one line per spec. It holds the whole
+    // workflow as pips on a header line, and how many attempts a phase
+    // took on the lines beneath.
+    `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
     `${th("started", "Started")}${th("cost", "Cost", "num")}<th></th></tr></thead>`
   );
 }
@@ -317,38 +405,87 @@ function actionForm(r: QueueRowView, token?: string): string {
   );
 }
 
-function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): string {
-  return rows
-    .map((r) => {
-      const done = ["done", "cancelled", "stopped", "failed", "interrupted"].includes(r.state);
-      // The spec name is the way IN to the job: what it is, every step it
-      // has run, and what it is doing now. The diff link moves beside it
-      // rather than being replaced by it — nothing a reader uses today
-      // disappears.
-      const spec = `<a href="/queue/${esc(r.id)}">${esc(r.specFolder)}</a>`;
-      const diff = r.branchUrl
-        ? ` <a class="small" href="${esc(r.branchUrl)}">diff</a>${unmergedBadge(r)}`
-        : "";
-      const step = r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
-      const steps = r.steps
-        .map((s, i) => {
-          const cls = i < r.stepIndex ? "past" : i === r.stepIndex ? "now" : "todo";
-          return `<span class="pip ${cls}" title="${esc(s)}"></span>`;
-        })
-        .join("");
+// The two cells the header line and the phase lines fill the same way.
+// A spec's state and a phase's state are the same question asked at two
+// altitudes, and they must never be worded differently.
+const stateCell = (r: QueueRowView): string =>
+  stateChip(r) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+// `blank` because a header with nothing spent still owes the reader a
+// dash, while an empty phase line should simply be empty.
+const costCell = (spentUsd: number, blank: string): string =>
+  spentUsd > 0 ? `$${spentUsd.toFixed(2)}` : blank;
+
+// The header line for one spec: what it is, how far it has got, what it
+// has cost in total, and the one action there is to take on it.
+function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string {
+  const done = !inFlight(g.lead);
+  // The spec name is the way IN: the job it points at is whatever is
+  // running, or the last thing that happened. The diff link sits beside
+  // it rather than replacing it — nothing a reader uses today disappears.
+  const spec = `<a href="/queue/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`;
+  const branch = g.branchOf;
+  const diff = branch
+    ? ` <a class="small" href="${esc(branch.branchUrl!)}">diff</a>${unmergedBadge(branch)}`
+    : "";
+  // One pip per phase: green for a phase that has run, blue for the one
+  // running now, grey for a phase still ahead. The whole workflow in six
+  // millimetres, on the line you are already reading.
+  const pips = g.phases
+    .map((p) => {
+      const cls = p.attempts.some(inFlight) ? "now" : p.attempts.length ? "past" : "todo";
+      return `<span class="pip ${cls}" title="${esc(p.step)}"></span>`;
+    })
+    .join("");
+  const jobs = g.phases.reduce((n, p) => n + p.attempts.length, 0);
+  return (
+    // `data-folder`, not `data-spec`: the attribute NAME would otherwise
+    // end in the same "a-spec" that half the fixtures use as a folder,
+    // and a test looking for a spec by name would find the markup.
+    `<tr class="spechead ${done ? "archived" : "active"}" data-folder="${esc(g.specFolder)}">` +
+    `<td><div class="speccell">${spec}${diff}</div><div class="muted small">${esc(g.project)}</div></td>` +
+    `<td><div class="pips">${pips}</div>` +
+    `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
+    `<td>${stateCell(g.lead)}</td>` +
+    `<td>${relTime(g.latest.startedAt ?? g.latest.createdAt, now)}</td>` +
+    `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
+    `<td>${actionForm(g.lead, opts.token)}</td></tr>`
+  );
+}
+
+// One line per phase, in the workflow's own order, whether or not it has
+// happened. A phase nobody has run yet is the point of the fixed order:
+// it says what is still ahead without anyone counting rows.
+function phaseSubRows(g: SpecGroup, now: number): string {
+  return g.phases
+    .map((p) => {
+      const latest = p.attempts[0];
+      const name = latest
+        ? `<a href="/queue/${esc(latest.id)}">${esc(p.step)}</a>`
+        : `<span class="muted">${esc(p.step)}</span>`;
+      // The latest attempt, with a count when there have been more —
+      // three archive runs on one spec is a real history, not a row to
+      // repeat three times.
+      const tries =
+        p.attempts.length > 1
+          ? `<div class="muted small">${p.attempts.length} attempts</div>`
+          : latest?.model
+            ? `<div class="muted small">${esc(latest.model)}</div>`
+            : "";
       return (
-        `<tr class="${done ? "archived" : "active"}">` +
-        `<td><div class="speccell">${spec}${diff}</div><div class="muted small">${esc(r.project)}</div></td>` +
-        `<td><div>${esc(step)}</div><div class="pips">${steps}</div>` +
-        (r.model ? `<div class="muted small">${esc(r.model)}</div>` : "") +
-        `</td>` +
-        `<td>${stateChip(r)}${r.error ? `<div class="muted small">${esc(r.error)}</div>` : ""}</td>` +
-        `<td>${relTime(r.startedAt ?? r.createdAt, now)}</td>` +
-        `<td class="num">${r.spentUsd > 0 ? `$${r.spentUsd.toFixed(2)}` : "–"}</td>` +
-        `<td>${actionForm(r, opts.token)}</td></tr>`
+        `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
+        `<td class="phasecell">${name}</td>` +
+        `<td>${tries}</td>` +
+        `<td>${latest ? stateCell(latest) : `<span class="muted small">not run yet</span>`}</td>` +
+        `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
+        `<td class="num">${latest ? costCell(latest.spentUsd, "") : ""}</td>` +
+        `<td></td></tr>`
       );
     })
     .join("");
+}
+
+function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number): string {
+  return groups.map((g) => specHeadRow(g, opts, now) + phaseSubRows(g, now)).join("");
 }
 
 // The controls and the rows alone, so the page can refresh its table
@@ -359,21 +496,27 @@ function jobRows(rows: QueueRowView[], opts: QueuePageOptions, now: number): str
 // "Active" section above a "Recent" one — which answered the single
 // question "is anything running?" and no other. A filter answers that
 // one too, and every other one besides.
+//
+// One line per SPEC, not per job. A spec taken through its four steps as
+// four separate jobs used to fill four rows, repeating its own name on
+// every one, each showing a single progress pip. It is one spec, and it
+// gets one line, with its phases beneath it.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const matched = sortRows(applyFilter(rows, f), f);
+  const groups = groupBySpec(rows);
+  const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? jobRows(matched.slice(0, SHOWN), opts, now)
+    ? groupRows(matched.slice(0, SHOWN), opts, now)
     : `<tr><td colspan="6" class="empty muted">` +
       (rows.length
         ? "No job matches this filter."
         : "Nothing has run yet. Pick a spec above and press “Queue it”.") +
       `</td></tr>`;
   return (
-    filterBar(rows, f) +
+    filterBar(groups, f) +
     `<table class="jobs">${sortableHead(f)}<tbody>${body}</tbody></table>` +
-    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "run" : "runs"} not shown.</p>` : "")
+    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
   );
 }
 

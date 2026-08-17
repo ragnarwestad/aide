@@ -237,18 +237,26 @@ describe("GET /queue (HTML)", () => {
 });
 
 describe("renderQueuePage state labels", () => {
-  const row = (state: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
-    id: `id-${state}`,
-    project: "aide",
-    specFolder: "81-queue-and-runner",
-    steps: ["analyze"],
-    stepIndex: 0,
-    state: state as QueueRowView["state"],
-    spentUsd: 0,
-    timeoutSec: 1200,
-    createdAt: "2026-08-16T00:00:00Z",
-    ...extra,
-  });
+  // Every job gets its own spec: the list holds one line per SPEC, so
+  // nine jobs sharing a folder would be nine attempts at one phase, of
+  // which only the latest shows — and this test is about how each state
+  // is put into WORDS, not about which of them the list picks.
+  let seq = 0;
+  const row = (state: string, extra: Partial<QueueRowView> = {}): QueueRowView => {
+    const n = ++seq;
+    return {
+      id: `id-${state}-${n}`,
+      project: "aide",
+      specFolder: `81-queue-and-runner-${n}`,
+      steps: ["analyze"],
+      stepIndex: 0,
+      state: state as QueueRowView["state"],
+      spentUsd: 0,
+      timeoutSec: 1200,
+      createdAt: "2026-08-16T00:00:00Z",
+      ...extra,
+    };
+  };
 
   test("stopped is never rendered as failed", () => {
     const html = renderQueuePage(
@@ -732,6 +740,121 @@ describe("the job list sorts and filters", () => {
     ).text();
     expect(rows).toContain('data-filter="state"');
     expect(rows).toMatch(/aria-current="true"[^>]*>Active/);
+  });
+});
+
+// Spec 86: the list is one line per SPEC, so filtering and sorting are
+// questions about specs — "which spec has something running?" — not
+// about the individual jobs a spec happens to have been split into.
+describe("filtering and sorting work on specs, not jobs", () => {
+  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id,
+    project: "aide",
+    specFolder: spec,
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T00:00:00Z",
+    ...extra,
+  });
+
+  const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
+    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [],
+      filter,
+    });
+
+  test("a spec with one job in flight is active, one with only finished jobs is not (criterion 8)", () => {
+    const html = page(
+      [
+        job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
+        job("a2", "aa-spec", {
+          state: "running",
+          steps: ["implement"],
+          startedAt: "2026-08-16T11:00:00Z",
+        }),
+        job("b1", "bb-spec", { state: "done" }),
+      ],
+      { state: "active" },
+    );
+    expect(html).toContain("aa-spec");
+    expect(html).not.toContain("bb-spec");
+    // Its finished job comes along with it — the spec is one line, and
+    // that line carries every phase it has had, filter or no filter.
+    expect(html.match(/<tr class="spechead/g)).toHaveLength(1);
+    expect(html).toContain('href="/queue/a1"');
+    expect(html).toContain('href="/queue/a2"');
+  });
+
+  test("the filter tabs count specs, not jobs (criterion 9)", () => {
+    const html = page([
+      job("a1", "aa-spec", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
+      job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+      job("b1", "bb-spec", { state: "running" }),
+    ]);
+    expect(html).toMatch(/>All <span class="tabcount">2<\/span>/);
+    expect(html).toMatch(/>Active <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
+  });
+
+  test("sorting by cost uses the spec's total, not one job's (criterion 10)", () => {
+    const html = page(
+      [
+        job("a1", "aa-spec", { spentUsd: 2.5 }),
+        job("a2", "aa-spec", { spentUsd: 2.5 }),
+        // Dearer than either aa job on its own, cheaper than the two together.
+        job("b1", "bb-spec", { spentUsd: 4 }),
+      ],
+      { sort: "cost" },
+    );
+    expect(html.indexOf("aa-spec")).toBeLessThan(html.indexOf("bb-spec"));
+    expect(html).toContain("$5.00");
+  });
+
+  test("the cap counts specs, and says how many specs it left out (criterion 11)", () => {
+    const rows = Array.from({ length: 26 }, (_, i) => [
+      job(`x${i}`, `s${String(i).padStart(2, "0")}-spec`, {
+        startedAt: `2026-08-16T${String(i % 24).padStart(2, "0")}:00:00Z`,
+      }),
+      job(`y${i}`, `s${String(i).padStart(2, "0")}-spec`, {
+        startedAt: `2026-08-16T${String(i % 24).padStart(2, "0")}:30:00Z`,
+      }),
+    ]).flat();
+    const html = page(rows, { sort: "spec", dir: "asc" });
+    expect(html).toContain("s00-spec");
+    expect(html).toContain("s24-spec");
+    expect(html).not.toContain("s25-spec");
+    expect(html).toContain("1 older");
+  });
+
+  // Every spec is ONE line, so its place in the order is the group's —
+  // it can no longer have one job near the top and another near the
+  // bottom of the same list.
+  const specOrder = (html: string) =>
+    [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
+
+  test("sorting by started uses the spec's most recent activity (criterion 13)", () => {
+    const html = page([
+      job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
+      job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
+      job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+    ]);
+    expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
+  });
+
+  test("sorting by state uses the spec's representative state (criterion 13)", () => {
+    const html = page(
+      [
+        job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
+        job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
+        job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+      ],
+      { sort: "state" },
+    );
+    expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
   });
 });
 

@@ -95,6 +95,20 @@ table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882;
 table.jobs .speccell { font-weight: 600; }
 table.jobs .num { text-align: right; font-variant-numeric: tabular-nums; }
 table.jobs .empty { padding: 1.2rem 0; }
+/* One line per SPEC, with its phases beneath it. The rule goes ABOVE
+   each spec rather than under every row: a spec and its four phase
+   lines are one block, so a reader sees eight specs rather than forty
+   rows. */
+table.jobs tr.spechead td { border-bottom: none; border-top: 1px solid #8882;
+  padding-top: 0.9rem; }
+table.jobs tbody tr.spechead:first-child td { border-top: none; }
+table.jobs tr.subrow td { border-bottom: none; padding-top: 0.1rem; padding-bottom: 0.1rem;
+  font-size: 0.9rem; }
+table.jobs tr.subrow:last-child td { padding-bottom: 0.6rem; }
+table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
+/* A phase nobody has run yet still holds its place — that is what makes
+   progress readable — but it must not compete with what has happened. */
+table.jobs tr.untried td { opacity: 0.55; }
 /* One job, in full: facts on the left, values on the right. */
 table.facts { width: auto; margin: 0.6rem 0 1rem; }
 table.facts td { padding: 0.15rem 1rem 0.15rem 0; }
