@@ -152,9 +152,29 @@ def test_dry_run_prints_the_argv_it_would_use_and_spawns_nothing(runner, workspa
     assert "--verbose" in argv
     assert argv[argv.index("--max-budget-usd") + 1] == "3"
     assert argv[argv.index("--permission-mode") + 1] == "bypassPermissions"
-    # The spec ID is the folder's numeric prefix.
-    assert out["prompt"] == "/aide-implement 81"
+    # The spec ID is the folder's numeric prefix, and the prompt SAYS the
+    # run is headless rather than leaving it in the environment.
+    assert out["prompt"].startswith("/aide-implement 81")
+    assert "headless" in out["prompt"].lower()
     assert not fake_claude.calls.exists(), "a dry run must not invoke claude"
+
+
+def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude):
+    """AIDE_HEADLESS in the environment was not enough: a skill has to
+    remember to go and read it, and on 2026-08-17 an archive run read
+    ABOUT the variable while analysing spec 88 and never checked its own.
+    It then stopped to ask a question nobody could answer, and reported
+    success. A fact the model must act on belongs in the text it is
+    given, not in a place it has to think to look."""
+    claude = fake_claude("cat > /dev/null\nexit 1")
+    rc, out, _ = run(runner, workspace, claude, dry_run=True)
+    assert rc == 0
+    prompt = out["prompt"]
+    assert prompt.startswith("/aide-analyze 81"), prompt
+    lowered = prompt.lower()
+    assert "headless" in lowered
+    # And it must say what follows from it, not merely name the state.
+    assert "no one" in lowered or "nobody" in lowered
 
 
 # --- Criterion 2: the refusals -----------------------------------------------
