@@ -1,0 +1,450 @@
+// The queue store (spec 81, slice 81a): one record per job, in the
+// shape aide-run-store.ts established — a written-down schema with
+// unknown fields ignored, an LRU cap, a mirror written-then-renamed and
+// reloaded on boot. No scheduler here: 81a stores and shows jobs, 81b
+// runs them.
+//
+// Two properties are security, not tidiness:
+//   * a request carries NAMES, never paths — the server resolves the
+//     project itself against the discovered, allowlisted set
+//   * a request may only TIGHTEN a cap, and cannot set the permission
+//     mode at all; widening what an unattended run may do is not
+//     something an HTTP body gets to decide
+
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+
+export const WORKFLOW_STEPS = [
+  "explore", "create", "analyze", "review-plan", "implement", "archive", "manifest",
+] as const;
+export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
+
+export const JOB_STATES = [
+  "queued", "running", "awaiting-approval", "done",
+  "stopped", "failed", "cancelled", "interrupted",
+] as const;
+export type JobState = (typeof JOB_STATES)[number];
+
+// Why a run ended early. `stopped` is deliberately not `failed`: with
+// tight caps a cap-stop is a common, healthy outcome, and a reader who
+// cannot tell it from a broken agent will start ignoring both.
+export type StopReason = "budget" | "timeout";
+
+/** States where a job still owns its work. Anything else has released
+ *  it, and the same step may be queued again. */
+const UNFINISHED = new Set<string>(["queued", "running", "awaiting-approval"]);
+
+export interface StepResult {
+  step: WorkflowStep;
+  ok: boolean;
+  costUsd: number;
+  costMeasured: boolean;
+  terminalReason: string;
+  subtype?: string;
+  sessionId?: string;
+  /** Where this step's claude transcript was kept, when one was. Recorded
+   *  per step, so a finished step stays readable after the next one has
+   *  overwritten the job's live pointers. */
+  streamFile?: string;
+  at: string;
+}
+
+export interface Job {
+  id: string;
+  project: string;
+  specFolder: string;
+  steps: WorkflowStep[];
+  gateAfter: WorkflowStep[];
+  stepIndex: number;
+  state: JobState;
+  budgetUsd: number;
+  jobCapUsd: number;
+  timeoutSec: number;
+  permissionMode: Record<string, string>;
+  model: Record<string, string>;
+  /** The model picked for this whole job, when one was picked. Absent
+   *  means the per-step configuration decided. */
+  modelChoice?: string;
+  /** Other allowlisted projects this job is expected to touch. They are
+   *  watched, branched, committed and pushed exactly like the primary —
+   *  spec 81's own implement step wrote to a third repository the run
+   *  knew nothing about, and that half sat uncommitted on the machine
+   *  while the result reported success. */
+  extraProjects: string[];
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  pid?: number;
+  pgid?: number;
+  resultFile?: string;
+  /** The session of the step running RIGHT NOW, generated before the
+   *  spawn rather than read out of the result afterwards. Cleared the
+   *  moment the step ends: a finished job that still advertises a live
+   *  session is a lie the page would render as "running somewhere". */
+  sessionId?: string;
+  /** Where that step's transcript is being written, alongside
+   *  `resultFile` and from the same source of truth. */
+  streamFile?: string;
+  results: StepResult[];
+  spentUsd: number;
+  /** Where the work can be read: the compare page for the spec's
+   *  branch, or the pull request when the push mode opened one. */
+  branchUrl?: string;
+  stopReason?: StopReason;
+  error?: string;
+}
+
+/** What one pickable model is granted. The budget lives HERE, not in
+ *  the request: a hungrier model needs more headroom per step, and the
+ *  only place allowed to grant headroom is the config file on the
+ *  machine that runs the jobs. */
+export interface ModelChoice {
+  budgetUsd: number;
+  jobCapUsd?: number;
+}
+
+export interface QueueDefaults {
+  budgetUsd: number;
+  jobCapUsd: number;
+  dailyCapUsd: number;
+  timeoutSec: number;
+  /** Per step, with a `default` fallback. Config-only — see the header. */
+  permissionMode: Record<string, string>;
+  model: Record<string, string>;
+  /** Which models a job may be asked to run on, and what each is
+   *  granted. Absent means no choice is offered and naming one is
+   *  refused — off by default, like the rest of the queue. */
+  modelChoices?: Record<string, ModelChoice>;
+}
+
+/** Resolves a project NAME to its real spec folders, or null if it is
+ *  not both discovered and allowlisted. */
+export type ProjectResolver = (project: string) => { specFolders: string[] } | null;
+
+export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
+
+const NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
+const FOLDER_RE = /^[A-Za-z0-9._-]{1,128}$/;
+
+function perStep<T>(steps: WorkflowStep[], table: Record<string, T>): Record<string, T> {
+  const out: Record<string, T> = {};
+  for (const s of steps) out[s] = table[s] ?? table.default;
+  return out;
+}
+
+// A cap override is accepted only when it is stricter than the config.
+function tighten(raw: unknown, limit: number, name: string): number | Error {
+  if (raw === undefined || raw === null) return limit;
+  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) return new Error(`invalid ${name}`);
+  if (raw > limit) return new Error(`${name} may only be tightened (max ${limit})`);
+  return raw;
+}
+
+export function parseJobRequest(
+  raw: unknown,
+  opts: { resolve: ProjectResolver; defaults: QueueDefaults },
+): ParseResult {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "body is not an object" };
+  }
+  const r = raw as Record<string, unknown>;
+  const { defaults } = opts;
+
+  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: "invalid project" };
+  const resolved = opts.resolve(r.project);
+  if (!resolved) return { ok: false, error: `unknown or not-allowed project: ${r.project}` };
+
+  if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) {
+    return { ok: false, error: "invalid specFolder" };
+  }
+  if (!resolved.specFolders.includes(r.specFolder)) {
+    return { ok: false, error: `unknown specFolder: ${r.specFolder}` };
+  }
+
+  if (!Array.isArray(r.steps) || r.steps.length === 0 || r.steps.length > 8) {
+    return { ok: false, error: "steps must be a list of 1-8 workflow steps" };
+  }
+  const steps: WorkflowStep[] = [];
+  for (const s of r.steps) {
+    if (typeof s !== "string" || !(WORKFLOW_STEPS as readonly string[]).includes(s)) {
+      return { ok: false, error: `invalid entry in steps: ${String(s)}` };
+    }
+    steps.push(s as WorkflowStep);
+  }
+
+  // Default: every step gates. A job may be posted with an empty list
+  // to run straight through.
+  let gateAfter: WorkflowStep[] = [...steps];
+  if (r.gateAfter !== undefined && r.gateAfter !== null) {
+    if (!Array.isArray(r.gateAfter)) return { ok: false, error: "gateAfter must be a list" };
+    gateAfter = [];
+    for (const g of r.gateAfter) {
+      if (typeof g !== "string" || !steps.includes(g as WorkflowStep)) {
+        return { ok: false, error: `gateAfter names a step not in this job: ${String(g)}` };
+      }
+      gateAfter.push(g as WorkflowStep);
+    }
+  }
+
+  // Passenger projects: NAMES, resolved against the same allowlist as
+  // the primary. A request never carries a path.
+  const extraProjects: string[] = [];
+  if (r.extraProjects !== undefined && r.extraProjects !== null) {
+    if (!Array.isArray(r.extraProjects)) return { ok: false, error: "extraProjects must be a list" };
+    if (r.extraProjects.length > 4) return { ok: false, error: "extraProjects: at most 4" };
+    for (const p of r.extraProjects) {
+      if (typeof p !== "string" || !NAME_RE.test(p)) {
+        return { ok: false, error: `invalid entry in extraProjects: ${String(p)}` };
+      }
+      if (p === r.project) {
+        return { ok: false, error: `extraProjects repeats the job's own project: ${p}` };
+      }
+      if (extraProjects.includes(p)) return { ok: false, error: `extraProjects repeats ${p}` };
+      if (!opts.resolve(p)) return { ok: false, error: `unknown or not-allowed project in extraProjects: ${p}` };
+      extraProjects.push(p);
+    }
+  }
+
+  // A model may be picked for the whole job — that is how the heaviest
+  // model is reserved for the heaviest work. The NAME comes from the
+  // request; everything it is granted comes from the config.
+  let modelChoice: string | undefined;
+  let choice: ModelChoice | undefined;
+  if (r.model !== undefined && r.model !== null && r.model !== "") {
+    if (typeof r.model !== "string" || !NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
+    choice = defaults.modelChoices?.[r.model];
+    if (!choice) {
+      return {
+        ok: false,
+        error: defaults.modelChoices
+          ? `unknown or not-allowed model: ${r.model}`
+          : "no model choice is configured on this server",
+      };
+    }
+    modelChoice = r.model;
+  }
+
+  const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
+  if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
+  const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
+  if (jobCapUsd instanceof Error) return { ok: false, error: jobCapUsd.message };
+  const timeoutSec = tighten(r.timeoutSec, defaults.timeoutSec, "timeoutSec");
+  if (timeoutSec instanceof Error) return { ok: false, error: timeoutSec.message };
+
+  return {
+    ok: true,
+    job: {
+      id: crypto.randomUUID(),
+      project: r.project,
+      specFolder: r.specFolder,
+      steps,
+      gateAfter,
+      stepIndex: 0,
+      state: "queued",
+      budgetUsd,
+      jobCapUsd,
+      timeoutSec,
+      permissionMode: perStep(steps, defaults.permissionMode),
+      // A picked model applies to EVERY step: "reserve the heavy model
+      // for the heavy job" is a decision about the job, not about one
+      // step inside it. Run a single step as its own job to be finer.
+      model: modelChoice
+        ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
+        : perStep(steps, defaults.model),
+      modelChoice,
+      extraProjects,
+      createdAt: new Date().toISOString(),
+      results: [],
+      spentUsd: 0,
+    },
+  };
+}
+
+// A job read back from the mirror. Looser than a request (it carries
+// id/state/results), but still validated: a corrupt row is dropped, not
+// trusted.
+function parseStoredJob(raw: unknown): Job | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== "string" || !r.id) return null;
+  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return null;
+  if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) return null;
+  if (!Array.isArray(r.steps) || r.steps.some((s) => !(WORKFLOW_STEPS as readonly string[]).includes(s as string))) {
+    return null;
+  }
+  if (typeof r.state !== "string" || !(JOB_STATES as readonly string[]).includes(r.state)) return null;
+  return {
+    ...(r as unknown as Job),
+    steps: r.steps as WorkflowStep[],
+    gateAfter: Array.isArray(r.gateAfter) ? (r.gateAfter as WorkflowStep[]) : [],
+    extraProjects: Array.isArray(r.extraProjects) ? (r.extraProjects as string[]) : [],
+    results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
+    spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
+    stepIndex: typeof r.stepIndex === "number" ? r.stepIndex : 0,
+    // Anything but a string here would be handed to a fetch and to a
+    // file read. Dropped, like every other malformed field.
+    sessionId: typeof r.sessionId === "string" ? r.sessionId : undefined,
+    streamFile: typeof r.streamFile === "string" ? r.streamFile : undefined,
+  };
+}
+
+// Caps and per-step policy belong in a file on the machine that runs
+// the jobs, never in the code: a number that turns out wrong should
+// cost a config edit and a restart, not a release.
+export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefaults {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback;
+  const table = (v: unknown, fallback: Record<string, string>) => {
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+    const out: Record<string, string> = { ...fallback };
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (typeof val === "string" && val) out[k] = val;
+    }
+    return out;
+  };
+  // A malformed entry is DROPPED, not defaulted: a model whose budget
+  // is a typo would otherwise silently inherit the general one, and the
+  // whole point of listing it is that its number is different.
+  const choices = (v: unknown): Record<string, ModelChoice> | undefined => {
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return base.modelChoices;
+    const out: Record<string, ModelChoice> = {};
+    for (const [name, entry] of Object.entries(v as Record<string, unknown>)) {
+      if (!NAME_RE.test(name) || entry === null || typeof entry !== "object" || Array.isArray(entry)) continue;
+      const e = entry as Record<string, unknown>;
+      if (typeof e.budgetUsd !== "number" || !Number.isFinite(e.budgetUsd) || e.budgetUsd <= 0) continue;
+      const cap =
+        typeof e.jobCapUsd === "number" && Number.isFinite(e.jobCapUsd) && e.jobCapUsd > 0
+          ? e.jobCapUsd
+          : undefined;
+      out[name] = cap === undefined ? { budgetUsd: e.budgetUsd } : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
+
+  return {
+    budgetUsd: num(r.budgetUsd, base.budgetUsd),
+    jobCapUsd: num(r.jobCapUsd, base.jobCapUsd),
+    dailyCapUsd: num(r.dailyCapUsd, base.dailyCapUsd),
+    timeoutSec: num(r.timeoutSec, base.timeoutSec),
+    permissionMode: table(r.permissionMode, base.permissionMode),
+    model: table(r.model, base.model),
+    modelChoices: choices(r.modelChoices),
+  };
+}
+
+export interface QueueOptions {
+  defaults: QueueDefaults;
+  resolve: ProjectResolver;
+  mirrorPath?: string;
+  cap?: number;
+}
+
+export class QueueStore {
+  private readonly jobs = new Map<string, Job>(); // insertion order = age order
+  private readonly cap: number;
+  private readonly mirrorPath?: string;
+  readonly defaults: QueueDefaults;
+  private readonly resolve: ProjectResolver;
+
+  constructor(opts: QueueOptions) {
+    this.cap = opts.cap ?? 200;
+    this.mirrorPath = opts.mirrorPath;
+    this.defaults = opts.defaults;
+    this.resolve = opts.resolve;
+    this.load();
+  }
+
+  /** An unfinished job for the same spec that already covers one of
+   *  these steps. Two of those is never what anyone meant: it happened
+   *  when the same analyze was posted from the API and from the page
+   *  seconds apart, and the queue took both without a word. */
+  private clashing(job: Job): { job: Job; step: WorkflowStep } | null {
+    for (const other of this.jobs.values()) {
+      if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
+      if (!UNFINISHED.has(other.state)) continue;
+      const step = job.steps.find((s) => other.steps.includes(s));
+      if (step) return { job: other, step };
+    }
+    return null;
+  }
+
+  enqueue(raw: unknown): ParseResult {
+    const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: this.defaults });
+    if (!parsed.ok) return parsed;
+    const clash = this.clashing(parsed.job);
+    if (clash) {
+      return {
+        ok: false,
+        error:
+          `${clash.step} on ${parsed.job.specFolder} is already ${clash.job.state} ` +
+          `(job ${clash.job.id.slice(0, 8)}) — cancel that one first if you want to start over`,
+      };
+    }
+    this.jobs.set(parsed.job.id, parsed.job);
+    while (this.jobs.size > this.cap) {
+      this.jobs.delete(this.jobs.keys().next().value as string);
+    }
+    this.mirror();
+    return parsed;
+  }
+
+  list(): Job[] {
+    return [...this.jobs.values()].reverse(); // newest first
+  }
+
+  /** Which steps this spec has actually HAD, according to the queue's
+   *  own history. More reliable than reading the spec's files: a
+   *  completed step is recorded here with its cost and session, whereas
+   *  a status percentage mixes the machine's work with the user's. */
+  stepsCompletedFor(project: string, specFolder: string): string[] {
+    const done = new Set<string>();
+    for (const job of this.jobs.values()) {
+      if (job.project !== project || job.specFolder !== specFolder) continue;
+      for (const r of job.results) {
+        if (r.ok && r.step) done.add(r.step);
+      }
+    }
+    return [...done];
+  }
+
+  get(id: string): Job | undefined {
+    return this.jobs.get(id);
+  }
+
+  update(id: string, patch: Partial<Job>): Job | undefined {
+    const job = this.jobs.get(id);
+    if (!job) return undefined;
+    const next = { ...job, ...patch };
+    this.jobs.set(id, next);
+    this.mirror();
+    return next;
+  }
+
+  private load(): void {
+    if (!this.mirrorPath || !existsSync(this.mirrorPath)) return;
+    try {
+      const raw = JSON.parse(readFileSync(this.mirrorPath, "utf-8")) as unknown;
+      if (!Array.isArray(raw)) return;
+      for (const entry of raw) {
+        const job = parseStoredJob(entry);
+        if (job) this.jobs.set(job.id, job);
+      }
+    } catch {
+      // a corrupt mirror is not worth crashing over — start empty
+    }
+  }
+
+  private mirror(): void {
+    if (!this.mirrorPath) return;
+    try {
+      mkdirSync(dirname(this.mirrorPath), { recursive: true });
+      const tmp = `${this.mirrorPath}.tmp`;
+      writeFileSync(tmp, JSON.stringify([...this.jobs.values()], null, 2));
+      renameSync(tmp, this.mirrorPath);
+    } catch {
+      // mirroring is best effort
+    }
+  }
+}
