@@ -72,7 +72,10 @@ main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
    The chosen filter is filled with the accent the pips already use;
    hover stays a hint. */
 .filtergroup a:hover { background: #8882; }
-.filtergroup a[aria-current] { font-weight: 700; background: #3b82f6;
+/* No bold on the selected one: bold text is WIDER, so the chip grew and
+   shoved its neighbours along every time you clicked. The fill says
+   which is chosen; it does not need saying twice. */
+.filtergroup a[aria-current] { background: #3b82f6;
   border-color: #3b82f6; color: #fff; }
 .filtergroup a[aria-current] .tabcount { background: #ffffff33; color: #fff; }
 table.jobs thead a { text-decoration: none; color: inherit; }
