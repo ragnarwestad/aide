@@ -1,6 +1,13 @@
-// The scheduler (spec 81, slice 81b): one job at a time, every step
-// bounded before it starts, and a restart reconciled rather than
-// guessed at.
+// The scheduler (spec 81, slice 81b): a configurable number of jobs at
+// once, every step bounded before it starts, and a restart reconciled
+// rather than guessed at.
+//
+// It ran one job at a time until spec 91, for one reason: every run
+// switched the real working tree of every repo it touched, so two at
+// once would have produced wrong commits rather than faster runs. Once
+// `aide-run-spec` gives each run its own `git worktree`, the slot count
+// is just a number — and the number lives in the queue config, for the
+// reason `queue.ts` gives about every other number there.
 //
 // Two shapes here are deliberate:
 //
@@ -76,15 +83,21 @@ export interface RunnerOptions {
    *  job that parked at 02:00 must not wait for someone to open the
    *  page. Injected, so the tests spawn nothing. */
   notify?: (event: NotifyEvent) => void;
+  /** How many steps may be in flight at once. 1 reproduces the
+   *  behaviour every caller had before spec 91, which is what makes a
+   *  rollback a config edit rather than a release. */
+  maxConcurrent?: number;
 }
 
 export class Runner {
   private readonly o: RunnerOptions;
+  private readonly maxConcurrent: number;
   private day: string;
   private spent = 0;
 
   constructor(opts: RunnerOptions) {
     this.o = opts;
+    this.maxConcurrent = opts.maxConcurrent && opts.maxConcurrent > 0 ? opts.maxConcurrent : 1;
     this.day = opts.today();
   }
 
@@ -116,19 +129,35 @@ export class Runner {
 
   // --- starting work --------------------------------------------------------
 
-  private running(): Job | undefined {
-    return this.o.store.list().find((j) => j.state === "running");
+  private runningJobs(): Job[] {
+    return this.o.store.list().filter((j) => j.state === "running");
   }
 
-  /** Start the next step, if the slot is free and every cap allows it. */
+  /** Fill every free slot, oldest queued job first. */
   tick(): void {
-    if (this.running()) return; // one job at a time
-    const job = [...this.o.store.list()].reverse().find((j) => j.state === "queued");
-    if (!job) return;
+    // FIFO: list() is newest-first.
+    for (const job of [...this.o.store.list()].reverse()) {
+      if (this.runningJobs().length >= this.maxConcurrent) return;
+      if (job.state !== "queued") continue;
+      // Two jobs for the SAME spec are never both started: analyze and
+      // implement for one spec are ordered by nature, and git would
+      // refuse the second worktree on that branch anyway — which is a
+      // refusal mid-run, not a scheduling decision.
+      if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+        continue;
+      }
+      this.startOne(job);
+    }
+  }
+
+  /** Start one job's next step, unless a cap holds it back. Returns
+   *  whether a slot was taken — a job the daily cap stops must not
+   *  consume one, and must not block a cheaper job behind it either. */
+  private startOne(job: Job): boolean {
     const step = job.steps[job.stepIndex];
     if (!step) {
       this.o.store.update(job.id, { state: "done", finishedAt: this.o.now() });
-      return;
+      return false;
     }
 
     // Both caps are checked BEFORE the step starts: a cap that only
@@ -141,13 +170,18 @@ export class Runner {
         error: reason,
       });
       this.announce(stopped ?? job, "stopped", step, reason);
-      return;
+      return false;
     }
-    if (this.spentToday() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
+    // The budgets of jobs ALREADY IN FLIGHT count. `spentToday()` is the
+    // sum of what has been recorded, and recording happens at
+    // completion — so with N slots, N jobs could each pass this check on
+    // the same numbers and the cap be exceeded by (N-1) budgets before
+    // anything noticed.
+    if (this.reservedUsd() + job.budgetUsd > this.o.store.defaults.dailyCapUsd) {
       this.o.store.update(job.id, {
         error: `held back: the daily cap ($${this.o.store.defaults.dailyCapUsd}) would be exceeded`,
       });
-      return;
+      return false;
     }
 
     const resultFile = `${this.o.resultDir}/${job.id}.json`;
@@ -168,28 +202,39 @@ export class Runner {
       startedAt: job.startedAt ?? this.o.now(),
       error: undefined,
     });
+    return true;
+  }
+
+  /** Today's spend plus the budgets of the steps currently in flight.
+   *  Derived, never stored: a job that dies is resolved by `poll()` or
+   *  `reconcile()`, and its reservation disappears with its state. */
+  private reservedUsd(): number {
+    return this.runningJobs().reduce((sum, j) => sum + j.budgetUsd, this.spentToday());
   }
 
   // --- finishing work -------------------------------------------------------
 
-  /** Look at the running job: has its result landed? */
+  /** Look at EVERY running job: has its result landed? Reading only the
+   *  first would leave the second's step sitting in `running` with its
+   *  result on disk beside it until the first finished. */
   poll(): void {
-    const job = this.running();
-    if (!job || !job.resultFile) return;
-    const raw = this.o.readResult(job.resultFile);
-    if (raw) {
-      this.complete(job, raw as Partial<StepOutcome>);
-      return;
-    }
-    // No result yet. If the process is also gone, the run died without
-    // leaving one — see reconcile().
-    if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
-      this.o.store.update(job.id, {
-        state: "interrupted",
-        finishedAt: this.o.now(),
-        sessionId: undefined,
-        error: "the run vanished without leaving a result",
-      });
+    for (const job of this.runningJobs()) {
+      if (!job.resultFile) continue;
+      const raw = this.o.readResult(job.resultFile);
+      if (raw) {
+        this.complete(job, raw as Partial<StepOutcome>);
+        continue;
+      }
+      // No result yet. If the process is also gone, the run died without
+      // leaving one — see reconcile().
+      if (job.pid !== undefined && !this.o.isAlive(job.pid)) {
+        this.o.store.update(job.id, {
+          state: "interrupted",
+          finishedAt: this.o.now(),
+          sessionId: undefined,
+          error: "the run vanished without leaving a result",
+        });
+      }
     }
   }
 

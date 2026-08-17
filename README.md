@@ -144,6 +144,7 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
               --budget-usd 3 --timeout-sec 1200 \
               --permission-mode acceptEdits \
               --result-file /tmp/step.json [--push none|branch|pr] [--pull]
+              [--worktree-base ~/aide-worktrees]
 ```
 
 It refuses to start when either git root is dirty, when the spec folder
@@ -153,6 +154,27 @@ by whoever starts the run. It enforces its own wall clock (SIGTERM to
 the process group, then SIGKILL), commits whatever the step managed to
 write in BOTH roots — the project and the specs repo — and writes one
 JSON line to stdout and to `--result-file`.
+
+**Every run works in `git worktree` checkouts of its own**, one per repo
+it touches, under `$HOME/aide-worktrees/<project>/<spec>/`
+(`--worktree-base` relocates them; a base inside any of the repos is
+refused). The real checkouts are only ever put back **onto** their
+default branch and fast-forwarded — never switched to a spec branch — so
+two runs can go at once without deciding what the other is compiling,
+and a person can use the checkout while a job runs. The worktrees go
+when the run ends, and one left behind by a killed run is swept by the
+next run for that spec.
+
+A worktree carries tracked files only, so anything gitignored that the
+step needs has to be named in the project's `.aide/config`:
+
+```text
+AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+```
+
+Those paths are symlinked in from the main checkout and kept out of the
+commit. Without them, a test command living behind one of them fails for
+a reason that has nothing to do with the change.
 
 **Installing aide gives nobody a queue.** The script does nothing until
 it is invoked, and it is what a scheduler drives (the aide-dashboard

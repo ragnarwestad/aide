@@ -87,6 +87,9 @@ export interface ServerOptions {
   /** How far a finished step publishes its work: none, branch or pr.
    *  From the queue config; `branch` when unset. */
   queuePush?: string;
+  /** How many steps may run at once. From the queue config's
+   *  `concurrency`; two when unset. */
+  queueConcurrency?: number;
   /** argv for the gate notifier — claude-usage's contract, run with no
    *  shell. Absent means no notifications are sent. */
   queueNotifyCommand?: string[];
@@ -302,6 +305,21 @@ export function runnerArgv(
   ];
 }
 
+/** How many steps may run at once, from the queue config's
+ *  `concurrency`. FALLS BACK, it does not clamp: `mergeQueueDefaults`
+ *  already ignores what it does not understand and keeps the built-in
+ *  value, and one rule beats two. The upper bound of 4 is the only thing
+ *  standing between a typo in a config file and sixteen `claude`
+ *  sessions on the serving host. */
+export const DEFAULT_QUEUE_CONCURRENCY = 2;
+
+export function parseQueueConcurrency(raw: unknown): number {
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > 4) {
+    return DEFAULT_QUEUE_CONCURRENCY;
+  }
+  return raw;
+}
+
 export function createServer(opts: ServerOptions) {
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
   const enricher = new LiveEnricher({
@@ -387,6 +405,7 @@ export function createServer(opts: ServerOptions) {
         projectDir,
         runnerBin: opts.queueRunnerBin,
         resultDir: opts.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
+        maxConcurrent: opts.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,
         now: () => new Date().toISOString(),
         today: () => new Date().toISOString().slice(0, 10),
         spawn: (job, step, resultFile, sessionId, streamFile) => {
@@ -872,6 +891,7 @@ function parseArgs(argv: string[]): ServerOptions {
         opts.queueNotifyCommand = raw.notifyCommand as string[];
       }
       if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
+      opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
     } catch {
       console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
     }

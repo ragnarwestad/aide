@@ -744,7 +744,8 @@ export function renderQueuePage(
       `queued jobs stay queued, and nothing here spends money.</p>\n`;
   const body =
     notice +
-    `<p class="intro">aide runs on this machine: one job at a time, every step ` +
+    `<p class="intro">aide runs on this machine: a few jobs side by side, each in ` +
+    `a checkout of its own, and never two on the same spec. Every step is ` +
     `bounded by its own budget and a wall clock. A job that hits a cap is ` +
     `<em>stopped</em>, not failed.</p>\n` +
     enqueueForm(opts) +

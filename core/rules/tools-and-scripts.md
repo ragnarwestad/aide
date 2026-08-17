@@ -69,6 +69,18 @@ with `#` comments. Recognized keys:
 | `AIDE_TEST_CMD` | Overrides the detected test command |
 | `AIDE_LINT_CMD` | Overrides the detected lint command |
 | `AIDE_BUILD_CMD` | Overrides the detected build command |
+| `AIDE_WORKTREE_LINKS` | Space-separated repo-relative paths a headless run needs but git does not carry — `.venv dashboard/node_modules` and the like |
+
+`AIDE_WORKTREE_LINKS` exists because `aide-run-spec` gives every run a
+`git worktree` of its own, and a worktree carries **tracked files only**:
+every gitignored path is simply absent. In a project whose test command
+lives behind one of them — pytest in `.venv`, a suite needing
+`node_modules` — the step then fails for a reason that has nothing to do
+with its change. Each listed path is symlinked in from the main checkout
+when it exists there, and excluded from the commit. Paths are relative to
+the repo root; an absolute path, or one containing `..`, is refused by
+name. Which paths matter cannot be derived without guessing, so the
+project states them.
 
 Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.

@@ -23,8 +23,11 @@ const DEFAULTS: QueueDefaults = {
   model: { implement: "opus", default: "sonnet" },
 };
 
+// Two spec folders, not one: since spec 91 the scheduler may run several
+// jobs at once, and a store that cannot resolve a second spec refuses the
+// enqueue long before tick() is reached.
 const resolve = (project: string) =>
-  project === "aide" ? { specFolders: ["81-queue-and-runner"] } : null;
+  project === "aide" ? { specFolders: ["81-queue-and-runner", "91-parallel-spec-runs"] } : null;
 
 let dir: string;
 let store: QueueStore;
@@ -37,9 +40,13 @@ function makeRunner(opts: {
   alive?: (pid: number) => boolean;
   readResult?: (path: string) => unknown;
   newSessionId?: () => string;
+  maxConcurrent?: number;
 } = {}) {
   return new Runner({
     store,
+    // 1 unless a test says otherwise, so every case written before spec
+    // 91 still describes the behaviour it was written for.
+    maxConcurrent: opts.maxConcurrent,
     projectDir: (p) => join(dir, p),
     runnerBin: "/bin/true",
     resultDir: dir,
@@ -90,7 +97,7 @@ beforeEach(() => {
 
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-describe("one job at a time", () => {
+describe("with one slot, one job at a time", () => {
   test("a second job waits while the first is running", () => {
     const a = enqueue();
     // A different step: the queue refuses the same one twice while the
@@ -113,6 +120,94 @@ describe("one job at a time", () => {
     expect(store.get(a.id)?.state).toBe("done");
     runner.tick();
     expect(spawns.length).toBe(2);
+  });
+
+  test("with maxConcurrent 1 the second job waits even for a different spec", () => {
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("queued");
+  });
+});
+
+// Spec 91, slice 91b. The shared working tree was the only thing that
+// made a single slot necessary; once every run has its own (slice 91a),
+// the slot count is a number, and the number belongs in the config.
+describe("several jobs at once", () => {
+  test("two jobs for different specs both start in one tick", () => {
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+  });
+
+  test("a third job waits for a slot", () => {
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const c = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("running");
+    expect(store.get(c.id)?.state).toBe("queued");
+  });
+
+  test("two jobs for the SAME spec are never both started", () => {
+    // analyze and implement for one spec are ordered by nature. git
+    // would refuse the second worktree on that branch anyway — but a
+    // refusal mid-run is not a scheduling decision.
+    const a = enqueue();
+    const b = enqueue({ steps: ["implement"] });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    expect(store.get(b.id)?.state).toBe("queued");
+  });
+
+  test("poll completes EVERY running job, not just the first", () => {
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 2, readResult: () => okResult(1) });
+    runner.tick();
+    expect(spawns.length).toBe(2);
+    runner.poll();
+    expect(store.get(a.id)?.state).toBe("done");
+    expect(store.get(b.id)?.state).toBe("done");
+  });
+
+  test("the daily cap counts the budget of work already in flight", () => {
+    // $20 cap, $15 spent, two $3 jobs. Both would pass a check that only
+    // looks at what is already RECORDED — addSpentToday runs at
+    // completion, so a running job's budget is counted nowhere.
+    const a = enqueue();
+    const b = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.addSpentToday(15);
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(a.id)?.state).toBe("running");
+    const held = store.get(b.id)!;
+    expect(held.state).toBe("queued");
+    expect(held.error).toContain("daily cap");
+  });
+
+  test("a job held by the daily cap does not block a cheaper one behind it", () => {
+    const dear = enqueue();
+    const cheap = enqueue({ specFolder: "91-parallel-spec-runs", budgetUsd: 1 });
+    const runner = makeRunner({ maxConcurrent: 2 });
+    runner.addSpentToday(18); // 18 + 3 > 20, but 18 + 1 is not
+    runner.tick();
+    expect(store.get(dear.id)?.state).toBe("queued");
+    expect(store.get(dear.id)?.error).toContain("daily cap");
+    expect(store.get(cheap.id)?.state).toBe("running");
   });
 });
 

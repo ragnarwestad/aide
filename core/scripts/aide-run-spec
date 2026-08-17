@@ -18,6 +18,13 @@
 # per line) at PATH instead of discarding it with the working directory.
 # Opt-in: without it, nothing about this script's behaviour changes.
 #
+# Every run works in a `git worktree` of its own, one per repo it touches
+# (spec 91). The real checkouts are only ever put back ON their default
+# branch and read; nothing switches them to a spec branch. That is what
+# lets two runs go at once against the same repositories — and it is also
+# why the dashboard's spec list stops describing whatever branch a
+# running job happens to be on.
+#
 # Exit: 0 when a run happened and was reported (stopped runs included),
 #       2 when the run was refused before anything started.
 #
@@ -76,6 +83,12 @@ stream_file=""
 # the run knew nothing about: that half was left uncommitted on the
 # machine while the result reported success.
 extra_dirs=()
+# Where the throwaway checkouts live. Outside every repo, keyed by
+# project AND spec: two projects can share one specs repo (aide-specs
+# holds both `aide/` and `aide-dashboard/`), and a path keyed by spec
+# alone would put their runs in the same directory — which the sweep
+# below would then delete out from under a live run.
+worktree_base=""
 # Default `none`: a run started by hand publishes nothing nobody asked
 # for. The queue passes the mode from its config, where the default is
 # `branch`.
@@ -96,6 +109,7 @@ while [ $# -gt 0 ]; do
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; shift 2 ;;
     --extra-project-dir) extra_dirs+=("${2:-}"); shift 2 ;;
+    --worktree-base) worktree_base="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
     *) printf '{"ok":false,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
@@ -214,12 +228,37 @@ default_branch() {
   git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
 
+# The main checkout is put back ON its default branch and never taken off
+# it again. The switch is NOT a courtesy: a checkout left on `aide/<spec>`
+# by an older run — a cancel, or any refusal after the branch block —
+# would make git refuse `worktree add` for that branch (`fatal: '…' is
+# already used by worktree at …`) with no self-healing path.
+#
+# The pull IS a courtesy, and is recorded rather than fatal. The worktree
+# is cut from origin/$base, so correctness no longer depends on this
+# tree's HEAD; a race lost to a concurrent run costs the dashboard a
+# staler spec list and nothing else. It also has to name $base
+# explicitly: `git pull --ff-only` acts on the CURRENT branch, so a
+# checkout stuck on an old spec branch used to be advanced on THAT
+# branch, run after run.
+pull_error=""
+note_pull_error() {
+  [ -z "$pull_error" ] && pull_error="$1" || pull_error="$pull_error; $1"
+}
+
 for root in "${roots[@]}"; do
   base="$(default_branch "$root")"
   [ -n "$base" ] || refuse "cannot work out the default branch in $root"
-  git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
+  if [ "$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)" != "$base" ]; then
+    git -C "$root" switch -q "$base" 2>/dev/null || refuse "cannot switch to $base in $root"
+  fi
   if [ "$do_pull" = "yes" ] && git -C "$root" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-    git -C "$root" pull -q --ff-only 2>/dev/null || refuse "cannot fast-forward $base in $root"
+    if git -C "$root" fetch -q origin "$base" 2>/dev/null; then
+      git -C "$root" merge -q --ff-only "origin/$base" 2>/dev/null \
+        || note_pull_error "cannot fast-forward $base in $root"
+    else
+      note_pull_error "cannot fetch $base in $root"
+    fi
   fi
 done
 
@@ -274,34 +313,86 @@ fi
 # that work committed on main and pushed there — the one thing `push
 # branch` exists to prevent. Measured 2026-08-16 on spec 84.
 branch="aide/$spec_folder"
-for root in "${roots[@]}"; do
-  if git -C "$root" switch -q "$branch" 2>/dev/null; then
-    # The branch already exists, because the previous step for this spec
-    # made it — and that reuse is deliberate: analyze, review-plan and
-    # implement build on each other's work. But the default branch has
-    # moved on since, and a branch left over from the morning made the
-    # step read the morning's code. Measured 2026-08-16: a review-plan
-    # reviewed a file whose bug had been fixed hours earlier.
-    base="$(default_branch "$root")"
-    if ! git -C "$root" merge -q --ff-only "$base" 2>/dev/null; then
-      if ! git -C "$root" merge -q --no-edit "$base" >/dev/null 2>&1; then
-        git -C "$root" merge --abort >/dev/null 2>&1 || true
-        refuse "cannot bring $branch up to date with $base in $root (conflict — merge it by hand)"
-      fi
-    fi
-  elif ! git -C "$root" switch -q -c "$branch" 2>/dev/null; then
-    refuse "cannot switch to $branch in $root"
-  fi
+
+# --- where this run's checkouts go -------------------------------------------
+[ -n "$worktree_base" ] || worktree_base="$HOME/aide-worktrees"
+case "$worktree_base" in /*) ;; *) worktree_base="$PWD/$worktree_base" ;; esac
+refuse_base_inside_a_root() {
+  local candidate="$1" root
+  for root in "${roots[@]}"; do
+    case "$candidate/" in
+      "$root"/*)
+        refuse "the worktree base $candidate is inside $root — a worktree there would be committed by the run"
+        ;;
+    esac
+  done
+}
+# Checked BEFORE the directory is created, and again once the real path is
+# known: a symlinked base could resolve into a root the literal path did
+# not name.
+refuse_base_inside_a_root "$worktree_base"
+mkdir -p "$worktree_base" 2>/dev/null || refuse "cannot create the worktree base at $worktree_base"
+worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the worktree base"
+refuse_base_inside_a_root "$worktree_base"
+# Keyed by project AND spec: two projects can share one specs repo, and a
+# path keyed by the spec alone would put both runs in the same directory.
+wt_dir="$worktree_base/$(basename "$project_root")/$spec_folder"
+
+# --- the dependencies a worktree lacks ---------------------------------------
+# `git worktree add` checks out TRACKED files only, so every gitignored
+# path is absent — `.venv` and `dashboard/node_modules` in this repo,
+# without which pytest and bun both fail for a reason that has nothing to
+# do with the change. Which paths matter cannot be derived without
+# guessing, so the project states them.
+link_paths=()
+links_raw=""
+if declare -f aide_config_get >/dev/null 2>&1; then
+  links_raw="$(aide_config_get AIDE_WORKTREE_LINKS "$project_root")"
+fi
+for entry in $links_raw; do
+  case "$entry" in
+    /*) refuse "AIDE_WORKTREE_LINKS must name repo-relative paths: $entry" ;;
+    *..*) refuse "AIDE_WORKTREE_LINKS must not escape the root: $entry" ;;
+  esac
+  link_paths+=("$entry")
+done
+# A `dir/` gitignore rule matches directories only, and a symlink is a
+# file to git — so every linked path reads as untracked and `git add -A`
+# would commit it. A per-worktree info/exclude does NOT work (measured:
+# `rev-parse --git-path info/exclude` inside a worktree resolves to the
+# COMMON .git/info/exclude), so the exclusion has to happen where the
+# staging happens: a pathspec on the add, and on the change check that
+# decides whether a repo is worth branching at all.
+git_add_excludes=()
+for entry in ${link_paths[@]+"${link_paths[@]}"}; do
+  git_add_excludes+=(":(exclude,top)$entry")
 done
 
-# Parallel indexed arrays, not an associative one: macOS ships bash 3.2,
-# where `declare -A` does not exist.
-head_before=()
-for root in "${roots[@]}"; do
-  head_before+=("$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")")
-done
-
+# --- cleanup, installed BEFORE the first worktree add ------------------------
+# `refuse()` exits 2, and there are refusals inside the loop below. A
+# worktree orphaned by one of them locks its branch out of every later
+# run, so the trap has to be standing before the first one is created.
 work_dir="$(mktemp -d)"
+transcript=""
+created_wt=()
+created_wt_root=()
+child=""
+
+kill_group() {
+  kill "-$1" "-$child" 2>/dev/null || kill "-$1" "$child" 2>/dev/null || true
+}
+
+remove_worktrees() {
+  local i=0 wt
+  for wt in ${created_wt[@]+"${created_wt[@]}"}; do
+    git -C "${created_wt_root[$i]}" worktree remove --force "$wt" >/dev/null 2>&1 || true
+    rm -rf "$wt" 2>/dev/null || true
+    git -C "${created_wt_root[$i]}" worktree prune >/dev/null 2>&1 || true
+    i=$(( i + 1 ))
+  done
+  rmdir "$wt_dir" 2>/dev/null && rmdir "$(dirname "$wt_dir")" 2>/dev/null
+  return 0
+}
 
 # The transcript is copied out of $work_dir before the directory goes,
 # and from the TRAP rather than from the happy path: a run that is
@@ -317,6 +408,234 @@ work_dir="$(mktemp -d)"
 # killed-run property too — the file is already on disk, so there is
 # nothing left to rescue. keep_stream then only has work to do for the
 # case it was written for: no --stream-file, nothing to keep.
+keep_stream() {
+  [ -n "$stream_file" ] || return 0
+  [ -n "$transcript" ] || return 0
+  [ "$transcript" != "$stream_file" ] || return 0
+  [ -f "$transcript" ] || return 0
+  if cp "$transcript" "$stream_file.tmp" 2>/dev/null; then
+    mv "$stream_file.tmp" "$stream_file" 2>/dev/null || rm -f "$stream_file.tmp" 2>/dev/null
+  fi
+  return 0
+}
+trap 'keep_stream; remove_worktrees; rm -rf "$work_dir"' EXIT
+# TERM and INT get a handler of their own, and NOT because the EXIT trap
+# is skipped without one — measured, bash 3.2.57 runs the EXIT trap on an
+# untrapped SIGTERM. The reason is the opposite: with an explicit handler
+# bash no longer dies of the signal, so this one has to kill the child's
+# process group, wait for it, and exit. Cancel SIGTERMs the whole group
+# and `claude` is still alive when the trap fires; without the wait, a
+# worktree would be removed from under a running step, and without the
+# exit the deadline loop below would simply resume.
+on_signal() {
+  trap '' TERM INT
+  local grace_end
+  if [ -n "$child" ]; then
+    kill_group TERM
+    grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
+    while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
+    kill -0 "$child" 2>/dev/null && kill_group KILL
+  fi
+  exit 143
+}
+trap on_signal TERM INT
+
+# --- one throwaway checkout per root -----------------------------------------
+# The main trees are not touched here, so two runs on the same repos
+# cannot see each other's branch. Parallel indexed arrays again, not
+# associative ones: macOS ships bash 3.2.
+used_names=()
+unique_basename() {   # sets $wt_name
+  local want="$1" candidate used clash n=1
+  candidate="$want"
+  while :; do
+    clash="no"
+    for used in ${used_names[@]+"${used_names[@]}"}; do
+      [ "$used" = "$candidate" ] && clash="yes"
+    done
+    [ "$clash" = "no" ] && break
+    n=$(( n + 1 )); candidate="$want-$n"
+  done
+  used_names+=("$candidate")
+  wt_name="$candidate"
+}
+
+# SIGKILL cannot be trapped, so a killed run leaves a checkout behind —
+# and measured: after `git worktree prune`, a leftover at a DIFFERENT
+# path still gives `fatal: '<branch>' is already used by worktree at …`.
+# So the sweep matches by BRANCH, wherever it stands, and only then by
+# path. The main worktree is never removed, whatever it holds.
+sweep_worktree() {
+  local root="$1" br="$2" wt="$3" cur="" line
+  git -C "$root" worktree prune >/dev/null 2>&1 || true
+  while IFS= read -r line; do
+    case "$line" in
+      "worktree "*) cur="${line#worktree }" ;;
+      "branch refs/heads/$br")
+        if [ -n "$cur" ] && [ "$cur" != "$root" ]; then
+          git -C "$root" worktree remove --force "$cur" >/dev/null 2>&1 || true
+          case "$cur/" in "$worktree_base"/*) rm -rf "$cur" 2>/dev/null || true ;; esac
+        fi
+        ;;
+    esac
+  done <<EOF
+$(git -C "$root" worktree list --porcelain 2>/dev/null)
+EOF
+  if [ -e "$wt" ]; then
+    git -C "$root" worktree remove --force "$wt" >/dev/null 2>&1 || true
+    rm -rf "$wt" 2>/dev/null || true
+  fi
+  git -C "$root" worktree prune >/dev/null 2>&1 || true
+}
+
+# origin/<base> when there is one: a stale main checkout must not decide
+# what a reused branch is merged with.
+base_ref_for() {   # sets $base_ref
+  local root="$1" b="$2"
+  if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$b"; then
+    base_ref="origin/$b"
+  else
+    base_ref="$b"
+  fi
+}
+
+# The branch already exists, because the previous step for this spec made
+# it — and that reuse is deliberate: analyze, review-plan and implement
+# build on each other's work. But the default branch has moved on since,
+# and a branch left over from the morning made the step read the
+# morning's code. Measured 2026-08-16: a review-plan reviewed a file
+# whose bug had been fixed hours earlier.
+update_branch_to_base() {
+  local wt="$1" ref="$2" root="$3"
+  git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
+  if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
+    git -C "$wt" merge --abort >/dev/null 2>&1 || true
+    refuse "cannot bring $branch up to date with $ref in $root (conflict — merge it by hand)"
+  fi
+  return 0
+}
+
+link_worktree_deps() {
+  local root="$1" wt="$2" entry
+  for entry in ${link_paths[@]+"${link_paths[@]}"}; do
+    [ -e "$root/$entry" ] || continue
+    [ -e "$wt/$entry" ] && continue
+    mkdir -p "$(dirname "$wt/$entry")" 2>/dev/null || continue
+    ln -s "$root/$entry" "$wt/$entry" 2>/dev/null || true
+  done
+  return 0
+}
+
+mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
+work_roots=()
+for root in "${roots[@]}"; do
+  base="$(default_branch "$root")"
+  unique_basename "$(basename "$root")"
+  wt="$wt_dir/$wt_name"
+  sweep_worktree "$root" "$branch" "$wt"
+  base_ref_for "$root" "$base"
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+    git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
+      || refuse "cannot check out $branch in a worktree of $root"
+    created_wt+=("$wt"); created_wt_root+=("$root")
+    update_branch_to_base "$wt" "$base_ref" "$root"
+  else
+    git -C "$root" worktree add -q -b "$branch" "$wt" "$base_ref" 2>/dev/null \
+      || refuse "cannot create $branch in a worktree of $root"
+    created_wt+=("$wt"); created_wt_root+=("$root")
+  fi
+  link_worktree_deps "$root" "$wt"
+  work_roots+=("$wt")
+done
+
+project_wt="${work_roots[0]}"
+specs_wt=""
+[ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && specs_wt="${work_roots[1]}"
+
+# --- pointing the step at the specs worktree ---------------------------------
+# A worktree of the PROJECT isolates nothing an `analyze` step writes:
+# AIDE_SPECS_PATH is an absolute path into another repository, and it
+# resolves to the shared checkout from inside a worktree just as well as
+# from outside it. So the worktree's own config is re-pointed — which the
+# four skills that read `.aide/config` in their working directory pick up
+# without knowing anything about worktrees.
+#
+# STRICTLY AFTER update_branch_to_base. Measured: with .aide/config marked
+# skip-worktree and rewritten, and its committed content changed on the
+# base branch, `git merge` fails with "local changes to the following
+# files would be overwritten" while `status --porcelain` is empty and
+# `merge --abort` has nothing to abort — a healthy run reported as a
+# conflict.
+repoint_specs_path() {
+  local rel new_specs cfg tmp_cfg
+  if [ -n "$specs_wt" ]; then
+    rel="${specs_root#$specs_repo}"; rel="${rel#/}"
+    new_specs="$specs_wt"
+    [ -n "$rel" ] && new_specs="$specs_wt/$rel"
+    cfg="$project_wt/.aide/config"
+    if git -C "$project_root" ls-files --error-unmatch .aide/config >/dev/null 2>&1; then
+      # Tracked (this repo negates the global ignore for it). The
+      # skip-worktree bit is what keeps `status --porcelain` empty and
+      # `git add -A` from staging the rewrite — both measured.
+      git -C "$project_wt" update-index --skip-worktree .aide/config >/dev/null 2>&1 || true
+    else
+      # Untracked, which is the normal case everywhere else: a worktree
+      # has no .aide/config at all, so AIDE_SPECS_PATH and AIDE_TEST_CMD
+      # would simply vanish for the step.
+      mkdir -p "$project_wt/.aide" 2>/dev/null || true
+      [ -f "$project_root/.aide/config" ] && cp "$project_root/.aide/config" "$cfg" 2>/dev/null
+      git_add_excludes+=(":(exclude,top).aide/config")
+    fi
+    tmp_cfg="$work_dir/aide-config"
+    : > "$tmp_cfg"
+    [ -f "$cfg" ] && grep -v '^AIDE_SPECS_PATH=' "$cfg" > "$tmp_cfg" 2>/dev/null
+    printf 'AIDE_SPECS_PATH=%s\n' "$new_specs" >> "$tmp_cfg"
+    mkdir -p "$project_wt/.aide" 2>/dev/null || true
+    cat "$tmp_cfg" > "$cfg" 2>/dev/null || true
+    return 0
+  fi
+  # No specs worktree. Either the specs root travels with the project's
+  # (tracked inside it), or it is gitignored there — aide's own default,
+  # `/specs/` — and a worktree checks out tracked files only, so it has
+  # to be linked in at the same relative position. A specs root outside
+  # every repo keeps working through its absolute path, exactly as it
+  # always has.
+  case "$specs_root/" in
+    "$project_root"/*)
+      rel="${specs_root#$project_root/}"
+      if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
+        mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
+        ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
+        git_add_excludes+=(":(exclude,top)$rel")
+      fi
+      ;;
+  esac
+  return 0
+}
+repoint_specs_path
+
+# A passenger repo is addressed by absolute path and nothing else, so
+# without this the step writes into the MAIN checkout: the commit loop
+# (now on the worktree) would commit nothing, the result would report
+# success, and the main tree would be left dirty so every later run
+# naming that repo is refused. That is spec 83's failure recreated. The
+# answer is the one the script already uses for a fact the step cannot
+# infer — say it in the prompt.
+i=0
+for root in "${roots[@]}"; do
+  if [ "$root" != "$project_root" ] && [ "$root" != "$specs_repo" ]; then
+    prompt="$prompt
+The repo $(basename "$root") is checked out for this run at ${work_roots[$i]}.
+Work there, not in $root."
+  fi
+  i=$(( i + 1 ))
+done
+
+head_before=()
+for wt in "${work_roots[@]}"; do
+  head_before+=("$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")")
+done
+
 # Only if we can actually write there. Keeping a transcript is a
 # convenience, and a run whose work succeeded must never be reported as
 # failed because a directory was missing — which is exactly what
@@ -325,16 +644,6 @@ transcript="$work_dir/out"
 if [ -n "$stream_file" ] && : > "$stream_file" 2>/dev/null; then
   transcript="$stream_file"
 fi
-keep_stream() {
-  [ -n "$stream_file" ] || return 0
-  [ "$transcript" != "$stream_file" ] || return 0
-  [ -f "$transcript" ] || return 0
-  if cp "$transcript" "$stream_file.tmp" 2>/dev/null; then
-    mv "$stream_file.tmp" "$stream_file" 2>/dev/null || rm -f "$stream_file.tmp" 2>/dev/null
-  fi
-  return 0
-}
-trap 'keep_stream; rm -rf "$work_dir"' EXIT
 printf '%s' "$prompt" > "$work_dir/prompt"
 
 started_at="$(date +%s)"
@@ -344,18 +653,16 @@ started_at="$(date +%s)"
 # is not a bound. No pipeline here: with one, $! is the last command and
 # the group id would be someone else's.
 set -m
-# cd into the project FIRST. A skill resolves the project from its
-# working directory, so inheriting the caller's cwd (a server's, say)
+# cd into the project's WORKTREE first. A skill resolves the project from
+# its working directory, so inheriting the caller's cwd (a server's, say)
 # makes the run analyse the wrong repository — measured on the first
-# real job, 2026-08-16, which cost $0.45 to discover. `exec` keeps the
-# pid, so $! is still the process group we later signal.
-( cd "$project_root" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
+# real job, 2026-08-16, which cost $0.45 to discover. Since spec 91 the
+# directory is the throwaway checkout, which is the tree this run will
+# commit from. `exec` keeps the pid, so $! is still the process group we
+# later signal.
+( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
 child=$!
 set +m
-
-kill_group() {
-  kill "-$1" "-$child" 2>/dev/null || kill "-$1" "$child" 2>/dev/null || true
-}
 
 stopped=""
 deadline=$(( started_at + ${timeout_sec%.*} ))
@@ -425,20 +732,28 @@ ok="false"
 suffix=""
 [ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
 
+#
+# The commit happens in the WORKTREE; the reported `root` is the main
+# checkout. Four places consume those paths after the run is over — the
+# page's per-repo label, `isMerged`, the Merge action and `branchesFor` —
+# and a worktree path is deleted when the run ends, so reporting it would
+# make the labels read as job ids, `isMerged` answer false forever, and
+# Merge fail in a directory that no longer exists.
 repos_json="[]"
 changed_per_root=()   # parallel to roots — bash 3.2 has no associative arrays
 i=0
 for root in "${roots[@]}"; do
-  changed="$(git -C "$root" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+  wt="${work_roots[$i]}"
+  changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
   changed_per_root+=("$changed")
   if [ "$changed" -gt 0 ]; then
-    git -C "$root" add -A >/dev/null 2>&1
-    git -C "$root" commit -q -m "Run /aide-$command_name for $spec_folder (headless)$suffix" >/dev/null 2>&1 || true
+    git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
+    git -C "$wt" commit -q -m "Run /aide-$command_name for $spec_folder (headless)$suffix" >/dev/null 2>&1 || true
   fi
-  repos_json="$(jq -c --arg root "$root" --arg before "${head_before[$i]}" \
-    --arg after "$(git -C "$root" rev-parse HEAD 2>/dev/null || echo "")" \
+  repos_json="$(jq -c --arg root "$root" --arg worktree "$wt" --arg before "${head_before[$i]}" \
+    --arg after "$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")" \
     --argjson changed "$changed" \
-    '. + [{root:$root, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
+    '. + [{root:$root, worktree:$worktree, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
   i=$(( i + 1 ))
 done
 
@@ -474,13 +789,14 @@ if [ "$push_mode" != "none" ]; then
   i=0
   for root in "${roots[@]}"; do
     changed="${changed_per_root[$i]:-0}"
+    wt="${work_roots[$i]}"
     i=$(( i + 1 ))
     [ "$changed" -gt 0 ] || continue
     if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
       note_push_error "no origin remote in $root"
       continue
     fi
-    if err="$(git -C "$root" push -q -u origin "$branch" 2>&1)"; then
+    if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then
       web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
       [ -n "$web" ] || continue
       url="$web/compare/$(default_branch "$root")...$branch"
@@ -507,7 +823,7 @@ if [ "$push_mode" = "pr" ]; then
   elif [ -n "$push_error" ]; then
     pr_error="no pull request: the branch was not pushed"
   else
-    if pr_out="$(cd "$project_root" && "$gh_bin" pr create \
+    if pr_out="$(cd "$project_wt" && "$gh_bin" pr create \
         --base "$(default_branch "$project_root")" --head "$branch" \
         --title "Run /aide-$command_name for $spec_folder" \
         --body "Headless aide run ($command_name, $spec_folder)$suffix." 2>&1)"; then
@@ -529,6 +845,7 @@ line="$(jq -cn \
   --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
+  --arg pullError "$pull_error" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, costUsd:$costUsd,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -538,18 +855,17 @@ line="$(jq -cn \
     prUrl:(if $prUrl == "" then null else $prUrl end),
     prError:(if $prError == "" then null else $prError end),
     pushError:(if $pushError == "" then null else $pushError end),
+    pullError:(if $pullError == "" then null else $pullError end),
     repos:$repos, error:(if $error == "" then null else $error end)}')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:
 # a detached child has no pipe home, so this file is the contract.
-# Leave the project on its default branch: the next job must not
-# inherit this one's branch. The work stays on the spec branch, which
-# is what a reviewer looks at.
-for root in "${roots[@]}"; do
-  git -C "$root" switch -q "$(default_branch "$root")" 2>/dev/null || true
-done
-
+#
+# Nothing is switched back: the main checkouts were put on their default
+# branch before the worktrees were made and never left it. The work stays
+# on the spec branch, which is what a reviewer looks at, and the
+# worktrees go with the EXIT trap.
 printf '%s\n' "$line" > "$result_file.tmp" && mv "$result_file.tmp" "$result_file"
 printf '%s\n' "$line"
 exit 0

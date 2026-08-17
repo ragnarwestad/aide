@@ -5,7 +5,8 @@
 // The shape is `aide-run-spec`'s, run the other way round. That script
 // brings a REUSED spec branch up to date with the default branch —
 // ff-only first, a real merge as the fallback, `merge --abort` and a
-// named refusal on conflict (`core/scripts/aide-run-spec:262-284`) — and
+// named refusal on conflict (`update_branch_to_base` in
+// `core/scripts/aide-run-spec`) — and
 // has done so on every headless job. Merging the spec branch INTO the
 // default branch is the same three decisions in the other direction, so
 // it is the same three decisions here rather than a second opinion.
@@ -47,10 +48,16 @@ export async function mergeBranchIntoDefault(
 ): Promise<RepoMergeResult> {
   try {
     // 1. A dirty tree is refused BEFORE anything that could touch
-    //    history. `aide-run-spec` refuses on the same condition, which
-    //    is what makes a lock unnecessary between the two: whichever
-    //    gets there first leaves the tree dirty (the other refuses) or
-    //    clean-but-moved (the other proceeds against the new state).
+    //    history. No lock is needed between this and a headless run,
+    //    but the reason changed with spec 91 and the old one is worth
+    //    not believing: it used to be that whichever side got there
+    //    first left the tree dirty, so the other refused. A run no
+    //    longer dirties the main tree at all — it works in a worktree of
+    //    its own and only ever fast-forwards this one. What the two can
+    //    still collide over is `index.lock`, and there the run is the
+    //    side that yields: its pull is a courtesy, recorded as
+    //    `pullError` and never fatal, while a merge that loses the race
+    //    is a named refusal the reader sees.
     const status = await run(root, ["status", "--porcelain"]);
     if (status.code !== 0) return refuse(root, `cannot read the working tree in ${root}`);
     if (status.stdout.trim()) return refuse(root, `the tree is dirty in ${root} — commit or stash it first`);

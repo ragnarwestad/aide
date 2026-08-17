@@ -1,2 +1,7 @@
 # aide project configuration (personal — kept out of git by the global ignore)
 AIDE_SPECS_PATH=/Users/ragnarwestad/develop/aide-specs/aide
+# Gitignored paths a headless run needs, linked into each worktree from
+# this checkout. A worktree carries TRACKED files only, and both test
+# commands live behind one of these: pytest is in .venv, and the
+# dashboard's suite needs dashboard/node_modules.
+AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
