@@ -11,6 +11,7 @@
   - [Caps](#caps)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
+  - [How the list reads](#how-the-list-reads)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -38,8 +39,8 @@ no host is named anywhere in this repo.
 - `/live` — aide runs in flight (server-rendered, refreshes every 10 s)
 - `/api/aide-runs` — the same rows as JSON; `POST /api/aide-run`
   receives one event
-- `/queue` — the job queue: enqueue a spec, watch a job, approve a gate
-  (token required)
+- `/queue` — one row per spec, its workflow phases beneath; start a run,
+  watch one, approve a gate (token required)
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
   `POST /api/queue/<id>/approve` and `/cancel` act on one
 
@@ -182,6 +183,27 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
   the GitHub compare page.
 - `pr` — also open a pull request. Needs `gh auth login` on the serving
   host; a broken `gh` records the error and leaves the run successful.
+
+### How the list reads
+
+One row per spec, not per job. Underneath it sit the four workflow
+phases — analyze, review-plan, implement, archive — always in that
+order, so how far a spec has got is readable without counting rows. A
+phase never run shows a muted "not run yet". A phase run more than once
+shows its LATEST attempt with the count beside it, because a re-run is
+ordinary: one spec needed three `archive` runs.
+
+The header carries what belongs to the spec rather than to one run: the
+summed cost, the branch link with its "not merged" text, and the state
+that matters most right now — whatever is in flight, else the most
+recent outcome. The approve/cancel action sits there too, once per spec
+instead of once per job.
+
+Filtering and sorting work on those groups. "Active" means the spec has
+something in flight; sorting by cost sorts on the sum. A step outside
+the four (`explore`, `create`, `manifest` — valid steps the form does
+not offer) is appended after them rather than dropped, so a run is never
+invisible (spec 86).
 
 ## Deploying
 

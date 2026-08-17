@@ -25,6 +25,16 @@ implementations/     AI-specific adaptations — this is the PRODUCT
 docs/                Documentation for developers (not read by AI tools)
 ```
 
+**`dashboard/` came in with `git subtree add`, and its history is only
+reachable through `git blame`.** `git log --follow -- dashboard/<file>`
+and plain `git log -- dashboard/<file>` stop at the import commit and
+show nothing older — that is how subtree boundaries work, not a sign the
+move went wrong. `git blame dashboard/src/discover.ts` does attribute
+every line to its original pre-merge commit and author. Measured on a
+throwaway repo before the move and confirmed after (spec 85). The
+standalone `aide-dashboard` repo is kept as a fallback but no longer
+carries a manifest, so it is not a project in its own right anymore.
+
 **Two toolchains, deliberately separate.** The repo root is pytest
 (`pytest.ini`, no lockfile); `dashboard/` is bun + TypeScript
 (`dashboard/bun.lock`). Project-command detection reads the ROOT only, so
@@ -69,6 +79,16 @@ thing `push branch` exists to prevent. A repo with no changes is not
 pushed at all, and the compare link is built from the repos that
 actually changed (`branchUrls` in the result; `branchUrl` keeps the
 single most interesting one).
+
+**A repo beyond the project and its specs root has to be NAMED**, with
+`--extra-project-dir` (repeatable; the queue's form calls it "Also
+touches"). The run only watches, commits and pushes the roots it knows
+about: spec 81's own implement step wrote to a third repository nobody
+had told it about, and that half was left uncommitted on the machine
+while the result reported success. A named repo gets exactly the same
+treatment as the others — checked for a clean tree first, branched,
+committed, pushed — and a name that is already a root is ignored rather
+than watched twice (spec 83).
 
 **`aide-run-spec` runs from a private copy of itself, and that is
 load-bearing:** an `implement` step reinstalls aide, which copies the script
