@@ -18,6 +18,9 @@ const FILES = [
   "deploy/rsync-publish.sh",
   "deploy/notify-slack.sh",
   "deploy/render-plist.ts",
+  // The example file is the likeliest place for a real host to be
+  // pasted in "just to show what it looks like".
+  ".env.deploy.example",
   ...[...new Bun.Glob("src/**/*.ts").scanSync(ROOT)],
 ];
 

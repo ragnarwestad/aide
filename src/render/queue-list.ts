@@ -38,6 +38,10 @@ export interface QueuePageOptions {
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
   modelChoices?: { name: string; budgetUsd: number }[];
+  /** What a step gets when no model is picked. Shown on the default
+   *  option: every other option carries a figure, so a default without
+   *  one reads as "unknown, probably less" when it is usually more. */
+  defaultBudgetUsd?: number;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */
@@ -105,11 +109,19 @@ function enqueueForm(opts: QueuePageOptions): string {
   // explicit and the default is "whatever the config says per step".
   // Each option carries what it is granted per step, because that is
   // the number that decides whether the job can finish.
+  // The default carries its figure too. Without one it was the only
+  // option on the list without a number, which read as the cheap or the
+  // unknown choice — while it was in fact the most generous: picking
+  // `opus` granted $15 for the same model the default ran at $35.
   const models = opts.modelChoices ?? [];
+  const asConfigured =
+    typeof opts.defaultBudgetUsd === "number"
+      ? `as configured per step — $${opts.defaultBudgetUsd} per step`
+      : "as configured per step";
   const modelField = models.length
     ? `<label class="field"><span class="fieldlabel">Model</span>` +
       `<select name="model" id="model">` +
-      `<option value="">as configured per step</option>` +
+      `<option value="">${esc(asConfigured)}</option>` +
       models
         .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
         .join("") +

@@ -1,5 +1,21 @@
 .PHONY: test generate publish serve-local require-host install-serve deploy-serve
 
+# Your machine's answers to the questions this Makefile refuses to guess
+# — MINI, ROOT, BIND, CLAUDE_USAGE. Gitignored, because naming them here
+# is exactly what spec 03 took out of the tracked files. Optional: with
+# no file, every variable is still settable on the command line.
+# See .env.deploy.example. Included FIRST so it wins over the `?=`
+# defaults below.
+-include .env.deploy
+
+# rsync-publish.sh reads this from the ENVIRONMENT, and make does not
+# pass its own variables to a recipe's shell unless told to. Without
+# this line `make publish` refuses to run even with .env.deploy in
+# place — the variable is set, just not where the script looks. (A
+# value given on make's command line is exported automatically; one
+# that comes from an included file is not, which is the case here.)
+export AIDE_DASH_HOST
+
 test:
 	bunx tsc --noEmit
 	bun test

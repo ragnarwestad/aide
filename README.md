@@ -13,6 +13,7 @@
   - [What a finished step publishes](#what-a-finished-step-publishes)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
+  - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
   - [On one machine](#on-one-machine)
 
 ---
@@ -212,6 +213,14 @@ All paths are relative to the serving host's own `$HOME`.
 
 Publishing the generated site to that host is separate:
 `AIDE_DASH_HOST=<host> make publish`.
+
+### Saying it once instead of every time
+
+Copy `.env.deploy.example` to `.env.deploy` and fill in your own
+machines. The Makefile includes it, so `make install-serve` and
+`make publish` stop needing a wall of variables on the command line.
+The file is gitignored — which is the point: the tracked repo names
+nobody's machine, and this is where yours lives instead.
 
 ### On one machine
 

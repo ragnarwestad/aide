@@ -554,6 +554,7 @@ export function createServer(opts: ServerOptions) {
           name,
           budgetUsd: c.budgetUsd,
         })),
+        defaultBudgetUsd: queue.defaults.budgetUsd,
         error: url.searchParams.get("error") ?? undefined,
         projects: [...new Set(targets().map((t) => t.project))].sort(),
         // Straight from the query string: how the list is cut and

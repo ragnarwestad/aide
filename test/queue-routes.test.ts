@@ -468,6 +468,30 @@ describe("picking a model for a job", () => {
     expect(html).toContain('value=""');
   });
 
+  // Every option but one carried a number, and the one without it was
+  // the default — so "opus — $15 per step" read as the expensive
+  // choice when leaving the field alone granted $35 for the same model.
+  // A comparison you cannot make is a trap, not a choice.
+  test("the default option says what IT grants, so the numbers can be compared", () => {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      modelChoices: [{ name: "fable", budgetUsd: 12 }],
+      defaultBudgetUsd: 35,
+    });
+    expect(html).toMatch(/<option value="">[^<]*\$35[^<]*<\/option>/);
+  });
+
+  test("with no default budget known the option still stands, just without a figure", () => {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      modelChoices: [{ name: "fable", budgetUsd: 12 }],
+    });
+    expect(html).toContain('value=""');
+    expect(html).not.toMatch(/<option value="">[^<]*\$/);
+  });
+
   test("with nothing configured the page offers no model at all", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
       runnerAvailable: true,
