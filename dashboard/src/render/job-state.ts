@@ -81,6 +81,32 @@ export function stateChip(r: QueueRowView): string {
   return `<span class="state s-${esc(r.state)}">${esc(stateLabel(r))}</span>`;
 }
 
+/** Which states mean "still going". The list page's "Active" filter is
+ *  built from this rather than the other way round: a state added to one
+ *  and forgotten in the other is exactly the drift neither page can
+ *  afford, and the single-job page needs the same test without importing
+ *  the list's filter vocabulary. */
+export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running", "awaiting-approval"];
+
+export const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state);
+
+/** The step a job is on, or — once it has stopped — the last one it
+ *  reached. */
+export function currentStep(r: QueueRowView): string {
+  return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
+}
+
+/** What this job is doing, in words: the step and the state together,
+ *  e.g. `review-plan running`. Both pages ask this one function, for the
+ *  same reason `stateLabel` exists — a spec's state and a phase's state
+ *  are the same question at two altitudes and must never be worded
+ *  differently. A job waiting for approval is the one exception: the
+ *  state already says everything, and naming the step it stopped after
+ *  reads as though that step were still going. */
+export function activityLabel(r: QueueRowView): string {
+  return r.state === "awaiting-approval" ? stateLabel(r) : `${currentStep(r)} ${stateLabel(r)}`;
+}
+
 // A branch link says where the work IS, never whether it landed, so a
 // finished job reads as a delivered one. The caveat sits beside the link
 // on both pages, and disappears the moment the branch is an ancestor of
@@ -90,7 +116,21 @@ export function stateChip(r: QueueRowView): string {
 // Per REPO, not per job: one badge over two repos cannot say that the
 // project's branch landed and the specs repo's did not, and that is
 // exactly the state that went unnoticed three times on 2026-08-17.
-export function unmergedBadge(b: BranchView): string {
+//
+// It used to say "not merged" whatever the job was doing — a fact about
+// the BRANCH, read as a verdict on the spec. Beside a step that was
+// still writing to that branch it said nothing about the one thing that
+// decided whether merging made sense, so the badge is handed the job's
+// activity and says that instead; "ready to merge" is what is left once
+// there is no activity to report.
+export function unmergedBadge(b: BranchView, activity?: string): string {
   if (b.merged) return "";
-  return ` <span class="chip unmerged">not merged</span>`;
+  if (activity) return ` <span class="chip running">${esc(activity)}</span>`;
+  return ` <span class="chip ready">ready to merge</span>`;
 }
+
+/** The badge's second argument, worked out from the job that owns the
+ *  branch — written once so the two pages cannot drift on when a job
+ *  counts as busy any more than on what to call it. */
+export const branchActivity = (r: QueueRowView): string | undefined =>
+  inFlight(r) ? activityLabel(r) : undefined;

@@ -28,9 +28,30 @@ export interface RepoMergeResult {
   /** Why not, naming the repo — a refusal that does not say WHERE is
    *  the same failure as no refusal at all when two repos are in play. */
   error?: string;
+  /** What happened to the project's install after ITS code landed, when
+   *  anything did: a failure, a timeout, or the fact that nothing is
+   *  configured and deploying is still a hand step. Never set when the
+   *  install succeeded — one message about this repo's install state, or
+   *  none. A merge is never turned back into a failure by it: the merge
+   *  had already happened. */
+  installError?: string;
 }
 
 const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
+
+/** git's own words when another process is holding the index. A run
+ *  starting in the same second pulls the same checkout as a courtesy,
+ *  and whoever gets there second sees this — not a divergence, just a
+ *  lost race, and it refused three merges on 2026-08-18 as though the
+ *  base had moved. */
+const INDEX_LOCK = /index\.lock/;
+/** Two retries: half a second at most, so a lock that is genuinely
+ *  stuck still refuses in well under a second rather than holding the
+ *  request open. */
+const LOCK_RETRIES = 2;
+const LOCK_WAIT_MS = 250;
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
 /** Merge `branch` into `base` in `root`, and push. `base` is passed in
  *  rather than re-derived: the caller already resolved it through
@@ -73,7 +94,14 @@ export async function mergeBranchIntoDefault(
     if (switched.code !== 0) return refuse(root, `cannot switch to ${base} in ${root}`);
     const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
     if (upstream.code === 0) {
-      const pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      let pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      // Only for the lock, and only a couple of times. Retrying every
+      // pull failure would also delay the refusal a real divergence
+      // deserves — and that refusal is the one that must stay immediate.
+      for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
+        await sleep(LOCK_WAIT_MS);
+        pulled = await run(root, ["pull", "-q", "--ff-only"]);
+      }
       if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
     }
 

@@ -146,6 +146,11 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     expect(result.ok).toBe(false);
     expect(result.error).toContain(ROOT);
     expect(ran(git.calls, "merge")).toBe(false);
+    // Spec 96, criterion 16: a real divergence says nothing about
+    // `index.lock`, so it is refused on the FIRST attempt. The retry
+    // added for the lock must not become a general "try every pull
+    // twice", which would double the wait before every honest refusal.
+    expect(argv(git.calls).filter((a) => a.startsWith("pull"))).toHaveLength(1);
   });
 
   test("a checkout that will not switch to the base is refused", async () => {
@@ -191,5 +196,65 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
     expect(result.error).toContain(ROOT);
     expect(ran(git.calls, "reset")).toBe(false);
     expect(ran(git.calls, "merge --abort")).toBe(false);
+  });
+});
+
+// --- spec 96: index.lock is not a conflict -----------------------------------
+
+// Three times on 2026-08-18 the button refused with "cannot fast-forward
+// main — merge it by hand" because a starting run was pulling the same
+// checkout in the same second. A lost race against a courtesy pull and a
+// base that genuinely diverged produced the identical refusal, because
+// the only thing that tells them apart — git's own stderr — was thrown
+// away before anyone could read it.
+describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () => {
+  const LOCK = "fatal: Unable to create '/repos/aide/.git/index.lock': File exists.";
+
+  /** fakeGit answers the same way for every call to a prefix, so a
+   *  "fails, then succeeds" case needs a runner that counts — the same
+   *  closure-over-local-state shape queue-routes.test.ts already uses
+   *  for its own call-count-dependent mock. */
+  function pullFailing(times: number, stderr: string) {
+    let pulls = 0;
+    const calls: GitCall[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("pull")) {
+        pulls++;
+        return pulls <= times ? { code: 1, stdout: "", stderr } : { code: 0, stdout: "" };
+      }
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls, pulls: () => pulls };
+  }
+
+  test("it is retried, and the merge goes through once the lock clears (criterion 15)", async () => {
+    const git = pullFailing(1, LOCK);
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(git.pulls()).toBe(2);
+    expect(argv(git.calls)).toContain("push -q origin master");
+  });
+
+  test("a lock that never clears is still refused, not retried forever (criterion 15)", async () => {
+    const git = pullFailing(99, LOCK);
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(ROOT);
+    // Bounded: a stuck lock costs a fraction of a second, not the
+    // request. The count is the bound, stated once.
+    expect(git.pulls()).toBeLessThanOrEqual(3);
+    expect(ran(git.calls, "merge")).toBe(false);
+  });
+
+  test("a pull failing for any other reason is refused at once (criterion 16)", async () => {
+    const git = pullFailing(1, "fatal: Not possible to fast-forward, aborting.");
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(git.pulls()).toBe(1);
+    expect(ran(git.calls, "merge")).toBe(false);
   });
 });

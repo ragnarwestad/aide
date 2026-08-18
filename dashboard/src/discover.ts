@@ -24,15 +24,28 @@ export interface DiscoveredProject {
   specs: SpecRef[];
 }
 
-function configSpecsPath(projectDir: string): string | null {
+/** One key out of a project's OWN `.aide/config` — the personal,
+ *  gitignored file where an operator writes what only their machine
+ *  knows: where the specs live, and what installing this project means
+ *  here. Plain `KEY=value` lines, as the file has always been; a key
+ *  that is absent or empty is `null`, never a guess. */
+export function configValue(projectDir: string, key: string): string | null {
   const cfg = join(projectDir, ".aide", "config");
   if (!existsSync(cfg)) return null;
   for (const line of readFileSync(cfg, "utf-8").split("\n")) {
-    const m = line.match(/^AIDE_SPECS_PATH=(.*)$/);
-    if (m && m[1].trim()) return m[1].trim();
+    // The name is matched as written, not trimmed: an indented line and
+    // a commented-out one were both ignored before this was generalised,
+    // and a config reader that quietly starts accepting more is a change
+    // nobody asked for.
+    const [name, ...rest] = line.split("=");
+    if (name !== key) continue;
+    const value = rest.join("=").trim();
+    if (value) return value;
   }
   return null;
 }
+
+const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");
 
 function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");

@@ -80,6 +80,7 @@ with `#` comments. Recognized keys:
 | `AIDE_LINT_CMD` | Overrides the detected lint command |
 | `AIDE_BUILD_CMD` | Overrides the detected build command |
 | `AIDE_WORKTREE_LINKS` | Space-separated repo-relative paths a headless run needs but git does not carry — `.venv dashboard/node_modules` and the like |
+| `AIDE_INSTALL_CMD` | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
 
 `AIDE_WORKTREE_LINKS` exists because `aide-run-spec` gives every run a
 `git worktree` of its own, and a worktree carries **tracked files only**:
@@ -91,6 +92,20 @@ when it exists there, and excluded from the commit. Paths are relative to
 the repo root; an absolute path, or one containing `..`, is refused by
 name. Which paths matter cannot be derived without guessing, so the
 project states them.
+
+`AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
+that installs itself somewhere — aide puts its scripts in
+`~/.local/bin` — code reaching the default branch changes nothing on
+the machine until the install runs, and the dashboard's Merge button
+said "merged" while the host went on running the old version. The value
+is an argv, split on whitespace and run with **no shell**, in the
+project's own checkout, bounded by a timeout; a failure is reported
+beside the merge and never turns a completed merge back into a failed
+one. Without the key nothing is run, and the page says plainly that
+deploying is still a hand step. `aide`'s own value is
+`implementations/claude-code/install.sh` — any one of the three per-tool
+installers reinstalls the shared scripts, and Claude Code is this repo's
+priority-1 tool.
 
 Everything is optional: commands fall back to detection, and without
 `AIDE_JIRA_BASE_URL` the skills ask the user for the URL instead of guessing.

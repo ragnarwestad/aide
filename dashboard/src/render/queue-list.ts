@@ -22,7 +22,16 @@
 
 import { esc, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { stateChip, unmergedBadge, type BranchView, type QueueRowView } from "./job-state.ts";
+import {
+  IN_FLIGHT,
+  branchActivity,
+  currentStep,
+  inFlight,
+  stateChip,
+  unmergedBadge,
+  type BranchView,
+  type QueueRowView,
+} from "./job-state.ts";
 
 export interface QueueTarget {
   project: string;
@@ -106,7 +115,10 @@ const SHOWN = 25;
 const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
   { key: "all", label: "All" },
   { key: "not-started", label: "Not started", states: ["not-started"] },
-  { key: "active", label: "Active", states: ["queued", "running", "awaiting-approval"] },
+  // Read off `IN_FLIGHT` rather than written out a second time: a state
+  // added to one and forgotten in the other is exactly the drift this
+  // page cannot afford, and the single-job page needs the same set.
+  { key: "active", label: "Active", states: [...IN_FLIGHT] },
   { key: "done", label: "Done", states: ["done"] },
   { key: "problem", label: "Problems", states: ["failed", "stopped", "interrupted", "cancelled"] },
 ];
@@ -127,19 +139,6 @@ function stateFilter(key: string | undefined): { key: string; states?: string[] 
 // The list is about SPECS. A spec taken through analyze, review-plan,
 // implement and archive as four separate jobs is still one spec, and
 // how far it has got should read without counting rows.
-
-/** Which states mean "still going". Read off the "Active" filter rather
- *  than written out a second time: a state added to one and forgotten in
- *  the other is exactly the drift this page cannot afford. */
-const IN_FLIGHT = STATE_FILTERS.find((f) => f.key === "active")!.states!;
-
-const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state);
-
-/** The step a job is on, or — once it has stopped — the last one it
- *  reached. The same expression the flat list used per row. */
-function currentStep(r: QueueRowView): string {
-  return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
-}
 
 /** Every step this job has anything to say about: the ones it finished,
  *  plus the one it is on. */
@@ -475,24 +474,74 @@ function actionForm(r: QueueRowView, token?: string): string {
 // buttons to find and press in turn is not what "sørger for å gjøre det
 // rett" asked for.
 //
-// The count and the names are on the button BEFORE it is pressed, so
-// merging an unfinished spec is a choice rather than a surprise.
+// The names are on the button BEFORE it is pressed, so merging an
+// unfinished spec is a choice rather than a surprise.
+//
+// The COUNT is not, any more. `Merge (1)` said how many repos and
+// nothing about which kind, so a reader had to know that one meant the
+// specs repo, that the specs repo is the plan, and that the step still
+// running was about to rewrite it. Two of those three facts are the
+// page's to state.
+
+/** A branch's label is a directory basename (`serve.ts`, `repoLabel`)
+ *  and a project's checkout is named after the project by construction
+ *  (`branch-status.ts`, `projectCheckout`) — so a label that is a known
+ *  project name is that project's CODE, and a label that is not is the
+ *  specs repo. Not a heuristic: `.claude/rules/development.md` closes
+ *  the set ("the run only watches ... the roots it knows about"), so
+ *  there is no third kind of repo for a label to belong to. */
+function isCodeRepo(label: string, g: SpecGroup, opts: QueuePageOptions): boolean {
+  return label === g.project || (opts.projects ?? []).includes(label);
+}
+
+/** What pressing the button will actually land. `paceup` and
+ *  `atlasaurus` keep their specs inside the project repo, so their one
+ *  branch is code — the common shape, and the one calling it "the plan"
+ *  would get backwards. */
+function mergeLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): string {
+  const code = open.some((b) => isCodeRepo(b.label, g, opts));
+  const plan = open.some((b) => !isCodeRepo(b.label, g, opts));
+  return code && plan ? "Merge the plan and the code" : code ? "Merge the code" : "Merge the plan";
+}
+
 function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
   const open = g.branches.filter((b) => !b.merged);
   // No lead means no job, which means no branch — the guard is for the
   // type checker, and it holds for the same reason the `if` above does.
   if (open.length === 0 || !g.lead) return "";
   const names = open.map((b) => b.label).join(", ");
+  const label = mergeLabel(open, g, opts);
+  const hidden = tokenField(opts.token);
+  const action = `/api/queue/${esc(g.lead.id)}/merge`;
+  if (!inFlight(g.lead)) {
+    return (
+      `<form method="post" action="${action}" class="mergeform">${hidden}` +
+      `<button type="submit" title="${esc(names)}">${esc(label)}</button></form>`
+    );
+  }
+  // Two controls, not one button that flips: a button re-enabled the
+  // moment someone notices is still the default action in every way
+  // that matters — same size, same place, one click. Merging mid-job
+  // stays possible for someone who MEANS it, which is what makes the
+  // small one behind a confirmation the right shape.
+  //
+  // The confirm text is fixed on purpose. Interpolating the step or the
+  // repo names would put render-time strings inside a JS string literal
+  // inside an HTML attribute — two escaping contexts at once, for a
+  // sentence that needs neither.
   return (
-    `<form method="post" action="/api/queue/${esc(g.lead.id)}/merge" class="mergeform">${tokenField(opts.token)}` +
-    `<button type="submit" title="${esc(names)}">Merge (${open.length})</button></form>`
+    `<span class="mergeform">` +
+    `<button type="button" disabled title="${esc(names)}">${esc(label)}</button> ` +
+    `<form method="post" action="${action}" class="mergeoverride" ` +
+    `onsubmit="return confirm('This spec still has a step running. Merge anyway?')">${hidden}` +
+    `<button type="submit" class="small" title="${esc(names)}">merge anyway</button></form></span>`
   );
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
 // own merge state. Never one link standing in for two: the two branches
 // share a NAME and nothing else.
-function branchList(branches: BranchView[]): string {
+function branchList(branches: BranchView[], activity?: string): string {
   if (branches.length === 0) return "";
   return (
     `<span class="branchlist">` +
@@ -500,7 +549,7 @@ function branchList(branches: BranchView[]): string {
       .map(
         (b) =>
           `<span class="branch"><a class="small" href="${esc(b.url)}" ` +
-          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>${unmergedBadge(b)}</span>`,
+          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>${unmergedBadge(b, activity)}</span>`,
       )
       .join("") +
     `</span>`
@@ -661,7 +710,11 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
   const spec = g.lead
     ? `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`
     : esc(g.specFolder);
-  const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
+  // The badge is about the branch AND the job that is still writing to
+  // it, so the row's lead job comes down with the list.
+  const diff = g.branches.length
+    ? ` ${branchList(g.branches, g.lead ? branchActivity(g.lead) : undefined)}`
+    : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.

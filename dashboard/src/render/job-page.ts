@@ -5,7 +5,7 @@
 
 import { esc, money, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
+import { branchActivity, stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -148,7 +148,7 @@ export function renderJobDetailPage(
                 .map(
                   (b) =>
                     `<div class="branch"><span class="muted small">${esc(b.label)}</span> ` +
-                    `<a href="${esc(b.url)}">${esc(b.url)}</a>${unmergedBadge(b)}</div>`,
+                    `<a href="${esc(b.url)}">${esc(b.url)}</a>${unmergedBadge(b, branchActivity(job))}</div>`,
                 )
                 .join(""),
             ],

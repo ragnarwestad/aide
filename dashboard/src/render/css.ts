@@ -96,6 +96,12 @@ table.jobs thead a:hover { text-decoration: underline; }
 .s-not-started { background: #8881; }
 /* Worth noticing, not alarming — the same amber a cap-stop already uses. */
 .unmerged { background: #f59e0b22; border-color: #f59e0b88; }
+/* Work that is finished and waiting on a person: the amber says there is
+   something left to do, and the words say what. */
+.chip.ready { background: #f59e0b22; border-color: #f59e0b88; }
+/* Still being written to — the same blue the running STATE already uses,
+   because it is the same fact said beside the branch. */
+.chip.running { background: #3b82f622; border-color: #3b82f688; }
 
 /* One entry per repo the spec pushed to. They wrap rather than stretch
    the column: three repos is a real case, and the spec's own name is
@@ -106,6 +112,15 @@ table.jobs thead a:hover { text-decoration: underline; }
    step waiting for approval and finished work to merge at the same time. */
 .mergeform { display: inline-block; }
 .mergeform + form, form + .mergeform { margin-left: 0.3rem; }
+.mergeform form { display: inline-block; }
+/* A button that cannot be pressed still has to READ — it is the sentence
+   that says what merging this spec would take. */
+.mergeform button:disabled { opacity: 0.55; cursor: default; }
+/* Deliberately not a second Merge button: the override is a way out for
+   someone who means it, and must not be the thing a mouse lands on. */
+.mergeform button.small { font-size: 0.78rem; padding: 0 0.35rem;
+  background: transparent; border: 1px solid #8886; border-radius: 5px;
+  color: inherit; font-weight: 400; cursor: pointer; }
 
 table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882; }
 table.jobs .speccell { font-weight: 600; }

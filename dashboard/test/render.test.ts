@@ -274,6 +274,12 @@ describe("the queue row links to the job (criterion 12)", () => {
 // Criteria 1-4: the branch link alone says where the work IS, never
 // whether it landed. A reader who sees only the link reads a finished
 // job as a delivered one.
+//
+// Spec 96 (criteria 1, 3, 9): "not merged" was a fact about the BRANCH
+// that read as a verdict on the spec — shown in the same amber whether
+// the job that made the branch had finished or was still writing to it.
+// A branch whose job is still going now says what that job is DOING; one
+// whose job has stopped says the work is ready.
 describe("the unmerged badge (criteria 1-4)", () => {
   const BRANCH = "https://example.test/compare";
   // Spec 89: one entry per repo. A one-repo spec — `paceup`,
@@ -285,29 +291,49 @@ describe("the unmerged badge (criteria 1-4)", () => {
   const jobPage = (extra: Partial<JobDetailView>) =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
 
-  test("an unmerged branch is called out on the queue row (criterion 1)", () => {
-    const html = queueRows({ branchUrls: at(false) });
-    expect(html).toContain("not merged");
+  test("a branch whose job is still going says what the job is doing (criterion 1)", () => {
+    const html = queueRows({ branchUrls: at(false), state: "running" });
+    expect(html).toContain("analyze running");
+    expect(html).not.toContain("ready to merge");
     // The link a reader already uses is untouched beside it.
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
-  test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
-    const html = queueRows({ branchUrls: at(true) });
-    expect(html).not.toContain("not merged");
+  test("a branch whose job has stopped is ready to merge (criterion 3)", () => {
+    const html = queueRows({ branchUrls: at(false), state: "done" });
+    expect(html).toContain("ready to merge");
+    expect(html).not.toContain('class="chip running"');
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
-  test("the job page's Work row says the same thing (criterion 3)", () => {
-    expect(jobPage({ branchUrls: at(false) })).toContain("not merged");
-    expect(jobPage({ branchUrls: at(true) })).not.toContain("not merged");
+  test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
+    for (const state of ["running", "done"] as const) {
+      const html = queueRows({ branchUrls: at(true), state });
+      expect(html).not.toContain("ready to merge");
+      expect(html).not.toContain('class="chip running"');
+      expect(html).toContain(`href="${BRANCH}"`);
+    }
+  });
+
+  // Criterion 9: the two pages sharing one word choice is the whole
+  // reason job-state.ts exists, and until spec 96 it was not exercised
+  // for this particular piece of wording.
+  test("the job page's Work row says the same thing (criteria 3, 9)", () => {
+    expect(jobPage({ branchUrls: at(false), state: "running" })).toContain("analyze running");
+    expect(jobPage({ branchUrls: at(false), state: "done" })).toContain("ready to merge");
+    expect(jobPage({ branchUrls: at(true), state: "done" })).not.toContain("ready to merge");
   });
 
   test("no branch, no badge — on either page (criterion 4)", () => {
-    expect(queueRows({ branchUrls: [] })).not.toContain("not merged");
-    expect(queueRows({})).not.toContain("not merged");
-    expect(jobPage({ branchUrls: [] })).not.toContain("not merged");
-    expect(jobPage({})).not.toContain("not merged");
+    for (const html of [
+      queueRows({ branchUrls: [] }),
+      queueRows({}),
+      jobPage({ branchUrls: [] }),
+      jobPage({}),
+    ]) {
+      expect(html).not.toContain("ready to merge");
+      expect(html).not.toContain('class="chip running"');
+    }
   });
 
   // Spec 89: the two branches share a NAME and nothing else. One badge
@@ -315,12 +341,13 @@ describe("the unmerged badge (criteria 1-4)", () => {
   // repo's did not, and the page said nothing.
   test("two repos get two links and two independent badges", () => {
     const html = queueRows({
+      state: "done",
       branchUrls: [
         { label: "aide", url: "https://example.test/aide", merged: true },
         { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
       ],
     });
-    expect(html.match(/not merged/g)).toHaveLength(1);
+    expect(html.match(/ready to merge/g)).toHaveLength(1);
     expect(html).toContain("https://example.test/aide-specs");
     expect(html).toContain("aide-specs");
   });
@@ -687,12 +714,12 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
         branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
       }),
     ]);
-    expect(html.match(/not merged/g)).toHaveLength(1);
+    expect(html.match(/ready to merge/g)).toHaveLength(1);
     // The link comes from the most recently active job, not an older one.
     expect(html).toContain("https://example.test/compare");
     expect(html).not.toContain("https://example.test/old");
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain("not merged");
+    expect(head).toContain("ready to merge");
   });
 
   test("the action sits once on the header, never on a phase line (criterion 12)", () => {

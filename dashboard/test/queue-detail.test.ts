@@ -179,17 +179,17 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
   test("an unmerged branch is called out on both pages (criteria 1, 3)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 
   test("once the branch has landed the caveat is gone (criterion 2)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(0) });
     const list = await (await fetch(`${base}/specs`, auth)).text();
-    expect(list).not.toContain("not merged");
+    expect(list).not.toContain("ready to merge");
     expect(list).toContain(BRANCH);
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("not merged");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("ready to merge");
   });
 
   // Criterion 5: uncertainty never hides the caveat. A git that cannot
@@ -203,8 +203,8 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
         throw new Error("not a git repository");
       },
     });
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 });
 
@@ -255,7 +255,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
       expect(html).toContain(SPECS_URL);
       // Each repo is named, so a reader knows WHICH branch is which.
       expect(html).toContain("aide-specs");
-      expect(count(html, "not merged")).toBe(2);
+      expect(count(html, "ready to merge")).toBe(2);
     }
   });
 
@@ -271,10 +271,10 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
     for (const page of [`/specs`, `/specs/${id}`]) {
       const html = await (await fetch(`${base}${page}`, auth)).text();
-      expect(count(html, "not merged")).toBe(1);
+      expect(count(html, "ready to merge")).toBe(1);
       // The caveat belongs to the specs repo, and to it alone.
       const specsPart = html.slice(html.indexOf(SPECS_URL));
-      expect(specsPart.slice(0, 300)).toContain("not merged");
+      expect(specsPart.slice(0, 300)).toContain("ready to merge");
     }
   });
 
@@ -316,23 +316,32 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     const html = await (await fetch(`${base2}/specs`, auth)).text();
     expect(count(html, `class="branch"`)).toBe(1);
     expect(html).toContain(PROJECT_URL);
-    expect(html).toContain("not merged");
+    expect(html).toContain("ready to merge");
   });
 });
 
 // --- spec 89: the button that does the merging -------------------------------
+// --- spec 96: and what, exactly, it will merge -------------------------------
 
-describe("the Merge button says what it will take (criterion 3, 7)", () => {
+// The count told a reader how MANY repos, never which kind. "Merge (1)"
+// on a spec mid-`review-plan` meant "merge the plan the running step is
+// about to rewrite" — three facts a reader had to combine themselves.
+// The button now says the conclusion, and is not the default action
+// while a step is still writing to the branch.
+describe("the Merge button says what it will merge (criteria 1-8)", () => {
   const PROJECT_REPO = "/repos/aide";
   const SPECS_REPO = "/repos/aide-specs";
 
-  async function seededWith(branchUrls: { root: string; url: string }[]): Promise<string> {
+  async function seededWith(
+    branchUrls: { root: string; url: string }[],
+    state = "done",
+  ): Promise<string> {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = join(dir, "queue.json");
     const jobs = JSON.parse(await Bun.file(mirror).text()) as Record<string, unknown>[];
     const job = jobs.find((j) => j.id === id)!;
-    job.state = "done";
+    job.state = state;
     job.branchUrls = branchUrls;
     writeFileSync(mirror, JSON.stringify(jobs));
     return mirror;
@@ -344,37 +353,84 @@ describe("the Merge button says what it will take (criterion 3, 7)", () => {
     return { code: 0, stdout: "" };
   };
 
-  test("with two unmerged repos it offers to merge two, and names them", async () => {
-    const mirror = await seededWith([
-      { root: PROJECT_REPO, url: "https://example.test/aide" },
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-    ]);
-    const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([]) });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+  const listWith = async (mirror: string, merged: string[] = []) => {
+    const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn(merged) });
+    return await (await fetch(`${base}/specs`, auth)).text();
+  };
+
+  // The two repos a spec in THIS project makes: `aide` is the project's
+  // own checkout — its basename is the project's name, by construction —
+  // and `aide-specs` is not a project on this machine at all, which is
+  // exactly what makes it the specs repo.
+  const BOTH = [
+    { root: PROJECT_REPO, url: "https://example.test/aide" },
+    { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+  ];
+
+  test("both repos unmerged reads \"Merge the plan and the code\", names still in the title (criterion 5)", async () => {
+    const html = await listWith(await seededWith(BOTH));
     expect(html).toContain("/merge");
-    expect(html).toContain("Merge (2)");
-    expect(html).toContain("aide, aide-specs");
+    expect(html).toContain("Merge the plan and the code");
+    expect(html).toContain('title="aide, aide-specs"');
   });
 
-  test("with one repo left it offers to merge one — never a count of what is done", async () => {
-    const mirror = await seededWith([
-      { root: PROJECT_REPO, url: "https://example.test/aide" },
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-    ]);
-    const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
-    expect(html).toContain("Merge (1)");
-    expect(html).not.toContain("Merge (2)");
+  test("only the specs repo left reads \"Merge the plan\" (criterion 3)", async () => {
+    const html = await listWith(await seededWith(BOTH), [PROJECT_REPO]);
+    expect(html).toContain("Merge the plan");
+    expect(html).not.toContain("Merge the plan and the code");
+    expect(html).not.toContain("Merge the code");
   });
 
-  test("everything already merged leaves no button at all", async () => {
+  test("only the project repo left reads \"Merge the code\" (criterion 4)", async () => {
+    const html = await listWith(await seededWith(BOTH), [SPECS_REPO]);
+    expect(html).toContain("Merge the code");
+    expect(html).not.toContain("Merge the plan");
+  });
+
+  // `paceup` and `atlasaurus` keep their specs INSIDE the project repo,
+  // so a spec there has one branch whose label is the project's own
+  // name. That is code, and calling it "the plan" would be exactly
+  // backwards on the two projects with the most runs.
+  test("a spec whose only repo is the project itself merges code, never a plan (criterion 6)", async () => {
+    const html = await listWith(await seededWith([{ root: PROJECT_REPO, url: "https://example.test/aide" }]));
+    expect(html).toContain("Merge the code");
+    expect(html).not.toContain("Merge the plan");
+  });
+
+  // The description's own read-off-the-page: a `Merge (1)` button,
+  // enabled, while the step writing that very plan was still running.
+  test("while a step is still running the button is disabled (criterion 1)", async () => {
+    const html = await listWith(await seededWith(BOTH, "running"));
+    const form = html.slice(html.indexOf('class="mergeform"'));
+    expect(form.slice(0, 400)).toContain("disabled");
+    expect(html).toContain("Merge the plan and the code");
+  });
+
+  // Not gone — behind a confirmation, and visibly not the default
+  // action. Merging mid-job stays possible for someone who means it.
+  test("an override still posts to the same route, behind a confirm (criterion 2)", async () => {
+    const html = await listWith(await seededWith(BOTH, "running"));
+    expect(html).toContain('class="mergeoverride"');
+    expect(html).toContain("confirm(");
+    expect(html).toContain("merge anyway");
+    // The same route as the ordinary button — no second endpoint.
+    expect(html.match(/action="\/api\/queue\/[^"]+\/merge"/g)).toHaveLength(1);
+  });
+
+  test("a finished job's button is enabled, with no override beside it", async () => {
+    const html = await listWith(await seededWith(BOTH));
+    expect(html).not.toContain('class="mergeoverride"');
+    expect(html).not.toContain("merge anyway");
+    const form = html.slice(html.indexOf('class="mergeform"'));
+    expect(form.slice(0, 400)).not.toContain("disabled");
+  });
+
+  test("everything already merged leaves no button at all (criterion 7)", async () => {
     const mirror = await seededWith([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
-    expect(html).not.toContain("/merge");
+    expect(await listWith(mirror, [PROJECT_REPO])).not.toContain("/merge");
   });
 
-  test("a spec that never pushed anywhere has nothing to merge", async () => {
+  test("a spec that never pushed anywhere has nothing to merge (criterion 8)", async () => {
     const { base } = start();
     await enqueue(base);
     const html = await (await fetch(`${base}/specs`, auth)).text();

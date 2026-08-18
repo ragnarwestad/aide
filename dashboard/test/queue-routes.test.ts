@@ -8,7 +8,7 @@
 // a form, and a meta refresh every ten seconds would wipe whatever
 // someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
@@ -1376,12 +1376,12 @@ describe("POST /api/queue/<id>/merge", () => {
 
   // Criterion 8. `isMerged()` caches for 30 s, so the page that
   // triggered the merge is exactly the page that would show its own
-  // result as "not merged" — the one place a stale answer is certain
+  // result as "ready to merge" — the one place a stale answer is certain
   // rather than unlikely. The clock does not move in this test: only
   // the invalidation can account for the change.
   test("the page shows the merge it just did, without waiting out the cache", async () => {
     const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    // A git that starts out saying "not merged" and starts saying
+    // A git that starts out saying "ready to merge" and starts saying
     // "merged" once the branch has actually been pushed to the base.
     const pushed = new Set<string>();
     const run = async (dir: string, args: string[]) => {
@@ -1399,10 +1399,10 @@ describe("POST /api/queue/<id>/merge", () => {
     };
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
     const auth = { headers: { "x-aide-token": TOKEN } };
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
     const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
-    expect(await (await fetch(`${base}/specs`, auth)).text()).not.toContain("not merged");
+    expect(await (await fetch(`${base}/specs`, auth)).text()).not.toContain("ready to merge");
   });
 
   test("GET is not a way to merge anything", async () => {
@@ -1499,4 +1499,197 @@ describe("the queue config decides how many run at once", () => {
       writeFileSync(go, "");
     }
   }, 30000);
+});
+
+// --- spec 96: what a merge does, and in what order ---------------------------
+
+// Two things the merge route got wrong once it was used in anger. It
+// merged the repos in the order the run happened to record them —
+// project first, specs root last — so a reader watching the page saw the
+// code land before the plan that describes it; and merging a project's
+// code changed nothing on the serving host, because "deployed" for a
+// tool like aide means INSTALLED, which was a hand step nobody was told
+// about.
+describe("POST /api/queue/<id>/merge: order, and what happens after (criteria 14, 17, 18)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const PROJECT_ROOT = "/repos";
+  const PROJECT_REPO = "/repos/aide";
+  const SPECS_REPO = "/repos/aide-specs";
+
+  function gitOk() {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  async function seeded(branchUrls: { root: string; url: string }[]): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "done";
+    job.branchUrls = branchUrls;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  interface MergeBody {
+    ok: boolean;
+    results: { root: string; ok: boolean; error?: string; installError?: string }[];
+  }
+
+  const merge = async (base: string, id: string): Promise<MergeBody> =>
+    (await (await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })).json()) as MergeBody;
+
+  // The code is the one that matters, so it should be the last word:
+  // the plan and the status land first, and the reader's eye ends on
+  // the repo that reaches the serving host.
+  test("the specs repo is merged before the project's own (criterion 14)", async () => {
+    const { mirror, id } = await seeded([
+      { root: PROJECT_REPO, url: "https://example.test/aide" },
+      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+    ]);
+    const git = gitOk();
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: PROJECT_ROOT,
+      gitRun: git.run,
+    });
+    const body = await merge(base, id);
+    expect(body.ok).toBe(true);
+    const dirs = git.calls.map((c) => c.dir);
+    expect(dirs.lastIndexOf(SPECS_REPO)).toBeLessThan(dirs.indexOf(PROJECT_REPO));
+    // The report still names both, in whatever order they ran.
+    expect(body.results.map((r) => r.root).sort()).toEqual([PROJECT_REPO, SPECS_REPO]);
+  });
+
+  /** A project checkout with an `.aide/config` of its own — the file the
+   *  install command is read from, and the only place it may come from.
+   *  `AIDE_INSTALL_CMD` unset means the file is written without it. */
+  function checkout(installCmd?: string): { root: string; repo: string } {
+    const root = mkdtempSync(join(tmpdir(), "aide-install-"));
+    ownDirs.push(root);
+    const repo = join(root, "aide");
+    mkdirSync(join(repo, ".aide"), { recursive: true });
+    writeFileSync(
+      join(repo, ".aide", "config"),
+      `AIDE_SPECS_PATH=${join(repo, "specs")}\n` + (installCmd ? `AIDE_INSTALL_CMD=${installCmd}\n` : ""),
+    );
+    return { root, repo };
+  }
+
+  test("a merged project repo runs the project's own install command (criterion 17)", async () => {
+    // Argv, split on whitespace and run with no shell — so the fixture
+    // is a command that needs no quoting, run in the repo's own
+    // checkout, which is the only way to tell it ran THERE.
+    const { root, repo } = checkout("/usr/bin/touch installed");
+    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      gitRun: gitOk().run,
+    });
+    const body = await merge(base, id);
+    expect(body.ok).toBe(true);
+    expect(existsSync(join(repo, "installed"))).toBe(true);
+    // Success is silent: one message about this repo's install state, or
+    // none at all.
+    expect(body.results[0]!.installError).toBeUndefined();
+  });
+
+  test("without the key the page says deploy is still a hand step (criterion 17)", async () => {
+    const { root, repo } = checkout();
+    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      gitRun: gitOk().run,
+    });
+    const body = await merge(base, id);
+    expect(body.ok).toBe(true);
+    expect(body.results[0]!.installError).toContain("not installed");
+  });
+
+  test("an install that fails is named, and never unmerges the merge (criterion 17)", async () => {
+    const { root, repo } = checkout("/usr/bin/false");
+    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      gitRun: gitOk().run,
+    });
+    const body = await merge(base, id);
+    // The merge already happened. A failed install is reported beside
+    // it, never turned back into a merge failure.
+    expect(body.ok).toBe(true);
+    expect(body.results[0]!.ok).toBe(true);
+    expect(body.results[0]!.installError).toContain("install failed");
+  });
+
+  test("an install that hangs is killed, and the response still comes (criterion 18)", async () => {
+    const { root, repo } = checkout("/bin/sleep 30");
+    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      queueInstallTimeoutMs: 150,
+      gitRun: gitOk().run,
+    });
+    const body = await merge(base, id);
+    expect(body.ok).toBe(true);
+    expect(body.results[0]!.installError).toContain("timed out");
+  });
+
+  // Without JavaScript the form still submits itself and the 303 still
+  // works — so the same sentence has to reach the page that way too, or
+  // a merge that deployed nothing reads as one that did.
+  test("a plain form POST carries the install message back to the page (criterion 17)", async () => {
+    const { root, repo } = checkout();
+    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      gitRun: gitOk().run,
+    });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain("not installed");
+  });
+
+  // The specs repo is not the project's checkout, so nothing is
+  // installed from it — merging a plan deploys nothing, by definition.
+  test("merging only the specs repo installs nothing and says nothing about it", async () => {
+    const { root } = checkout("/usr/bin/false");
+    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const { base } = start({
+      queueToken: TOKEN,
+      queueMirrorPath: mirror,
+      queueProjectRoot: root,
+      gitRun: gitOk().run,
+    });
+    const body = await merge(base, id);
+    expect(body.ok).toBe(true);
+    expect(body.results[0]!.installError).toBeUndefined();
+  });
 });

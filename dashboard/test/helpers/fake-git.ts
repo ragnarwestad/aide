@@ -14,12 +14,17 @@ export interface GitCall {
 /** A runner that answers from a table of `argv` prefixes and records
  *  everything it was asked. The first matching prefix wins, so a table
  *  can put a specific case above a general one. */
-export function fakeGit(answers: Record<string, { code: number; stdout?: string }>) {
+export function fakeGit(answers: Record<string, { code: number; stdout?: string; stderr?: string }>) {
   const calls: GitCall[] = [];
   const run: GitRunner = async (dir, args) => {
     calls.push({ dir, args });
     for (const [prefix, answer] of Object.entries(answers)) {
-      if (args.join(" ").startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      if (args.join(" ").startsWith(prefix)) {
+        // `stderr` only where a table says so: the one code path that
+        // reads it (branch-merge's index.lock retry) must behave for an
+        // absent field exactly as it did before the field existed.
+        return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+      }
     }
     return { code: 1, stdout: "" };
   };

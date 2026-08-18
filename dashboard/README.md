@@ -296,15 +296,44 @@ both — `aide/89-merge-from-the-dashboard` exists in the project and in
 the specs repo, with different contents and two separate compare pages.
 Merging one does nothing for the other, and that went unnoticed three
 times on one day. So the header names **every** repo the spec pushed
-to, each with its own compare link and its own "not merged" text, each
-asked of that repo's own checkout. A project whose specs live inside it
+to, each with its own compare link and its own badge, each asked of
+that repo's own checkout. A project whose specs live inside it
 (`paceup`, `atlasaurus`) has one repo and reads as a list of one —
 the same code, not a special case.
 
-Beside the approve/cancel action sits **Merge (N)**, where N is how
-many repos are still unmerged; the button's tooltip names them. It
-merges the spec branch into each repo's default branch and pushes,
-one repo at a time:
+The badge says what the reader needs, not merely what git answered. It
+used to read "not merged" whatever was going on — a fact about the
+BRANCH that read as a verdict on the spec, shown in the same amber
+while the step writing that branch was still running. So while the
+spec's job is in flight the badge names what it is doing
+(`review-plan running`), and once nothing is running it reads **ready
+to merge**.
+
+Beside the approve/cancel action sits the merge button, and it says
+what pressing it will land: **Merge the plan** when only the specs repo
+is behind, **Merge the code** when only the project is, **Merge the
+plan and the code** when both are. The repo names stay in the tooltip.
+A branch whose label is a known project name is that project's code; a
+label that is not any project on this machine is the specs repo, which
+is a closed set rather than a guess (`.claude/rules/development.md`:
+"the run only watches ... the roots it knows about").
+
+While a step is still running that button is **disabled**, and a small
+"merge anyway" sits beside it behind a confirmation. Merging an
+unfinished spec stays possible for someone who means it; it is no
+longer the thing a mouse lands on. The count is gone: `Merge (1)` said
+how many repos and nothing about which kind, so a reader had to know
+that one meant the specs repo, that the specs repo is the plan, and
+that the running step was about to rewrite it.
+
+With JavaScript on, the button posts from the page: it disables and
+reads "merging…" at once, and the rows swap in place when the answer
+comes, instead of the browser waiting several seconds and then
+following a 303 that threw the page back to the top. Without it the
+form still submits itself and the 303 still works.
+
+The merge itself merges the spec branch into each repo's default branch
+and pushes, one repo at a time:
 
 - **A conflict refuses and names the repo.** The failed merge is
   aborted, so no half-merged tree is left behind — the same shape
@@ -316,7 +345,28 @@ one repo at a time:
   since it works in a worktree of its own and only ever fast-forwards
   this one. What the two can collide over is git's `index.lock`, and
   there the run yields — its pull is a courtesy, recorded and never
-  fatal, while a merge that loses the race is a named refusal.
+  fatal.
+- **`index.lock` is not a conflict.** A merge that loses that race used
+  to be refused with "cannot fast-forward main — merge it by hand",
+  which is the same sentence a genuinely diverged base gets. The pull
+  is now retried twice, a quarter of a second apart, and ONLY when
+  git's own stderr names `index.lock`; every other failure is refused
+  on the first attempt, as immediately as before.
+- **The plan lands first, the code last.** A run records the project
+  before its specs root, so the code used to merge before the plan
+  describing it. The code is the one that matters, so it is the last
+  word — a passenger repo named with `--extra-project-dir` counts as
+  code too.
+- **A code merge can install.** Merged is not deployed: for a project
+  that installs itself somewhere, the default branch moving changes
+  nothing on this machine. Set `AIDE_INSTALL_CMD` in that project's own
+  `.aide/config` and it is run in that checkout after its code merges —
+  argv, no shell, bounded by a timeout, and reported beside the merge
+  rather than turning a completed merge into a failed one. Without the
+  key nothing runs and the result says plainly that deploying is still
+  a hand step. Either way the sentence reaches the page — in the same
+  banner a refusal uses, whether the merge was posted from the page or
+  by a plain form.
 - **More conflicts than before are expected, not a regression.** Two
   branches touching the same file conflict at merge time, and running
   several specs side by side means it happens more often. Both sides
@@ -329,8 +379,8 @@ one repo at a time:
   deleting is the one step that cannot be undone cheaply.
 
 An unfinished spec may be merged — every step makes branches, and
-merging after `analyze` is a legitimate thing to want. The count on the
-button says what it will take before it is pressed.
+merging after `analyze` is a legitimate thing to want. It goes through
+the confirmed "merge anyway", so it is a choice rather than a surprise.
 
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside

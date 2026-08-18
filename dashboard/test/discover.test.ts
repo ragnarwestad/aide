@@ -6,7 +6,7 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { discoverProjects, specDescription } from "../src/discover.ts";
+import { configValue, discoverProjects, specDescription } from "../src/discover.ts";
 
 let root: string;
 let externalSpecs: string;
@@ -150,5 +150,43 @@ describe("specDescription", () => {
     const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
     const first = a.specs.find((s) => s.folder === "01-first-thing")!;
     expect(first.description).toBe("It does the first thing, thoroughly.");
+  });
+});
+
+// Spec 96: `AIDE_SPECS_PATH` stopped being the only key this file reads
+// — the dashboard also asks a project what installing it means here.
+// The reader was generalised for that, and generalising a parser is
+// exactly where it quietly starts accepting more than it used to.
+describe("one key out of a project's own .aide/config", () => {
+  let dir: string;
+
+  const write = (body: string): string => {
+    const proj = mkdtempSync(join(tmpdir(), "aide-cfg-"));
+    mkdirSync(join(proj, ".aide"), { recursive: true });
+    writeFileSync(join(proj, ".aide", "config"), body);
+    return proj;
+  };
+
+  test("the named key, and no other", () => {
+    dir = write("AIDE_TEST_CMD=pytest -q\nAIDE_INSTALL_CMD=./install.sh\n");
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
+    expect(configValue(dir, "AIDE_TEST_CMD")).toBe("pytest -q");
+    expect(configValue(dir, "AIDE_LINT_CMD")).toBeNull();
+  });
+
+  // A path or a command may perfectly well contain `=`.
+  test("a value keeps every = after the first", () => {
+    dir = write("AIDE_INSTALL_CMD=make install FLAGS=-q\n");
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("make install FLAGS=-q");
+  });
+
+  test("a comment, an indented line and an empty value are all no answer", () => {
+    dir = write("# AIDE_INSTALL_CMD=commented\n  AIDE_INSTALL_CMD=indented\nAIDE_LINT_CMD=   \n");
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBeNull();
+    expect(configValue(dir, "AIDE_LINT_CMD")).toBeNull();
+  });
+
+  test("no config file at all is no answer, never a throw", () => {
+    expect(configValue(mkdtempSync(join(tmpdir(), "aide-cfg-")), "AIDE_INSTALL_CMD")).toBeNull();
   });
 });

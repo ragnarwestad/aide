@@ -18,8 +18,16 @@ export function specBranch(specFolder: string): string {
 }
 
 /** One git invocation. Injected so tests spawn no subprocess, and so a
- *  failure is a value (`code`) rather than an exception to be guessed at. */
-export type GitRunner = (dir: string, args: string[]) => Promise<{ code: number; stdout: string }>;
+ *  failure is a value (`code`) rather than an exception to be guessed at.
+ *
+ *  `stderr` is optional because only one caller reads it — the
+ *  index.lock retry in `branch-merge.ts` — and a runner that does not
+ *  set it must behave exactly as it did before the field existed: an
+ *  absent reason is not a reason to retry. */
+export type GitRunner = (
+  dir: string,
+  args: string[],
+) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 const DEFAULT_TIMEOUT_MS = 4000;
 const DEFAULT_TTL_MS = 30_000;
@@ -36,14 +44,20 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
       cmd: ["git", ...args],
       cwd: dir,
       stdout: "pipe",
-      stderr: "ignore",
+      // Read, not discarded: git says WHY a pull failed only here, and
+      // "another process is holding index.lock" and "the base has
+      // diverged" are the same exit code with different words.
+      stderr: "pipe",
       env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
     });
     const killer = setTimeout(() => proc.kill(), timeoutMs);
     try {
-      const stdout = await new Response(proc.stdout).text();
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
       const code = await proc.exited;
-      return { code, stdout };
+      return { code, stdout, stderr };
     } finally {
       clearTimeout(killer);
     }

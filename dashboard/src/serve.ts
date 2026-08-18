@@ -18,7 +18,7 @@ import {
 } from "./branch-status.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
-import { discoverProjects } from "./discover.ts";
+import { configValue, discoverProjects } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 import { parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
@@ -43,6 +43,12 @@ import {
 } from "./render.ts";
 
 const MAX_BODY = 4096;
+
+/** How long the project's own install may run after its code merged.
+ *  The same bounded-timeout discipline every git call already has
+ *  (`createGitRunner`): a hung install must not tie up a request
+ *  handler, whatever the server's idle timeout is set to. */
+const INSTALL_TIMEOUT_MS = 60_000;
 
 // The caps decided in spec 81: deliberately tight. An `analyze` step
 // fits; an `implement` on Opus will stop early, on purpose, until the
@@ -96,6 +102,10 @@ export interface ServerOptions {
   /** How the merge check runs git. A test seam: the real one spawns a
    *  subprocess, which no test should. */
   gitRun?: GitRunner;
+  /** How long the project's own install command may run after its code
+   *  merged. A test seam above all — the default is a bound, not a
+   *  setting anybody is expected to tune. */
+  queueInstallTimeoutMs?: number;
   runnerAvailable?: boolean;
 }
 
@@ -512,6 +522,12 @@ export function createServer(opts: ServerOptions) {
   const server = Bun.serve({
     port: opts.port,
     hostname: opts.bindHost ?? "0.0.0.0",
+    // Bun cuts an idle connection after 10 seconds when this is unset,
+    // and a two-repo merge under load takes longer than that: the
+    // browser got an empty reply and its own error page while the merge
+    // itself completed. Every other route here answers in well under a
+    // second, so raising the ceiling costs them nothing.
+    idleTimeout: 120,
     async fetch(req) {
       const url = new URL(req.url);
       const path = url.pathname;
@@ -622,8 +638,22 @@ export function createServer(opts: ServerOptions) {
     // the browser sent is used to decide which directory git runs in.
     const known = queue.branchesFor(job.project, job.specFolder);
     const branches = known.length ? known : jobBranches(job);
+    // The plan first, the code last. A run records the project before
+    // its specs root (`aide-run-spec`, `roots`), so a reader watching
+    // the page saw the code land before the plan describing it — and the
+    // code is the one that matters, so it should be the last word. Sorted
+    // here rather than in the script: `roots` also decides commit,
+    // worktree and push order on every future run, none of which this is
+    // about. A passenger repo named with --extra-project-dir carries code
+    // too, so it goes last for the same reason the project does.
+    const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+    // `sort` is stable, so two repos of the same kind keep the order the
+    // run recorded them in.
+    const ordered = [...branches].sort(
+      (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
+    );
     const results: RepoMergeResult[] = [];
-    for (const b of branches) {
+    for (const b of ordered) {
       const base = await branchStatus.defaultBranch(b.root);
       if (!base) {
         // No mutation is attempted on a repo whose default branch we
@@ -636,9 +666,56 @@ export function createServer(opts: ServerOptions) {
       // The check caches for 30 s. Without this, the page that triggered
       // the merge would show its own result as "not merged".
       if (result.ok) branchStatus.invalidate(b.root, branch);
+      // Merged is not deployed. For a tool that lives in `~/.local/bin`,
+      // the code landing on the default branch changes nothing on the
+      // machine until it is installed — which is why spec 92's merged
+      // code kept running as the old version. The install belongs to the
+      // project, so the project says what it is.
+      if (result.ok && b.root === projectDir(job.project)) await installAfterMerge(result);
       results.push(result);
     }
     return results;
+  }
+
+  /** Run the project's own install, once its code has landed. Bounded by
+   *  a timeout of its own — never trusting the server's idle timeout to
+   *  bound it — and never fatal: the merge already happened, and a
+   *  failed install is reported beside it rather than retroactively
+   *  turning a successful merge into a failure. */
+  async function installAfterMerge(result: RepoMergeResult): Promise<void> {
+    const cmd = configValue(result.root, "AIDE_INSTALL_CMD");
+    if (!cmd) {
+      // Said out loud for every project that has not configured one:
+      // the alternative is a page that reads as "deployed" when nothing
+      // was deployed, which is the whole complaint.
+      result.installError = "merged, not installed — no AIDE_INSTALL_CMD configured; deploying is a hand step";
+      return;
+    }
+    const timeoutMs = opts.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;
+    try {
+      // argv, no shell — the same shape the notify command already has,
+      // so nothing here has to get quoting right on someone's behalf.
+      const proc = Bun.spawn({ cmd: cmd.split(/\s+/), cwd: result.root, stdout: "ignore", stderr: "pipe" });
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        proc.kill();
+      }, timeoutMs);
+      let tail = "";
+      try {
+        tail = await new Response(proc.stderr).text();
+      } finally {
+        clearTimeout(timer);
+      }
+      const code = await proc.exited;
+      if (timedOut) {
+        result.installError = `merged, but the install timed out after ${timeoutMs}ms and was stopped`;
+      } else if (code !== 0) {
+        result.installError = `merged, but the install failed (exit ${code}): ${tail.trim().slice(-200)}`;
+      }
+    } catch (err) {
+      result.installError = `merged, but the install could not be run: ${err instanceof Error ? err.message : String(err)}`;
+    }
   }
 
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
@@ -752,10 +829,13 @@ export function createServer(opts: ServerOptions) {
         if (wantsJson) return json({ ok, results });
         // A person who pressed a button gets the answer on the page they
         // pressed it from, per repo — never a bare "something failed".
-        const summary = results.filter((r) => !r.ok).map((r) => r.error).join("; ");
+        // A merge that went through but did not install says so here
+        // too: for a project that installs itself, merged is not
+        // deployed, and a silent success reads as though it were.
+        const summary = results.map((r) => r.error ?? r.installError).filter(Boolean).join("; ");
         return new Response(null, {
           status: 303,
-          headers: { location: ok ? "/specs" : `/specs?error=${encodeURIComponent(summary)}` },
+          headers: { location: summary ? `/specs?error=${encodeURIComponent(summary)}` : "/specs" },
         });
       }
       if (verb === "cancel") {
