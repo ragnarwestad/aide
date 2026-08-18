@@ -239,7 +239,9 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     expect(h.inserted).toHaveLength(1);
     expect(h.inserted[0]!.textContent).toContain("not installed");
     // The banner the page already has for a refusal, and still no jump.
-    expect(h.inserted[0]!.className).toBe("refusal");
+    // `refusal` is the selector hook; `rowmsg err` is the component
+    // that gives it the look every other refusal on the page has.
+    expect(h.inserted[0]!.className).toBe("refusal rowmsg err");
     expect(h.location.href).toBe("http://dash.test/");
   });
 

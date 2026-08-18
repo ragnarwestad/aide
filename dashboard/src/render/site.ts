@@ -27,12 +27,12 @@ export interface Page {
 function listRow(label: string, items: string[] | undefined): string {
   if (!items || items.length === 0) return "";
   const lis = items.map((i) => `<li>${linkOrText(i)}</li>`).join("");
-  return `<div class="row"><span class="label">${label}</span><ul>${lis}</ul></div>`;
+  return `<div class="fact"><span class="label">${label}</span><ul>${lis}</ul></div>`;
 }
 
 function textRow(label: string, value: string | undefined): string {
   if (!value) return "";
-  return `<div class="row"><span class="label">${label}</span><span>${linkOrText(value)}</span></div>`;
+  return `<div class="fact"><span class="label">${label}</span><span>${linkOrText(value)}</span></div>`;
 }
 
 function manifestBlock(data: ManifestData): string {
@@ -43,7 +43,7 @@ function manifestBlock(data: ManifestData): string {
       .filter(([, v]) => v && v !== "none")
       .map(([k, v]) => `<li><span class="label">${esc(k)}</span> ${esc(v)}</li>`);
     if (entries.length > 0) {
-      parts.push(`<div class="row"><span class="label">stack</span><ul>${entries.join("")}</ul></div>`);
+      parts.push(`<div class="fact"><span class="label">stack</span><ul>${entries.join("")}</ul></div>`);
     }
   }
   parts.push(listRow("dependencies", data.dependencies));
@@ -51,7 +51,7 @@ function manifestBlock(data: ManifestData): string {
     const d = data.deployment;
     const bits = [d.host, d.command, d.note].filter((x): x is string => !!x).map(esc);
     if (d.url) bits.unshift(`<a href="${esc(d.url)}">${esc(d.url)}</a>`);
-    parts.push(`<div class="row"><span class="label">deployment</span><span>${bits.join(" — ")}</span></div>`);
+    parts.push(`<div class="fact"><span class="label">deployment</span><span>${bits.join(" — ")}</span></div>`);
   }
   parts.push(listRow("logging", data.logging?.where));
   parts.push(listRow("statistics", data.statistics));
@@ -62,7 +62,7 @@ function manifestBlock(data: ManifestData): string {
       const recipe = rep.recipe ? ` <span class="muted">(${esc(rep.recipe)})</span>` : "";
       return `<li>${main}${recipe}</li>`;
     });
-    parts.push(`<div class="row"><span class="label">reports</span><ul>${lis.join("")}</ul></div>`);
+    parts.push(`<div class="fact"><span class="label">reports</span><ul>${lis.join("")}</ul></div>`);
   }
   parts.push(listRow("docs", data.docs));
   parts.push(textRow("manifest generated", data.generated));
@@ -76,15 +76,20 @@ function specTable(specs: SpecView[]): string {
       ? `${s.status.progress.percent}% (${s.status.progress.done} of ${s.status.progress.total})`
       : "–";
     const phase = s.status?.phase ?? "–";
+    // Whether the spec's FOLDER has been archived on disk. It used to
+    // be `archived`/`active` — the same two words the spec list uses
+    // for the unrelated question of whether a job is in flight, which
+    // meant one class name stood for two things. Named for the question
+    // it answers now.
     const state = s.archived ? "archived" : "active";
     return (
-      `<tr class="${state}"><td>${esc(s.folder)}</td>` +
+      `<tr class="${s.archived ? "spec-archived" : "spec-open"}"><td>${esc(s.folder)}</td>` +
       `<td>${esc(s.title ?? "")}</td>` +
       `<td>${esc(phase)}</td><td>${esc(progress)}</td><td>${state}</td></tr>`
     );
   });
   return (
-    `<table><thead><tr><th>Spec</th><th>Title</th><th>Phase</th>` +
+    `<table class="list"><thead><tr><th>Spec</th><th>Title</th><th>Phase</th>` +
     `<th>Progress</th><th>State</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
   );
 }
@@ -202,7 +207,11 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
   const pages: Page[] = [
     {
       path: OVERVIEW_PAGE,
-      html: pageShell("aide dashboard", entries, OVERVIEW_PAGE, overview, generatedAt),
+      // The heading still names the page; the TAB says what aide is
+      // for — it is the one title a reader sees with no page around it.
+      html: pageShell("aide dashboard", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
+        docTitle: "aide — from spec to merge",
+      }),
     },
   ];
   pages.push({

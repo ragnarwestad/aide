@@ -6,6 +6,7 @@
 import { esc, money, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { branchActivity, stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
+import { filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -57,7 +58,7 @@ function stepResults(results: JobStepResultView[]): string {
   const rows = results
     .map(
       (r) =>
-        `<tr><td>${esc(r.step ?? "–")}</td>` +
+        `<tr><td>${esc(r.step ? stepLabel(r.step) : "–")}</td>` +
         `<td>${r.ok ? "ok" : esc(r.terminalReason || "failed")}</td>` +
         `<td class="num">${money(r.costUsd)}${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
@@ -90,14 +91,20 @@ function tabBar(job: JobDetailView, current: JobTab): string {
     activity: job.activity?.length ?? 0,
     steps: job.results.length,
   };
-  const links = JOB_TABS.map((t) => {
-    const label = t[0]!.toUpperCase() + t.slice(1);
-    const n = counts[t] ?? 0;
-    const count = n > 0 ? ` <span class="tabcount">${n}</span>` : "";
-    const mark = t === current ? ` aria-current="page"` : "";
-    return `<a href="/specs/${esc(job.id)}?tab=${t}"${mark}>${label}${count}</a>`;
-  });
-  return `<nav class="tabs">${links.join("")}</nav>`;
+  // The same pill the list's filters are: one control, one look. The
+  // count rides in the label — "Activity · 12" — rather than in a badge
+  // sitting on it, because it is part of the sentence.
+  return filterPills(
+    "tab",
+    "Job",
+    JOB_TABS.map((t) => ({
+      label: t[0]!.toUpperCase() + t.slice(1),
+      count: counts[t] ? counts[t] : undefined,
+      on: t === current,
+      href: `/specs/${esc(job.id)}?tab=${t}`,
+    })),
+    "page",
+  );
 }
 
 // Server-rendered in the site's layout. Poll-and-refresh like every
@@ -110,12 +117,12 @@ export function renderJobDetailPage(
 ): string {
   const now = opts.now ?? Date.now();
   const tab = jobTab(opts.tab, job);
-  const pips = job.steps
-    .map((s, i) => {
-      const cls = i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo";
-      return `<span class="pip ${cls}" title="${esc(s)}"></span>`;
-    })
-    .join("");
+  const progress = pips(
+    job.steps.map((s, i) => ({
+      kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
+      title: stepLabel(s),
+    })),
+  );
   const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1] ?? "–";
 
   // State and title stay ABOVE the tabs: whichever tab is open, the
@@ -131,7 +138,7 @@ export function renderJobDetailPage(
     labelled([
       ["Project", esc(job.project)],
       ["Spec", esc(job.specFolder)],
-      ["Step", `${esc(step)}<span class="pips">${pips}</span>`],
+      ["Step", `${esc(stepLabel(step))}${progress}`],
       ["Model", esc(job.model ?? "as configured")],
       ["Cost so far", money(job.spentUsd)],
       ["Started", relTime(job.startedAt ?? job.createdAt, now)],
@@ -191,7 +198,7 @@ export function renderJobDetailPage(
       : refused
         ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
           `no transcript exists.</p>` +
-          (job.error ? `<p class="refusal">${esc(job.error)}</p>` : "")
+          (job.error ? rowMessage("err", job.error, { hook: "refusal", tag: "p" }) : "")
         : `<p class="muted">Nothing has been captured from this run yet.</p>`;
 
   const panel =

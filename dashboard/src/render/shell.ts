@@ -3,6 +3,7 @@
 // references — because the generated site is published as plain files.
 
 import { CSS } from "./css.ts";
+import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { esc } from "./html.ts";
 
 export interface NavEntry {
@@ -22,10 +23,11 @@ export function nav(entries: NavEntry[], currentPath: string): string {
     link({ label: "Specs", path: "/" }),
     link(overview),
     link({ label: "About", path: "about.html" }),
-    `<li class="nav-label">Projects</li>`,
+    `<li class="lbl">Projects</li>`,
     ...projects.map(link),
   ];
-  return `<nav><ul>${lis.join("")}</ul></nav>`;
+  // The mark sits above the link list, per the brand handoff's step 2.
+  return `<nav>${WORDMARK}<ul>${lis.join("")}</ul></nav>`;
 }
 
 export function pageShell(
@@ -35,7 +37,7 @@ export function pageShell(
   body: string,
   generatedAt: string,
   refreshSeconds?: number,
-  opts: { refreshInNoscript?: boolean; script?: string } = {},
+  opts: { refreshInNoscript?: boolean; script?: string; docTitle?: string } = {},
 ): string {
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
@@ -55,7 +57,8 @@ export function pageShell(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
-<title>${esc(title)}</title>
+<title>${esc(opts.docTitle ?? title)}</title>
+${ICON_LINKS}
 <style>${CSS}</style>
 </head>
 <body>

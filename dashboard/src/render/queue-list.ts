@@ -23,11 +23,25 @@
 import { esc, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import {
+  badge,
+  btn,
+  field,
+  filterPills,
+  messageSlot,
+  phaseChip,
+  phases,
+  pips,
+  rowMessage,
+  stepLabel,
+  type PipKind,
+} from "./components.ts";
+import {
   IN_FLIGHT,
   branchActivity,
   currentStep,
   inFlight,
   nextActionHint,
+  notStartedChip,
   stateChip,
   stateLabel,
   unmergedBadge,
@@ -451,15 +465,16 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
     label: string,
     entries: { key: string; label: string; count: number; on: boolean; patch: QueueFilter }[],
   ) =>
-    `<span class="filtergroup" data-filter="${esc(name)}"><span class="fieldlabel">${esc(label)}</span>` +
-    entries
-      .map(
-        (e) =>
-          `<a data-nav href="${queueHref(f, e.patch)}"${e.on ? ` aria-current="true"` : ""}>` +
-          `${esc(e.label)} <span class="tabcount">${e.count}</span></a>`,
-      )
-      .join("") +
-    `</span>`;
+    filterPills(
+      name,
+      label,
+      entries.map((e) => ({
+        label: e.label,
+        count: e.count,
+        on: e.on,
+        href: queueHref(f, e.patch),
+      })),
+    );
 
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
@@ -480,7 +495,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   );
 
   const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="listcontrols">${states}</div>`;
+  if (names.length < 2) return `<div class="row">${states}</div>`;
   const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
@@ -492,7 +507,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
       patch: { project: p },
     })),
   ]);
-  return `<div class="listcontrols">${states}${projects}</div>`;
+  return `<div class="row">${states}${projects}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -502,7 +517,9 @@ function sortableHead(f: QueueFilter): string {
     const on = key === sort;
     // Clicking the column you are already sorted by turns it round.
     const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
-    const mark = on ? ` <span class="sortmark">${dir === "asc" ? "▴" : "▾"}</span>` : "";
+    // The glyph, not a span with a colour of its own: the link is
+    // already the accent, and the arrow is part of its label.
+    const mark = on ? ` ${dir === "asc" ? "▴" : "▾"}` : "";
     const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
       `<th class="${cls}"${aria}>` +
@@ -520,19 +537,28 @@ function sortableHead(f: QueueFilter): string {
   );
 }
 
+// A gated job is waiting on a person, and the two things that person
+// can do are approve it or stop it. Cancel used to be offered only
+// while a job was queued or running — the route has never had a state
+// guard on it (`serve.ts`), so a gated job could be cancelled by
+// anything except the page it was gated on. The design sheet puts both
+// buttons on that row; this is where they come from.
 function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFilter | undefined): string {
-  const action =
-    r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
-  if (!action) return "";
+  const gated = r.state === "awaiting-approval";
+  const canCancel = gated || r.state === "queued" || r.state === "running";
+  if (!canCancel) return "";
   const hidden = tokenField(token) + filterFields(filter);
   // `actionform` is what the page's own code selects on, and
   // `data-pending` is what the button says while the request is out —
   // written here, beside the label it replaces, rather than as a verb
   // table in the script.
+  const one = (verb: "approve" | "cancel", label: string, pending: string, variant: "ok" | "danger") =>
+    `<form method="post" action="/api/queue/${esc(r.id)}/${verb}" class="actionform">${hidden}` +
+    btn({ label, pending, variant }) +
+    `</form>`;
   return (
-    `<form method="post" action="/api/queue/${esc(r.id)}/${action}" class="actionform">${hidden}` +
-    `<button type="submit" data-pending="${action === "approve" ? "approving…" : "cancelling…"}">` +
-    `${action === "approve" ? "Approve" : "Cancel"}</button></form>`
+    (gated ? one("approve", "Approve", "approving…", "ok") : "") +
+    one("cancel", "Cancel", "cancelling…", "danger")
   );
 }
 
@@ -577,19 +603,24 @@ function mergeLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): s
   return code && plan ? "Merge the plan and the code" : code ? "Merge the code" : "Merge the plan";
 }
 
-function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
+function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): string {
   const open = g.branches.filter((b) => !b.merged);
   // No lead means no job, which means no branch — the guard is for the
   // type checker, and it holds for the same reason the `if` above does.
   if (open.length === 0 || !g.lead) return "";
   const names = open.map((b) => b.label).join(", ");
-  const label = mergeLabel(open, g, opts);
+  // A merge that was just refused is not a new decision to make — it is
+  // the same one, again. The button says so, and stops being the
+  // primary action on a row that has just told the reader why it could
+  // not be done.
+  const label = refused ? "Merge again" : mergeLabel(open, g, opts);
   const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
   if (!inFlight(g.lead)) {
     return (
       `<form method="post" action="${action}" class="mergeform">${hidden}` +
-      `<button type="submit" data-pending="merging…" title="${esc(names)}">${esc(label)}</button></form>`
+      btn({ label, pending: "merging…", title: names, variant: refused ? "" : "primary" }) +
+      `</form>`
     );
   }
   // Two controls, not one button that flips: a button re-enabled the
@@ -604,11 +635,11 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
   // sentence that needs neither.
   return (
     `<span class="mergeform">` +
-    `<button type="button" disabled title="${esc(names)}">${esc(label)}</button> ` +
-    `<form method="post" action="${action}" class="mergeoverride" ` +
+    btn({ label, type: "button", disabled: true, title: names }) +
+    ` <form method="post" action="${action}" class="mergeoverride" ` +
     `onsubmit="return confirm('This spec still has a step running. Merge anyway?')">${hidden}` +
-    `<button type="submit" class="small" data-pending="merging…" title="${esc(names)}">` +
-    `merge anyway</button></form></span>`
+    btn({ label: "merge anyway", small: true, pending: "merging…", title: names }) +
+    `</form></span>`
   );
 }
 
@@ -692,23 +723,34 @@ function stepBoxes(g: SpecGroup): string {
   // sentence — and worded through `currentStep`/`stateLabel` rather
   // than freshly, because a spec's state and a phase's state must never
   // be worded differently.
-  const why = g.lead && busy.size ? `${currentStep(g.lead)} is ${stateLabel(g.lead)}` : "";
-  return QUEUE_STEPS.map((s) => {
-    const isDone = done.has(s);
-    // Busy wins over pre-ticked: a box the reader sees ticked but cannot
-    // submit is worse than one that is simply not ticked.
-    const off = busy.has(s);
-    return (
-      // `data-phase`, not `data-step`: the phase LINES already carry
-      // `data-step`, and a test enumerating them would find four
-      // checkboxes on the header row as well.
-      `<label class="stepbox${isDone ? " isdone" : ""}" data-phase="${esc(s)}"` +
-      `${off ? ` title="${esc(why)}"` : ""}>` +
-      `<input type="checkbox" name="steps" value="${esc(s)}"` +
-      `${checked.has(s) && !off ? " checked" : ""}${off ? " disabled" : ""}> ` +
-      `${esc(s)}${isDone ? ' <span class="tick" title="already done">✓</span>' : ""}</label>`
-    );
-  }).join("");
+  const why = g.lead && busy.size ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
+  // The step actually being WORKED gets the spinner; every other step
+  // the job holds gets the lock and the same sentence. Both are off —
+  // the difference is what a reader is being told, not what they can
+  // do. A queued job is spinning nothing yet, so none of its steps
+  // does either.
+  const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
+  return phases(
+    QUEUE_STEPS.map((s) => {
+      const off = busy.has(s);
+      return phaseChip({
+        // `data-phase`, not `data-step`: the phase LINES already carry
+        // `data-step`, and a test enumerating them would find four
+        // checkboxes on the header row as well.
+        dataAttr: "data-phase",
+        value: s,
+        // The step keeps its technical name everywhere it is a VALUE;
+        // the reader is shown `review`, never `review-plan`.
+        label: stepLabel(s),
+        name: "steps",
+        checked: checked.has(s) && !off,
+        done: done.has(s),
+        busy: off && s === running,
+        disabled: off && s !== running,
+        title: off ? why : undefined,
+      });
+    }).join(""),
+  );
 }
 
 // One control per spec, on the spec's own row: tick the phases, press
@@ -739,12 +781,15 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
       ? `as configured per step — $${opts.defaultBudgetUsd} per step`
       : "as configured per step";
   const select = models.length
-    ? `<select name="model">` +
-      `<option value="">${esc(asConfigured)}</option>` +
-      models
-        .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
-        .join("") +
-      `</select>`
+    ? field(
+        "Model",
+        `<select name="model">` +
+          `<option value="">${esc(asConfigured)}</option>` +
+          models
+            .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
+            .join("") +
+          `</select>`,
+      )
     : "";
   // The row's own project is watched already, so offering it again is an
   // error waiting to be submitted. The row knows which spec it is before
@@ -752,31 +797,49 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // form had to disable the box from script as the selection changed.
   const others = (opts.projects ?? []).filter((p) => p !== g.project);
   const extraField = others.length
-    ? `<span class="field"><span class="fieldlabel">Also touches</span>` +
-      `<span class="steps">` +
-      others
-        .map(
-          (p) =>
-            `<label class="stepbox" data-project="${esc(p)}">` +
-            `<input type="checkbox" name="extraProjects" value="${esc(p)}"> ${esc(p)}</label>`,
-        )
-        .join("") +
-      `</span></span>`
+    ? field(
+        "Also touches",
+        phases(
+          others
+            .map((p) =>
+              phaseChip({ dataAttr: "data-project", value: p, label: p, name: "extraProjects" }),
+            )
+            .join(""),
+        ),
+        { group: true },
+      )
     : "";
-  // Off by default, and SHOWN. Hiding it made the button quietly create
-  // a job that stops for approval after every step — the opposite of
-  // what pressing it looks like it does.
-  const gate =
-    `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
-    `stop for approval between steps</label>`;
+  // Off by default. It sits behind the same disclosure as the model and
+  // the other repos, because those three ARE what the row's "more"
+  // promises — one place for everything nobody sets every time, rather
+  // than one control in the open and two hidden.
+  const gate = phaseChip({
+    dataAttr: "data-gate",
+    value: "1",
+    label: "stop for approval between steps",
+    name: "gate",
+  });
+  // Run for a spec nothing has ever run; Run again once it has. While a
+  // job is in flight the control reads as busy — but it is NOT
+  // disabled: a job holding only `analyze` leaves the other three
+  // phases tickable, and taking that away would lose an action the page
+  // has always had.
+  const running = !!g.lead && inFlight(g.lead);
+  const run = btn({
+    label: g.lead ? "Run again" : "Run",
+    variant: running ? "busy" : "primary",
+    pending: "starting…",
+    title: running ? "a job is running — tick a phase it does not hold to run more" : undefined,
+  });
   return (
     `<form method="post" action="/api/queue" class="rowrun">${tokenField(opts.token)}${filterFields(opts.filter)}` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    `<span class="steps">${stepBoxes(g)}</span>` +
-    select +
-    `<details class="more"><summary>more</summary>${extraField}${gate}</details>` +
-    `<button type="submit" data-pending="starting…">Run</button></form>`
+    stepBoxes(g) +
+    `<details class="more"><summary title="more: model, gate, also touches">more</summary>` +
+    `<span class="row">${select}${extraField}${gate}</span></details>` +
+    run +
+    `</form>`
   );
 }
 
@@ -800,24 +863,31 @@ function newSpecForm(opts: QueuePageOptions): string {
   return (
     `<details class="newspec"><summary>New spec</summary>` +
     `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
-    `<span class="field"><span class="fieldlabel">Project</span>` +
-    `<select name="project">` +
-    projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
-    `</select></span>` +
-    `<span class="field"><span class="fieldlabel">Title</span>` +
-    `<input type="text" name="title" maxlength="120" required ` +
-    `placeholder="what the spec is about, in a few words"></span>` +
-    `<span class="field wide"><span class="fieldlabel">Description</span>` +
-    `<textarea name="description" rows="4" maxlength="2000" required ` +
-    `placeholder="the problem, and what you want instead"></textarea></span>` +
-    `<button type="submit" data-pending="creating…">Create</button>` +
+    field(
+      "Project",
+      `<select name="project">` +
+        projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
+        `</select>`,
+    ) +
+    field(
+      "Title",
+      `<input type="text" name="title" maxlength="120" required ` +
+        `placeholder="what the spec is about, in a few words">`,
+    ) +
+    field(
+      "Description",
+      `<textarea name="description" rows="4" maxlength="2000" required ` +
+        `placeholder="the problem, and what you want instead"></textarea>`,
+      { wide: true },
+    ) +
+    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
     // the way there is for every other action — and the page-level
     // banner sits above a disclosure that may well be shut, which is
     // where a create refusal went unread. Empty until something fills
     // it (`.refused:empty` draws nothing).
-    `<p class="refused"></p></form></details>`
+    messageSlot("refused") + `</form></details>`
   );
 }
 
@@ -827,7 +897,7 @@ function newSpecForm(opts: QueuePageOptions): string {
 function specSummary(g: SpecGroup): string {
   const bits: string[] = [];
   if (g.title) bits.push(esc(g.title));
-  if (g.phase) bits.push(`<span class="chip">${esc(g.phase)}</span>`);
+  if (g.phase) bits.push(esc(g.phase));
   if (typeof g.percent === "number") bits.push(`${g.percent}% done`);
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
@@ -836,10 +906,11 @@ function specSummary(g: SpecGroup): string {
 // has cost in total, and every action there is to take on it — running
 // its phases included.
 function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: Set<string>): string {
-  // Three answers, not two. `archived` greys the row out (css.ts), which
-  // is the last thing a spec with the whole workflow still ahead of it
-  // should look like.
-  const rowClass = !g.lead ? "notstarted" : inFlight(g.lead) ? "active" : "archived";
+  // Three answers, not two — and named `run-*` rather than
+  // `active`/`archived`, which `site.ts` uses for the unrelated
+  // question of whether a spec folder has been archived on disk. The
+  // two used to share the words and mean different things.
+  const rowClass = !g.lead ? "run-new" : inFlight(g.lead) ? "run-live" : "run-past";
   // The spec name is the way IN: the job it points at is whatever is
   // running, or the last thing that happened. The diff link sits beside
   // it rather than replacing it — nothing a reader uses today disappears.
@@ -856,12 +927,12 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
-  const pips = g.phases
-    .map((p) => {
-      const cls = p.attempts.some(inFlight) ? "now" : p.attempts.length ? "past" : "todo";
-      return `<span class="pip ${cls}" title="${esc(p.step)}"></span>`;
-    })
-    .join("");
+  const progress = pips(
+    g.phases.map((p) => ({
+      kind: (p.attempts.some(inFlight) ? "now" : p.attempts.length ? "past" : "todo") as PipKind,
+      title: stepLabel(p.step),
+    })),
+  );
   const jobs = g.phases.reduce((n, p) => n + p.attempts.length, 0);
   // The same key the fold state is written in, so no second format for
   // "which spec" is invented.
@@ -872,33 +943,29 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
-    `<td><div class="speccell">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
-    `<div class="muted small">${esc(g.project)}</div>` +
-    `<div class="small specinfo">${specSummary(g)}</div>` +
-    // What is going on and what the next click is, in one sentence.
-    // The pips, the chip and the badges each answer a narrower question
-    // and a reader had to assemble this from all of them.
-    `<div class="small whatsnext">${esc(nextActionHint(g.lead, g.branches.some((b) => !b.merged)))}</div>` +
+    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
+    `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
-    // pressed it on. The same `muted small` line a job's own error
-    // already uses (`stateCell`), so a reason reads the same wherever
-    // it comes from.
-    (refusal ? `<div class="muted small refused">${esc(refusal)}</div>` : "") +
+    // pressed it on, with the warning mark beside it, so a refusal is
+    // never told from a running row by colour alone.
+    (refusal ? rowMessage("err", refusal, { hook: "refused" }) : "") +
     `</td>` +
-    `<td><div class="pips">${pips}</div>` +
+    `<td>${progress}` +
     `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
-    // Written inline rather than through `stateChip`, which needs a job
-    // this group does not have — and which would print the hyphenated
-    // VALUE where the reader wants the words. `not-started` is the
-    // filter key and the CSS suffix; "not started" is the text.
-    `<td>${g.lead ? stateCell(g.lead) : `<span class="state s-not-started">not started</span>`}</td>` +
+    // The badge says the state; the sentence beside it says what is
+    // going on and what the next click is. The pips, the badge and the
+    // branch marks each answer a narrower question, and a reader had to
+    // assemble this from all of them.
+    `<td>${g.lead ? stateCell(g.lead) : notStartedChip()}` +
+    `<div class="muted small">${esc(nextActionHint(g.lead, g.branches.some((b) => !b.merged)))}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Run is about what the spec has still to do; approve/cancel is
     // about the run in flight; Merge is about the work one left behind.
     // All three live in the one action cell, and the Run control is
     // first because it is the one every row has.
-    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token, opts.filter) : ""}${mergeForm(g, opts)}</td></tr>`
+    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token, opts.filter) : ""}` +
+    `${mergeForm(g, opts, !!refusal)}</td></tr>`
   );
 }
 
@@ -914,8 +981,8 @@ function phaseSubRows(g: SpecGroup, now: number): string {
     .map((p) => {
       const latest = p.attempts[0];
       const name = latest
-        ? `<a href="/specs/${esc(latest.id)}">${esc(p.step)}</a>`
-        : `<span class="muted">${esc(p.step)}</span>`;
+        ? `<a href="/specs/${esc(latest.id)}">${esc(stepLabel(p.step))}</a>`
+        : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
@@ -925,7 +992,12 @@ function phaseSubRows(g: SpecGroup, now: number): string {
       // alarming" mark on this page — and it blocks nothing.
       const stale =
         p.step === "analyze" && g.analyzeStale
-          ? ` <span class="chip stale" title="1-description.md was committed after the last finished analyze">description changed since</span>`
+          ? " " +
+            badge(
+              "waiting",
+              "description changed since",
+              "1-description.md was committed after the last finished analyze",
+            )
           : "";
       const tries =
         p.attempts.length > 1
@@ -990,7 +1062,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
       `</td></tr>`;
   return (
     filterBar(groups, f) +
-    `<table class="jobs">${sortableHead(f)}<tbody>${body}</tbody></table>` +
+    `<table class="list">${sortableHead(f)}<tbody>${body}</tbody></table>` +
     (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
   );
 }
@@ -1026,7 +1098,9 @@ export function renderQueuePage(
     // to 25 of them, so the banner said nothing about which button was
     // pressed. One that names no spec has nowhere else to go, and
     // dropping it silently is worse than a banner.
-    (opts.error && !opts.errorSpec ? `<p class="refusal">${esc(opts.error)}</p>\n` : "") +
+    (opts.error && !opts.errorSpec
+      ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n"
+      : "") +
     // OUTSIDE `#jobrows`, deliberately: the script swaps that container
     // every five seconds, and a half-typed description must survive it.
     newSpecForm(opts) +

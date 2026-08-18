@@ -118,7 +118,7 @@ describe("slugs and filenames (criterion 1)", () => {
 describe("nav (criterion 2)", () => {
   test("a Projects label separates the overview entry from the project links", () => {
     for (const page of site) {
-      expect(page.html).toContain('<li class="nav-label">Projects</li>');
+      expect(page.html).toContain('<li class="lbl">Projects</li>');
     }
   });
 
@@ -202,7 +202,7 @@ describe("the About page", () => {
 
   test("it carries the shared nav and marks itself current", () => {
     const page = byPath.get("about.html")!;
-    expect(page).toContain('<li class="nav-label">Projects</li>');
+    expect(page).toContain('<li class="lbl">Projects</li>');
     expect(page).toContain('<a class="current" href="about.html">About</a>');
   });
 
@@ -244,7 +244,9 @@ describe("self-contained (criterion 5)", () => {
   test("no external references on any page", () => {
     for (const page of site) {
       expect(page.html).not.toContain("<script src");
-      expect(page.html).not.toContain("<link ");
+      // The favicons are data URIs, so a <link> is fine — what this
+      // test is about is a reference that needs a second request.
+      expect(page.html).not.toMatch(/<link[^>]+href="(?!data:)/);
       expect(page.html).not.toMatch(/<img[^>]+src="https?:/);
     }
   });
@@ -476,7 +478,7 @@ describe("renderJobDetailPage", () => {
       { tab: "steps" },
     );
     expect(html).toContain("analyze");
-    expect(html).toContain("review-plan");
+    expect(html).toContain("review");
     expect(html).toContain("$0.42");
     expect(html).toContain("$1.07");
   });
@@ -584,7 +586,7 @@ describe("renderJobDetailPage", () => {
   test("the page is self-contained and carries the shared nav", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
-    expect(html).not.toContain("<link ");
+    expect(html).not.toMatch(/<link[^>]+href="(?!data:)/);
     // The job page belongs to the spec list, which since spec 100 lives
     // at `/`, so that nav entry is the current one.
     expect(html).toContain('<a class="current" href="/">Specs</a>');
@@ -695,8 +697,8 @@ describe("the job page is split into tabs", () => {
 
   test("the tab says how much is behind it, so a reader knows before clicking", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toMatch(/>Activity <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Steps <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>Activity · 1</);
+    expect(html).toMatch(/>Steps · 1</);
   });
 
   test("an empty tab is still offered, and says why it is empty", () => {
@@ -763,8 +765,8 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     ]);
     expect(heads(html)[0]).toBeDefined();
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain('class="state s-running"');
-    expect(head).not.toContain('class="state s-done"');
+    expect(head).toContain('class="badge b-running"');
+    expect(head).not.toContain('class="badge b-done"');
   });
 
   test("with nothing in flight the header shows the latest outcome (criterion 5)", () => {
@@ -773,8 +775,8 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain('class="state s-done"');
-    expect(head).not.toContain('class="state s-failed"');
+    expect(head).toContain('class="badge b-done"');
+    expect(head).not.toContain('class="badge b-refused"');
   });
 
   test("the header's cost is the whole spec's, not one job's (criterion 6)", () => {
@@ -884,7 +886,7 @@ describe("a multi-step job is shown on every step it ran", () => {
     ]);
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain('href="/specs/both"');
-    expect(analyze).toContain("s-done");
+    expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("unknown spec");
     expect(analyze).toContain("2 attempts");
   });
@@ -902,8 +904,8 @@ describe("a multi-step job is shown on every step it ran", () => {
     const html = rows([
       twoStep({ state: "running", spentUsd: 5.95, results: [{ step: "analyze", ok: true, costUsd: 5.95 }] }),
     ]);
-    expect(subRow(html, "analyze")).toContain("s-done");
-    expect(subRow(html, "review-plan")).toContain("s-running");
+    expect(subRow(html, "analyze")).toContain("b-done");
+    expect(subRow(html, "review-plan")).toContain("b-running");
   });
 
   test("the step that failed keeps the error; the steps before it do not", () => {
@@ -918,9 +920,9 @@ describe("a multi-step job is shown on every step it ran", () => {
         ],
       }),
     ]);
-    expect(subRow(html, "analyze")).toContain("s-done");
+    expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "analyze")).not.toContain("cannot fast-forward");
-    expect(subRow(html, "review-plan")).toContain("s-failed");
+    expect(subRow(html, "review-plan")).toContain("b-refused");
     expect(subRow(html, "review-plan")).toContain("cannot fast-forward");
   });
 
@@ -976,7 +978,7 @@ describe("a spec's row runs its own phases", () => {
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
   test("done phases are marked and left unticked; the next one is pre-ticked (criterion 1)", () => {
     const html = rows(
@@ -984,10 +986,10 @@ describe("a spec's row runs its own phases", () => {
       [target("94-row-runs-it", { done: ["analyze", "review-plan"] })],
     );
     const line = head(html, "94-row-runs-it");
-    expect(box(line, "analyze")).toContain('class="stepbox isdone"');
-    expect(box(line, "analyze")).toContain("✓");
+    expect(box(line, "analyze")).toContain('class="phase done"');
+    expect(box(line, "analyze")).toContain('title="already done"');
     expect(box(line, "analyze")).not.toContain("checked");
-    expect(box(line, "review-plan")).toContain('class="stepbox isdone"');
+    expect(box(line, "review-plan")).toContain('class="phase done"');
     expect(box(line, "implement")).toContain('value="implement" checked');
     expect(box(line, "archive")).not.toContain("checked");
     expect(line).not.toContain("disabled");
@@ -1027,7 +1029,7 @@ describe("a spec's row runs its own phases", () => {
     // Nothing was ever queued for this spec, but its 2-analysis.md is
     // filled in: `done` is read off the files, not off job history.
     const line = head(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
-    expect(box(line, "analyze")).toContain('class="stepbox isdone"');
+    expect(box(line, "analyze")).toContain('class="phase done"');
     expect(box(line, "analyze")).not.toContain("checked");
     expect(box(line, "review-plan")).toContain('value="review-plan" checked');
   });
@@ -1095,7 +1097,7 @@ describe("a spec's row runs its own phases", () => {
   test("the gate box is on every row, unticked, with or without 'also touches' (criterion 5a)", () => {
     for (const projects of [["aide"], ["aide", "paceup"]]) {
       const line = head(rows([], [target("94-never-run")], { projects }), "94-never-run");
-      expect(line).toContain('<input type="checkbox" name="gate">');
+      expect(line).toContain('<input type="checkbox" name="gate" value="1">');
       expect(line).not.toContain('name="gate" checked');
     }
   });
@@ -1168,7 +1170,7 @@ describe("a spec's row runs its own phases", () => {
 
   test("a refusal is shown on the page, belonging to no one row (criterion 6)", () => {
     const html = page({ error: "analyze is already queued for this spec" });
-    expect(html).toContain('class="refusal"');
+    expect(html).toContain('class="refusal rowmsg err"');
     expect(html).toContain("analyze is already queued for this spec");
     // Above the table, so it is read before the row that caused it.
     expect(html.indexOf("refusal")).toBeLessThan(html.indexOf('id="jobrows"'));
@@ -1237,7 +1239,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     const line = head(html, "90-never-run");
     // Hyphen in the class, space in the text: one is the filter key, the
     // other is what the reader sees.
-    expect(line).toContain('<span class="state s-not-started">not started</span>');
+    expect(line).toContain('<span class="badge b-idle">not started</span>');
     // The absence of the JOB link, not of an anchor — the fold control
     // is an anchor and lives in the same cell.
     expect(line).not.toMatch(/href="\/specs\/[^"]+"/);
@@ -1297,11 +1299,11 @@ describe("every spec is a row (criteria 1-10)", () => {
     const list = [job("j1", "analyze", { state: "done" })];
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
-    expect(html).toMatch(/>All <span class="tabcount">2<\/span>/);
-    expect(html).toMatch(/>Not started <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Active <span class="tabcount">0<\/span>/);
-    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Problems <span class="tabcount">0<\/span>/);
+    expect(html).toMatch(/>All · 2</);
+    expect(html).toMatch(/>Not started · 1</);
+    expect(html).toMatch(/>Active · 0</);
+    expect(html).toMatch(/>Done · 1</);
+    expect(html).toMatch(/>Problems · 0</);
 
     const only = rows(list, targets, { filter: { state: "not-started" } });
     expect(only).toContain("90-never-run");
@@ -1460,7 +1462,7 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     expect(line).not.toMatch(/value="implement" checked/);
     // Exactly one box, as `stepBoxes` has always ticked: the pair
     // belongs to a spec nothing has ever run (spec 94).
-    expect([...line.matchAll(/ checked/g)]).toHaveLength(1);
+    expect([...line.matchAll(/value="[^"]*" checked/g)]).toHaveLength(1);
   });
 });
 
@@ -1584,7 +1586,8 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       targets: [target("99-x")],
       error: "payload too large",
     });
-    expect(page).toContain('<p class="refusal">payload too large</p>');
+    expect(page).toContain('<p class="refusal rowmsg err">');
+    expect(page).toContain("payload too large");
   });
 });
 
@@ -1623,7 +1626,7 @@ describe("spec 101: a busy job holds every step it was queued with (criteria 1-3
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
   /** One job holding two steps — the shape every spec here is actually
    *  started as (`analyze` + `review-plan` as one gated job). */
@@ -1721,7 +1724,13 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   });
   const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
     renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
-  const hint = (html: string) => html.match(/<div class="small whatsnext">(.*?)<\/div>/)?.[1] ?? "";
+  // The sentence sits in the state cell now, under the badge it
+  // explains, and is the last thing in that cell.
+  const hint = (html: string) => {
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = head.split("<td")[3] ?? "";
+    return state.match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
+  };
 
   test("a spec nothing has run says what the next click is", () => {
     const text = hint(rows([], [target("101-never-run")]));
@@ -1737,7 +1746,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     );
     expect(text).toContain("analyze");
     expect(text).toContain("running");
-    expect(text).toContain("review-plan");
+    // Shown as `review`; `review-plan` is the value, not the word.
+    expect(text).toContain("review");
   });
 
   test("a job on its last step promises nothing after it", () => {
@@ -1747,7 +1757,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
         [target("101-a")],
       ),
     );
-    expect(text).toContain("review-plan");
+    expect(text).toContain("review");
     expect(text).not.toContain("to follow");
   });
 
@@ -1795,6 +1805,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", state: "running" })],
       [target("101-a"), target("101-b")],
     );
-    expect([...html.matchAll(/class="small whatsnext"/g)]).toHaveLength(2);
+    // The hint closes the state cell on every row.
+    expect([...html.matchAll(/<\/span><div class="muted small">[^<]*<\/div><\/td>/g)]).toHaveLength(2);
   });
 });

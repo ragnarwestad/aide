@@ -3,241 +3,310 @@
 // rsync and has to work from a folder, with no server and no second
 // request. That constraint is why this is a TypeScript string and not
 // a .css file.
+//
+// One token block, six components, and nothing else. Every colour, type
+// size, space and radius below is a `var(--…)` read from the block at
+// the top — which is the ONLY place in this file a literal may appear.
+// `test/css-token-guard.test.ts` enforces that by scanning this file
+// between the `tokens:start`/`tokens:end` sentinels, and refuses any
+// class a render file emits that is not one of the components. A spec
+// that wants a look it cannot build from these has to change the
+// TOKENS, visibly, rather than add a colour beside them.
+//
+// The values come from the brand handoff and the design sheet
+// (`specs/102-design-foundation/assets/`): warm neutrals, vermilion for
+// the accent, and danger carried by the darkest bar of the mark — not
+// by a shade of the accent, so "running" and "refused" never rest on
+// hue alone.
 
 export const CSS = `
-:root { color-scheme: light dark; }
-body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; }
+:root {
+  color-scheme: light dark;
+/* tokens:start */
+  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
+  --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
+  --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
+  --on-accent: #FCFAF7;
+  --ok: #2F7D4F; --ok-soft: #E3F0E7;
+  --warn: #B7791F; --warn-soft: #F8EDD6;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+  --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --lh: 1.45;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r: 6px; --r-s: 4px;
+/* tokens:end */
+  --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
+}
+/* Dark is the same ramp read from the other end: a dark surface takes a
+   light foreground, which is why --danger is a pale peach here and the
+   darkest bar tone in light. Not a typo — the same inversion every
+   other pair makes. */
+@media (prefers-color-scheme: dark) {
+:root {
+/* tokens:start */
+  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
+  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --on-accent: #16181C;
+  --ok: #6FC08F; --ok-soft: #22352A;
+  --warn: #E0A84A; --warn-soft: #3A2F1C;
+  --danger: #F5B7A3; --danger-soft: #3D211B;
+/* tokens:end */
+}
+.brand .mark-l { display: none; }
+.brand .mark-d { display: block; }
+}
+
+/* --- the page ------------------------------------------------------ */
+
+body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0;
+  background: var(--bg); color: var(--text); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-strong); text-decoration: underline; }
 .layout { display: flex; min-height: 100vh; }
-.layout > nav { flex: 0 0 14rem; padding: 1rem; border-right: 1px solid #8884; }
+.layout > nav { flex: 0 0 12rem; padding: var(--sp-5) var(--sp-4);
+  border-right: 1px solid var(--line); }
 .layout > nav ul { list-style: none; margin: 0; padding: 0; }
-.layout > nav li { margin: 0.3rem 0; }
-.layout > nav a { text-decoration: none; }
-.layout > nav a.current { font-weight: 700; }
-.layout > nav .nav-label { margin-top: 0.9rem; font-size: 0.8rem;
-  font-weight: 600; color: #777; text-transform: uppercase;
-  letter-spacing: 0.05em; }
-main { flex: 1; padding: 1rem 1.5rem; max-width: 60rem; }
+.layout > nav li { margin: 2px 0; }
+.layout > nav a { display: block; padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-s); color: var(--text); }
+.layout > nav a:hover { background: var(--surface); text-decoration: none; }
+.layout > nav a.current { background: var(--accent-soft); color: var(--accent-strong);
+  font-weight: 600; }
+main { flex: 1; padding: var(--sp-5) var(--sp-6); max-width: 68rem; }
+h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
+h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
 .pagehead { display: flex; justify-content: space-between; align-items: baseline;
-            flex-wrap: wrap; gap: 0.5rem; }
-.stamp { color: #777; font-size: 0.85rem; }
-.proj-row { border: 1px solid #8884; border-radius: 8px; padding: 0.8rem 1rem;
-            margin: 0.8rem 0; }
-.proj-row.error { border-color: #c0392b; }
-.error-text { color: #c0392b; }
-.counts { color: #777; margin-left: 0.6rem; font-size: 0.9rem; }
-.summary { color: #777; font-size: 0.9rem; }
+  flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
+.stamp { color: var(--muted); font-size: var(--fs-s); }
+
+/* --- the brand ------------------------------------------------------ */
+/* Inline SVG and data URIs, per the handoff: the site is also opened
+   straight from a folder, so there is no file to point a <link> at. */
+
+.brand { display: flex; align-items: center; gap: var(--sp-2);
+  margin: 0 0 var(--sp-3); padding: 0 var(--sp-2); text-decoration: none;
+  color: var(--text); font-size: var(--fs-l); font-weight: 600;
+  letter-spacing: -0.035em; }
+.brand:hover { text-decoration: none; color: var(--text); }
+.brand i { font-style: normal; color: var(--accent); }
+.brand .mark, .brand .mark svg { display: block; width: 22px; height: 22px; }
+.brand .mark-d { display: none; }
+
+/* --- text roles ----------------------------------------------------- */
+
+.small { font-size: var(--fs-s); }
+.muted { color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.label { font-weight: 600; margin-right: var(--sp-1); }
 .desc { margin-top: 0; }
-.row { margin: 0.3rem 0; }
-.row ul { margin: 0.1rem 0 0.4rem; padding-left: 1.4rem; }
-.label { font-weight: 600; margin-right: 0.4rem; }
-.muted { color: #777; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; padding: 0.25rem 0.6rem 0.25rem 0; vertical-align: top; }
-thead th { border-bottom: 1px solid #8886; }
-tr.archived td { color: #999; }
-/* Deliberately not the archived grey: a spec nobody has started yet is
-   the opposite of finished work, and greying it out says the opposite
-   of what the row is for. */
-tr.notstarted td { color: inherit; }
-main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
-.small { font-size: 0.82rem; }
-
-/* The step boxes and the "also touches" boxes used to be scoped under
-   the retired top form. They live on a spec's own row now, so the rules
-   are top-level — the row is not inside anything. */
-.stepbox { font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.25rem; }
-.stepbox.isdone { color: #888; }
-.stepbox input:disabled, .stepbox input:disabled + * { opacity: 0.4; cursor: default; }
-.tick { color: #22c55e; font-weight: 700; }
-.fieldlabel { font-size: 0.72rem; font-weight: 600; color: #888;
+.summary { color: var(--muted); }
+.counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
+.specdesc { white-space: pre-wrap; max-width: 46rem; }
+.lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.06em; }
-.listhead { font-size: 0.78rem; font-weight: 700; color: #888; margin: 1.6rem 0 0.4rem;
-  text-transform: uppercase; letter-spacing: 0.07em; }
-.listnote { margin: 0.4rem 0 0; }
-/* One list, cut and ordered on demand — the filter answers "is anything
-   running?" without a second table standing there when nothing is. */
-.listcontrols { display: flex; flex-wrap: wrap; gap: 0.5rem 1.6rem; align-items: center;
-  margin: 0 0 0.7rem; }
-.filtergroup { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
-.filtergroup a { text-decoration: none; color: inherit; font-size: 0.88rem;
-  padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid transparent; }
-/* Selected and hover were the SAME grey (#8881, 6% alpha): moving the
-   mouse over any chip made it look as selected as the one that was.
-   The chosen filter is filled with the accent the pips already use;
-   hover stays a hint. */
-.filtergroup a:hover { background: #8882; }
-/* No bold on the selected one: bold text is WIDER, so the chip grew and
-   shoved its neighbours along every time you clicked. The fill says
-   which is chosen; it does not need saying twice. */
-.filtergroup a[aria-current] { background: #3b82f6;
-  border-color: #3b82f6; color: #fff; }
-.filtergroup a[aria-current] .tabcount { background: #ffffff33; color: #fff; }
-table.jobs thead a { text-decoration: none; color: inherit; }
-table.jobs thead a:hover { text-decoration: underline; }
-.sortmark { color: #3b82f6; }
-.refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
-  background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
-/* The same refusal, on the row that was pressed rather than above the
-   whole table. Amber like the banner, because that is what makes it
-   findable among 25 rows — but it keeps the row's own quiet size, so
-   it does not shout over the spec's name. */
-.refused { margin-top: 0.2rem; padding: 0.1rem 0.4rem; border-radius: 4px;
-  background: #f59e0b22; border: 1px solid #f59e0b88; color: inherit; }
-/* One line per row, under the spec's name: what it is and how far it
-   has got. Quiet — the name above it is what a reader scans for. */
-.specinfo { color: #777; margin-top: 0.15rem; }
-/* And under that, the one line that answers "what is going on, and what
-   is the next click?". Quieter still: it repeats no fact the row does
-   not already carry, it just says them as a sentence. */
-.whatsnext { color: #888; margin-top: 0.1rem; }
+.layout > nav .lbl { display: block; margin-top: var(--sp-4);
+  padding: 0 var(--sp-2); }
 
-/* State carries colour, but the word is always there too. */
-.chip, .state { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px;
-  font-size: 0.8rem; border: 1px solid #8886; }
-.state { font-weight: 600; }
-.s-running { background: #3b82f622; border-color: #3b82f688; }
-.s-queued { background: #8881; }
-.s-awaiting-approval { background: #a855f722; border-color: #a855f788; }
-.s-done { background: #22c55e22; border-color: #22c55e88; }
-.s-stopped { background: #f59e0b22; border-color: #f59e0b88; }
-.s-failed, .s-interrupted { background: #ef444422; border-color: #ef444488; }
-.s-cancelled { background: #8881; color: #888; }
-/* Quiet, but not greyed out: the whole workflow is still ahead of it. */
-.s-not-started { background: #8881; }
-/* Worth noticing, not alarming — the same amber a cap-stop already uses. */
-.unmerged { background: #f59e0b22; border-color: #f59e0b88; }
-/* Work that is finished and waiting on a person: the amber says there is
-   something left to do, and the words say what. */
-.chip.ready { background: #f59e0b22; border-color: #f59e0b88; }
-/* The plan describes an older problem than the description does. Amber
-   for the same reason as the two above: something to notice on the way
-   past, not a failure — the phase can still be run. */
-.chip.stale { background: #f59e0b22; border-color: #f59e0b88; }
-/* Still being written to — the same blue the running STATE already uses,
-   because it is the same fact said beside the branch. */
-.chip.running { background: #3b82f622; border-color: #3b82f688; }
+/* --- button --------------------------------------------------------- */
+/* One button. Bare is secondary, and the variants are modifiers on it —
+   there used to be three different buttons depending on which form they
+   sat in. */
 
-/* One entry per repo the spec pushed to. They wrap rather than stretch
-   the column: three repos is a real case, and the spec's own name is
-   what a reader is scanning for on this line. */
-.branchlist { display: inline-flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; }
-.branch { white-space: nowrap; }
-/* Beside the approve/cancel form, not instead of it: a spec can have a
-   step waiting for approval and finished work to merge at the same time. */
-.mergeform { display: inline-block; }
-.mergeform + form, form + .mergeform { margin-left: 0.3rem; }
-.mergeform form { display: inline-block; }
-/* A button that cannot be pressed still has to READ — it is the sentence
-   that says what merging this spec would take. */
-.mergeform button:disabled { opacity: 0.55; cursor: default; }
-/* Deliberately not a second Merge button: the override is a way out for
-   someone who means it, and must not be the thing a mouse lands on. */
-.mergeform button.small { font-size: 0.78rem; padding: 0 0.35rem;
-  background: transparent; border: 1px solid #8886; border-radius: 5px;
-  color: inherit; font-weight: 400; cursor: pointer; }
+.btn { display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: 28px; padding: 0 var(--sp-3); border-radius: var(--r);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: 500 var(--fs-m)/1 var(--sans);
+  cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
+.btn.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+.btn.busy { color: var(--muted); border-color: var(--line); cursor: progress; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+/* Deliberately not a second button of the same size: the merge override
+   is a way out for someone who means it, and must not be the thing a
+   mouse lands on. */
+.btn.small { height: 22px; padding: 0 var(--sp-2); font-size: var(--fs-s); font-weight: 400; }
+.spin { width: 12px; height: 12px; border-radius: 50%; flex: none;
+  border: 2px solid var(--line-strong); border-top-color: var(--accent);
+  animation: sp 0.9s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
 
-table.jobs td { padding: 0.5rem 0.8rem 0.5rem 0; border-bottom: 1px solid #8882; }
-table.jobs .speccell { font-weight: 600; }
-table.jobs .num { text-align: right; font-variant-numeric: tabular-nums; }
-table.jobs .empty { padding: 1.2rem 0; }
-/* One line per SPEC, with its phases beneath it. The rule goes ABOVE
-   each spec rather than under every row: a spec and its four phase
-   lines are one block, so a reader sees eight specs rather than forty
-   rows. */
-table.jobs tr.spechead td { border-bottom: none; border-top: 1px solid #8882;
-  padding-top: 0.9rem; }
-table.jobs tbody tr.spechead:first-child td { border-top: none; }
-table.jobs tr.subrow td { border-bottom: none; padding-top: 0.1rem; padding-bottom: 0.1rem;
-  font-size: 0.9rem; }
-table.jobs tr.subrow:last-child td { padding-bottom: 0.6rem; }
-table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
-/* Small and quiet: the control sits in front of the spec's own name,
-   which is what a reader is scanning this column for. */
-.fold { text-decoration: none; color: #888; font-size: 0.8rem;
-  display: inline-block; width: 1rem; }
-.fold:hover { color: inherit; }
-/* A spec runs from its own row, so the control has to fit ON that row
-   without doubling its height: small text, small controls, and the
-   things nobody sets every time folded away behind "more". */
-.rowrun { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
-.rowrun .steps { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.rowrun .field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.3rem 0; }
-.rowrun .more { font-size: 0.82rem; }
-.rowrun .more summary { color: #888; cursor: pointer; }
-.rowrun .more .gate { display: flex; margin-top: 0.3rem; }
-.rowrun select, .rowrun button { font: inherit; font-size: 0.82rem;
-  padding: 0.1rem 0.4rem; border-radius: 5px; border: 1px solid #8886;
-  background: transparent; color: inherit; }
-.rowrun button { font-weight: 600; background: #8882; cursor: pointer; }
-.rowrun button:hover { background: #8883; }
-/* The one form on this page that is not about an existing spec. Shut by
-   default: the list is what people come here for, and a three-field form
-   standing open above it would be the loudest thing on the page for the
-   rarest thing anyone does. */
-.newspec { margin: 0.8rem 0; font-size: 0.9rem; }
-.newspec > summary { color: #888; cursor: pointer; }
-.newspec form { display: flex; gap: 0.6rem; align-items: flex-end;
-  flex-wrap: wrap; margin-top: 0.6rem; }
-.newspec .field { display: flex; flex-direction: column; gap: 0.2rem; }
-.newspec input, .newspec textarea, .newspec select, .newspec button {
-  font: inherit; font-size: 0.85rem; padding: 0.2rem 0.4rem;
-  border-radius: 5px; border: 1px solid #8886; background: transparent;
-  color: inherit; }
-.newspec input[name="title"] { min-width: 18rem; }
-/* Project and Title share a line; the description gets a line of its
-   own below them, and the button follows it. */
-.newspec .field.wide { flex-basis: 100%; max-width: 48rem; }
-.newspec textarea { width: 100%; resize: vertical; }
-.newspec button { font-weight: 600; background: #8882; cursor: pointer; }
-.newspec button:hover { background: #8883; }
-/* A refused create has no row to land on — the spec it named was never
-   made — so the reason goes beside the form that was refused, in the
-   same amber every other refusal uses. It is a fixed slot, drawn only
-   once something has been written into it. */
-.newspec .refused { flex-basis: 100%; margin: 0; }
-.newspec .refused:empty { display: none; }
-/* The intro is worth having and not worth the top of every load. Same
-   disclosure as the New-spec form, and the same reason. */
-details.intro { margin: 0.8rem 0; }
-details.intro > summary { color: #888; cursor: pointer; font-size: 0.9rem; }
-details.intro p { margin: 0.4rem 0 0; }
+/* --- status badge --------------------------------------------------- */
+/* State carries colour, but the word is always there too — and the dot
+   is itself semantic: a live state has one, a settled one does not. */
+
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 20px;
+  padding: 0 var(--sp-2); border-radius: 999px; font-size: var(--fs-s);
+  font-weight: 500; border: 1px solid transparent; white-space: nowrap; }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.b-idle { background: transparent; color: var(--muted); border-color: var(--line); }
+.b-running { background: var(--accent-soft); color: var(--accent-strong); }
+.b-waiting { background: var(--warn-soft); color: var(--warn); }
+.b-ready { background: var(--ok-soft); color: var(--ok); }
+/* The only live variant with a visible border. Refused must never be
+   told from running by hue alone, and the row that carries it also
+   carries a .rowmsg.err with the warning mark. */
+.b-refused { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.b-done { background: var(--surface-2); color: var(--muted); }
+
+/* --- phase chip ----------------------------------------------------- */
+
+.phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); }
+.phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
+  padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
+  background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }
+.phase input { accent-color: var(--accent); margin: 0; }
+.phase .box { display: inline-flex; width: 12px; height: 12px; color: var(--ok); }
+.phase svg { width: 12px; height: 12px; }
+.phase.checked { border-color: var(--line-strong); }
+.phase.done { color: var(--muted); }
+.phase.busy { border-color: var(--accent); background: var(--accent-soft);
+  color: var(--accent-strong); cursor: default; }
+.phase.off { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+.phase.off .box { color: var(--muted); }
+
+/* --- row-level message ---------------------------------------------- */
+
+.rowmsg { display: flex; align-items: center; gap: var(--sp-2);
+  padding: 6px 10px; border-radius: var(--r-s); font-size: var(--fs-s);
+  border: 1px solid; margin: var(--sp-1) 0 0; }
+.rowmsg svg { width: 14px; height: 14px; flex: none; }
+.rowmsg.err { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+.rowmsg.warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+.rowmsg.info { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
+/* The slot the browser code writes a refusal into. Nothing to draw
+   until it does. */
+.rowmsg:empty { display: none; }
+p.rowmsg { margin: 0 0 var(--sp-3); }
+
+/* --- field ----------------------------------------------------------- */
+
+.field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
+.field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
+.field input, .field select, .field textarea {
+  height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: var(--fs-m)/1 var(--sans); }
+.field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
+  min-height: 84px; resize: vertical; width: 100%; }
+.field.wide { flex-basis: 100%; max-width: 48rem; }
+.field input[name="title"] { min-width: 18rem; }
+
+/* --- filter pill ------------------------------------------------------ */
+
+.filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+.filters a { padding: 3px 9px; border-radius: 999px; font-size: var(--fs-s);
+  color: var(--muted); border: 1px solid transparent; }
+.filters a:hover { background: var(--surface); text-decoration: none; }
+/* No bold on the chosen one: bold text is WIDER, so the pill grew and
+   shoved its neighbours along every time you clicked. */
+.filters a[aria-current] { background: var(--surface); border-color: var(--line-strong);
+  color: var(--text); }
+
+/* --- the list ---------------------------------------------------------- */
+
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
+  vertical-align: top; }
+thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
+  border-bottom: 1px solid var(--line); }
+table.list { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); }
+table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); }
+table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
+  vertical-align: middle; }
+table.list thead a { color: var(--muted); }
+.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m); }
+.spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
+/* One line per SPEC, with its phases beneath it: the rule goes ABOVE
+   each spec rather than under every row, so a reader sees eight specs
+   rather than forty rows. */
+table.list tr.spechead td { border-bottom: none; border-top: 1px solid var(--line);
+  padding-top: var(--sp-3); }
+table.list tbody tr.spechead:first-child td { border-top: none; }
+table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
+  font-size: var(--fs-s); }
+table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
+table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
-table.jobs tr.untried td { opacity: 0.55; }
-/* One job, in full: facts on the left, values on the right. */
-table.facts { width: auto; margin: 0.6rem 0 1rem; }
-table.facts td { padding: 0.15rem 1rem 0.15rem 0; }
-table.facts .label { color: #777; font-weight: 600; white-space: nowrap; }
-table.facts .pips { display: inline-flex; margin: 0 0 0 0.5rem; vertical-align: middle; }
-.specdesc { white-space: pre-wrap; max-width: 46rem; }
-ul.activity { list-style: none; margin: 0.3rem 0; padding: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
-ul.activity li { padding: 0.12rem 0; border-bottom: 1px solid #8882;
+table.list tr.untried td { opacity: 0.55; }
+.empty { padding: var(--sp-5) var(--sp-3); }
+.listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
+/* Small and quiet: the control sits in front of the spec's own name,
+   which is what a reader is scanning this column for. */
+.fold { color: var(--muted); font-size: var(--fs-s); display: inline-block; width: 1rem; }
+.branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
+  font-weight: 400; font-family: var(--sans); }
+.branch { white-space: nowrap; }
+.pips { display: flex; gap: 3px; }
+.pip { width: 14px; height: 4px; border-radius: 2px; background: var(--line-strong); }
+.pip.past { background: var(--ok); }
+.pip.now { background: var(--accent); }
+
+/* --- rows and forms ----------------------------------------------------- */
+/* "rowrun", "actionform", "mergeform", "mergeoverride", "newspecform",
+   "refused" and "refusal" are what queue-client.ts selects on. They are
+   laid out here and coloured nowhere: a rename breaks the browser code
+   with no type error to catch it. */
+
+.row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.fact { margin: var(--sp-1) 0; }
+.fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
+td form { margin: 0; display: inline-block; }
+.rowrun { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.mergeform { display: inline-block; margin-left: var(--sp-1); }
+.actionform { margin-left: var(--sp-1); }
+.mergeform form { display: inline-block; }
+.more { font-size: var(--fs-s); }
+.more summary { color: var(--muted); cursor: pointer; }
+.more .row { margin-top: var(--sp-2); align-items: flex-end; }
+/* The one form on this page that is not about an existing spec. Shut by
+   default: the list is what people come here for. */
+.newspec { margin: var(--sp-3) 0; }
+.newspec > summary { color: var(--muted); cursor: pointer; }
+.newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
+  flex-wrap: wrap; margin-top: var(--sp-3); }
+.newspecform .refused { flex-basis: 100%; }
+/* The intro is worth having and not worth the top of every load. */
+details.intro { margin: var(--sp-3) 0; }
+details.intro > summary { color: var(--muted); cursor: pointer; }
+details.intro p { margin: var(--sp-2) 0 0; }
+p.intro { margin: 0 0 var(--sp-3); }
+
+/* --- the job page --------------------------------------------------------- */
+
+table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
+table.facts td { padding: 2px var(--sp-4) 2px 0; }
+table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
+table.facts .pips { display: inline-flex; margin-left: var(--sp-2); vertical-align: middle; }
+ul.activity { list-style: none; margin: var(--sp-2) 0; padding: 0;
+  font-family: var(--mono); font-size: var(--fs-s); }
+ul.activity li { padding: 2px 0; border-bottom: 1px solid var(--line);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* One job says four different things. Under plain headings they ran
-   together and a reader scrolled past the one they came for. */
-.tabs { display: flex; flex-wrap: wrap; gap: 0.2rem; margin: 1rem 0 0;
-  border-bottom: 1px solid #8884; }
-.tabs a { text-decoration: none; color: inherit; font-size: 0.92rem;
-  padding: 0.45rem 0.9rem; margin-bottom: -1px; border: 1px solid transparent;
-  border-bottom: none; border-radius: 8px 8px 0 0; }
-.tabs a:hover { background: #8881; }
-.tabs a[aria-current] { font-weight: 700; background: #8881; border-color: #8884; }
-.tabcount { display: inline-block; margin-left: 0.35rem; padding: 0 0.4rem;
-  border-radius: 999px; background: #8883; font-size: 0.75rem; font-weight: 600;
-  color: #666; }
-.tabpanel { padding-top: 0.8rem; }
-.tabpanel > h2:first-child { margin-top: 0.4rem; }
-.pips { display: flex; gap: 3px; margin-top: 0.3rem; }
-.pip { width: 14px; height: 4px; border-radius: 2px; background: #8884; }
-.pip.past { background: #22c55e99; }
-.pip.now { background: #3b82f6; }
-td form { margin: 0; }
-td button { font: inherit; font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 5px;
-  border: 1px solid #8886; background: transparent; color: inherit; cursor: pointer; }
+.tabpanel { padding-top: var(--sp-4); }
+.tabpanel > h2:first-child { margin-top: var(--sp-2); }
+
+/* --- the project overview -------------------------------------------------- */
+
+.proj-row { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; }
+.proj-row.error { border-color: var(--danger); }
+.error-text { color: var(--danger); }
+/* Whether the spec's FOLDER has been archived on disk — a different
+   question from whether a job is in flight for it, which the spec
+   list's own row-state classes answer. They used to share the words
+   "active" and "archived" and mean different things. */
+tr.spec-archived td { color: var(--muted); }
+
 @media (max-width: 40rem) {
   .layout { flex-direction: column; }
-  .layout > nav { flex: none; border-right: none; border-bottom: 1px solid #8884; }
-  .layout > nav li { display: inline-block; margin-right: 0.8rem; }
+  .layout > nav { flex: none; border-right: none; border-bottom: 1px solid var(--line); }
+  .layout > nav li { display: inline-block; margin-right: var(--sp-2); }
+  main { padding: var(--sp-4); }
 }
 `;

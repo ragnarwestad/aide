@@ -60,7 +60,10 @@ function afterMergeNote(text: string): void {
   if (!text || !rows?.parentNode) return;
   const note = document.createElement("p");
   note.id = "installnote";
-  note.className = "refusal";
+  // `refusal` is the selector hook and carries no look of its own;
+  // `rowmsg err` is the component that gives it one. Both, because
+  // neither does the other's job.
+  note.className = "refusal rowmsg err";
   note.textContent = text;
   rows.parentNode.insertBefore(note, rows);
 }

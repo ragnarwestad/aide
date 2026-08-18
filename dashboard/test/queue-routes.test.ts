@@ -430,7 +430,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     const html = await (await fetch(`${base}/`, auth)).text();
     // Marked done on the row, and still submittable.
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -454,7 +454,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     // together — the pair every spec here is actually started as.
     expect(line).toContain('value="analyze" checked');
     expect(line).toContain('value="review-plan" checked');
-    expect(html).toContain('<span class="state s-not-started">not started</span>');
+    expect(html).toContain('<span class="badge b-idle">not started</span>');
   });
 
   test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
@@ -482,9 +482,9 @@ describe("GET / (the spec list, HTML)", () => {
     // checkboxes tells the reader nothing. They now sit on the spec's
     // own row, behind a "more" disclosure where they would crowd it.
     const line = specHead(html, "81-queue-and-runner");
-    expect(line).toContain("<summary>more</summary>");
+    expect(line).toContain(">more</summary>");
     expect(line).toContain("stop for approval between steps");
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Run again</button>");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
@@ -521,7 +521,7 @@ describe("GET / (the spec list, HTML)", () => {
     const line = specHead(rows, "81-queue-and-runner");
     expect(line).toContain('<form method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Run again</button>");
   });
 
   test("the gate checkbox decides: unticked runs straight through", async () => {
@@ -656,7 +656,7 @@ describe("every row answers for itself", () => {
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(rows).toContain('class="state s-queued"');
+    expect(rows).toContain('class="badge b-idle"');
     expect(rows).toContain("queued");
   });
 });
@@ -687,7 +687,7 @@ describe("the step boxes on a row follow that spec", () => {
     // analyze and review-plan are done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
     expect(line).toMatch(/data-phase="implement"[^]*?value="implement" checked/);
-    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(line).toContain('class="phase done" data-phase="analyze"');
   });
 
   test("a spec nothing has run yet offers the analyze/review-plan pair (criterion 1a)", async () => {
@@ -700,7 +700,7 @@ describe("the step boxes on a row follow that spec", () => {
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
-    expect(line).not.toContain('class="stepbox isdone"');
+    expect(line).not.toContain('class="phase done"');
   });
 
   test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
@@ -713,7 +713,7 @@ describe("the step boxes on a row follow that spec", () => {
     );
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
-    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(line).toContain('class="phase done" data-phase="analyze"');
     expect(line).not.toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
   });
@@ -804,7 +804,8 @@ describe("what the queue has run counts too", () => {
     html = await (await fetch(`${second.base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).not.toMatch(/value="implement" checked/);
     expect(html).toMatch(/value="archive" checked/);
-    expect(html).toContain('class="stepbox isdone" data-phase="implement"');
+    // Queued again on top of a finished one: the chip says both.
+    expect(html).toMatch(/class="phase[^"]*done" data-phase="implement"/);
   });
 });
 
@@ -1005,17 +1006,17 @@ describe("the job list sorts and filters", () => {
 
   test("one table holds every job — no fixed section above it", () => {
     const html = page([row("a", { state: "running" }), row("b")]);
-    expect(html.match(/<table class="jobs"/g)).toHaveLength(1);
+    expect(html.match(/<table class="list"/g)).toHaveLength(1);
     expect(html).toContain("a-spec");
     expect(html).toContain("b-spec");
   });
 
   test("the state filter is offered with a count on each choice", () => {
     const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
-    expect(html).toMatch(/>All <span class="tabcount">3<\/span>/);
-    expect(html).toMatch(/>Active <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Problems <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>All · 3</);
+    expect(html).toMatch(/>Active · 1</);
+    expect(html).toMatch(/>Done · 1</);
+    expect(html).toMatch(/>Problems · 1</);
   });
 
   test("asking for active work leaves the finished jobs out", () => {
@@ -1161,9 +1162,9 @@ describe("filtering and sorting work on specs, not jobs", () => {
       job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
       job("b1", "bb-spec", { state: "running" }),
     ]);
-    expect(html).toMatch(/>All <span class="tabcount">2<\/span>/);
-    expect(html).toMatch(/>Active <span class="tabcount">1<\/span>/);
-    expect(html).toMatch(/>Done <span class="tabcount">1<\/span>/);
+    expect(html).toMatch(/>All · 2</);
+    expect(html).toMatch(/>Active · 1</);
+    expect(html).toMatch(/>Done · 1</);
   });
 
   test("sorting by cost uses the spec's total, not one job's (criterion 10)", () => {
@@ -2066,11 +2067,11 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
     analysedSpec(dir);
     const line = specHead(await (await fetch(`${base}/`, auth)).text(), "81-queue-and-runner");
-    expect(line).not.toContain('class="stepbox isdone" data-phase="analyze"');
-    expect(line).not.toContain('class="stepbox isdone" data-phase="review-plan"');
+    expect(line).not.toContain('class="phase done" data-phase="analyze"');
+    expect(line).not.toContain('class="phase done" data-phase="review-plan"');
     // implement is untouched by this check: its own done-mark comes
     // from 4-status.md, and nothing here blocks running it.
-    expect(line).toContain('class="stepbox isdone" data-phase="implement"');
+    expect(line).toContain('class="phase done" data-phase="implement"');
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
   });
@@ -2090,8 +2091,8 @@ describe("a description newer than the analysis is shown on the row", () => {
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
     const line = specHead(html, "81-queue-and-runner");
-    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
-    expect(line).toContain('class="stepbox isdone" data-phase="review-plan"');
+    expect(line).toContain('class="phase done" data-phase="analyze"');
+    expect(line).toContain('class="phase done" data-phase="review-plan"');
   });
 
   test("a description older than the analysis changes nothing (criterion 4)", async () => {
@@ -2102,7 +2103,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });
 
   // A spec analysed by hand leaves no commit to compare against, and a
@@ -2116,7 +2117,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });
 });
 

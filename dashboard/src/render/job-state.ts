@@ -2,7 +2,7 @@
 // words. Both the list and the single-job page need this, and neither
 // owns it.
 
-import { esc } from "./html.ts";
+import { badge, stepLabel, stepLabels, type BadgeVariant } from "./components.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every
@@ -87,9 +87,38 @@ export function stateLabel(r: QueueRowView): string {
 // A wall of identical grey rows hides the one thing you came to see.
 // Colour carries the state; the label still says it in words, so the
 // colour is never the only signal.
+//
+// Ten states, six badge variants. Five of them had an example on the
+// design sheet; the other four are decided here and asserted by name in
+// `test/design-system.test.ts`, because a mapping nobody drew is a
+// mapping nobody checked:
+//
+//   stopped     — a cap-stop is a common, healthy outcome (see
+//                 `stateLabel` above), so it takes the same amber as
+//                 waiting: notice, not alarm.
+//   failed      — a real failure, so danger.
+//   interrupted — grouped with failed, as it always was.
+//   cancelled   — a deliberate ending someone chose, not a failure.
+export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
+  queued: "idle",
+  running: "running",
+  "awaiting-approval": "waiting",
+  done: "done",
+  stopped: "waiting",
+  failed: "refused",
+  cancelled: "idle",
+  interrupted: "refused",
+};
+
 export function stateChip(r: QueueRowView): string {
-  return `<span class="state s-${esc(r.state)}">${esc(stateLabel(r))}</span>`;
+  return badge(BADGE_VARIANT[r.state], stateLabel(r));
 }
+
+/** A spec that exists and has never been run. It is this page's own
+ *  pseudo-state, so it has no `QueueRowView` to hand `stateChip` — but
+ *  it must render through the same component, or the one row with no
+ *  job would be the one row with hand-written markup. */
+export const notStartedChip = (): string => badge("idle", "not started");
 
 /** Which states mean "still going". The list page's "Active" filter is
  *  built from this rather than the other way round: a state added to one
@@ -114,7 +143,9 @@ export function currentStep(r: QueueRowView): string {
  *  state already says everything, and naming the step it stopped after
  *  reads as though that step were still going. */
 export function activityLabel(r: QueueRowView): string {
-  return r.state === "awaiting-approval" ? stateLabel(r) : `${currentStep(r)} ${stateLabel(r)}`;
+  return r.state === "awaiting-approval"
+    ? stateLabel(r)
+    : `${stepLabel(currentStep(r))} ${stateLabel(r)}`;
 }
 
 // A branch link says where the work IS, never whether it landed, so a
@@ -135,8 +166,8 @@ export function activityLabel(r: QueueRowView): string {
 // there is no activity to report.
 export function unmergedBadge(b: BranchView, activity?: string): string {
   if (b.merged) return "";
-  if (activity) return ` <span class="chip running">${esc(activity)}</span>`;
-  return ` <span class="chip ready">ready to merge</span>`;
+  if (activity) return ` ${badge("running", activity)}`;
+  return ` ${badge("ready", "ready to merge")}`;
 }
 
 /** The badge's second argument, worked out from the job that owns the
@@ -165,7 +196,9 @@ export function nextActionHint(r: QueueRowView | undefined, openBranch = false):
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
   if (r.state === "queued" || r.state === "running") {
     const rest = r.steps.slice(r.stepIndex + 1);
-    return rest.length ? `${activityLabel(r)} — ${rest.join(", ")} to follow` : activityLabel(r);
+    return rest.length
+      ? `${activityLabel(r)} — ${stepLabels(rest).join(", ")} to follow`
+      : activityLabel(r);
   }
   if (r.state === "done") {
     return openBranch ? "done — the branch is waiting to be merged" : "done — nothing waiting on you";
@@ -173,5 +206,5 @@ export function nextActionHint(r: QueueRowView | undefined, openBranch = false):
   // failed, stopped, cancelled, interrupted: the chip beside this line
   // already says which of the four it was, and the row's own error text
   // says why. What is missing is what to do about it.
-  return `press Run to try ${currentStep(r)} again`;
+  return `press Run to try ${stepLabel(currentStep(r))} again`;
 }

@@ -1,0 +1,48 @@
+// The Aide mark: four bars, one tone, darkest to lightest — analyze,
+// review-plan, implement, archive. The order is carried by the colour,
+// so the mark reads as a direction and not just as four shapes.
+//
+// Everything here is a STRING, for the same reason css.ts is a string:
+// the generated site is published as plain files by rsync, and a page
+// that references /aide-mark.svg is a page that breaks the moment it is
+// opened from a folder. Inline SVG in the nav, data URIs for the icons,
+// no second request.
+
+const LIGHT = ["#6B1D0C", "#A8331A", "#D8492A", "#E8A491"];
+const DARK = ["#8E2A12", "#C33E1F", "#F0663F", "#F5B7A3"];
+
+// Bars are 9px wide on the 64 grid, 10px below 32px — otherwise the
+// lightest one disappears. That is the only permitted deviation.
+function bars(c: string[], w: number): string {
+  const r = w / 2;
+  return (
+    `<rect x="10" y="26" width="${w}" height="12" rx="${r}" fill="${c[0]}"/>` +
+    `<rect x="24" y="20" width="${w}" height="24" rx="${r}" fill="${c[1]}"/>` +
+    `<rect x="38" y="14" width="${w}" height="36" rx="${r}" fill="${c[2]}"/>` +
+    `<rect x="52" y="26" width="${w}" height="12" rx="${r}" fill="${c[3]}"/>`
+  );
+}
+
+function svg(c: string[], w: number): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${bars(c, w)}</svg>`;
+}
+
+const dataUri = (c: string[]) => `data:image/svg+xml,${encodeURIComponent(svg(c, 10))}`;
+
+/** The mark at nav size, both themes. The dark copy is hidden by
+ *  default and swapped by the media query in css.ts — `content: url()`
+ *  would need a file, and there is no file. */
+export const MARK = `<span class="mark" aria-hidden="true">` +
+  `<span class="mark-l">${svg(LIGHT, 9)}</span>` +
+  `<span class="mark-d">${svg(DARK, 9)}</span>` +
+  `</span>`;
+
+/** Goes in <head>. Two icons with fixed fills rather than one with a
+ *  prefers-color-scheme block inside it: favicon tooling strips <style>
+ *  from SVGs, and the mark then renders as four black bars. */
+export const ICON_LINKS =
+  `<link rel="icon" href="${dataUri(LIGHT)}">\n` +
+  `<link rel="icon" href="${dataUri(DARK)}" media="(prefers-color-scheme: dark)">`;
+
+/** The wordmark, for the top of the nav. */
+export const WORDMARK = `<a class="brand" href="/">${MARK}<span>a<i>i</i>de</span></a>`;

@@ -16,6 +16,10 @@
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [Branches, and merging them](#branches-and-merging-them)
+- [How it looks (spec 102)](#how-it-looks-spec-102)
+  - [Tokens](#tokens)
+  - [Components](#components)
+  - [The guard](#the-guard)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -494,6 +498,66 @@ something in flight; sorting by cost sorts on the sum. A step outside
 the four (`explore`, `create`, `manifest` — valid steps the form does
 not offer) is appended after them rather than dropped, so a run is never
 invisible (spec 86).
+
+## How it looks (spec 102)
+
+One design foundation, and nothing outside it. Before spec 102 the
+stylesheet was the sum of one small addition per spec: ten font sizes
+with no scale, nine greys, blue/amber/red from three unrelated
+palettes, and a class per control per spec (`.stepbox`, `.chip`,
+`.state`, `.pip`, `.tick`, …) — a button in three versions depending on
+which form it sat in.
+
+### Tokens
+
+`src/render/css.ts` declares every colour, type size, space and radius
+ONCE, as CSS custom properties, between the `tokens:start` and
+`tokens:end` sentinels — and again inside
+`@media (prefers-color-scheme: dark)`, where the same ramp is read from
+the other end. Every rule below the block uses `var(--…)`; nothing else
+in the file may contain a literal.
+
+The palette is the brand's: warm neutrals (paper `--bg`, card
+`--surface`, ink `--text`), vermilion `--accent`, and `--danger` set to
+the darkest bar of the mark rather than to a shade of the accent — so
+"running" and "refused" never rest on hue alone. The refused badge is
+also the only live one with a visible border, and the row that carries
+it carries a `.rowmsg.err` with a warning mark beside the reason.
+
+### Components
+
+`src/render/components.ts` is the one place markup for them is built:
+
+| Component | Variants |
+|---|---|
+| `btn()` | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small` |
+| `badge()` | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done` |
+| `phaseChip()` | `default`, `checked`, `done`, `busy`, `off` (with the reason in `title`) |
+| `rowMessage()` | `err`, `warn`, `info` |
+| `field()` | label above any control, one height and one radius |
+| `filterPills()` | "Label · count", the chosen one marked with `aria-current` |
+
+`STEP_LABELS` lives there too: the `review-plan` step is SHOWN as
+`review` everywhere a reader sees it, while `data-phase`, the checkbox
+`value`, the queue step and the skill all keep the technical name.
+
+The brand is `src/render/brand.ts` — the mark, the wordmark and the
+favicons, all inline SVG and data URIs, because the generated site is
+published as plain files and has to work opened from a folder.
+
+### The guard
+
+`test/css-token-guard.test.ts` fails the suite on a colour literal or
+an off-scale font size anywhere in `css.ts` outside the token block,
+and on any CSS class a render file emits that is not one of the
+components, one of the named `queue-client.ts` selector hooks
+(`rowrun`, `actionform`, `mergeform`, `mergeoverride`, `refused`,
+`refusal`, `newspec`, `newspecform`) or one of the short list of
+structural names it writes out in full.
+
+So a spec that wants a look it cannot build from the tokens has to
+change the TOKENS — visibly, in one block — rather than add a colour
+beside them.
 
 ## Deploying
 
