@@ -1080,6 +1080,20 @@ describe("the job list sorts and filters", () => {
     expect(html).toMatch(/aria-sort="descending"/);
   });
 
+  // The direction was a text glyph (▴/▾) glued to the label: faint, and
+  // no larger than the letters. It is an SVG chevron now, turned by a
+  // class, and the header link is a control with a hover flat.
+  test("the sort direction is a chevron, not a glyph", () => {
+    const desc = page([row("a")], { sort: "cost" });
+    expect(desc).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*>Cost<svg/);
+    expect(desc).not.toContain("▾");
+    const asc = page([row("a")], { sort: "cost", dir: "asc" });
+    expect(asc).toMatch(/<a class="sortlink on asc"[^>]*>Cost<svg/);
+    expect(asc).not.toContain("▴");
+    // An unsorted column has the link, no chevron.
+    expect(desc).toMatch(/<a class="sortlink"[^>]*>Spec<\/a>/);
+  });
+
   test("a filter that matches nothing says so instead of showing a bare table", () => {
     const html = page([row("a")], { state: "active" });
     // "spec", not "job": the table has been one line per spec since

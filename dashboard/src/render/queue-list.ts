@@ -524,13 +524,14 @@ function sortableHead(f: QueueFilter): string {
     const on = key === sort;
     // Clicking the column you are already sorted by turns it round.
     const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
-    // The glyph, not a span with a colour of its own: the link is
-    // already the accent, and the arrow is part of its label.
-    const mark = on ? ` ${dir === "asc" ? "▴" : "▾"}` : "";
+    // The chevron only on the sorted column; ascending turns it by a
+    // class rather than swapping a glyph, same as the fold control.
+    const mark = on ? CHEVRON : "";
+    const linkCls = on ? (dir === "asc" ? "sortlink on asc" : "sortlink on") : "sortlink";
     const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
       `<th class="${cls}"${aria}>` +
-      `<a data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
+      `<a class="${linkCls}" data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
       `${esc(label)}${mark}</a></th>`
     );
   };

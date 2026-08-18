@@ -220,6 +220,14 @@ table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); 
 table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
   vertical-align: middle; }
 table.list thead a { color: var(--muted); }
+/* A column header is a control: a flat that shows on hover, and on the
+   sorted column a chevron that the ascending state turns round. */
+.sortlink { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px;
+  margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
+.sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+.sortlink.on { color: var(--text); font-weight: 600; }
+.sortlink svg { transition: transform 120ms ease; }
+.sortlink.asc svg { transform: rotate(180deg); }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
