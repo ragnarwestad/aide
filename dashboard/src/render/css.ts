@@ -174,7 +174,10 @@ table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
   border-radius: 5px; border: 1px solid #8886; background: transparent;
   color: inherit; }
 .newspec input[name="title"] { min-width: 18rem; }
-.newspec textarea { min-width: 24rem; resize: vertical; }
+/* Project and Title share a line; the description gets a line of its
+   own below them, and the button follows it. */
+.newspec .field.wide { flex-basis: 100%; max-width: 48rem; }
+.newspec textarea { width: 100%; resize: vertical; }
 .newspec button { font-weight: 600; background: #8882; cursor: pointer; }
 .newspec button:hover { background: #8883; }
 /* A phase nobody has run yet still holds its place — that is what makes

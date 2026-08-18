@@ -749,7 +749,7 @@ function newSpecForm(opts: QueuePageOptions): string {
     `<span class="field"><span class="fieldlabel">Title</span>` +
     `<input type="text" name="title" maxlength="120" required ` +
     `placeholder="what the spec is about, in a few words"></span>` +
-    `<span class="field"><span class="fieldlabel">Description</span>` +
+    `<span class="field wide"><span class="fieldlabel">Description</span>` +
     `<textarea name="description" rows="4" maxlength="2000" required ` +
     `placeholder="the problem, and what you want instead"></textarea></span>` +
     `<button type="submit">Create</button></form></details>`
