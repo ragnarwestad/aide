@@ -811,18 +811,24 @@ suffix=""
 # make the labels read as job ids, `isMerged` answer false forever, and
 # Merge fail in a directory that no longer exists.
 repos_json="[]"
-changed_per_root=()   # parallel to roots — bash 3.2 has no associative arrays
+# Parallel to roots (bash 3.2 has no associative arrays): the HEAD this
+# loop ends on, whether it moved because this loop committed or because
+# the step committed on its own — archive does (spec 98). The push
+# decision below reads THIS, never `changed`, which only ever counted
+# the files this loop found uncommitted.
+head_after_per_root=()
 i=0
 for root in "${roots[@]}"; do
   wt="${work_roots[$i]}"
   changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
-  changed_per_root+=("$changed")
   if [ "$changed" -gt 0 ]; then
     git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
     git -C "$wt" commit -q -m "Run /aide-$command_name for $spec_folder (headless)$suffix" >/dev/null 2>&1 || true
   fi
+  head_after="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
+  head_after_per_root+=("$head_after")
   repos_json="$(jq -c --arg root "$root" --arg worktree "$wt" --arg before "${head_before[$i]}" \
-    --arg after "$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")" \
+    --arg after "$head_after" \
     --argjson changed "$changed" \
     '. + [{root:$root, worktree:$worktree, headBefore:$before, headAfter:$after, changedFiles:$changed}]' <<<"$repos_json")"
   i=$(( i + 1 ))
@@ -853,16 +859,22 @@ note_push_error() {
 
 branch_urls_json="[]"
 if [ "$push_mode" != "none" ]; then
-  # Only a repo that CHANGED is pushed. An analyze step touches nothing
-  # in the project, and publishing an empty branch there produced a
-  # compare page with no diff on it — which is what a reader clicking
-  # the link actually got.
+  # A repo is pushed when its HEAD MOVED during the run — whether the
+  # commit loop above moved it or the step committed on its own. An
+  # analyze step touches nothing in the project, so its HEAD does not
+  # move and it still gets no branch: publishing an empty branch there
+  # produced a compare page with no diff on it, which is what a reader
+  # clicking the link actually got. Gating this on `changedFiles`
+  # instead left spec 92's archive branch on the serving host only — the
+  # step had committed its own work, so the loop found a clean tree and
+  # called the repo unchanged while two real commits sat on the branch.
   i=0
   for root in "${roots[@]}"; do
-    changed="${changed_per_root[$i]:-0}"
     wt="${work_roots[$i]}"
+    head_was="${head_before[$i]}"
+    head_is="${head_after_per_root[$i]}"
     i=$(( i + 1 ))
-    [ "$changed" -gt 0 ] || continue
+    [ "$head_was" != "$head_is" ] || continue
     if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
       note_push_error "no origin remote in $root"
       continue

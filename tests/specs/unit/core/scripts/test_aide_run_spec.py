@@ -748,6 +748,53 @@ def test_a_push_that_cannot_reach_its_remote_is_recorded_not_fatal(runner, works
     assert out["pushError"], "a push that did not happen must not be silent"
 
 
+def self_committing_claude(fake_claude, workspace):
+    """A step that commits its own work before it finishes — the way
+    /aide-archive does. The run's own commit loop then finds a clean
+    tree, and that must not read as "nothing happened" (spec 98).
+
+    Only the written file is staged: the linked `deps` dependency
+    directory is a symlink, which `/deps/` in .gitignore does not match,
+    and staging it would put the main checkout's absolute path into the
+    commit.
+    """
+    return fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "written and committed by the step" > "$PWD/self-committed.txt"\n'
+        + "git add self-committed.txt\n"
+        + 'git commit -q -m "the step committed this itself"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_repo_the_step_committed_itself_is_still_pushed(runner, workspace, fake_claude, origin):
+    """Spec 92's archive step committed its own two commits, the run's
+    commit loop found a clean tree, counted the repo as unchanged and
+    pushed nothing — the branch existed on the serving host only. HEAD
+    moved, so the branch belongs on origin, whoever made the commit."""
+    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    roots = {r["root"]: r for r in out["repos"]}
+    project = roots[str(workspace["project"])]
+    assert project["changedFiles"] == 0, "the step left the tree clean — the loop had nothing to commit"
+    assert project["headBefore"] != project["headAfter"], "but HEAD moved"
+    assert branch in git(origin["project"], "branch", "--list", branch), "so the branch must reach origin"
+
+
+def test_a_repo_the_step_committed_itself_gets_its_compare_link(
+    runner, workspace, fake_claude, origin
+):
+    """The link is what a reader opens; a pushed branch nobody is told
+    about is the same silence in a different place."""
+    rc, out, _ = run(runner, workspace, self_committing_claude(fake_claude, workspace), push="branch")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    url = f"https://github.com/ragnarwestad/aide/compare/main...{branch}"
+    assert url in {e["url"] for e in out["branchUrls"]}
+    assert out["branchUrl"] == url
+
+
 def test_an_unknown_push_mode_is_refused_before_anything_starts(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, push="everywhere")
