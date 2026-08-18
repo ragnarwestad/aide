@@ -95,9 +95,10 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   one builds on (comma-separated; each identifier is either a bare number
   or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
   resolver, which also takes `TODO-NN` and a JIRA key). `aide-run-spec`
-  refuses to start while any named spec's `aide/<NN-slug>` branch still
-  exists on origin, because a run cuts its branch from origin/main and
-  would otherwise build on a main without that work
+  refuses to start while any named spec's `aide/<NN-slug>` branch on
+  origin has commits not on the default branch — unmerged, not merely
+  present — because a run cuts its branch from origin/main and would
+  otherwise build on a main without that work
 
 ---
 

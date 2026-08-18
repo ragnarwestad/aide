@@ -1807,8 +1807,22 @@ def set_depends_on(workspace, value, folder=None):
 
 def leave_branch_on_origin(workspace, branch, key="specs"):
     """What a previous aide-run-spec leaves behind: the branch on origin,
-    with no local branch in this checkout."""
+    with no local branch in this checkout. It points at HEAD, so it is
+    fully merged — see leave_unmerged_branch_on_origin for the other case."""
     git(workspace[key], "push", "-q", "origin", f"HEAD:refs/heads/{branch}")
+
+
+def leave_unmerged_branch_on_origin(workspace, branch, key="specs"):
+    """A branch on origin with a commit main does not have: work that is
+    still waiting to be merged."""
+    repo = workspace[key]
+    git(repo, "checkout", "-q", "-b", "tmp-unmerged")
+    (repo / "unmerged.txt").write_text("not on main\n")
+    git(repo, "add", "unmerged.txt")
+    git(repo, "commit", "-qm", "work still to merge")
+    git(repo, "push", "-q", "origin", f"HEAD:refs/heads/{branch}")
+    git(repo, "checkout", "-q", "main")
+    git(repo, "branch", "-q", "-D", "tmp-unmerged")
 
 
 def run_traced(runner, workspace, claude, tmp_path, **kwargs):
@@ -1848,7 +1862,7 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     runner, workspace, fake_claude, local_origins
 ):
     add_spec(workspace, "80-dependency")
-    leave_branch_on_origin(workspace, "aide/80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
     claude = fake_claude("exit 1")  # would fail loudly if it were called
@@ -1863,6 +1877,26 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     assert "aide/80-dependency" in out["error"]
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
     assert not workspace["wtbase"].exists(), "and leave no worktree behind"
+
+
+def test_a_dependency_whose_branch_is_merged_but_not_yet_deleted_lets_the_run_proceed(
+    runner, workspace, fake_claude, local_origins
+):
+    """Merged is what the guard is FOR; deleted is a tidy-up. The Merge
+    button deletes the branch after merging (spec 99), but an archive
+    step re-creates it and merges it again minutes later — 97 and 102
+    were each refused against a dependency whose branch was fully on
+    main. A branch with no commits beyond origin/main is satisfied."""
+    add_spec(workspace, "80-dependency")
+    # The dependency's branch points AT origin's main: everything on it
+    # is merged, only the name is left.
+    git(workspace["specs"], "push", "-q", "origin", "main")
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out.get("error")
+    assert out["terminalReason"] == "completed"
 
 
 def test_a_dependency_whose_branch_is_gone_lets_the_run_proceed(
@@ -1881,7 +1915,7 @@ def test_the_full_folder_name_resolves_as_well_as_the_number(
     runner, workspace, fake_claude, local_origins
 ):
     add_spec(workspace, "80-dependency")
-    leave_branch_on_origin(workspace, "aide/80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "`80-dependency`")
 
     rc, out, _ = run(runner, workspace, fake_claude("exit 1"))

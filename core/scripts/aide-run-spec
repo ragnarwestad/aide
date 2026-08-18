@@ -279,41 +279,6 @@ resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
 # Best-effort, like every other network call in this script (see --pull):
 # an origin that cannot be reached is not itself a reason to refuse, so
 # the run proceeds exactly as it would have before this guard existed.
-dependency_branch_on_origin() {
-  local branch="$1" root
-  for root in "${roots[@]}"; do
-    git -C "$root" ls-remote --exit-code --heads origin "refs/heads/$branch" \
-      >/dev/null 2>&1 && return 0
-  done
-  return 1
-}
-
-# Guarded like every other library call here: the library is sourced
-# conditionally, and an unguarded call would silently no-op under
-# `set -uo pipefail` rather than failing loudly.
-if declare -f aide_spec_dependencies >/dev/null 2>&1; then
-  for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
-    resolve_dependency_folder "$dep_id"
-    [ -n "$dep_folder" ] \
-      || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
-    [ "$dep_folder" = "$spec_folder" ] \
-      && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
-    [ "$dep_archived" = "yes" ] && continue
-    dep_branch="aide/$dep_folder"
-    dependency_branch_on_origin "$dep_branch" \
-      && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch still exists on origin (not merged yet — merge it first)"
-  done
-fi
-
-for root in "${roots[@]}"; do
-  if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
-    label="project"
-    [ "$root" = "$specs_repo" ] && label="specs"
-    [ "$root" != "$project_root" ] && [ "$root" != "$specs_repo" ] && label="extra project"
-    refuse "the $label tree is dirty: $root"
-  fi
-done
-
 # The default branch, not whatever a previous run left checked out. A
 # job that started on the last job's spec branch would pull that branch
 # (whose upstream may be gone after a merge) and base its work on stale
@@ -330,6 +295,57 @@ default_branch() {
   done
   git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null
 }
+
+# "Unmerged" is the test, not "exists": the Merge button deletes a
+# branch after merging (spec 99), but an archive step re-creates it and
+# merges it again minutes later, and 97 and 102 were each refused
+# against a dependency that was fully on main. So the branch's tip is
+# fetched into a private ref and compared with origin's default branch;
+# a branch with no commit beyond it is merged, whatever its name says.
+dependency_branch_unmerged_on_origin() {
+  local branch="$1" root base tip
+  for root in "${roots[@]}"; do
+    tip="$(git -C "$root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null | cut -f1)"
+    [ -n "$tip" ] || continue
+    base="$(default_branch "$root")"
+    git -C "$root" fetch -q origin "refs/heads/$base:refs/aide-dep/base" \
+      "refs/heads/$branch:refs/aide-dep/dep" >/dev/null 2>&1 || return 0
+    if [ "$(git -C "$root" rev-list --count refs/aide-dep/base..refs/aide-dep/dep 2>/dev/null)" != "0" ]; then
+      git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
+      git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
+      return 0
+    fi
+    git -C "$root" update-ref -d refs/aide-dep/base >/dev/null 2>&1 || true
+    git -C "$root" update-ref -d refs/aide-dep/dep >/dev/null 2>&1 || true
+  done
+  return 1
+}
+
+# Guarded like every other library call here: the library is sourced
+# conditionally, and an unguarded call would silently no-op under
+# `set -uo pipefail` rather than failing loudly.
+if declare -f aide_spec_dependencies >/dev/null 2>&1; then
+  for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
+    resolve_dependency_folder "$dep_id"
+    [ -n "$dep_folder" ] \
+      || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+    [ "$dep_folder" = "$spec_folder" ] \
+      && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+    [ "$dep_archived" = "yes" ] && continue
+    dep_branch="aide/$dep_folder"
+    dependency_branch_unmerged_on_origin "$dep_branch" \
+      && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch has commits not on origin's default branch (not merged yet — merge it first)"
+  done
+fi
+
+for root in "${roots[@]}"; do
+  if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
+    label="project"
+    [ "$root" = "$specs_repo" ] && label="specs"
+    [ "$root" != "$project_root" ] && [ "$root" != "$specs_repo" ] && label="extra project"
+    refuse "the $label tree is dirty: $root"
+  fi
+done
 
 # The main checkout is put back ON its default branch and never taken off
 # it again. The switch is NOT a courtesy: a checkout left on `aide/<spec>`
