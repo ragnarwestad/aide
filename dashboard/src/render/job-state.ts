@@ -144,3 +144,34 @@ export function unmergedBadge(b: BranchView, activity?: string): string {
  *  counts as busy any more than on what to call it. */
 export const branchActivity = (r: QueueRowView): string | undefined =>
   inFlight(r) ? activityLabel(r) : undefined;
+
+/** The one line a reader should be able to stop at: what is going on,
+ *  and what the next click is. Everything else on the row answers a
+ *  narrower question — the pips say what has run, the chip says the
+ *  state, the badges say what is unmerged — and a reader had to
+ *  assemble the answer from all of them.
+ *
+ *  Built from `activityLabel`/`currentStep` rather than from new
+ *  literals, for the same reason those exist: the same job must not be
+ *  worded one way in the chip and another way here. It says nothing the
+ *  row does not already contain — it says it in one place, as a
+ *  sentence.
+ *
+ *  `openBranch` is the spec's, not the job's: whether anything this spec
+ *  pushed is still sitting unmerged. A finished job with nothing left
+ *  out must not be told to merge something. */
+export function nextActionHint(r: QueueRowView | undefined, openBranch = false): string {
+  if (!r) return "never run — tick a phase and press Run";
+  if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
+  if (r.state === "queued" || r.state === "running") {
+    const rest = r.steps.slice(r.stepIndex + 1);
+    return rest.length ? `${activityLabel(r)} — ${rest.join(", ")} to follow` : activityLabel(r);
+  }
+  if (r.state === "done") {
+    return openBranch ? "done — the branch is waiting to be merged" : "done — nothing waiting on you";
+  }
+  // failed, stopped, cancelled, interrupted: the chip beside this line
+  // already says which of the four it was, and the row's own error text
+  // says why. What is missing is what to do about it.
+  return `press Run to try ${currentStep(r)} again`;
+}

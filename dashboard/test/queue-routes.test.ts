@@ -2473,6 +2473,63 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(res.status).toBe(409);
   });
 
+  // Spec 101: the page stopped navigating on a refusal, so the row it
+  // belongs to is now picked out from the JSON body rather than from a
+  // redirect the server built. Merge already said which spec; Run and
+  // approve said only why, which left three of the four actions with no
+  // row to land on.
+  test("a refused Run says which spec it was for, to a JSON caller too", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      body: JSON.stringify({ ...JOB, steps: ["nonsense"] }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ spec: SPEC });
+  });
+
+  test("a refused approve says which spec it was for, to a JSON caller too", async () => {
+    const { mirror, id } = await seededJob("running");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const res = await fetch(`${base}/api/queue/${id}/approve`, {
+      method: "POST",
+      headers: { accept: "application/json", "x-aide-token": TOKEN },
+    });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ spec: SPEC, error: "cannot approve a running job" });
+  });
+
+  // Criterion 9: the script above these forms is an enhancement, never
+  // the mechanism. A browser with JavaScript off posts the form itself
+  // and must still get the 303 back to the list.
+  test("a form post with no JSON accept header still gets its 303", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const run = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
+    });
+    expect(run.status).toBe(303);
+    const id = (JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as { id: string }[])[0]!.id;
+    const cancelled = await fetch(`${base}/api/queue/${id}/cancel`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ "view.state": "active" }),
+    });
+    expect(cancelled.status).toBe(303);
+    expect(cancelled.headers.get("location")).toContain("state=active");
+    const created = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ project: "aide", title: "", description: "" }),
+    });
+    expect(created.status).toBe(303);
+  });
+
   test("a branch deletion that failed is reported beside the merge (criterion 4)", async () => {
     const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     const run = async (_dir: string, args: string[]) => {

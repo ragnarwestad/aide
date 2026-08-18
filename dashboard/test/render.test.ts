@@ -811,7 +811,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("j2", "implement", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
-    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel">/g)).toHaveLength(1);
+    expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(1);
     // Approve/cancel is the SPEC's one action and belongs on the header —
     // as, since spec 94, does the form that runs the spec's phases. A
     // phase line is read-only.
@@ -976,7 +976,7 @@ describe("a spec's row runs its own phases", () => {
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
   const box = (line: string, step: string) =>
-    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}">.*?</label>`))?.[0] ?? "";
+    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
   test("done phases are marked and left unticked; the next one is pre-ticked (criterion 1)", () => {
     const html = rows(
@@ -1513,14 +1513,14 @@ describe("every action form carries the current view (criterion 7)", () => {
   test("the Cancel form sends them too (criterion 7)", () => {
     const running = row({ id: "j1", specFolder: "99-x", state: "running" });
     const line = head(rows([running], [target("99-x")], { filter: { state: "active" } }), "99-x");
-    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel">.*?<\/form>/)![0];
+    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.state" value="active">');
   });
 
   test("the Approve form sends them too (criterion 7)", () => {
     const waiting = row({ id: "j1", specFolder: "99-x", state: "awaiting-approval" });
     const line = head(rows([waiting], [target("99-x")], { filter: { sort: "cost" } }), "99-x");
-    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/approve">.*?<\/form>/)![0];
+    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/approve"[^>]*>.*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.sort" value="cost">');
   });
 
@@ -1602,5 +1602,199 @@ describe("spec 100: the list page's own nav entry", () => {
     expect(html).toContain('<a class="current" href="/">Specs</a>');
     expect(html).not.toContain('href="/specs"');
     expect(html).toContain('<a href="projects.html">Overview</a>');
+  });
+});
+
+// --- spec 101: one pass over the page as a whole -----------------------------
+
+// The page was built one row-feature at a time and never looked at
+// whole. Three of the six complaints are render-level: a disabled box
+// that looks live, a job whose later steps read as free while it holds
+// them, and an intro paragraph standing between the title and the list
+// on every load.
+describe("spec 101: a busy job holds every step it was queued with (criteria 1-3)", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
+    renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  const box = (line: string, step: string) =>
+    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+
+  /** One job holding two steps — the shape every spec here is actually
+   *  started as (`analyze` + `review-plan` as one gated job). */
+  const pair = (state: QueueRowView["state"], stepIndex = 0): QueueRowView =>
+    row({
+      specFolder: "101-specs-page-ui-pass",
+      steps: ["analyze", "review-plan"],
+      stepIndex,
+      state,
+    });
+
+  const line = (r: QueueRowView) =>
+    head(rows([r], [target("101-specs-page-ui-pass")]), "101-specs-page-ui-pass");
+
+  test("a later step of the running job is disabled too, not only the one in flight", () => {
+    const l = line(pair("running"));
+    // The server would refuse a second job naming EITHER of these
+    // (`clashing()` tests the whole job), so the page must not offer
+    // one of them as available.
+    expect(box(l, "analyze")).toContain("disabled");
+    expect(box(l, "review-plan")).toContain("disabled");
+    // A step the job never held stays offerable.
+    expect(box(l, "implement")).not.toContain("disabled");
+    expect(box(l, "archive")).not.toContain("disabled");
+  });
+
+  test("a queued job holds its steps before it has started any of them", () => {
+    const l = line(pair("queued"));
+    expect(box(l, "analyze")).toContain("disabled");
+    expect(box(l, "review-plan")).toContain("disabled");
+  });
+
+  test("a disabled box says why, on the label the pointer is over", () => {
+    const l = line(pair("running"));
+    expect(box(l, "analyze")).toContain('title="analyze is running"');
+    // The reason is about the JOB, so the step that has not started yet
+    // carries the same sentence rather than a blank one.
+    expect(box(l, "review-plan")).toContain('title="analyze is running"');
+  });
+
+  test("a step nothing is holding carries no title at all", () => {
+    expect(box(line(pair("running")), "implement")).not.toContain("title=");
+  });
+
+  test("a finished job holds nothing — every box is offerable again", () => {
+    const l = line(pair("done", 1));
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(l, step)).not.toContain("disabled");
+      expect(box(l, step)).not.toContain("title=\"analyze");
+    }
+  });
+
+  test("a job that failed, stopped or was cancelled holds nothing either", () => {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+      const l = line(pair(state, 1));
+      expect(box(l, "analyze")).not.toContain("disabled");
+      expect(box(l, "review-plan")).not.toContain("disabled");
+    }
+  });
+});
+
+describe("spec 101: the intro is out of the way (criterion 10)", () => {
+  const page = (opts: Partial<QueuePageOptions> = {}) =>
+    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets: [],
+      ...opts,
+    });
+
+  test("the intro is behind a closed disclosure, not standing above the list", () => {
+    const html = page();
+    expect(html).toContain('<details class="intro">');
+    // Closed by default: `<details open>` would be the same paragraph
+    // with an extra click's worth of markup around it.
+    expect(html).not.toContain('<details class="intro" open');
+    expect(html).not.toContain('<p class="intro">');
+    // The copy itself is unchanged — this is where it is, not what it says.
+    expect(html).toContain("A job that hits a cap is");
+  });
+
+  test("the runner-unavailable notice stays outside it", () => {
+    const html = page({ runnerAvailable: false });
+    expect(html).toContain("No runner is installed");
+    // "nothing here spends money" is safety-relevant context and must
+    // not need a click.
+    expect(html.indexOf("No runner is installed")).toBeLessThan(html.indexOf('<details class="intro">'));
+  });
+});
+
+describe("spec 101: one line per row for what is going on and what is next (criterion 11)", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
+    renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
+  const hint = (html: string) => html.match(/<div class="small whatsnext">(.*?)<\/div>/)?.[1] ?? "";
+
+  test("a spec nothing has run says what the next click is", () => {
+    const text = hint(rows([], [target("101-never-run")]));
+    expect(text).toContain("Run");
+  });
+
+  test("a running job names the step it is on and the ones still to come", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 0, state: "running" })],
+        [target("101-a")],
+      ),
+    );
+    expect(text).toContain("analyze");
+    expect(text).toContain("running");
+    expect(text).toContain("review-plan");
+  });
+
+  test("a job on its last step promises nothing after it", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 1, state: "running" })],
+        [target("101-a")],
+      ),
+    );
+    expect(text).toContain("review-plan");
+    expect(text).not.toContain("to follow");
+  });
+
+  test("a job waiting on a person says whose move it is", () => {
+    const text = hint(
+      rows([row({ specFolder: "101-a", state: "awaiting-approval" })], [target("101-a")]),
+    );
+    expect(text.toLowerCase()).toContain("approval");
+  });
+
+  test("a job that stopped short says how to try again", () => {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+      const text = hint(
+        rows([row({ specFolder: "101-a", steps: ["implement"], state })], [target("101-a")]),
+      );
+      expect(text).toContain("Run");
+      expect(text).toContain("implement");
+    }
+  });
+
+  test("a finished spec with a branch still out says the branch is the next thing", () => {
+    const text = hint(
+      rows(
+        [
+          row({
+            specFolder: "101-a",
+            state: "done",
+            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+          }),
+        ],
+        [target("101-a")],
+      ),
+    );
+    expect(text.toLowerCase()).toContain("merge");
+  });
+
+  test("a finished spec with nothing left out does not ask for a merge", () => {
+    const text = hint(rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]));
+    expect(text).toContain("done");
+    expect(text.toLowerCase()).not.toContain("merge");
+  });
+
+  test("every row has the line — a hint that is blank on half the rows says nothing", () => {
+    const html = rows(
+      [row({ specFolder: "101-a", state: "running" })],
+      [target("101-a"), target("101-b")],
+    );
+    expect([...html.matchAll(/class="small whatsnext"/g)]).toHaveLength(2);
   });
 });
