@@ -208,8 +208,18 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(buttons(rows([], { targets: [target()] }))).toContain("Run");
   });
 
-  test("a spec that has run before offers Run again", () => {
-    expect(buttons(rows([row({ state: "done" })], { targets: [target()] }))).toContain("Run again");
+  // "Run again" only when there is nothing left to run for the first
+  // time: a spec with three phases done and `archive` pre-ticked was
+  // offering "Run again" for a phase that had never run.
+  test("a spec with a phase still to run offers Run, even after other phases ran", () => {
+    const t = target({ done: ["analyze", "review-plan", "implement"] });
+    expect(buttons(rows([row({ state: "done" })], { targets: [t] }))).toContain("Run");
+    expect(buttons(rows([row({ state: "done" })], { targets: [t] }))).not.toContain("Run again");
+  });
+
+  test("a spec with every phase done offers Run again", () => {
+    const t = target({ done: ["analyze", "review-plan", "implement", "archive"] });
+    expect(buttons(rows([row({ state: "done" })], { targets: [t] }))).toContain("Run again");
   });
 
   test("a job waiting for approval offers Approve and Cancel", () => {

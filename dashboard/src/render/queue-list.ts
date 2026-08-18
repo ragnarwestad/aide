@@ -827,14 +827,16 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     label: "stop for approval between steps",
     name: "gate",
   });
-  // Run for a spec nothing has ever run; Run again once it has. While a
-  // job is in flight the control reads as busy — but it is NOT
-  // disabled: a job holding only `analyze` leaves the other three
-  // phases tickable, and taking that away would lose an action the page
-  // has always had.
+  // Run while any phase is still to run for the first time; Run again
+  // only once every phase has — a spec with `archive` pre-ticked and
+  // never run was offering "Run again" for it. While a job is in flight
+  // the control reads as busy — but it is NOT disabled: a job holding
+  // only `analyze` leaves the other three phases tickable, and taking
+  // that away would lose an action the page has always had.
   const running = !!g.lead && inFlight(g.lead);
+  const allDone = QUEUE_STEPS.every((s) => g.done.includes(s));
   const run = btn({
-    label: g.lead ? "Run again" : "Run",
+    label: allDone ? "Run again" : "Run",
     variant: running ? "busy" : "primary",
     pending: "starting…",
     title: running ? "a job is running — tick a phase it does not hold to run more" : undefined,

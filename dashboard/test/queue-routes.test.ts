@@ -484,7 +484,7 @@ describe("GET / (the spec list, HTML)", () => {
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain(">more</summary>");
     expect(line).toContain("stop for approval between steps");
-    expect(line).toContain(">Run again</button>");
+    expect(line).toContain(">Run</button>");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
@@ -521,7 +521,7 @@ describe("GET / (the spec list, HTML)", () => {
     const line = specHead(rows, "81-queue-and-runner");
     expect(line).toContain('<form method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(line).toContain(">Run again</button>");
+    expect(line).toContain(">Run</button>");
   });
 
   test("the gate checkbox decides: unticked runs straight through", async () => {
