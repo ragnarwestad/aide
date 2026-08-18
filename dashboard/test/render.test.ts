@@ -8,6 +8,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
+  renderQueuePage,
   renderQueueRows,
   renderSite,
   type JobDetailView,
@@ -701,8 +702,9 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     ]);
     expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
     expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel">/g)).toHaveLength(1);
-    // Approve/cancel is the SPEC's one action and belongs on the header.
-    // A phase line carries its own run form (spec 87) and nothing else.
+    // Approve/cancel is the SPEC's one action and belongs on the header —
+    // as, since spec 94, does the form that runs the spec's phases. A
+    // phase line is read-only.
     for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
       expect(subRow(html, phase)).not.toContain("/cancel");
       expect(subRow(html, phase)).not.toContain("/approve");
@@ -821,80 +823,245 @@ describe("a multi-step job is shown on every step it ran", () => {
   });
 });
 
-// --- spec 87: a phase runs from where it sits --------------------------------
+// --- spec 94: a spec's phases are ticked and run from its own row ------------
 
-// The place where you can SEE that review-plan has not run was not the
-// place where you could run it. Now it is: every phase line carries the
-// one-step job it names, and the model to run it on.
-describe("a phase runs from its own line (criteria 1-6)", () => {
+// Two ways in became one. A form above the table queued several steps as
+// one gated job for whichever spec its dropdown had selected, and each
+// phase line carried its own one-step Run button. Both are gone: the
+// spec's own header row carries one checkbox per phase, the model, the
+// extras and one Run button that queues everything ticked as a single
+// job — and it is on the HEADER row, because folding takes the phase
+// lines out of the page entirely.
+describe("a spec's row runs its own phases", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
-    row({ id, specFolder: "87-run-from-the-list", steps: [step], stepIndex: 0, state: "done", ...extra });
+    row({ id, specFolder: "94-row-runs-it", steps: [step], stepIndex: 0, state: "done", ...extra });
 
-  const rows = (list: QueueRowView[], opts: Partial<QueuePageOptions> = {}) =>
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets: [], ...opts },
-      Date.parse("2026-08-17T12:00:00Z"),
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-18T12:00:00Z"),
     );
 
+  const page = (opts: Partial<QueuePageOptions> = {}) =>
+    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "94-never-run" }],
+      ...opts,
+    });
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  /** One phase's checkbox and its label, from the row it sits on. */
+  const box = (line: string, step: string) =>
+    line.match(new RegExp(`<label class="stepbox[^"]*" data-phase="${step}">.*?</label>`))?.[0] ?? "";
 
-  test("the form posts the one step its line names, to the endpoint the top form uses", () => {
-    const html = rows([job("j1", "analyze")]);
-    const implement = subRow(html, "implement");
-    expect(implement).toContain('<form method="post" action="/api/queue"');
-    expect(implement).toContain('name="project" value="aide"');
-    expect(implement).toContain('name="specFolder" value="87-run-from-the-list"');
-    expect(implement).toContain('name="steps" value="implement"');
-    // One step per form: the analyze line must not offer to run implement.
-    expect(subRow(html, "analyze")).toContain('name="steps" value="analyze"');
+  test("done phases are marked and left unticked; the next one is pre-ticked (criterion 1)", () => {
+    const html = rows(
+      [job("j1", "analyze"), job("j2", "review-plan")],
+      [target("94-row-runs-it", { done: ["analyze", "review-plan"] })],
+    );
+    const line = head(html, "94-row-runs-it");
+    expect(box(line, "analyze")).toContain('class="stepbox isdone"');
+    expect(box(line, "analyze")).toContain("✓");
+    expect(box(line, "analyze")).not.toContain("checked");
+    expect(box(line, "review-plan")).toContain('class="stepbox isdone"');
+    expect(box(line, "implement")).toContain('value="implement" checked');
+    expect(box(line, "archive")).not.toContain("checked");
+    expect(line).not.toContain("disabled");
   });
 
-  test("a phase never run says Run; one that has says Rerun (criteria 1-2)", () => {
-    const html = rows([job("j1", "analyze")]);
-    expect(subRow(html, "analyze")).toContain(">Rerun<");
-    expect(subRow(html, "review-plan")).toContain(">Run<");
-  });
-
-  test("the line offers the configured models, and a default that changes nothing (criteria 3-4)", () => {
-    const html = rows([job("j1", "analyze")], {
-      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
-    });
-    const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('name="model"');
-    expect(analyze).toContain('value="fable"');
-    expect(analyze).toContain('<option value="">');
-  });
-
-  test("with no model configured the line offers no dropdown at all", () => {
-    const html = rows([job("j1", "analyze")]);
-    expect(subRow(html, "analyze")).not.toContain('name="model"');
-  });
-
-  test("the token rides along when the page carries one", () => {
-    const html = rows([job("j1", "analyze")], { token: "s3cret" });
-    expect(subRow(html, "analyze")).toContain('name="token" value="s3cret"');
-  });
-
-  test("a phase with an unfinished attempt is disabled; its siblings are not (criterion 5)", () => {
-    for (const state of ["queued", "running", "awaiting-approval"] as const) {
-      const html = rows([
-        job("j1", "analyze", { state, startedAt: "2026-08-17T11:00:00Z" }),
-        job("j2", "implement", { state: "done", startedAt: "2026-08-17T10:00:00Z" }),
-      ], { modelChoices: [{ name: "fable", budgetUsd: 12 }] });
-      const analyze = subRow(html, "analyze");
-      expect(analyze).toContain("<button type=\"submit\" disabled>");
-      // The dropdown goes with it: a choice you cannot act on is a trap.
-      expect(analyze).toContain('<select name="model" disabled>');
-      expect(subRow(html, "implement")).not.toContain("disabled");
-      expect(subRow(html, "archive")).not.toContain("disabled");
+  test("with every phase done, nothing is pre-ticked", () => {
+    const line = head(
+      rows(
+        [job("j1", "archive")],
+        [target("94-row-runs-it", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      ),
+      "94-row-runs-it",
+    );
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(line, step)).not.toContain("checked");
     }
   });
 
-  test("once the attempt finishes the same line is enabled again (criterion 6)", () => {
-    const html = rows([job("j1", "analyze", { state: "done" })]);
-    expect(subRow(html, "analyze")).not.toContain("disabled");
+  test("a spec nothing has ever run pre-ticks analyze AND review-plan (criterion 1a)", () => {
+    const line = head(rows([], [target("94-never-run")]), "94-never-run");
+    expect(box(line, "analyze")).toContain('value="analyze" checked');
+    expect(box(line, "review-plan")).toContain('value="review-plan" checked');
+    expect(box(line, "implement")).not.toContain("checked");
+    expect(box(line, "archive")).not.toContain("checked");
+  });
+
+  test("a spec that HAS run something pre-ticks only the next undone phase (criterion 1a)", () => {
+    // `explore` is outside the four, so the done-set is still empty —
+    // but something has run for this spec, and the pair is only for a
+    // spec nothing has ever run.
+    const line = head(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it");
+    expect(box(line, "analyze")).toContain('value="analyze" checked');
+    expect(box(line, "review-plan")).not.toContain("checked");
+  });
+
+  test("the pair never re-ticks a phase already done on disk (criterion 1b)", () => {
+    // Nothing was ever queued for this spec, but its 2-analysis.md is
+    // filled in: `done` is read off the files, not off job history.
+    const line = head(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
+    expect(box(line, "analyze")).toContain('class="stepbox isdone"');
+    expect(box(line, "analyze")).not.toContain("checked");
+    expect(box(line, "review-plan")).toContain('value="review-plan" checked');
+  });
+
+  test("a phase in flight is disabled; its siblings on the same row are not (criterion 2)", () => {
+    for (const state of ["queued", "running", "awaiting-approval"] as const) {
+      const line = head(
+        rows([job("j1", "implement", { state })], [target("94-row-runs-it")]),
+        "94-row-runs-it",
+      );
+      expect(box(line, "implement")).toContain("disabled");
+      for (const other of ["analyze", "review-plan", "archive"]) {
+        expect(box(line, other)).not.toContain("disabled");
+      }
+    }
+  });
+
+  test("a busy phase is never also pre-ticked", () => {
+    const line = head(
+      rows([job("j1", "analyze", { state: "running" })], [target("94-row-runs-it")]),
+      "94-row-runs-it",
+    );
+    expect(box(line, "analyze")).toContain("disabled");
+    expect(box(line, "analyze")).not.toContain("checked");
+  });
+
+  test("one form per row, posting the spec it belongs to and a box per phase (criterion 3)", () => {
+    const line = head(rows([], [target("94-never-run")]), "94-never-run");
+    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('name="project" value="aide"');
+    expect(line).toContain('name="specFolder" value="94-never-run"');
+    // The browser submits checkboxes in document order, so the order
+    // the boxes are DRAWN in is the order `steps` arrives in.
+    const order = [...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
+    expect(line).toContain(">Run</button>");
+  });
+
+  test("a phase already done can be ticked again — a rerun is the same submission (criterion 4)", () => {
+    const line = head(
+      rows([job("j1", "analyze")], [target("94-row-runs-it", { done: ["analyze"] })]),
+      "94-row-runs-it",
+    );
+    expect(box(line, "analyze")).toContain('name="steps" value="analyze"');
+    expect(box(line, "analyze")).not.toContain("disabled");
+  });
+
+  test("'also touches' lists the other projects and never the row's own (criterion 5)", () => {
+    const line = head(rows([], [target("94-never-run")], { projects: ["aide", "paceup"] }), "94-never-run");
+    expect(line).toContain('name="extraProjects" value="paceup"');
+    expect(line).not.toContain('name="extraProjects" value="aide"');
+    // No script needed to exclude the row's own project: the row knows
+    // which spec it is before it is drawn.
+    const field = line.slice(line.indexOf('name="extraProjects"'));
+    expect(field.slice(0, 200)).not.toContain("checked");
+  });
+
+  test("with only its own project there is nothing to add (criterion 5)", () => {
+    const line = head(rows([], [target("94-never-run")], { projects: ["aide"] }), "94-never-run");
+    expect(line).not.toContain('name="extraProjects"');
+  });
+
+  test("the gate box is on every row, unticked, with or without 'also touches' (criterion 5a)", () => {
+    for (const projects of [["aide"], ["aide", "paceup"]]) {
+      const line = head(rows([], [target("94-never-run")], { projects }), "94-never-run");
+      expect(line).toContain('<input type="checkbox" name="gate">');
+      expect(line).not.toContain('name="gate" checked');
+    }
+  });
+
+  test("the row offers the configured models, and a default that changes nothing", () => {
+    const line = head(
+      rows([], [target("94-never-run")], {
+        modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      }),
+      "94-never-run",
+    );
+    expect(line).toContain('name="model"');
+    expect(line).toContain('value="fable"');
+    expect(line).toContain('<option value="">');
+  });
+
+  test("with no model configured the row offers no dropdown at all", () => {
+    expect(head(rows([], [target("94-never-run")]), "94-never-run")).not.toContain('name="model"');
+  });
+
+  test("the token rides along when the page carries one", () => {
+    const line = head(rows([], [target("94-never-run")], { token: "s3cret" }), "94-never-run");
+    expect(line).toContain('name="token" value="s3cret"');
+  });
+
+  test("a phase line is read-only now — it carries no form of its own", () => {
+    const html = rows([job("j1", "analyze")], [target("94-row-runs-it")]);
+    for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(subRow(html, phase)).not.toContain("<form");
+      expect(subRow(html, phase)).not.toContain("<button");
+    }
+  });
+
+  test("the run control survives folding, because it sits on the header row", () => {
+    const html = rows([], [target("94-never-run")], { filter: { fold: "aide/94-never-run" } });
+    expect(html).not.toContain('<tr class="subrow');
+    const line = head(html, "94-never-run");
+    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('name="steps" value="analyze"');
+  });
+
+  test("a row's title, phase and progress come from its OWN target (criterion 9)", () => {
+    const html = rows(
+      [job("j1", "analyze")],
+      [
+        target("94-other", { title: "Another spec", phase: "Phase 1: RED", percent: 10 }),
+        target("94-row-runs-it", { title: "Row runs it", phase: "Phase 2: GREEN", percent: 64 }),
+      ],
+    );
+    const line = head(html, "94-row-runs-it");
+    expect(line).toContain("Row runs it");
+    expect(line).toContain("Phase 2: GREEN");
+    expect(line).toContain("64% done");
+    expect(line).not.toContain("Another spec");
+    expect(line).not.toContain("Phase 1: RED");
+  });
+
+  test("a spec with no recorded status says so rather than showing a blank", () => {
+    const line = head(rows([], [target("94-never-run")]), "94-never-run");
+    expect(line).toContain("no status recorded yet");
+  });
+
+  test("the top form is gone from the page, not merely hidden (criterion 7)", () => {
+    const html = page({ projects: ["aide"] });
+    expect(html).not.toContain('name="target"');
+    expect(html).not.toContain('id="targetdata"');
+    expect(html).not.toContain('class="enqueue"');
+    expect(html).not.toContain("Run a spec");
+  });
+
+  test("a refusal is shown on the page, belonging to no one row (criterion 6)", () => {
+    const html = page({ error: "analyze is already queued for this spec" });
+    expect(html).toContain('class="refusal"');
+    expect(html).toContain("analyze is already queued for this spec");
+    // Above the table, so it is read before the row that caused it.
+    expect(html.indexOf("refusal")).toBeLessThan(html.indexOf('id="jobrows"'));
   });
 });
 
@@ -941,15 +1108,18 @@ describe("every spec is a row (criteria 1-10)", () => {
     for (const phase of order) expect(subRow(html, phase!)).toContain("not run yet");
   });
 
-  test("the analyze line of a never-run spec runs it (criterion 2)", () => {
+  test("a never-run spec's own row runs analyze (criterion 2)", () => {
+    // Spec 94 moved the form off the phase line and onto the header
+    // row, which is the only line folding leaves in the page.
     const html = rows([], [target("90-never-run")]);
-    const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('<form method="post" action="/api/queue"');
-    expect(analyze).toContain('name="project" value="aide"');
-    expect(analyze).toContain('name="specFolder" value="90-never-run"');
-    expect(analyze).toContain('name="steps" value="analyze"');
-    expect(analyze).toContain(">Run<");
-    expect(analyze).not.toContain("disabled");
+    const line = head(html, "90-never-run");
+    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('name="project" value="aide"');
+    expect(line).toContain('name="specFolder" value="90-never-run"');
+    expect(line).toContain('name="steps" value="analyze"');
+    expect(line).toContain(">Run</button>");
+    expect(line).not.toContain("disabled");
+    expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
   test("a never-run spec reads 'not started' and links to no job (criterion 3)", () => {

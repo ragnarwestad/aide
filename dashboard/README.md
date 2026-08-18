@@ -109,14 +109,32 @@ time, each step a `claude -p "/aide-<step> <spec>"` process started by
 aide's `aide-run-spec`. A job is an ordered list of steps; a step that
 ends either advances the job, parks it for approval, or ends it.
 
-Two ways in, and they do different jobs. The form at the top queues
-SEVERAL steps as one job, gated between them if asked. Every phase line
-under a spec carries its own run button and model dropdown: one step,
-straight through, on the model the line picked — including `analyze`,
-because a spec is a row from the moment its folder exists rather than
-from the moment it first runs. A phase already queued or running shows
-its button disabled, because the queue would refuse it anyway (see
+One way in: the spec's own row. It carries a checkbox per phase, a
+model dropdown, and one Run button that queues everything ticked as a
+single job in the workflow's order — the browser submits checkboxes in
+the order they are drawn, so ticking `implement` before `analyze` still
+queues analyze first. Behind a "more" disclosure sit the two things
+nobody sets every time: which other repos the job will touch, and
+whether to stop for approval between the steps (off by default). A
+phase already queued or running shows its box disabled, because the
+queue would refuse it anyway (see
 [the duplicate guard](#gates-and-notifications)).
+
+What is pre-ticked is what you almost always came to run: the first
+phase the spec has not had — except for a spec nothing has ever run at
+all, which gets `analyze` and `review-plan` ticked together, because
+that pair as one gated job is how a spec is actually started here. A
+phase already done is marked with a tick and left unticked; ticking it
+anyway is a rerun, and no rule stands in the way.
+
+There used to be a form above the table as well, with a spec dropdown
+of its own. It was the only way to queue several steps as one job, and
+it read as the way you were meant to start anything — while the
+five-second refresh could not keep its dropdown current, because that
+refresh deliberately replaces the ROWS alone so a half-set control is
+never wiped. A spec created since the page loaded was in the list and
+not in the dropdown. The row does everything the form did, so the form
+is gone (spec 94).
 
 The list holds SPECS, not the machine's whole run history: a spec that
 has been archived leaves the page along with the jobs it had. Nothing is
@@ -131,8 +149,10 @@ name. The fold is a link and lives in the query string
 table's own five-second refresh — and what makes it work with JavaScript
 switched off.
 
-`queue-client.ts`, the page's own browser-side script, cannot `import`
-anything: `queueClientScript()` runs `Bun.Transpiler.transformSync` over
+Every Run control is a plain form and needs no script: ticking phases
+and pressing Run works with JavaScript switched off, and so does the
+fold. `queue-client.ts`, the page's own browser-side script, cannot
+`import` anything: `queueClientScript()` runs `Bun.Transpiler.transformSync` over
 it and inlines the result into a plain `<script>` tag — that transpiles,
 it does not bundle. An `import` survives as an ESM import inside a
 classic inline script (a 404, since this server does not serve that

@@ -42,25 +42,15 @@ tr.notstarted td { color: inherit; }
 main h2 { font-size: 1rem; margin: 1.6rem 0 0.4rem; letter-spacing: 0.01em; }
 .small { font-size: 0.82rem; }
 
-/* The form is a panel, not three controls loose on the page. */
-.panel { border: 1px solid #8884; border-radius: 10px; padding: 0.9rem 1.1rem 1rem;
-  margin: 1rem 0 1.6rem; background: #8881; }
-.panel h2 { margin-top: 0; }
-.enqueue { display: flex; flex-wrap: wrap; gap: 0.9rem 1.2rem; align-items: end; }
-.enqueue .field { display: flex; flex-direction: column; gap: 0.25rem; }
-.enqueue .fieldlabel { font-size: 0.72rem; font-weight: 600; color: #888;
+/* The step boxes and the "also touches" boxes used to be scoped under
+   the retired top form. They live on a spec's own row now, so the rules
+   are top-level — the row is not inside anything. */
+.stepbox { font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.25rem; }
+.stepbox.isdone { color: #888; }
+.stepbox input:disabled, .stepbox input:disabled + * { opacity: 0.4; cursor: default; }
+.tick { color: #22c55e; font-weight: 700; }
+.fieldlabel { font-size: 0.72rem; font-weight: 600; color: #888;
   text-transform: uppercase; letter-spacing: 0.06em; }
-.enqueue select { font: inherit; padding: 0.35rem 0.5rem; border-radius: 6px;
-  border: 1px solid #8886; background: transparent; color: inherit; min-width: 15rem; }
-.enqueue .steps { display: flex; gap: 0.7rem; flex-wrap: wrap; padding-bottom: 0.35rem; }
-.enqueue .stepbox { font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.3rem; }
-.enqueue .gate { color: #888; padding-bottom: 0.35rem; }
-.enqueue .stepbox.isdone { color: #888; }
-.enqueue .tick { color: #22c55e; font-weight: 700; }
-.enqueue button { font: inherit; font-weight: 600; padding: 0.4rem 0.9rem;
-  border-radius: 6px; border: 1px solid #8886; background: #8882; color: inherit;
-  cursor: pointer; }
-.enqueue button:hover { background: #8883; }
 .listhead { font-size: 0.78rem; font-weight: 700; color: #888; margin: 1.6rem 0 0.4rem;
   text-transform: uppercase; letter-spacing: 0.07em; }
 .listnote { margin: 0.4rem 0 0; }
@@ -87,8 +77,9 @@ table.jobs thead a:hover { text-decoration: underline; }
 .sortmark { color: #3b82f6; }
 .refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
   background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
-.specinfo { margin: 0.9rem 0 0; padding-top: 0.7rem; border-top: 1px solid #8883;
-  font-size: 0.9rem; }
+/* One line per row, under the spec's name: what it is and how far it
+   has got. Quiet — the name above it is what a reader scans for. */
+.specinfo { color: #777; margin-top: 0.15rem; }
 
 /* State carries colour, but the word is always there too. */
 .chip, .state { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px;
@@ -136,18 +127,20 @@ table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
 .fold { text-decoration: none; color: #888; font-size: 0.8rem;
   display: inline-block; width: 1rem; }
 .fold:hover { color: inherit; }
-/* A phase runs from its own line, so the control has to fit ON that
-   line: the row is 0.9rem text with 0.1rem of padding, and a
-   full-sized select would double its height. */
-.rowrun { display: flex; gap: 0.4rem; align-items: center; }
+/* A spec runs from its own row, so the control has to fit ON that row
+   without doubling its height: small text, small controls, and the
+   things nobody sets every time folded away behind "more". */
+.rowrun { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.rowrun .steps { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rowrun .field { display: flex; flex-direction: column; gap: 0.2rem; margin: 0.3rem 0; }
+.rowrun .more { font-size: 0.82rem; }
+.rowrun .more summary { color: #888; cursor: pointer; }
+.rowrun .more .gate { display: flex; margin-top: 0.3rem; }
 .rowrun select, .rowrun button { font: inherit; font-size: 0.82rem;
   padding: 0.1rem 0.4rem; border-radius: 5px; border: 1px solid #8886;
   background: transparent; color: inherit; }
 .rowrun button { font-weight: 600; background: #8882; cursor: pointer; }
-.rowrun button:hover:not(:disabled) { background: #8883; }
-/* Disabled while that phase is already queued or running. Dimmed rather
-   than hidden: a button that vanishes reads as a page that broke. */
-.rowrun button:disabled, .rowrun select:disabled { opacity: 0.4; cursor: default; }
+.rowrun button:hover { background: #8883; }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
 table.jobs tr.untried td { opacity: 0.55; }

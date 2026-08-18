@@ -23,7 +23,11 @@ export type { NavEntry } from "./render/shell.ts";
 export { renderLivePage } from "./render/live.ts";
 export type { LiveRowView } from "./render/live.ts";
 
-export { renderQueuePage, renderQueueRows, specSummary, stepBoxes } from "./render/queue-list.ts";
+// `stepBoxes` and `specSummary` used to be exported alongside these
+// two. They are internal now: both take a spec ROW rather than a
+// target, and a row is an internal shape with no caller outside
+// queue-list.ts.
+export { renderQueuePage, renderQueueRows } from "./render/queue-list.ts";
 export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-list.ts";
 
 export type { BranchView, QueueRowView } from "./render/job-state.ts";

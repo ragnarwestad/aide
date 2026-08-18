@@ -32,6 +32,11 @@ afterEach(() => {
 
 const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
+/** One spec's header row, which since spec 94 is where its Run control
+ *  lives — and the only line of the spec folding leaves in the page. */
+const specHead = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
 describe("no token configured", () => {
   test("every queue route is 503; /live and POST /api/aide-run are unaffected", async () => {
     const { base } = start();
@@ -214,7 +219,7 @@ describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
       { runnerAvailable: true, targets: [{ project: "aide", specFolder: "87-run-from-the-list" }] },
     );
     // Attribute values and the stylesheet are addresses and identifiers
-    // — `action="/api/queue"`, `class="enqueue"` — never read by anyone.
+    // — `action="/api/queue"`, `name="steps"` — never read by anyone.
     // What is left is the words on the page.
     const read = html.replace(/<style>[\s\S]*?<\/style>/, "").replace(/="[^"]*"/g, "");
     expect(read).not.toMatch(/queue/i);
@@ -247,9 +252,10 @@ describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
   });
 });
 
-// The phase line is where you SEE that a step has not run; spec 87 makes
-// it where you run it. One step, one job, on the model the line picked.
-describe("running one phase from its own line (criteria 1-4, 11)", () => {
+// The row is where you SEE which phases have run; spec 94 makes it
+// where you run them. Any subset of the four, one job, on the model the
+// row picked.
+describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   const auth = { headers: { "x-aide-token": TOKEN } };
   const CHOICES = {
     budgetUsd: 3,
@@ -261,8 +267,8 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
     modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
   };
 
-  /** Exactly what the sub-row's form posts: no target, no gate, no caps. */
-  const postSubRow = (base: string, fields: Record<string, string>) =>
+  /** Exactly what the row's form posts: no target, no caps. */
+  const postRow = (base: string, fields: Record<string, string>) =>
     fetch(`${base}/api/queue`, {
       method: "POST",
       redirect: "manual",
@@ -274,9 +280,9 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
-  test("the sub-row's fields queue that one step, on the model it picked (criteria 1-3)", async () => {
+  test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
-    const res = await postSubRow(base, {
+    const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: "implement",
@@ -288,14 +294,15 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
     };
     expect(body.job.steps).toEqual(["implement"]);
     expect(body.job.model).toEqual({ implement: "fable" });
-    // No gate control on the line, and none is meant: a one-step job has
-    // nothing to gate between.
+    // The gate box was left unticked, so the form posted no `gate` at
+    // all — which must mean "run straight through", not "gate after
+    // every step" (the schema's own default).
     expect(body.job.gateAfter).toEqual([]);
   });
 
   test("the default option queues no override at all (criterion 4)", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
-    const res = await postSubRow(base, {
+    const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: "implement",
@@ -307,12 +314,70 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
     expect(body.job.budgetUsd).toBe(3);
   });
 
-  test("the top form still offers all four steps — it is the way a spec starts (criterion 11)", async () => {
+  test("every row offers all four steps — the row is the way a spec starts (criterion 11)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/specs`, auth)).text();
+    const line = specHead(html, "81-queue-and-runner");
     for (const step of ["analyze", "review-plan", "implement", "archive"]) {
-      expect(html).toContain(`<input type="checkbox" name="steps" value="${step}"`);
+      expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
     }
+  });
+
+  test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    // A browser sends one `steps` value per ticked box, in the order the
+    // boxes are drawn — never in the order they were clicked.
+    const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
+    body.append("steps", "analyze");
+    body.append("steps", "implement");
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: body.toString(),
+    });
+    expect(res.status).toBe(200);
+    const made = (await res.json()) as { job: { steps: string[]; gateAfter: string[] } };
+    expect(made.job.steps).toEqual(["analyze", "implement"]);
+    expect(made.job.gateAfter).toEqual([]);
+  });
+
+  test("the row's gate box decides whether the job stops between them (criterion 3a)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
+    body.append("steps", "analyze");
+    body.append("steps", "implement");
+    body.append("gate", "on");
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: body.toString(),
+    });
+    const made = (await res.json()) as { job: { gateAfter: string[] } };
+    expect(made.job.gateAfter).toEqual(["analyze", "implement"]);
+  });
+
+  test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    // Marked done on the row, and still submittable.
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+    const res = await postRow(base, {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "analyze",
+    });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { job: { steps: string[] } }).job.steps).toEqual(["analyze"]);
   });
 
   // Spec 87's criterion 10 said the opposite — "a spec nothing has ever
@@ -322,12 +387,13 @@ describe("running one phase from its own line (criteria 1-4, 11)", () => {
   test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/specs`, auth)).text();
-    // Still offered by the form's dropdown — the form stays as the way
-    // to queue several steps as one gated job.
-    expect(html).toContain('<option value="aide/81-queue-and-runner"');
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
-    expect(html).toContain('<input type="hidden" name="steps" value="analyze">');
+    const line = specHead(html, "81-queue-and-runner");
+    // Nothing has ever run for it, so analyze and review-plan are ticked
+    // together — the pair every spec here is actually started as.
+    expect(line).toContain('value="analyze" checked');
+    expect(line).toContain('value="review-plan" checked');
     expect(html).toContain('<span class="state s-not-started">not started</span>');
   });
 
@@ -353,10 +419,12 @@ describe("GET /specs (HTML)", () => {
     expect(html).toContain('<form method="post"');
     expect(html).toMatch(/<a class="current" href="\/specs"/);
     // Every control says what it is: an unlabelled select next to some
-    // checkboxes tells the reader nothing.
-    expect(html).toContain("Run a spec");
-    expect(html).toContain("Steps, in order");
-    expect(html).toContain("stop for approval between steps");
+    // checkboxes tells the reader nothing. They now sit on the spec's
+    // own row, behind a "more" disclosure where they would crowd it.
+    const line = specHead(html, "81-queue-and-runner");
+    expect(line).toContain("<summary>more</summary>");
+    expect(line).toContain("stop for approval between steps");
+    expect(line).toContain(">Run</button>");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
@@ -391,10 +459,13 @@ describe("GET /specs (HTML)", () => {
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
-    // The top form is what must not come along — a swap that replaced it
-    // would wipe what someone was half-way through filling in. The phase
-    // lines' own run forms are part of the table and belong here.
-    expect(rows).not.toContain('class="enqueue"');
+    // The Run control belongs to a ROW, so unlike the retired top form
+    // it must survive the swap: without it, every five seconds the
+    // page would lose the only way to start a spec (criterion 8).
+    const line = specHead(rows, "81-queue-and-runner");
+    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
+    expect(line).toContain(">Run</button>");
   });
 
   test("the gate checkbox decides: unticked runs straight through", async () => {
@@ -406,11 +477,15 @@ describe("GET /specs (HTML)", () => {
         headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
         body,
       });
-    await post(new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "analyze" }));
+    await post(new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }));
     // A different step: the same one twice is refused, and that is a
     // separate rule with its own tests. The gate flag is what this one
     // is about.
-    const params = new URLSearchParams({ target: "aide/81-queue-and-runner", steps: "implement" });
+    const params = new URLSearchParams({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "implement",
+    });
     params.append("gate", "on");
     await post(params);
     const listed = (await (
@@ -475,8 +550,8 @@ describe("renderQueuePage state labels", () => {
   });
 });
 
-describe("the page answers the selection", () => {
-  test("the chosen spec's title, phase and progress are on the page and in the data block", async () => {
+describe("every row answers for itself", () => {
+  test("a spec's title, phase and progress are on its own row (criterion 9)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     // Give the spec a status file the page can summarise.
     writeFileSync(
@@ -484,14 +559,32 @@ describe("the page answers the selection", () => {
       "# Queue - Status\n\n**Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
     );
     const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
-    // Rendered for the first option, so it is there before any script runs.
-    expect(html).toContain("Queue - Status".replace(" - Status", ""));
-    expect(html).toContain("64% done");
-    expect(html).toContain("Phase 2: GREEN");
-    // And as data, so changing the selection can update it without a
-    // round trip.
-    expect(html).toContain('id="targetdata"');
-    expect(html).toMatch(/"percent":\s*64/);
+    // Server-rendered on the row itself: there is no selection left to
+    // answer, and no data block for a script to answer it from.
+    const line = specHead(html, "81-queue-and-runner");
+    expect(line).toContain("64% done");
+    expect(line).toContain("Phase 2: GREEN");
+    expect(html).not.toContain('id="targetdata"');
+    expect(html).not.toContain('<select name="target"');
+  });
+
+  test("a refusal is shown once, above the table, whichever row posted it (criterion 6)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const post = () =>
+      fetch(`${base}/api/queue`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+        body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
+      });
+    await post();
+    const refused = await post();
+    expect(refused.status).toBe(303);
+    const location = refused.headers.get("location") ?? "";
+    expect(location.startsWith("/specs?error=")).toBe(true);
+    const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('class="refusal"');
+    expect(html).toContain("analyze");
   });
 
   test("state is a chip with its own class, so a failure is not a wall of grey", async () => {
@@ -508,42 +601,57 @@ describe("page code placement", () => {
   test("the script comes AFTER the elements it wires up", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
-    const select = html.indexOf('id="target"');
     const rows = html.indexOf('id="jobrows"');
     const script = html.indexOf("<script>");
-    expect(select).toBeGreaterThan(-1);
+    expect(rows).toBeGreaterThan(-1);
     expect(script).toBeGreaterThan(-1);
     // An inline script in <head> runs before the DOM exists, so every
     // listener attaches to nothing — and the failure is silent.
-    expect(script).toBeGreaterThan(select);
     expect(script).toBeGreaterThan(rows);
     expect(html.indexOf("</head>")).toBeLessThan(script);
   });
 });
 
-describe("the step boxes follow the spec", () => {
-  test("a step the spec has already had is marked done and left unticked", async () => {
+describe("the step boxes on a row follow that spec", () => {
+  test("a step the spec has already had is marked done and left unticked (criterion 1)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
     const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const line = specHead(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
-    expect(html).toMatch(/data-step="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
-    expect(html).toMatch(/data-step="implement"[^]*?value="implement" checked/);
-    expect(html).toContain('class="stepbox isdone" data-step="analyze"');
-    expect(html).toMatch(/"done":\["analyze","review-plan"\]/);
+    expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
+    expect(line).toMatch(/data-phase="implement"[^]*?value="implement" checked/);
+    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
   });
 
-  test("a fresh spec offers analyze first", async () => {
+  test("a spec nothing has run yet offers the analyze/review-plan pair (criterion 1a)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
     const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toMatch(/value="analyze" checked/);
-    expect(html).not.toContain('class="stepbox isdone"');
+    const line = specHead(html, "81-queue-and-runner");
+    expect(line).toMatch(/value="analyze" checked/);
+    expect(line).toMatch(/value="review-plan" checked/);
+    expect(line).not.toContain('class="stepbox isdone"');
+  });
+
+  test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    // Filled in by hand, never queued: `done` reads the files, so the
+    // pair must not tick and mark the same box at once.
+    writeFileSync(
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
+      "# Analysis\n\n" + "Findings, at length. ".repeat(40),
+    );
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const line = specHead(html, "81-queue-and-runner");
+    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(line).not.toMatch(/value="analyze" checked/);
+    expect(line).toMatch(/value="review-plan" checked/);
   });
 });
 
@@ -632,7 +740,7 @@ describe("what the queue has run counts too", () => {
     html = await (await fetch(`${second.base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).not.toMatch(/value="implement" checked/);
     expect(html).toMatch(/value="archive" checked/);
-    expect(html).toContain('class="stepbox isdone" data-step="implement"');
+    expect(html).toContain('class="stepbox isdone" data-phase="implement"');
   });
 });
 
@@ -1115,27 +1223,31 @@ describe("passenger projects reach the runner", () => {
   });
 });
 
-describe("the form asks which other repos a job will touch", () => {
+describe("each row asks which other repos its job will touch (criterion 5)", () => {
   const page = (projects: string[]) =>
     renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       projects,
     });
+  const line = (projects: string[]) => specHead(page(projects), "81-queue-and-runner");
 
-  test("one checkbox per project, so a cross-repo job can say so up front", () => {
-    const html = page(["aide", "aide-dashboard"]);
+  test("one checkbox per OTHER project, so a cross-repo job can say so up front", () => {
+    const html = line(["aide", "aide-dashboard"]);
     expect(html).toContain('name="extraProjects"');
     expect(html).toContain('value="aide-dashboard"');
-    expect(html).toContain('value="aide"');
+    // Never the row's own project: it is watched already, and offering
+    // it again is an error waiting to be submitted. No script needed —
+    // the row knows which spec it is before it is drawn.
+    expect(html).not.toContain('name="extraProjects" value="aide"');
   });
 
   test("with a single project there is nothing to add, and no field is shown", () => {
-    expect(page(["aide"])).not.toContain('name="extraProjects"');
+    expect(line(["aide"])).not.toContain('name="extraProjects"');
   });
 
   test("none is ticked by default — a job watches only what it says it will", () => {
-    const html = page(["aide", "aide-dashboard"]);
+    const html = line(["aide", "aide-dashboard"]);
     const field = html.slice(html.indexOf('name="extraProjects"'));
     expect(field.slice(0, 200)).not.toContain("checked");
   });

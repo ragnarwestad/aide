@@ -1,6 +1,6 @@
-// /specs: the form that starts a run, and the one list of every spec
-// there IS — cut and ordered on demand, one line per spec with its
-// workflow phases beneath it, each phase runnable from where it sits.
+// /specs: the one list of every spec there IS — cut and ordered on
+// demand, one line per spec with its workflow phases beneath it, and
+// every spec run from its own row.
 //
 // A spec is a row from the moment its folder exists, not from the moment
 // it first runs: the dropdown and the list held the same things, and a
@@ -8,10 +8,17 @@
 // specs leave the page — but only where their project's absence can be
 // PROVEN, never because a specs root happened to be unreadable.
 //
+// There was a form above the table too, with a spec dropdown of its own:
+// two ways in, of which the dropdown read as the one you were meant to
+// use, and which the five-second refresh could not keep current because
+// it deliberately replaces the rows alone. The row does everything it
+// did, so it is gone.
+//
 // The page carries browser code (compiled from queue-client.ts) so the
-// list can refresh without reloading a form someone is half-way through
-// filling in. Everything the code does also works without it: the
-// filters and the sort are ordinary links.
+// list can refresh without reloading a control someone is half-way
+// through setting. Everything the code does also works without it: the
+// filters and the sort are ordinary links, and every Run control is a
+// plain form.
 
 import { esc, relTime } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
@@ -76,7 +83,7 @@ export interface QueueFilter {
   fold?: string;
 }
 
-// --- the form ---------------------------------------------------------------
+// --- what every form on this page needs ------------------------------------
 
 const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
@@ -85,116 +92,6 @@ const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 // that forgot it would be refused with a 401 the reader cannot act on.
 const tokenField = (token?: string): string =>
   token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
-
-// A step the spec has already had is marked done and left unticked;
-// the first one it has NOT had is ticked, because that is what you
-// almost always came to run. Nothing is disabled: re-analyzing after
-// the code moved on is a legitimate thing to want.
-export function stepBoxes(target: QueueTarget | undefined): string {
-  const done = new Set(target?.done ?? []);
-  const next = QUEUE_STEPS.find((s) => !done.has(s));
-  return QUEUE_STEPS.map((s) => {
-    const isDone = done.has(s);
-    return (
-      `<label class="stepbox${isDone ? " isdone" : ""}" data-step="${esc(s)}">` +
-      `<input type="checkbox" name="steps" value="${esc(s)}"${s === next ? " checked" : ""}> ` +
-      `${esc(s)}${isDone ? ' <span class="tick" title="already done">✓</span>' : ""}</label>`
-    );
-  }).join("");
-}
-
-// One line about the chosen spec: what it is, and how far it has got.
-export function specSummary(t: QueueTarget): string {
-  const bits: string[] = [];
-  if (t.title) bits.push(esc(t.title));
-  if (t.phase) bits.push(`<span class="chip">${esc(t.phase)}</span>`);
-  if (typeof t.percent === "number") bits.push(`${t.percent}% done`);
-  return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
-}
-
-function enqueueForm(opts: QueuePageOptions): string {
-  if (opts.targets.length === 0) {
-    return `<p class="muted">No project on this machine has both a manifest and permission to run.</p>`;
-  }
-  const hidden = tokenField(opts.token);
-  const options = opts.targets
-    .map((t) => {
-      const value = `${t.project}/${t.specFolder}`;
-      const done = t.percent === 100 ? " ✓" : typeof t.percent === "number" ? ` — ${t.percent}%` : "";
-      return `<option value="${esc(value)}">${esc(t.specFolder)}${done}</option>`;
-    })
-    .join("");
-  const boxes = stepBoxes(opts.targets[0]);
-  // The heavy model is worth reserving for heavy work, so the choice is
-  // explicit and the default is "whatever the config says per step".
-  // Each option carries what it is granted per step, because that is
-  // the number that decides whether the job can finish.
-  // The default carries its figure too. Without one it was the only
-  // option on the list without a number, which read as the cheap or the
-  // unknown choice — while it was in fact the most generous: picking
-  // `opus` granted $15 for the same model the default ran at $35.
-  const models = opts.modelChoices ?? [];
-  const asConfigured =
-    typeof opts.defaultBudgetUsd === "number"
-      ? `as configured per step — $${opts.defaultBudgetUsd} per step`
-      : "as configured per step";
-  const modelField = models.length
-    ? `<label class="field"><span class="fieldlabel">Model</span>` +
-      `<select name="model" id="model">` +
-      `<option value="">${esc(asConfigured)}</option>` +
-      models
-        .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
-        .join("") +
-      `</select></label>`
-    : "";
-  // The gate choice is SHOWN and off by default. Hiding it made the
-  // button quietly create a job that stops for approval after every
-  // step — the opposite of what pressing it looks like it does.
-  // The selection has to SHOW something. A dropdown that changes
-  // nothing visible reads as broken, however correct it is.
-  const first = opts.targets[0];
-  const refusal = opts.error ? `<p class="refusal">${esc(opts.error)}</p>` : "";
-  // Only worth asking when there is more than one repo to choose from.
-  // The box for the spec's own project is disabled from script as the
-  // selection changes — it is already watched.
-  const others = opts.projects ?? [];
-  const extraField =
-    others.length > 1
-      ? `<span class="field"><span class="fieldlabel">Also touches</span>` +
-        `<span class="steps" id="extraprojects">` +
-        others
-          .map(
-            (p) =>
-              `<label class="stepbox" data-project="${esc(p)}">` +
-              `<input type="checkbox" name="extraProjects" value="${esc(p)}"> ${esc(p)}</label>`,
-          )
-          .join("") +
-        `</span></span>`
-      : "";
-  return (
-    `<section class="panel">` +
-    `<h2>Run a spec</h2>\n` +
-    refusal +
-    `<form method="post" action="/api/queue" class="enqueue">${hidden}` +
-    `<label class="field"><span class="fieldlabel">Spec</span>` +
-    `<select name="target" id="target">${options}</select></label>` +
-    `<span class="field"><span class="fieldlabel">Steps, in order</span>` +
-    `<span class="steps" id="steps">${boxes}</span></span>` +
-    modelField +
-    extraField +
-    `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
-    `stop for approval between steps</label>` +
-    `<button type="submit">Run it</button></form>` +
-    `<p class="specinfo" id="specinfo">${first ? specSummary(first) : ""}</p>` +
-    // Without the descriptions: this blob only feeds the one-line spec
-    // summary, and every spec's full prose would be several pages of
-    // markup nobody on this page reads.
-    `<script type="application/json" id="targetdata">${JSON.stringify(
-      opts.targets.map(({ description: _drop, ...t }) => t),
-    ).replace(/</g, "\\u003c")}</script>` +
-    `</section>`
-  );
-}
 
 // --- the list ---------------------------------------------------------------
 
@@ -310,6 +207,17 @@ interface SpecGroup {
    *  one is the authority. Nothing here decides where git runs. */
   branches: BranchView[];
   phases: Phase[];
+  /** Steps this spec has already had, from its matching target: what its
+   *  own files show, and what the queue actually ran. Marked on the
+   *  row's checkboxes, never forbidden — re-analyzing after the code
+   *  moved on is a legitimate thing to want. */
+  done: string[];
+  /** What the spec is and how far it has got, from its own 4-status.md.
+   *  It used to be one summary line for whichever spec the top form's
+   *  dropdown had selected; every row now answers for itself. */
+  title?: string;
+  phase?: string;
+  percent?: number;
 }
 
 /** Fold branch entries by label, most-recently-active row winning a
@@ -339,7 +247,15 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     activityAt: 0,
     branches: [],
     phases: QUEUE_STEPS.map((step) => ({ step, attempts: [] })),
+    ...fromTarget(t),
   };
+}
+
+/** What a row reads off its own spec rather than off its jobs. Written
+ *  once because both constructors need it, and a row showing another
+ *  spec's done-set or progress is the one way this join can go wrong. */
+function fromTarget(t: QueueTarget | undefined): Pick<SpecGroup, "done" | "title" | "phase" | "percent"> {
+  return { done: t?.done ?? [], title: t?.title, phase: t?.phase, percent: t?.percent };
 }
 
 function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] {
@@ -350,7 +266,8 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] 
     if (list) list.push(r);
     else byKey.set(key, [r]);
   }
-  const known = new Set(targets.map((t) => groupKey(t.project, t.specFolder)));
+  const byKeyTarget = new Map(targets.map((t) => [groupKey(t.project, t.specFolder), t]));
+  const known = new Set(byKeyTarget.keys());
   // Which projects we are entitled to judge. An empty target list is
   // "we do not know", never "everything is archived": a specs root that
   // is not checked out on this host looks exactly the same from here,
@@ -359,14 +276,14 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] 
   const judgeable = new Set(targets.map((t) => t.project));
   const fromJobs = [...byKey.entries()]
     .filter(([key, all]) => known.has(key) || !judgeable.has(all[0]!.project))
-    .map(([, all]) => jobGroup(all));
+    .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
     ...fromJobs,
     ...targets.filter((t) => !byKey.has(groupKey(t.project, t.specFolder))).map(emptyGroup),
   ];
 }
 
-function jobGroup(all: QueueRowView[]): SpecGroup {
+function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The four the form offers, always, in order — a phase nobody has
@@ -390,6 +307,7 @@ function jobGroup(all: QueueRowView[]): SpecGroup {
         .map((r) => attemptFor(r, step))
         .filter((a): a is QueueRowView => a !== null),
     })),
+    ...fromTarget(target),
   };
 }
 
@@ -599,8 +517,137 @@ const stateCell = (r: QueueRowView): string =>
 const costCell = (spentUsd: number, blank: string): string =>
   spentUsd > 0 ? `$${spentUsd.toFixed(2)}` : blank;
 
+// A step the spec has already had is marked done and left unticked; a
+// step already queued or running is disabled, because the queue would
+// refuse it anyway and a button that says so before the press is kinder
+// than a refusal after it.
+//
+// What is TICKED depends on how far the spec has got. A spec nothing has
+// ever run pre-ticks `analyze` AND `review-plan` together — that pair as
+// one gated job is what every spec here has actually been started as,
+// and the two belong together. Any other spec pre-ticks the first phase
+// it has not had, which is what you almost always came to run.
+//
+// `g.lead` is the test for "nothing has ever run": it is absent only for
+// a spec `emptyGroup` built, which is a spec with no job row at all. A
+// spec whose only job ran `explore` has a lead, and keeps the ordinary
+// single pre-tick even though its done-set is still empty.
+//
+// The pair is filtered against the done-set, because the two answer
+// different questions: `done` is read off the spec's own FILES, so a
+// spec analysed by hand and never queued has `analyze` done while
+// nothing has ever run for it. Ticking a box that also carries the done
+// mark would say two things at once. And a spec that has both of them
+// done already falls back to the ordinary rule rather than to nothing:
+// the pair exists to tick a spec's two STARTING phases, not to leave a
+// spec that is past them with no box ticked at all.
+function stepBoxes(g: SpecGroup): string {
+  const done = new Set(g.done);
+  const next = QUEUE_STEPS.find((s) => !done.has(s));
+  const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
+  const single = next ? [next] : [];
+  const checked = new Set(g.lead || pair.length === 0 ? single : pair);
+  const busy = new Set(g.phases.filter((p) => p.attempts.some(inFlight)).map((p) => p.step));
+  return QUEUE_STEPS.map((s) => {
+    const isDone = done.has(s);
+    // Busy wins over pre-ticked: a box the reader sees ticked but cannot
+    // submit is worse than one that is simply not ticked.
+    const off = busy.has(s);
+    return (
+      // `data-phase`, not `data-step`: the phase LINES already carry
+      // `data-step`, and a test enumerating them would find four
+      // checkboxes on the header row as well.
+      `<label class="stepbox${isDone ? " isdone" : ""}" data-phase="${esc(s)}">` +
+      `<input type="checkbox" name="steps" value="${esc(s)}"` +
+      `${checked.has(s) && !off ? " checked" : ""}${off ? " disabled" : ""}> ` +
+      `${esc(s)}${isDone ? ' <span class="tick" title="already done">✓</span>' : ""}</label>`
+    );
+  }).join("");
+}
+
+// One control per spec, on the spec's own row: tick the phases, press
+// Run once, and they go as ONE job in the workflow's order — the browser
+// submits checkboxes in the order they are drawn, never in the order
+// they were clicked.
+//
+// It sits on the HEADER row and not on the phase lines, because folding
+// OMITS those lines from the page (see `groupRows`). A control on a line
+// that is sometimes not drawn is a control that sometimes is not there.
+//
+// Everything the retired form above the table asked for is here. The
+// model is in the open; the other repos the job will touch and whether
+// to stop for approval between the steps are behind a disclosure, so
+// four boxes and a button is all the row costs when nobody asks.
+function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
+  // The heavy model is worth reserving for heavy work, so the choice is
+  // explicit and the default is "whatever the config says per step".
+  // Each option carries what it is granted per step, because that is the
+  // number that decides whether the job can finish — the default one
+  // included. Without a figure the default was the only option on the
+  // list without one, which read as the cheap or the unknown choice
+  // while it was in fact the most generous: picking `opus` granted $15
+  // for the same model the default ran at $35.
+  const models = opts.modelChoices ?? [];
+  const asConfigured =
+    typeof opts.defaultBudgetUsd === "number"
+      ? `as configured per step — $${opts.defaultBudgetUsd} per step`
+      : "as configured per step";
+  const select = models.length
+    ? `<select name="model">` +
+      `<option value="">${esc(asConfigured)}</option>` +
+      models
+        .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
+        .join("") +
+      `</select>`
+    : "";
+  // The row's own project is watched already, so offering it again is an
+  // error waiting to be submitted. The row knows which spec it is before
+  // it is drawn, so this is a filter at render time — the old shared
+  // form had to disable the box from script as the selection changed.
+  const others = (opts.projects ?? []).filter((p) => p !== g.project);
+  const extraField = others.length
+    ? `<span class="field"><span class="fieldlabel">Also touches</span>` +
+      `<span class="steps">` +
+      others
+        .map(
+          (p) =>
+            `<label class="stepbox" data-project="${esc(p)}">` +
+            `<input type="checkbox" name="extraProjects" value="${esc(p)}"> ${esc(p)}</label>`,
+        )
+        .join("") +
+      `</span></span>`
+    : "";
+  // Off by default, and SHOWN. Hiding it made the button quietly create
+  // a job that stops for approval after every step — the opposite of
+  // what pressing it looks like it does.
+  const gate =
+    `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
+    `stop for approval between steps</label>`;
+  return (
+    `<form method="post" action="/api/queue" class="rowrun">${tokenField(opts.token)}` +
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `<span class="steps">${stepBoxes(g)}</span>` +
+    select +
+    `<details class="more"><summary>more</summary>${extraField}${gate}</details>` +
+    `<button type="submit">Run</button></form>`
+  );
+}
+
+// One line about the spec: what it is, and how far it has got. It has to
+// SAY something even when there is nothing recorded — a line that is
+// blank on half the rows reads as a page that failed to load.
+function specSummary(g: SpecGroup): string {
+  const bits: string[] = [];
+  if (g.title) bits.push(esc(g.title));
+  if (g.phase) bits.push(`<span class="chip">${esc(g.phase)}</span>`);
+  if (typeof g.percent === "number") bits.push(`${g.percent}% done`);
+  return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
+}
+
 // The header line for one spec: what it is, how far it has got, what it
-// has cost in total, and the one action there is to take on it.
+// has cost in total, and every action there is to take on it — running
+// its phases included.
 function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: Set<string>): string {
   // Three answers, not two. `archived` greys the row out (css.ts), which
   // is the last thing a spec with the whole workflow still ahead of it
@@ -631,7 +678,8 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="speccell">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
-    `<div class="muted small">${esc(g.project)}</div></td>` +
+    `<div class="muted small">${esc(g.project)}</div>` +
+    `<div class="small specinfo">${specSummary(g)}</div></td>` +
     `<td><div class="pips">${pips}</div>` +
     `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
     // Written inline rather than through `stateChip`, which needs a job
@@ -641,17 +689,22 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     `<td>${g.lead ? stateCell(g.lead) : `<span class="state s-not-started">not started</span>`}</td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
-    // Approve/cancel is about the RUN; Merge is about the work it left
-    // behind. Both live in the one action cell, and a spec with neither
-    // still owes the reader a dash.
-    `<td>${(g.lead ? actionForm(g.lead, opts.token) : "") + mergeForm(g, opts) || "–"}</td></tr>`
+    // Run is about what the spec has still to do; approve/cancel is
+    // about the run in flight; Merge is about the work one left behind.
+    // All three live in the one action cell, and the Run control is
+    // first because it is the one every row has.
+    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token) : ""}${mergeForm(g, opts)}</td></tr>`
   );
 }
 
 // One line per phase, in the workflow's own order, whether or not it has
 // happened. A phase nobody has run yet is the point of the fixed order:
 // it says what is still ahead without anyone counting rows.
-function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
+//
+// Read-only: the phase is RUN from the header row, which is the only
+// line of a folded spec left in the page. The trailing cell stays, empty
+// — the table is six columns wide on every row.
+function phaseSubRows(g: SpecGroup, now: number): string {
   return g.phases
     .map((p) => {
       const latest = p.attempts[0];
@@ -674,42 +727,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         `<td>${latest ? stateCell(latest) : `<span class="muted small">not run yet</span>`}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, "") : ""}</td>` +
-        `<td>${runForm(g, p, opts)}</td></tr>`
+        `<td></td></tr>`
       );
     })
     .join("");
-}
-
-// The line where you can SEE that review-plan has not run is the line
-// where you run it. One step, one job, posted to the endpoint the form
-// at the top already posts to — nothing new on the server.
-//
-// Model only. A gate cannot mean anything for a single-step job (the
-// runner only parks BETWEEN steps), and a run needing extra projects or
-// a tightened cap is a deliberate job, which is what the form is for.
-function runForm(g: SpecGroup, p: Phase, opts: QueuePageOptions): string {
-  // The backend refuses a step that is already queued or running; the
-  // button says so BEFORE the press rather than answering with a
-  // refusal. The 5-second refresh redraws these rows, so a phase that
-  // finishes gets its button back without anything else happening.
-  const busy = p.attempts.some(inFlight);
-  const off = busy ? " disabled" : "";
-  const hidden = tokenField(opts.token);
-  const models = opts.modelChoices ?? [];
-  const select = models.length
-    ? `<select name="model"${off}>` +
-      `<option value="">as configured</option>` +
-      models.map((m) => `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("") +
-      `</select>`
-    : "";
-  return (
-    `<form method="post" action="/api/queue" class="rowrun">${hidden}` +
-    `<input type="hidden" name="project" value="${esc(g.project)}">` +
-    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    `<input type="hidden" name="steps" value="${esc(p.step)}">` +
-    select +
-    `<button type="submit"${off}>${p.attempts.length ? "Rerun" : "Run"}</button></form>`
-  );
 }
 
 // Folding OMITS the phase lines rather than hiding them: the state is in
@@ -720,7 +741,7 @@ function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, fol
   return groups
     .map((g) => {
       const head = specHeadRow(g, opts, now, folded);
-      return folded.has(groupKey(g.project, g.specFolder)) ? head : head + phaseSubRows(g, opts, now);
+      return folded.has(groupKey(g.project, g.specFolder)) ? head : head + phaseSubRows(g, now);
     })
     .join("");
 }
@@ -780,8 +801,11 @@ export function renderQueuePage(
     `a checkout of its own, and never two on the same spec. Every step is ` +
     `bounded by its own budget and a wall clock. A job that hits a cap is ` +
     `<em>stopped</em>, not failed.</p>\n` +
-    enqueueForm(opts) +
-    `\n` +
+    // Why the last attempt was refused. It belongs to the PAGE, not to
+    // one control: /api/queue redirects to /specs?error=… whichever row
+    // posted, and the person who pressed the button is the one who
+    // needs to read it.
+    (opts.error ? `<p class="refusal">${esc(opts.error)}</p>\n` : "") +
     table;
   return pageShell("Specs", entries, "/specs", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,
