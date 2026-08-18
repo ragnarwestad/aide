@@ -1,6 +1,6 @@
-// Criteria 1-5 of aide-dashboard/01: renderSite produces index.html +
-// one slugged page per project (collisions suffixed, `index`
-// reserved); every page carries the shared nav with exactly one
+// Criteria 1-5 of aide-dashboard/01: renderSite produces projects.html +
+// one slugged page per project (collisions suffixed, `projects` and
+// `index` reserved); every page carries the shared nav with exactly one
 // class="current" anchor pointing at itself; the overview shows
 // linked names, descriptions and normative counts but no spec
 // tables; project pages carry the full manifest block and spec
@@ -73,30 +73,45 @@ const site = renderSite([healthy, broken], generatedAt);
 const byPath = new Map(site.map((p: Page) => [p.path, p.html]));
 
 describe("slugs and filenames (criterion 1)", () => {
-  test("collisions and the reserved index name get numeric suffixes", () => {
+  test("collisions and the reserved names get numeric suffixes", () => {
     const tricky = renderSite(
       [project("My Proj"), project("my-proj"), project("index"), project("About"),
        project("Claude Certified Architect")],
       generatedAt,
     );
-    // `about` is reserved like `index`: both name a page the nav links
-    // to, so a project called either gets suffixed instead of
-    // overwriting it.
+    // `about` and `projects` are reserved like `index`: each names a
+    // page the nav links to, so a project called any of them gets
+    // suffixed instead of overwriting it.
     expect(tricky.map((p) => p.path).sort()).toEqual([
       "about-2.html",
       "about.html",
       "claude-certified-architect.html",
       "index-2.html",
-      "index.html",
       "my-proj-2.html",
       "my-proj.html",
+      "projects.html",
     ]);
+  });
+
+  // Spec 100 criterion 8: the overview moved off `/` and needs a real
+  // filename of its own, so `projects` joins the reserved set — a
+  // project literally called that must not overwrite the overview.
+  test("the overview is projects.html; no index.html is produced", () => {
+    expect(site.map((p) => p.path)).toContain("projects.html");
+    expect(site.map((p) => p.path)).not.toContain("index.html");
+  });
+
+  test("a project named Projects is suffixed, not allowed over the overview", () => {
+    const pages = renderSite([project("Projects")], generatedAt);
+    const overview = pages.find((p) => p.path === "projects.html")!;
+    expect(overview.html).toContain("<h2>Projects</h2>");
+    expect(pages.map((p) => p.path)).toContain("projects-2.html");
   });
 
   test("normal names slug to lowercase hyphenated filenames", () => {
     expect(byPath.has("goodproj.html")).toBe(true);
     expect(byPath.has("brokenproj.html")).toBe(true);
-    expect(byPath.has("index.html")).toBe(true);
+    expect(byPath.has("projects.html")).toBe(true);
   });
 });
 
@@ -109,9 +124,23 @@ describe("nav (criterion 2)", () => {
 
   test("every page links to the overview and every project page", () => {
     for (const page of site) {
-      expect(page.html).toContain('href="index.html"');
+      expect(page.html).toContain('href="projects.html"');
       expect(page.html).toContain('href="goodproj.html"');
       expect(page.html).toContain('href="brokenproj.html"');
+    }
+  });
+
+  // Spec 100 criterion 9: the spec list is the front page, so "Specs"
+  // leads the nav and points at `/`; "Overview" follows it and points
+  // at the overview's new filename.
+  test("Specs leads the nav at /, ahead of Overview at projects.html", () => {
+    for (const page of site) {
+      const links = [...page.html.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
+        (m) => [m[2], m[1]],
+      );
+      expect(links[0]).toEqual(["Specs", "/"]);
+      expect(links[1]).toEqual(["Overview", "projects.html"]);
+      expect(links.map((l) => l[0]).slice(0, 4)).toEqual(["Specs", "Overview", "Live", "About"]);
     }
   });
 
@@ -125,7 +154,7 @@ describe("nav (criterion 2)", () => {
 });
 
 describe("overview (criterion 3)", () => {
-  const index = byPath.get("index.html")!;
+  const index = byPath.get("projects.html")!;
 
   test("a Projects heading above the project rows", () => {
     expect(index).toContain("<h2>Projects</h2>");
@@ -223,7 +252,7 @@ describe("self-contained (criterion 5)", () => {
 
 // --- spec 02: a running job is a black box -----------------------------------
 
-const NAV = [{ label: "Overview", path: "index.html" }];
+const NAV = [{ label: "Overview", path: "projects.html" }];
 
 const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
   id: "job-1234",
@@ -556,8 +585,9 @@ describe("renderJobDetailPage", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
     expect(html).not.toContain("<link ");
-    // The job page belongs to /specs, so that nav entry is the current one.
-    expect(html).toContain('<a class="current" href="/specs">Specs</a>');
+    // The job page belongs to the spec list, which since spec 100 lives
+    // at `/`, so that nav entry is the current one.
+    expect(html).toContain('<a class="current" href="/">Specs</a>');
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -934,7 +964,7 @@ describe("a spec's row runs its own phases", () => {
     );
 
   const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "94-never-run" }],
       ...opts,
@@ -1356,6 +1386,18 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     expect(links.length).toBeGreaterThan(4);
     for (const href of links) expect(href).toContain("fold=aide%2F90-x");
   });
+
+  // Spec 100: the list answers at `/`, so every link it builds for
+  // itself is rooted there — `/specs` would cost a redirect hop on
+  // every sort, filter and fold click.
+  test("the filter, sort and fold links are rooted at / , not /specs", () => {
+    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x", state: "not-started" });
+    const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
+    expect(links.length).toBeGreaterThan(4);
+    for (const href of links) {
+      expect(href).toMatch(/^\/(\?|$)/);
+    }
+  });
 });
 
 // Spec 97: the row says when the plan describes an older problem than
@@ -1525,7 +1567,7 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
   });
 
   test("the page-top banner is not shown as well when a row has it (criterion 12)", () => {
-    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [target("99-x")],
       error: "the tree is dirty in /repos/aide",
@@ -1537,11 +1579,28 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
   });
 
   test("a refusal that belongs to no row keeps the banner (criterion 12)", () => {
-    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [target("99-x")],
       error: "payload too large",
     });
     expect(page).toContain('<p class="refusal">payload too large</p>');
+  });
+});
+
+// Spec 100 criterion 9: the spec list is the dashboard's front page, so
+// the page rendered for `/` marks "Specs" as the current nav entry —
+// the entry itself having moved to the head of the nav, pointing at `/`.
+describe("spec 100: the list page's own nav entry", () => {
+  test("renderQueuePage marks Specs current, at /", () => {
+    const html = renderQueuePage(
+      [],
+      "2026-08-18T00:00:00Z",
+      [{ label: "Overview", path: "projects.html" }],
+      { runnerAvailable: true, targets: [] },
+    );
+    expect(html).toContain('<a class="current" href="/">Specs</a>');
+    expect(html).not.toContain('href="/specs"');
+    expect(html).toContain('<a href="projects.html">Overview</a>');
   });
 });

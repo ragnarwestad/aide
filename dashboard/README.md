@@ -35,20 +35,26 @@ no host is named anywhere in this repo.
 
 ## URL scheme
 
-- `/` — overview: every project with description and active/archived
-  spec counts
+- `/` — one row per spec — every non-archived spec of every
+  allowlisted project, whether or not it has ever run — with its
+  workflow phases beneath, foldable away; run any phase from its own
+  line, watch one, approve a gate (token required). The front page: it
+  is what the dashboard is used for, so it is what the dashboard opens
+  on.
+- `/projects.html` — overview: every project with description and
+  active/archived spec counts. Reached from the nav, labelled
+  "Overview"; no token needed, like every other generated page.
 - `/<slug>.html` — one page per project (slug = lowercased name,
-  non-alphanumerics → hyphens; collisions get `-2`, `-3`, …)
+  non-alphanumerics → hyphens; collisions get `-2`, `-3`, …; `index`,
+  `about` and `projects` are reserved)
 - `/live` — aide runs in flight (server-rendered, refreshes every 10 s)
 - `/api/aide-runs` — the same rows as JSON; `POST /api/aide-run`
   receives one event
-- `/specs` — one row per spec — every non-archived spec of every
-  allowlisted project, whether or not it has ever run — with its
-  workflow phases beneath, foldable away; run any phase from its own
-  line, watch one, approve a gate (token required)
-- `/specs/<id>` — one job, in full
-- `/queue` and `/queue/<id>` — where the page used to live; both
-  redirect, query string intact, so an old bookmark still lands
+- `/specs/<id>` — one job, in full. It did NOT move with the list: every
+  job link already sent out points here.
+- `/specs` and `/queue` — where the list used to live; both redirect to
+  `/`, query string intact, so an old bookmark still lands
+- `/queue/<id>` — redirects to `/specs/<id>`, where the job still is
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
   `POST /api/queue/<id>/approve` and `/cancel` act on one. The API keeps
   the queue's own name: it is a contract, not a page anyone reads.
@@ -108,7 +114,7 @@ so restarts keep them.
 
 ## Running specs (spec 81)
 
-`/specs` runs aide workflow steps headless on this machine: one job at a
+The spec list runs aide workflow steps headless on this machine: one job at a
 time, each step a `claude -p "/aide-<step> <spec>"` process started by
 aide's `aide-run-spec`. A job is an ordered list of steps; a step that
 ends either advances the job, parks it for approval, or ends it.
@@ -168,7 +174,7 @@ Two things about it are worth knowing:
 When the step succeeds the dashboard **lands the branch itself**, through
 the same `mergeBranchIntoDefault` the Merge button uses, and renames the
 job to the real folder. This is the one merge here that nobody pressed a
-button for, and it is not a convenience: `/specs` lists what is on disk
+button for, and it is not a convenience: the list shows what is on disk
 in the main checkout, which every run keeps on its default branch, so a
 created spec that is only pushed to a branch appears nowhere at all. A
 landing that fails leaves the provisional key in place and says which
@@ -217,11 +223,13 @@ tell it from a broken agent will start ignoring both.
 
 ### The token
 
-The whole queue surface — `GET /specs` and the old `/queue` included —
-needs a token; a token a page hands to anyone who can load the page is
-not a secret. Open
-`/specs?token=<the token>` once and the browser keeps an `HttpOnly`
-cookie; API callers send `X-Aide-Token`. The token is read from a file
+The whole queue surface — `GET /` and its old addresses `/specs` and
+`/queue` included — needs a token; a token a page hands to anyone who
+can load the page is not a secret. Open
+`/?token=<the token>` once and the browser keeps an `HttpOnly`
+cookie; API callers send `X-Aide-Token`. The generated pages
+(`/projects.html`, `/<slug>.html`, `/about.html`) and `/live` stay open:
+they carry nothing that needs the token. The token is read from a file
 (`--token-file`), never an argument: `ps` shows arguments to every user
 on the machine.
 

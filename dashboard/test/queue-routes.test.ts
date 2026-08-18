@@ -42,6 +42,10 @@ describe("no token configured", () => {
   test("every queue route is 503; /live and POST /api/aide-run are unaffected", async () => {
     const { base } = start();
     for (const [path, init] of [
+      // Spec 100: `/` is the list now, so it is behind the token like
+      // every other read route on the queue surface — including the two
+      // old addresses, which redirect to it only once the token is in.
+      ["/", {}],
       ["/queue", {}],
       ["/specs", {}],
       ["/specs/abc", {}],
@@ -54,7 +58,9 @@ describe("no token configured", () => {
       expect((await res.text()).toLowerCase()).toContain("token");
     }
     expect((await fetch(`${base}/live`)).status).toBe(200);
-    expect((await fetch(`${base}/`)).status).toBe(200);
+    // The static overview kept its own address and its own openness: it
+    // moved off `/`, not behind the token.
+    expect((await fetch(`${base}/projects.html`)).status).toBe(200);
     const emitted = await fetch(`${base}/api/aide-run`, {
       method: "POST",
       body: JSON.stringify({ host: "h", sessionId: "s1", command: "implement", spec: "81" }),
@@ -66,10 +72,12 @@ describe("no token configured", () => {
 describe("token configured", () => {
   test("a queue request without the token is 401", async () => {
     const { base } = start({ queueToken: TOKEN });
+    expect((await fetch(`${base}/`)).status).toBe(401);
     expect((await fetch(`${base}/queue`)).status).toBe(401);
     expect((await fetch(`${base}/specs`)).status).toBe(401);
     expect((await fetch(`${base}/api/queue`)).status).toBe(401);
     expect((await fetch(`${base}/api/queue`, { method: "POST", body: JSON.stringify(JOB) })).status).toBe(401);
+    expect((await fetch(`${base}/?token=wrong`)).status).toBe(401);
     expect((await fetch(`${base}/queue?token=wrong`)).status).toBe(401);
     expect((await fetch(`${base}/specs?token=wrong`)).status).toBe(401);
   });
@@ -84,15 +92,15 @@ describe("token configured", () => {
     expect((await fetch(`${base}/live`)).status).toBe(200);
   });
 
-  test("GET /specs?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
+  test("GET /?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const res = await fetch(`${base}/specs?token=${TOKEN}`, { redirect: "manual" });
+    const res = await fetch(`${base}/?token=${TOKEN}`, { redirect: "manual" });
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("SameSite=Strict");
     const jar = cookie.split(";")[0];
-    expect((await fetch(`${base}/specs`, { headers: { cookie: jar } })).status).toBe(200);
+    expect((await fetch(`${base}/`, { headers: { cookie: jar } })).status).toBe(200);
   });
 
   test("the header works for API callers", async () => {
@@ -102,7 +110,7 @@ describe("token configured", () => {
     expect(await res.json()).toMatchObject({ jobs: [] });
   });
 
-  test("a form POST answers 303 to /specs; a JSON caller gets JSON", async () => {
+  test("a form POST answers 303 to /; a JSON caller gets JSON", async () => {
     const { base } = start({ queueToken: TOKEN });
     const form = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -111,7 +119,7 @@ describe("token configured", () => {
       body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }),
     });
     expect(form.status).toBe(303);
-    expect(form.headers.get("location")).toBe("/specs");
+    expect(form.headers.get("location")).toBe("/");
 
     const json = await fetch(`${base}/api/queue`, {
       method: "POST",
@@ -167,19 +175,42 @@ describe("token configured", () => {
 // implementation detail, and it stopped being the name a reader reads.
 // The old address keeps working: people bookmark this page, and the
 // token arrives in the query string of exactly such a bookmark.
-describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
+describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   const auth = { headers: { "x-aide-token": TOKEN } };
 
-  test("GET /queue redirects to /specs with the query string intact (criterion 7)", async () => {
+  // Spec 100 criterion 3: /queue was pointed at /specs; both now point
+  // at `/`, because that is where the list itself is.
+  test("GET /queue redirects to / with the query string intact (criterion 7)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/queue?token=${TOKEN}&state=active&sort=cost`, {
       ...auth,
       redirect: "manual",
     });
     expect(res.status).toBe(302);
-    expect(res.headers.get("location")).toBe(`/specs?token=${TOKEN}&state=active&sort=cost`);
+    expect(res.headers.get("location")).toBe(`/?token=${TOKEN}&state=active&sort=cost`);
   });
 
+  // Spec 100 criterion 2: the address this page used to live at.
+  test("GET /specs redirects to / with the query string intact", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/specs?token=${TOKEN}&state=active&sort=cost`, {
+      ...auth,
+      redirect: "manual",
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`/?token=${TOKEN}&state=active&sort=cost`);
+  });
+
+  test("GET /specs with nothing to carry redirects to exactly /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/specs`, { ...auth, redirect: "manual" });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/");
+  });
+
+  // Spec 100 criterion 4: the DETAIL page did not move, so this one
+  // target is deliberately unchanged. A /<id> here would break every
+  // job link already sent out.
   test("GET /queue/<id> redirects to /specs/<id>, tab and all (criterion 8)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
@@ -191,12 +222,40 @@ describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
     expect(res.headers.get("location")).toBe(`/specs/${made.job.id}?tab=steps`);
   });
 
+  // Spec 100 criterion 5: the other half of the same guard — the detail
+  // page answers where it always has, with no redirect hop in front.
+  test("GET /specs/<id> renders the job page itself, no redirect", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const res = await fetch(`${base}/specs/${made.job.id}`, { ...auth, redirect: "manual" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
+    expect(await res.text()).toContain("81-queue-and-runner");
+  });
+
+  // Spec 100 criterion 1: the list itself, at the root, in one request.
+  test("GET / is the spec list: rows, filter controls and the New-spec form", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/`, { ...auth, redirect: "manual" });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('id="jobrows"');
+    expect(html).toContain('data-folder="81-queue-and-runner"');
+    expect(html).toContain("New spec");
+    // The overview it replaced is gone from this address, not merely
+    // pushed below the fold.
+    expect(html).not.toContain("<h2>Projects</h2>");
+  });
+
   test("the renamed page says Specs in its nav, heading and title (criterion 9)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain("<title>Specs</title>");
     expect(html).toContain("<h1>Specs</h1>");
-    expect(html).toContain('<a class="current" href="/specs">Specs</a>');
+    expect(html).toContain('<a class="current" href="/">Specs</a>');
     // Not one label left saying it either — the button and the form's
     // heading were the other two places the retired word was read.
     expect(html).not.toContain("Queue a job");
@@ -216,7 +275,7 @@ describe("the page moved from /queue to /specs (criteria 7-9, 12)", () => {
         },
       ],
       "2026-08-17T00:00:00Z",
-      [{ label: "Overview", path: "index.html" }],
+      [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [{ project: "aide", specFolder: "87-run-from-the-list" }] },
     );
     // Attribute values and the stylesheet are addresses and identifiers
@@ -317,7 +376,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
 
   test("every row offers all four steps — the row is the way a spec starts (criterion 11)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     const line = specHead(html, "81-queue-and-runner");
     for (const step of ["analyze", "review-plan", "implement", "archive"]) {
       expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
@@ -369,7 +428,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     // Marked done on the row, and still submittable.
     expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
     const res = await postRow(base, {
@@ -387,7 +446,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // a spec crossing from one to the other told the reader nothing.
   test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
     const line = specHead(html, "81-queue-and-runner");
@@ -401,24 +460,24 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const key = encodeURIComponent("aide/81-queue-and-runner");
-    const open = await (await fetch(`${base}/specs?rows=1`, auth)).text();
+    const open = await (await fetch(`${base}/?rows=1`, auth)).text();
     expect(open).toContain('<tr class="subrow');
-    const folded = await (await fetch(`${base}/specs?rows=1&fold=${key}`, auth)).text();
+    const folded = await (await fetch(`${base}/?rows=1&fold=${key}`, auth)).text();
     expect(folded).toContain('data-folder="81-queue-and-runner"');
     expect(folded).not.toContain('<tr class="subrow');
   });
 });
 
-describe("GET /specs (HTML)", () => {
+describe("GET / (the spec list, HTML)", () => {
   test("layout, forms, labels, and the runner notice", async () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain("<nav>");
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form method="post"');
-    expect(html).toMatch(/<a class="current" href="\/specs"/);
+    expect(html).toMatch(/<a class="current" href="\/"/);
     // Every control says what it is: an unlabelled select next to some
     // checkboxes tells the reader nothing. They now sit on the spec's
     // own row, behind a "more" disclosure where they would crowd it.
@@ -433,7 +492,7 @@ describe("GET /specs (HTML)", () => {
 
   test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     // A page with a form must not reload underneath someone filling it
     // in; the script swaps the table body instead.
     expect(html).toContain("<noscript><meta http-equiv=\"refresh\"");
@@ -456,7 +515,7 @@ describe("GET /specs (HTML)", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/specs?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
@@ -500,7 +559,7 @@ describe("GET /specs (HTML)", () => {
   test("generated pages carry the Specs nav entry", async () => {
     const { renderSite } = await import("../src/render.ts");
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
-    for (const p of pages) expect(p.html).toContain('<a href="/specs">Specs</a>');
+    for (const p of pages) expect(p.html).toContain('<a href="/">Specs</a>');
   });
 });
 
@@ -540,7 +599,7 @@ describe("renderQueuePage state labels", () => {
         row("interrupted"),
       ],
       "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "index.html" }],
+      [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: false, targets: [] },
     );
     expect(html).toContain("stopped — budget");
@@ -559,7 +618,7 @@ describe("every row answers for itself", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
       "# Queue - Status\n\n**Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
     );
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     // Server-rendered on the row itself: there is no selection left to
     // answer, and no data block for a script to answer it from.
     const line = specHead(html, "81-queue-and-runner");
@@ -588,7 +647,7 @@ describe("every row answers for itself", () => {
     const refused = await post();
     expect(refused.status).toBe(303);
     const location = refused.headers.get("location") ?? "";
-    expect(location.startsWith("/specs?error=")).toBe(true);
+    expect(location.startsWith("/?error=")).toBe(true);
     const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(specHead(html, "81-queue-and-runner")).toContain("already queued");
     // Once, not twice: the banner is the fallback for a refusal that
@@ -600,7 +659,7 @@ describe("every row answers for itself", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/specs?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(rows).toContain('class="state s-queued"');
     expect(rows).toContain("queued");
   });
@@ -609,7 +668,7 @@ describe("every row answers for itself", () => {
 describe("page code placement", () => {
   test("the script comes AFTER the elements it wires up", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const rows = html.indexOf('id="jobrows"');
     const script = html.indexOf("<script>");
     expect(rows).toBeGreaterThan(-1);
@@ -627,7 +686,7 @@ describe("the step boxes on a row follow that spec", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
@@ -641,7 +700,7 @@ describe("the step boxes on a row follow that spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
@@ -656,7 +715,7 @@ describe("the step boxes on a row follow that spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n" + "Findings, at length. ".repeat(40),
     );
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
     expect(line).not.toMatch(/value="analyze" checked/);
@@ -720,7 +779,7 @@ describe("what the queue has run counts too", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
 
     // Before the queue has run it, implement is what you came for.
-    let html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    let html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
 
     // Record a completed implement in the queue's own history, exactly
@@ -746,7 +805,7 @@ describe("what the queue has run counts too", () => {
       queueMirrorPath: join(dir, "queue.json"),
       projectRoot: join(dir, "root"),
     });
-    html = await (await fetch(`${second.base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    html = await (await fetch(`${second.base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).not.toMatch(/value="implement" checked/);
     expect(html).toMatch(/value="archive" checked/);
     expect(html).toContain('class="stepbox isdone" data-phase="implement"');
@@ -769,7 +828,7 @@ describe("picking a model for a job", () => {
   };
 
   test("the form offers the configured models, and says what each is granted", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       modelChoices: [
@@ -790,7 +849,7 @@ describe("picking a model for a job", () => {
   // choice when leaving the field alone granted $35 for the same model.
   // A comparison you cannot make is a trap, not a choice.
   test("the default option says what IT grants, so the numbers can be compared", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
@@ -800,7 +859,7 @@ describe("picking a model for a job", () => {
   });
 
   test("with no default budget known the option still stands, just without a figure", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
@@ -810,7 +869,7 @@ describe("picking a model for a job", () => {
   });
 
   test("with nothing configured the page offers no model at all", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
     });
@@ -827,7 +886,7 @@ describe("picking a model for a job", () => {
         },
       ],
       "2026-08-16T00:00:00Z",
-      [{ label: "Overview", path: "index.html" }],
+      [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [] },
     );
     expect(html).toContain("fable");
@@ -881,7 +940,7 @@ describe("picking a model for a job", () => {
 // read it. Answering a form post with a JSON body puts the reason on a
 // blank page with no way back.
 describe("a refused form post says so on the page", () => {
-  test("a duplicate returns to /specs carrying the reason, and the page shows it", async () => {
+  test("a duplicate returns to / carrying the reason, and the page shows it", async () => {
     const { base } = start({ queueToken: TOKEN });
     const post = () =>
       fetch(`${base}/api/queue`, {
@@ -895,7 +954,7 @@ describe("a refused form post says so on the page", () => {
     const again = await post();
     expect(again.status).toBe(303);
     const location = again.headers.get("location") ?? "";
-    expect(location.startsWith("/specs?")).toBe(true);
+    expect(location.startsWith("/?")).toBe(true);
     expect(decodeURIComponent(location)).toContain("already queued");
 
     const html = await (
@@ -942,7 +1001,7 @@ describe("the job list sorts and filters", () => {
   });
 
   const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
-    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       filter,
@@ -1016,7 +1075,7 @@ describe("the job list sorts and filters", () => {
 
   test("a column header is a link that keeps the filter you are already in", () => {
     const html = page([row("a", { state: "running" })], { state: "active" });
-    expect(html).toContain('href="/specs?state=active&amp;sort=cost"');
+    expect(html).toContain('href="/?state=active&amp;sort=cost"');
   });
 
   test("the sorted column says which way it is going", () => {
@@ -1047,7 +1106,7 @@ describe("the job list sorts and filters", () => {
       body: JSON.stringify(JOB),
     });
     const rows = await (
-      await fetch(`${base}/specs?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
+      await fetch(`${base}/?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(rows).toContain('data-filter="state"');
     expect(rows).toMatch(/aria-current="true"[^>]*>Active/);
@@ -1072,7 +1131,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
   });
 
   const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
-    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       filter,
@@ -1234,7 +1293,7 @@ describe("passenger projects reach the runner", () => {
 
 describe("each row asks which other repos its job will touch (criterion 5)", () => {
   const page = (projects: string[]) =>
-    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       projects,
@@ -1408,10 +1467,10 @@ describe("POST /api/queue/<id>/merge", () => {
     };
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
     const auth = { headers: { "x-aide-token": TOKEN } };
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
     const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
-    expect(await (await fetch(`${base}/specs`, auth)).text()).not.toContain("ready to merge");
+    expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
   });
 
   test("GET is not a way to merge anything", async () => {
@@ -1435,7 +1494,7 @@ describe("POST /api/queue/<id>/merge", () => {
 
   // A person pressing a button on a page gets the answer on that page,
   // not a JSON blob — the same shape the enqueue form already uses.
-  test("a plain form post lands back on /specs, with the refusal in the query string", async () => {
+  test("a plain form post lands back on /, with the refusal in the query string", async () => {
     const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor([SPECS_REPO]).run });
     const res = await fetch(`${base}/api/queue/${id}/merge`, {
@@ -1445,7 +1504,7 @@ describe("POST /api/queue/<id>/merge", () => {
     });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
-    expect(location.startsWith("/specs?error=")).toBe(true);
+    expect(location.startsWith("/?error=")).toBe(true);
     expect(decodeURIComponent(location)).toContain(SPECS_REPO);
   });
 });
@@ -1709,7 +1768,7 @@ describe("POST /api/queue/<id>/merge: order, and what happens after (criteria 14
 // line. A spec that does not exist yet has no row, and until now the only
 // way to make one was `/aide-create` in a terminal, then a push, then a
 // pull on the serving host. This is the third way in: a form, a job like
-// any other, and — because a spec stays invisible to `/specs` until its
+// any other, and — because a spec stays invisible to the list until its
 // branch lands on the default branch — a landing step that merges through
 // the very same function the Merge button already uses.
 describe("POST /api/queue/create (spec 93)", () => {
@@ -1774,9 +1833,35 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
+  // Spec 100 criterion 7: the form on the page posts here without an
+  // `accept: application/json`, so it is sent back to the list — which
+  // is `/` now. A `/specs` here would bounce the reader through a
+  // redirect on every spec they create.
+  test("a form submit lands back on /, refusal and success alike", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const refused = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ project: "someone-elses", title: "t", description: "d" }),
+    });
+    expect(refused.status).toBe(303);
+    expect(refused.headers.get("location")!.startsWith("/?error=")).toBe(true);
+
+    const ok = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams(CREATE),
+    });
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("location")).toBe("/");
+  });
+
   test("the form on the page offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const form = html.slice(html.indexOf('action="/api/queue/create"'));
     expect(form).toContain('value="brandnew"');
     expect(form).toContain('name="title"');
@@ -1785,7 +1870,7 @@ describe("POST /api/queue/create (spec 93)", () => {
 });
 
 // A create step's work is on a branch, in a worktree, on the machine that
-// ran it. `/specs` reads the main checkout and nothing else, so the spec
+// ran it. The list reads the main checkout and nothing else, so the spec
 // stays invisible until that branch is merged — which is why this one step
 // lands itself instead of waiting for a button nobody was told to press.
 describe("landing a created spec (spec 93)", () => {
@@ -1915,7 +2000,7 @@ describe("landing a created spec (spec 93)", () => {
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
     // Runnable from its own line, like every other spec...
@@ -1932,7 +2017,7 @@ describe("landing a created spec (spec 93)", () => {
     // without an allowance the job running right now renders nothing.
     const { base } = start({ queueToken: TOKEN });
     const job = await createJob(base, "A brand new spec");
-    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain(job.specFolder);
     // Labelled by its title: the provisional key says nothing to anyone.
     expect(html).toContain("A brand new spec");
@@ -1973,7 +2058,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(subRow(html, "analyze")).toContain("description changed since");
     expect(subRow(html, "implement")).not.toContain("description changed since");
   });
@@ -1984,7 +2069,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const line = specHead(await (await fetch(`${base}/specs`, auth)).text(), "81-queue-and-runner");
+    const line = specHead(await (await fetch(`${base}/`, auth)).text(), "81-queue-and-runner");
     expect(line).not.toContain('class="stepbox isdone" data-phase="analyze"');
     expect(line).not.toContain('class="stepbox isdone" data-phase="review-plan"');
     // implement is untouched by this check: its own done-mark comes
@@ -2006,7 +2091,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       ).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
@@ -2019,7 +2104,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying("2026-08-18T08:00:00+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
     expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
   });
@@ -2033,7 +2118,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitFake({}).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("description changed since");
     expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
   });
@@ -2170,7 +2255,7 @@ describe("the per-repo lock lets go once its chain has settled (criterion 10)", 
 });
 
 // "All" + "Spec, descending" survived the five-second refresh but not an
-// action: every POST answered 303 to a bare /specs, so pressing any
+// action: every POST answered 303 to the bare list address, so pressing any
 // button dropped the reader back into the default view.
 describe("an action keeps the page's view (criterion 7)", () => {
   const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
@@ -2226,7 +2311,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
       ...VIEW,
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
   });
 
   test("Run carries the view forward on a refusal too", async () => {
@@ -2234,7 +2319,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
     const res = await post(base, "/api/queue", { project: "nope", specFolder: "x", steps: "analyze", ...VIEW });
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
-    expect(location.startsWith("/specs?state=active&sort=cost&dir=desc&error=")).toBe(true);
+    expect(location.startsWith("/?state=active&sort=cost&dir=desc&error=")).toBe(true);
   });
 
   test("Cancel carries the view forward", async () => {
@@ -2242,7 +2327,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
     const res = await post(base, `/api/queue/${id}/cancel`, VIEW);
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
   });
 
   test("Approve carries the view forward", async () => {
@@ -2250,7 +2335,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
     const res = await post(base, `/api/queue/${id}/approve`, VIEW);
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
   });
 
   test("Merge carries the view forward", async () => {
@@ -2258,16 +2343,16 @@ describe("an action keeps the page's view (criterion 7)", () => {
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitOk() });
     const res = await post(base, `/api/queue/${id}/merge`, VIEW);
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
   });
 
   // The exact assertion spec 81 wrote: with nothing to carry, the
-  // redirect is `/specs` and not `/specs?`.
-  test("with no view submitted the redirect stays exactly /specs", async () => {
+  // redirect is `/` and not `/?`.
+  test("with no view submitted the redirect stays exactly /", async () => {
     const { mirror, id } = await seededJob("running");
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
     const res = await post(base, `/api/queue/${id}/cancel`, {});
-    expect(res.headers.get("location")).toBe("/specs");
+    expect(res.headers.get("location")).toBe("/");
   });
 });
 

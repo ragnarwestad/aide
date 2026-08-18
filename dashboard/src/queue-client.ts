@@ -1,4 +1,4 @@
-// The /specs page's browser code. TypeScript like the rest of the
+// The spec list's browser code. TypeScript like the rest of the
 // repo — `tsc --noEmit` covers it, and the server transpiles it on the
 // way out.
 //
@@ -23,7 +23,7 @@ async function swapRows(): Promise<void> {
   params.delete("token");
   params.set("rows", "1");
   try {
-    const res = await fetch(`/specs?${params}`, { headers: { accept: "text/html" } });
+    const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
     body.innerHTML = await res.text();
   } catch {
@@ -65,7 +65,7 @@ function afterMergeNote(text: string): void {
 
 // Merging used to be a plain form POST: the browser sat on it for
 // several seconds with nothing changing on the button, then followed a
-// 303 back to /specs and reloaded — so the page jumped to the top, away
+// 303 back to the list and reloaded — so the page jumped to the top, away
 // from the row the reader was watching. Same request, same route, same
 // answer; only the waiting and the jump are gone.
 //
@@ -131,11 +131,11 @@ async function submitMerge(event: Event): Promise<void> {
     const parts = [...back].map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
     parts.push(`error=${encodeURIComponent(why || "the merge failed")}`);
     if (body?.spec) parts.push(`errorSpec=${encodeURIComponent(body.spec)}`);
-    location.href = `/specs?${parts.join("&")}`;
+    location.href = `/?${parts.join("&")}`;
   } catch {
     // Offline, or the server restarting mid-merge: the page reload is
     // the always-correct answer, because it asks git again.
-    location.href = "/specs";
+    location.href = "/";
   } finally {
     // `isConnected` because a successful swapRows has already replaced
     // this form with a fresh one from the server.

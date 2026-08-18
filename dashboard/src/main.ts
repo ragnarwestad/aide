@@ -1,6 +1,7 @@
 // CLI: generate [--root DIR] [--out DIR]
 // Default root: ~/develop. Default out: out/ — the site directory
-// (index.html + one page per project).
+// (projects.html + one page per project). The bare `/` is not a file
+// here: the Bun server answers it with the spec list (spec 100).
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";

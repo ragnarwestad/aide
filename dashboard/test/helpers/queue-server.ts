@@ -38,7 +38,9 @@ export function queueHarness(prefix: string): QueueHarness {
     start({ extra = {}, alsoProjects = [], alsoSpecs = [], description = "# Queue - Description\n" } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
-      writeFileSync(join(dir, "index.html"), "<p>overview</p>");
+      // The generated site's overview, at the filename `renderSite`
+      // actually writes since spec 100 — `/` belongs to the spec list.
+      writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
       const root = join(dir, "root");
       project(root, "aide", "81-queue-and-runner", description);
       for (const folder of alsoSpecs) {

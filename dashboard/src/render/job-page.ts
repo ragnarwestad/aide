@@ -49,7 +49,7 @@ function labelled(rows: [string, string][]): string {
 }
 
 function stepResults(results: JobStepResultView[]): string {
-  // /specs shows one line per SPEC, and attributes a job to the single
+  // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
   // session and how it ended.
@@ -198,10 +198,12 @@ export function renderJobDetailPage(
     tab === "activity" ? activity : tab === "steps" ? stepResults(job.results) : head + live;
 
   const body =
-    `<p class="intro"><a href="/specs">← all jobs</a></p>\n` +
+    `<p class="intro"><a href="/">← all jobs</a></p>\n` +
     banner +
     tabBar(job, tab) +
     `<div class="tabpanel">${panel}</div>`;
 
-  return pageShell(job.specFolder, entries, "/specs", body, generatedAt, 10);
+  // `/`, not this page's own address: the nav entry it belongs under is
+  // the spec list, and that is where the list lives now.
+  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10);
 }

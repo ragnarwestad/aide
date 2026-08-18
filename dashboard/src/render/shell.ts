@@ -17,9 +17,11 @@ export function nav(entries: NavEntry[], currentPath: string): string {
   };
   const [overview, ...projects] = entries;
   const lis = [
+    // The spec list leads: since spec 100 it IS the front page, and
+    // everything else in this menu sits under it.
+    link({ label: "Specs", path: "/" }),
     link(overview),
     link({ label: "Live", path: "/live" }),
-    link({ label: "Specs", path: "/specs" }),
     link({ label: "About", path: "about.html" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),
@@ -38,9 +40,9 @@ export function pageShell(
 ): string {
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
-  // filling in. /specs therefore refreshes its table from script and
-  // keeps the blunt refresh as the fallback for a browser that did not
-  // run it.
+  // filling in. The spec list therefore refreshes its table from
+  // script and keeps the blunt refresh as the fallback for a browser
+  // that did not run it.
   const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
   const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
   // At the END of the body, never in <head>: an inline script in the

@@ -17,8 +17,11 @@ fi
 HOST="$AIDE_DASH_HOST"
 DEST="${AIDE_DASH_DEST:-aide-dashboard/site}"
 
-if [ ! -f out/index.html ]; then
-  echo "out/index.html missing — run 'make generate' first" >&2
+# projects.html, not index.html: the overview moved off the bare root
+# when the spec list took it (spec 100), and the sentinel has to be a
+# file the generator still writes.
+if [ ! -f out/projects.html ]; then
+  echo "out/projects.html missing — run 'make generate' first" >&2
   echo "(refusing to sync an empty out/ with --delete: it would wipe the site)" >&2
   exit 1
 fi

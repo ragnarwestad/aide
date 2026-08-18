@@ -18,7 +18,7 @@ const failFetch = (async () => {
 
 beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), "aide-serve-"));
-  writeFileSync(join(dir, "index.html"), "<p>overview</p>");
+  writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
   writeFileSync(join(dir, "aide.html"), "<p>aide</p>");
   server = createServer({
     siteDir: dir,
@@ -35,8 +35,13 @@ afterAll(() => {
 });
 
 describe("static", () => {
-  test("/ and /<slug>.html are byte-identical to disk", async () => {
-    expect(await (await fetch(`${base}/`)).text()).toBe(readFileSync(join(dir, "index.html"), "utf-8"));
+  // `/` is no longer one of these: since spec 100 the Bun server answers
+  // it with the spec list before `serveStatic` is reached at all, and
+  // what it answers with is covered by `queue-routes.test.ts`.
+  test("the generated pages are byte-identical to disk", async () => {
+    expect(await (await fetch(`${base}/projects.html`)).text()).toBe(
+      readFileSync(join(dir, "projects.html"), "utf-8"),
+    );
     expect(await (await fetch(`${base}/aide.html`)).text()).toBe("<p>aide</p>");
   });
 

@@ -86,7 +86,7 @@ export function isAnalyzeStale(descriptionAt: string | null, analyzeAt: string |
 export interface DescriptionFreshnessOptions {
   run: GitRunner;
   /** How long one answer stands. Without it, the five-second refresh of
-   *  /specs would spawn two git processes per spec on every tick. */
+   *  the list would spawn two git processes per spec on every tick. */
   ttlMs?: number;
   now?: () => number;
 }

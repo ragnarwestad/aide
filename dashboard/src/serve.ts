@@ -32,6 +32,7 @@ import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
+  OVERVIEW_PAGE,
   FILTER_FIELD_PREFIX,
   FILTER_KEYS,
   navEntries,
@@ -184,7 +185,7 @@ export function createRootLock() {
  *  Encoded one key at a time rather than through `URLSearchParams`,
  *  which writes a space as `+`: a refusal's reason goes in this string
  *  and is read by a person. With nothing to carry the target stays
- *  exactly `/specs`, never `/specs?`. */
+ *  exactly `/`, never `/?`. */
 function specsRedirect(body: unknown, refusal?: { error: string; spec?: string }): Response {
   const sent = (body ?? {}) as Record<string, unknown>;
   const parts: string[] = [];
@@ -200,7 +201,7 @@ function specsRedirect(body: unknown, refusal?: { error: string; spec?: string }
     if (refusal.spec) parts.push(`errorSpec=${encodeURIComponent(refusal.spec)}`);
   }
   const query = parts.join("&");
-  return new Response(null, { status: 303, headers: { location: query ? `/specs?${query}` : "/specs" } });
+  return new Response(null, { status: 303, headers: { location: query ? `/?${query}` : "/" } });
 }
 
 /** Every refusal, in `serve.log`. Both streams of the launchd job go to
@@ -212,15 +213,15 @@ function logRefusal(action: string, spec: string | undefined, reason: string): v
 }
 
 // Nav for /live when no project set is injected: reconstruct entries
-// from the generated site (index + every *.html except live).
+// from the generated site (the overview + every *.html except live).
 function navFromSite(siteDir: string): NavEntry[] {
-  const entries: NavEntry[] = [{ label: "Overview", path: "index.html" }];
+  const entries: NavEntry[] = [{ label: "Overview", path: OVERVIEW_PAGE }];
   try {
     const { readdirSync } = require("node:fs") as typeof import("node:fs");
     for (const f of readdirSync(siteDir).sort()) {
       // About is a generated page, not a project — listing it under
       // Projects would invent one that does not exist.
-      if (!f.endsWith(".html") || f === "index.html" || f === ABOUT_PAGE) continue;
+      if (!f.endsWith(".html") || f === OVERVIEW_PAGE || f === ABOUT_PAGE) continue;
       entries.push({ label: f.replace(/\.html$/, ""), path: f });
     }
   } catch {
@@ -353,7 +354,10 @@ function tailFile(path: string, maxBytes = STREAM_TAIL_BYTES): string {
 }
 
 function serveStatic(siteDir: string, pathname: string): Response {
-  const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
+  // `/` never reaches here: `isQueuePath` claims it for the spec list
+  // before the static fallback is tried at all (spec 100). Every other
+  // path is a file in the generated site, or a 404.
+  const rel = decodeURIComponent(pathname.slice(1));
   const root = resolve(siteDir);
   const target = resolve(root, normalize(rel));
   if (target !== root && !target.startsWith(root + sep)) return new Response("not found", { status: 404 });
@@ -597,6 +601,7 @@ export function createServer(opts: ServerOptions) {
   // guarded too — a redirect that answers before the token is checked
   // would tell an unauthenticated caller the page exists.
   const isQueuePath = (path: string) =>
+    path === "/" ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -623,7 +628,7 @@ export function createServer(opts: ServerOptions) {
     if (tokenMatches(provided, queueToken)) return null;
     return new Response(
       "unauthorized\n\n" +
-        "This needs its token. Open /specs?token=<the token> once and the\n" +
+        "This needs its token. Open /?token=<the token> once and the\n" +
         "browser keeps it in a cookie; API callers send it as X-Aide-Token.\n" +
         "The token lives in the file this server was started with.\n",
       { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } },
@@ -820,10 +825,10 @@ export function createServer(opts: ServerOptions) {
   /** Put a newly created spec where the page can see it (spec 93).
    *
    *  This is the one merge on the dashboard that no one pressed a button
-   *  for, and it is not a convenience: `/specs` lists what is on disk in
-   *  the main checkout, which every run is careful never to leave its
-   *  default branch, so a created spec that is only pushed to a branch
-   *  appears nowhere at all. A job parked in `awaiting-approval` until
+   *  for, and it is not a convenience: the spec list shows what is on
+   *  disk in the main checkout, which every run is careful never to
+   *  leave its default branch, so a created spec that is only pushed to
+   *  a branch appears nowhere at all. A job parked in `awaiting-approval` until
    *  somebody notices would not be the feature with one extra click — it
    *  would be the feature not working.
    *
@@ -964,19 +969,25 @@ export function createServer(opts: ServerOptions) {
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
     const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
 
-    // The page is about SPECS; that a queue orders the runs is an
-    // implementation detail. The old address keeps answering, because
-    // people bookmark this page — and the token arrives in the query
-    // string of exactly such a bookmark, so the search goes on verbatim.
-    // `/api/queue*` is an API contract and is deliberately not matched.
-    if (path === "/queue" || path.startsWith("/queue/")) {
+    // The list is the dashboard's front page. Both addresses it used to
+    // answer at keep answering, because people bookmark this page — and
+    // the token arrives in the query string of exactly such a bookmark,
+    // so the search goes on verbatim. `/api/queue*` is an API contract
+    // and is deliberately not matched.
+    if (path === "/queue" || path === "/specs") {
+      return new Response(null, { status: 302, headers: { location: `/${url.search}` } });
+    }
+
+    // The DETAIL page did not move with the list: what sits at the end
+    // of this path is a job id, and a job is still read at /specs/<id>.
+    if (path.startsWith("/queue/")) {
       return new Response(null, {
         status: 302,
         headers: { location: `/specs${path.slice("/queue".length)}${url.search}` },
       });
     }
 
-    if (path === "/specs") {
+    if (path === "/") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const liveTargets = await withFreshness(targets());
       const view = {
@@ -1057,13 +1068,13 @@ export function createServer(opts: ServerOptions) {
           ? json({ error: result.error }, 400)
           : new Response(null, {
               status: 303,
-              headers: { location: `/specs?error=${encodeURIComponent(result.error)}` },
+              headers: { location: `/?error=${encodeURIComponent(result.error)}` },
             });
       }
       runner?.tick();
       return wantsJson
         ? json({ ok: true, job: result.job })
-        : new Response(null, { status: 303, headers: { location: "/specs" } });
+        : new Response(null, { status: 303, headers: { location: "/" } });
     }
 
     if (path === "/api/queue") {
