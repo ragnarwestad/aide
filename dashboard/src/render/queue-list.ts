@@ -45,6 +45,15 @@ export interface QueueTarget {
   percent?: number;
   /** Steps this spec has already had. Marked, never forbidden. */
   done?: string[];
+  /** Where the spec's folder is on this machine. Server-side only — it
+   *  is what the freshness check runs git in, and an absolute path has
+   *  no business on a page. */
+  dir?: string;
+  /** The description was committed after the last finished analyze, so
+   *  the plan on disk describes an older problem than the description
+   *  states. Derived live at render time, never stored, exactly like
+   *  the merge check: a re-run clears it by being newer. */
+  analyzeStale?: boolean;
 }
 
 export interface QueuePageOptions {
@@ -217,6 +226,9 @@ interface SpecGroup {
   title?: string;
   phase?: string;
   percent?: number;
+  /** This spec's description has moved on since its last analysis. The
+   *  analyze line says so; nothing is blocked by it. */
+  analyzeStale: boolean;
 }
 
 /** Fold branch entries by label, most-recently-active row winning a
@@ -253,8 +265,16 @@ function emptyGroup(t: QueueTarget): SpecGroup {
 /** What a row reads off its own spec rather than off its jobs. Written
  *  once because both constructors need it, and a row showing another
  *  spec's done-set or progress is the one way this join can go wrong. */
-function fromTarget(t: QueueTarget | undefined): Pick<SpecGroup, "done" | "title" | "phase" | "percent"> {
-  return { done: t?.done ?? [], title: t?.title, phase: t?.phase, percent: t?.percent };
+function fromTarget(
+  t: QueueTarget | undefined,
+): Pick<SpecGroup, "done" | "title" | "phase" | "percent" | "analyzeStale"> {
+  return {
+    done: t?.done ?? [],
+    title: t?.title,
+    phase: t?.phase,
+    percent: t?.percent,
+    analyzeStale: t?.analyzeStale ?? false,
+  };
 }
 
 function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] {
@@ -767,6 +787,14 @@ function phaseSubRows(g: SpecGroup, now: number): string {
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
+      // The plan is about an older problem than the description is: said
+      // on the analyze line, because analyze is the phase that has to
+      // run again. Amber, like every other "worth noticing, not
+      // alarming" mark on this page — and it blocks nothing.
+      const stale =
+        p.step === "analyze" && g.analyzeStale
+          ? ` <span class="chip stale" title="1-description.md was committed after the last finished analyze">description changed since</span>`
+          : "";
       const tries =
         p.attempts.length > 1
           ? `<div class="muted small">${p.attempts.length} attempts</div>`
@@ -775,7 +803,7 @@ function phaseSubRows(g: SpecGroup, now: number): string {
             : "";
       return (
         `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
-        `<td class="phasecell">${name}</td>` +
+        `<td class="phasecell">${name}${stale}</td>` +
         `<td>${tries}</td>` +
         `<td>${latest ? stateCell(latest) : `<span class="muted small">not run yet</span>`}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +

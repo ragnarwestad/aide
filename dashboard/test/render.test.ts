@@ -1304,3 +1304,67 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     for (const href of links) expect(href).toContain("fold=aide%2F90-x");
   });
 });
+
+// Spec 97: the row says when the plan describes an older problem than
+// the description does. Nothing is blocked — a person who knows the
+// edit was cosmetic can still start `implement`; the page just stops
+// pretending the plan is current.
+describe("the description-changed badge (criteria 1, 3)", () => {
+  const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({ id, specFolder: "97-stale", steps: [step], stepIndex: 0, state: "done", ...extra });
+
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  // The path every example in the ticket takes: 93, 94 and 96 had all
+  // actually run an analyze, so a badge wired only into `emptyGroup`
+  // would never fire for any of them.
+  test("a spec with job history carries it on the analyze line (criterion 1)", () => {
+    const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
+    expect(subRow(html, "analyze")).toContain("description changed since");
+    for (const phase of ["review-plan", "implement", "archive"]) {
+      expect(subRow(html, phase)).not.toContain("description changed since");
+    }
+  });
+
+  test("a spec nothing has run carries it too (criterion 1)", () => {
+    const html = rows([], [target("97-never-run", { analyzeStale: true })]);
+    expect(subRow(html, "analyze")).toContain("description changed since");
+  });
+
+  test("a spec whose description has not moved carries nothing (criterion 4)", () => {
+    const html = rows([job("j1", "analyze")], [target("97-stale")]);
+    expect(html).not.toContain("description changed since");
+  });
+
+  // `done` is what the server has already stripped `analyze` and
+  // `review-plan` out of; the row's job is to pre-tick the first phase
+  // that is left, which is analyze — not implement.
+  test("analyze is pre-ticked again, not implement (criterion 3)", () => {
+    const html = rows(
+      [job("j1", "analyze"), job("j2", "implement")],
+      [target("97-stale", { analyzeStale: true, done: ["implement"], percent: 100 })],
+    );
+    const line = head(html, "97-stale");
+    expect(line).toMatch(/value="analyze" checked/);
+    expect(line).not.toMatch(/value="implement" checked/);
+    // Exactly one box, as `stepBoxes` has always ticked: the pair
+    // belongs to a spec nothing has ever run (spec 94).
+    expect([...line.matchAll(/ checked/g)]).toHaveLength(1);
+  });
+});
