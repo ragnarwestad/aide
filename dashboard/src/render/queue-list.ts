@@ -1115,7 +1115,9 @@ export function renderQueuePage(
     // every five seconds, and a half-typed description must survive it.
     newSpecForm(opts) +
     table;
+  // The front page IS aide: the tab says only that.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {
+    docTitle: "aide",
     refreshInNoscript: !!opts.script,
     script: opts.script,
   });

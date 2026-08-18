@@ -253,7 +253,7 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   test("the renamed page says Specs in its nav, heading and title (criterion 9)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, auth)).text();
-    expect(html).toContain("<title>Specs</title>");
+    expect(html).toContain("<title>aide</title>");
     expect(html).toContain("<h1>Specs</h1>");
     expect(html).toContain('<a class="current" href="/">Specs</a>');
     // Not one label left saying it either — the button and the form's

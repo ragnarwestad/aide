@@ -207,9 +207,9 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
   const pages: Page[] = [
     {
       path: OVERVIEW_PAGE,
-      // The heading still names the page; the TAB says what aide is
-      // for — it is the one title a reader sees with no page around it.
-      html: pageShell("aide dashboard", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
+      // The tab always leads with aide; the tagline rides on the
+      // overview, the one page that is about aide itself.
+      html: pageShell("Overview", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
         docTitle: "aide — from spec to merge",
       }),
     },

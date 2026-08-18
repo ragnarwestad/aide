@@ -80,11 +80,13 @@ describe("the mark is on the page (description item 3)", () => {
   test("the overview's tab title carries the tagline; its heading does not change", () => {
     const html = site.get("projects.html")!;
     expect(html).toContain("<title>aide — from spec to merge</title>");
-    expect(html).toContain("<h1>aide dashboard</h1>");
+    expect(html).toContain("<h1>Overview</h1>");
   });
 
-  test("a sub-page keeps its own tab title", () => {
-    expect(site.get("about.html")!).toContain("<title>About</title>");
+  // Every tab leads with aide: the reader picks it out of a row of
+  // tabs by the product's name, not by which page happens to be open.
+  test("a sub-page's tab title leads with aide", () => {
+    expect(site.get("about.html")!).toContain("<title>aide · About</title>");
   });
 });
 

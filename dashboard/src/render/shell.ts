@@ -57,7 +57,7 @@ export function pageShell(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
-<title>${esc(opts.docTitle ?? title)}</title>
+<title>${esc(opts.docTitle ?? `aide · ${title}`)}</title>
 ${ICON_LINKS}
 <style>${CSS}</style>
 </head>
