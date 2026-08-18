@@ -1,8 +1,8 @@
 // The dashboard's rendering, one file per page:
 //
-//   render/site.ts        index.html + one page per project (static)
+//   render/site.ts        projects.html + one page per project (static)
 //   render/live.ts        /live
-//   render/queue-list.ts  /specs — the form and the spec list
+//   render/queue-list.ts  / — the form and the spec list
 //   render/job-page.ts    /specs/<id> — one job, in full
 //   render/shell.ts       the frame all four sit in
 //   render/job-state.ts   what a job looks like to a page
@@ -12,10 +12,10 @@
 // This file is the door: callers ask render.ts for a page and do not
 // have to know which file it lives in. Every page is self-contained —
 // inline CSS, no external references — because the generated site is
-// published as plain files. /queue is the one page that carries browser
-// code, compiled from queue-client.ts.
+// published as plain files. The spec list at `/` is the one page that
+// carries browser code, compiled from queue-client.ts.
 
-export { ABOUT_PAGE, renderSite, navEntries } from "./render/site.ts";
+export { ABOUT_PAGE, OVERVIEW_PAGE, renderSite, navEntries } from "./render/site.ts";
 export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
 export type { NavEntry } from "./render/shell.ts";

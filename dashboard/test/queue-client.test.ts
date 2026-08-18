@@ -1,6 +1,6 @@
 // Spec 96: the page's own merge submit. Pressing Merge used to be a
 // plain form POST — several seconds with nothing changing on the button,
-// then a 303 back to /specs and a reload that threw the reader to the
+// then a 303 back to the list and a reload that threw the reader to the
 // top of the page.
 //
 // `queue-client.ts` can neither import nor export anything (the server
@@ -51,7 +51,7 @@ function harness(reply: (url: string) => Reply, formClass = "mergeform", search 
   };
   const on: Record<string, (e: unknown) => void> = {};
   const requests: { url: string; init: Record<string, unknown> }[] = [];
-  const location = { search, href: "http://dash.test/specs" };
+  const location = { search, href: "http://dash.test/" };
 
   const document = {
     getElementById: (id: string) => (id === "jobrows" ? rows : null),
@@ -122,13 +122,13 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     await h.submit();
     expect(seen).toBe("merging…");
     // And the page stayed where the reader was.
-    expect(h.location.href).toBe("http://dash.test/specs");
+    expect(h.location.href).toBe("http://dash.test/");
   });
 
   test("the rows are swapped as soon as the answer arrives, not on the next tick (criterion 11)", async () => {
     const h = harness(() => ({ ok: true, body: OK_MERGE }));
     await h.submit();
-    expect(h.requests.map((r) => r.url).some((u) => u.includes("/specs?") && u.includes("rows=1"))).toBe(true);
+    expect(h.requests.map((r) => r.url).some((u) => u.startsWith("/?") && u.includes("rows=1"))).toBe(true);
     expect(h.rows.innerHTML).toBe("<tr></tr>");
   });
 
@@ -139,14 +139,14 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
         : { ok: true },
     );
     await h.submit();
-    expect(h.location.href).toContain("/specs?error=");
+    expect(h.location.href).toContain("/?error=");
     expect(decodeURIComponent(h.location.href)).toContain("the tree is dirty");
   });
 
   test("a merge that cannot be sent at all reloads rather than lying (criterion 12)", async () => {
     const h = harness(() => ({ ok: false, throws: true }));
     await h.submit();
-    expect(h.location.href).toBe("/specs");
+    expect(h.location.href).toBe("/");
   });
 
   // Merged is not deployed: the code reaching the default branch changes
@@ -166,7 +166,7 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     expect(h.inserted[0]!.textContent).toContain("not installed");
     // The banner the page already has for a refusal, and still no jump.
     expect(h.inserted[0]!.className).toBe("refusal");
-    expect(h.location.href).toBe("http://dash.test/specs");
+    expect(h.location.href).toBe("http://dash.test/");
   });
 
   test("an install that said nothing leaves no banner behind", async () => {
@@ -207,7 +207,7 @@ describe("a refused merge keeps the view and names its spec (criteria 7, 8)", ()
     );
     await h.submit();
     const to = new URL(h.location.href, "http://dash.test");
-    expect(to.pathname).toBe("/specs");
+    expect(to.pathname).toBe("/");
     expect(to.searchParams.get("state")).toBe("active");
     expect(to.searchParams.get("sort")).toBe("cost");
     // The token is handed over once as a cookie; carrying it back into
@@ -257,7 +257,7 @@ describe("a failed branch deletion is said on the page (criterion 4)", () => {
     await h.submit();
     expect(h.inserted).toHaveLength(1);
     expect(h.inserted[0]!.textContent).toContain("deleting aide/99-x on origin failed");
-    expect(h.location.href).toBe("http://dash.test/specs");
+    expect(h.location.href).toBe("http://dash.test/");
   });
 
   test("both messages are said, not just the first", async () => {

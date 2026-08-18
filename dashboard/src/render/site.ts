@@ -1,4 +1,4 @@
-// The static half of the dashboard: index.html (the overview) and one
+// The static half of the dashboard: projects.html (the overview) and one
 // page per project. Every populated manifest key is shown on the
 // project page; a project whose manifest failed to parse gets an error
 // page and an error row on the overview.
@@ -90,8 +90,9 @@ function specTable(specs: SpecView[]): string {
 }
 
 // Slug assignment: lowercase, non-alphanumeric runs -> one hyphen,
-// trimmed. `index` is pre-reserved (the overview owns index.html);
-// a taken or empty slug gets -2, -3, ... — never a silent overwrite.
+// trimmed. `projects` is pre-reserved (the overview owns
+// projects.html); a taken or empty slug gets -2, -3, ... — never a
+// silent overwrite.
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -100,9 +101,11 @@ function slugify(name: string): string {
 }
 
 function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
-  // `index` and `about` are ours: a project called either would
-  // otherwise overwrite a page the nav links to by name.
-  const used = new Set(["index", "about"]);
+  // `projects` and `about` are ours: a project called either would
+  // otherwise overwrite a page the nav links to by name. `index` stays
+  // reserved too, defensively — the overview moved off it (spec 100),
+  // and nothing should quietly move back in.
+  const used = new Set(["index", "about", "projects"]);
   const slugs = new Map<ProjectView, string>();
   for (const p of [...projects].sort((a, b) => a.name.localeCompare(b.name))) {
     const base = slugify(p.name) || "project";
@@ -120,14 +123,19 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return [
-    { label: "Overview", path: "index.html" },
+    { label: "Overview", path: OVERVIEW_PAGE },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 }
 
-/** The one generated page that is not a project. The server's fallback
- *  nav reads the site directory and would otherwise list it as one. */
+/** The generated pages that are not projects. The server's fallback
+ *  nav reads the site directory and would otherwise list them as ones. */
 export const ABOUT_PAGE = "about.html";
+
+/** The project overview. It answered `/` until spec 100 gave the root to
+ *  the spec list, so it needs a filename of its own — and the Bun server
+ *  never reaches `serveStatic` for `/` any more. */
+export const OVERVIEW_PAGE = "projects.html";
 
 function aboutBody(): string {
   return (
@@ -193,8 +201,8 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
     ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
   const pages: Page[] = [
     {
-      path: "index.html",
-      html: pageShell("aide dashboard", entries, "index.html", overview, generatedAt),
+      path: OVERVIEW_PAGE,
+      html: pageShell("aide dashboard", entries, OVERVIEW_PAGE, overview, generatedAt),
     },
   ];
   pages.push({

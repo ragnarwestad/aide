@@ -1,5 +1,5 @@
 // Criteria 1, 2, 6, 7 (spec 02): the per-job detail page and its JSON
-// counterpart. `/specs` shows one row per JOB, so a three-step job shows
+// counterpart. The list shows one row per JOB, so a three-step job shows
 // one line and its finished steps are invisible; and the row says
 // `02-job-detail-view` without saying what that spec is about.
 //
@@ -179,14 +179,14 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
   test("an unmerged branch is called out on both pages (criteria 1, 3)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
     expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 
   test("once the branch has landed the caveat is gone (criterion 2)", async () => {
     const { mirror, id } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(0) });
-    const list = await (await fetch(`${base}/specs`, auth)).text();
+    const list = await (await fetch(`${base}/`, auth)).text();
     expect(list).not.toContain("ready to merge");
     expect(list).toContain(BRANCH);
     expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("ready to merge");
@@ -203,7 +203,7 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
         throw new Error("not a git repository");
       },
     });
-    expect(await (await fetch(`${base}/specs`, auth)).text()).toContain("ready to merge");
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
     expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 });
@@ -249,7 +249,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
       { root: SPECS_REPO, url: SPECS_URL },
     ]);
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([]) });
-    for (const page of [`/specs`, `/specs/${id}`]) {
+    for (const page of [`/`, `/specs/${id}`]) {
       const html = await (await fetch(`${base}${page}`, auth)).text();
       expect(html).toContain(PROJECT_URL);
       expect(html).toContain(SPECS_URL);
@@ -269,7 +269,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
       { root: SPECS_REPO, url: SPECS_URL },
     ]);
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
-    for (const page of [`/specs`, `/specs/${id}`]) {
+    for (const page of [`/`, `/specs/${id}`]) {
       const html = await (await fetch(`${base}${page}`, auth)).text();
       expect(count(html, "ready to merge")).toBe(1);
       // The caveat belongs to the specs repo, and to it alone.
@@ -285,14 +285,14 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
   test("one repo renders as a list of one, through the same markup (criterion 9)", async () => {
     const { mirror } = await seededWith([{ root: PROJECT_REPO, url: PROJECT_URL }]);
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([]) });
-    const one = await (await fetch(`${base}/specs`, auth)).text();
+    const one = await (await fetch(`${base}/`, auth)).text();
 
     const two = await seededWith([
       { root: PROJECT_REPO, url: PROJECT_URL },
       { root: SPECS_REPO, url: SPECS_URL },
     ]);
     const { base: base2 } = start({ queueMirrorPath: two.mirror, gitRun: gitMergedIn([]) });
-    const many = await (await fetch(`${base2}/specs`, auth)).text();
+    const many = await (await fetch(`${base2}/`, auth)).text();
 
     expect(count(one, `class="branch"`)).toBe(1);
     expect(count(many, `class="branch"`)).toBe(2);
@@ -313,7 +313,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     job.branchUrl = PROJECT_URL; // and no branchUrls at all
     writeFileSync(mirror, JSON.stringify(jobs));
     const { base: base2 } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([]) });
-    const html = await (await fetch(`${base2}/specs`, auth)).text();
+    const html = await (await fetch(`${base2}/`, auth)).text();
     expect(count(html, `class="branch"`)).toBe(1);
     expect(html).toContain(PROJECT_URL);
     expect(html).toContain("ready to merge");
@@ -355,7 +355,7 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
 
   const listWith = async (mirror: string, merged: string[] = []) => {
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn(merged) });
-    return await (await fetch(`${base}/specs`, auth)).text();
+    return await (await fetch(`${base}/`, auth)).text();
   };
 
   // The two repos a spec in THIS project makes: `aide` is the project's
@@ -433,7 +433,7 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
   test("a spec that never pushed anywhere has nothing to merge (criterion 8)", async () => {
     const { base } = start();
     await enqueue(base);
-    const html = await (await fetch(`${base}/specs`, auth)).text();
+    const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("/merge");
   });
 });

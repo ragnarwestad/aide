@@ -1,4 +1,4 @@
-// /specs: the one list of every spec there IS — cut and ordered on
+// `/`: the one list of every spec there IS — cut and ordered on
 // demand, one line per spec with its workflow phases beneath it, and
 // every spec run from its own row.
 //
@@ -418,7 +418,7 @@ function queueHref(f: QueueFilter, patch: QueueFilter): string {
     .filter(([, v]) => v)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join("&");
-  return esc(q ? `/specs?${q}` : "/specs");
+  return esc(q ? `/?${q}` : "/");
 }
 
 const foldedSet = (f: QueueFilter): Set<string> =>
@@ -982,7 +982,7 @@ export function renderQueuePage(
     // every five seconds, and a half-typed description must survive it.
     newSpecForm(opts) +
     table;
-  return pageShell("Specs", entries, "/specs", body, generatedAt, 10, {
+  return pageShell("Specs", entries, "/", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,
     script: opts.script,
   });
