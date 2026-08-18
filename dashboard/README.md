@@ -466,7 +466,13 @@ All paths are relative to the serving host's own `$HOME`.
 | `CLAUDE_USAGE` | unset | claude-usage URL (omitted when unset) |
 
 Publishing the generated site to that host is separate:
-`AIDE_DASH_HOST=<host> make publish`.
+`AIDE_DASH_HOST=<host> make publish`. Before rsyncing (with `--delete`),
+`deploy/rsync-publish.sh` checks that a specific file exists under
+`out/` — a guard against wiping the serving host with an empty
+directory. That filename is a second place the front page's identity
+lives, next to the route table above: renaming which generated page is
+the front page (spec 100) means updating this guard too, not just the
+route strings.
 
 ### Saying it once instead of every time
 
