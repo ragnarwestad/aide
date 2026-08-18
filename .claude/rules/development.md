@@ -75,10 +75,15 @@ gives nobody a queue). Both are documented in the README.
 **`aide-run-spec` branches EVERY repo it touches, not just the project.**
 An `analyze` step changes only the specs repo, so branching the project
 alone left the analysis committed on `main` and pushed there — the one
-thing `push branch` exists to prevent. A repo with no changes is not
-pushed at all, and the compare link is built from the repos that
-actually changed (`branchUrls` in the result; `branchUrl` keeps the
-single most interesting one).
+thing `push branch` exists to prevent. A repo whose HEAD did not move
+during the run is not pushed at all, and the compare link is built from
+the repos that actually changed (`branchUrls` in the result;
+`branchUrl` keeps the single most interesting one). **HEAD movement is
+the test, not `changedFiles`** — that field counts only what the run's
+own commit loop found uncommitted, and a step that commits its own work
+(archive does) leaves it at `0` with real commits on the branch. Gating
+the push on it left spec 92's archive branch on the serving host only,
+with the result reporting success.
 
 **It branches them in `git worktree` checkouts of its own** (spec 91),
 under `$HOME/aide-worktrees/<project>/<spec>/`. The real checkouts are
