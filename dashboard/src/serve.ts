@@ -1029,13 +1029,17 @@ export function createServer(opts: ServerOptions) {
       };
       // The rows alone: the page swaps them from script every few
       // seconds, so a half-filled form is never wiped by a refresh.
+      // Only the projects the queue may run. A project taken out of the
+      // allowlist keeps its jobs in the history (and in /api/queue), but
+      // a row for it could only offer a Run that would be refused.
+      const listed = queue.list().filter((j) => allowed.has(j.project));
       if (url.searchParams.get("rows")) {
-        return new Response(renderQueueRows(await Promise.all(queue.list().map(jobRow)), view), {
+        return new Response(renderQueueRows(await Promise.all(listed.map(jobRow)), view), {
           headers: { "content-type": "text/html; charset=utf-8" },
         });
       }
       const html = renderQueuePage(
-        await Promise.all(queue.list().map(jobRow)),
+        await Promise.all(listed.map(jobRow)),
         new Date().toISOString(),
         nav(),
         view,
