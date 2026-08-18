@@ -14,6 +14,12 @@ deployment:
   host: Cloudflare Pages
   command: pnpm run deploy
   url: https://example.com
+  # Optional. Only for a host that builds EVERY branch and serves each
+  # on an address of its own. A template with a literal {branch} in it;
+  # the dashboard puts the pushed branch's name there and shows the
+  # result beside the compare link. Leave it out if there is no such
+  # address — there is no default to fall back on.
+  preview: https://{branch}.example.pages.dev
 logging:
   where: Cloudflare dashboard -> Pages -> logs
 statistics:                    # live dashboards

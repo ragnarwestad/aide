@@ -353,6 +353,59 @@ describe("the unmerged badge (criteria 1-4)", () => {
   });
 });
 
+// --- spec 95: where the branch can be TRIED ----------------------------------
+
+// The compare link says where the work is; for a web app the link that
+// matters more is "try it". A project whose host builds every branch has
+// one address per branch, and until now a reader had to know the host's
+// naming rule and paste it together by hand.
+describe("the preview link beside the compare link (criteria 1-4)", () => {
+  const PREVIEW = "https://aide-95-preview.example.pages.dev";
+  const queueRows = (extra: Partial<QueueRowView>) =>
+    renderQueueRows([row(extra)], { runnerAvailable: true, targets: [] });
+  const jobPage = (extra: Partial<JobDetailView>) =>
+    renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
+  const withPreview = [
+    { label: "aide", url: "https://example.test/aide", merged: false, previewUrl: PREVIEW },
+  ];
+
+  test("the row shows it next to the compare link, never instead of it (criterion 1)", () => {
+    const html = queueRows({ branchUrls: withPreview, state: "done" });
+    expect(html).toContain(`href="${PREVIEW}"`);
+    expect(html).toContain('href="https://example.test/aide"');
+    expect(html).toContain(">preview</a>");
+  });
+
+  test("the job page's Work line shows the same link (criterion 2)", () => {
+    const html = jobPage({ branchUrls: withPreview, state: "done" });
+    expect(html).toContain(`href="${PREVIEW}"`);
+    expect(html).toContain('href="https://example.test/aide"');
+  });
+
+  // A project with no `deployment.preview` — aide itself, PaceUp — must
+  // render exactly as it did before this field existed.
+  test("no previewUrl, nothing new on either page (criterion 3)", () => {
+    const bare = [{ label: "aide", url: "https://example.test/aide", merged: false }];
+    for (const html of [queueRows({ branchUrls: bare }), jobPage({ branchUrls: bare })]) {
+      expect(html).not.toContain(">preview</a>");
+      expect(html).toContain('href="https://example.test/aide"');
+    }
+  });
+
+  // The specs repo holds a plan. There is nothing to try in it, whatever
+  // the project's manifest says.
+  test("only the repo that carries the preview link gets one (criterion 4)", () => {
+    const html = queueRows({
+      state: "done",
+      branchUrls: [
+        { label: "aide", url: "https://example.test/aide", merged: false, previewUrl: PREVIEW },
+        { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
+      ],
+    });
+    expect(html.match(/>preview<\/a>/g)).toHaveLength(1);
+  });
+});
+
 // Criteria 1, 2, 4, 5: what the job IS, everything it has already run,
 // and what it is doing right now.
 describe("renderJobDetailPage", () => {

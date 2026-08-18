@@ -615,7 +615,14 @@ function branchList(branches: BranchView[], activity?: string): string {
       .map(
         (b) =>
           `<span class="branch"><a class="small" href="${esc(b.url)}" ` +
-          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>${unmergedBadge(b, activity)}</span>`,
+          `title="compare the branch in ${esc(b.label)}">${esc(b.label)}</a>` +
+          // Beside the compare link, never instead of it: one says where
+          // the work is, the other where it can be tried.
+          (b.previewUrl
+            ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
+              `title="open this branch's own build">preview</a>`
+            : "") +
+          `${unmergedBadge(b, activity)}</span>`,
       )
       .join("") +
     `</span>`

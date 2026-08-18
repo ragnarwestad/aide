@@ -148,7 +148,13 @@ export function renderJobDetailPage(
                 .map(
                   (b) =>
                     `<div class="branch"><span class="muted small">${esc(b.label)}</span> ` +
-                    `<a href="${esc(b.url)}">${esc(b.url)}</a>${unmergedBadge(b, branchActivity(job))}</div>`,
+                    `<a href="${esc(b.url)}">${esc(b.url)}</a>` +
+                    // The same pair as on the row: compare, then try.
+                    (b.previewUrl
+                      ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
+                        `title="open this branch's own build">preview</a>`
+                      : "") +
+                    `${unmergedBadge(b, branchActivity(job))}</div>`,
                 )
                 .join(""),
             ],

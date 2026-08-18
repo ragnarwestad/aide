@@ -2409,3 +2409,101 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("deleting");
   });
 });
+
+// --- spec 95: the preview link is read from the project's own manifest -------
+
+// The pure render functions are tested next to the markup they produce.
+// What only the server can answer is which repo a preview belongs to:
+// the manifest lives in the project's checkout, and the specs repo
+// beside it carries a plan with nothing to try.
+describe("GET /queue and /specs/<id>: the preview link (criteria 1-4)", () => {
+  const AUTH = { "x-aide-token": TOKEN };
+  const TEMPLATE = "https://{branch}.example.pages.dev";
+  const EXPECTED = "https://aide-81-queue-and-runner.example.pages.dev";
+
+  /** A project root holding the project's own checkout and a specs repo
+   *  beside it — the shape an `aide` spec actually pushes to. Only the
+   *  project's checkout gets a manifest; the specs repo has none, which
+   *  is what makes it a plan repo rather than deployable code. */
+  function roots(preview?: string): { root: string; repo: string; specsRepo: string } {
+    const root = mkdtempSync(join(tmpdir(), "aide-preview-"));
+    ownDirs.push(root);
+    const repo = join(root, "aide");
+    mkdirSync(join(repo, ".aide"), { recursive: true });
+    writeFileSync(
+      join(repo, ".aide", "project.yaml"),
+      `name: aide\ndeployment:\n  host: somewhere\n` + (preview ? `  preview: "${preview}"\n` : ""),
+    );
+    const specsRepo = join(root, "aide-specs");
+    mkdirSync(specsRepo, { recursive: true });
+    return { root, repo, specsRepo };
+  }
+
+  const gitQuiet = async (_dir: string, args: string[]) => {
+    const a = args.join(" ");
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+    return { code: 0, stdout: "" };
+  };
+
+  async function seed(branchUrls: { root: string; url: string }[]): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json", ...AUTH },
+        body: JSON.stringify(JOB),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "done";
+    job.branchUrls = branchUrls;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  const startWith = (root: string, mirror: string) =>
+    start({ queueToken: TOKEN, queueMirrorPath: mirror, queueProjectRoot: root, gitRun: gitQuiet }).base;
+
+  test("the row carries the manifest's preview link for the project's own repo (criterion 1)", async () => {
+    const { root, repo, specsRepo } = roots(TEMPLATE);
+    const { mirror, id } = await seed([
+      { root: repo, url: "https://example.test/aide" },
+      { root: specsRepo, url: "https://example.test/aide-specs" },
+    ]);
+    const html = await (await fetch(`${startWith(root, mirror)}/queue?rows=1`, { headers: AUTH })).text();
+    expect(html).toContain(`href="${EXPECTED}"`);
+    // One link, not two: the specs repo pushed a branch of the same
+    // name, and there is nothing to try in a plan (criterion 4).
+    expect(html.match(/>preview<\/a>/g)).toHaveLength(1);
+    expect(id).toBeTruthy();
+  });
+
+  test("the job page shows the same link (criterion 2)", async () => {
+    const { root, repo } = roots(TEMPLATE);
+    const { mirror, id } = await seed([{ root: repo, url: "https://example.test/aide" }]);
+    const html = await (await fetch(`${startWith(root, mirror)}/specs/${id}`, { headers: AUTH })).text();
+    expect(html).toContain(`href="${EXPECTED}"`);
+  });
+
+  test("a manifest without the key adds nothing at all (criterion 3)", async () => {
+    const { root, repo } = roots();
+    const { mirror } = await seed([{ root: repo, url: "https://example.test/aide" }]);
+    const html = await (await fetch(`${startWith(root, mirror)}/queue?rows=1`, { headers: AUTH })).text();
+    expect(html).not.toContain(">preview</a>");
+    expect(html).toContain('href="https://example.test/aide"');
+  });
+
+  // The manifest is read per render, not once at startup: adding the key
+  // must show up on the next page load, not the next deploy.
+  test("a manifest edited while the server runs is picked up on the next render", async () => {
+    const { root, repo } = roots();
+    const { mirror } = await seed([{ root: repo, url: "https://example.test/aide" }]);
+    const base = startWith(root, mirror);
+    expect(await (await fetch(`${base}/queue?rows=1`, { headers: AUTH })).text()).not.toContain(">preview</a>");
+    writeFileSync(join(repo, ".aide", "project.yaml"), `name: aide\ndeployment:\n  preview: "${TEMPLATE}"\n`);
+    expect(await (await fetch(`${base}/queue?rows=1`, { headers: AUTH })).text()).toContain(`href="${EXPECTED}"`);
+  });
+});

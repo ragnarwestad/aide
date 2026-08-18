@@ -10,7 +10,11 @@ export interface ManifestData {
   generated?: string;
   stack?: Record<string, string>;
   dependencies?: string[];
-  deployment?: { host?: string; command?: string; url?: string; note?: string };
+  /** `preview` is a URL TEMPLATE with a literal `{branch}` in it —
+   *  where one branch can be tried, as opposed to `url`, which is
+   *  where the merged site lives. Only a project whose host builds
+   *  every branch has one. */
+  deployment?: { host?: string; command?: string; url?: string; preview?: string; note?: string };
   logging?: { where: string[] };
   statistics?: string[];
   reports?: { title?: string; url?: string; recipe?: string }[];
@@ -58,6 +62,7 @@ export function parseManifest(text: string): ManifestResult {
       ...(d.host != null && { host: toStr(d.host) }),
       ...(d.command != null && { command: toStr(d.command) }),
       ...(d.url != null && { url: toStr(d.url) }),
+      ...(d.preview != null && { preview: toStr(d.preview) }),
       ...(d.note != null && { note: toStr(d.note) }),
     };
   }

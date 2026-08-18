@@ -15,6 +15,11 @@ export interface BranchView {
    *  branch. One flag per repo: a spec whose project branch merged and
    *  whose specs branch did not is the case this exists for. */
   merged: boolean;
+  /** Where this branch can be TRIED, when the project's host builds a
+   *  preview per branch (`.aide/project.yaml`'s `deployment.preview`).
+   *  Set only on the repo that IS the project's own code — a repo
+   *  holding a plan has nothing to try. */
+  previewUrl?: string;
 }
 
 export interface QueueRowView {

@@ -48,3 +48,26 @@ describe("parseManifest on the real manifests", () => {
     expect(result.data.statistics).toBeUndefined();
   });
 });
+
+// Spec 95: where a branch can be TRIED, as opposed to where the merged
+// site lives. Only a project that builds a preview per branch has one,
+// so the key follows every other manifest field: absent means absent.
+describe("deployment.preview (spec 95)", () => {
+  test("a manifest that declares it parses it", () => {
+    const result = parseManifest(
+      "name: atlasaurus\ndeployment:\n  host: Cloudflare Pages\n" +
+        '  preview: "https://{branch}.atlasaurus.pages.dev"\n',
+    );
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.deployment?.preview).toBe("https://{branch}.atlasaurus.pages.dev");
+    expect(result.data.deployment?.host).toBe("Cloudflare Pages");
+  });
+
+  test("a manifest without it leaves it undefined — aide's and PaceUp's do", () => {
+    for (const name of ["paceup.yaml", "atlasaurus.yaml"]) {
+      const result = parseManifest(fixture(name));
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.deployment?.preview).toBeUndefined();
+    }
+  });
+});
