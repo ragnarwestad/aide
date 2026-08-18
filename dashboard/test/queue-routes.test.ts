@@ -1,9 +1,9 @@
 // Criterion 9 (spec 81): the queue surface is behind the token — read
-// routes included — while /live and POST /api/aide-run stay open. A
+// routes included — while /api/aide-runs and POST /api/aide-run stay open. A
 // token that a page hands to anyone who can load the page is not a
 // secret, so GET /queue is checked too.
 //
-// /queue carries page code; /live and the generated pages do not —
+// /queue carries page code; the generated pages do not —
 // not by rule, but because they have nothing that needs it. /queue has
 // a form, and a meta refresh every ten seconds would wipe whatever
 // someone was half-way through filling in.
@@ -39,7 +39,7 @@ const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
 describe("no token configured", () => {
-  test("every queue route is 503; /live and POST /api/aide-run are unaffected", async () => {
+  test("every queue route is 503; /api/aide-runs and POST /api/aide-run are unaffected", async () => {
     const { base } = start();
     for (const [path, init] of [
       // Spec 100: `/` is the list now, so it is behind the token like
@@ -57,7 +57,7 @@ describe("no token configured", () => {
       expect(res.status).toBe(503);
       expect((await res.text()).toLowerCase()).toContain("token");
     }
-    expect((await fetch(`${base}/live`)).status).toBe(200);
+    expect((await fetch(`${base}/api/aide-runs`)).status).toBe(200);
     // The static overview kept its own address and its own openness: it
     // moved off `/`, not behind the token.
     expect((await fetch(`${base}/projects.html`)).status).toBe(200);
@@ -82,14 +82,14 @@ describe("token configured", () => {
     expect((await fetch(`${base}/specs?token=wrong`)).status).toBe(401);
   });
 
-  test("the spec 80 emitter route stays open — a 401 there would empty /live silently", async () => {
+  test("the spec 80 emitter route stays open — a 401 there would empty /api/aide-runs silently", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/api/aide-run`, {
       method: "POST",
       body: JSON.stringify({ host: "h", sessionId: "s1", command: "analyze", spec: "81" }),
     });
     expect(res.status).toBe(200);
-    expect((await fetch(`${base}/live`)).status).toBe(200);
+    expect((await fetch(`${base}/api/aide-runs`)).status).toBe(200);
   });
 
   test("GET /?token=… returns 200 and sets an HttpOnly cookie; the cookie then suffices", async () => {
@@ -500,11 +500,7 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain('id="jobrows"');
   });
 
-  test("/live and the generated pages carry no page code — they need none", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const live = await (await fetch(`${base}/live`)).text();
-    expect(live).not.toContain("<script");
-    expect(live).toContain('http-equiv="refresh"');
+  test("the generated pages carry no page code — they need none", async () => {
     const { renderSite } = await import("../src/render.ts");
     for (const page of renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "x")) {
       expect(page.html).not.toContain("<script");

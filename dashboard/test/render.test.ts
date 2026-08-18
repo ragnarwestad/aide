@@ -140,7 +140,7 @@ describe("nav (criterion 2)", () => {
       );
       expect(links[0]).toEqual(["Specs", "/"]);
       expect(links[1]).toEqual(["Overview", "projects.html"]);
-      expect(links.map((l) => l[0]).slice(0, 4)).toEqual(["Specs", "Overview", "Live", "About"]);
+      expect(links.map((l) => l[0]).slice(0, 3)).toEqual(["Specs", "Overview", "About"]);
     }
   });
 

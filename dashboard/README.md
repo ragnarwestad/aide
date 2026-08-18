@@ -47,9 +47,10 @@ no host is named anywhere in this repo.
 - `/<slug>.html` — one page per project (slug = lowercased name,
   non-alphanumerics → hyphens; collisions get `-2`, `-3`, …; `index`,
   `about` and `projects` are reserved)
-- `/live` — aide runs in flight (server-rendered, refreshes every 10 s)
-- `/api/aide-runs` — the same rows as JSON; `POST /api/aide-run`
-  receives one event
+- `/api/aide-runs` — aide runs in flight, as JSON; `POST /api/aide-run`
+  receives one event. (The `/live` page that rendered them was dropped
+  on 2026-08-18: the spec list shows every queued run per row, and
+  interactive sessions are claude-usage's own page.)
 - `/specs/<id>` — one job, in full. It did NOT move with the list: every
   job link already sent out points here.
 - `/specs` and `/queue` — where the list used to live; both redirect to
@@ -103,7 +104,7 @@ in `~/.claude/settings.json` as:
 }
 ```
 
-`/live` merges the stored runs with claude-usage's `/api/live` (same
+The job page (and `/api/aide-runs`) merge the stored runs with claude-usage's `/api/live` (same
 host — but if claude-usage there binds one address only, pass it
 explicitly: `CLAUDE_USAGE=http://<address>:8787 make install-serve`;
 fetched lazily and cached 5 s): liveness

@@ -1,5 +1,5 @@
 // Criteria 4-5 (spec 80): the Bun server serves the static site
-// byte-identical, refuses traversal, accepts runs, and renders /live
+// byte-identical, refuses traversal, accepts runs, and serves them as JSON
 // through the generator's layout; generated pages carry a Live entry.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -76,20 +76,18 @@ describe("POST /api/aide-run", () => {
   });
 });
 
+// The /live page is gone (2026-08-18): the spec list shows every queued
+// run per row, and interactive sessions are claude-usage's own page. The
+// receiver stays — the job page still enriches a running step from it.
 describe("GET /live", () => {
-  test("layout, meta refresh, rows, degradation notice, no script", async () => {
-    const html = await (await fetch(`${base}/live`)).text();
-    expect(html).toContain("<nav>");
-    expect(html).toContain('http-equiv="refresh"');
-    expect(html).toContain("80");
-    expect(html).toContain("implement");
-    expect(html).toContain("claude-usage");
-    expect(html).not.toContain("<script");
-    expect(html).toMatch(/<a class="current" href="\/live"/);
+  test("is not a page any more, and nothing links to it", async () => {
+    expect((await fetch(`${base}/live`)).status).toBe(404);
+    const html = await (await fetch(`${base}/`)).text();
+    expect(html).not.toContain('href="/live"');
   });
 });
 
-describe("TDD phases on /live (criterion 10, spec 81)", () => {
+describe("TDD phases in /api/aide-runs (criterion 10, spec 81)", () => {
   test("a phase reported from inside an implement run is stored and shown", async () => {
     const res = await fetch(`${base}/api/aide-run`, {
       method: "POST",
@@ -103,17 +101,15 @@ describe("TDD phases on /live (criterion 10, spec 81)", () => {
       rows: { sessionId: string; phase?: string }[];
     };
     expect(runs.rows.find((r) => r.sessionId === "s-phase")?.phase).toBe("green");
-    const html = await (await fetch(`${base}/live`)).text();
-    expect(html).toContain("implement · green");
   });
 });
 
 describe("generated site nav (criterion 5)", () => {
-  test("every page links to /live", () => {
+  test("no page links to /live any more", () => {
     const pages = renderSite(
       [{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }],
       "2026-08-16T00:00:00Z",
     );
-    for (const p of pages) expect(p.html).toContain('<a href="/live">Live</a>');
+    for (const p of pages) expect(p.html).not.toContain('href="/live"');
   });
 });

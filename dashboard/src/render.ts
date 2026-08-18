@@ -1,7 +1,6 @@
 // The dashboard's rendering, one file per page:
 //
 //   render/site.ts        projects.html + one page per project (static)
-//   render/live.ts        /live
 //   render/queue-list.ts  / — the form and the spec list
 //   render/job-page.ts    /specs/<id> — one job, in full
 //   render/shell.ts       the frame all four sit in
@@ -20,8 +19,6 @@ export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
 export type { NavEntry } from "./render/shell.ts";
 
-export { renderLivePage } from "./render/live.ts";
-export type { LiveRowView } from "./render/live.ts";
 
 // `stepBoxes` and `specSummary` used to be exported alongside these
 // two. They are internal now: both take a spec ROW rather than a

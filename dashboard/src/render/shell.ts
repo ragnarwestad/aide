@@ -21,7 +21,6 @@ export function nav(entries: NavEntry[], currentPath: string): string {
     // everything else in this menu sits under it.
     link({ label: "Specs", path: "/" }),
     link(overview),
-    link({ label: "Live", path: "/live" }),
     link({ label: "About", path: "about.html" }),
     `<li class="nav-label">Projects</li>`,
     ...projects.map(link),

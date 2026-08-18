@@ -37,7 +37,6 @@ import {
   FILTER_KEYS,
   navEntries,
   renderJobDetailPage,
-  renderLivePage,
   renderQueuePage,
   renderQueueRows,
   type JobDetailView,
@@ -674,14 +673,6 @@ export function createServer(opts: ServerOptions) {
         if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
         const { rows, enriched } = await enricher.rows(store);
         return json({ generatedAt: new Date().toISOString(), enriched, rows });
-      }
-
-      if (path === "/live") {
-        if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-        const { rows, enriched } = await enricher.rows(store);
-        const notice = enriched ? null : "claude-usage is unreachable — liveness, subagents and cost are unknown right now.";
-        const html = renderLivePage(rows, notice, new Date().toISOString(), nav());
-        return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
       }
 
       if (req.method !== "GET" && req.method !== "HEAD") {
