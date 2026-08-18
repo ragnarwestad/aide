@@ -1692,3 +1692,210 @@ def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
     assert rc == 0, out
     assert (loose / "81-queue-and-runner" / "2-analysis.md").exists()
     assert [r["root"] for r in out["repos"]] == [str(project)]
+
+
+# --- Criterion 18: a spec whose dependency is still unmerged ----------------
+# Every run cuts its branch from origin/<base> in a fresh worktree, so a
+# spec queued while a spec it builds on is still unmerged is analyzed and
+# implemented against a main that does not contain it (spec 92). The
+# refusal has to land BEFORE claude is launched, because that is where
+# the money is.
+
+
+@pytest.fixture
+def local_origins(workspace, tmp_path):
+    """A REAL local bare origin for both roots.
+
+    The shared `origin` fixture points the fetch URL at a github.com
+    address on purpose (that is where the compare link comes from), which
+    no dependency check can talk to. These tests need an origin that
+    actually answers.
+    """
+    bares = {}
+    for key in ("project", "specs"):
+        bare = tmp_path / f"{key}-local.git"
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+        git(workspace[key], "remote", "add", "origin", str(bare))
+        git(workspace[key], "push", "-q", "-u", "origin", "main")
+        bares[key] = bare
+    return bares
+
+
+def add_spec(workspace, folder, archived=False):
+    """A second spec in the specs repo, active or already archived."""
+    parent = workspace["specs"] / "archive" if archived else workspace["specs"]
+    parent.mkdir(exist_ok=True)
+    (parent / folder).mkdir()
+    (parent / folder / "1-description.md").write_text(f"# {folder} - Description\n")
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", f"add {folder}")
+    return parent / folder
+
+
+def set_depends_on(workspace, value, folder=None):
+    folder = folder or workspace["folder"]
+    (workspace["specs"] / folder / "1-description.md").write_text(
+        "# Queue - Description\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n- **Depends on:** {value}\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "name a dependency")
+
+
+def leave_branch_on_origin(workspace, branch, key="specs"):
+    """What a previous aide-run-spec leaves behind: the branch on origin,
+    with no local branch in this checkout."""
+    git(workspace[key], "push", "-q", "origin", f"HEAD:refs/heads/{branch}")
+
+
+def run_traced(runner, workspace, claude, tmp_path, **kwargs):
+    """Run with GIT_TRACE on, so a test can prove which git commands the
+    script did NOT run."""
+    trace = tmp_path / "git-trace.log"
+    old = os.environ.get("GIT_TRACE")
+    os.environ["GIT_TRACE"] = str(trace)
+    try:
+        rc, out, stdout = run(runner, workspace, claude, **kwargs)
+    finally:
+        if old is None:
+            os.environ.pop("GIT_TRACE", None)
+        else:
+            os.environ["GIT_TRACE"] = old
+    return rc, out, trace.read_text() if trace.exists() else ""
+
+
+def test_a_spec_without_the_field_asks_origin_nothing(
+    runner, workspace, fake_claude, local_origins, tmp_path
+):
+    """The feature is opt-in: a spec with no `Depends on:` line behaves
+    exactly as it did before it existed — no talking to origin at all,
+    even with an unmerged spec branch sitting there."""
+    add_spec(workspace, "80-dependency")
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+
+    rc, out, trace = run_traced(
+        runner, workspace, writing_claude(fake_claude, workspace), tmp_path
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert "ls-remote" not in trace and "fetch" not in trace, trace
+
+
+def test_refuses_while_a_named_dependency_is_still_unmerged(
+    runner, workspace, fake_claude, local_origins
+):
+    add_spec(workspace, "80-dependency")
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    claude = fake_claude("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    # The message names the spec, the dependency and its branch — nobody
+    # should have to guess which of the two specs is the problem.
+    assert workspace["folder"] in out["error"]
+    assert "80-dependency" in out["error"]
+    assert "aide/80-dependency" in out["error"]
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+    assert not workspace["wtbase"].exists(), "and leave no worktree behind"
+
+
+def test_a_dependency_whose_branch_is_gone_lets_the_run_proceed(
+    runner, workspace, fake_claude, local_origins
+):
+    """Merged and deleted — which is what the guard is waiting for."""
+    add_spec(workspace, "80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_the_full_folder_name_resolves_as_well_as_the_number(
+    runner, workspace, fake_claude, local_origins
+):
+    add_spec(workspace, "80-dependency")
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "`80-dependency`")
+
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    assert rc == 2
+    assert "80-dependency" in out["error"]
+
+
+def test_refuses_an_unknown_dependency(runner, workspace, fake_claude, local_origins):
+    """A typo must stop the run rather than pass as 'nothing to wait
+    for' — a silently ignored dependency is worse than none."""
+    set_depends_on(workspace, "77")
+
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "77" in out["error"]
+    assert "unknown" in out["error"]
+    assert not fake_claude.calls.exists()
+
+
+def test_refuses_a_spec_that_depends_on_itself(
+    runner, workspace, fake_claude, local_origins
+):
+    set_depends_on(workspace, "81")
+
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "itself" in out["error"]
+    assert not fake_claude.calls.exists()
+
+
+def test_an_archived_dependency_is_satisfied_without_asking_origin(
+    runner, workspace, fake_claude, local_origins, tmp_path
+):
+    """Archiving only happens to finished work, so an archived dependency
+    is merged by definition — the branch left on origin is a leftover, not
+    a reason to refuse."""
+    add_spec(workspace, "80-dependency", archived=True)
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, trace = run_traced(
+        runner, workspace, writing_claude(fake_claude, workspace), tmp_path
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert "ls-remote" not in trace, "an archived dependency needs no network"
+
+
+def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
+    runner, workspace, fake_claude, local_origins
+):
+    """The check ASKS origin; it does not believe this checkout.
+
+    A merged branch is deleted on origin, but `refs/remotes/origin/aide/A`
+    survives in every checkout that ever fetched it until somebody prunes.
+    Reading that ref instead of asking would refuse every later run of a
+    spec whose dependency landed weeks ago — the guard jamming shut is
+    worse than the bug it prevents.
+    """
+    add_spec(workspace, "80-dependency")
+    leave_branch_on_origin(workspace, "aide/80-dependency")
+    git(workspace["specs"], "fetch", "-q", "origin")
+    assert git(
+        workspace["specs"], "rev-parse", "--verify", "refs/remotes/origin/aide/80-dependency"
+    ), "the stale ref this test is about must actually be there"
+    # ...and then the dependency is merged and its branch deleted SOMEWHERE
+    # ELSE (a pull request on github, another machine). Deleting it from
+    # this checkout would prune the very ref the test is about.
+    subprocess.run(
+        ["git", "-C", str(local_origins["specs"]), "update-ref", "-d",
+         "refs/heads/aide/80-dependency"],
+        check=True,
+    )
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"

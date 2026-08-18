@@ -229,3 +229,87 @@ class TestConfigGet:
             f'aide_config_get "AIDE_JIRA_BASE_URL" "{tmp_path}"',
         )
         assert out == ""
+
+
+@pytest.mark.validation
+class TestSpecDependencies:
+    """aide_spec_dependencies reads the optional `Depends on:` line from a
+    spec's OWN 1-description.md and echoes one identifier per line.
+
+    The field is what `aide-run-spec` refuses on (spec 92): a spec queued
+    while a spec it builds on is still unmerged would be analyzed against
+    a main that does not contain it. An absent field is the normal case,
+    so it must be silent — no output, no error, nothing for a caller to
+    special-case.
+    """
+
+    def _spec(self, tmp_path, body):
+        folder = tmp_path / "92-spec-depends-on-spec"
+        folder.mkdir()
+        (folder / "1-description.md").write_text(body)
+        return folder
+
+    def test_absent_field_yields_nothing(self, workspace_root, tmp_path):
+        folder = self._spec(
+            tmp_path,
+            "# Title\n\n## Tracking info\n\n- **Task:** `92-x/`\n- **Created:** `2026-08-18`\n",
+        )
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
+        )
+        assert out == ""
+
+    def test_absent_file_is_empty_not_error(self, workspace_root, tmp_path):
+        (tmp_path / "92-no-description").mkdir()
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "92-no-description"',
+        )
+        assert out == ""
+
+    def test_one_identifier(self, workspace_root, tmp_path):
+        folder = self._spec(
+            tmp_path, "## Tracking info\n\n- **Depends on:** 91\n"
+        )
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
+        )
+        assert out.splitlines() == ["91"]
+
+    def test_comma_separated_identifiers(self, workspace_root, tmp_path):
+        folder = self._spec(
+            tmp_path,
+            "## Tracking info\n\n- **Depends on:** 91, `88-other-thing`\n",
+        )
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
+        )
+        assert out.splitlines() == ["91", "88-other-thing"]
+
+    def test_backticks_and_surrounding_whitespace_are_stripped(
+        self, workspace_root, tmp_path
+    ):
+        folder = self._spec(
+            tmp_path,
+            "## Tracking info\n\n- **Depends on:**   `91-parallel-spec-runs` ,   88   \n",
+        )
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
+        )
+        assert out.splitlines() == ["91-parallel-spec-runs", "88"]
+
+    def test_an_empty_field_yields_nothing(self, workspace_root, tmp_path):
+        """A spec created from a template that carries the label with no
+        value must not turn into a dependency on the empty string."""
+        folder = self._spec(
+            tmp_path, "## Tracking info\n\n- **Depends on:**\n- **Created:** `x`\n"
+        )
+        out = _call(
+            workspace_root,
+            f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
+        )
+        assert out == ""

@@ -1577,6 +1577,13 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 - No code examples (they belong in 3-solution.md)
 - No acceptance criteria (they are part of the solution — 3-solution.md)
 - No scope or estimate (they are commitments about the solution — 3-solution.md)
+- Optionally a `Depends on:` line in Tracking info, naming the specs this
+  one builds on (comma-separated; each identifier is either a bare number
+  or a full `NN-slug` folder name — narrower than `/aide-analyze`'s
+  resolver, which also takes `TODO-NN` and a JIRA key). `aide-run-spec`
+  refuses to start while any named spec's `aide/<NN-slug>` branch still
+  exists on origin, because a run cuts its branch from origin/main and
+  would otherwise build on a main without that work
 
 ---
 

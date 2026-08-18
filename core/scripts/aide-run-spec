@@ -202,6 +202,77 @@ for extra in ${extra_dirs[@]+"${extra_dirs[@]}"}; do
   [ "$already" = "yes" ] || roots+=("$extra_root")
 done
 
+# --- refuse while a spec this one depends on is still unmerged ---------------
+# A spec can name the specs it builds on (a "Depends on:" line in its
+# 1-description.md, spec 92). Every run cuts its branch from origin/$base
+# in a fresh worktree, so a spec started while one it depends on is still
+# unmerged is analyzed and implemented against a main that does not
+# contain it — a merge conflict later at best, and at worst work built on
+# old code that nobody notices until someone reads the diff.
+#
+# The whole block sits AFTER roots is complete (the check needs them) and
+# BEFORE anything touches a checkout, so a refusal here leaves nothing
+# behind.
+
+# Mirrors the --spec resolver above (direct match, then <id>-*), plus one
+# deliberate addition: the archive. Archiving only ever happens to
+# finished work, so an archived dependency is merged by definition and is
+# never branch-checked below. Reaching for the shared library's
+# aide_resolve_spec instead would give --spec and "Depends on:" two
+# different ideas of a valid identifier inside one script.
+resolve_dependency_folder() {   # sets $dep_folder and $dep_archived
+  local id="$1" candidate base
+  dep_folder=""; dep_archived="no"
+  [ -n "$id" ] || return 0
+  if [ -d "$specs_root/$id" ]; then
+    dep_folder="$id"; return 0
+  fi
+  for candidate in "$specs_root"/*/; do
+    base="$(basename "$candidate")"
+    case "$base" in "$id"-*) dep_folder="$base"; return 0 ;; esac
+  done
+  [ -d "$specs_root/archive" ] || return 0
+  for candidate in "$specs_root/archive"/*/; do
+    base="$(basename "$candidate")"
+    case "$base" in "$id" | "$id"-*) dep_folder="$base"; dep_archived="yes"; return 0 ;; esac
+  done
+}
+
+# ls-remote, not fetch: it ASKS origin rather than believing this
+# checkout's remote-tracking refs, which keep a merged-and-deleted branch
+# around until somebody prunes — and a stale ref would refuse every run
+# for a dependency that landed weeks ago. It also writes nothing, which
+# is what a guard placed before the dirty-tree check should do.
+#
+# Best-effort, like every other network call in this script (see --pull):
+# an origin that cannot be reached is not itself a reason to refuse, so
+# the run proceeds exactly as it would have before this guard existed.
+dependency_branch_on_origin() {
+  local branch="$1" root
+  for root in "${roots[@]}"; do
+    git -C "$root" ls-remote --exit-code --heads origin "refs/heads/$branch" \
+      >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+# Guarded like every other library call here: the library is sourced
+# conditionally, and an unguarded call would silently no-op under
+# `set -uo pipefail` rather than failing loudly.
+if declare -f aide_spec_dependencies >/dev/null 2>&1; then
+  for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
+    resolve_dependency_folder "$dep_id"
+    [ -n "$dep_folder" ] \
+      || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+    [ "$dep_folder" = "$spec_folder" ] \
+      && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+    [ "$dep_archived" = "yes" ] && continue
+    dep_branch="aide/$dep_folder"
+    dependency_branch_on_origin "$dep_branch" \
+      && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch still exists on origin (not merged yet — merge it first)"
+  done
+fi
+
 for root in "${roots[@]}"; do
   if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
     label="project"

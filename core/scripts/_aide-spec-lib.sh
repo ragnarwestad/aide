@@ -104,3 +104,19 @@ get_display_name() {
     echo "$id"
   fi
 }
+
+# The specs a spec builds on: the optional "Depends on:" line in its OWN
+# 1-description.md (spec 92), echoed one identifier per line. Comma
+# separated, backticks and surrounding whitespace stripped.
+#   aide_spec_dependencies <specs-root> <spec-folder>
+# An absent field, an empty one, or a missing file is the normal case and
+# says nothing at all — same shape as aide_config_get.
+aide_spec_dependencies() {
+  local root="$1" folder="$2" file value
+  file="$root/$folder/1-description.md"
+  [ -f "$file" ] || return 0
+  value="$(sed -n 's/^[[:space:]]*-[[:space:]]*\*\*Depends on:\*\*[[:space:]]*//p' "$file" | head -1)"
+  [ -n "$value" ] || return 0
+  echo "$value" | tr ',' '\n' | tr -d '`' \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' || true
+}
