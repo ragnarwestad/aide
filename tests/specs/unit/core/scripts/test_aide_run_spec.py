@@ -1262,6 +1262,22 @@ def test_the_worktree_specs_path_points_at_the_specs_worktree(runner, workspace,
     assert "2-analysis.md" not in git(workspace["specs"], "ls-tree", "-r", "--name-only", "main")
 
 
+def test_the_specs_worktree_is_added_to_claude_as_a_directory(runner, workspace, fake_claude):
+    """claude's session is confined to its cwd — the PROJECT worktree — and
+    the specs worktree is a sibling of it, not a child. Without --add-dir
+    an archive step (which moves the spec's folder) reports "sandbox only
+    allows … the project" and does nothing; seen four times on
+    2026-08-18. Every root the step may write in is handed over."""
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    argv = fake_claude.calls.read_text().split()
+    added = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
+    assert added, "no --add-dir at all"
+    assert all(a.startswith(str(workspace["wtbase"])) for a in added), added
+    assert any(a.endswith("/" + workspace["specs"].name) for a in added), added
+
+
 # --- Criterion 4: the re-pointed config is never dirty, never committed ------
 
 def test_the_repointed_config_is_never_dirty_and_never_committed(runner, workspace, fake_claude):

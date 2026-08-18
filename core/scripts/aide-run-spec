@@ -674,6 +674,17 @@ project_wt="${work_roots[0]}"
 specs_wt=""
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && specs_wt="${work_roots[1]}"
 
+# claude's session is confined to its cwd — the project worktree — and
+# every other worktree is a SIBLING of it, not a child. A step that has
+# to write outside the project (archive moves the spec's folder in the
+# specs repo; a passenger is edited in its own checkout) is otherwise
+# told "the sandbox only allows the project" and does nothing, while the
+# run reports success. Seen four times on 2026-08-18. So every root the
+# step may write in is handed over explicitly.
+for wt in "${work_roots[@]}"; do
+  [ "$wt" != "$project_wt" ] && argv+=(--add-dir "$wt")
+done
+
 # --- pointing the step at the specs worktree ---------------------------------
 # Where the specs root stands FOR THIS RUN — the same path a skill inside
 # the step resolves. Kept by repoint_specs_path below, in each of the
