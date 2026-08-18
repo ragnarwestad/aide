@@ -77,6 +77,12 @@ table.jobs thead a:hover { text-decoration: underline; }
 .sortmark { color: #3b82f6; }
 .refusal { margin: 0 0 0.9rem; padding: 0.5rem 0.8rem; border-radius: 6px;
   background: #f59e0b22; border: 1px solid #f59e0b88; font-size: 0.9rem; }
+/* The same refusal, on the row that was pressed rather than above the
+   whole table. Amber like the banner, because that is what makes it
+   findable among 25 rows — but it keeps the row's own quiet size, so
+   it does not shout over the spec's name. */
+.refused { margin-top: 0.2rem; padding: 0.1rem 0.4rem; border-radius: 4px;
+  background: #f59e0b22; border: 1px solid #f59e0b88; color: inherit; }
 /* One line per row, under the spec's name: what it is and how far it
    has got. Quiet — the name above it is what a reader scans for. */
 .specinfo { color: #777; margin-top: 0.15rem; }

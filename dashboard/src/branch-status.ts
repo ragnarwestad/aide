@@ -32,6 +32,21 @@ export type GitRunner = (
 const DEFAULT_TIMEOUT_MS = 4000;
 const DEFAULT_TTL_MS = 30_000;
 
+/** `git ls-remote --exit-code`'s own answer for "the remote has no such
+ *  ref". Documented by git and distinct from every other failure code,
+ *  which is the whole reason absence can be asserted rather than
+ *  guessed: `128` is an unreachable host and means nothing about
+ *  whether the branch exists. Exported because both the read path
+ *  (`isMerged`) and the write path (`branch-merge.ts`) ask origin the
+ *  same question, and two copies of this number would one day disagree. */
+export const LS_REMOTE_NO_MATCH = 2;
+
+/** Ask origin — not a local remote-tracking ref — whether it still has
+ *  this branch. */
+export function lsRemoteBranch(branch: string): string[] {
+  return ["ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${branch}`];
+}
+
 /** The real runner. `Bun.spawn` does NOT reject on a nonzero exit — a
  *  fetch for a branch the remote does not have, and a merge-base against
  *  an unfetched ref, both exit 128 quietly — so the code is read and
@@ -84,10 +99,12 @@ export class BranchStatusChecker {
     this.now = opts.now ?? Date.now;
   }
 
-  /** True only when the branch is provably an ancestor of the project's
-   *  default branch. Everything else — no checkout, no default branch,
-   *  a git that errors or times out — is false: "not confirmed merged".
-   *  Uncertainty leaves the caveat on the page rather than removing it. */
+  /** True only when git can PROVE there is nothing left to merge: the
+   *  branch is an ancestor of the project's default branch, or origin
+   *  no longer has it at all. Everything else — no checkout, no default
+   *  branch, a git that errors or times out — is false: "not confirmed
+   *  merged". Uncertainty leaves the caveat on the page rather than
+   *  removing it. */
   async isMerged(projectDir: string, branch: string): Promise<boolean> {
     // JSON, not a control character: a path cannot contain an
     // unescaped quote, so the pair is still unambiguous — and the file
@@ -102,17 +119,26 @@ export class BranchStatusChecker {
     try {
       const base = await this.defaultBranch(projectDir);
       if (base) {
+        // Origin is asked FIRST, and directly — the same idiom
+        // `aide-run-spec`'s `dependency_branch_on_origin` already uses,
+        // for the same reason: a local remote-tracking ref answers from
+        // whatever this checkout last happened to fetch, and origin is
+        // the only place the truth lives.
+        //
+        // A branch that is not there has nothing left to merge, whether
+        // it landed and was cleaned up (which is what the merge button
+        // does since spec 99) or was removed by hand. Only `--exit-code`'s
+        // own "no matching refs" answer counts as absence: any other
+        // nonzero code is a transport or auth failure, and treating one
+        // of those as absence would take the badge and the button off
+        // open work during a network blip.
+        const onOrigin = await this.run(projectDir, lsRemoteBranch(branch));
+        if (onOrigin.code === LS_REMOTE_NO_MATCH) return this.remember(key, at, true);
         // Best effort. Naming both refs explicitly still updates the
         // corresponding refs/remotes/origin/* on a normal clone, so a
         // merge done on someone else's machine is visible here without
         // fetching every branch. A failure is ignored: whatever the
         // checkout already knows is better than no answer.
-        //
-        // Known limitation: a workflow that DELETES the branch on merge
-        // leaves `refs/remotes/origin/<branch>` unresolvable, and the
-        // check below degrades to false — the badge keeps showing on
-        // work that has actually landed. That is the safe direction; the
-        // opposite would claim merged work that is not.
         await this.run(projectDir, ["fetch", "--quiet", "origin", base, branch]);
         const ancestor = await this.run(projectDir, [
           "merge-base", "--is-ancestor",
@@ -125,6 +151,10 @@ export class BranchStatusChecker {
       merged = false;
     }
 
+    return this.remember(key, at, merged);
+  }
+
+  private remember(key: string, at: number, merged: boolean): boolean {
     this.cache.set(key, { at, merged });
     return merged;
   }

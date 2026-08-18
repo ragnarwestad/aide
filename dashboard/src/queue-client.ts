@@ -43,13 +43,16 @@ function navigate(event: MouseEvent): void {
   void swapRows();
 }
 
-// Merged is not deployed. For a project that installs itself, the
-// default branch moving changes nothing on the machine until the
-// install runs — so whatever the install did (or that there was none to
-// run) is said out loud, in the same banner a refusal already uses. It
-// sits OUTSIDE #jobrows on purpose: it is about what just happened, not
-// about any row, and the five-second swap must not wipe it.
-function installNote(text: string): void {
+// What happened AFTER the merge landed: whatever the install did (or
+// that there was none to run), and whether the spec branch was actually
+// removed from origin. Merged is not deployed — the default branch
+// moving changes nothing on the machine until the install runs — and a
+// branch left on origin is what spec 92's dependency guard reads as
+// "not merged yet". Both are said out loud, in the same banner a
+// refusal already uses. It sits OUTSIDE #jobrows on purpose: it is
+// about what just happened, not about any row, and the five-second swap
+// must not wipe it.
+function afterMergeNote(text: string): void {
   const rows = document.getElementById("jobrows");
   document.getElementById("installnote")?.remove();
   if (!text || !rows?.parentNode) return;
@@ -97,21 +100,38 @@ async function submitMerge(event: Event): Promise<void> {
     if (token?.value) url.searchParams.set("token", token.value);
     const res = await fetch(url.toString(), { method: "POST", headers: { accept: "application/json" } });
     const body = (await res.json().catch(() => null)) as
-      | { ok?: boolean; results?: { error?: string; installError?: string }[] }
+      | { ok?: boolean; spec?: string; results?: { error?: string; installError?: string; branchDeleteError?: string }[] }
       | null;
     if (res.ok && body?.ok) {
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();
-      installNote((body.results ?? []).map((r) => r.installError).filter(Boolean).join("; "));
+      afterMergeNote(
+        (body.results ?? []).flatMap((r) => [r.installError, r.branchDeleteError]).filter(Boolean).join("; "),
+      );
       return;
     }
-    // A refusal is rare and already has a way of reporting itself — the
-    // banner outside #jobrows, which swapRows deliberately never
-    // touches. Reusing it costs the "no jump" property on the failure
-    // branch alone, which is not the case anyone complained about.
+    // A refusal navigates — and takes the reader's view with it. The
+    // filter and the sort live in the address bar, so they are read
+    // straight back out of it: dropping them here would put every
+    // refusal back on the default list, which is the thing the plain
+    // form POST was fixed for. `errorSpec` is the server's own answer
+    // for WHICH row this belongs to; the page shows it there.
     const why = (body?.results ?? []).map((r) => r.error).filter(Boolean).join("; ");
-    location.href = `/specs?error=${encodeURIComponent(why || "the merge failed")}`;
+    const back = new URLSearchParams(location.search);
+    // Handed over once as a cookie: putting it back in the address bar
+    // would leave the token in history for nothing. `rows` and the two
+    // this navigation is about to set would otherwise be carried over
+    // from the URL that is already showing a refusal.
+    for (const drop of ["token", "rows", "error", "errorSpec"]) back.delete(drop);
+    // Percent-encoded one key at a time, exactly as the server's own
+    // redirect does it (`specsRedirect`): `URLSearchParams.toString()`
+    // writes a space as `+`, and this string is a sentence a person
+    // reads off the page it lands on.
+    const parts = [...back].map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+    parts.push(`error=${encodeURIComponent(why || "the merge failed")}`);
+    if (body?.spec) parts.push(`errorSpec=${encodeURIComponent(body.spec)}`);
+    location.href = `/specs?${parts.join("&")}`;
   } catch {
     // Offline, or the server restarting mid-merge: the page reload is
     // the always-correct answer, because it asks git again.

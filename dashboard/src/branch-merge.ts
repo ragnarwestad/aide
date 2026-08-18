@@ -20,7 +20,7 @@
 //     and a single collective "ok" over two repos is exactly the blind
 //     spot this whole spec exists to remove.
 
-import type { GitRunner } from "./branch-status.ts";
+import { LS_REMOTE_NO_MATCH, lsRemoteBranch, type GitRunner } from "./branch-status.ts";
 
 export interface RepoMergeResult {
   root: string;
@@ -35,6 +35,12 @@ export interface RepoMergeResult {
    *  none. A merge is never turned back into a failure by it: the merge
    *  had already happened. */
   installError?: string;
+  /** The merge landed and was pushed, but the spec branch is still on
+   *  origin. Reported for the same reason and in the same way as
+   *  `installError`: the cleanup is what a later dependency check
+   *  reads, so a failed one has to be visible — and the merge it
+   *  follows is never turned back into a failure by it. */
+  branchDeleteError?: string;
 }
 
 const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
@@ -83,11 +89,24 @@ export async function mergeBranchIntoDefault(
     if (status.code !== 0) return refuse(root, `cannot read the working tree in ${root}`);
     if (status.stdout.trim()) return refuse(root, `the tree is dirty in ${root} — commit or stash it first`);
 
-    // 2. Best effort, exactly as `isMerged()` does it: whatever the
+    // 2. Is there anything to merge at all? Since step 7 deletes the
+    //    branch, this button will be pressed on a branch that is
+    //    already gone — a second click, or someone who removed it by
+    //    hand. Merging an unresolvable ref failed and was reported as a
+    //    "conflict", which is a different problem with a different
+    //    remedy. Asked of origin directly, and only git's own "no
+    //    matching refs" counts: any other nonzero code is a transport
+    //    failure and must fall through to the sequence below.
+    const onOrigin = await run(root, lsRemoteBranch(branch));
+    if (onOrigin.code === LS_REMOTE_NO_MATCH) {
+      return refuse(root, `${branch} is not on origin in ${root} — there is nothing left to merge`);
+    }
+
+    // 3. Best effort, exactly as `isMerged()` does it: whatever the
     //    checkout already knows beats no answer at all.
     await run(root, ["fetch", "--quiet", "origin", base, branch]);
 
-    // 3. Stand on the default branch, and bring it up to origin's. A
+    // 4. Stand on the default branch, and bring it up to origin's. A
     //    push from a base that is behind would be rejected anyway, and
     //    a merge onto a stale base is a merge nobody reviewed.
     const switched = await run(root, ["switch", "-q", base]);
@@ -105,11 +124,11 @@ export async function mergeBranchIntoDefault(
       if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
     }
 
-    // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
+    // 5-6. `refs/remotes/origin/<branch>`, never a local `<branch>`.
     //      This host is not the machine `aide-run-spec` ran on, so a
     //      local ref of that name may be absent, or left over from an
     //      older run of the same spec. The remote-tracking ref is the
-    //      one `isMerged()` already trusts, and step 2 made it current.
+    //      one `isMerged()` already trusts, and step 3 made it current.
     const ref = `refs/remotes/origin/${branch}`;
     const ff = await run(root, ["merge", "-q", "--ff-only", ref]);
     if (ff.code !== 0) {
@@ -120,7 +139,7 @@ export async function mergeBranchIntoDefault(
       }
     }
 
-    // 6. `isMerged()` only trusts what reached origin, so a merge this
+    // 7. `isMerged()` only trusts what reached origin, so a merge this
     //    action does not push would show as "not merged" on the very
     //    page that triggered it. A push that fails is REPORTED and
     //    never rolled back — `aide-run-spec`'s own precedent is that a
@@ -128,6 +147,21 @@ export async function mergeBranchIntoDefault(
     const pushed = await run(root, ["push", "-q", "origin", base]);
     if (pushed.code !== 0) {
       return refuse(root, `merged locally in ${root}, but the push of ${base} failed`);
+    }
+
+    // 8. A merged branch left on origin is what made spec 92's
+    //    dependency guard refuse a fully-merged spec three times
+    //    (2026-08-18): that guard asks origin directly, and a branch
+    //    still there reads as "not merged yet". AFTER the push, never
+    //    before — the base has to be on origin before the only other
+    //    copy of those commits is removed. Never fatal: the merge
+    //    already happened, so this follows `installError`'s precedent
+    //    and is reported beside a success rather than turning it into
+    //    a failure.
+    const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
+    if (deleted.code !== 0) {
+      const why = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
+      return { root, ok: true, branchDeleteError: `merged, but deleting ${branch} on origin failed: ${why}` };
     }
     return { root, ok: true };
   } catch (err) {

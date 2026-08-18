@@ -11,7 +11,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
+import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
 import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
@@ -569,7 +569,13 @@ describe("every row answers for itself", () => {
     expect(html).not.toContain('<select name="target"');
   });
 
-  test("a refusal is shown once, above the table, whichever row posted it (criterion 6)", async () => {
+  // Spec 93 put this reason in ONE place, above the table, and said so:
+  // "it belongs to the PAGE, not to one control". That held while the
+  // page had one form; it lists up to 25 rows, and a reason attached to
+  // none of them does not say which button was pressed. Spec 99 moved
+  // it onto the row that posted it — the same reason, read off the same
+  // query string, one row further down.
+  test("a refusal is shown once, on the row that posted it (criterion 6)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const post = () =>
       fetch(`${base}/api/queue`, {
@@ -584,8 +590,10 @@ describe("every row answers for itself", () => {
     const location = refused.headers.get("location") ?? "";
     expect(location.startsWith("/specs?error=")).toBe(true);
     const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain('class="refusal"');
-    expect(html).toContain("analyze");
+    expect(specHead(html, "81-queue-and-runner")).toContain("already queued");
+    // Once, not twice: the banner is the fallback for a refusal that
+    // belongs to no row.
+    expect(html).not.toContain('<p class="refusal">');
   });
 
   test("state is a chip with its own class, so a failure is not a wall of grey", async () => {
@@ -1792,5 +1800,376 @@ describe("a description newer than the analysis is shown on the row", () => {
     const html = await (await fetch(`${base}/specs`, auth)).text();
     expect(html).not.toContain("description changed since");
     expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+  });
+});
+
+// --- spec 99: one merge at a time, the view survives, a refusal is seen -----
+
+// Pressing Merge on two specs one after the other, with nothing else
+// running, answered "cannot fast-forward main in …/aide-specs — merge
+// it by hand" between the clicks: both requests share one checkout and
+// fought over its index.lock. Both went through on a retry, which is
+// what says it was a race and not a divergence.
+describe("two merges against one repo run one at a time (criteria 6, 10)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const SHARED_REPO = "/repos/aide-specs";
+  const SECOND_SPEC = "82-second-spec";
+
+  /** A git slow enough to overlap, that counts how many mutating calls
+   *  are in flight against one root at once. `switch`, `pull`, `merge`
+   *  and `push` are the four that touch the checkout — a second one
+   *  arriving while the first is unfinished is precisely the collision. */
+  function gitCounting() {
+    const MUTATING = new Set(["switch", "pull", "merge", "push"]);
+    let inFlight = 0;
+    let peak = 0;
+    const run = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      const mutating = MUTATING.has(args[0]!);
+      if (mutating) {
+        inFlight++;
+        peak = Math.max(peak, inFlight);
+      }
+      await new Promise((r) => setTimeout(r, 5));
+      if (mutating) inFlight--;
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, peak: () => peak };
+  }
+
+  /** Two finished jobs for two different specs, both with a branch in
+   *  the SAME repo — which every spec has, because every spec's plan
+   *  lives in the specs root. */
+  async function seededPair(): Promise<{ mirror: string; ids: string[] }> {
+    const { base, dir } = start({ queueToken: TOKEN }, [], [SECOND_SPEC]);
+    const ids: string[] = [];
+    for (const specFolder of ["81-queue-and-runner", SECOND_SPEC]) {
+      const made = (await (
+        await fetch(`${base}/api/queue`, {
+          method: "POST",
+          headers: AUTH,
+          body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
+        })
+      ).json()) as { job: { id: string } };
+      ids.push(made.job.id);
+    }
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    for (const job of jobs) {
+      job.state = "done";
+      job.branchUrls = [{ root: SHARED_REPO, url: "https://example.test/aide-specs" }];
+    }
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, ids };
+  }
+
+  test("neither request ever sees the other mid-merge, and both go through (criterion 6)", async () => {
+    const { mirror, ids } = await seededPair();
+    const git = gitCounting();
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
+    const [a, b] = await Promise.all(
+      ids.map((id) => fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })),
+    );
+    expect(((await a!.json()) as { ok: boolean }).ok).toBe(true);
+    expect(((await b!.json()) as { ok: boolean }).ok).toBe(true);
+    expect(git.peak()).toBe(1);
+  });
+});
+
+// The lock is a map of chained promises, and a map a long-running
+// server never empties is a map that grows for as long as it is up.
+describe("the per-repo lock lets go once its chain has settled (criterion 10)", () => {
+  test("work for one root is serialized, in the order it was asked for", async () => {
+    const lock = createRootLock();
+    const order: string[] = [];
+    const slow = (name: string, ms: number) => async () => {
+      order.push(`${name}:start`);
+      await new Promise((r) => setTimeout(r, ms));
+      order.push(`${name}:end`);
+      return name;
+    };
+    const both = Promise.all([lock.run("/repo", slow("a", 20)), lock.run("/repo", slow("b", 1))]);
+    expect(await both).toEqual(["a", "b"]);
+    expect(order).toEqual(["a:start", "a:end", "b:start", "b:end"]);
+  });
+
+  test("two different roots do not wait for each other", async () => {
+    const lock = createRootLock();
+    let peak = 0;
+    let inFlight = 0;
+    const job = async () => {
+      peak = Math.max(peak, ++inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+    };
+    await Promise.all([lock.run("/a", job), lock.run("/b", job)]);
+    expect(peak).toBe(2);
+  });
+
+  test("the map holds nothing once the last request for a root is done", async () => {
+    const lock = createRootLock();
+    await Promise.all([
+      lock.run("/repo", async () => new Promise((r) => setTimeout(r, 5))),
+      lock.run("/repo", async () => new Promise((r) => setTimeout(r, 5))),
+      lock.run("/other", async () => new Promise((r) => setTimeout(r, 5))),
+    ]);
+    // One turn of the microtask queue for the cleanup that runs after
+    // the last chain settles.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(lock.size).toBe(0);
+  });
+
+  test("one turn throwing does not poison the next", async () => {
+    const lock = createRootLock();
+    const failed = lock.run("/repo", async () => {
+      throw new Error("git blew up");
+    });
+    await expect(failed).rejects.toThrow("git blew up");
+    expect(await lock.run("/repo", async () => "fine")).toBe("fine");
+  });
+});
+
+// "All" + "Spec, descending" survived the five-second refresh but not an
+// action: every POST answered 303 to a bare /specs, so pressing any
+// button dropped the reader back into the default view.
+describe("an action keeps the page's view (criterion 7)", () => {
+  const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+  const VIEW = { "view.state": "active", "view.sort": "cost", "view.dir": "desc" };
+  const SPECS_REPO = "/repos/aide-specs";
+
+  function gitOk() {
+    return async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+  }
+
+  const post = (base: string, path: string, fields: Record<string, string>) =>
+    fetch(`${base}${path}`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams(fields),
+    });
+
+  async function seededJob(
+    state: string,
+    branchUrls: { root: string; url: string }[] = [],
+  ): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+        body: JSON.stringify(JOB),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = state;
+    if (branchUrls.length) job.branchUrls = branchUrls;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  test("Run carries the view forward on success", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await post(base, "/api/queue", {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "analyze",
+      ...VIEW,
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+  });
+
+  test("Run carries the view forward on a refusal too", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await post(base, "/api/queue", { project: "nope", specFolder: "x", steps: "analyze", ...VIEW });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/specs?state=active&sort=cost&dir=desc&error=")).toBe(true);
+  });
+
+  test("Cancel carries the view forward", async () => {
+    const { mirror, id } = await seededJob("running");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const res = await post(base, `/api/queue/${id}/cancel`, VIEW);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+  });
+
+  test("Approve carries the view forward", async () => {
+    const { mirror, id } = await seededJob("awaiting-approval");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const res = await post(base, `/api/queue/${id}/approve`, VIEW);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+  });
+
+  test("Merge carries the view forward", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitOk() });
+    const res = await post(base, `/api/queue/${id}/merge`, VIEW);
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/specs?state=active&sort=cost&dir=desc");
+  });
+
+  // The exact assertion spec 81 wrote: with nothing to carry, the
+  // redirect is `/specs` and not `/specs?`.
+  test("with no view submitted the redirect stays exactly /specs", async () => {
+    const { mirror, id } = await seededJob("running");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const res = await post(base, `/api/queue/${id}/cancel`, {});
+    expect(res.headers.get("location")).toBe("/specs");
+  });
+});
+
+// A refusal landed on the page that followed the redirect, at the top,
+// belonging to no row — and serve.log had no line for any refusal at
+// all on the day this was written.
+describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () => {
+  const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+  const SPECS_REPO = "/repos/aide-specs";
+  const SPEC = "aide/81-queue-and-runner";
+
+  /** `console.error` for the duration of one test. serve.log is both
+   *  streams of the same launchd job, so the call IS the log line. */
+  async function capturingLog<T>(fn: () => Promise<T>): Promise<{ result: T; lines: string[] }> {
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      lines.push(args.map(String).join(" "));
+    };
+    try {
+      return { result: await fn(), lines };
+    } finally {
+      console.error = original;
+    }
+  }
+
+  async function seededJob(
+    state: string,
+    branchUrls: { root: string; url: string }[] = [],
+  ): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+        body: JSON.stringify(JOB),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = state;
+    if (branchUrls.length) job.branchUrls = branchUrls;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  test("a merge refusal carries the spec in the redirect, and is logged (criterion 8)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const dirtyTree = gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
+      "merge-base": { code: 1 },
+    });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const { result: res, lines } = await capturingLog(() =>
+      fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM }),
+    );
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
+    expect(decodeURIComponent(location)).toContain("dirty");
+    expect(lines.join("\n")).toContain(SPEC);
+    expect(lines.join("\n")).toContain("dirty");
+  });
+
+  test("the page shows the reason on that spec's row (criterion 8)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const dirtyTree = gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
+      "merge-base": { code: 1 },
+    });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    const page = await (
+      await fetch(`${base}${res.headers.get("location")!}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(specHead(page, "81-queue-and-runner")).toContain("dirty");
+    // Not twice: the row is where it belongs, so the page-top banner
+    // stands down.
+    expect(page).not.toContain('<p class="refusal">');
+  });
+
+  test("an enqueue refusal names the spec it was for (criterion 9)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const { result: res, lines } = await capturingLog(() =>
+      fetch(`${base}/api/queue`, {
+        method: "POST",
+        redirect: "manual",
+        headers: FORM,
+        body: new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "nonsense" }),
+      }),
+    );
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
+    expect(lines.join("\n")).toContain(SPEC);
+  });
+
+  test("an approve of a job that has moved on is refused on its own row (criterion 11)", async () => {
+    const { mirror, id } = await seededJob("running");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const { result: res, lines } = await capturingLog(() =>
+      fetch(`${base}/api/queue/${id}/approve`, { method: "POST", redirect: "manual", headers: FORM }),
+    );
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
+    expect(decodeURIComponent(location)).toContain("cannot approve a running job");
+    expect(lines.join("\n")).toContain(SPEC);
+  });
+
+  // The API contract is untouched: a caller asking for JSON still gets
+  // the 409 it has always got.
+  test("a JSON caller still gets the status code, not a redirect (criterion 11)", async () => {
+    const { mirror, id } = await seededJob("running");
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const res = await fetch(`${base}/api/queue/${id}/approve`, {
+      method: "POST",
+      headers: { accept: "application/json", "x-aide-token": TOKEN },
+    });
+    expect(res.status).toBe(409);
+  });
+
+  test("a branch deletion that failed is reported beside the merge (criterion 4)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const run = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      if (a.startsWith("push -q origin --delete")) return { code: 1, stdout: "", stderr: "remote rejected\n" };
+      return { code: 0, stdout: "" };
+    };
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain("deleting");
   });
 });

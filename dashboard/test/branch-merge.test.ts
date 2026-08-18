@@ -258,3 +258,116 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
     expect(ran(git.calls, "merge")).toBe(false);
   });
 });
+
+// --- spec 99: a merged branch is gone, and a gone branch is not a conflict ---
+
+// Spec 92's dependency guard asks origin directly whether a branch is
+// still there, so a merged branch left on origin reads as "not merged
+// yet" and refused a dependent spec three times on 2026-08-18. Deleting
+// it is what removes that false signal — and the deletion is a cleanup
+// step, never a reason to call a landed merge a failure.
+describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", () => {
+  const OK_TABLE = {
+    ...CLEAN_MASTER,
+    "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+    pull: { code: 0 },
+    switch: { code: 0 },
+    fetch: { code: 0 },
+  };
+
+  test("a fast-forward merge deletes the branch and stays ok (criterion 3)", async () => {
+    const git = fakeGit({ ...OK_TABLE, "merge -q --ff-only": { code: 0 }, push: { code: 0 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(argv(git.calls)).toContain(`push -q origin --delete ${BRANCH}`);
+    // Order matters: the base reaches origin first, so a deletion that
+    // races anything never removes work that has not landed.
+    expect(argv(git.calls).indexOf("push -q origin master")).toBeLessThan(
+      argv(git.calls).indexOf(`push -q origin --delete ${BRANCH}`),
+    );
+  });
+
+  test("a real merge deletes the branch too (criterion 3)", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 0 },
+      push: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(argv(git.calls)).toContain(`push -q origin --delete ${BRANCH}`);
+  });
+
+  test("a deletion that fails is reported and never unmerges the merge (criterion 4)", async () => {
+    // The push of the base succeeds; only the deletion is refused.
+    const calls: GitCall[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("push -q origin --delete")) {
+        return { code: 1, stdout: "", stderr: "remote: refusing to delete the current branch\n" };
+      }
+      return { code: 0, stdout: "" };
+    };
+    const result = await mergeBranchIntoDefault(run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(result.branchDeleteError).toContain(BRANCH);
+    expect(result.branchDeleteError).toContain("refusing to delete");
+  });
+
+  test("a merge that never happened deletes nothing", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 1 },
+      "merge --abort": { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(ran(git.calls, "push")).toBe(false);
+  });
+});
+
+// Deleting the branch on merge means the button will one day be pressed
+// on a branch that is already gone — by a second click, or by someone
+// who removed it by hand. Attempting the merge against an unresolvable
+// ref reported it as a conflict, which is a different problem with a
+// different remedy.
+describe("mergeBranchIntoDefault: the branch is not on origin", () => {
+  test("it is refused by name, and never called a conflict (criterion 5)", async () => {
+    const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(BRANCH);
+    expect(result.error).toContain("not on origin");
+    expect(result.error).not.toContain("conflict");
+  });
+
+  test("nothing beyond the two questions is run (criterion 5)", async () => {
+    const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
+    await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(ran(git.calls, "switch")).toBe(false);
+    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "push")).toBe(false);
+    expect(ran(git.calls, "fetch")).toBe(false);
+  });
+
+  test("an ls-remote that fails for any other reason merges as before (criterion 5)", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "ls-remote": { code: 128 },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+  });
+});

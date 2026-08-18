@@ -31,6 +31,8 @@ import { Runner } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
+  FILTER_FIELD_PREFIX,
+  FILTER_KEYS,
   navEntries,
   renderJobDetailPage,
   renderLivePage,
@@ -128,6 +130,84 @@ async function readBounded(req: Request): Promise<{ text: string } | { refusal: 
   const text = await req.text();
   if (text.length > MAX_BODY) return { refusal: json({ error: "payload too large" }, 413) };
   return { text };
+}
+
+/** One repo, one merge at a time. Pressing Merge on two specs a few
+ *  milliseconds apart ran two full `status`/`fetch`/`switch`/`pull`/
+ *  `merge`/`push` sequences against the SAME working tree, and the
+ *  second lost the race for `index.lock` — reported as "cannot
+ *  fast-forward main … merge it by hand", which is what a genuinely
+ *  diverged base says. Both went through on a retry, which is what
+ *  told them apart.
+ *
+ *  Per repo ROOT, not global: two requests that touch no directory in
+ *  common cannot collide, and serializing them would only add latency.
+ *  This is additive to `branch-merge.ts`'s `index.lock` retry, which
+ *  guards a collision this cannot see — `aide-run-spec` is a different
+ *  process.
+ *
+ *  Exported so the lock can be proven on its own: that it serializes,
+ *  that different roots do not wait for each other, that a thrown turn
+ *  does not poison the next, and that the map lets go of a root once
+ *  nothing is waiting on it. A map a server never empties is a map
+ *  that grows for as long as the server is up. */
+export function createRootLock() {
+  const chains = new Map<string, Promise<unknown>>();
+  return {
+    run<T>(root: string, fn: () => Promise<T>): Promise<T> {
+      const prev = chains.get(root) ?? Promise.resolve();
+      // Settled either way: one request's failure is its own, and the
+      // next request's turn must still come.
+      const turn = prev.then(fn, fn);
+      const done: Promise<void> = turn.then(clear, clear);
+      function clear(): void {
+        // Only the LAST chain clears the entry. An earlier waiter
+        // deleting it would let the next request start beside the one
+        // still running, which is the whole thing being prevented.
+        if (chains.get(root) === done) chains.delete(root);
+      }
+      chains.set(root, done);
+      return turn;
+    },
+    get size(): number {
+      return chains.size;
+    },
+  };
+}
+
+/** Where a form POST goes back to. Built from the five view keys the
+ *  page's own forms send (`FILTER_KEYS`, under `FILTER_FIELD_PREFIX`),
+ *  so pressing Run, Approve, Cancel or Merge lands the reader back on
+ *  the list they were looking at instead of the default one.
+ *
+ *  Encoded one key at a time rather than through `URLSearchParams`,
+ *  which writes a space as `+`: a refusal's reason goes in this string
+ *  and is read by a person. With nothing to carry the target stays
+ *  exactly `/specs`, never `/specs?`. */
+function specsRedirect(body: unknown, refusal?: { error: string; spec?: string }): Response {
+  const sent = (body ?? {}) as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const key of FILTER_KEYS) {
+    const value = sent[`${FILTER_FIELD_PREFIX}${key}`];
+    if (typeof value === "string" && value) parts.push(`${key}=${encodeURIComponent(value)}`);
+  }
+  if (refusal) {
+    parts.push(`error=${encodeURIComponent(refusal.error)}`);
+    // Which row it belongs to. Always derived server-side by the
+    // caller — the page lists up to 25 specs, and a reason attached to
+    // none of them says nothing about which button was pressed.
+    if (refusal.spec) parts.push(`errorSpec=${encodeURIComponent(refusal.spec)}`);
+  }
+  const query = parts.join("&");
+  return new Response(null, { status: 303, headers: { location: query ? `/specs?${query}` : "/specs" } });
+}
+
+/** Every refusal, in `serve.log`. Both streams of the launchd job go to
+ *  that one file (`deploy/render-plist.ts`), so `console.error` IS the
+ *  log line — and until now no request handler wrote one at all, which
+ *  left a day of refused merges with nothing on disk to read back. */
+function logRefusal(action: string, spec: string | undefined, reason: string): void {
+  console.error(`queue: ${action} refused for ${spec ?? "an unknown spec"} — ${reason}`);
 }
 
 // Nav for /live when no project set is injected: reconstruct entries
@@ -414,6 +494,10 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+  // One merge at a time per repo. Every spec shares the specs root, and
+  // two specs in one project share that repo too, so two presses a few
+  // milliseconds apart were two git sequences in one working tree.
+  const mergeLock = createRootLock();
   // A third user of the same runner: has the description moved on since
   // the plan was written?
   const freshness = new DescriptionFreshnessChecker({ run: gitRun });
@@ -670,7 +754,10 @@ export function createServer(opts: ServerOptions) {
         results.push({ root: b.root, ok: false, error: `cannot work out the default branch in ${b.root}` });
         continue;
       }
-      const result = await mergeBranchIntoDefault(gitRun, b.root, branch, base);
+      // The lock goes around the git-mutating call and nothing else:
+      // `defaultBranch` above only asks a question, and holding the
+      // root while asking it would serialize page loads too.
+      const result = await mergeLock.run(b.root, () => mergeBranchIntoDefault(gitRun, b.root, branch, base));
       // The check caches for 30 s. Without this, the page that triggered
       // the merge would show its own result as "not merged".
       if (result.ok) branchStatus.invalidate(b.root, branch);
@@ -786,6 +873,10 @@ export function createServer(opts: ServerOptions) {
         })),
         defaultBudgetUsd: queue.defaults.budgetUsd,
         error: url.searchParams.get("error") ?? undefined,
+        // Which row the refusal belongs to. It rides in the query
+        // string with the reason itself, so it survives the
+        // five-second row swap the same way the filter does.
+        errorSpec: url.searchParams.get("errorSpec") ?? undefined,
         projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
         // Straight from the query string: how the list is cut and
         // ordered lives in the URL, so it survives a reload and can be
@@ -837,19 +928,22 @@ export function createServer(opts: ServerOptions) {
       }
       const result = queue.enqueue(raw);
       if (!result.ok) {
+        // Which spec was asked for, off the SUBMITTED fields — the two
+        // `parseJobRequest` already requires, so this adds no trust
+        // surface. It is never rendered as text either: the page only
+        // compares it against a row's own key.
+        const asked = raw as Record<string, unknown> | null;
+        const spec =
+          typeof asked?.project === "string" && typeof asked?.specFolder === "string"
+            ? `${asked.project}/${asked.specFolder}`
+            : undefined;
+        logRefusal("run", spec, result.error);
         // A person who pressed a button gets the reason on the page
         // they pressed it from; an API caller gets a status code.
-        return wantsJson
-          ? json({ error: result.error }, 400)
-          : new Response(null, {
-              status: 303,
-              headers: { location: `/specs?error=${encodeURIComponent(result.error)}` },
-            });
+        return wantsJson ? json({ error: result.error }, 400) : specsRedirect(raw, { error: result.error, spec });
       }
       runner?.tick();
-      return wantsJson
-        ? json({ ok: true, job: result.job })
-        : new Response(null, { status: 303, headers: { location: "/specs" } });
+      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw);
     }
 
     const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel|merge)$/);
@@ -858,23 +952,53 @@ export function createServer(opts: ServerOptions) {
       const [, id, verb] = action;
       const job = queue.get(id);
       if (!job) return json({ error: "no such job" }, 404);
+      // The body is read for ONE thing: the view the press came from,
+      // so the redirect can put the reader back on it. A JSON caller
+      // sends no body at all, and an unparseable one is not a reason to
+      // refuse an action that needs nothing from it.
+      const sent = await readBounded(req);
+      if ("refusal" in sent) return sent.refusal;
+      let view: unknown = {};
+      try {
+        if (sent.text) view = bodyToObject(sent.text, req.headers.get("content-type"));
+      } catch {
+        view = {};
+      }
+      // Never off the body: the server already knows which spec this
+      // job is, and identity is re-derived here for the same reason the
+      // repo roots are.
+      const spec = `${job.project}/${job.specFolder}`;
       if (verb === "merge") {
         const results = await mergeSpecBranches(job);
         if (results.length === 0) {
           return json({ error: "no branch has been recorded for this spec" }, 400);
         }
         const ok = results.every((r) => r.ok);
-        if (wantsJson) return json({ ok, results });
+        for (const r of results) {
+          if (r.error) logRefusal("merge", spec, `${r.root}: ${r.error}`);
+          // Both, when both happened: a merge can install nothing AND
+          // leave its branch on origin, and the log is the only record
+          // of either once the page has moved on.
+          for (const note of [r.installError, r.branchDeleteError]) {
+            if (note) console.error(`queue: merge of ${spec} in ${r.root} — ${note}`);
+          }
+        }
+        // `spec` is additive and for the page's own code: it navigates
+        // on a refusal and has to say WHICH row the reason belongs to,
+        // which only the server can answer.
+        if (wantsJson) return json({ ok, results, spec });
         // A person who pressed a button gets the answer on the page they
         // pressed it from, per repo — never a bare "something failed".
         // A merge that went through but did not install says so here
         // too: for a project that installs itself, merged is not
-        // deployed, and a silent success reads as though it were.
-        const summary = results.map((r) => r.error ?? r.installError).filter(Boolean).join("; ");
-        return new Response(null, {
-          status: 303,
-          headers: { location: summary ? `/specs?error=${encodeURIComponent(summary)}` : "/specs" },
-        });
+        // deployed, and a silent success reads as though it were. The
+        // branch that outlived its own merge belongs in the same
+        // sentence, for the same reason.
+        const summary = results
+          .flatMap((r) => [r.error, r.installError, r.branchDeleteError])
+          .filter(Boolean)
+          .join("; ");
+        return summary ? specsRedirect(view, { error: summary, spec }) : specsRedirect(view);
       }
       if (verb === "cancel") {
         // SIGTERM to the GROUP, never a bare pid: claude spawns
@@ -889,14 +1013,20 @@ export function createServer(opts: ServerOptions) {
         }
         queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
       } else {
-        if (job.state !== "awaiting-approval") return json({ error: `cannot approve a ${job.state} job` }, 409);
+        if (job.state !== "awaiting-approval") {
+          const why = `cannot approve a ${job.state} job`;
+          logRefusal("approve", spec, why);
+          // The API contract is untouched: a caller asking for JSON
+          // still gets the 409. A person pressing a button on a page
+          // used to get that JSON body in the browser instead of the
+          // page they pressed it from.
+          return wantsJson ? json({ error: why }, 409) : specsRedirect(view, { error: why, spec });
+        }
         // Approving a gate releases the job back into the queue.
         queue.update(id, { state: "queued" });
         runner?.tick();
       }
-      return wantsJson
-        ? json({ ok: true, job: queue.get(id) })
-        : new Response(null, { status: 303, headers: { location: "/specs" } });
+      return wantsJson ? json({ ok: true, job: queue.get(id) }) : specsRedirect(view);
     }
 
     // One job, in full: what it IS (the spec's title and description),

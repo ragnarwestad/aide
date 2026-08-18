@@ -30,7 +30,7 @@ interface Reply {
  *  actually touches. Nothing here pretends to be a browser: it answers
  *  the handful of questions the code asks, and records what it was
  *  asked to do. */
-function harness(reply: (url: string) => Reply, formClass = "mergeform") {
+function harness(reply: (url: string) => Reply, formClass = "mergeform", search = "") {
   const button = { textContent: "Merge the code", disabled: false, isConnected: true };
   const tokenInput = { value: "s3cret" };
   const form = {
@@ -51,7 +51,7 @@ function harness(reply: (url: string) => Reply, formClass = "mergeform") {
   };
   const on: Record<string, (e: unknown) => void> = {};
   const requests: { url: string; init: Record<string, unknown> }[] = [];
-  const location = { search: "", href: "http://dash.test/specs" };
+  const location = { search, href: "http://dash.test/specs" };
 
   const document = {
     getElementById: (id: string) => (id === "jobrows" ? rows : null),
@@ -184,5 +184,95 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     expect(h.requests).toHaveLength(0);
     expect(h.button.disabled).toBe(false);
     expect(h.button.textContent).toBe("Merge the code");
+  });
+});
+
+// --- spec 99: the view survives the press, and the row gets the reason ------
+
+// Merging from the page goes through this file, not through the form
+// POST — so the server's redirect fix reaches nobody with JavaScript on
+// unless the navigation this file performs carries the same two things.
+describe("a refused merge keeps the view and names its spec (criteria 7, 8)", () => {
+  const REFUSED = {
+    ok: false,
+    spec: "aide/99-merge-leaves-nothing-behind",
+    results: [{ root: "/repos/aide-specs", error: "the tree is dirty in /repos/aide-specs" }],
+  };
+
+  test("the current filter and sort come along", async () => {
+    const h = harness(
+      (url) => (url.includes("/merge") ? { ok: true, body: REFUSED } : { ok: true }),
+      "mergeform",
+      "?state=active&sort=cost&token=s3cret",
+    );
+    await h.submit();
+    const to = new URL(h.location.href, "http://dash.test");
+    expect(to.pathname).toBe("/specs");
+    expect(to.searchParams.get("state")).toBe("active");
+    expect(to.searchParams.get("sort")).toBe("cost");
+    // The token is handed over once as a cookie; carrying it back into
+    // the address bar would put it in history for no reason.
+    expect(to.searchParams.get("token")).toBeNull();
+  });
+
+  test("the spec the server named rides along, so the row can show it", async () => {
+    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: REFUSED } : { ok: true }));
+    await h.submit();
+    const to = new URL(h.location.href, "http://dash.test");
+    expect(to.searchParams.get("errorSpec")).toBe("aide/99-merge-leaves-nothing-behind");
+    expect(to.searchParams.get("error")).toContain("the tree is dirty");
+  });
+
+  test("a refusal the server did not attribute still navigates with the reason", async () => {
+    const h = harness((url) =>
+      url.includes("/merge")
+        ? { ok: true, body: { ok: false, results: [{ root: "/repos/aide", error: "the tree is dirty" }] } }
+        : { ok: true },
+    );
+    await h.submit();
+    const to = new URL(h.location.href, "http://dash.test");
+    expect(to.searchParams.get("error")).toContain("the tree is dirty");
+    expect(to.searchParams.get("errorSpec")).toBeNull();
+  });
+});
+
+// A branch that outlived its own merge is what spec 92's dependency
+// guard reads as "not merged yet". The JSON already carries it; the page
+// has to say it out loud, in the same place the install message goes.
+describe("a failed branch deletion is said on the page (criterion 4)", () => {
+  test("it lands in the same note the install message uses", async () => {
+    const h = harness(() => ({
+      ok: true,
+      body: {
+        ok: true,
+        results: [
+          {
+            root: "/repos/aide-specs",
+            ok: true,
+            branchDeleteError: "merged, but deleting aide/99-x on origin failed: remote rejected",
+          },
+        ],
+      },
+    }));
+    await h.submit();
+    expect(h.inserted).toHaveLength(1);
+    expect(h.inserted[0]!.textContent).toContain("deleting aide/99-x on origin failed");
+    expect(h.location.href).toBe("http://dash.test/specs");
+  });
+
+  test("both messages are said, not just the first", async () => {
+    const h = harness(() => ({
+      ok: true,
+      body: {
+        ok: true,
+        results: [
+          { root: "/repos/aide-specs", ok: true, branchDeleteError: "deleting the branch failed" },
+          { root: "/repos/aide", ok: true, installError: "merged, not installed" },
+        ],
+      },
+    }));
+    await h.submit();
+    expect(h.inserted[0]!.textContent).toContain("deleting the branch failed");
+    expect(h.inserted[0]!.textContent).toContain("merged, not installed");
   });
 });

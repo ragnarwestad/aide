@@ -199,3 +199,50 @@ describe("BranchStatusChecker.invalidate", () => {
     expect(git.calls.length).toBeGreaterThan(before);
   });
 });
+
+// Spec 99: the merge button now deletes the branch on origin, which is
+// exactly the workflow the old "Known limitation" comment warned about.
+// A branch git can PROVE is gone from origin has nothing left to merge,
+// so the ancestry check it can no longer answer is not asked at all.
+describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => {
+  test("a branch confirmed absent from origin counts as merged (criterion 1)", async () => {
+    const git = fakeGit({
+      ...SYMREF_MASTER,
+      "ls-remote": { code: 2 },
+    });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.isMerged("/repo", "aide/99-x")).toBe(true);
+    // Nothing is fetched and no ancestry is computed for a ref that is
+    // not there: the question is already answered.
+    expect(git.calls.some((c) => c.args[0] === "fetch")).toBe(false);
+    expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(false);
+  });
+
+  test("origin is asked directly, never through a local remote-tracking ref (criterion 1)", async () => {
+    const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 2 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    await checker.isMerged("/repo", "aide/99-x");
+    const asked = git.calls.find((c) => c.args[0] === "ls-remote")!;
+    expect(asked.args).toEqual([
+      "ls-remote", "--exit-code", "--heads", "origin", "refs/heads/aide/99-x",
+    ]);
+    expect(asked.dir).toBe("/repo");
+  });
+
+  test("a branch still on origin is answered the old way (criterion 2)", async () => {
+    const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 0 }, "merge-base": { code: 1 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.isMerged("/repo", "aide/99-x")).toBe(false);
+    expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(true);
+  });
+
+  // 128 is what an unreachable host exits with. Treating it as absence
+  // would make the badge and the button vanish from open work during a
+  // network blip — the one direction this check may never guess in.
+  test("ls-remote failing for an unrelated reason still falls back (criterion 2)", async () => {
+    const git = fakeGit({ ...SYMREF_MASTER, "ls-remote": { code: 128 }, "merge-base": { code: 0 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.isMerged("/repo", "aide/99-x")).toBe(true);
+    expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(true);
+  });
+});

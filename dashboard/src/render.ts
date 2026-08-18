@@ -27,7 +27,10 @@ export type { LiveRowView } from "./render/live.ts";
 // two. They are internal now: both take a spec ROW rather than a
 // target, and a row is an internal shape with no caller outside
 // queue-list.ts.
-export { renderQueuePage, renderQueueRows } from "./render/queue-list.ts";
+// `FILTER_KEYS`/`FILTER_FIELD_PREFIX` are the page's, not the server's:
+// the forms send the view and the server sends it back, and one list
+// kept in two places would eventually forget a key on one side.
+export { FILTER_FIELD_PREFIX, FILTER_KEYS, renderQueuePage, renderQueueRows } from "./render/queue-list.ts";
 export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-list.ts";
 
 export type { BranchView, QueueRowView } from "./render/job-state.ts";

@@ -81,6 +81,12 @@ export interface QueuePageOptions {
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;
+  /** Which spec that refusal belongs to, as `<project>/<specFolder>` —
+   *  the same key the fold state already uses. The page lists up to 25
+   *  rows, so a reason with no row attached says nothing about which
+   *  button was pressed. Derived server-side from the job, never taken
+   *  from the browser. */
+  errorSpec?: string;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -110,6 +116,27 @@ const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 // that forgot it would be refused with a 401 the reader cannot act on.
 const tokenField = (token?: string): string =>
   token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+
+/** How the list is cut and ordered. One list, exported so `serve.ts`
+ *  builds the redirect after a POST from the same five keys the forms
+ *  send — two copies would eventually disagree about what "the view" is. */
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "fold"] as const;
+
+/** The prefix a filter key rides under as a form field. Prefixed
+ *  because one of the five is `project`, which is ALSO what the Run
+ *  form posts to say which spec to run: two fields of that name arrive
+ *  as a list, and the enqueue refuses the whole request as "invalid
+ *  project". */
+export const FILTER_FIELD_PREFIX = "view.";
+
+/** The current view, sent along with the press. The redirect the server
+ *  answers with can only carry forward what the POST itself received,
+ *  so the fields have to leave the browser on the same request. */
+const filterFields = (f?: QueueFilter): string =>
+  FILTER_KEYS.map((k) => {
+    const v = f?.[k];
+    return v ? `<input type="hidden" name="${FILTER_FIELD_PREFIX}${k}" value="${esc(v)}">` : "";
+  }).join("");
 
 // --- the list ---------------------------------------------------------------
 
@@ -472,11 +499,11 @@ function sortableHead(f: QueueFilter): string {
   );
 }
 
-function actionForm(r: QueueRowView, token?: string): string {
+function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFilter | undefined): string {
   const action =
     r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
   if (!action) return "";
-  const hidden = tokenField(token);
+  const hidden = tokenField(token) + filterFields(filter);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/${action}">${hidden}` +
     `<button type="submit">${action === "approve" ? "Approve" : "Cancel"}</button></form>`
@@ -531,7 +558,7 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
   if (open.length === 0 || !g.lead) return "";
   const names = open.map((b) => b.label).join(", ");
   const label = mergeLabel(open, g, opts);
-  const hidden = tokenField(opts.token);
+  const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
   if (!inFlight(g.lead)) {
     return (
@@ -693,7 +720,7 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     `<label class="stepbox gate"><input type="checkbox" name="gate"> ` +
     `stop for approval between steps</label>`;
   return (
-    `<form method="post" action="/api/queue" class="rowrun">${tokenField(opts.token)}` +
+    `<form method="post" action="/api/queue" class="rowrun">${tokenField(opts.token)}${filterFields(opts.filter)}` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     `<span class="steps">${stepBoxes(g)}</span>` +
@@ -745,6 +772,10 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     })
     .join("");
   const jobs = g.phases.reduce((n, p) => n + p.attempts.length, 0);
+  // The same key the fold state is written in, so no second format for
+  // "which spec" is invented.
+  const refusal =
+    opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -752,7 +783,13 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="speccell">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
     `<div class="muted small">${esc(g.project)}</div>` +
-    `<div class="small specinfo">${specSummary(g)}</div></td>` +
+    `<div class="small specinfo">${specSummary(g)}</div>` +
+    // Why the button you just pressed did nothing — on the row you
+    // pressed it on. The same `muted small` line a job's own error
+    // already uses (`stateCell`), so a reason reads the same wherever
+    // it comes from.
+    (refusal ? `<div class="muted small refused">${esc(refusal)}</div>` : "") +
+    `</td>` +
     `<td><div class="pips">${pips}</div>` +
     `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
     // Written inline rather than through `stateChip`, which needs a job
@@ -766,7 +803,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     // about the run in flight; Merge is about the work one left behind.
     // All three live in the one action cell, and the Run control is
     // first because it is the one every row has.
-    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token) : ""}${mergeForm(g, opts)}</td></tr>`
+    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token, opts.filter) : ""}${mergeForm(g, opts)}</td></tr>`
   );
 }
 
@@ -882,11 +919,12 @@ export function renderQueuePage(
     `a checkout of its own, and never two on the same spec. Every step is ` +
     `bounded by its own budget and a wall clock. A job that hits a cap is ` +
     `<em>stopped</em>, not failed.</p>\n` +
-    // Why the last attempt was refused. It belongs to the PAGE, not to
-    // one control: /api/queue redirects to /specs?error=… whichever row
-    // posted, and the person who pressed the button is the one who
-    // needs to read it.
-    (opts.error ? `<p class="refusal">${esc(opts.error)}</p>\n` : "") +
+    // The fallback, and only that. A refusal that names its spec is
+    // shown on that spec's own row (`specHeadRow`) — the page lists up
+    // to 25 of them, so the banner said nothing about which button was
+    // pressed. One that names no spec has nowhere else to go, and
+    // dropping it silently is worse than a banner.
+    (opts.error && !opts.errorSpec ? `<p class="refusal">${esc(opts.error)}</p>\n` : "") +
     table;
   return pageShell("Specs", entries, "/specs", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,

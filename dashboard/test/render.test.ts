@@ -1368,3 +1368,127 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     expect([...line.matchAll(/ checked/g)]).toHaveLength(1);
   });
 });
+
+// --- spec 99: the view survives an action, and a refusal finds its row ------
+
+// Pressing Run, Approve, Cancel or Merge used to drop the reader back
+// on the default view: the redirect after the POST can only carry
+// forward what the POST itself received, and none of the three forms
+// sent anything about the current filter.
+describe("every action form carries the current view (criterion 7)", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (list: QueueRowView[], targets: QueueTarget[], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
+  const FILTER = { state: "all", project: "aide", sort: "spec", dir: "desc", fold: "aide/99-x" };
+
+  test("the Run form sends every filter key (criterion 7)", () => {
+    const line = head(rows([], [target("99-x")], { filter: FILTER }), "99-x");
+    for (const [key, value] of Object.entries(FILTER)) {
+      expect(line).toContain(`<input type="hidden" name="view.${key}" value="${value}">`);
+    }
+  });
+
+  // `project` is the collision: the Run form already posts a field of
+  // that name to say WHICH spec to run, and two of them arrive as a
+  // list that the enqueue refuses as "invalid project".
+  test("the view's project never collides with the Run form's own (criterion 7)", () => {
+    const line = head(rows([], [target("99-x")], { filter: FILTER }), "99-x");
+    expect(line).toContain(`<input type="hidden" name="project" value="aide">`);
+    expect([...line.matchAll(/name="project"/g)]).toHaveLength(1);
+  });
+
+  test("no filter means no hidden view fields at all (criterion 7)", () => {
+    const line = head(rows([], [target("99-x")]), "99-x");
+    expect(line).not.toContain('name="view.');
+  });
+
+  test("the Cancel form sends them too (criterion 7)", () => {
+    const running = row({ id: "j1", specFolder: "99-x", state: "running" });
+    const line = head(rows([running], [target("99-x")], { filter: { state: "active" } }), "99-x");
+    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel">.*?<\/form>/)![0];
+    expect(form).toContain('<input type="hidden" name="view.state" value="active">');
+  });
+
+  test("the Approve form sends them too (criterion 7)", () => {
+    const waiting = row({ id: "j1", specFolder: "99-x", state: "awaiting-approval" });
+    const line = head(rows([waiting], [target("99-x")], { filter: { sort: "cost" } }), "99-x");
+    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/approve">.*?<\/form>/)![0];
+    expect(form).toContain('<input type="hidden" name="view.sort" value="cost">');
+  });
+
+  test("the Merge form sends them too (criterion 7)", () => {
+    const done = row({
+      id: "j1",
+      specFolder: "99-x",
+      state: "done",
+      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+    });
+    const line = head(rows([done], [target("99-x")], { filter: { state: "all" } }), "99-x");
+    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/merge"[^>]*>.*?<\/form>/)![0];
+    expect(form).toContain('<input type="hidden" name="view.state" value="all">');
+  });
+});
+
+// The page lists up to 25 rows, so a refusal shown once at the top of
+// the page does not say WHICH row it is about.
+describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
+  const target = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
+
+  const rows = (targets: QueueTarget[], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      [],
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
+  test("the named spec's row carries the reason, and no other row does (criterion 8)", () => {
+    const html = rows([target("99-x"), target("99-y")], {
+      error: "the tree is dirty in /repos/aide",
+      errorSpec: "aide/99-x",
+    });
+    expect(head(html, "99-x")).toContain("the tree is dirty in /repos/aide");
+    expect(head(html, "99-y")).not.toContain("the tree is dirty");
+  });
+
+  test("an errorSpec naming another project leaves the row alone (criterion 8)", () => {
+    const html = rows([target("99-x")], { error: "refused", errorSpec: "paceup/99-x" });
+    expect(head(html, "99-x")).not.toContain("refused");
+  });
+
+  test("the page-top banner is not shown as well when a row has it (criterion 12)", () => {
+    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [target("99-x")],
+      error: "the tree is dirty in /repos/aide",
+      errorSpec: "aide/99-x",
+    });
+    expect(page).not.toContain('<p class="refusal">');
+    // …and the reason is still on the page, on its row.
+    expect(page).toContain("the tree is dirty in /repos/aide");
+  });
+
+  test("a refusal that belongs to no row keeps the banner (criterion 12)", () => {
+    const page = renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "index.html" }], {
+      runnerAvailable: true,
+      targets: [target("99-x")],
+      error: "payload too large",
+    });
+    expect(page).toContain('<p class="refusal">payload too large</p>');
+  });
+});
