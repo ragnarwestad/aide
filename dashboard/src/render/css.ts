@@ -86,6 +86,10 @@ table.jobs thead a:hover { text-decoration: underline; }
 /* One line per row, under the spec's name: what it is and how far it
    has got. Quiet — the name above it is what a reader scans for. */
 .specinfo { color: #777; margin-top: 0.15rem; }
+/* And under that, the one line that answers "what is going on, and what
+   is the next click?". Quieter still: it repeats no fact the row does
+   not already carry, it just says them as a sentence. */
+.whatsnext { color: #888; margin-top: 0.1rem; }
 
 /* State carries colour, but the word is always there too. */
 .chip, .state { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px;
@@ -186,6 +190,17 @@ table.jobs tr.subrow .phasecell { padding-left: 1.4rem; }
 .newspec textarea { width: 100%; resize: vertical; }
 .newspec button { font-weight: 600; background: #8882; cursor: pointer; }
 .newspec button:hover { background: #8883; }
+/* A refused create has no row to land on — the spec it named was never
+   made — so the reason goes beside the form that was refused, in the
+   same amber every other refusal uses. It is a fixed slot, drawn only
+   once something has been written into it. */
+.newspec .refused { flex-basis: 100%; margin: 0; }
+.newspec .refused:empty { display: none; }
+/* The intro is worth having and not worth the top of every load. Same
+   disclosure as the New-spec form, and the same reason. */
+details.intro { margin: 0.8rem 0; }
+details.intro > summary { color: #888; cursor: pointer; font-size: 0.9rem; }
+details.intro p { margin: 0.4rem 0 0; }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
 table.jobs tr.untried td { opacity: 0.55; }

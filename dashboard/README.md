@@ -14,6 +14,7 @@
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
+  - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [Branches, and merging them](#branches-and-merging-them)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
@@ -125,10 +126,16 @@ single job in the workflow's order — the browser submits checkboxes in
 the order they are drawn, so ticking `implement` before `analyze` still
 queues analyze first. Behind a "more" disclosure sit the two things
 nobody sets every time: which other repos the job will touch, and
-whether to stop for approval between the steps (off by default). A
-phase already queued or running shows its box disabled, because the
-queue would refuse it anyway (see
-[the duplicate guard](#gates-and-notifications)).
+whether to stop for approval between the steps (off by default).
+
+**Every phase the job in flight was queued with shows its box
+disabled**, not merely the step it has reached, because the queue would
+refuse any of them anyway (see
+[the duplicate guard](#gates-and-notifications)) — a job queued as
+`analyze` + `review-plan` left `review-plan` tickable until the moment
+it got there, and Run then answered "already running on this spec".
+The box says why on hover ("analyze is running"), in the same words the
+state chip uses.
 
 What is pre-ticked is what you almost always came to run: the first
 phase the spec has not had — except for a spec nothing has ever run at
@@ -136,6 +143,22 @@ all, which gets `analyze` and `review-plan` ticked together, because
 that pair as one gated job is how a spec is actually started here. A
 phase already done is marked with a tick and left unticked; ticking it
 anyway is a rerun, and no rule stands in the way.
+
+Under the spec's name sits one line for what a reader came to find out:
+what is going on and what the next click is — "analyze running —
+review-plan to follow", "waiting for your approval to carry on", "done
+— the branch is waiting to be merged", "press Run to try implement
+again". It invents no vocabulary: the sentence is built from the same
+`stateLabel`/`currentStep` the chip and the phase lines use, so the row
+cannot say one thing in two ways. Everything it summarises is still
+there beside it — the pips, the chip, the branch badges — each
+answering its own narrower question.
+
+The four sentences about how runs work on this machine sit behind a
+shut "How runs work here" disclosure, like the New-spec panel and for
+the same reason: the list is what people come here for. The
+runner-unavailable notice is NOT folded in with them — "nothing here
+spends money" must not need a click.
 
 There used to be a form above the table as well, with a spec dropdown
 of its own. It was the only way to queue several steps as one job, and
@@ -196,12 +219,16 @@ name. The fold is a link and lives in the query string
 table's own five-second refresh — and what makes it work with JavaScript
 switched off.
 
-Every Run control is a plain form and needs no script: ticking phases
-and pressing Run works with JavaScript switched off, and so does the
-fold. `queue-client.ts`, the page's own browser-side script, cannot
-`import` anything: `queueClientScript()` runs `Bun.Transpiler.transformSync` over
-it and inlines the result into a plain `<script>` tag — that transpiles,
-it does not bundle. An `import` survives as an ESM import inside a
+Every control here is a plain form first: ticking phases and pressing
+Run works with JavaScript switched off, and so do Approve, Cancel,
+Merge, Create and the fold — each posts its form and follows a 303 back
+to the list. `queue-client.ts` is a layer ABOVE that floor, never the
+mechanism (see
+[what the script adds](#what-the-script-adds-specs-96-and-101)). It
+cannot `import` anything: `queueClientScript()` runs
+`Bun.Transpiler.transformSync` over it and inlines the result into a
+plain `<script>` tag — that transpiles, it does not bundle. An
+`import` survives as an ESM import inside a
 classic inline script (a 404, since this server does not serve that
 path), and an `export` is a syntax error. Any shared, unit-testable
 browser module needs a bundle step or a `type="module"` tag first; the
@@ -338,6 +365,38 @@ matters most right now — whatever is in flight, else the most recent
 outcome. The approve/cancel action sits there too, once per spec
 instead of once per job.
 
+### What the script adds (specs 96 and 101)
+
+The page's own browser code does one thing to the controls: it keeps
+the reader where they are. Every one of the five — Run, Approve,
+Cancel, Merge, Create — is a real `<form>` that works on its own, and
+the script only intercepts.
+
+- **A press changes the button at once.** It disables and says what it
+  is doing ("starting…", "approving…", "cancelling…", "merging…",
+  "creating…"). The wording is in the markup, as `data-pending` beside
+  the label it replaces, not in a verb table inside the script.
+- **The answer lands in place.** `#jobrows` is re-fetched and swapped;
+  the page does not reload, does not scroll to the top, and does not
+  wipe a control someone is half-way through setting.
+- **A refusal no longer navigates either.** The reason and the spec it
+  belongs to are written into the address bar with
+  `history.replaceState` — the same `?error=&errorSpec=` query the
+  server's own 303 would have built — and the rows are re-asked with
+  it, so the message comes back rendered on the spec's own row. The
+  filter, the sort and the fold ride along in that query, which is why
+  a refusal cannot throw the reader back to the default list.
+- **The New-spec form answers for itself.** It sits outside `#jobrows`
+  on purpose (a half-typed description must survive the five-second
+  swap), so it is bound directly rather than by delegation, and a
+  refused create has no row to land on — the spec it named was never
+  made. Its reason is written beside the form; on success the form
+  empties and shuts, and the new row arrives with the swap.
+
+Without the script every one of those falls back to a form post and a
+303 to the list: slower, and one full page load, but functionally
+complete.
+
 ### Branches, and merging them
 
 A job that touches two repositories makes a branch of the same name in
@@ -375,11 +434,9 @@ how many repos and nothing about which kind, so a reader had to know
 that one meant the specs repo, that the specs repo is the plan, and
 that the running step was about to rewrite it.
 
-With JavaScript on, the button posts from the page: it disables and
-reads "merging…" at once, and the rows swap in place when the answer
-comes, instead of the browser waiting several seconds and then
-following a 303 that threw the page back to the top. Without it the
-form still submits itself and the 303 still works.
+With JavaScript on, the button posts from the page rather than through
+a navigation — the shape every control on this page now shares, see
+[what the script adds](#what-the-script-adds-specs-96-and-101).
 
 The merge itself merges the spec branch into each repo's default branch
 and pushes, one repo at a time:

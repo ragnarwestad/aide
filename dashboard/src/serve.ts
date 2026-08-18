@@ -1108,7 +1108,12 @@ export function createServer(opts: ServerOptions) {
         logRefusal("run", spec, result.error);
         // A person who pressed a button gets the reason on the page
         // they pressed it from; an API caller gets a status code.
-        return wantsJson ? json({ error: result.error }, 400) : specsRedirect(raw, { error: result.error, spec });
+        // `spec` for the same reason merge's answer carries it: the page
+        // shows a refusal on the row it belongs to and no longer
+        // navigates to find out which, so the answer has to say.
+        return wantsJson
+          ? json({ error: result.error, spec }, 400)
+          : specsRedirect(raw, { error: result.error, spec });
       }
       runner?.tick();
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw);
@@ -1188,7 +1193,7 @@ export function createServer(opts: ServerOptions) {
           // still gets the 409. A person pressing a button on a page
           // used to get that JSON body in the browser instead of the
           // page they pressed it from.
-          return wantsJson ? json({ error: why }, 409) : specsRedirect(view, { error: why, spec });
+          return wantsJson ? json({ error: why, spec }, 409) : specsRedirect(view, { error: why, spec });
         }
         // Approving a gate releases the job back into the queue.
         queue.update(id, { state: "queued" });

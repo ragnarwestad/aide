@@ -27,7 +27,9 @@ import {
   branchActivity,
   currentStep,
   inFlight,
+  nextActionHint,
   stateChip,
+  stateLabel,
   unmergedBadge,
   type BranchView,
   type QueueRowView,
@@ -523,9 +525,14 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
     r.state === "awaiting-approval" ? "approve" : r.state === "queued" || r.state === "running" ? "cancel" : null;
   if (!action) return "";
   const hidden = tokenField(token) + filterFields(filter);
+  // `actionform` is what the page's own code selects on, and
+  // `data-pending` is what the button says while the request is out —
+  // written here, beside the label it replaces, rather than as a verb
+  // table in the script.
   return (
-    `<form method="post" action="/api/queue/${esc(r.id)}/${action}">${hidden}` +
-    `<button type="submit">${action === "approve" ? "Approve" : "Cancel"}</button></form>`
+    `<form method="post" action="/api/queue/${esc(r.id)}/${action}" class="actionform">${hidden}` +
+    `<button type="submit" data-pending="${action === "approve" ? "approving…" : "cancelling…"}">` +
+    `${action === "approve" ? "Approve" : "Cancel"}</button></form>`
   );
 }
 
@@ -582,7 +589,7 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
   if (!inFlight(g.lead)) {
     return (
       `<form method="post" action="${action}" class="mergeform">${hidden}` +
-      `<button type="submit" title="${esc(names)}">${esc(label)}</button></form>`
+      `<button type="submit" data-pending="merging…" title="${esc(names)}">${esc(label)}</button></form>`
     );
   }
   // Two controls, not one button that flips: a button re-enabled the
@@ -600,7 +607,8 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions): string {
     `<button type="button" disabled title="${esc(names)}">${esc(label)}</button> ` +
     `<form method="post" action="${action}" class="mergeoverride" ` +
     `onsubmit="return confirm('This spec still has a step running. Merge anyway?')">${hidden}` +
-    `<button type="submit" class="small" title="${esc(names)}">merge anyway</button></form></span>`
+    `<button type="submit" class="small" data-pending="merging…" title="${esc(names)}">` +
+    `merge anyway</button></form></span>`
   );
 }
 
@@ -669,7 +677,22 @@ function stepBoxes(g: SpecGroup): string {
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
   const checked = new Set(g.lead || pair.length === 0 ? single : pair);
-  const busy = new Set(g.phases.filter((p) => p.attempts.some(inFlight)).map((p) => p.step));
+  // Every step the job in flight was queued with, not merely the one it
+  // has reached. The server refuses a second job naming ANY of them
+  // (`clashing()`, queue.ts, tests the whole job against UNFINISHED), so
+  // a page that only greyed out the current step offered a box whose
+  // press could only ever be refused: a job queued as analyze +
+  // review-plan left review-plan tickable until the moment the job got
+  // to it. `g.lead` IS "whatever is in flight for this spec" — the same
+  // test the server makes — so this reads the answer rather than
+  // deriving a second one that can drift from it.
+  const busy = new Set(g.lead && inFlight(g.lead) ? g.lead.steps : []);
+  // Why the box will not take a click, on the label the pointer is
+  // already over. About the JOB, so every step it holds says the same
+  // sentence — and worded through `currentStep`/`stateLabel` rather
+  // than freshly, because a spec's state and a phase's state must never
+  // be worded differently.
+  const why = g.lead && busy.size ? `${currentStep(g.lead)} is ${stateLabel(g.lead)}` : "";
   return QUEUE_STEPS.map((s) => {
     const isDone = done.has(s);
     // Busy wins over pre-ticked: a box the reader sees ticked but cannot
@@ -679,7 +702,8 @@ function stepBoxes(g: SpecGroup): string {
       // `data-phase`, not `data-step`: the phase LINES already carry
       // `data-step`, and a test enumerating them would find four
       // checkboxes on the header row as well.
-      `<label class="stepbox${isDone ? " isdone" : ""}" data-phase="${esc(s)}">` +
+      `<label class="stepbox${isDone ? " isdone" : ""}" data-phase="${esc(s)}"` +
+      `${off ? ` title="${esc(why)}"` : ""}>` +
       `<input type="checkbox" name="steps" value="${esc(s)}"` +
       `${checked.has(s) && !off ? " checked" : ""}${off ? " disabled" : ""}> ` +
       `${esc(s)}${isDone ? ' <span class="tick" title="already done">✓</span>' : ""}</label>`
@@ -752,7 +776,7 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     `<span class="steps">${stepBoxes(g)}</span>` +
     select +
     `<details class="more"><summary>more</summary>${extraField}${gate}</details>` +
-    `<button type="submit">Run</button></form>`
+    `<button type="submit" data-pending="starting…">Run</button></form>`
   );
 }
 
@@ -775,7 +799,7 @@ function newSpecForm(opts: QueuePageOptions): string {
   if (projects.length === 0) return "";
   return (
     `<details class="newspec"><summary>New spec</summary>` +
-    `<form method="post" action="/api/queue/create">${tokenField(opts.token)}` +
+    `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
     `<span class="field"><span class="fieldlabel">Project</span>` +
     `<select name="project">` +
     projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
@@ -786,7 +810,14 @@ function newSpecForm(opts: QueuePageOptions): string {
     `<span class="field wide"><span class="fieldlabel">Description</span>` +
     `<textarea name="description" rows="4" maxlength="2000" required ` +
     `placeholder="the problem, and what you want instead"></textarea></span>` +
-    `<button type="submit">Create</button></form></details>`
+    `<button type="submit" data-pending="creating…">Create</button>` +
+    // The slot a refusal is written into. A rejected create names a spec
+    // that was never made, so there is no row for the reason to land on
+    // the way there is for every other action — and the page-level
+    // banner sits above a disclosure that may well be shut, which is
+    // where a create refusal went unread. Empty until something fills
+    // it (`.refused:empty` draws nothing).
+    `<p class="refused"></p></form></details>`
   );
 }
 
@@ -844,6 +875,10 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     `<td><div class="speccell">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
     `<div class="muted small">${esc(g.project)}</div>` +
     `<div class="small specinfo">${specSummary(g)}</div>` +
+    // What is going on and what the next click is, in one sentence.
+    // The pips, the chip and the badges each answer a narrower question
+    // and a reader had to assemble this from all of them.
+    `<div class="small whatsnext">${esc(nextActionHint(g.lead, g.branches.some((b) => !b.merged)))}</div>` +
     // Why the button you just pressed did nothing — on the row you
     // pressed it on. The same `muted small` line a job's own error
     // already uses (`stateCell`), so a reason reads the same wherever
@@ -975,10 +1010,17 @@ export function renderQueuePage(
       `queued jobs stay queued, and nothing here spends money.</p>\n`;
   const body =
     notice +
-    `<p class="intro">aide runs on this machine: a few jobs side by side, each in ` +
+    // Shut by default, like the New-spec form beside it and for the same
+    // reason: four sentences that never change were the one static block
+    // left standing between the page's title and the list, on every
+    // load, for a reader who has read them. The runner notice above is
+    // NOT folded in with them — "nothing here spends money" is safety
+    // context and must not need a click.
+    `<details class="intro"><summary>How runs work here</summary>` +
+    `<p>aide runs on this machine: a few jobs side by side, each in ` +
     `a checkout of its own, and never two on the same spec. Every step is ` +
     `bounded by its own budget and a wall clock. A job that hits a cap is ` +
-    `<em>stopped</em>, not failed.</p>\n` +
+    `<em>stopped</em>, not failed.</p></details>\n` +
     // The fallback, and only that. A refusal that names its spec is
     // shown on that spec's own row (`specHeadRow`) — the page lists up
     // to 25 of them, so the banner said nothing about which button was
