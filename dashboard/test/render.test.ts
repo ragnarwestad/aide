@@ -1364,6 +1364,18 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     expect(line).not.toContain("fold=aide%2F90-x");
   });
 
+  // The control was a text glyph (▸/▾) in a 1rem box: barely visible,
+  // and a target nobody could hit. It is an SVG chevron in a 24px flat
+  // now, and the state is on the element, not in the glyph.
+  test("the fold control is an SVG chevron, open and shut told apart by a class", () => {
+    const open = head(rows([target("90-x")]), "90-x");
+    expect(open).toMatch(/<a class="fold"[^>]*aria-expanded="true"[^>]*><svg/);
+    expect(open).not.toContain("▾");
+    const shut = head(rows([target("90-x")], { fold: "aide/90-x" }), "90-x");
+    expect(shut).toMatch(/<a class="fold shut"[^>]*aria-expanded="false"[^>]*><svg/);
+    expect(shut).not.toContain("▸");
+  });
+
   test("folding one spec leaves the other's phases alone (criterion 13)", () => {
     const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x" });
     expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
@@ -1809,3 +1821,4 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect([...html.matchAll(/<\/span><div class="muted small">[^<]*<\/div><\/td>/g)]).toHaveLength(2);
   });
 });
+

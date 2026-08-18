@@ -130,6 +130,13 @@ export interface QueueFilter {
 
 // --- what every form on this page needs ------------------------------------
 
+// One chevron for the fold control; the shut state rotates it in CSS.
+// Stroke-based so it takes the text colour and scales with the flat.
+const CHEVRON =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M4 6l4 4 4-4"></path></svg>';
+
 const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
 // Every form on this page posts to the guarded surface, so every one of
@@ -451,11 +458,11 @@ function foldControl(g: SpecGroup, f: QueueFilter, folded: Set<string>): string 
   const shut = folded.has(key);
   const next = shut ? [...folded].filter((k) => k !== key) : [...folded, key];
   return (
-    `<a class="fold" data-nav href="${queueHref(f, { fold: next.join(",") })}" ` +
+    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { fold: next.join(",") })}" ` +
     // The key is never the visible content — anything in `?fold=` is
-    // attacker-chosen text, and a glyph cannot be mistaken for markup.
+    // attacker-chosen text, and an icon cannot be mistaken for markup.
     `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${shut ? "show" : "hide"} the phases of ${esc(g.specFolder)}">${shut ? "▸" : "▾"}</a>`
+    `title="${shut ? "show" : "hide"} the phases of ${esc(g.specFolder)}">${CHEVRON}</a>`
   );
 }
 

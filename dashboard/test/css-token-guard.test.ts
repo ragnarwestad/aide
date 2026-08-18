@@ -118,7 +118,7 @@ const STRUCTURE = [
   "row", "fact", "intro", "tabpanel", "activity", "facts", "more",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
-  "untried", "empty", "listnote", "fold", "branchlist", "branch",
+  "untried", "empty", "listnote", "fold", "shut", "branchlist", "branch",
   "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,
   // which `site.ts` uses for the unrelated question of whether a spec

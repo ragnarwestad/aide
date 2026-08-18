@@ -237,9 +237,15 @@ table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
 table.list tr.untried td { opacity: 0.55; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
-/* Small and quiet: the control sits in front of the spec's own name,
-   which is what a reader is scanning this column for. */
-.fold { color: var(--muted); font-size: var(--fs-s); display: inline-block; width: 1rem; }
+/* A real control: a 24px flat with a chevron, in front of the spec's
+   name. Quiet at rest, obvious on hover, and the shut state turns the
+   chevron rather than swapping a glyph. */
+.fold { display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: var(--r-s); color: var(--muted);
+  vertical-align: middle; margin-right: var(--sp-1); }
+.fold:hover { background: var(--surface-2); color: var(--text); }
+.fold svg { transition: transform 120ms ease; }
+.fold.shut svg { transform: rotate(-90deg); }
 .branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
   font-weight: 400; font-family: var(--sans); }
 .branch { white-space: nowrap; }
