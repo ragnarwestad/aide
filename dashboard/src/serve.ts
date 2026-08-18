@@ -27,7 +27,7 @@ import {
   QueueStore, mergeQueueDefaults,
   type BranchRef, type Job, type QueueDefaults, type ProjectResolver,
 } from "./queue.ts";
-import { Runner } from "./runner.ts";
+import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
@@ -384,6 +384,11 @@ export function runnerArgv(
     "--result-file", resultFile,
     "--push", o.push,
     "--pull",
+    // Only a `create` job has these, and it cannot run without them:
+    // its `--spec` is a provisional key, not a folder on disk, so the
+    // title and the description are the whole of what the step is for.
+    ...(job.createTitle ? ["--title", job.createTitle] : []),
+    ...(job.createDescription ? ["--description", job.createDescription] : []),
     ...(model ? ["--model", model] : []),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result
@@ -479,6 +484,12 @@ export function createServer(opts: ServerOptions) {
     mirrorPath: opts.queueMirrorPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
+    // The RAW allowlist, and only for creating (spec 93).
+    // `resolveProject` requires a spec that already exists, which a
+    // project's first spec by definition does not have — but that
+    // requirement is right for every other route, so it is left exactly
+    // as it is rather than widened for all of them.
+    allowCreateProject: (project) => allowed.has(project),
   });
 
   // The runner exists only when a binary is configured. Spawned
@@ -550,6 +561,13 @@ export function createServer(opts: ServerOptions) {
           }
         },
         notify: (event) => notifier.notify(event),
+        // A created spec is invisible to this page until its branch is
+        // on the default branch of the checkout the page reads, so the
+        // one step that MAKES a spec lands its own work. The returned
+        // promise holds the queue for as long as that takes; see
+        // `Runner.tick()`.
+        onStepDone: (job, step, outcome) =>
+          step === "create" && outcome.ok ? landNewSpec(job, outcome) : undefined,
         clearResult: (path) => {
           try {
             rmSync(path, { force: true });
@@ -704,6 +722,9 @@ export function createServer(opts: ServerOptions) {
       id: job.id,
       project: job.project,
       specFolder: job.specFolder,
+      // What a create job's row is called while its folder is still a
+      // provisional key: `new-abc123de` says nothing to anyone.
+      createTitle: job.createTitle,
       steps: job.steps,
       stepIndex: job.stepIndex,
       state: job.state,
@@ -770,6 +791,80 @@ export function createServer(opts: ServerOptions) {
       results.push(result);
     }
     return results;
+  }
+
+  /** Put a newly created spec where the page can see it (spec 93).
+   *
+   *  This is the one merge on the dashboard that no one pressed a button
+   *  for, and it is not a convenience: `/specs` lists what is on disk in
+   *  the main checkout, which every run is careful never to leave its
+   *  default branch, so a created spec that is only pushed to a branch
+   *  appears nowhere at all. A job parked in `awaiting-approval` until
+   *  somebody notices would not be the feature with one extra click — it
+   *  would be the feature not working.
+   *
+   *  The branch comes from the RESULT, never from `specBranch(...)`: the
+   *  folder this spec ended up with did not exist when its branch was
+   *  named. Everything else is `mergeBranchIntoDefault` unchanged — the
+   *  same function, the same three decisions, the same per-repo report
+   *  the Merge button already gets.
+   *
+   *  No install is run afterwards, unlike the manual route: a create step
+   *  writes four templated markdown files and no code, so there is
+   *  nothing to deploy. */
+  async function landNewSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+    try {
+      const branch = outcome.branch;
+      const repos = outcome.branchUrls ?? [];
+      if (!branch || repos.length === 0) {
+        queue.update(job.id, {
+          error:
+            "the spec was created, but the run reported no pushed branch to land it from — " +
+            "merge it by hand, or check the queue's push mode",
+        });
+        return;
+      }
+      const failures: string[] = [];
+      for (const repo of repos) {
+        const base = await branchStatus.defaultBranch(repo.root);
+        if (!base) {
+          // Guessing which branch to merge INTO is the one guess with no
+          // safe direction — the same refusal the manual route makes.
+          failures.push(`cannot work out the default branch in ${repo.root}`);
+          continue;
+        }
+        const result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+        if (result.ok) branchStatus.invalidate(repo.root, branch);
+        else failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
+      }
+      if (failures.length > 0) {
+        // The provisional key stays: the job is still the only handle on
+        // a branch that has not landed, and renaming it to a folder the
+        // page cannot see would hide the work rather than report it.
+        queue.update(job.id, { error: failures.join("; ") });
+        return;
+      }
+      // Landed. The branch is on the default branch now, so the job stops
+      // advertising one: a compare page for a merged branch shows
+      // nothing, and the row would otherwise offer to merge a name it can
+      // no longer derive (`specBranch` reads the RENAMED folder).
+      queue.update(job.id, {
+        specFolder: outcome.specFolder ?? job.specFolder,
+        branchUrl: undefined,
+        branchUrls: [],
+        error: undefined,
+      });
+      // The page caches its scan for five seconds. Without this the very
+      // request that follows a landing would still not show the spec.
+      scan = null;
+    } catch (err) {
+      // Never rethrown: the `landing` flag holds the WHOLE queue, and
+      // the runner clears it when this promise settles — which it must
+      // do, however this went.
+      queue.update(job.id, {
+        error: `the spec was created, but landing it failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
   }
 
   /** Spec 97: what the files say a spec has had, corrected by what git
@@ -878,6 +973,13 @@ export function createServer(opts: ServerOptions) {
         // five-second row swap the same way the filter does.
         errorSpec: url.searchParams.get("errorSpec") ?? undefined,
         projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
+        // The raw allowlist, not the discovered set: a project whose
+        // FIRST spec this form exists to make has nothing on disk to be
+        // discovered from, so deriving these from `targets()` would
+        // leave it out of the one dropdown it needs to be in. Every
+        // other list on this page stays derived, because every other
+        // control is about a spec that already exists.
+        createProjects: [...allowed].sort(),
         // Straight from the query string: how the list is cut and
         // ordered lives in the URL, so it survives a reload and can be
         // sent to someone else. Nothing here is trusted — the renderer
@@ -911,6 +1013,33 @@ export function createServer(opts: ServerOptions) {
           `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
+    }
+
+    // Before the `<id>/<verb>` and `<id>` matches below, which would
+    // otherwise read "create" as a job id and answer 404 for it.
+    if (path === "/api/queue/create") {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      let raw: unknown;
+      try {
+        raw = bodyToObject(body.text, req.headers.get("content-type"));
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const result = queue.enqueueCreate(raw);
+      if (!result.ok) {
+        return wantsJson
+          ? json({ error: result.error }, 400)
+          : new Response(null, {
+              status: 303,
+              headers: { location: `/specs?error=${encodeURIComponent(result.error)}` },
+            });
+      }
+      runner?.tick();
+      return wantsJson
+        ? json({ ok: true, job: result.job })
+        : new Response(null, { status: 303, headers: { location: "/specs" } });
     }
 
     if (path === "/api/queue") {

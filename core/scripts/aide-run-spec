@@ -11,6 +11,11 @@
 #    subtype, durationSec, repos[{root, headBefore, headAfter,
 #    changedFiles}], error}
 #
+# A `create` step adds one field: `specFolder`, the spec the run turned
+# out to make (spec 93). Present only when exactly one new folder
+# appeared under the specs root — absent means the run would have had to
+# guess which, and it did not.
+#
 # terminalReason is this script's own vocabulary, not the CLI's:
 #   completed | budget | timeout | refused | spawn-failed | cli-error
 #
@@ -74,6 +79,11 @@ WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
+# What a `create` step is FOR (spec 93). Every other step names a folder
+# that is already on disk; this one makes it, so the two things
+# /aide-create needs come in as arguments instead. Required for a create
+# whose --spec does not resolve, meaningless everywhere else.
+title=""; description=""
 # Where to keep the claude transcript. Opt-in: without it the captured
 # output goes with the rest of $work_dir, exactly as it always has, so
 # no existing caller changes behaviour.
@@ -99,6 +109,8 @@ while [ $# -gt 0 ]; do
     --project-dir) project_dir="${2:-}"; shift 2 ;;
     --command) command_name="${2:-}"; shift 2 ;;
     --spec) spec_arg="${2:-}"; shift 2 ;;
+    --title) title="${2:-}"; shift 2 ;;
+    --description) description="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
@@ -179,8 +191,28 @@ else
     case "$base" in "$spec_arg"-*) spec_folder="$base"; break ;; esac
   done
 fi
-[ -n "$spec_folder" ] || refuse "unknown spec: $spec_arg (not under $specs_root)"
+# A `create` step is the one that MAKES the folder, so it is the one
+# step for which "no such folder" is the normal case rather than a
+# refusal (spec 93; spec 87 named this and left it alone). What it gets
+# instead is a caller-supplied tracking key — the branch and the worktree
+# are named after it, and nothing else is. It is NOT a folder name, and
+# nothing here may turn it into one: the rule that decides a spec's
+# number and slug lives in /aide-create's own skill run and nowhere else,
+# which is what keeps this from repeating spec 82's mistake of one rule
+# written down twice.
+if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
+  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
+  # Refused here, before a worktree exists, like every other required
+  # argument — a create without these two has nothing to create.
+  [ -n "$title" ] || refuse "missing --title (required for create)"
+  [ -n "$description" ] || refuse "missing --description (required for create)"
+else
+  [ -n "$spec_folder" ] || refuse "unknown spec: $spec_arg (not under $specs_root)"
+fi
 spec_id="${spec_folder%%-*}"
+# What the branch, the worktree and the commit message are named after:
+# the real folder when there is one, the tracking key while there is not.
+spec_label="${spec_folder:-$spec_arg}"
 
 specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true)"
 
@@ -351,10 +383,29 @@ fi
 # for AIDE_HEADLESS while analysing the spec that introduced it, never
 # checked its own, stopped to ask a question nobody could answer, and
 # reported success. Put it where the model is already reading.
-prompt="/aide-$command_name $spec_id
-(This run is headless: no one is at a keyboard and no question can be
+headless_note="(This run is headless: no one is at a keyboard and no question can be
 answered. Never stop to ask for confirmation — decide, or write down
 what you would have asked, and finish the step.)"
+if [ -n "$spec_folder" ]; then
+  prompt="/aide-$command_name $spec_id
+$headless_note"
+else
+  # `/aide-create TODO-<name> <description>` is the skill's own
+  # documented argument shape ("TODO mode (with name)"), so nothing is
+  # invented on either side of the contract. The slug is a throwaway
+  # token for that parser and NOT the spec's folder slug — which is why
+  # the title is also stated on a line of its own: a title is not
+  # something to recover from a slug, and free text that happens to look
+  # like a JIRA key would otherwise steer the skill's smart detection
+  # somewhere nobody asked for.
+  title_slug="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' \
+    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
+  [ -n "$title_slug" ] || title_slug="new-spec"
+  prompt="/aide-create TODO-$title_slug $description
+
+Use exactly this title for the spec: $title
+$headless_note"
+fi
 # stream-json, not json: `json` prints ONE object at the very end, so a
 # 25-minute run says nothing at all until it is over. stream-json emits
 # one event per line as it happens, and its last result event is the same
@@ -383,7 +434,7 @@ fi
 # step changes only the specs repo, and branching just the project left
 # that work committed on main and pushed there — the one thing `push
 # branch` exists to prevent. Measured 2026-08-16 on spec 84.
-branch="aide/$spec_folder"
+branch="aide/$spec_label"
 
 # --- where this run's checkouts go -------------------------------------------
 [ -n "$worktree_base" ] || worktree_base="$HOME/aide-worktrees"
@@ -407,7 +458,7 @@ worktree_base="$(cd "$worktree_base" && pwd -P)" || refuse "cannot resolve the w
 refuse_base_inside_a_root "$worktree_base"
 # Keyed by project AND spec: two projects can share one specs repo, and a
 # path keyed by the spec alone would put both runs in the same directory.
-wt_dir="$worktree_base/$(basename "$project_root")/$spec_folder"
+wt_dir="$worktree_base/$(basename "$project_root")/$spec_label"
 
 # --- the dependencies a worktree lacks ---------------------------------------
 # `git worktree add` checks out TRACKED files only, so every gitignored
@@ -624,6 +675,13 @@ specs_wt=""
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && specs_wt="${work_roots[1]}"
 
 # --- pointing the step at the specs worktree ---------------------------------
+# Where the specs root stands FOR THIS RUN — the same path a skill inside
+# the step resolves. Kept by repoint_specs_path below, in each of the
+# three layouts it already knows about, because a `create` step's whole
+# output is a new directory there and the only honest way to name it is
+# to look (spec 93).
+specs_root_wt="$specs_root"
+
 # A worktree of the PROJECT isolates nothing an `analyze` step writes:
 # AIDE_SPECS_PATH is an absolute path into another repository, and it
 # resolves to the shared checkout from inside a worktree just as well as
@@ -643,6 +701,7 @@ repoint_specs_path() {
     rel="${specs_root#$specs_repo}"; rel="${rel#/}"
     new_specs="$specs_wt"
     [ -n "$rel" ] && new_specs="$specs_wt/$rel"
+    specs_root_wt="$new_specs"
     cfg="$project_wt/.aide/config"
     if git -C "$project_root" ls-files --error-unmatch .aide/config >/dev/null 2>&1; then
       # Tracked (this repo negates the global ignore for it). The
@@ -674,6 +733,7 @@ repoint_specs_path() {
   case "$specs_root/" in
     "$project_root"/*)
       rel="${specs_root#$project_root/}"
+      [ -n "$rel" ] && specs_root_wt="$project_wt/$rel"
       if [ -n "$rel" ] && [ ! -e "$project_wt/$rel" ]; then
         mkdir -p "$(dirname "$project_wt/$rel")" 2>/dev/null || true
         ln -s "$specs_root" "$project_wt/$rel" 2>/dev/null || true
@@ -706,6 +766,25 @@ head_before=()
 for wt in "${work_roots[@]}"; do
   head_before+=("$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")")
 done
+
+# --- which folder a create step actually made --------------------------------
+# Read off the disk, before and after, rather than computed: the rule
+# that decides a spec's number and its slug is /aide-create's own (Step 2
+# and Step 3 of its skill), and a second copy of that rule here is
+# precisely the mistake spec 82 was about. A directory listing is also
+# robust in a way parsing `git status` is not — the step may or may not
+# have committed its own work by the time we look.
+spec_folders_now() {
+  local d base
+  for d in "$specs_root_wt"/*/; do
+    [ -d "$d" ] || continue
+    base="$(basename "$d")"
+    [[ "$base" =~ ^[0-9]+- ]] && printf '%s\n' "$base"
+  done
+  return 0
+}
+spec_folders_before=""
+[ "$command_name" = "create" ] && spec_folders_before="|$(spec_folders_now | tr '\n' '|')"
 
 # Only if we can actually write there. Keeping a transcript is a
 # convenience, and a run whose work succeeded must never be reported as
@@ -796,6 +875,28 @@ fi
 ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"
 
+# Exactly one new folder is an answer; zero or several is not, and is
+# left unreported rather than guessed at. The spec still lands either
+# way — what a wrong guess would cost is the job's history being attached
+# to somebody else's spec.
+created_spec_folder=""
+if [ "$command_name" = "create" ] && [ "$ok" = "true" ]; then
+  created_count=0
+  while IFS= read -r folder; do
+    [ -n "$folder" ] || continue
+    case "$spec_folders_before" in
+      *"|$folder|"*) ;;
+      *) created_count=$(( created_count + 1 )); created_spec_folder="$folder" ;;
+    esac
+  done <<EOF
+$(spec_folders_now)
+EOF
+  [ "$created_count" -eq 1 ] || created_spec_folder=""
+fi
+# The commit message says what the work IS, so it names the spec the step
+# really made rather than the tracking key that stood in for it.
+commit_label="${created_spec_folder:-$spec_label}"
+
 # --- leaving the machine usable ----------------------------------------------
 # Whatever the step managed to write is committed, with the reason in the
 # message. Leaving it uncommitted is not the safe option it looks like:
@@ -823,7 +924,7 @@ for root in "${roots[@]}"; do
   changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
   if [ "$changed" -gt 0 ]; then
     git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
-    git -C "$wt" commit -q -m "Run /aide-$command_name for $spec_folder (headless)$suffix" >/dev/null 2>&1 || true
+    git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$suffix" >/dev/null 2>&1 || true
   fi
   head_after="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
   head_after_per_root+=("$head_after")
@@ -908,8 +1009,8 @@ if [ "$push_mode" = "pr" ]; then
   else
     if pr_out="$(cd "$project_wt" && "$gh_bin" pr create \
         --base "$(default_branch "$project_root")" --head "$branch" \
-        --title "Run /aide-$command_name for $spec_folder" \
-        --body "Headless aide run ($command_name, $spec_folder)$suffix." 2>&1)"; then
+        --title "Run /aide-$command_name for $commit_label" \
+        --body "Headless aide run ($command_name, $commit_label)$suffix." 2>&1)"; then
       pr_url="$(printf '%s\n' "$pr_out" | grep -o 'https://[^[:space:]]*' | tail -1)"
       [ -n "$pr_url" ] || pr_error="gh reported no pull request URL"
     else
@@ -928,7 +1029,7 @@ line="$(jq -cn \
   --arg branchUrl "$branch_url" --argjson branchUrls "$branch_urls_json" \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
-  --arg pullError "$pull_error" \
+  --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, costUsd:$costUsd,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
@@ -939,7 +1040,11 @@ line="$(jq -cn \
     prError:(if $prError == "" then null else $prError end),
     pushError:(if $pushError == "" then null else $pushError end),
     pullError:(if $pullError == "" then null else $pullError end),
-    repos:$repos, error:(if $error == "" then null else $error end)}')"
+    repos:$repos, error:(if $error == "" then null else $error end)}
+   # ABSENT, not null, when there is no answer: the reader renames a job
+   # to what this names, and "the field is not there" is the only shape
+   # that cannot be mistaken for a folder called nothing.
+   + (if $specFolder == "" then {} else {specFolder:$specFolder} end)')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

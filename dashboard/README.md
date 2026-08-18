@@ -7,6 +7,7 @@
 - [Usage](#usage)
 - [Live runs (spec 80)](#live-runs-spec-80)
 - [Running specs (spec 81)](#running-specs-spec-81)
+  - [Making a spec from the page (spec 93)](#making-a-spec-from-the-page-spec-93)
   - [The token](#the-token)
   - [Caps](#caps)
   - [How many run at once](#how-many-run-at-once)
@@ -51,6 +52,9 @@ no host is named anywhere in this repo.
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
   `POST /api/queue/<id>/approve` and `/cancel` act on one. The API keeps
   the queue's own name: it is a contract, not a page anyone reads.
+- `POST /api/queue/create` — project, title and description in; a job
+  that MAKES a spec out, which then lands itself and becomes an ordinary
+  row (token required, like the rest of `/api/queue*`)
 
 Keep the scheme stable: the pages are linked from outside.
 
@@ -135,6 +139,43 @@ refresh deliberately replaces the ROWS alone so a half-set control is
 never wiped. A spec created since the page loaded was in the list and
 not in the dropdown. The row does everything the form did, so the form
 is gone (spec 94).
+
+### Making a spec from the page (spec 93)
+
+Every spec that exists is a row, and every row runs. A spec that does
+not exist yet has no row — so above the table there is a shut "New spec"
+panel: a project, a title, a description, and a Create button that posts
+to `POST /api/queue/create`. It queues an ordinary job whose single step
+is `create`, and the run is guarded, budgeted and timed exactly like any
+other.
+
+Two things about it are worth knowing:
+
+- **The project list is the raw allowlist** (`QUEUE_PROJECTS`), not the
+  projects the server has found specs for. Every other control on the
+  page is about a spec that exists; this one is about a project whose
+  FIRST spec may not, and such a project appears in no other list here.
+  `/api/queue` is unchanged and still refuses a project with no
+  discovered spec.
+- **Nothing here names the spec.** The job carries a provisional key
+  (`new-abc123de`) which names its branch and its worktree and nothing
+  else; the number and the slug are decided inside the `/aide-create`
+  run, whose own steps own that rule. `aide-run-spec` then reports the
+  folder that actually appeared, as `specFolder` in its result — read off
+  the disk, and left unreported when zero or several appeared rather than
+  guessed at.
+
+When the step succeeds the dashboard **lands the branch itself**, through
+the same `mergeBranchIntoDefault` the Merge button uses, and renames the
+job to the real folder. This is the one merge here that nobody pressed a
+button for, and it is not a convenience: `/specs` lists what is on disk
+in the main checkout, which every run keeps on its default branch, so a
+created spec that is only pushed to a branch appears nowhere at all. A
+landing that fails leaves the provisional key in place and says which
+repo and why — merge that one by hand. **While any job is landing the
+scheduler starts nothing at all**, whatever the concurrency is set to: a
+landing merges into the shared main checkout, which worktree isolation
+does not cover.
 
 The list holds SPECS, not the machine's whole run history: a spec that
 has been archived leaves the page along with the jobs it had. Nothing is

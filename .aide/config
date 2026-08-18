@@ -5,3 +5,6 @@ AIDE_SPECS_PATH=/Users/ragnarwestad/develop/aide-specs/aide
 # commands live behind one of these: pytest is in .venv, and the
 # dashboard's suite needs dashboard/node_modules.
 AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+# Run by the dashboard after a code merge (spec 96): install the scripts,
+# refresh the dashboard's deps and restart its server where one runs.
+AIDE_INSTALL_CMD=dashboard/deploy/install-after-merge.sh

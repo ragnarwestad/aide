@@ -58,6 +58,16 @@ export interface StepOutcome {
    *  only the singular neighbour is what left a two-repo job showing
    *  one link and one merge state for both. */
   branchUrls?: BranchRef[];
+  /** The branch this step's work is on. `aide-run-spec` has emitted it
+   *  in every result since spec 81 and nothing read it until spec 93 —
+   *  a create job's branch is named after a provisional key, so it
+   *  cannot be re-derived from the spec folder the way every other
+   *  job's can. */
+  branch?: string;
+  /** The spec folder a `create` step turned out to make. Reported only
+   *  when exactly one appeared; absent means the run would have had to
+   *  guess, and it did not. */
+  specFolder?: string;
   error?: string;
 }
 
@@ -83,6 +93,31 @@ export interface RunnerOptions {
    *  job that parked at 02:00 must not wait for someone to open the
    *  page. Injected, so the tests spawn nothing. */
   notify?: (event: NotifyEvent) => void;
+  /** Called once per FINISHED step, ok or not, with what the run
+   *  reported — the injection point `notify` already established, for a
+   *  caller that has to act on one step's outcome rather than merely
+   *  announce it (spec 93 lands a created spec through it).
+   *
+   *  Returning a PROMISE means "I have started work that outlives this
+   *  call, against state the queue shares": the job is marked `landing`
+   *  in the same call stack as the state transition below, and no job of
+   *  any kind is started until that promise settles. The window is real
+   *  — `complete()` is synchronous and frees the job's slot the instant
+   *  the step reports success, while the awaited git work the hook
+   *  started is still switching branches in a checkout no worktree
+   *  isolates.
+   *
+   *  The runner sets AND clears the flag, rather than trusting the hook
+   *  to do both: a hook whose body happened to finish without awaiting
+   *  anything would otherwise clear a flag that had not been set yet,
+   *  and the queue would be held shut by nobody. A continuation on the
+   *  returned promise cannot run earlier than the next microtask, so
+   *  that ordering is guaranteed rather than reasoned about. */
+  onStepDone?: (
+    job: Job,
+    step: WorkflowStep | undefined,
+    outcome: Partial<StepOutcome>,
+  ) => void | Promise<unknown>;
   /** How many steps may be in flight at once. 1 reproduces the
    *  behaviour every caller had before spec 91, which is what makes a
    *  rollback a config edit rather than a release. */
@@ -135,6 +170,16 @@ export class Runner {
 
   /** Fill every free slot, oldest queued job first. */
   tick(): void {
+    // NOTHING starts while a job is landing, whatever it is and whatever
+    // repo it is for. A landing merges directly into the SHARED main
+    // checkout — the one every run switches and reads at its own start —
+    // and worktree isolation (spec 91) protects a run's work from other
+    // runs, not that checkout from a landing writing to it. Queue-wide
+    // rather than per repo: a job's target repos are only known once
+    // `aide-run-spec` has resolved them, which is after it has started.
+    // At one operator, over-serializing costs seconds; the race costs a
+    // half-merged working tree.
+    if (this.o.store.list().some((j) => j.landing)) return;
     // FIFO: list() is newest-first.
     for (const job of [...this.o.store.list()].reverse()) {
       if (this.runningJobs().length >= this.maxConcurrent) return;
@@ -297,8 +342,23 @@ export class Runner {
         at: this.o.now(),
       },
     ];
+    // BEFORE the state transitions below, and folded into every one of
+    // them: a hook that took ownership of a landing must have its flag
+    // set in the same call stack that would otherwise free this job's
+    // concurrency slot. A `tick()` interleaved between the two would see
+    // a job that is merely `done` and start something else against the
+    // checkout the landing is writing to.
+    const landingWork = this.o.onStepDone?.(job, step, outcome);
+    const landing = landingWork ? true : undefined;
+    if (landingWork) {
+      void Promise.resolve(landingWork).then(
+        () => this.o.store.update(job.id, { landing: undefined }),
+        () => this.o.store.update(job.id, { landing: undefined }),
+      );
+    }
     const base = {
       results,
+      landing,
       spentUsd: job.spentUsd + cost,
       branchUrl: outcome.branchUrl ?? job.branchUrl,
       // Accumulated BY ROOT, never replaced: a step that pushed to one

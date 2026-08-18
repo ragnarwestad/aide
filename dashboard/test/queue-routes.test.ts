@@ -1703,6 +1703,242 @@ describe("POST /api/queue/<id>/merge: order, and what happens after (criteria 14
   });
 });
 
+// --- spec 93: making a spec from the page ------------------------------------
+
+// Every spec that exists is a row here and can be started from its own
+// line. A spec that does not exist yet has no row, and until now the only
+// way to make one was `/aide-create` in a terminal, then a push, then a
+// pull on the serving host. This is the third way in: a form, a job like
+// any other, and — because a spec stays invisible to `/specs` until its
+// branch lands on the default branch — a landing step that merges through
+// the very same function the Merge button already uses.
+describe("POST /api/queue/create (spec 93)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test("a create request is accepted and queued as a create job", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify(CREATE),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; job: { steps: string[]; specFolder: string } };
+    expect(body.ok).toBe(true);
+    expect(body.job.steps).toEqual(["create"]);
+    expect(body.job.specFolder).toMatch(/^new-[0-9a-f]{8}$/);
+  });
+
+  test("a project that is allowlisted but has never had a spec is still accepted", async () => {
+    // `resolveProject` answers "not found" for such a project — the gap
+    // that makes a project's FIRST spec uncreatable today.
+    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
+    const ok = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ ...CREATE, project: "brandnew" }),
+    });
+    expect(ok.status).toBe(200);
+    // ...while the ORDINARY route still refuses it: the widening is for
+    // one endpoint, not for the queue.
+    const refused = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ project: "brandnew", specFolder: "01-first", steps: ["analyze"] }),
+    });
+    expect(refused.status).toBe(400);
+  });
+
+  test("a project outside the allowlist is refused, and so is a half-filled form", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    for (const body of [
+      { ...CREATE, project: "someone-elses" },
+      { project: "aide", description: "Do the thing" },
+      { project: "aide", title: "A new spec" },
+    ]) {
+      const res = await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify(body),
+      });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  test("it is behind the same token as the rest of the queue, and POST only", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    expect(
+      (await fetch(`${base}/api/queue/create`, { method: "POST", body: JSON.stringify(CREATE) })).status,
+    ).toBe(401);
+    expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
+  });
+
+  test("the form on the page offers every allowlisted project, spec or no spec", async () => {
+    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const form = html.slice(html.indexOf('action="/api/queue/create"'));
+    expect(form).toContain('value="brandnew"');
+    expect(form).toContain('name="title"');
+    expect(form).toContain('name="description"');
+  });
+});
+
+// A create step's work is on a branch, in a worktree, on the machine that
+// ran it. `/specs` reads the main checkout and nothing else, so the spec
+// stays invisible until that branch is merged — which is why this one step
+// lands itself instead of waiting for a button nobody was told to press.
+describe("landing a created spec (spec 93)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const SPECS_REPO = "/repos/aide-specs";
+  const BRANCH = "aide/new-abc123de";
+
+  /** A git that answers per repo, like the merge route's own harness.
+   *  `conflicting` names the roots whose merge fails. */
+  function gitFor(conflicting: string[] = []) {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  /** The result `aide-run-spec` writes for a create step that worked. */
+  const CREATE_RESULT = {
+    ok: true,
+    exitCode: 0,
+    costUsd: 0.4,
+    costMeasured: true,
+    terminalReason: "completed",
+    branch: BRANCH,
+    specFolder: "94-a-new-spec",
+    branchUrls: [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }],
+    repos: [],
+  };
+
+  /** A server whose runner spawns `/bin/true` and reads its results from a
+   *  directory this suite owns — so a test can put the JSON there itself. */
+  function serverWithRunner(git: { run: (dir: string, args: string[]) => Promise<unknown> }) {
+    const results = mkdtempSync(join(tmpdir(), "aide-create-results-"));
+    ownDirs.push(results);
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: git.run as never,
+      queueRunnerBin: "/usr/bin/true",
+      queueResultDir: results,
+    });
+    return { base, dir, results };
+  }
+
+  async function createJob(base: string, title = "A new spec"): Promise<{ id: string; specFolder: string }> {
+    const made = (await (
+      await fetch(`${base}/api/queue/create`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", title, description: "Do the thing" }),
+      })
+    ).json()) as { job: { id: string; specFolder: string } };
+    return made.job;
+  }
+
+  /** Wait for the runner's own 2-second tick to pick the result up and for
+   *  the landing it triggers to finish. Polled, never slept blindly: what
+   *  is under test is asynchronous by nature. */
+  async function settle(
+    base: string,
+    id: string,
+    done: (job: Record<string, unknown>) => boolean,
+  ): Promise<Record<string, unknown>> {
+    for (let n = 0; n < 100; n++) {
+      const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
+      const body = (await res.json()) as { job: Record<string, unknown> };
+      if (done(body.job)) return body.job;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    throw new Error("the job never settled");
+  }
+
+  test("a successful create step is merged into every repo it pushed to, and renamed", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(git);
+    const job = await createJob(base);
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+
+    // The branch `aide-run-spec` REPORTED, never one re-derived from a
+    // folder name that did not exist when the branch was made.
+    const merges = git.calls.filter(
+      (c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`),
+    );
+    expect(merges.length).toBeGreaterThan(0);
+    expect(merges.every((c) => c.dir === SPECS_REPO)).toBe(true);
+    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+
+    const landedJob = await settle(base, job.id, () => true);
+    expect(landedJob.error).toBeFalsy();
+    expect(landedJob.landing).toBeFalsy();
+  });
+
+  test("a landing that fails keeps the provisional key and says which repo and why", async () => {
+    const git = gitFor([SPECS_REPO]);
+    const { base, results } = serverWithRunner(git);
+    const job = await createJob(base);
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    const failed = await settle(base, job.id, (j) => !!j.error);
+
+    expect(failed.specFolder).toBe(job.specFolder);
+    expect(String(failed.error)).toContain(SPECS_REPO);
+    expect(failed.landing).toBeFalsy();
+    // Nothing half-merged is left for the next thing to trip over.
+    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
+  });
+
+  test("a landed spec is an ordinary row: analyze runnable, nothing left to merge", async () => {
+    const git = gitFor();
+    const { base, dir, results } = serverWithRunner(git);
+    const job = await createJob(base);
+    // The merge really does put the folder on disk, which is the whole
+    // reason the landing step exists.
+    mkdirSync(join(dir, "root", "aide", "specs", "94-a-new-spec"), { recursive: true });
+    writeFileSync(
+      join(dir, "root", "aide", "specs", "94-a-new-spec", "1-description.md"),
+      "# A new spec - Description\n",
+    );
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    const row = specHead(html, "94-a-new-spec");
+    expect(row).not.toBe("");
+    // Runnable from its own line, like every other spec...
+    expect(row).toContain('name="steps" value="analyze"');
+    // ...and with nothing left to merge: the branch is landed, and a
+    // Merge button here would offer a name that no longer means anything.
+    expect(row).not.toContain("mergeform");
+    expect(row).not.toContain("ready to merge");
+  });
+
+  test("a create job that has not landed yet is still a row on the page", async () => {
+    // `groupBySpec` drops any job whose spec is not a known target. A
+    // create job's spec is unknown BY CONSTRUCTION until it lands, so
+    // without an allowance the job running right now renders nothing.
+    const { base } = start({ queueToken: TOKEN });
+    const job = await createJob(base, "A brand new spec");
+    const html = await (await fetch(`${base}/specs`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain(job.specFolder);
+    // Labelled by its title: the provisional key says nothing to anyone.
+    expect(html).toContain("A brand new spec");
+  });
+});
+
 // Spec 97: a description edited after the analyze ran leaves the plan
 // describing an older problem, and the row said nothing. The signal is
 // asked of git at render time and never stored, so a re-run clears it
