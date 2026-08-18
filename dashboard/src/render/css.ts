@@ -99,6 +99,10 @@ table.jobs thead a:hover { text-decoration: underline; }
 /* Work that is finished and waiting on a person: the amber says there is
    something left to do, and the words say what. */
 .chip.ready { background: #f59e0b22; border-color: #f59e0b88; }
+/* The plan describes an older problem than the description does. Amber
+   for the same reason as the two above: something to notice on the way
+   past, not a failure — the phase can still be run. */
+.chip.stale { background: #f59e0b22; border-color: #f59e0b88; }
 /* Still being written to — the same blue the running STATE already uses,
    because it is the same fact said beside the branch. */
 .chip.running { background: #3b82f622; border-color: #3b82f688; }

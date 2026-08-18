@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
 import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
+import { fakeGit as gitFake } from "./helpers/fake-git.ts";
 
 const TOKEN = "s3cret-token";
 
@@ -1927,5 +1928,105 @@ describe("landing a created spec (spec 93)", () => {
     expect(html).toContain(job.specFolder);
     // Labelled by its title: the provisional key says nothing to anyone.
     expect(html).toContain("A brand new spec");
+  });
+});
+
+// Spec 97: a description edited after the analyze ran leaves the plan
+// describing an older problem, and the row said nothing. The signal is
+// asked of git at render time and never stored, so a re-run clears it
+// without anything having to remember it was ever set.
+describe("a description newer than the analysis is shown on the row", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+  const DESCRIPTION_EDITED = "2026-08-18T09:10:36+02:00";
+  const SUBJECT = "Run /aide-analyze for 81-queue-and-runner (headless)";
+
+  /** The specs repo answering for one spec: when its description was
+   *  last committed, and what its analyze history looks like. */
+  const gitSaying = (descriptionAt: string, analyzeLog: string) =>
+    gitFake({
+      "log -1 --format=%aI": { code: 0, stdout: `${descriptionAt}\n` },
+      "log --format=%aI%x09%s": { code: 0, stdout: analyzeLog },
+    });
+
+  /** A spec whose files alone would mark analyze AND review-plan done. */
+  const analysedSpec = (dir: string): void => {
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (4 of 4 completed)`\n");
+  };
+
+  const subRow = (html: string, phase: string): string =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+
+  test("the analyze line says the description changed since (criterion 1)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+    });
+    analysedSpec(dir);
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    expect(subRow(html, "analyze")).toContain("description changed since");
+    expect(subRow(html, "implement")).not.toContain("description changed since");
+  });
+
+  test("analyze and review-plan stop counting as done (criteria 2, 3)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+    });
+    analysedSpec(dir);
+    const line = specHead(await (await fetch(`${base}/specs`, auth)).text(), "81-queue-and-runner");
+    expect(line).not.toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(line).not.toContain('class="stepbox isdone" data-phase="review-plan"');
+    // implement is untouched by this check: its own done-mark comes
+    // from 4-status.md, and nothing here blocks running it.
+    expect(line).toContain('class="stepbox isdone" data-phase="implement"');
+    expect(line).toMatch(/value="analyze" checked/);
+    expect(line).not.toMatch(/value="implement" checked/);
+  });
+
+  test("a re-analyzed spec is current again (criterion 5)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitSaying(
+        DESCRIPTION_EDITED,
+        [
+          `2026-08-18T11:00:00+02:00\t${SUBJECT}`,
+          `2026-08-18T08:57:16+02:00\t${SUBJECT}`,
+        ].join("\n"),
+      ).run,
+    });
+    analysedSpec(dir);
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    expect(html).not.toContain("description changed since");
+    const line = specHead(html, "81-queue-and-runner");
+    expect(line).toContain('class="stepbox isdone" data-phase="analyze"');
+    expect(line).toContain('class="stepbox isdone" data-phase="review-plan"');
+  });
+
+  test("a description older than the analysis changes nothing (criterion 4)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitSaying("2026-08-18T08:00:00+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+    });
+    analysedSpec(dir);
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    expect(html).not.toContain("description changed since");
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
+  });
+
+  // A spec analysed by hand leaves no commit to compare against, and a
+  // git that cannot answer must not put a badge on the page that
+  // nothing can ever clear.
+  test("git with no answer leaves the row exactly as it was (criteria 8, 10)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitFake({}).run,
+    });
+    analysedSpec(dir);
+    const html = await (await fetch(`${base}/specs`, auth)).text();
+    expect(html).not.toContain("description changed since");
+    expect(specHead(html, "81-queue-and-runner")).toContain('class="stepbox isdone" data-phase="analyze"');
   });
 });

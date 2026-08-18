@@ -16,6 +16,7 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
+import { DescriptionFreshnessChecker } from "./description-freshness.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
 import { configValue, discoverProjects } from "./discover.ts";
@@ -369,6 +370,10 @@ export function createServer(opts: ServerOptions) {
           found.push({
             project: p.name,
             specFolder: s.folder,
+            // Where the freshness check runs git. Never rendered — the
+            // page has no use for an absolute path, and `targets` is
+            // server-side only.
+            dir: s.dir,
             title: s.title ?? undefined,
             description: s.description ?? undefined,
             phase: status?.phase ?? undefined,
@@ -420,6 +425,9 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+  // A third user of the same runner: has the description moved on since
+  // the plan was written?
+  const freshness = new DescriptionFreshnessChecker({ run: gitRun });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -772,6 +780,35 @@ export function createServer(opts: ServerOptions) {
     }
   }
 
+  /** Spec 97: what the files say a spec has had, corrected by what git
+   *  says about WHEN. A description committed after the last finished
+   *  analyze means the plan on disk answers an older question, so the
+   *  two phases that produced it stop counting as done and the row
+   *  pre-ticks `analyze` again.
+   *
+   *  Applied here rather than inside `targets()` for two reasons: that
+   *  scan is cached for five seconds and must stay a pure function of
+   *  what is on disk, and it is handed to the queue as a SYNCHRONOUS
+   *  resolver — making it async to ask git would thread `await` through
+   *  the enqueue path for a signal enqueueing has no use for.
+   *
+   *  `implement` is deliberately untouched: it is earned from
+   *  4-status.md, and nothing here blocks running a spec whose
+   *  description change turns out to be cosmetic. */
+  async function withFreshness(list: QueueTarget[]): Promise<QueueTarget[]> {
+    return Promise.all(
+      list.map(async (t) => {
+        if (!t.dir) return t;
+        if (!(await freshness.isStale(t.dir, t.specFolder))) return t;
+        return {
+          ...t,
+          analyzeStale: true,
+          done: (t.done ?? []).filter((s) => s !== "analyze" && s !== "review-plan"),
+        };
+      }),
+    );
+  }
+
   /** Run the project's own install, once its code has landed. Bounded by
    *  a timeout of its own — never trusting the server's idle timeout to
    *  bound it — and never fatal: the merge already happened, and a
@@ -830,9 +867,10 @@ export function createServer(opts: ServerOptions) {
 
     if (path === "/specs") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const liveTargets = await withFreshness(targets());
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
-        targets: targets(),
+        targets: liveTargets,
         script: queueClientScript(),
         // Only what the config granted a budget to is offerable: a
         // dropdown naming a model the machine has not agreed to pay for
@@ -843,7 +881,7 @@ export function createServer(opts: ServerOptions) {
         })),
         defaultBudgetUsd: queue.defaults.budgetUsd,
         error: url.searchParams.get("error") ?? undefined,
-        projects: [...new Set(targets().map((t) => t.project))].sort(),
+        projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
         // The raw allowlist, not the discovered set: a project whose
         // FIRST spec this form exists to make has nothing on disk to be
         // discovered from, so deriving these from `targets()` would
