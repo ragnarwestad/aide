@@ -28,6 +28,18 @@ describe("previewUrlFor", () => {
     expect(previewUrlFor(TEMPLATE, "feat//a__b.c")).toBe("https://feat-a-b-c.example.pages.dev");
   });
 
+  // Cloudflare Pages cuts a branch alias at 28 characters; a spec branch
+  // (`aide/95-preview-link-on-the-row`) is longer than that, so a link
+  // built from the full name would point at nothing. The cut happens
+  // before the trailing dash is trimmed, so a name cut on a dash still
+  // ends in a letter or digit.
+  test("cuts the label at 28 characters, then trims a trailing dash", () => {
+    expect(previewUrlFor(TEMPLATE, "aide/95-preview-link-on-the-row"))
+      .toBe("https://aide-95-preview-link-on-the.example.pages.dev");
+    expect(previewUrlFor(TEMPLATE, "aide/99-merge-leaves-nothing-behind"))
+      .toBe("https://aide-99-merge-leaves-nothing.example.pages.dev");
+  });
+
   test("trims leading and trailing dashes — a label may not start or end with one", () => {
     expect(previewUrlFor(TEMPLATE, "/aide/95-x/")).toBe("https://aide-95-x.example.pages.dev");
     expect(previewUrlFor(TEMPLATE, "--x--")).toBe("https://x.example.pages.dev");

@@ -8,12 +8,17 @@
  *  person types, and `/` is not a character a label may carry. Lowercase
  *  (labels are case-insensitive, and a mixed-case one reads as two
  *  different addresses), every run of anything that is not a letter or a
- *  digit collapsed to ONE dash, and no dash at either end. */
+ *  digit collapsed to ONE dash, cut at 28 characters (Cloudflare Pages'
+ *  limit for a branch alias — a spec branch is longer, and a link built
+ *  from the whole name points at nothing), and no dash at either end. */
+const MAX_LABEL = 28;
 function slug(branch: string): string {
   return branch
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+/, "")
+    .slice(0, MAX_LABEL)
+    .replace(/-+$/, "");
 }
 
 /** The preview address for `branch`, or `undefined` when there is none
