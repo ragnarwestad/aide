@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { QueueStore, type QueueDefaults } from "../src/queue.ts";
 import type { NotifyEvent } from "../src/notify.ts";
-import { Runner, type SpawnResult, type Spawner } from "../src/runner.ts";
+import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../src/runner.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -41,9 +41,11 @@ function makeRunner(opts: {
   readResult?: (path: string) => unknown;
   newSessionId?: () => string;
   maxConcurrent?: number;
+  onStepDone?: RunnerOptions["onStepDone"];
 } = {}) {
   return new Runner({
     store,
+    onStepDone: opts.onStepDone,
     // 1 unless a test says otherwise, so every case written before spec
     // 91 still describes the behaviour it was written for.
     maxConcurrent: opts.maxConcurrent,
@@ -618,5 +620,119 @@ describe("what the page needs from a step", () => {
     expect(store.get(job.id)?.branchUrls).toEqual([
       { root: "/repos/aide", url: "https://example.test/aide" },
     ]);
+  });
+});
+
+// --- spec 93: a step that is not finished when the step is over --------------
+
+// Landing a newly created spec on the default branch happens AFTER the
+// step reports success: in the dashboard, with awaited git calls, against
+// the SHARED main checkout that worktree isolation does not cover. So a
+// job's state stops being the whole story — `complete()` moves a
+// single-step job to `done` synchronously, and the slot it frees is a
+// slot another job would take while the merge is still switching
+// branches under it.
+describe("spec 93: the completion hook and the landing window", () => {
+  const outcome = (extra: Record<string, unknown> = {}) => ({ ...okResult(0.1), ...extra });
+
+  test("onStepDone fires exactly once per finished step, with the outcome", () => {
+    const seen: { step?: string; ok: boolean; branch?: string; specFolder?: string }[] = [];
+    const job = enqueue({ steps: ["create"] });
+    const runner = makeRunner({
+      readResult: () => outcome({ branch: "aide/new-abc123de", specFolder: "94-a-new-spec" }),
+      onStepDone: (_job, step, o) => {
+        seen.push({ step, ok: !!o.ok, branch: o.branch, specFolder: o.specFolder });
+      },
+    });
+    runner.tick();
+    runner.poll();
+    runner.poll(); // the job is finished: nothing is polled twice
+    expect(store.get(job.id)?.state).toBe("done");
+    expect(seen).toEqual([
+      { step: "create", ok: true, branch: "aide/new-abc123de", specFolder: "94-a-new-spec" },
+    ]);
+  });
+
+  test("a hook whose work outlives the call holds back EVERY other job, not just another create", async () => {
+    let finish!: () => void;
+    const work = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const landing = enqueue({ steps: ["create"] });
+    const runner = makeRunner({ readResult: () => outcome(), onStepDone: () => work, maxConcurrent: 2 });
+    runner.tick();
+    runner.poll();
+    // The create job is `done` — its slot is free, and without the
+    // landing flag the queue would fill it while the merge is still
+    // writing to the shared main checkout.
+    expect(store.get(landing.id)?.state).toBe("done");
+    expect(store.get(landing.id)?.landing).toBe(true);
+
+    const before = spawns.length;
+    // An UNRELATED job for a different spec: the case the create-only
+    // version of this rule left open.
+    enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    runner.tick();
+    expect(spawns.length).toBe(before);
+
+    // ...and once the landing is over, the queue moves again on its own.
+    finish();
+    await work;
+    await Promise.resolve();
+    expect(store.get(landing.id)?.landing).toBeUndefined();
+    runner.tick();
+    expect(spawns.length).toBe(before + 1);
+  });
+
+  test("a hook that finishes without ever awaiting still leaves the queue open", async () => {
+    // The ordering hazard the runner owns both sides of the flag for: an
+    // async function whose body happens not to await anything settles
+    // before `complete()` has even set `landing`. A hook that cleared the
+    // flag itself would clear one that did not exist yet, and the flag
+    // `complete()` then set would hold the whole queue shut with nothing
+    // left to clear it.
+    const landing = enqueue({ steps: ["create"] });
+    const runner = makeRunner({
+      readResult: () => outcome(),
+      // eslint-disable-next-line @typescript-eslint/require-await
+      onStepDone: async () => undefined,
+      maxConcurrent: 2,
+    });
+    runner.tick();
+    runner.poll();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(store.get(landing.id)?.landing).toBeUndefined();
+
+    const before = spawns.length;
+    enqueue({ specFolder: "91-parallel-spec-runs", steps: ["analyze"] });
+    runner.tick();
+    expect(spawns.length).toBe(before + 1);
+  });
+
+  test("a step that failed is reported to the hook too, and lands nothing", () => {
+    const seen: boolean[] = [];
+    const job = enqueue({ steps: ["create"] });
+    const runner = makeRunner({
+      readResult: () => outcome({ ok: false, terminalReason: "cli-error", error: "no" }),
+      onStepDone: (_j, _s, o) => {
+        seen.push(!!o.ok);
+      },
+    });
+    runner.tick();
+    runner.poll();
+    expect(seen).toEqual([false]);
+    expect(store.get(job.id)?.state).toBe("failed");
+    expect(store.get(job.id)?.landing).toBeFalsy();
+  });
+
+  test("a landing flag left behind by a restart never wedges the queue", () => {
+    // The flag belongs to a call in flight in THIS process; a mirror read
+    // back after a crash has no such call behind it, and a flag that
+    // survived would hold the whole queue shut with nothing to clear it.
+    const job = enqueue({ steps: ["create"] });
+    store.update(job.id, { landing: true, state: "done" });
+    const reloaded = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
+    expect(reloaded.get(job.id)?.landing).toBeUndefined();
   });
 });

@@ -95,6 +95,21 @@ export interface Job {
    *  knew nothing about, and that half sat uncommitted on the machine
    *  while the result reported success. */
   extraProjects: string[];
+  /** What a `create` job is FOR: the spec it is about to make. Both are
+   *  handed to `aide-run-spec` as `--title`/`--description`, and only a
+   *  create job has them — every other job names a spec that already
+   *  exists. The title also labels the job's row while its `specFolder`
+   *  is still the provisional key. */
+  createTitle?: string;
+  createDescription?: string;
+  /** Set while a finished step's work is being landed on a default
+   *  branch — a merge that runs AFTER the step reported success, in this
+   *  process, against a shared main checkout no worktree isolates. The
+   *  scheduler starts nothing at all while it is true; see
+   *  `Runner.tick()`. Never restored from the mirror: a flag belongs to
+   *  a call in flight, and one that survived a restart would hold the
+   *  whole queue shut with nothing left to clear it. */
+  landing?: boolean;
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
@@ -290,6 +305,91 @@ export function parseJobRequest(
   };
 }
 
+// --- a spec that does not exist yet (spec 93) -------------------------------
+
+/** Whether this project may have a spec CREATED in it. The raw
+ *  allowlist, deliberately — not `ProjectResolver`, which answers "not
+ *  found" for a project with no spec on disk yet. That gap is exactly
+ *  what makes a project's first spec uncreatable, and widening the
+ *  resolver itself would widen every other route with it. */
+export type CreateProjectAllower = (project: string) => boolean;
+
+/** How long the two free-text fields may be. Bounded for the same reason
+ *  every other field here is: they end up as arguments to an unattended
+ *  run, and a prompt is not the place to discover that somebody pasted a
+ *  document into a title. */
+const TITLE_MAX = 120;
+const DESCRIPTION_MAX = 2000;
+
+/** Anything a terminal, an argv or a prompt would read as structure. A
+ *  newline is allowed in the description and nowhere else: a description
+ *  is a paragraph, a title is a line. */
+const CONTROL_CHARS = /[\x00-\x08\x0b-\x1f\x7f]/;
+
+function text(raw: unknown, max: number, name: string, multiline = false): string | Error {
+  if (typeof raw !== "string") return new Error(`invalid ${name}`);
+  const value = raw.replace(/\r\n?/g, "\n").trim();
+  if (!value) return new Error(`${name} is required`);
+  if (value.length > max) return new Error(`${name} is too long (max ${max})`);
+  if (CONTROL_CHARS.test(value)) return new Error(`${name} contains control characters`);
+  if (!multiline && value.includes("\n")) return new Error(`${name} must be one line`);
+  return value;
+}
+
+/** The provisional key a create job carries in place of a spec folder,
+ *  until `/aide-create` decides the real name. Obviously not a spec
+ *  folder, on purpose: nothing in this codebase may compute a spec's
+ *  number or slug except the skill whose own steps 2 and 3 own that rule
+ *  (spec 82's mistake was one rule written down twice). */
+const provisionalKey = (): string =>
+  `new-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+
+export function parseCreateRequest(
+  raw: unknown,
+  opts: { allow: CreateProjectAllower; defaults: QueueDefaults },
+): ParseResult {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, error: "body is not an object" };
+  }
+  const r = raw as Record<string, unknown>;
+  const { defaults } = opts;
+
+  if (typeof r.project !== "string" || !NAME_RE.test(r.project)) return { ok: false, error: "invalid project" };
+  if (!opts.allow(r.project)) return { ok: false, error: `unknown or not-allowed project: ${r.project}` };
+
+  const title = text(r.title, TITLE_MAX, "title");
+  if (title instanceof Error) return { ok: false, error: title.message };
+  const description = text(r.description, DESCRIPTION_MAX, "description", true);
+  if (description instanceof Error) return { ok: false, error: description.message };
+
+  const steps: WorkflowStep[] = ["create"];
+  return {
+    ok: true,
+    job: {
+      id: crypto.randomUUID(),
+      project: r.project,
+      specFolder: provisionalKey(),
+      steps,
+      // Nothing to gate on: a create job is one step, and a gate after
+      // the last step parks a job nobody has anything left to approve.
+      gateAfter: [],
+      stepIndex: 0,
+      state: "queued",
+      budgetUsd: defaults.budgetUsd,
+      jobCapUsd: defaults.jobCapUsd,
+      timeoutSec: defaults.timeoutSec,
+      permissionMode: perStep(steps, defaults.permissionMode),
+      model: perStep(steps, defaults.model),
+      extraProjects: [],
+      createTitle: title,
+      createDescription: description,
+      createdAt: new Date().toISOString(),
+      results: [],
+      spentUsd: 0,
+    },
+  };
+}
+
 // A job read back from the mirror. Looser than a request (it carries
 // id/state/results), but still validated: a corrupt row is dropped, not
 // trusted.
@@ -319,6 +419,11 @@ function parseStoredJob(raw: unknown): Job | null {
     // path, so a malformed entry is dropped rather than carried — the
     // same rule the two fields above already follow.
     branchUrls: Array.isArray(r.branchUrls) ? mergeBranchRefs([], r.branchUrls as BranchRef[]) : undefined,
+    // Dropped on purpose. `landing` marks a merge in flight in THIS
+    // process; a mirror read back after a restart has no such call behind
+    // it, and the flag holds the whole queue shut for as long as it is
+    // set — so a restored one would wedge it with nothing left to clear.
+    landing: undefined,
   };
 }
 
@@ -373,6 +478,10 @@ export interface QueueOptions {
   resolve: ProjectResolver;
   mirrorPath?: string;
   cap?: number;
+  /** Which projects may have a spec CREATED in them (spec 93). Absent
+   *  means none: creating is off unless the server says otherwise, like
+   *  every other capability here. */
+  allowCreateProject?: CreateProjectAllower;
 }
 
 export class QueueStore {
@@ -381,12 +490,14 @@ export class QueueStore {
   private readonly mirrorPath?: string;
   readonly defaults: QueueDefaults;
   private readonly resolve: ProjectResolver;
+  private readonly allowCreateProject: CreateProjectAllower;
 
   constructor(opts: QueueOptions) {
     this.cap = opts.cap ?? 200;
     this.mirrorPath = opts.mirrorPath;
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
+    this.allowCreateProject = opts.allowCreateProject ?? (() => false);
     this.load();
   }
 
@@ -407,6 +518,23 @@ export class QueueStore {
   enqueue(raw: unknown): ParseResult {
     const parsed = parseJobRequest(raw, { resolve: this.resolve, defaults: this.defaults });
     if (!parsed.ok) return parsed;
+    return this.insert(parsed);
+  }
+
+  /** A spec that does not exist yet (spec 93). Validated against the raw
+   *  allowlist rather than the discovered set — the folder is what the
+   *  job is FOR — and stored through the same tail as every other job. */
+  enqueueCreate(raw: unknown): ParseResult {
+    const parsed = parseCreateRequest(raw, { allow: this.allowCreateProject, defaults: this.defaults });
+    if (!parsed.ok) return parsed;
+    return this.insert(parsed);
+  }
+
+  /** Clash check, insert, cap, mirror — the tail every enqueue shares.
+   *  A create job never clashes (its key is unique by construction), but
+   *  it goes through the same door for the same reason the cap and the
+   *  mirror are not optional. */
+  private insert(parsed: { ok: true; job: Job }): ParseResult {
     const clash = this.clashing(parsed.job);
     if (clash) {
       return {

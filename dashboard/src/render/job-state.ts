@@ -21,6 +21,11 @@ export interface QueueRowView {
   id: string;
   project: string;
   specFolder: string;
+  /** What a `create` job is making, in words. A create job's
+   *  `specFolder` is a provisional key until the spec lands, and a row
+   *  labelled `new-abc123de` tells the reader nothing about what is
+   *  running. Absent on every other job, whose spec has a real name. */
+  createTitle?: string;
   steps: string[];
   stepIndex: number;
   state:

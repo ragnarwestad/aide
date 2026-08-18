@@ -1946,3 +1946,136 @@ def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
     rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
+
+
+# --- Spec 93: create, for a spec that does not exist yet ---------------------
+
+# Every other workflow step names a folder that is already on disk. A
+# `create` step is the one that MAKES that folder, so the resolution
+# every other step passes through is the one thing standing between the
+# dashboard and a spec it can start from — spec 87 named this and left it
+# alone.
+#
+# Nothing here computes a spec number or a folder slug. That rule lives
+# in `/aide-create`'s own skill run and nowhere else (spec 82's mistake
+# was the same rule written down twice), so the run carries a
+# caller-supplied tracking key in, and reads the folder the skill decided
+# on back off the disk.
+
+CREATE_KEY = "new-abc123de"
+
+
+def creating_claude(fake_claude, folders=("94-a-new-spec",)):
+    """A stand-in `/aide-create`: it writes the spec folders it was told
+    to write, into the specs root its own working directory points at."""
+    body = READ_SPECS
+    for folder in folders:
+        body += (
+            f'mkdir -p "$specs/{folder}"\n'
+            f'printf "# {folder} - Description\\n" > "$specs/{folder}/1-description.md"\n'
+        )
+    body += f"echo '{json.dumps(RESULT_OK)}'"
+    return fake_claude(f"cat > /dev/null\n{body}")
+
+
+def create(runner, ws, claude, **kwargs):
+    kwargs.setdefault("command", "create")
+    kwargs.setdefault("spec", CREATE_KEY)
+    kwargs.setdefault("title", "A new spec")
+    kwargs.setdefault("description", "Do the thing that was asked for")
+    return run(runner, ws, claude, **kwargs)
+
+
+def test_create_runs_for_a_spec_that_does_not_exist_yet(runner, workspace, fake_claude):
+    """The whole refusal spec 87 hit: the spec-folder lookup is
+    unconditional, so a spec that does not exist yet can never resolve
+    and every `create` is refused before a worktree is even made."""
+    claude = creating_claude(fake_claude)
+    rc, out, _ = create(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    # The tracking key names the branch and the worktree — and nothing
+    # else. It is not, and must never become, a folder name.
+    assert out["branch"] == f"aide/{CREATE_KEY}"
+    assert fake_claude.branch_log.read_text().strip() == f"aide/{CREATE_KEY}"
+    assert fake_claude.cwd_log.read_text().strip().startswith(str(workspace["wtbase"]))
+
+
+def test_create_refuses_without_a_title(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, title=None)
+    assert rc == 2
+    assert out["ok"] is False
+    assert "title" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_create_refuses_without_a_description(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, description=None)
+    assert rc == 2
+    assert out["ok"] is False
+    assert "description" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_every_other_step_still_refuses_an_unknown_spec(runner, workspace, fake_claude):
+    """The create path is an addition, never a widening: `analyze` on a
+    spec that does not exist is still refused, with the same words."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="analyze", spec="no-such-spec")
+    assert rc == 2
+    assert "unknown spec" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, workspace, fake_claude):
+    """`/aide-create TODO-<name> <description>` is the skill's own
+    documented argument shape (core/skills/aide-create/SKILL.md), so no
+    parsing is invented on either side. The title is ALSO stated on a
+    line of its own: the positional token is slugified, and a title is
+    not something to recover from a slug."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(
+        runner, workspace, claude,
+        title="A new spec", description="Do the thing that was asked for",
+        dry_run=True,
+    )
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert prompt.startswith("/aide-create TODO-a-new-spec Do the thing that was asked for"), prompt
+    assert "Use exactly this title for the spec: A new spec" in prompt, prompt
+    assert "headless" in prompt.lower()
+    # The generic shape every other step uses would name a spec id this
+    # spec does not have yet.
+    assert f"/aide-create {CREATE_KEY}" not in prompt
+
+
+def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
+    """Read off the disk, never computed: the run diffs the specs root
+    before and after, so the number and the slug stay the skill's
+    business alone."""
+    claude = creating_claude(fake_claude, ["94-a-new-spec"])
+    rc, out, _ = create(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["specFolder"] == "94-a-new-spec", out
+    # And the work is committed under the name the spec really has, not
+    # under the throwaway key.
+    branch_log = git(workspace["specs"], "log", "--oneline", f"aide/{CREATE_KEY}")
+    assert "94-a-new-spec" in branch_log, branch_log
+
+
+def test_create_reports_no_folder_when_two_appeared(runner, workspace, fake_claude):
+    """Ambiguity is left unreported rather than guessed at: the spec
+    still lands, and the job simply keeps its provisional key."""
+    claude = creating_claude(fake_claude, ["94-a-new-spec", "95-another-spec"])
+    rc, out, _ = create(runner, workspace, claude)
+    assert rc == 0, out
+    assert "specFolder" not in out, out
+
+
+def test_create_reports_no_folder_when_none_appeared(runner, workspace, fake_claude):
+    claude = creating_claude(fake_claude, [])
+    rc, out, _ = create(runner, workspace, claude)
+    assert rc == 0, out
+    assert "specFolder" not in out, out

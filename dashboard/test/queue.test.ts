@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { QueueStore, mergeQueueDefaults, parseJobRequest, type QueueDefaults } from "../src/queue.ts";
+import {
+  QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest, type QueueDefaults,
+} from "../src/queue.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -552,5 +554,98 @@ describe("passenger projects", () => {
     writeFileSync(mirrorPath, JSON.stringify(raw));
     const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
     expect(reloaded.get(r.job.id)?.extraProjects).toEqual([]);
+  });
+});
+
+// --- spec 93: a spec that does not exist yet ---------------------------------
+
+// Every other request names a spec folder the server has already
+// discovered on disk. A create request cannot: the folder is what the
+// job is FOR. So it is validated against the raw allowlist instead —
+// the one set that knows about a project which has never had a spec —
+// and carries a provisional key until `/aide-create` decides the real
+// name.
+describe("parseCreateRequest", () => {
+  const allow = (project: string) => project === "aide" || project === "brandnew";
+  const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
+
+  test("a project with no spec at all is accepted — the allowlist is the whole test", () => {
+    // The resolver every other route uses answers null for this
+    // project, which is exactly the gap that makes a project's FIRST
+    // spec uncreatable today.
+    expect(resolve("brandnew")).toBeNull();
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.project).toBe("brandnew");
+    expect(r.job.steps).toEqual(["create"]);
+    expect(r.job.gateAfter).toEqual([]);
+    expect(r.job.createTitle).toBe("A new spec");
+    expect(r.job.createDescription).toBe("Do the thing");
+    // A provisional key, and one nobody could mistake for a spec folder.
+    expect(r.job.specFolder).toMatch(/^new-[0-9a-f]{8}$/);
+  });
+
+  test("two create requests never share a key", () => {
+    const a = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    const b = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(a.ok && b.ok && a.job.specFolder !== b.job.specFolder).toBe(true);
+  });
+
+  test("a project outside the allowlist is refused", () => {
+    const r = parseCreateRequest({ ...CREATE, project: "someone-elses" }, { allow, defaults: DEFAULTS });
+    expect(r.ok).toBe(false);
+  });
+
+  test("the title and the description are required and bounded", () => {
+    for (const bad of [
+      { ...CREATE, title: "" },
+      { ...CREATE, title: "x".repeat(200) },
+      { ...CREATE, description: "" },
+      { ...CREATE, description: "x".repeat(5000) },
+      { ...CREATE, title: 7 },
+      {},
+    ]) {
+      expect(parseCreateRequest(bad, { allow, defaults: DEFAULTS }).ok).toBe(false);
+    }
+  });
+
+  test("the caps come from the config, exactly as every other job's do", () => {
+    const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
+    expect(r.ok && r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
+    expect(r.ok && r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
+    expect(r.ok && r.job.timeoutSec).toBe(DEFAULTS.timeoutSec);
+  });
+});
+
+// The widened validation is for ONE route. `parseJobRequest` still
+// requires a project with a discovered spec — a regression guard, green
+// today and green afterwards.
+test("an ordinary job request still needs a project with a discovered spec", () => {
+  const r = parseJobRequest(
+    { project: "brandnew", specFolder: "01-first", steps: ["analyze"] },
+    { resolve, defaults: DEFAULTS },
+  );
+  expect(r.ok).toBe(false);
+});
+
+describe("QueueStore.enqueueCreate", () => {
+  const allow = (project: string) => project === "brandnew";
+  const CREATE = { project: "brandnew", title: "A new spec", description: "Do the thing" };
+
+  test("a create job goes into the same store as every other job", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allow });
+    const r = store.enqueueCreate(CREATE);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(store.get(r.job.id)?.createTitle).toBe("A new spec");
+    // ...and it survives a restart, like every other job.
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allow });
+    expect(reloaded.get(r.job.id)?.createDescription).toBe("Do the thing");
+  });
+
+  test("without a create allowlist nothing may be created", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(store.enqueueCreate(CREATE).ok).toBe(false);
   });
 });

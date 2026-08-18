@@ -69,6 +69,11 @@ export interface QueuePageOptions {
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */
   projects?: string[];
+  /** Every project a spec may be CREATED in — the raw allowlist, not
+   *  the discovered set. A project whose first spec this form exists to
+   *  make has nothing on disk yet, so it appears in no other list on
+   *  this page. Empty or absent means the form is not offered at all. */
+  createProjects?: string[];
   /** Why the last attempt was refused. Shown on the form, because the
    *  person who pressed the button is the one who needs to read it. */
   error?: string;
@@ -257,6 +262,8 @@ function fromTarget(t: QueueTarget | undefined): Pick<SpecGroup, "done" | "title
   return { done: t?.done ?? [], title: t?.title, phase: t?.phase, percent: t?.percent };
 }
 
+const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
+
 function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
@@ -274,7 +281,12 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] 
   // disk is not recoverable by a filter.
   const judgeable = new Set(targets.map((t) => t.project));
   const fromJobs = [...byKey.entries()]
-    .filter(([key, all]) => known.has(key) || !judgeable.has(all[0]!.project))
+    // A create job's spec is not a known target BY CONSTRUCTION: the
+    // folder is what the job is making, and until it lands there is
+    // nothing on disk to match. Without this it would be filtered out
+    // in exactly the projects that already have specs — so the job the
+    // reader just started would render nothing at all.
+    .filter(([key, all]) => known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate))
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
     ...fromJobs,
@@ -284,6 +296,7 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] 
 
 function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGroup {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
+  const spec = fromTarget(target);
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The four the form offers, always, in order — a phase nobody has
   // run yet still holds its place, which is what makes progress
@@ -306,7 +319,13 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
         .map((r) => attemptFor(r, step))
         .filter((a): a is QueueRowView => a !== null),
     })),
-    ...fromTarget(target),
+    ...spec,
+    // A create job has no target to read a title off — the spec it is
+    // making is not on disk yet — so the job's own title is the row's.
+    // Only as a fallback: once the spec has landed, the folder's own
+    // 1-description.md is the better answer, and the one every other
+    // row already uses.
+    title: spec.title ?? all.find((r) => r.createTitle)?.createTitle,
   };
 }
 
@@ -683,6 +702,40 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   );
 }
 
+// The one control on this page that is NOT about a spec that exists:
+// every other way in is a form on a spec's own row, and a spec that has
+// never been written has no row to put one on. So it is a panel above
+// the table — where the retired "Run a spec" form used to be, which is
+// also the only place left for it.
+//
+// Three fields and nothing else. Everything a job can be tuned with —
+// the model, the other repos, whether to stop for approval — belongs to
+// running a spec, and this form does not run one: it makes a spec, which
+// then appears as a row and is run from there like all the others.
+//
+// It posts a project NAME, a title and a description. What the spec ends
+// up being CALLED is decided by `/aide-create` alone: nothing here, and
+// nothing in `aide-run-spec`, computes a spec number or a folder slug.
+function newSpecForm(opts: QueuePageOptions): string {
+  const projects = opts.createProjects ?? [];
+  if (projects.length === 0) return "";
+  return (
+    `<details class="newspec"><summary>New spec</summary>` +
+    `<form method="post" action="/api/queue/create">${tokenField(opts.token)}` +
+    `<span class="field"><span class="fieldlabel">Project</span>` +
+    `<select name="project">` +
+    projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
+    `</select></span>` +
+    `<span class="field"><span class="fieldlabel">Title</span>` +
+    `<input type="text" name="title" maxlength="120" required ` +
+    `placeholder="what the spec is about, in a few words"></span>` +
+    `<span class="field"><span class="fieldlabel">Description</span>` +
+    `<textarea name="description" rows="4" maxlength="2000" required ` +
+    `placeholder="the problem, and what you want instead"></textarea></span>` +
+    `<button type="submit">Create</button></form></details>`
+  );
+}
+
 // One line about the spec: what it is, and how far it has got. It has to
 // SAY something even when there is nothing recorded — a line that is
 // blank on half the rows reads as a page that failed to load.
@@ -859,6 +912,9 @@ export function renderQueuePage(
     // posted, and the person who pressed the button is the one who
     // needs to read it.
     (opts.error ? `<p class="refusal">${esc(opts.error)}</p>\n` : "") +
+    // OUTSIDE `#jobrows`, deliberately: the script swaps that container
+    // every five seconds, and a half-typed description must survive it.
+    newSpecForm(opts) +
     table;
   return pageShell("Specs", entries, "/specs", body, generatedAt, 10, {
     refreshInNoscript: !!opts.script,
