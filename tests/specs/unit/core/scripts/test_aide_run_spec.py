@@ -100,6 +100,31 @@ RESULT_BUDGET = {
     "total_cost_usd": 0.2030, "terminal_reason": "budget_exhausted",
     "errors": ["Reached maximum budget ($0.2)"],
 }
+# What a real result event carries beside the cost, read off an actual
+# transcript on this machine (2026-08-19, `claude` 2.1.x): `modelUsage`
+# is the SESSION's total, keyed by model and named in camelCase, while
+# the flat `usage` block is the last turn's alone. Two models here on
+# purpose — a run that switched model mid-session has a block each, and
+# reading only the first would under-report every one of them.
+MODEL_USAGE = {
+    "claude-opus-5": {
+        "inputTokens": 86, "outputTokens": 60258,
+        "cacheReadInputTokens": 4492445, "cacheCreationInputTokens": 383592,
+        "webSearchRequests": 0, "costUSD": 3.93,
+    },
+    "claude-haiku-4-5": {
+        "inputTokens": 14, "outputTokens": 742,
+        "cacheReadInputTokens": 5555, "cacheCreationInputTokens": 408,
+        "webSearchRequests": 0, "costUSD": 0.01,
+    },
+}
+# The same event's flat block: snake_case, and only what the LAST turn
+# used. It is the fallback, never the first choice.
+FLAT_USAGE = {
+    "input_tokens": 54, "output_tokens": 22054,
+    "cache_read_input_tokens": 3177754, "cache_creation_input_tokens": 107458,
+    "service_tier": "standard",
+}
 
 
 @pytest.fixture
@@ -280,6 +305,61 @@ def test_a_successful_run_carries_cost_session_and_subtype(runner, workspace, fa
     roots = {r["root"]: r for r in out["repos"]}
     assert str(workspace["project"]) in roots
     assert str(workspace["specs"]) in roots
+
+
+# --- spec 118: the tokens beside the dollars ---------------------------------
+#
+# On a subscription plan the dollar figure is notional and the token
+# count is what the plan meters, so the run records both. A token figure
+# can only ever be MEASURED — there is no equivalent of the over-charge
+# rule that gives a killed run an assumed cost — which is why the three
+# tests below are as much about when the field is ABSENT as about what it
+# holds.
+
+def test_a_successful_run_records_the_tokens_every_model_used(runner, workspace, fake_claude):
+    result = {**RESULT_OK, "modelUsage": MODEL_USAGE, "usage": FLAT_USAGE}
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(result)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    tokens = out["tokens"]
+    # Summed across models, not taken from the first one.
+    assert tokens["input"] == 100
+    assert tokens["output"] == 61_000
+    assert tokens["cacheRead"] == 4_498_000
+    assert tokens["cacheCreation"] == 384_000
+    # Every token the call actually processed, cached or not: that is
+    # what a subscription plan meters.
+    assert tokens["total"] == 100 + 61_000 + 4_498_000 + 384_000
+    # And the cost is untouched beside it — this adds a figure, it does
+    # not replace one.
+    assert out["costUsd"] == pytest.approx(0.5357)
+
+
+def test_a_result_with_only_a_flat_usage_block_still_records_tokens(runner, workspace, fake_claude):
+    """`modelUsage` first, the flat `usage` second. An implementation
+    that reads only the per-model block would leave this run with no
+    figure at all, so the fallback needs its own case: the priority
+    order is invisible to every other test here."""
+    result = {**RESULT_OK, "usage": FLAT_USAGE}
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(result)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    tokens = out["tokens"]
+    assert tokens["input"] == 54
+    assert tokens["output"] == 22_054
+    assert tokens["cacheRead"] == 3_177_754
+    assert tokens["cacheCreation"] == 107_458
+    assert tokens["total"] == 54 + 22_054 + 3_177_754 + 107_458
+
+
+def test_a_result_with_no_usage_at_all_records_no_tokens(runner, workspace, fake_claude):
+    """ABSENT, not zero. A zero would be read as "this step used
+    nothing", and the dashboard shows a dash for a field that is not
+    there — the same contract a missing cost already has."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "tokens" not in out
 
 
 def test_the_run_happens_inside_the_project_not_the_callers_directory(runner, workspace, fake_claude):
@@ -476,6 +556,10 @@ def test_a_run_past_its_deadline_is_killed_and_reported_as_stopped(runner, works
     # The accounting must over-charge what it could not measure.
     assert out["costUsd"] == pytest.approx(3.0)
     assert out["costMeasured"] is False
+    # And no token figure at all. A cost may be assumed — that is the
+    # over-charge rule — but a token count may not: there is nothing to
+    # assume it from, so the field stays away rather than saying zero.
+    assert "tokens" not in out
     assert elapsed < 12, f"the kill took too long: {elapsed:.1f}s"
 
     result_file = workspace["project"].parent / "result.json"
@@ -499,6 +583,9 @@ def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, w
     flushed = {
         "type": "result", "subtype": "error_during_execution",
         "is_error": True, "session_id": "abc", "total_cost_usd": 0,
+        # Spec 118: a flushed result carries a usage block too, and it
+        # is no more trustworthy than the $0 beside it.
+        "modelUsage": MODEL_USAGE,
     }
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -509,6 +596,7 @@ def test_a_stopped_run_is_charged_its_budget_even_when_it_flushes_json(runner, w
     assert out["terminalReason"] == "timeout"
     assert out["costUsd"] == pytest.approx(3.0), "the flushed $0 must not be believed"
     assert out["costMeasured"] is False
+    assert "tokens" not in out, "a stopped run's flushed usage is no more measured than its cost"
 
 
 def test_a_child_that_exits_on_sigterm_is_never_sigkilled(runner, workspace, fake_claude, tmp_path):

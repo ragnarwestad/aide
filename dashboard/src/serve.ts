@@ -819,13 +819,19 @@ export function createServer(opts: ServerOptions) {
       state: job.state,
       model: job.modelChoice ?? (step ? job.model[step] : undefined),
       spentUsd: job.spentUsd,
+      // The stored split is five numbers; the page shows one. Flattened
+      // here, at the boundary, so no render file has to know what a
+      // result file looks like (spec 118).
+      spentTokens: job.spentTokens,
       timeoutSec: job.timeoutSec,
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       branchUrls,
       stopReason: job.stopReason,
       error: job.error,
-      results: job.results.map((r) => ({ step: r.step, ok: r.ok, costUsd: r.costUsd })),
+      results: job.results.map((r) => ({
+        step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
+      })),
     };
   }
 
@@ -1119,6 +1125,13 @@ export function createServer(opts: ServerOptions) {
           budgetUsd: c.budgetUsd,
         })),
         defaultBudgetUsd: queue.defaults.budgetUsd,
+        // What has been spent since midnight, in both units (spec 118).
+        // Only where a runner is actually keeping the tally: on a server
+        // without one the number does not exist, and the page says
+        // nothing rather than showing a zero that reads as "nothing has
+        // run today".
+        spentTodayUsd: runner?.spentToday(),
+        spentTodayTokens: runner?.spentTokensToday(),
         error: url.searchParams.get("error") ?? undefined,
         // Which row the refusal belongs to. It rides in the query
         // string with the reason itself, so it survives the
@@ -1491,7 +1504,7 @@ export function createServer(opts: ServerOptions) {
       description: target?.description,
       finishedAt: job.finishedAt,
       sessionId: job.sessionId,
-      results: job.results,
+      results: job.results.map((r) => ({ ...r, tokens: r.tokens?.total })),
       live,
       activity: streamFile ? summarizeStream(tailFile(streamFile)) : [],
       archiveHeldBack: target?.archiveHeldBack?.reason,

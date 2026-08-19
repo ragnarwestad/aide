@@ -3,7 +3,7 @@
 // run — sit behind tabs, because under plain headings they ran together
 // and a reader scrolled past the one they came for.
 
-import { esc, money, relTime } from "./html.ts";
+import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { branchActivity, stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
 import { filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
@@ -12,6 +12,10 @@ export interface JobStepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
+  /** This step's token total, absent when the run did not measure one
+   *  (spec 118). A number, like the list's own view: the page shows a
+   *  compact total, not the stored split. */
+  tokens?: number;
   costMeasured: boolean;
   terminalReason: string;
   subtype?: string;
@@ -23,6 +27,13 @@ export interface JobLiveView {
   state: string;
   subagents: number | null;
   costUsd: number | null;
+  /** What the session has metered so far, when whoever is watching it
+   *  can say. claude-usage reports a cost and no token count, so this is
+   *  absent in practice today and the row shows a dash in token mode —
+   *  which is the honest answer for a figure nobody has, and the row
+   *  flips with every other one rather than staying stubbornly in
+   *  dollars. */
+  tokens?: number | null;
   /** False when claude-usage could not be reached at all — the page says
    *  "unknown" rather than pretending the run is idle. */
   enriched: boolean;
@@ -45,10 +56,20 @@ export interface JobDetailView extends QueueRowView {
   archiveHeldBack?: string;
 }
 
+/** A heading that says "Cost" above a column of token counts is the
+ *  wrong word, so it flips with the figures under it — the description
+ *  asked for the Cost column "(header and values)", and this is the
+ *  header half. Dollar mode is byte-for-byte what it was. */
+const unitLabel = (usd: string, tok: string): string =>
+  `<span class="u-usd">${esc(usd)}</span><span class="u-tok">${esc(tok)}</span>`;
+
+/** Both columns are HTML: the labels used to be escaped here, and one of
+ *  them is now two spans (`unitLabel`). Every caller passes a literal or
+ *  something already escaped. */
 function labelled(rows: [string, string][]): string {
   return (
     `<table class="facts"><tbody>` +
-    rows.map(([k, v]) => `<tr><td class="label">${esc(k)}</td><td>${v}</td></tr>`).join("") +
+    rows.map(([k, v]) => `<tr><td class="label">${k}</td><td>${v}</td></tr>`).join("") +
     `</tbody></table>`
   );
 }
@@ -77,14 +98,16 @@ function stepResults(results: JobStepResultView[], archiveHeldBack?: string): st
       (r) =>
         `<tr><td>${esc(r.step ? stepLabel(r.step) : "–")}</td>` +
         `<td>${outcome(r, archiveHeldBack)}</td>` +
-        `<td class="num">${money(r.costUsd)}${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
+        `<td class="num">${usdOrTokens(r.costUsd, r.tokens)}` +
+        `${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${esc(r.at)}</td></tr>`,
     )
     .join("");
   return (
-    `<table><thead><tr><th>Step</th><th>Outcome</th><th class="num">Cost</th>` +
+    `<table><thead><tr><th>Step</th><th>Outcome</th>` +
+    `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
     `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}</tbody></table>`
   );
 }
@@ -157,7 +180,7 @@ export function renderJobDetailPage(
       ["Spec", esc(job.specFolder)],
       ["Step", `${esc(stepLabel(step))}${progress}`],
       ["Model", esc(job.model ?? "as configured")],
-      ["Cost so far", money(job.spentUsd)],
+      [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.spentUsd, job.spentTokens)],
       ["Started", relTime(job.startedAt ?? job.createdAt, now)],
       // One line per repo. A job that touched two repositories made a
       // branch of the same name in both, with different contents and
@@ -196,7 +219,7 @@ export function renderJobDetailPage(
           ? labelled([
               ["State", esc(job.live.state)],
               ["Subagents", job.live.subagents === null ? "–" : String(job.live.subagents)],
-              ["Cost so far", money(job.live.costUsd)],
+              [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.live.costUsd, job.live.tokens)],
               ["Session", esc(job.sessionId ? job.sessionId.slice(0, 8) : "–")],
             ]) +
             (job.live.enriched

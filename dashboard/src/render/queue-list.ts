@@ -20,7 +20,7 @@
 // filters and the sort are ordinary links, and every Run control is a
 // plain form.
 
-import { esc, relTime } from "./html.ts";
+import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import {
   badge,
@@ -133,6 +133,13 @@ export interface QueuePageOptions {
    *  Absent for every other refusal, which is what keeps the offer
    *  narrow. */
   errorReason?: string;
+  /** What the runner has spent since midnight, in each unit (spec 118).
+   *  The daily cap has always existed and has never been shown: a reader
+   *  found out about it by having a job held back. Absent on a page with
+   *  no runner behind it — a generated page has no such number, and a
+   *  zero would read as "nothing has run today". */
+  spentTodayUsd?: number;
+  spentTodayTokens?: number;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -259,6 +266,7 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
       ...r,
       state: res.ok ? "done" : r.state === "done" ? "failed" : r.state,
       spentUsd: res.costUsd,
+      spentTokens: res.tokens,
       error: res.ok ? undefined : r.error,
     };
   }
@@ -266,7 +274,15 @@ function attemptFor(r: QueueRowView, step: string): QueueRowView | null {
   // What the finished steps did not account for. A job's `spentUsd` is
   // the sum over its steps, so the step in flight owns the remainder.
   const counted = (r.results ?? []).reduce((sum, x) => sum + x.costUsd, 0);
-  return { ...r, spentUsd: Math.max(0, r.spentUsd - counted) };
+  // The same remainder in tokens — but only where there is one to take.
+  // A job with no token figure has no remainder either, and subtracting
+  // from nothing would invent a zero.
+  const countedTokens = (r.results ?? []).reduce((sum, x) => sum + (x.tokens ?? 0), 0);
+  return {
+    ...r,
+    spentUsd: Math.max(0, r.spentUsd - counted),
+    spentTokens: r.spentTokens === undefined ? undefined : Math.max(0, r.spentTokens - countedTokens),
+  };
 }
 
 function activityMs(r: QueueRowView): number {
@@ -301,6 +317,9 @@ interface SpecGroup {
    *  CSS suffix; the words the reader sees are "not started". */
   state: QueueRowView["state"] | "not-started";
   spentUsd: number;
+  /** The same roll-up in tokens, absent while no job under this spec has
+   *  reported any (spec 118). */
+  spentTokens?: number;
   activityAt: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
    *  Folded by label from rows already on the page — the server folds
@@ -437,6 +456,12 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     latest: recent[0]!,
     state: lead.state,
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
+    // Summed over the jobs that HAVE a figure, and absent when none
+    // does — so a spec whose runs all predate spec 118 shows a dash
+    // rather than a total of nothing.
+    spentTokens: all.some((r) => r.spentTokens !== undefined)
+      ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
+      : undefined,
     activityAt: activityMs(recent[0]!),
     branches: branchesOf(recent),
     phases: [...PHASE_LINES, ...extra].map((step) => ({
@@ -607,7 +632,10 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
 function sortableHead(f: QueueFilter): string {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
-  const th = (key: string, label: string, cls = "") => {
+  // `labelHtml` for the one column whose heading is a consumption label
+  // and not a noun: "Cost" is the wrong word above a column of token
+  // counts, so it carries the same two spans its cells do (spec 118).
+  const th = (key: string, label: string, cls = "", labelHtml?: string) => {
     const on = key === sort;
     // Clicking the column you are already sorted by turns it round.
     const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
@@ -624,7 +652,7 @@ function sortableHead(f: QueueFilter): string {
     return (
       `<th class="${cls}"${aria}>` +
       `<a class="${linkCls}" data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
-      `${esc(label)}${mark}</a></th>`
+      `${labelHtml ?? esc(label)}${mark}</a></th>`
     );
   };
   return (
@@ -633,7 +661,9 @@ function sortableHead(f: QueueFilter): string {
     // workflow as pips on a header line, and how many attempts a phase
     // took on the lines beneath.
     `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
-    `${th("started", "Started")}${th("cost", "Cost", "num")}<th></th></tr></thead>`
+    `${th("started", "Started")}` +
+    `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>')}` +
+    `<th></th></tr></thead>`
   );
 }
 
@@ -843,9 +873,12 @@ const phaseWordCell = (w: PhaseWord, r: QueueRowView | undefined): string =>
   (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "") +
   (r?.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
 // `blank` because a header with nothing spent still owes the reader a
-// dash, while an empty phase line should simply be empty.
-const costCell = (spentUsd: number, blank: string): string =>
-  spentUsd > 0 ? `$${spentUsd.toFixed(2)}` : blank;
+// dash, while an empty phase line should simply be empty. That
+// distinction is the whole reason this takes a parameter the shared
+// formatter does not — everything else about the cell is `usdOrTokens`,
+// which is where the dollar/token pair is decided for the whole site.
+const costCell = (spentUsd: number, spentTokens: number | undefined, blank: string): string =>
+  spentUsd > 0 ? usdOrTokens(spentUsd, spentTokens) : blank;
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off
@@ -1343,7 +1376,7 @@ function specHeadRow(
       ),
     )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
-    `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
+    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
     // The same cell whether the row is open or shut, which is the whole
     // point: at most one action — whichever the spec is actually
     // waiting on — so opening a row cannot make this cell taller and
@@ -1395,7 +1428,7 @@ function phaseSubRows(g: SpecGroup, now: number): string {
         `<td>${tries}</td>` +
         `<td>${phaseWordCell(word, latest)}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
-        `<td class="num">${latest ? costCell(latest.spentUsd, "") : ""}</td>` +
+        `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
         `<td></td></tr>`
       );
     })
@@ -1426,6 +1459,18 @@ function groupRows(
         : head;
     })
     .join("");
+}
+
+/** Today's spend, under the list. Inside the swapped container rather
+ *  than beside it, so it moves with the rows the five-second refresh
+ *  brings — a day total that only changed on a full reload would be the
+ *  one figure on the page going stale. */
+function dayTotal(opts: QueuePageOptions): string {
+  if (typeof opts.spentTodayUsd !== "number") return "";
+  return (
+    `<p class="muted small listnote">Spent today: ` +
+    `${usdOrTokens(opts.spentTodayUsd, opts.spentTodayTokens)}</p>`
+  );
 }
 
 // The controls and the rows alone, so the page can refresh its table
@@ -1462,7 +1507,8 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   return (
     filterBar(groups, f) +
     `<table class="list">${sortableHead(f)}<tbody>${body}</tbody></table>` +
-    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
+    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "") +
+    dayTotal(opts)
   );
 }
 

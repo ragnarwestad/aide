@@ -182,8 +182,11 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "menu", "menupanel",
-  // text roles
+  // text roles — "u-usd"/"u-tok" are the two halves of every
+  // consumption figure (spec 118): both are rendered, and one CSS rule
+  // each shows exactly the one the reader asked for.
   "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
+  "u-usd", "u-tok",
   // containers
   "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   // the spec list
@@ -236,5 +239,28 @@ describe("render files use the component vocabulary and nothing else", () => {
     const source = await Bun.file(join(ROOT, "src/queue-client.ts")).text();
     const unknown = [...new Set(classesIn(source))].filter((c) => !ALLOWED.has(c));
     expect(unknown).toEqual([]);
+  });
+});
+
+// --- the unit a reader chose (spec 118) -------------------------------------
+//
+// The same trick as the theme, applied to text instead of colour: every
+// consumption figure is rendered twice and CSS hides one. Both rules are
+// needed and neither is obvious — the second is a `:not()`, which is
+// what makes dollars the default without an attribute to select on — so
+// deleting either fails here with a reason.
+
+describe("the unit a reader chose is a CSS switch, not a second page", () => {
+  test("choosing tokens hides the dollar figure", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    expect(css).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
+  });
+
+  test("with no choice made the token figure is the hidden one", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    // `:not([data-unit="tokens"])`, not `[data-unit="usd"]`: dollars is
+    // the ABSENCE of the attribute, exactly as Auto is for the theme, so
+    // a page whose script never ran still reads the way it always did.
+    expect(css).toContain(':root:not([data-unit="tokens"]) .u-tok { display: none; }');
   });
 });

@@ -291,6 +291,80 @@ describe("a result file that left fields out", () => {
     runner.poll();
     expect(store.get(job.id)?.results[0]?.terminalReason).toBeTruthy();
   });
+
+  // Spec 118. A cost has a default (the over-charge rule gives a killed
+  // run one); a token count has none, and inventing a zero would read as
+  // "this step used nothing" on every job recorded before the field
+  // existed.
+  test("a result with no tokens leaves the step and the job without a count", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => ({ ok: true, costUsd: 1, terminalReason: "completed" }) });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id)!;
+    expect(after.results[0]?.tokens).toBeUndefined();
+    expect(after.spentTokens).toBeUndefined();
+  });
+
+  test("a tokens field of the wrong shape is dropped, not carried", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ok: true, costUsd: 1, terminalReason: "completed", tokens: "lots" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tokens).toBeUndefined();
+  });
+});
+
+// Spec 118: what a step actually METERED, beside what it cost. On a
+// subscription plan the dollar figure is notional and this is the number
+// the plan bills against.
+describe("a step's token usage", () => {
+  const withTokens = (cost: number, total: number) => ({
+    ...okResult(cost),
+    tokens: { input: 10, output: 90, cacheRead: 500, cacheCreation: 400, total },
+  });
+
+  test("a result carrying tokens records them on the step", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => withTokens(1, 1000) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.results[0]?.tokens).toEqual({
+      input: 10, output: 90, cacheRead: 500, cacheCreation: 400, total: 1000,
+    });
+  });
+
+  test("the job's own total is the sum over its steps, like the cost", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => withTokens(1, 1000) });
+    runner.tick();
+    runner.poll();
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id)!;
+    expect(after.spentUsd).toBeCloseTo(2);
+    expect(after.spentTokens).toBe(2000);
+  });
+
+  test("the day's token total accumulates beside the day's cost", () => {
+    const job = enqueue();
+    const runner = makeRunner({ readResult: () => withTokens(1, 1000) });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.state).toBe("done");
+    expect(runner.spentToday()).toBeCloseTo(1);
+    expect(runner.spentTokensToday()).toBe(1000);
+  });
+
+  test("a day boundary clears the token total too", () => {
+    const runner = makeRunner();
+    runner.addSpentTokensToday(4000);
+    expect(runner.spentTokensToday()).toBe(4000);
+    runner.setToday("2026-08-17");
+    expect(runner.spentTokensToday()).toBe(0);
+  });
 });
 
 describe("caps are checked before a step starts", () => {

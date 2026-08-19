@@ -20,15 +20,40 @@ export interface NavEntry {
 // repo; the browser needs JavaScript. Transpiled once, here, the way
 // `serve.ts` does it for `queue-client.ts` — Bun has the transpiler
 // in-process, so this needs no build step and no bundle in the repo.
-const THEME_SCRIPT = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "theme-script.ts"), "utf-8"),
-);
+const transpile = (file: string): string =>
+  new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+    readFileSync(join(import.meta.dir, file), "utf-8"),
+  );
+
+const THEME_SCRIPT = transpile("theme-script.ts");
+// Spec 118's sibling to it: which UNIT the reader wants consumption in.
+// Its own file and its own IIFE, concatenated into the one <script> tag
+// below rather than given a second — the guard test counts tags, and
+// what it is guarding against is page code drifting back onto the
+// generated pages, not a second small setting sharing the allowance.
+const UNIT_SCRIPT = transpile("unit-script.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
 // chosen one with `aria-current` rather than the `current` class,
 // which means "the page you are on".
 const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]];
+
+// Dollars or tokens. A CAP is always a dollar figure — the model
+// dropdown's "$15 per step" is money the machine agreed to spend — so
+// this flips consumption only, and dollars stays the default: it is the
+// ABSENCE of the choice, which is what makes a page whose script never
+// ran read the way it always did.
+const UNIT_CHOICES: [string, string][] = [["usd", "$"], ["tokens", "Tokens"]];
+
+function unitControl(): string {
+  const buttons = UNIT_CHOICES.map(
+    ([choice, label]) =>
+      `<button type="button" data-unit-choice="${choice}"` +
+      `${choice === "usd" ? ' aria-current="true"' : ""}>${label}</button>`,
+  );
+  return `<span class="lbl">Units</span><span class="filters">${buttons.join("")}</span>`;
+}
 
 function themeControl(): string {
   // Auto is marked here because the server has no way to know what this
@@ -53,7 +78,7 @@ function pageHeader(): string {
   return (
     `<header>${WORDMARK}` +
     `<details class="menu"><summary aria-label="More">&hellip;</summary>` +
-    `<div class="menupanel"><a href="about.html">About</a>${themeControl()}</div>` +
+    `<div class="menupanel"><a href="about.html">About</a>${themeControl()}${unitControl()}</div>` +
     `</details></header>`
   );
 }
@@ -118,7 +143,7 @@ export function pageShell(
 <title>${esc(opts.docTitle ?? `aide · ${title}`)}</title>
 ${ICON_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}

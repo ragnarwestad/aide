@@ -37,6 +37,11 @@ export interface QueueRowView {
     | "queued" | "running" | "awaiting-approval" | "done"
     | "stopped" | "failed" | "cancelled" | "interrupted";
   spentUsd: number;
+  /** The same figure in tokens (spec 118). A NUMBER here, not the stored
+   *  split: the page shows a compact total and nothing else, and the
+   *  render layer has no business knowing the shape of a result file.
+   *  Absent means nothing measured it — the cell shows a dash. */
+  spentTokens?: number;
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
@@ -69,6 +74,10 @@ export interface StepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
+  /** This step's own token total, absent when the run did not measure
+   *  one. Per STEP, because a phase line speaks for its own attempt and
+   *  not for the job's running total. */
+  tokens?: number;
 }
 
 // A stopped job is NOT a failed one, and the two must never render as

@@ -1272,10 +1272,10 @@ describe("the job list sorts and filters", () => {
   // class, and the header link is a control with a hover flat.
   test("the sort direction is a chevron, not a glyph", () => {
     const desc = page([row("a")], { sort: "cost" });
-    expect(desc).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*>Cost<svg/);
+    expect(desc).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*><span class="u-usd">Cost<\/span>/);
     expect(desc).not.toContain("▾");
     const asc = page([row("a")], { sort: "cost", dir: "asc" });
-    expect(asc).toMatch(/<a class="sortlink on asc"[^>]*>Cost<svg/);
+    expect(asc).toMatch(/<a class="sortlink on asc"[^>]*><span class="u-usd">Cost<\/span>/);
     expect(asc).not.toContain("▴");
     // An unsorted column carries the chevron too (faint in CSS), pointing
     // the way its first click will sort: Started defaults to descending.
@@ -3371,5 +3371,53 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(
       (await fetch(`${off.base}/api/queue/projects/aide/remove`, { method: "POST", body })).status,
     ).toBe(503);
+  });
+});
+
+// Spec 118: the token count is recorded by the run, stored on the job,
+// and has to survive every hop between the mirror on disk and the cell
+// in the page. The render tests prove the cell; this one proves the
+// hops — a field the server forgets to forward renders a dash forever,
+// and nothing else would notice.
+describe("a job's token count reaches the page", () => {
+  async function seeded(): Promise<{ mirror: string; id: string }> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "done";
+    job.spentUsd = 0.54;
+    job.spentTokens = 1_234_000;
+    job.results = [
+      {
+        step: "analyze", ok: true, costUsd: 0.54, costMeasured: true,
+        terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+        tokens: { input: 100, output: 900, cacheRead: 1_000_000, cacheCreation: 233_000, total: 1_234_000 },
+      },
+    ];
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return { mirror, id: made.job.id };
+  }
+
+  test("the spec list shows both figures, and the model dropdown stays in dollars", async () => {
+    const { mirror } = await seeded();
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('<span class="u-usd">$0.54</span>');
+    expect(html).toContain('<span class="u-tok">1.2M tok</span>');
+  });
+
+  test("the job page shows both figures for the step and the job", async () => {
+    const { mirror, id } = await seeded();
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
+    const html = await (
+      await fetch(`${base}/specs/${id}?tab=steps`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(html).toContain('<span class="u-usd">$0.54</span>');
+    expect(html).toContain('<span class="u-tok">1.2M tok</span>');
   });
 });

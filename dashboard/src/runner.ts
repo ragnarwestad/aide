@@ -24,7 +24,14 @@
 // tests start no processes.
 
 import type { NotifyEvent } from "./notify.ts";
-import { mergeBranchRefs, type BranchRef, type Job, type QueueStore, type WorkflowStep } from "./queue.ts";
+import {
+  mergeBranchRefs,
+  type BranchRef,
+  type Job,
+  type QueueStore,
+  type TokenUsage,
+  type WorkflowStep,
+} from "./queue.ts";
 
 export interface SpawnResult {
   pid: number;
@@ -68,6 +75,10 @@ export interface StepOutcome {
    *  when exactly one appeared; absent means the run would have had to
    *  guess, and it did not. */
   specFolder?: string;
+  /** What the step metered (spec 118). Absent whenever the run could not
+   *  measure it — there is no over-charge rule for tokens the way there
+   *  is for cost, so absent is the only other answer. */
+  tokens?: TokenUsage;
   error?: string;
 }
 
@@ -124,11 +135,31 @@ export interface RunnerOptions {
   maxConcurrent?: number;
 }
 
+/** The result file is another process's JSON, so this field is a
+ *  question like every other one: an object with five numbers, or
+ *  nothing. Anything else — a string, a partial object, a null — is
+ *  dropped rather than half-carried into a figure a reader would
+ *  believe. */
+function tokenUsage(raw: unknown): TokenUsage | undefined {
+  if (raw === null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const keys = ["input", "output", "cacheRead", "cacheCreation", "total"] as const;
+  if (keys.some((k) => typeof r[k] !== "number")) return undefined;
+  return {
+    input: r.input as number,
+    output: r.output as number,
+    cacheRead: r.cacheRead as number,
+    cacheCreation: r.cacheCreation as number,
+    total: r.total as number,
+  };
+}
+
 export class Runner {
   private readonly o: RunnerOptions;
   private readonly maxConcurrent: number;
   private day: string;
   private spent = 0;
+  private spentTokens = 0;
 
   constructor(opts: RunnerOptions) {
     this.o = opts;
@@ -148,10 +179,26 @@ export class Runner {
     this.spent += usd;
   }
 
+  /** The same day's total in the unit a subscription meters (spec 118).
+   *  Its own accumulator beside the cost, because the two are not
+   *  convertible: a step reports one, both or neither. Only the caps are
+   *  in dollars, so nothing here gates on this — it is a figure the page
+   *  shows. */
+  spentTokensToday(): number {
+    this.rollDay();
+    return this.spentTokens;
+  }
+
+  addSpentTokensToday(tokens: number): void {
+    this.rollDay();
+    this.spentTokens += tokens;
+  }
+
   /** Test seam for the midnight boundary. */
   setToday(day: string): void {
     this.day = day;
     this.spent = 0;
+    this.spentTokens = 0;
   }
 
   private rollDay(): void {
@@ -159,6 +206,7 @@ export class Runner {
     if (today !== this.day) {
       this.day = today;
       this.spent = 0;
+      this.spentTokens = 0;
     }
   }
 
@@ -326,12 +374,18 @@ export class Runner {
     const step = job.steps[job.stepIndex];
     const cost = typeof outcome.costUsd === "number" ? outcome.costUsd : 0;
     this.addSpentToday(cost);
+    // Read as defensively as the cost above, and with one more question
+    // asked: a cost that is missing defaults to 0, a token count that is
+    // missing stays missing. There is nothing to default it to.
+    const tokens = tokenUsage(outcome.tokens);
+    if (tokens) this.addSpentTokensToday(tokens.total);
     const results = [
       ...job.results,
       {
         step,
         ok: !!outcome.ok,
         costUsd: cost,
+        tokens,
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",
         subtype: outcome.subtype,
@@ -360,6 +414,12 @@ export class Runner {
       results,
       landing,
       spentUsd: job.spentUsd + cost,
+      // Undefined until something measures one: a job of steps that all
+      // predate spec 118 shows a dash, not a zero.
+      spentTokens:
+        tokens || job.spentTokens !== undefined
+          ? (job.spentTokens ?? 0) + (tokens?.total ?? 0)
+          : undefined,
       branchUrl: outcome.branchUrl ?? job.branchUrl,
       // Accumulated BY ROOT, never replaced: a step that pushed to one
       // repo must not erase the repo an earlier step pushed to.

@@ -95,6 +95,16 @@ export const CSS = `
 :root[data-theme="light"] .brand .mark-l { display: block; }
 :root[data-theme="light"] .brand .mark-d { display: none; }
 
+/* Spec 118: the same trick again, on text rather than colour. Every
+   consumption figure is rendered twice — a dollar span and a token span
+   — and exactly one is shown. Dollars is the ABSENCE of the attribute,
+   like Auto above, so a page whose script never ran reads the way it
+   always did; the :not() is what makes that work without a
+   data-unit="usd" nobody sets. A budget CAP is money either way and
+   goes through neither span. */
+:root[data-unit="tokens"] .u-usd { display: none; }
+:root:not([data-unit="tokens"]) .u-tok { display: none; }
+
 /* --- the page ------------------------------------------------------ */
 
 /* The full-viewport-height floor used to sit on the .layout wrapper

@@ -40,10 +40,30 @@ export type StopReason = "budget" | "timeout";
  *  it, and the same step may be queued again. */
 const UNFINISHED = new Set<string>(["queued", "running", "awaiting-approval"]);
 
+/** What one step actually metered, as `aide-run-spec` read it out of
+ *  claude's own result event (spec 118). `total` is the sum of the other
+ *  four: cached or not, every one of those tokens was processed, and
+ *  that is what a subscription plan bills against.
+ *
+ *  The split is stored even though only the total is displayed today —
+ *  reading it back out of the result file later is not an option, since
+ *  the file is gone with the run. */
+export interface TokenUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheCreation: number;
+  total: number;
+}
+
 export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
   costUsd: number;
+  /** Absent when the run could not measure it — an old result file, or
+   *  a killed step, whose cost is over-charged by rule but whose token
+   *  count has nothing to assume from. The page shows a dash. */
+  tokens?: TokenUsage;
   costMeasured: boolean;
   terminalReason: string;
   subtype?: string;
@@ -137,6 +157,10 @@ export interface Job {
   streamFile?: string;
   results: StepResult[];
   spentUsd: number;
+  /** The same sum over the steps that REPORTED tokens, absent while none
+   *  has. Not zero: a job whose steps all predate spec 118 has no token
+   *  figure, and a zero would say it used none. */
+  spentTokens?: number;
   /** Where the work can be read: the compare page for the spec's
    *  branch, or the pull request when the push mode opened one. ONE
    *  link, kept because a Slack ping wants exactly one — see
@@ -447,6 +471,9 @@ function parseStoredJob(raw: unknown): Job | null {
     extraProjects: Array.isArray(r.extraProjects) ? (r.extraProjects as string[]) : [],
     results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
+    // Undefined, never 0, when the mirror has no figure: the page shows
+    // a dash for a job nothing measured, and a zero is a claim.
+    spentTokens: typeof r.spentTokens === "number" ? r.spentTokens : undefined,
     stepIndex: typeof r.stepIndex === "number" ? r.stepIndex : 0,
     // Anything but a string here would be handed to a fetch and to a
     // file read. Dropped, like every other malformed field.
