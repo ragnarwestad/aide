@@ -100,3 +100,31 @@ class TestToolchainsStaySeparate:
         # Assert — the other half: it did come across, just not to the root
         assert (workspace_root / "dashboard" / "bun.lock").is_file(), \
             "dashboard/bun.lock should exist — that is where bun is driven from"
+
+
+@pytest.mark.validation
+class TestTheMergeInstallRefreshesEveryTool:
+    """A code merge installs the shared sources for BOTH supported tools.
+
+    Claude Code and Codex read the same skills and the same rules, but
+    each has an installer of its own, and the post-merge script ran only
+    Claude Code's. Codex therefore went on reading its install-time copy:
+    on 2026-08-19 it created a spec on the four-file layout spec 82
+    replaced, because its copy of `aide-create` still described the old
+    one. Copilot is parked (no subscription) and reads
+    `~/.agents/skills/`, which the Codex installer refreshes anyway.
+    """
+
+    def test_both_installers_run_after_a_merge(self, workspace_root):
+        # Arrange
+        script = workspace_root / "dashboard" / "deploy" / "install-after-merge.sh"
+
+        # Act
+        content = script.read_text(encoding="utf-8")
+
+        # Assert
+        for tool in ("claude-code", "codex"):
+            assert f"./implementations/{tool}/install.sh" in content, (
+                f"{tool}'s installer should run after a merge — otherwise its "
+                "copy of the skills and the rules drifts from the repo silently"
+            )
