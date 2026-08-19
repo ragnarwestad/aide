@@ -1252,16 +1252,19 @@ describe("a spec's row runs its own phases", () => {
   });
 
   // Since spec 123 the choice is offered once per PHASE, not once per
-  // row — but it is still the config that says which models exist, and
-  // still a default that changes nothing.
-  test("the row offers the configured models, and a default that changes nothing", () => {
+  // row — but it is still the config that says which models exist. The
+  // "default" entry is gone (2026-08-19): the select is pre-filled with
+  // a real name instead.
+  test("the row offers the configured models, pre-filled and nothing else", () => {
     const html = rows([], [target("94-never-run")], {
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      defaultModels: { default: "sonnet" },
     });
     const line = subRow(html, "analyze");
     expect(line).toContain('name="model.analyze"');
     expect(line).toContain('value="fable"');
-    expect(line).toContain('<option value="">');
+    expect(line).not.toContain('<option value="">');
+    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
   });
 
   test("with no model configured the row offers no dropdown at all", () => {
@@ -3461,7 +3464,10 @@ describe("spec 116: create is the first phase line", () => {
     const line = subRow(html, "create");
     expect(line).toContain('href="/specs/c1"');
     expect(line).toContain("b-done");
-    expect(line).toContain("sonnet");
+    // The model it ran on shows as the select's pre-filled value when
+    // choices are configured — no spelled-out text since 2026-08-19,
+    // so without a picker the line simply says nothing about it.
+    expect(line).not.toContain("last ran");
     expect(line).toContain("$0.42");
   });
 
@@ -3804,11 +3810,22 @@ describe("spec 123: each phase line picks its own model", () => {
     }
   });
 
-  test("the first option is the default, and every listed model follows", () => {
-    const line = subRow(rows([]), "analyze");
-    expect(line).toMatch(/<select name="model\.analyze"[^>]*><option value="">/);
-    expect(line).toContain('value="sonnet"');
+  // No "default" entry (asked for 2026-08-19): the select holds real
+  // names only, pre-filled with what the configuration would give the
+  // step when the phase has not run yet.
+  test("the options are the real names, pre-filled with the configured model", () => {
+    const line = subRow(rows([], [target("123-picks")], { defaultModels: { default: "sonnet" } }), "analyze");
+    expect(line).not.toContain('<option value=""');
+    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
     expect(line).toContain('value="fable"');
+  });
+
+  test("a per-step configured model beats the catch-all default", () => {
+    const line = subRow(
+      rows([], [target("123-picks")], { defaultModels: { analyze: "fable", default: "sonnet" } }),
+      "analyze",
+    );
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
   test("no option label reads out a budget figure", () => {
@@ -3846,15 +3863,16 @@ describe("spec 123: each phase line picks its own model", () => {
 
   // --- criterion 11 ----------------------------------------------------------
 
-  test("a phase that has run once still says what it ran on", () => {
+  // "last ran: X" is not spelled out any more (asked for 2026-08-19) —
+  // the select's pre-filled value IS the answer.
+  test("a phase that has run pre-fills its select with the model it ran on", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" })],
       [target("123-picks", { done: ["analyze"] })],
     );
     const line = subRow(html, "analyze");
-    expect(line).toContain("last ran: fable");
-    // Alongside the picker for the NEXT run, not instead of it.
-    expect(line).toContain('<select name="model.analyze"');
+    expect(line).not.toContain("last ran");
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
   });
 
   test("a phase run more than once keeps its attempt count", () => {

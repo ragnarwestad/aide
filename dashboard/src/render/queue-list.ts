@@ -103,10 +103,11 @@ export interface QueuePageOptions {
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
   modelChoices?: { name: string; budgetUsd: number }[];
-  /** What a step gets when no model is picked. Shown on the default
-   *  option: every other option carries a figure, so a default without
-   *  one reads as "unknown, probably less" when it is usually more. */
-  defaultBudgetUsd?: number;
+  /** The configured model per step (plus a "default" key), from the
+   *  config's own `model` table. It is what a phase line's select is
+   *  pre-filled with when the phase has not run yet — the reader sees
+   *  the real name, never the word "default" (asked for 2026-08-19). */
+  defaultModels?: Record<string, string>;
   /** Every allowlisted project. A job may name others it expects to
    *  touch, so the run watches and commits them instead of leaving half
    *  the work uncommitted on the machine. */
@@ -1296,31 +1297,37 @@ function specHeadRow(
 // defaults instead.
 //
 // The figure each model is granted is in the option's TOOLTIP, not its
-// label. It has to stay reachable: without one, the default read as the
-// cheap or the unknown choice while it was in fact the most generous
-// (picking `opus` granted $15 for the same model the default ran at
-// $35). Read out on every option, it was three lines of money on a page
-// about work.
+// label — read out on every option, it was three lines of money on a
+// page about work.
+//
+// The select is PRE-FILLED, never a "default" entry (asked for
+// 2026-08-19: "vi trenger jo bare å fylle inn den som er brukt"): a
+// phase that has run shows the model it last ran on, one that has not
+// shows what the configuration would give it. What is posted is always
+// a real name — the queue skips names for steps a job does not run.
 function modelPicker(
   g: SpecGroup,
   opts: QueuePageOptions,
   step: string,
   busy: boolean,
+  used?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
   const why = busy ? busyReason(g) : "";
-  const asConfigured =
-    typeof opts.defaultBudgetUsd === "number"
-      ? ` title="as configured per step — $${opts.defaultBudgetUsd} per step"`
-      : "";
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
+  const chosen = has(used) ? used : has(configured) ? configured : models[0]!.name;
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     (busy ? ` disabled title="${esc(why)}"` : "") +
     `>` +
-    `<option value=""${asConfigured}>default</option>` +
     models
-      .map((m) => `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step">${esc(m.name)}</option>`)
+      .map(
+        (m) =>
+          `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step"` +
+          `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
+      )
       .join("") +
     `</select>`
   );
@@ -1377,19 +1384,15 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
               "1-description.md was committed after the last finished analyze",
             )
           : "";
-      // What the LAST run used, beside the picker for the next one —
-      // two different questions, and turning the plain text into a live
-      // control must not take the answer to the first one away.
       const tries =
-        p.attempts.length > 1
-          ? `<span class="muted small">${p.attempts.length} attempts</span>`
-          : latest?.model
-            ? `<span class="muted small">last ran: ${esc(latest.model)}</span>`
-            : "";
+        p.attempts.length > 1 ? `<span class="muted small">${p.attempts.length} attempts</span>` : "";
+      // The picker directly after the name, so the two line up in the
+      // caption's columns; what the last run used is not spelled out in
+      // text any more — it IS the select's pre-filled value.
       return (
         `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
         `<td colspan="2" class="phasecell"><span class="row">` +
-        `${name}${stale}${tries}${modelPicker(g, opts, p.step, busy)}</span></td>` +
+        `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
         `<td>${phaseWordCell(word, latest)}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +

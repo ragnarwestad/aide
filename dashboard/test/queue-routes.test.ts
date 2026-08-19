@@ -1009,40 +1009,25 @@ describe("picking a model for a job", () => {
     // What each is granted is still said — in the option's tooltip
     // since spec 123, not read out on every label.
     expect(html).toContain('title="$12 per step"');
-    // The per-step configuration must stay reachable — picking a model
-    // is an override, not the only way to queue anything.
-    expect(html).toContain('value=""');
+    // No "default" entry any more (2026-08-19): the select is pre-filled
+    // with a real name, and only real names are offered.
+    expect(html).not.toContain('<option value=""');
   });
 
-  // Every option but one carried a number, and the one without it was
-  // the default — so "opus — $15 per step" read as the expensive
-  // choice when leaving the field alone granted $35 for the same model.
-  // A comparison you cannot make is a trap, not a choice. Spec 123 took
-  // the figures off the labels; the comparison survives in the tooltips,
-  // the default's own included.
-  test("the default option says what IT grants, so the numbers can be compared", () => {
+  // The "default" option is gone (asked for 2026-08-19): the select is
+  // pre-filled with a real name instead, and every option's figure lives
+  // in its tooltip — never on the label.
+  test("no default option, no figure on any label; the tooltips keep them", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: OPEN,
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
-      defaultBudgetUsd: 35,
+      defaultModels: { default: "fable" },
     });
-    expect(html).toMatch(/<option value="" title="[^"]*\$35[^"]*">/);
-    expect(html).toMatch(/<option value="fable" title="[^"]*\$12[^"]*">/);
-    // And no figure is read out on the label itself any more.
+    expect(html).not.toContain('<option value=""');
+    expect(html).toMatch(/<option value="fable" title="[^"]*\$12[^"]*"[^>]*>/);
     expect(html).not.toMatch(/<option[^>]*>[^<]*\$/);
-  });
-
-  test("with no default budget known the option still stands, just without a figure", () => {
-    const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
-      filter: OPEN,
-      modelChoices: [{ name: "fable", budgetUsd: 12 }],
-    });
-    expect(html).toContain('value=""');
-    expect(html).not.toMatch(/<option value="" title="[^"]*\$/);
   });
 
   test("with nothing configured the page offers no model at all", () => {
@@ -1054,7 +1039,7 @@ describe("picking a model for a job", () => {
     expect(html).not.toContain('name="model"');
   });
 
-  test("a row says which model it ran on, so a cost can be read against it", () => {
+  test("a row says which model it ran on — as the select's pre-filled value", () => {
     const html = renderQueuePage(
       [
         {
@@ -1065,9 +1050,13 @@ describe("picking a model for a job", () => {
       ],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: true, targets: [], filter: OPEN },
+      {
+        runnerAvailable: true, targets: [], filter: OPEN,
+        modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+        defaultModels: { default: "sonnet" },
+      },
     );
-    expect(html).toContain("fable");
+    expect(html).toMatch(/<select name="model\.implement"[^>]*>[^]*?<option value="fable"[^>]*selected/);
   });
 
   test("posting a chosen model runs every step on it, with the config's budget", async () => {

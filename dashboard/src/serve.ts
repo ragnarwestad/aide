@@ -1274,7 +1274,7 @@ export function createServer(opts: ServerOptions) {
           name,
           budgetUsd: c.budgetUsd,
         })),
-        defaultBudgetUsd: queue.defaults.budgetUsd,
+        defaultModels: queue.defaults.model,
         error: url.searchParams.get("error") ?? undefined,
         // Which row the refusal belongs to. It rides in the query
         // string with the reason itself, so it survives the

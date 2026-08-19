@@ -216,6 +216,17 @@ describe("the header and the two tabs (spec 119)", () => {
 // grow the moment a run starts. Same for the lock on a chip that will
 // not take a click. The rule is CSS (the input stays in the markup for
 // the form's sake), so the test pins the stylesheet itself.
+// The phase lines are columns (asked for 2026-08-19, "få det nå
+// alignet"): the name has a fixed width so every model select starts at
+// the same x, sharing it with the caption row's own first span.
+describe("the phase lines line up in columns", () => {
+  test("the stylesheet gives the phase name a fixed flex basis", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toContain('table.list tr.subrow[data-step] .phasecell > .row > :first-child');
+    expect(CSS).toContain('table.list tr.subrow[data-caption] .phasecell > .row > :first-child');
+  });
+});
+
 describe("the busy chip swaps its checkbox for the spinner", () => {
   test("the stylesheet hides the input wherever a mark stands in for it", async () => {
     const { CSS } = await import("../src/render/css.ts");

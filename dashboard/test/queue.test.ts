@@ -447,14 +447,20 @@ describe("per-step model choice", () => {
     expect(r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
   });
 
-  test("a step outside this job's own steps is refused, and named in the error", () => {
+  // Skipped, not refused (2026-08-19): the phase lines' selects are
+  // always pre-filled, so every Run posts a name for all five steps —
+  // only the ticked ones may apply.
+  test("a step outside this job's own steps is skipped, and the job runs", () => {
     const r = parseJobRequest(
-      { ...REQ, steps: ["analyze"], model: { implement: "fable" } },
+      { ...REQ, steps: ["analyze"], model: { analyze: "sonnet", implement: "fable" } },
       { resolve, defaults: WITH_CHOICES },
     );
-    expect(r.ok).toBe(false);
-    if (r.ok) return;
-    expect(r.error).toContain("implement");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "sonnet" });
+    // And the skipped step's grant buys no headroom: fable's jobCapUsd
+    // must not leak into a job that will never run it.
+    expect(r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
   });
 
   test("an unlisted model in the map is refused, exactly as a whole-job one is", () => {

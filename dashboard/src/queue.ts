@@ -320,9 +320,10 @@ export function parseJobRequest(
       // A phase left on "default" posts nothing to apply. Skipped, not
       // refused: the config's own per-step choice is the answer.
       if (name === undefined || name === null || name === "") continue;
-      if (!steps.includes(step as WorkflowStep)) {
-        return { ok: false, error: `model names a step not in this job: ${step}` };
-      }
+      // Skipped, not refused: since the phase lines' selects are always
+      // pre-filled (2026-08-19), every Run posts a name for all five
+      // steps, whichever are ticked. Only the ticked ones apply.
+      if (!steps.includes(step as WorkflowStep)) continue;
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: `invalid model for ${step}` };
       const found = lookUp(name);
       if ("error" in found) return { ok: false, error: found.error };

@@ -335,6 +335,13 @@ table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
 table.list tr[data-controls] td {
   border-bottom: none; padding-top: 0; padding-bottom: 2px; }
 table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
+/* The phase lines are COLUMNS, not a ragged flex: the name gets a fixed
+   width so every select starts at the same x, under the caption's own
+   "Model" — which shares the width by matching the same selector. Only
+   the phase lines and their caption; the controls line keeps its flow. */
+table.list tr.subrow[data-step] .phasecell > .row > :first-child,
+table.list tr.subrow[data-caption] .phasecell > .row > :first-child {
+  flex: 0 0 6rem; }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
 table.list tr.untried td { opacity: 0.55; }
