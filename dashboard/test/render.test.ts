@@ -3657,25 +3657,15 @@ describe("spec 118: the job page's figures carry both units", () => {
   });
 });
 
-describe("spec 118: the day total under the list", () => {
-  const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([row()], "2026-08-16T00:00:00Z", NAV, {
+describe("the day total that used to sit under the list", () => {
+  // Spec 118 put "Spent today" under the list; the user had it removed
+  // on 2026-08-19 — one more figure about money on a page that should
+  // talk about work. The per-row cost/token column is the display.
+  test("no page shows a day total", () => {
+    const html = renderQueuePage([row()], "2026-08-16T00:00:00Z", NAV, {
       runnerAvailable: true,
       targets: [],
-      ...opts,
     });
-
-  test("today's spend is shown in both units (criteria 4, 5)", () => {
-    const html = page({ spentTodayUsd: 12.5, spentTodayTokens: 3_400_000 });
-    expect(html).toContain('<span class="u-usd">$12.50</span>');
-    expect(html).toContain('<span class="u-tok">3.4M tok</span>');
-    expect(html).toContain("Spent today");
-  });
-
-  // A generated page has no runner behind it and no such number. Saying
-  // nothing is the honest answer; a zero would read as "nothing has run
-  // today", which is a different claim.
-  test("a page with no runner behind it says nothing about a day total", () => {
-    expect(page()).not.toContain("Spent today");
+    expect(html).not.toContain("Spent today");
   });
 });

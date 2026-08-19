@@ -1250,13 +1250,6 @@ export function createServer(opts: ServerOptions) {
           budgetUsd: c.budgetUsd,
         })),
         defaultBudgetUsd: queue.defaults.budgetUsd,
-        // What has been spent since midnight, in both units (spec 118).
-        // Only where a runner is actually keeping the tally: on a server
-        // without one the number does not exist, and the page says
-        // nothing rather than showing a zero that reads as "nothing has
-        // run today".
-        spentTodayUsd: runner?.spentToday(),
-        spentTodayTokens: runner?.spentTokensToday(),
         error: url.searchParams.get("error") ?? undefined,
         // Which row the refusal belongs to. It rides in the query
         // string with the reason itself, so it survives the

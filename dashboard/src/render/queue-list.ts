@@ -133,13 +133,6 @@ export interface QueuePageOptions {
    *  Absent for every other refusal, which is what keeps the offer
    *  narrow. */
   errorReason?: string;
-  /** What the runner has spent since midnight, in each unit (spec 118).
-   *  The daily cap has always existed and has never been shown: a reader
-   *  found out about it by having a job held back. Absent on a page with
-   *  no runner behind it — a generated page has no such number, and a
-   *  zero would read as "nothing has run today". */
-  spentTodayUsd?: number;
-  spentTodayTokens?: number;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -1387,18 +1380,6 @@ function groupRows(
     .join("");
 }
 
-/** Today's spend, under the list. Inside the swapped container rather
- *  than beside it, so it moves with the rows the five-second refresh
- *  brings — a day total that only changed on a full reload would be the
- *  one figure on the page going stale. */
-function dayTotal(opts: QueuePageOptions): string {
-  if (typeof opts.spentTodayUsd !== "number") return "";
-  return (
-    `<p class="muted small listnote">Spent today: ` +
-    `${usdOrTokens(opts.spentTodayUsd, opts.spentTodayTokens)}</p>`
-  );
-}
-
 // The controls and the rows alone, so the page can refresh its table
 // from script without touching a form someone is half-way through
 // filling in.
@@ -1433,8 +1414,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   return (
     filterBar(groups, f, opts) +
     `<table class="list">${sortableHead(f)}<tbody>${body}</tbody></table>` +
-    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "") +
-    dayTotal(opts)
+    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
   );
 }
 
