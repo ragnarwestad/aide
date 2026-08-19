@@ -11,6 +11,21 @@
   };
   document.addEventListener("click", (e) => {
     const target = e.target as Element | null;
+    // The About item opens the dialog in place; its href stays as the
+    // no-JS fallback. Escape and the cross are the platform's own once
+    // the box is modal — a click on the backdrop is not, so it is
+    // handled here: the dialog element itself is only ever the click
+    // target when the click landed outside the panel.
+    if (target?.closest?.("[data-about]")) {
+      e.preventDefault();
+      closeAll();
+      document.querySelector<HTMLDialogElement>("dialog.about")?.showModal();
+      return;
+    }
+    if (target instanceof HTMLDialogElement && target.classList.contains("about")) {
+      target.close();
+      return;
+    }
     closeAll(target?.closest?.("details.menu") ?? null);
   });
   document.addEventListener("keydown", (e) => {

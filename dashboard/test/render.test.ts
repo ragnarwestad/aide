@@ -243,6 +243,34 @@ describe("the generated overview is a redirect to /projects", () => {
   });
 });
 
+// About opens as a DIALOG from the menu (asked for 2026-08-19): the
+// markup rides on every page, the menu item opens it in place, and the
+// about.html page below stays as the no-JS fallback its href points at.
+describe("the About dialog", () => {
+  test("every page carries the dialog, with a close cross", () => {
+    for (const p of site) {
+      expect(p.html).toContain('<dialog class="about">');
+      expect(p.html).toContain('<button class="aboutclose" aria-label="Close">');
+      // the platform's own close: no script once the box is open
+      expect(p.html).toContain('<form method="dialog">');
+    }
+  });
+
+  test("a static page's dialog carries the labelled build stamp", () => {
+    expect(byPath.get("about.html")!.match(/Build: these static pages/g)!.length)
+      .toBeGreaterThanOrEqual(1);
+  });
+
+  test("a served page's dialog carries no build stamp — it was not built", () => {
+    const html = renderQueuePage([], "2026-08-16T00:00:00Z", NAV, {
+      runnerAvailable: true,
+      targets: [],
+    });
+    expect(html).toContain('<dialog class="about">');
+    expect(html).not.toContain("Build:");
+  });
+});
+
 describe("the About page", () => {
   test("it is generated, and holds the explanation the front page lost", () => {
     const page = byPath.get("about.html");
@@ -262,7 +290,7 @@ describe("the About page", () => {
   test("it is reached from the menu, and marks no tab current", () => {
     const page = byPath.get("about.html")!;
     const menu = page.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
-    expect(menu).toContain('<a href="about.html">About</a>');
+    expect(menu).toContain('<a href="about.html" data-about>About</a>');
     expect(page.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0]).not.toContain("aria-current");
   });
 
@@ -1966,8 +1994,11 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   });
 
   // Criterion 3: the whole field order, and the per-project scoping
-  // the chips carry so the browser can narrow them.
-  test("the page carries Project, Depends on, Title, Create, Cancel, Description — in that order", () => {
+  // the chips carry so the browser can narrow them. Reworked 2026-08-19:
+  // Project and Depends on share the first row, Title has a line of its
+  // own, and Create/Cancel sit at the RIGHT of the Description box —
+  // which in the markup means after it.
+  test("the page carries Project, Depends on, Title, Description, Create, Cancel — in that order", () => {
     const html = newPage({
       targets: [
         { project: "aide", specFolder: "92-a-spec-can-depend" },
@@ -1983,15 +2014,16 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       '<select name="project">',
       'name="dependsOn"',
       '<input type="text" name="title"',
+      '<textarea name="description"',
       "Create</button>",
       "Cancel</a>",
-      '<textarea name="description"',
     ].map(at);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    // Spec 113's line-1 layout, carried forward: `.field.wide` breaks
-    // the wrapping row, so both actions have to come before it.
-    expect(at("Create</button>")).toBeLessThan(at('<textarea name="description"'));
-    expect(at("Cancel</a>")).toBeLessThan(at('<textarea name="description"'));
+    // The rows themselves: Project+Depends in one, Description+actions
+    // in another, Title between them on its own line.
+    expect(html).toMatch(/<span class="frow"><label class="field"><span>Project<\/span>/);
+    expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
+    expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
   });

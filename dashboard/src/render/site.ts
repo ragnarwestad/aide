@@ -7,7 +7,7 @@ import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
 import type { ManifestData, ManifestResult } from "../parse-manifest.ts";
 import { esc, linkOrText } from "./html.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
+import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
 export interface SpecView extends SpecRef {
   status: StatusInfo | null;
@@ -162,20 +162,11 @@ export const PROJECTS_ROUTE = "/projects";
  *  spec list until the button that opened it became a link to here. */
 export const NEW_SPEC_ROUTE = "/new";
 
+// The prose itself lives in shell.ts, where the About DIALOG on every
+// page shows the same words — this page is the no-JS fallback the menu
+// item's href still points at.
 function aboutBody(generatedAt: string): string {
-  return (
-    `<p class="intro">aide-dashboard is the read-only overview of ` +
-    `AI-assisted development across the projects on this machine: every ` +
-    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
-    `showing what the project IS (stack, deployment, logging, statistics, ` +
-    `docs) and where its specs stand (phase and progress, active and ` +
-    `archived). The site is static — regenerate and publish with ` +
-    `<code>make publish</code>.</p>` +
-    // The build stamp lives HERE, said in words — it sat unlabelled in
-    // every page's corner, where it read as noise (2026-08-19).
-    `<p class="stamp">Build: these static pages (Projects, About, the ` +
-    `project pages) were last generated ${esc(generatedAt)}.</p>`
-  );
+  return aboutProse() + buildStampLine(generatedAt);
 }
 
 function overviewRow(p: ProjectView, path: string): string {
@@ -262,7 +253,9 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
   ];
   pages.push({
     path: ABOUT_PAGE,
-    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt),
+    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt, undefined, {
+      buildStamp: generatedAt,
+    }),
   });
   for (const p of ordered) {
     const path = `${slugs.get(p)!}.html`;

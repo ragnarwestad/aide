@@ -76,6 +76,49 @@ function themeControl(): string {
 // `.intro` already are: it opens with JavaScript off, and it keeps the
 // promise that a generated page carries the theme switcher and no
 // other script.
+/** The About prose, one source for the dialog on every page and the
+ *  about.html fallback a reader without JavaScript still lands on. */
+export function aboutProse(): string {
+  return (
+    `<p class="intro">aide-dashboard is the read-only overview of ` +
+    `AI-assisted development across the projects on this machine: every ` +
+    `project with an <code>.aide/project.yaml</code> manifest gets a page ` +
+    `showing what the project IS (stack, deployment, logging, statistics, ` +
+    `docs) and where its specs stand (phase and progress, active and ` +
+    `archived). The site is static — regenerate and publish with ` +
+    `<code>make publish</code>.</p>`
+  );
+}
+
+/** The build stamp, said in words. Only the static pages carry one —
+ *  a served page is rendered per request, and stamping THAT time here
+ *  would call it a build. */
+export function buildStampLine(generatedAt: string): string {
+  return (
+    `<p class="stamp">Build: these static pages (Projects, About, the ` +
+    `project pages) were last generated ${esc(generatedAt)}.</p>`
+  );
+}
+
+// About is a DIALOG, not a page you navigate to (asked for 2026-08-19):
+// the menu item opens it in place, the cross and a click outside close
+// it. The <form method="dialog"> close is the platform's own — no
+// script involved once the box is open; opening it modally is the one
+// thing `menu-script.ts` does for it.
+function aboutDialog(buildStamp?: string): string {
+  return (
+    `<dialog class="about"><div class="aboutpanel">` +
+    `<form method="dialog"><button class="aboutclose" aria-label="Close">` +
+    `<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ` +
+    `stroke="currentColor" stroke-width="1.8" stroke-linecap="round">` +
+    `<path d="M4 4l8 8M12 4l-8 8"></path></svg></button></form>` +
+    `<h2>About</h2>` +
+    aboutProse() +
+    (buildStamp ? buildStampLine(buildStamp) : "") +
+    `</div></dialog>`
+  );
+}
+
 function pageHeader(): string {
   return (
     `<header>${WORDMARK}` +
@@ -85,7 +128,7 @@ function pageHeader(): string {
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    `<div class="menupanel"><a href="about.html">About</a>${themeControl()}${unitControl()}</div>` +
+    `<div class="menupanel"><a href="about.html" data-about>About</a>${themeControl()}${unitControl()}</div>` +
     `</details></header>`
   );
 }
@@ -123,7 +166,15 @@ export function pageShell(
   // corner of every page read as noise.
   _generatedAt: string,
   refreshSeconds?: number,
-  opts: { refreshInNoscript?: boolean; script?: string; docTitle?: string; hideHeading?: boolean } = {},
+  opts: {
+    refreshInNoscript?: boolean;
+    script?: string;
+    docTitle?: string;
+    hideHeading?: boolean;
+    /** When this page is part of a static build: its generation time,
+     *  shown labelled at the bottom of the About dialog. */
+    buildStamp?: string;
+  } = {},
 ): string {
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
@@ -152,6 +203,7 @@ ${ICON_LINKS}
 </head>
 <body>
 ${pageHeader()}
+${aboutDialog(opts.buildStamp)}
 ${tabBar(entries, currentPath)}
 <main>
 ${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}

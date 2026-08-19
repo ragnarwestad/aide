@@ -35,7 +35,7 @@ export const CSS = `
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --r: 6px; --r-s: 4px;
   --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --backdrop: rgba(0, 0, 0, 0.35);
 /* tokens:end */
   --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
@@ -395,6 +395,14 @@ tr[data-controls] .row { align-items: flex-end; }
 .newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
+/* The /new form's three lines. Each row takes the full width of the
+   wrapping flex; the first top-aligns its two fields so Project and
+   Depends on share a label line, the last bottom-aligns Create and
+   Cancel with the Description box they act on. */
+.newspecform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
+  flex-basis: 100%; }
+.newspecform .frow .field.wide { flex: 1 1 0; }
+.newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
 /* The Projects panel (spec 112). One Add form built out of the same
    pieces as New spec, and one line per allowlisted project under it.
    "projectadmin", "addprojectform" and "removeform" are what
@@ -427,6 +435,22 @@ tr[data-controls] .row { align-items: flex-end; }
 .menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
 .menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
+
+/* The About dialog: opened from the menu, closed by the cross, Escape
+   or a click on the backdrop. The panel carries the padding so a click
+   inside it can never be mistaken for one outside (the script closes on
+   clicks whose target is the dialog element itself). */
+dialog.about { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); max-width: 34rem;
+  box-shadow: var(--overlay-shadow); }
+dialog.about::backdrop { background: var(--backdrop); }
+.aboutpanel { position: relative; padding: var(--sp-5) var(--sp-6); }
+.aboutpanel h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-l); font-weight: 600; }
+.aboutclose { position: absolute; top: var(--sp-3); right: var(--sp-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 999px; border: 0; background: none;
+  color: var(--muted); cursor: pointer; }
+.aboutclose:hover { background: var(--surface-2); color: var(--text); }
 
 /* How runs work: a small question mark at the right-hand end of the
    filter row, not a block between the page's title and the list the

@@ -168,7 +168,7 @@ const COMPONENTS = [
  *  error to catch it. */
 const JS_HOOKS = [
   "rowrun", "actionform", "mergeform", "resolveform",
-  "refused", "refusal", "newspec", "newspecform",
+  "refused", "refusal", "newspec", "newspecform", "frow", "factions",
   // spec 112: the Projects panel — the Add form and one Remove per
   // allowlisted project.
   "projectadmin", "addprojectform", "removeform",
@@ -182,7 +182,7 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "tabbar", "tab",
-  "menu", "menupanel",
+  "menu", "menupanel", "about", "aboutpanel", "aboutclose",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
