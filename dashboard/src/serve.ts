@@ -1015,7 +1015,7 @@ export function createServer(opts: ServerOptions) {
           project: url.searchParams.get("project") ?? undefined,
           sort: url.searchParams.get("sort") ?? undefined,
           dir: url.searchParams.get("dir") ?? undefined,
-          fold: url.searchParams.get("fold") ?? undefined,
+          open: url.searchParams.get("open") ?? undefined,
         },
       };
       // The rows alone: the page swaps them from script every few

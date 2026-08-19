@@ -283,6 +283,21 @@ const row = (extra: Partial<QueueRowView> = {}): QueueRowView => ({
   ...extra,
 });
 
+/** Since spec 103 a row is COLLAPSED unless the view names it: the
+ *  phase lines, the run control and the "more" line come with opening
+ *  it. A block that is about what an expanded row holds says so by
+ *  opening every spec it renders. */
+const openKeys = (
+  list: { project?: string; specFolder: string }[],
+  targets: { project: string; specFolder: string }[] = [],
+): string =>
+  [
+    ...new Set([
+      ...list.map((r) => `${r.project ?? "aide"}/${r.specFolder}`),
+      ...targets.map((t) => `${t.project}/${t.specFolder}`),
+    ]),
+  ].join(",");
+
 // Criterion 12: the row a reader actually watches is the way in.
 describe("the queue row links to the job (criterion 12)", () => {
   test("the spec cell links to /specs/<id>", () => {
@@ -723,8 +738,15 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
   const job = (id: string, step: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({ id, specFolder: "86-grouped", steps: [step], stepIndex: 0, state: "done", ...extra });
 
+  // Every spec open: this block is about what an expanded row holds —
+  // its phase lines, its action cell — which is what every row held
+  // before spec 103 made collapsed the default.
   const rows = (list: QueueRowView[]) =>
-    renderQueueRows(list, { runnerAvailable: true, targets: [] }, Date.parse("2026-08-17T12:00:00Z"));
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets: [], filter: { open: openKeys(list) } },
+      Date.parse("2026-08-17T12:00:00Z"),
+    );
 
   const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
   // The cell for one phase, from its name to the end of the row.
@@ -845,7 +867,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
 // failed on `unknown spec`, so a finished analysis read as failed.
 describe("a multi-step job is shown on every step it ran", () => {
   const rows = (list: QueueRowView[]) =>
-    renderQueueRows(list, { runnerAvailable: true, targets: [] }, Date.parse("2026-08-17T12:00:00Z"));
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets: [], filter: { open: openKeys(list) } },
+      Date.parse("2026-08-17T12:00:00Z"),
+    );
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
@@ -954,6 +980,9 @@ describe("a spec's row runs its own phases", () => {
     ...extra,
   });
 
+  // The run control belongs to an OPEN row since spec 103, so this
+  // block opens every spec it renders unless a test says otherwise —
+  // it is about what that control holds, which has not changed.
   const rows = (
     list: QueueRowView[],
     targets: QueueTarget[] = [],
@@ -961,7 +990,12 @@ describe("a spec's row runs its own phases", () => {
   ) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets, ...opts },
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
@@ -974,6 +1008,10 @@ describe("a spec's row runs its own phases", () => {
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  /** The row's "more" line — since spec 103 the model, the gate and the
+   *  other repos are on a `<tr>` of their own, not in the action cell. */
+  const more = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
@@ -1058,7 +1096,7 @@ describe("a spec's row runs its own phases", () => {
 
   test("one form per row, posting the spec it belongs to and a box per phase (criterion 3)", () => {
     const line = head(rows([], [target("94-never-run")]), "94-never-run");
-    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('name="project" value="aide"');
     expect(line).toContain('name="specFolder" value="94-never-run"');
     // The browser submits checkboxes in document order, so the order
@@ -1080,7 +1118,7 @@ describe("a spec's row runs its own phases", () => {
   });
 
   test("'also touches' lists the other projects and never the row's own (criterion 5)", () => {
-    const line = head(rows([], [target("94-never-run")], { projects: ["aide", "paceup"] }), "94-never-run");
+    const line = more(rows([], [target("94-never-run")], { projects: ["aide", "paceup"] }), "94-never-run");
     expect(line).toContain('name="extraProjects" value="paceup"');
     expect(line).not.toContain('name="extraProjects" value="aide"');
     // No script needed to exclude the row's own project: the row knows
@@ -1090,20 +1128,21 @@ describe("a spec's row runs its own phases", () => {
   });
 
   test("with only its own project there is nothing to add (criterion 5)", () => {
-    const line = head(rows([], [target("94-never-run")], { projects: ["aide"] }), "94-never-run");
-    expect(line).not.toContain('name="extraProjects"');
+    const html = rows([], [target("94-never-run")], { projects: ["aide"] });
+    expect(more(html, "94-never-run")).not.toBe("");
+    expect(html).not.toContain('name="extraProjects"');
   });
 
   test("the gate box is on every row, unticked, with or without 'also touches' (criterion 5a)", () => {
     for (const projects of [["aide"], ["aide", "paceup"]]) {
-      const line = head(rows([], [target("94-never-run")], { projects }), "94-never-run");
-      expect(line).toContain('<input type="checkbox" name="gate" value="1">');
+      const line = more(rows([], [target("94-never-run")], { projects }), "94-never-run");
+      expect(line).toContain('<input type="checkbox" name="gate" value="1"');
       expect(line).not.toContain('name="gate" checked');
     }
   });
 
   test("the row offers the configured models, and a default that changes nothing", () => {
-    const line = head(
+    const line = more(
       rows([], [target("94-never-run")], {
         modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
       }),
@@ -1115,7 +1154,9 @@ describe("a spec's row runs its own phases", () => {
   });
 
   test("with no model configured the row offers no dropdown at all", () => {
-    expect(head(rows([], [target("94-never-run")]), "94-never-run")).not.toContain('name="model"');
+    const html = rows([], [target("94-never-run")]);
+    expect(more(html, "94-never-run")).not.toBe("");
+    expect(html).not.toContain('name="model"');
   });
 
   test("the token rides along when the page carries one", () => {
@@ -1131,11 +1172,19 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("the run control survives folding, because it sits on the header row", () => {
-    const html = rows([], [target("94-never-run")], { filter: { fold: "aide/94-never-run" } });
-    expect(html).not.toContain('<tr class="subrow');
-    const line = head(html, "94-never-run");
-    expect(line).toContain('<form method="post" action="/api/queue"');
+  // Spec 94 put the run control on the header row so folding could not
+  // take it away; spec 103 retires that premise deliberately. Folding
+  // is now what the run control is BEHIND: a collapsed row is a status
+  // line, and the row a reader is about to act on is the one they open.
+  test("the run control belongs to the open row, and folding takes it away", () => {
+    const shut = rows([], [target("94-never-run")], { filter: {} });
+    expect(shut).not.toContain('<tr class="subrow');
+    expect(head(shut, "94-never-run")).not.toContain('action="/api/queue"');
+    expect(head(shut, "94-never-run")).not.toContain('name="steps"');
+
+    const open = rows([], [target("94-never-run")], { filter: { open: "aide/94-never-run" } });
+    const line = head(open, "94-never-run");
+    expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
   });
 
@@ -1200,7 +1249,17 @@ describe("every spec is a row (criteria 1-10)", () => {
   ) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets, ...opts },
+      {
+        runnerAvailable: true,
+        targets,
+        // Open, because this block is about what a row HOLDS — the
+        // phase lines and the form that runs them, which spec 103 put
+        // behind the fold without changing either. The targets alone:
+        // a job whose spec is no longer a target must not reach the
+        // page through the fold state either.
+        filter: { open: openKeys([], targets) },
+        ...opts,
+      },
       Date.parse("2026-08-17T12:00:00Z"),
     );
 
@@ -1225,7 +1284,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     // row, which is the only line folding leaves in the page.
     const html = rows([], [target("90-never-run")]);
     const line = head(html, "90-never-run");
-    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('name="project" value="aide"');
     expect(line).toContain('name="specFolder" value="90-never-run"');
     expect(line).toContain('name="steps" value="analyze"');
@@ -1332,6 +1391,12 @@ describe("every spec is a row (criteria 1-10)", () => {
 // and folding is what keeps it readable. The state is a query parameter,
 // so it survives the five-second swap of the table by the mechanism the
 // filter and the sort already ride on.
+//
+// Spec 103 turned the polarity round: the key is `open`, it names the
+// rows shown EXPANDED, and a row nobody named is collapsed. The claims
+// below are the same ones spec 90 made — one spec's fold state leaves
+// the others alone, a key naming no spec is inert, every filter and
+// sort link carries the state forward — asked of the new default.
 describe("a spec's phases fold away (criteria 11-15)", () => {
   const target = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
 
@@ -1345,67 +1410,69 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
-  test("every spec row carries an expanded fold control (criterion 11)", () => {
+  test("a spec nobody has opened reads as shut, and its control opens it (criterion 11)", () => {
     const html = rows([target("90-x")]);
     const line = head(html, "90-x");
-    expect(line).toContain('aria-expanded="true"');
+    expect(line).toContain('aria-expanded="false"');
+    expect(html).not.toContain('<tr class="subrow');
     // Percent-encoded, because `queueHref` encodes each value. The raw
     // key appears in no href under any implementation.
-    expect(line).toContain("fold=aide%2F90-x");
+    expect(line).toContain("open=aide%2F90-x");
   });
 
-  test("a folded spec loses its phase lines, not its header (criterion 12)", () => {
-    const html = rows([target("90-x")], { fold: "aide/90-x" });
+  test("an opened spec gains its phase lines, and its control shuts it again (criterion 12)", () => {
+    const html = rows([target("90-x")], { open: "aide/90-x" });
     const line = head(html, "90-x");
     expect(line).not.toBe("");
-    expect(html).not.toContain('<tr class="subrow');
-    expect(line).toContain('aria-expanded="false"');
-    // Its own control now UNfolds: the encoded key is gone from its href.
-    expect(line).not.toContain("fold=aide%2F90-x");
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(line).toContain('aria-expanded="true"');
+    // Its own control now SHUTS it: the encoded key is gone from its href.
+    expect(line).not.toContain("open=aide%2F90-x");
   });
 
   // The control was a text glyph (▸/▾) in a 1rem box: barely visible,
   // and a target nobody could hit. It is an SVG chevron in a 24px flat
   // now, and the state is on the element, not in the glyph.
   test("the fold control is an SVG chevron, open and shut told apart by a class", () => {
-    const open = head(rows([target("90-x")]), "90-x");
-    expect(open).toMatch(/<a class="fold"[^>]*aria-expanded="true"[^>]*><svg/);
-    expect(open).not.toContain("▾");
-    const shut = head(rows([target("90-x")], { fold: "aide/90-x" }), "90-x");
+    const opened = head(rows([target("90-x")], { open: "aide/90-x" }), "90-x");
+    expect(opened).toMatch(/<a class="fold"[^>]*aria-expanded="true"[^>]*><svg/);
+    expect(opened).not.toContain("▾");
+    const shut = head(rows([target("90-x")]), "90-x");
     expect(shut).toMatch(/<a class="fold shut"[^>]*aria-expanded="false"[^>]*><svg/);
     expect(shut).not.toContain("▸");
   });
 
-  test("folding one spec leaves the other's phases alone (criterion 13)", () => {
-    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x" });
+  test("opening one spec leaves the other shut (criterion 13)", () => {
+    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x" });
     expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
     for (const step of ["analyze", "review-plan", "implement", "archive"]) {
       expect(html).toContain(`data-step="${step}"`);
     }
-    // The other spec's own fold href gains the folded key too — the
-    // whole filter travels through `queueHref`.
-    expect(head(html, "90-y")).toContain("fold=aide%2F90-x%2Caide%2F90-y");
+    expect(head(html, "90-y")).toContain('aria-expanded="false"');
+    // The other spec's own control keeps the opened key and adds its
+    // own — the whole filter travels through `queueHref`.
+    expect(head(html, "90-y")).toContain("open=aide%2F90-x%2Caide%2F90-y");
   });
 
-  test("a fold key naming no spec leaves every real spec expanded (criterion 14)", () => {
-    const html = rows([target("90-x")], { fold: "aide/nope" });
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
-    expect(head(html, "90-x")).toContain('aria-expanded="true"');
+  test("an open key naming no spec leaves every real spec collapsed (criterion 14)", () => {
+    const html = rows([target("90-x")], { open: "aide/nope" });
+    expect(html).not.toContain('<tr class="subrow');
+    expect(head(html, "90-x")).toContain('aria-expanded="false"');
   });
 
   test("the filter, sort and project links keep the fold (criterion 15)", () => {
-    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x", state: "not-started" });
+    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "not-started" });
     // Every state chip and every sortable column header keeps it.
     const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
     expect(links.length).toBeGreaterThan(4);
-    for (const href of links) expect(href).toContain("fold=aide%2F90-x");
+    for (const href of links) expect(href).toContain("open=aide%2F90-x");
   });
 
   // Spec 100: the list answers at `/`, so every link it builds for
   // itself is rooted there — `/specs` would cost a redirect hop on
   // every sort, filter and fold click.
   test("the filter, sort and fold links are rooted at / , not /specs", () => {
-    const html = rows([target("90-x"), target("90-y")], { fold: "aide/90-x", state: "not-started" });
+    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "not-started" });
     const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
     expect(links.length).toBeGreaterThan(4);
     for (const href of links) {
@@ -1428,10 +1495,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     ...extra,
   });
 
+  // The badge sits on the analyze PHASE LINE, which a collapsed row
+  // does not draw at all — so every example here opens its spec.
   const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
@@ -1501,7 +1570,7 @@ describe("every action form carries the current view (criterion 7)", () => {
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
-  const FILTER = { state: "all", project: "aide", sort: "spec", dir: "desc", fold: "aide/99-x" };
+  const FILTER = { state: "all", project: "aide", sort: "spec", dir: "desc", open: "aide/99-x" };
 
   test("the Run form sends every filter key (criterion 7)", () => {
     const line = head(rows([], [target("99-x")], { filter: FILTER }), "99-x");
@@ -1519,14 +1588,25 @@ describe("every action form carries the current view (criterion 7)", () => {
     expect([...line.matchAll(/name="project"/g)]).toHaveLength(1);
   });
 
-  test("no filter means no hidden view fields at all (criterion 7)", () => {
-    const line = head(rows([], [target("99-x")]), "99-x");
-    expect(line).not.toContain('name="view.');
+  // Nothing is sent that the view does not hold: the row is open, so
+  // the Run form is there to carry the fields, and the only key set is
+  // the only key posted.
+  test("a key the view does not hold is not sent (criterion 7)", () => {
+    const line = head(rows([], [target("99-x")], { filter: { open: "aide/99-x" } }), "99-x");
+    expect(line).toContain('<input type="hidden" name="view.open" value="aide/99-x">');
+    for (const key of ["state", "project", "sort", "dir"]) {
+      expect(line).not.toContain(`name="view.${key}"`);
+    }
   });
 
   test("the Cancel form sends them too (criterion 7)", () => {
     const running = row({ id: "j1", specFolder: "99-x", state: "running" });
-    const line = head(rows([running], [target("99-x")], { filter: { state: "active" } }), "99-x");
+    // Cancel belongs to the open row — a collapsed one offers Approve
+    // or Merge and nothing else (spec 103).
+    const line = head(
+      rows([running], [target("99-x")], { filter: { state: "active", open: "aide/99-x" } }),
+      "99-x",
+    );
     const form = line.match(/<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.state" value="active">');
   });
@@ -1633,8 +1713,14 @@ describe("spec 101: a busy job holds every step it was queued with (criteria 1-3
     specFolder,
     ...extra,
   });
+  // The step boxes belong to the open row (spec 103); which of them a
+  // busy job holds is what this block is about.
   const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
-    renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-08-18T12:00:00Z"),
+    );
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
   const box = (line: string, step: string) =>
@@ -1822,3 +1908,196 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   });
 });
 
+
+// --- spec 103: a collapsed row shows status only -----------------------------
+
+// Folding used to remove the four phase LINES and nothing else: the
+// collapsed row still carried the phase checkboxes, the model dropdown,
+// "more" and the Run button, so a list of collapsed rows was still a
+// wall of controls and folding said nothing about what it was FOR.
+// A collapsed row now says what the spec IS and what state it is in,
+// and offers at most the one thing it needs from the reader right now
+// (Approve while a gate waits, Merge while a branch waits). Everything
+// else belongs to the expanded row, which is what it always was.
+describe("spec 103: a collapsed row shows status only", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  /** The row's own "more" line: its own `<tr>`, not a cell of the header. */
+  const moreLine = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
+  /** The last cell of the header row — where every action lives. */
+  const actionCell = (line: string) => line.slice(line.lastIndexOf("<td>"));
+
+  const open = (folder: string) => ({ filter: { open: `aide/${folder}` } });
+
+  test("a collapsed row carries no run control at all (criterion 1)", () => {
+    const line = head(rows([], [target("103-idle")]), "103-idle");
+    expect(line).not.toBe("");
+    expect(line).not.toContain('action="/api/queue"');
+    expect(line).not.toContain('name="steps"');
+    expect(line).not.toContain('name="model"');
+    expect(line).not.toContain('class="more"');
+    expect(line).not.toContain(">Run<");
+  });
+
+  test("a collapsed row keeps its name, status, pips, started and cost (criterion 1)", () => {
+    const line = head(
+      rows(
+        [row({ id: "j1", specFolder: "103-idle", state: "done", spentUsd: 1.5,
+               startedAt: "2026-08-19T09:00:00Z" })],
+        [target("103-idle", { title: "Status only", phase: "Phase 3", percent: 75 })],
+      ),
+      "103-idle",
+    );
+    expect(line).toContain("103-idle");
+    expect(line).toContain("Status only");
+    expect(line).toContain("75% done");
+    expect(line).toContain('class="badge b-done"');
+    expect(line).toContain('class="pips"');
+    expect(line).toContain("$1.50");
+  });
+
+  test("a gated collapsed row offers Approve, and only Approve (criterion 2)", () => {
+    const cell = actionCell(
+      head(
+        rows([row({ id: "j1", specFolder: "103-gated", state: "awaiting-approval" })],
+             [target("103-gated")]),
+        "103-gated",
+      ),
+    );
+    expect(cell).toContain('action="/api/queue/j1/approve"');
+    expect(cell).not.toContain('action="/api/queue/j1/cancel"');
+    expect(cell.match(/<form/g)).toHaveLength(1);
+  });
+
+  test("a collapsed row with an unmerged branch offers Merge, and only Merge (criterion 3)", () => {
+    const cell = actionCell(
+      head(
+        rows(
+          [row({ id: "j1", specFolder: "103-merge", state: "done",
+                 branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
+          [target("103-merge")],
+        ),
+        "103-merge",
+      ),
+    );
+    expect(cell).toContain('action="/api/queue/j1/merge"');
+    expect(cell.match(/<form/g)).toHaveLength(1);
+    expect(cell).not.toContain('name="steps"');
+  });
+
+  test("a running collapsed row offers nothing — Cancel is one click away (criterion 4)", () => {
+    const cell = actionCell(
+      head(rows([row({ id: "j1", specFolder: "103-busy", state: "running" })], [target("103-busy")]),
+           "103-busy"),
+    );
+    expect(cell).not.toContain("<form");
+  });
+
+  test("a collapsed row with nothing pending has an empty action cell (criterion 4)", () => {
+    const cell = actionCell(head(rows([], [target("103-idle")]), "103-idle"));
+    expect(cell).not.toContain("<form");
+    expect(cell).not.toContain("<button");
+  });
+
+  test("with no open parameter at all, no row shows a run form (criterion 7)", () => {
+    const html = rows(
+      [
+        row({ id: "j1", specFolder: "103-a", state: "done" }),
+        row({ id: "j2", specFolder: "103-b", state: "running" }),
+      ],
+      [target("103-a"), target("103-b"), target("103-c")],
+    );
+    expect(html).not.toContain('action="/api/queue"');
+    expect(html).not.toContain('name="steps"');
+    expect(html).not.toContain('<tr class="subrow');
+  });
+
+  test("expanding a row reveals every control the page has always had (criterion 5)", () => {
+    const html = rows([], [target("103-idle")], {
+      ...open("103-idle"),
+      projects: ["aide", "paceup"],
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+    });
+    const line = head(html, "103-idle");
+    expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
+    expect(line).toContain('name="steps" value="analyze"');
+    expect(line).toContain(">Run</button>");
+    const more = moreLine(html, "103-idle");
+    expect(more).toContain('name="model"');
+    expect(more).toContain('name="gate"');
+    expect(more).toContain('name="extraProjects" value="paceup"');
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+  });
+
+  test("an expanded row's forms carry the open key forward (criterion 6)", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "103-gated", state: "awaiting-approval" })],
+      [target("103-gated")],
+      open("103-gated"),
+    );
+    const line = head(html, "103-gated");
+    expect(line).toContain('<input type="hidden" name="view.open" value="aide/103-gated">');
+    const approve = line.match(/<form method="post" action="\/api\/queue\/j1\/approve"[^>]*>.*?<\/form>/)![0];
+    expect(approve).toContain('name="view.open" value="aide/103-gated"');
+    // And Cancel is back, on the row that is open.
+    expect(line).toContain('action="/api/queue/j1/cancel"');
+  });
+
+  test("'more' is its own full-width line, never a cell of the header row (criterion 10)", () => {
+    const html = rows([], [target("103-idle")], {
+      ...open("103-idle"),
+      projects: ["aide", "paceup"],
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+    });
+    expect(head(html, "103-idle")).not.toContain('class="more"');
+    const more = moreLine(html, "103-idle");
+    expect(more).toContain('<td colspan="6">');
+    expect(more).toContain('<details class="more">');
+    // It sits directly under the row it belongs to, above the phase lines.
+    expect(html.indexOf('<tr data-more="103-idle"')).toBeGreaterThan(
+      html.indexOf('data-folder="103-idle"'),
+    );
+    expect(html.indexOf('<tr data-more="103-idle"')).toBeLessThan(html.indexOf('<tr class="subrow'));
+  });
+
+  test("a collapsed row emits no 'more' line at all (criterion 10)", () => {
+    const html = rows([], [target("103-idle")], { projects: ["aide", "paceup"] });
+    expect(html).not.toContain("data-more");
+    expect(html).not.toContain('class="more"');
+  });
+
+  // The model, the gate and the also-touches chips left the action cell,
+  // so they are no longer INSIDE the form they submit with. The `form`
+  // attribute is what carries them back — an id that drifts from the
+  // form's own silently runs the job with the defaults instead.
+  test("the moved fields submit with the row's own Run form (criterion 10)", () => {
+    const html = rows([], [target("103-idle")], {
+      ...open("103-idle"),
+      projects: ["aide", "paceup"],
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+    });
+    const id = head(html, "103-idle").match(/<form id="([^"]+)"/)![1];
+    const more = moreLine(html, "103-idle");
+    const fields = [...more.matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g)];
+    expect(fields.length).toBe(3);
+    for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
+  });
+});

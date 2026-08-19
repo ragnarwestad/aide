@@ -43,8 +43,20 @@ const target = (extra: Partial<QueueTarget> = {}): QueueTarget => ({
   ...extra,
 });
 
+// Spec 103: a row is collapsed unless the view names it, and the
+// controls this file is about come with opening it — so every render
+// here opens the one spec it draws.
 const rows = (list: QueueRowView[], opts: Partial<QueuePageOptions> = {}) =>
-  renderQueueRows(list, { runnerAvailable: true, targets: [], ...opts }, NOW);
+  renderQueueRows(
+    list,
+    {
+      runnerAvailable: true,
+      targets: [],
+      filter: { open: "aide/102-design-foundation" },
+      ...opts,
+    },
+    NOW,
+  );
 
 const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
   ...row(),

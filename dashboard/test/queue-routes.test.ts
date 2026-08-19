@@ -34,9 +34,21 @@ afterEach(() => {
 const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
 /** One spec's header row, which since spec 94 is where its Run control
- *  lives — and the only line of the spec folding leaves in the page. */
+ *  lives — and the only line of the spec a collapsed row leaves in the
+ *  page. */
 const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
+/** The row's "more" line: since spec 103 the model, the gate and the
+ *  other repos sit on a `<tr>` of their own under an OPEN row. */
+const specMore = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
+
+/** Since spec 103 a row is COLLAPSED unless the view names it, and the
+ *  run control comes with opening it. A test about that control asks
+ *  for the row open — the same query string the fold link builds. */
+const openQuery = (...keys: string[]): string => `open=${encodeURIComponent(keys.join(","))}`;
+const OPEN_81 = openQuery("aide/81-queue-and-runner");
 
 describe("no token configured", () => {
   test("every queue route is 503; /api/aide-runs and POST /api/aide-run are unaffected", async () => {
@@ -376,7 +388,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
 
   test("every row offers all four steps — the row is the way a spec starts (criterion 11)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     const line = specHead(html, "81-queue-and-runner");
     for (const step of ["analyze", "review-plan", "implement", "archive"]) {
       expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
@@ -428,7 +440,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     // Marked done on the row, and still submittable.
     expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
     const res = await postRow(base, {
@@ -446,7 +458,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // a spec crossing from one to the other told the reader nothing.
   test("a spec nothing has ever run is a row, and analyze starts from it (spec 90, criterion 16)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
     const line = specHead(html, "81-queue-and-runner");
@@ -459,12 +471,15 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
 
   test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
     const { base } = start({ queueToken: TOKEN });
-    const key = encodeURIComponent("aide/81-queue-and-runner");
-    const open = await (await fetch(`${base}/?rows=1`, auth)).text();
-    expect(open).toContain('<tr class="subrow');
-    const folded = await (await fetch(`${base}/?rows=1&fold=${key}`, auth)).text();
-    expect(folded).toContain('data-folder="81-queue-and-runner"');
-    expect(folded).not.toContain('<tr class="subrow');
+    // The refresh the page performs on itself sends `location.search`
+    // back, so the row the reader opened is still open in the swap —
+    // and a row nobody opened is still shut (spec 103's default).
+    const shut = await (await fetch(`${base}/?rows=1`, auth)).text();
+    expect(shut).toContain('data-folder="81-queue-and-runner"');
+    expect(shut).not.toContain('<tr class="subrow');
+    const opened = await (await fetch(`${base}/?rows=1&${OPEN_81}`, auth)).text();
+    expect(opened).toContain('data-folder="81-queue-and-runner"');
+    expect(opened).toContain('<tr class="subrow');
   });
 });
 
@@ -473,18 +488,20 @@ describe("GET / (the spec list, HTML)", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain("<nav>");
     expect(html).toContain("81-queue-and-runner");
-    expect(html).toContain('<form method="post"');
+    expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
     expect(html).toMatch(/<a class="current" href="\/"/);
     // Every control says what it is: an unlabelled select next to some
-    // checkboxes tells the reader nothing. They now sit on the spec's
-    // own row, behind a "more" disclosure where they would crowd it.
+    // checkboxes tells the reader nothing. The steps and Run are on the
+    // spec's own row; the three nobody sets every time are behind the
+    // "more" disclosure on the line under it (spec 103).
     const line = specHead(html, "81-queue-and-runner");
-    expect(line).toContain(">more</summary>");
-    expect(line).toContain("stop for approval between steps");
     expect(line).toContain(">Run</button>");
+    const more = specMore(html, "81-queue-and-runner");
+    expect(more).toContain(">more</summary>");
+    expect(more).toContain("stop for approval between steps");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
@@ -511,7 +528,9 @@ describe("GET / (the spec list, HTML)", () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
-    const rows = await (await fetch(`${base}/?rows=1`, { headers: { "x-aide-token": TOKEN } })).text();
+    const rows = await (
+      await fetch(`${base}/?rows=1&${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
@@ -519,7 +538,7 @@ describe("GET / (the spec list, HTML)", () => {
     // it must survive the swap: without it, every five seconds the
     // page would lose the only way to start a spec (criterion 8).
     const line = specHead(rows, "81-queue-and-runner");
-    expect(line).toContain('<form method="post" action="/api/queue"');
+    expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
   });
@@ -682,7 +701,7 @@ describe("the step boxes on a row follow that spec", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
@@ -696,7 +715,7 @@ describe("the step boxes on a row follow that spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
@@ -711,7 +730,7 @@ describe("the step boxes on a row follow that spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n" + "Findings, at length. ".repeat(40),
     );
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain('class="phase done" data-phase="analyze"');
     expect(line).not.toMatch(/value="analyze" checked/);
@@ -775,7 +794,7 @@ describe("what the queue has run counts too", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
 
     // Before the queue has run it, implement is what you came for.
-    let html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
 
     // Record a completed implement in the queue's own history, exactly
@@ -801,7 +820,9 @@ describe("what the queue has run counts too", () => {
       queueMirrorPath: join(dir, "queue.json"),
       projectRoot: join(dir, "root"),
     });
-    html = await (await fetch(`${second.base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    html = await (
+      await fetch(`${second.base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     expect(html).not.toMatch(/value="implement" checked/);
     expect(html).toMatch(/value="archive" checked/);
     // Queued again on top of a finished one: the chip says both.
@@ -824,10 +845,15 @@ describe("picking a model for a job", () => {
     modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
   };
 
+  // The choice belongs to a row the reader has opened (spec 103), so
+  // every page here opens the one spec it renders.
+  const OPEN = { open: "aide/81-queue-and-runner" };
+
   test("the form offers the configured models, and says what each is granted", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: OPEN,
       modelChoices: [
         { name: "sonnet", budgetUsd: 3 },
         { name: "fable", budgetUsd: 12 },
@@ -849,6 +875,7 @@ describe("picking a model for a job", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: OPEN,
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
       defaultBudgetUsd: 35,
     });
@@ -859,6 +886,7 @@ describe("picking a model for a job", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: OPEN,
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
     });
     expect(html).toContain('value=""');
@@ -869,6 +897,7 @@ describe("picking a model for a job", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: OPEN,
     });
     expect(html).not.toContain('name="model"');
   });
@@ -884,7 +913,7 @@ describe("picking a model for a job", () => {
       ],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
-      { runnerAvailable: true, targets: [] },
+      { runnerAvailable: true, targets: [], filter: OPEN },
     );
     expect(html).toContain("fable");
   });
@@ -1141,11 +1170,14 @@ describe("filtering and sorting work on specs, not jobs", () => {
     ...extra,
   });
 
+  // `open` names the specs whose phase lines are drawn: this block
+  // asserts that a filtered spec keeps every job it has had, and those
+  // are read off the lines an open row draws.
   const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
-      filter,
+      filter: { open: "aide/aa-spec", ...filter },
     });
 
   test("a spec with one job in flight is active, one with only finished jobs is not (criterion 8)", () => {
@@ -1307,9 +1339,11 @@ describe("each row asks which other repos its job will touch (criterion 5)", () 
     renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: { open: "aide/81-queue-and-runner" },
       projects,
     });
-  const line = (projects: string[]) => specHead(page(projects), "81-queue-and-runner");
+  // The chips are on the open row's "more" line since spec 103.
+  const line = (projects: string[]) => specMore(page(projects), "81-queue-and-runner");
 
   test("one checkbox per OTHER project, so a cross-repo job can say so up front", () => {
     const html = line(["aide", "aide-dashboard"]);
@@ -2011,7 +2045,9 @@ describe("landing a created spec (spec 93)", () => {
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
 
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (
+      await fetch(`${base}/?${openQuery("aide/94-a-new-spec")}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
     // Runnable from its own line, like every other spec...
@@ -2063,13 +2099,18 @@ describe("a description newer than the analysis is shown on the row", () => {
   const subRow = (html: string, phase: string): string =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
+  /** The badge sits on the analyze phase line and the marks on the step
+   *  boxes, and a collapsed row draws neither — so every fetch here
+   *  asks for the spec open. */
+  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`, auth).then((r) => r.text());
+
   test("the analyze line says the description changed since (criterion 1)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
       gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await listPage(base);
     expect(subRow(html, "analyze")).toContain("description changed since");
     expect(subRow(html, "implement")).not.toContain("description changed since");
   });
@@ -2080,7 +2121,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const line = specHead(await (await fetch(`${base}/`, auth)).text(), "81-queue-and-runner");
+    const line = specHead(await listPage(base), "81-queue-and-runner");
     expect(line).not.toContain('class="phase done" data-phase="analyze"');
     expect(line).not.toContain('class="phase done" data-phase="review-plan"');
     // implement is untouched by this check: its own done-mark comes
@@ -2102,7 +2143,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       ).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await listPage(base);
     expect(html).not.toContain("description changed since");
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain('class="phase done" data-phase="analyze"');
@@ -2115,7 +2156,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying("2026-08-18T08:00:00+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await listPage(base);
     expect(html).not.toContain("description changed since");
     expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });
@@ -2129,7 +2170,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitFake({}).run,
     });
     analysedSpec(dir);
-    const html = await (await fetch(`${base}/`, auth)).text();
+    const html = await listPage(base);
     expect(html).not.toContain("description changed since");
     expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });

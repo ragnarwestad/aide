@@ -119,13 +119,14 @@ export interface QueueFilter {
   project?: string;
   sort?: string;
   dir?: string;
-  /** Which specs are folded shut: `<project>/<folder>`, comma-separated.
-   *  It rides in the query string with the rest of the filter, which is
-   *  the whole reason it survives the five-second swap of the table —
-   *  `swapRows` sends `location.search` back on every tick. Never
-   *  rendered as text: only compared for membership, and re-encoded
-   *  through `queueHref`. */
-  fold?: string;
+  /** Which specs are expanded: `<project>/<folder>`, comma-separated.
+   *  A row is COLLAPSED unless it is named here — the list is a wall of
+   *  controls otherwise, and the reader came to read states. It rides in
+   *  the query string with the rest of the filter, which is the whole
+   *  reason it survives the five-second swap of the table — `swapRows`
+   *  sends `location.search` back on every tick. Never rendered as text:
+   *  only compared for membership, and re-encoded through `queueHref`. */
+  open?: string;
 }
 
 // --- what every form on this page needs ------------------------------------
@@ -148,7 +149,7 @@ const tokenField = (token?: string): string =>
 /** How the list is cut and ordered. One list, exported so `serve.ts`
  *  builds the redirect after a POST from the same five keys the forms
  *  send — two copies would eventually disagree about what "the view" is. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "fold"] as const;
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "open"] as const;
 
 /** The prefix a filter key rides under as a form field. Prefixed
  *  because one of the five is `project`, which is ALSO what the Run
@@ -444,8 +445,11 @@ function queueHref(f: QueueFilter, patch: QueueFilter): string {
   return esc(q ? `/?${q}` : "/");
 }
 
-const foldedSet = (f: QueueFilter): Set<string> =>
-  new Set((f.fold ?? "").split(",").filter(Boolean));
+// Which rows the reader has opened — the exceptions, not the rule. The
+// default is collapsed: a row says what the spec IS and how it is
+// doing, and the controls that act on it come with expanding it.
+const openedSet = (f: QueueFilter): Set<string> =>
+  new Set((f.open ?? "").split(",").filter(Boolean));
 
 // The fold is a LINK, not a button, and the state is in the URL. That
 // buys three things at once for no browser code at all: it works with
@@ -453,16 +457,16 @@ const foldedSet = (f: QueueFilter): Set<string> =>
 // `#jobrows` so a click neither reloads the page nor wipes a half-filled
 // form, and the choice survives the table swapping itself every five
 // seconds — the same mechanism the filter and the sort ride on.
-function foldControl(g: SpecGroup, f: QueueFilter, folded: Set<string>): string {
+function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string {
   const key = groupKey(g.project, g.specFolder);
-  const shut = folded.has(key);
-  const next = shut ? [...folded].filter((k) => k !== key) : [...folded, key];
+  const shut = !opened.has(key);
+  const next = shut ? [...opened, key] : [...opened].filter((k) => k !== key);
   return (
-    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { fold: next.join(",") })}" ` +
-    // The key is never the visible content — anything in `?fold=` is
+    `<a class="fold${shut ? " shut" : ""}" data-nav href="${queueHref(f, { open: next.join(",") })}" ` +
+    // The key is never the visible content — anything in `?open=` is
     // attacker-chosen text, and an icon cannot be mistaken for markup.
     `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${shut ? "show" : "hide"} the phases of ${esc(g.specFolder)}">${CHEVRON}</a>`
+    `title="${shut ? "show" : "hide"} the phases and controls of ${esc(g.specFolder)}">${CHEVRON}</a>`
   );
 }
 
@@ -551,10 +555,15 @@ function sortableHead(f: QueueFilter): string {
 // guard on it (`serve.ts`), so a gated job could be cancelled by
 // anything except the page it was gated on. The design sheet puts both
 // buttons on that row; this is where they come from.
-function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFilter | undefined): string {
+function actionForm(
+  r: QueueRowView,
+  token: string | undefined,
+  filter: QueueFilter | undefined,
+  o: { approveOnly?: boolean } = {},
+): string {
   const gated = r.state === "awaiting-approval";
   const canCancel = gated || r.state === "queued" || r.state === "running";
-  if (!canCancel) return "";
+  if (!(o.approveOnly ? gated : canCancel)) return "";
   const hidden = tokenField(token) + filterFields(filter);
   // `actionform` is what the page's own code selects on, and
   // `data-pending` is what the button says while the request is out —
@@ -564,6 +573,10 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
     `<form method="post" action="/api/queue/${esc(r.id)}/${verb}" class="actionform">${hidden}` +
     btn({ label, pending, variant }) +
     `</form>`;
+  // A collapsed row offers the one thing it needs RIGHT NOW and nothing
+  // else — approving is that thing; stopping the job is a decision the
+  // reader takes with the row open in front of them.
+  if (o.approveOnly) return one("approve", "Approve", "approving…", "ok");
   return (
     (gated ? one("approve", "Approve", "approving…", "ok") : "") +
     one("cancel", "Cancel", "cancelling…", "danger")
@@ -649,6 +662,22 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
     btn({ label: "merge anyway", small: true, pending: "merging…", title: names }) +
     `</form></span>`
   );
+}
+
+// What a COLLAPSED row may ask of the reader: the one thing the spec
+// needs right now, or nothing at all. Approve while a gate waits, Merge
+// while a branch waits — the two the description names as reachable
+// without expanding. Everything else (Run, Cancel, the model, the gate,
+// the other repos) belongs to the row you have opened.
+//
+// A selector, never a second copy of the markup: both branches call the
+// same component the expanded row calls, so a change to either form
+// reaches both places at once.
+function collapsedAction(g: SpecGroup, opts: QueuePageOptions, refused: boolean): string {
+  if (g.lead && g.lead.state === "awaiting-approval") {
+    return actionForm(g.lead, opts.token, opts.filter, { approveOnly: true });
+  }
+  return mergeForm(g, opts, refused);
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
@@ -761,20 +790,17 @@ function stepBoxes(g: SpecGroup): string {
   );
 }
 
-// One control per spec, on the spec's own row: tick the phases, press
-// Run once, and they go as ONE job in the workflow's order — the browser
-// submits checkboxes in the order they are drawn, never in the order
-// they were clicked.
-//
-// It sits on the HEADER row and not on the phase lines, because folding
-// OMITS those lines from the page (see `groupRows`). A control on a line
-// that is sometimes not drawn is a control that sometimes is not there.
-//
-// Everything the retired form above the table asked for is here. The
-// model is in the open; the other repos the job will touch and whether
-// to stop for approval between the steps are behind a disclosure, so
-// four boxes and a button is all the row costs when nobody asks.
-function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
+// The run form's own id. It exists for the "more" line's sake alone:
+// those fields sit in a different `<tr>`, and `form="<id>"` is what
+// makes the browser post them with this form anyway.
+const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
+
+// The three things nobody sets every time — the model, the other repos
+// the job will touch, and whether to stop for approval between the
+// steps. Built here rather than inside `moreRow` so the `form`
+// attribute every one of them needs is written once, beside the id it
+// has to match.
+function moreFields(g: SpecGroup, opts: QueuePageOptions): string {
   // The heavy model is worth reserving for heavy work, so the choice is
   // explicit and the default is "whatever the config says per step".
   // Each option carries what it is granted per step, because that is the
@@ -788,10 +814,11 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     typeof opts.defaultBudgetUsd === "number"
       ? `as configured per step — $${opts.defaultBudgetUsd} per step`
       : "as configured per step";
+  const formId = runFormId(g);
   const select = models.length
     ? field(
         "Model",
-        `<select name="model">` +
+        `<select name="model" form="${esc(formId)}">` +
           `<option value="">${esc(asConfigured)}</option>` +
           models
             .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
@@ -810,7 +837,13 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
         phases(
           others
             .map((p) =>
-              phaseChip({ dataAttr: "data-project", value: p, label: p, name: "extraProjects" }),
+              phaseChip({
+                dataAttr: "data-project",
+                value: p,
+                label: p,
+                name: "extraProjects",
+                form: formId,
+              }),
             )
             .join(""),
         ),
@@ -826,7 +859,25 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     value: "1",
     label: "stop for approval between steps",
     name: "gate",
+    form: formId,
   });
+  return `${select}${extraField}${gate}`;
+}
+
+// One control per spec, on the spec's own row: tick the phases, press
+// Run once, and they go as ONE job in the workflow's order — the browser
+// submits checkboxes in the order they are drawn, never in the order
+// they were clicked.
+//
+// It sits on the HEADER row and not on the phase lines, and it is drawn
+// only for a row the reader has OPENED (see `groupRows`): a collapsed
+// row is about what the spec is and how far it has got, not about
+// starting it.
+//
+// Everything the retired form above the table asked for is still here:
+// four boxes and a button on the row itself, and the three rarely-set
+// fields on the row's own "more" line beneath it (`moreRow`).
+function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // Run while any phase is still to run for the first time; Run again
   // only once every phase has — a spec with `archive` pre-ticked and
   // never run was offering "Run again" for it. While a job is in flight
@@ -842,14 +893,29 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     title: running ? "a job is running — tick a phase it does not hold to run more" : undefined,
   });
   return (
-    `<form method="post" action="/api/queue" class="rowrun">${tokenField(opts.token)}${filterFields(opts.filter)}` +
+    `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
+    `${tokenField(opts.token)}${filterFields(opts.filter)}` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
     stepBoxes(g) +
-    `<details class="more"><summary title="more: model, gate, also touches">more</summary>` +
-    `<span class="row">${select}${extraField}${gate}</span></details>` +
     run +
     `</form>`
+  );
+}
+
+// "more" on a line of its OWN, under the row it belongs to. It used to
+// be a `<details>` inside the action cell: opening it widened that cell
+// and shoved every column sideways, so the reader lost their place on a
+// row they were reading. A full-width row cannot widen a column,
+// because it is not inside one.
+//
+// Drawn only when the row is open, and omitted rather than hidden —
+// the same rule the phase lines follow (`groupRows`).
+function moreRow(g: SpecGroup, opts: QueuePageOptions): string {
+  return (
+    `<tr data-more="${esc(g.specFolder)}"><td colspan="6">` +
+    `<details class="more"><summary title="more: model, gate, also touches">more</summary>` +
+    `<span class="row">${moreFields(g, opts)}</span></details></td></tr>`
   );
 }
 
@@ -915,7 +981,10 @@ function specSummary(g: SpecGroup): string {
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and every action there is to take on it — running
 // its phases included.
-function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: Set<string>): string {
+function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: Set<string>): string {
+  // The one new fact the row needs: a collapsed row is a status line,
+  // an open one is the row this page has always had.
+  const collapsed = !opened.has(groupKey(g.project, g.specFolder));
   // Three answers, not two — and named `run-*` rather than
   // `active`/`archived`, which `site.ts` uses for the unrelated
   // question of whether a spec folder has been archived on disk. The
@@ -953,7 +1022,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
-    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, folded)} ${spec}${diff}</div>` +
+    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
     // pressed it on, with the warning mark beside it, so a refusal is
@@ -972,10 +1041,17 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Run is about what the spec has still to do; approve/cancel is
     // about the run in flight; Merge is about the work one left behind.
-    // All three live in the one action cell, and the Run control is
-    // first because it is the one every row has.
-    `<td>${specRunForm(g, opts)}${g.lead ? actionForm(g.lead, opts.token, opts.filter) : ""}` +
-    `${mergeForm(g, opts, !!refusal)}</td></tr>`
+    // All three live in the one action cell of an OPEN row, and the Run
+    // control is first because it is the one every open row has. A
+    // collapsed row gets at most one of them — whichever the spec is
+    // actually waiting on.
+    `<td>${
+      collapsed
+        ? collapsedAction(g, opts, !!refusal)
+        : specRunForm(g, opts) +
+          (g.lead ? actionForm(g.lead, opts.token, opts.filter) : "") +
+          mergeForm(g, opts, !!refusal)
+    }</td></tr>`
   );
 }
 
@@ -984,8 +1060,8 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, folded: 
 // it says what is still ahead without anyone counting rows.
 //
 // Read-only: the phase is RUN from the header row, which is the only
-// line of a folded spec left in the page. The trailing cell stays, empty
-// — the table is six columns wide on every row.
+// line a collapsed spec leaves in the page. The trailing cell stays,
+// empty — the table is six columns wide on every row.
 function phaseSubRows(g: SpecGroup, now: number): string {
   return g.phases
     .map((p) => {
@@ -1028,15 +1104,22 @@ function phaseSubRows(g: SpecGroup, now: number): string {
     .join("");
 }
 
-// Folding OMITS the phase lines rather than hiding them: the state is in
-// the URL, so the server knows before it draws. A `<details>` cannot do
-// this — it breaks the table — and a checkbox's state would be destroyed
-// by the innerHTML swap every five seconds.
-function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, folded: Set<string>): string {
+// A collapsed row OMITS its phase lines and its "more" line rather than
+// hiding them: the state is in the URL, so the server knows before it
+// draws. A `<details>` cannot do this — it breaks the table — and a
+// checkbox's state would be destroyed by the innerHTML swap every five
+// seconds.
+//
+// Collapsed is the default, and the URL names the exceptions. That is
+// what the fold is FOR: a list of twenty specs is read one state at a
+// time, and the row you are about to act on is the one you open.
+function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, opened: Set<string>): string {
   return groups
     .map((g) => {
-      const head = specHeadRow(g, opts, now, folded);
-      return folded.has(groupKey(g.project, g.specFolder)) ? head : head + phaseSubRows(g, now);
+      const head = specHeadRow(g, opts, now, opened);
+      return opened.has(groupKey(g.project, g.specFolder))
+        ? head + moreRow(g, opts) + phaseSubRows(g, now)
+        : head;
     })
     .join("");
 }
@@ -1060,7 +1143,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? groupRows(matched.slice(0, SHOWN), opts, now, foldedSet(f))
+    ? groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
     : `<tr><td colspan="6" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at

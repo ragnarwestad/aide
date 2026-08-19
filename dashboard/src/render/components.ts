@@ -138,6 +138,11 @@ export function phaseChip(o: {
   busy?: boolean;
   disabled?: boolean;
   title?: string;
+  /** The id of the form this box belongs to, for a box drawn OUTSIDE
+   *  that form — the spec row's "more" fields sit on a line of their
+   *  own, which is a different `<tr>` from the one the Run form is in.
+   *  Without it the browser posts the form without them. */
+  form?: string;
 }): string {
   const state = o.busy ? "busy" : o.disabled ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
   // `done` is a FACT about the phase, not one of the five looks: a step
@@ -150,6 +155,7 @@ export function phaseChip(o: {
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
     `${o.title ? ` title="${esc(o.title)}"` : ""}>` +
     `<input type="checkbox" name="${o.name}" value="${esc(o.value)}"` +
+    `${o.form ? ` form="${esc(o.form)}"` : ""}` +
     `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}>` +
     `${mark} <span>${esc(o.label)}</span>${tick}</label>`
   );
