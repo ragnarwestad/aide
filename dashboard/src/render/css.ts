@@ -419,18 +419,11 @@ tr[data-controls] .row { align-items: flex-end; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
-/* The Projects panel (spec 112). One Add form built out of the same
-   pieces as New spec, and one line per allowlisted project under it.
-   "projectadmin", "addprojectform" and "removeform" are what
-   queue-client.ts selects on — laid out here, coloured nowhere. */
-.projectadmin .removeform { display: flex; gap: var(--sp-3); align-items: flex-end;
-  flex-wrap: wrap; margin-top: var(--sp-3); padding-top: var(--sp-3);
-  border-top: 1px solid var(--line); }
-.projectadmin .removeform > .label { flex-basis: 100%; font-family: var(--mono); }
-.projectadmin .removeform .rowmsg { flex-basis: 100%; margin: 0; }
-.projectadmin .removeform [data-confirm] { display: flex; gap: var(--sp-2);
-  align-items: flex-end; }
-.projectadmin .refused { flex-basis: 100%; }
+/* The Remove confirmation, on a page of its own since 2026-08-19 (the
+   panel these rules used to scope under is gone). "addprojectform" and
+   "removeform" are what queue-client.ts selects on — laid out here,
+   coloured nowhere. */
+.removeform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
 /* The "…" menu (spec 119): About and the theme choices, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the
