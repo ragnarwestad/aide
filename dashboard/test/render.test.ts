@@ -3225,3 +3225,28 @@ describe("spec 114: a spec with an unmerged dependency says so on the row", () =
     expect(hintCell(html, "114-b")).toContain("after 106");
   });
 });
+
+// The create exception ends where the archive begins: a create job keeps
+// its group on the page while its spec has not landed, but once the
+// folder is in archive/ that same exception kept a ghost row with
+// nonsense statuses — seen with 111 and 112 on 2026-08-19.
+describe("an archived spec's create job is not a row", () => {
+  const createJob = (folder: string): QueueRowView => ({
+    id: "c1",
+    project: "aide",
+    specFolder: folder,
+    steps: ["create"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-19T10:00:00Z",
+  });
+  test("visible while unlanded, gone once archived", () => {
+    const opts = { runnerAvailable: true, targets: [{ project: "aide", specFolder: "90-other" }] };
+    const before = renderQueueRows([createJob("111-x")], opts, Date.parse("2026-08-19T12:00:00Z"));
+    expect(before).toContain('data-folder="111-x"');
+    const after = renderQueueRows([createJob("111-x")], { ...opts, archived: ["aide/111-x"] }, Date.parse("2026-08-19T12:00:00Z"));
+    expect(after).not.toContain('data-folder="111-x"');
+  });
+});

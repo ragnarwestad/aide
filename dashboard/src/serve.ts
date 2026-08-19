@@ -456,16 +456,24 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
-  let scan: { at: number; targets: QueueTarget[] } | null = null;
+  let scan: { at: number; targets: QueueTarget[]; archived: string[] } | null = null;
   const targets = (): QueueTarget[] => {
     const now = Date.now();
     if (scan && now - scan.at < 5000) return scan.targets;
     const found: QueueTarget[] = [];
+    const gone: string[] = [];
     if (opts.projectRoot) {
       for (const p of discoverProjects(opts.projectRoot)) {
         if (!allowed.has(p.name)) continue;
         for (const s of p.specs) {
-          if (s.archived) continue;
+          // Remembered by key: a create job keeps its group visible
+          // while its spec has not landed, and "archived" is the one
+          // proof that it HAS — without it the ghost row outlives the
+          // spec (seen with 111/112 on 2026-08-19).
+          if (s.archived) {
+            gone.push(`${p.name}/${s.folder}`);
+            continue;
+          }
           // What a reader needs to CHOOSE a spec: what it is called and
           // how far it has got. Both are already on disk.
           let statusText = "";
@@ -507,7 +515,7 @@ export function createServer(opts: ServerOptions) {
         }
       }
     }
-    scan = { at: now, targets: found };
+    scan = { at: now, targets: found, archived: gone };
     return found;
   };
   const resolveProject: ProjectResolver = (project) => {
@@ -1058,9 +1066,11 @@ export function createServer(opts: ServerOptions) {
     if (path === "/") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const liveTargets = await withFreshness(targets());
+      const archivedKeys = scan?.archived ?? [];
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: liveTargets,
+        archived: archivedKeys,
         script: queueClientScript(),
         // Only what the config granted a budget to is offerable: a
         // dropdown naming a model the machine has not agreed to pay for

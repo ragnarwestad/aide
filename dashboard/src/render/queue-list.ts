@@ -89,6 +89,11 @@ export interface QueuePageOptions {
    *  "queued" with no explanation. */
   runnerAvailable: boolean;
   targets: QueueTarget[];
+  /** `project/folder` keys of ARCHIVED specs. A create job normally
+   *  keeps its group visible even though its spec is not a target (the
+   *  folder does not exist until it lands) — but once the spec has been
+   *  archived, that exception would keep a ghost row forever. */
+  archived?: string[];
   token?: string;
   /** Browser code for this page, compiled from `queue-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
@@ -371,7 +376,7 @@ const heldBackFor = (step: string, t: QueueTarget | undefined): { heldBack?: { r
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
-function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] {
+function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: string[]): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
     const key = groupKey(r.project, r.specFolder);
@@ -387,13 +392,21 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[]): SpecGroup[] 
   // and a project losing its whole history to a momentarily unreadable
   // disk is not recoverable by a filter.
   const judgeable = new Set(targets.map((t) => t.project));
+  const archivedSet = new Set(archived ?? []);
   const fromJobs = [...byKey.entries()]
     // A create job's spec is not a known target BY CONSTRUCTION: the
     // folder is what the job is making, and until it lands there is
     // nothing on disk to match. Without this it would be filtered out
     // in exactly the projects that already have specs — so the job the
     // reader just started would render nothing at all.
-    .filter(([key, all]) => known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate))
+    .filter(
+      ([key, all]) =>
+        known.has(key) ||
+        !judgeable.has(all[0]!.project) ||
+        // The create exception ends where the archive begins: a spec
+        // that has been archived is no longer "not landed yet".
+        (all.some(isCreate) && !archivedSet.has(key)),
+    )
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
     ...fromJobs,
@@ -1524,7 +1537,7 @@ function groupRows(
 // gets one line, with its phases beneath it.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(rows, opts.targets);
+  const groups = groupBySpec(rows, opts.targets, opts.archived);
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
