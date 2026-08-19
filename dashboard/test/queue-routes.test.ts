@@ -519,10 +519,20 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain('id="jobrows"');
   });
 
-  test("the generated pages carry no page code — they need none", async () => {
+  // Spec 107 narrowed this, deliberately and by exactly one script. A
+  // theme the reader chose has to be applied before the page paints,
+  // and a generated page is a FILE — there is no server in front of it
+  // to have decided. So every page now carries the theme switcher, and
+  // this test says which script that is rather than allowing scripts
+  // in general: anything else appearing here is still the drift the
+  // test was written to stop.
+  test("the generated pages carry no page code beyond the shared theme switcher", async () => {
     const { renderSite } = await import("../src/render.ts");
     for (const page of renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "x")) {
-      expect(page.html).not.toContain("<script");
+      const scripts = [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
+      expect(scripts).toHaveLength(1);
+      expect(scripts[0]).toContain("data-theme-choice");
+      expect(page.html.match(/<script/g)).toHaveLength(1);
     }
   });
 
@@ -686,17 +696,48 @@ describe("every row answers for itself", () => {
 });
 
 describe("page code placement", () => {
+  /** Where the <script> whose code contains `needle` starts. The served
+   *  page has carried two inline scripts since spec 107 — the theme
+   *  switcher in <head> and the list's own code at the end of <body> —
+   *  so "the first one" stopped naming either of them. */
+  const scriptAt = (html: string, needle: string): number => {
+    for (const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+      if (m[1]!.includes(needle)) return m.index!;
+    }
+    return -1;
+  };
+
   test("the script comes AFTER the elements it wires up", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     const rows = html.indexOf('id="jobrows"');
-    const script = html.indexOf("<script>");
+    const script = scriptAt(html, "jobrows");
     expect(rows).toBeGreaterThan(-1);
     expect(script).toBeGreaterThan(-1);
     // An inline script in <head> runs before the DOM exists, so every
     // listener attaches to nothing — and the failure is silent.
     expect(script).toBeGreaterThan(rows);
     expect(html.indexOf("</head>")).toBeLessThan(script);
+  });
+
+  // Spec 107. The other placement, and the opposite reason for it: the
+  // theme has to be on the html element before the first paint, so this
+  // script deliberately goes where the one above must not.
+  test("the theme switcher comes BEFORE anything it could be seen to change", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const theme = scriptAt(html, "data-theme-choice");
+    expect(theme).toBeGreaterThan(-1);
+    expect(theme).toBeLessThan(html.indexOf("</head>"));
+    expect(theme).toBeLessThan(html.indexOf("<body>"));
+    expect(theme).toBeLessThan(html.indexOf('id="jobrows"'));
+  });
+
+  test("the two scripts are two, and each is found by what it says", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html.match(/<script/g)).toHaveLength(2);
+    expect(scriptAt(html, "jobrows")).not.toBe(scriptAt(html, "data-theme-choice"));
   });
 });
 

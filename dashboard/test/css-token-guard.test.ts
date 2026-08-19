@@ -84,6 +84,71 @@ describe("css.ts uses tokens and nothing else", () => {
   });
 });
 
+// --- the theme a reader chose (spec 107) ------------------------------------
+//
+// Four token blocks now, not two: the machine's preference, and the
+// same two sets again as an explicit choice. That repetition is what a
+// reader is most likely to "tidy up" — the light block especially,
+// which looks redundant beside the default `:root` until you notice it
+// is the only thing that survives a machine set to dark. These tests
+// say what each block is FOR, so deleting one fails with a reason
+// rather than with a colour nobody can reproduce.
+
+/** The token declarations that follow `opening`, as `name: value`
+ *  pairs. Reads the block delimited by the sentinels, so it sees
+ *  exactly what the guard above exempts. `opening` carries its own
+ *  brace: the selectors are named in the prose above the rules too, and
+ *  the first mention of one is a comment, not the rule. */
+function tokensAfter(css: string, opening: string): Record<string, string> {
+  const at = css.indexOf(opening);
+  expect(at).toBeGreaterThan(-1);
+  const start = css.indexOf(TOKEN_START, at);
+  const end = css.indexOf(TOKEN_END, start);
+  expect(end).toBeGreaterThan(start);
+  const out: Record<string, string> = {};
+  for (const m of css.slice(start + TOKEN_START.length, end).matchAll(/(--[a-z0-9-]+):\s*([^;]+)/g)) {
+    out[m[1]!] = m[2]!.trim();
+  }
+  expect(Object.keys(out).length).toBeGreaterThan(5);
+  return out;
+}
+
+describe("an explicit theme is the same ramp, not a third one", () => {
+  test("the chosen Dark is exactly what the machine's dark preference gives", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    expect(tokensAfter(css, ':root[data-theme="dark"] {')).toEqual(
+      tokensAfter(css, "@media (prefers-color-scheme: dark) {"),
+    );
+  });
+
+  test("the chosen Light is exactly the default set, colour for colour", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    // The light block only looks redundant. It is an ATTRIBUTE selector
+    // and the dark preference above is a bare `:root` inside a media
+    // query, so this is the one rule that keeps an explicit Light on a
+    // machine set to dark. The default set is the top of the file, and
+    // the size/space tokens live there and nowhere else, so compare on
+    // the colours the two have in common.
+    const chosen = tokensAfter(css, ':root[data-theme="light"] {');
+    const base = tokensAfter(css, ":root {");
+    for (const [name, value] of Object.entries(chosen)) expect([name, base[name]]).toEqual([name, value]);
+  });
+
+  test("neither block sits inside a media query, which is what would sink it", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    // A `@media` block between the selector and the end of the
+    // stylesheet is fine; one that OPENS before it and has not closed
+    // is not — the choice would then apply only when the machine
+    // already agreed with it.
+    for (const selector of [':root[data-theme="dark"] {', ':root[data-theme="light"] {']) {
+      const before = css.slice(0, css.indexOf(selector));
+      const opened = (before.match(/@media[^{]*\{/g) ?? []).length;
+      const braces = (before.match(/\{/g) ?? []).length - (before.match(/\}/g) ?? []).length;
+      expect([selector, opened > 0 && braces > 0]).toEqual([selector, false]);
+    }
+  });
+});
+
 // --- the class vocabulary ---------------------------------------------------
 
 /** The six components and their documented modifiers. Anything a page

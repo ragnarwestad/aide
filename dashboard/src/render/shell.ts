@@ -2,6 +2,9 @@
 // around it. Self-contained by design — inline CSS, no external
 // references — because the generated site is published as plain files.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { CSS } from "./css.ts";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { esc } from "./html.ts";
@@ -9,6 +12,31 @@ import { esc } from "./html.ts";
 export interface NavEntry {
   label: string;
   path: string;
+}
+
+// The theme switcher's own code is TypeScript like the rest of the
+// repo; the browser needs JavaScript. Transpiled once, here, the way
+// `serve.ts` does it for `queue-client.ts` — Bun has the transpiler
+// in-process, so this needs no build step and no bundle in the repo.
+const THEME_SCRIPT = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
+  readFileSync(join(import.meta.dir, "theme-script.ts"), "utf-8"),
+);
+
+// Dark, Light, Auto. Not <li><a> entries: they are not a third page to
+// go to, so they sit under the link list rather than in it, and mark
+// the chosen one with `aria-current` rather than the `current` class,
+// which means "the page you are on".
+const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]];
+
+function themeControl(): string {
+  // Auto is marked here because the server has no way to know what this
+  // reader picked — `theme-script.ts` moves the marker once it does.
+  const buttons = THEME_CHOICES.map(
+    ([choice, label]) =>
+      `<button type="button" data-theme-choice="${choice}"` +
+      `${choice === "auto" ? ' aria-current="true"' : ""}>${label}</button>`,
+  );
+  return `<span class="lbl">Theme</span><span class="filters">${buttons.join("")}</span>`;
 }
 
 export function nav(entries: NavEntry[], currentPath: string): string {
@@ -31,7 +59,7 @@ export function nav(entries: NavEntry[], currentPath: string): string {
     link({ label: "About", path: "about.html" }, currentPath === "about.html"),
   ];
   // The mark sits above the link list, per the brand handoff's step 2.
-  return `<nav>${WORDMARK}<ul>${lis.join("")}</ul></nav>`;
+  return `<nav>${WORDMARK}<ul>${lis.join("")}</ul>${themeControl()}</nav>`;
 }
 
 export function pageShell(
@@ -50,11 +78,13 @@ export function pageShell(
   // that did not run it.
   const meta = refreshSeconds ? `<meta http-equiv="refresh" content="${refreshSeconds}">` : "";
   const refresh = !meta ? "" : opts.refreshInNoscript ? `\n<noscript>${meta}</noscript>` : `\n${meta}`;
-  // At the END of the body, never in <head>: an inline script in the
-  // head runs before the elements exist, so every listener it tries to
-  // attach silently attaches to nothing. (Which is exactly what
-  // happened: the table still refreshed on its timer, so it looked
-  // like the code was running.)
+  // At the END of the body: a page's own code wires up elements, and an
+  // inline script in the head runs before they exist, so every listener
+  // it tries to attach silently attaches to nothing. (Which is exactly
+  // what happened: the table still refreshed on its timer, so it looked
+  // like the code was running.) THEME_SCRIPT above is in <head> for the
+  // mirror-image reason — it has to decide a colour before the body is
+  // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   return `<!doctype html>
 <html lang="en">
@@ -64,6 +94,7 @@ export function pageShell(
 <title>${esc(opts.docTitle ?? `aide · ${title}`)}</title>
 ${ICON_LINKS}
 <style>${CSS}</style>
+<script>${THEME_SCRIPT}</script>
 </head>
 <body>
 <div class="layout">
