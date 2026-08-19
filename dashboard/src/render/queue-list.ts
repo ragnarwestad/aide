@@ -627,7 +627,7 @@ function actionForm(
   r: QueueRowView,
   token: string | undefined,
   filter: QueueFilter | undefined,
-  o: { approveOnly?: boolean } = {},
+  o: { approveOnly?: boolean; cancelOnly?: boolean } = {},
 ): string {
   const gated = r.state === "awaiting-approval";
   const canCancel = gated || r.state === "queued" || r.state === "running";
@@ -645,8 +645,13 @@ function actionForm(
   // else — approving is that thing; stopping the job is a decision the
   // reader takes with the row open in front of them.
   if (o.approveOnly) return one("approve", "Approve", "approving…", "ok");
+  // The mirror of `approveOnly`, and it exists for the same reason the
+  // two buttons ended up on different lines (spec 109): Approve is what
+  // a gate needs RIGHT NOW, so it stays on the header the reader is
+  // already looking at, and drawing it a second time on the controls
+  // line below would be one decision offered twice.
   return (
-    (gated ? one("approve", "Approve", "approving…", "ok") : "") +
+    (o.cancelOnly ? "" : gated ? one("approve", "Approve", "approving…", "ok") : "") +
     one("cancel", "Cancel", "cancelling…", "danger")
   );
 }
@@ -750,6 +755,11 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 // while a branch waits — the two the description names as reachable
 // without expanding. Everything else (Run, Cancel, the model, the gate,
 // the other repos) belongs to the row you have opened.
+//
+// Since spec 109 it is what the header cell draws whether the row is
+// open or shut, which is why the header line holds still when a row is
+// expanded: an OPEN row's extra controls go on their own line under it
+// (`controlsRow`), never into this cell.
 //
 // A selector, never a second copy of the markup: both branches call the
 // same component the expanded row calls, so a change to either form
@@ -991,14 +1001,14 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
 // submits checkboxes in the order they are drawn, never in the order
 // they were clicked.
 //
-// It sits on the HEADER row and not on the phase lines, and it is drawn
-// only for a row the reader has OPENED (see `groupRows`): a collapsed
-// row is about what the spec is and how far it has got, not about
-// starting it.
+// It sits on the spec's own CONTROLS line — under the header, never
+// inside it (`controlsRow`) — and it is drawn only for a row the reader
+// has OPENED (see `groupRows`): a collapsed row is about what the spec
+// is and how far it has got, not about starting it.
 //
 // Everything the retired form above the table asked for is still here:
-// four boxes and a button on the row itself, and the three rarely-set
-// fields on the row's own "more" line beneath it (`moreRow`).
+// four boxes and a button on the line the row opens to, and the three
+// rarely-set fields on the "more" line beneath that (`moreRow`).
 function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // Run while any phase is still to run for the first time; Run again
   // only once every phase has — a spec with `archive` pre-ticked and
@@ -1027,6 +1037,26 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
     stepBoxes(g, busy) +
     run +
     `</form>`
+  );
+}
+
+// Everything an OPEN row offers that a shut one does not, on a line of
+// its own directly under the header. It used to be concatenated into
+// the header's last `<td>` beside whatever that cell already showed —
+// a cell nothing sets a width on, so it wrapped, and the header line
+// the reader was scanning moved down at the moment they acted on it
+// (spec 109). `moreRow` had already been pulled out of that same cell
+// for that same reason; this is the rest of it.
+//
+// Cancel only, never Approve: a gate's Approve stays on the header,
+// where a shut row already offers it, so the one decision is in one
+// place. Merge stays there for the same reason.
+function controlsRow(g: SpecGroup, opts: QueuePageOptions): string {
+  return (
+    `<tr data-controls="${esc(g.specFolder)}"><td colspan="6">` +
+    specRunForm(g, opts) +
+    (g.lead ? actionForm(g.lead, opts.token, opts.filter, { cancelOnly: true }) : "") +
+    `</td></tr>`
   );
 }
 
@@ -1170,12 +1200,10 @@ function specSummary(g: SpecGroup): string {
 }
 
 // The header line for one spec: what it is, how far it has got, what it
-// has cost in total, and every action there is to take on it — running
-// its phases included.
+// has cost in total, and the one action the spec is actually waiting on.
+// Running its phases is NOT here — that, and stopping a run, live on the
+// controls line an open row grows beneath this one (`controlsRow`).
 function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: Set<string>): string {
-  // The one new fact the row needs: a collapsed row is a status line,
-  // an open one is the row this page has always had.
-  const collapsed = !opened.has(groupKey(g.project, g.specFolder));
   // Three answers, not two — and named `run-*` rather than
   // `active`/`archived`, which `site.ts` uses for the unrelated
   // question of whether a spec folder has been archived on disk. The
@@ -1253,19 +1281,11 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
     )}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
-    // Run is about what the spec has still to do; approve/cancel is
-    // about the run in flight; Merge is about the work one left behind.
-    // All three live in the one action cell of an OPEN row, and the Run
-    // control is first because it is the one every open row has. A
-    // collapsed row gets at most one of them — whichever the spec is
-    // actually waiting on.
-    `<td>${
-      collapsed
-        ? collapsedAction(g, opts, !!refusal, conflict)
-        : specRunForm(g, opts) +
-          (g.lead ? actionForm(g.lead, opts.token, opts.filter) : "") +
-          (specBusy(g) ? "" : mergeForm(g, opts, !!refusal) + (conflict ? resolveForm(g, opts) : ""))
-    }</td></tr>`
+    // The same cell whether the row is open or shut, which is the whole
+    // point: at most one action — whichever the spec is actually
+    // waiting on — so opening a row cannot make this cell taller and
+    // take the line the reader was scanning down with it.
+    `<td>${collapsedAction(g, opts, !!refusal, conflict)}</td></tr>`
   );
 }
 
@@ -1333,7 +1353,7 @@ function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, ope
     .map((g) => {
       const head = specHeadRow(g, opts, now, opened);
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
+        ? head + controlsRow(g, opts) + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
         : head;
     })
     .join("");

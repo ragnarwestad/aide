@@ -285,10 +285,11 @@ table.list tbody tr.spechead:first-child td { border-top: none; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
-/* An open row's "more" line: full width, directly under the row it
-   belongs to, so opening the disclosure changes one row's height and no
-   column's width. */
-table.list tr[data-more] td { border-bottom: none; padding-top: 0; padding-bottom: 2px; }
+/* The two lines an open row grows above its phase lines — its controls
+   and its "more" — are full width, directly under the row they belong
+   to, so opening a row changes its height and no column's width. */
+table.list tr[data-more] td, table.list tr[data-controls] td {
+  border-bottom: none; padding-top: 0; padding-bottom: 2px; }
 table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */

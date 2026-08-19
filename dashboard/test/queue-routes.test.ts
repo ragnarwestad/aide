@@ -39,6 +39,12 @@ const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
+/** The row's controls line: since spec 109 the phase boxes, Run and
+ *  Cancel sit on a `<tr>` of their own under an OPEN row, so that
+ *  opening one cannot change the header line's shape. */
+const specControls = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
+
 /** The row's "more" line: since spec 103 the model, the gate and the
  *  other repos sit on a `<tr>` of their own under an OPEN row. */
 const specMore = (html: string, folder: string): string =>
@@ -407,7 +413,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   test("every row offers all four steps — the row is the way a spec starts (criterion 11)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     for (const step of ["analyze", "review-plan", "implement", "archive"]) {
       expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
     }
@@ -460,7 +466,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     // Marked done on the row, and still submittable.
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -479,7 +485,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     // Nothing has ever run for it, so analyze and review-plan are ticked
     // together — the pair every spec here is actually started as.
     expect(line).toContain('value="analyze" checked');
@@ -515,7 +521,7 @@ describe("GET / (the spec list, HTML)", () => {
     // checkboxes tells the reader nothing. The steps and Run are on the
     // spec's own row; the three nobody sets every time are behind the
     // "more" disclosure on the line under it (spec 103).
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     expect(line).toContain(">Run</button>");
     const more = specMore(html, "81-queue-and-runner");
     expect(more).toContain(">more</summary>");
@@ -565,7 +571,7 @@ describe("GET / (the spec list, HTML)", () => {
     // The Run control belongs to a ROW, so unlike the retired top form
     // it must survive the swap: without it, every five seconds the
     // page would lose the only way to start a spec (criterion 8).
-    const line = specHead(rows, "81-queue-and-runner");
+    const line = specControls(rows, "81-queue-and-runner");
     expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
@@ -764,7 +770,7 @@ describe("the step boxes on a row follow that spec", () => {
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
     expect(line).toMatch(/data-phase="implement"[^]*?value="implement" checked/);
@@ -778,7 +784,7 @@ describe("the step boxes on a row follow that spec", () => {
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
     expect(line).not.toContain('class="phase done"');
@@ -793,7 +799,7 @@ describe("the step boxes on a row follow that spec", () => {
       "# Analysis\n\n" + "Findings, at length. ".repeat(40),
     );
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     expect(line).toContain('class="phase done" data-phase="analyze"');
     expect(line).not.toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
@@ -2304,8 +2310,9 @@ describe("landing a created spec (spec 93)", () => {
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
-    // Runnable from its own line, like every other spec...
-    expect(row).toContain('name="steps" value="analyze"');
+    // Runnable from the line its own row opens to (spec 109), like
+    // every other spec...
+    expect(specControls(html, "94-a-new-spec")).toContain('name="steps" value="analyze"');
     // ...and with nothing left to merge: the branch is landed, and a
     // Merge button here would offer a name that no longer means anything.
     expect(row).not.toContain("mergeform");
@@ -2375,7 +2382,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
-    const line = specHead(await listPage(base), "81-queue-and-runner");
+    const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(line).not.toContain('class="phase done" data-phase="analyze"');
     expect(line).not.toContain('class="phase done" data-phase="review-plan"');
     // implement is untouched by this check: its own done-mark comes
@@ -2399,7 +2406,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    const line = specHead(html, "81-queue-and-runner");
+    const line = specControls(html, "81-queue-and-runner");
     expect(line).toContain('class="phase done" data-phase="analyze"');
     expect(line).toContain('class="phase done" data-phase="review-plan"');
   });
@@ -2412,7 +2419,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });
 
   // A spec analysed by hand leaves no commit to compare against, and a
@@ -2426,7 +2433,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    expect(specHead(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
   });
 });
 
