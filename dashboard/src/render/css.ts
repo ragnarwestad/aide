@@ -167,8 +167,15 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
   height: 28px; padding: 0 var(--sp-3); border-radius: var(--r);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: 500 var(--fs-m)/1 var(--sans);
-  cursor: pointer; white-space: nowrap; }
-.btn:hover { border-color: var(--muted); }
+  cursor: pointer; white-space: nowrap;
+  /* Two of these are links, not buttons (spec 121): New spec on the
+     spec list, and Cancel on /new. Both GO somewhere and do nothing
+     else, which is what a link is for — but the page's own a-rule
+     underlines on hover, and a button that grows an underline under
+     the pointer stops looking like one. .brand, .filters and .sortlink
+     each say the same thing for the same reason. */
+  text-decoration: none; }
+.btn:hover { border-color: var(--muted); text-decoration: none; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
 .btn.ok { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
@@ -358,8 +365,9 @@ tr[data-controls] .row { align-items: flex-end; }
    reads first on a line they now share. */
 .extra { display: inline-flex; vertical-align: bottom;
   font-size: var(--fs-s); align-items: flex-end; }
-/* The one form on this page that is not about an existing spec. Shut by
-   default: the list is what people come here for. */
+/* A disclosure holding a form that is not about an existing spec. The
+   New-spec form wore this until spec 121 moved it to /new, where a page
+   needs nothing folded away; the Projects panel still does. */
 .newspec { margin: var(--sp-3) 0; }
 /* A summary draws its native triangle only while its computed display
    is list-item, and .btn's inline-flex already suppresses it. The two

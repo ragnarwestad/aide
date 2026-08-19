@@ -49,6 +49,12 @@ no host is named anywhere in this repo.
   line, watch one, approve a gate (token required). The front page: it
   is what the dashboard is used for, so it is what the dashboard opens
   on.
+- `/new` — the form that makes a spec: a project, what it builds on, a
+  title and a description, with Create (queues the job and returns to
+  the list, where the new spec's row shows its progress) and Cancel
+  (returns having done nothing). Reached from the "New spec" button on
+  `/`, which is a plain link. Token required, like `/`: it carries a
+  real form.
 - `/projects` — every project with description and active/archived spec
   counts, plus the panel that adds and removes them. Reached from the
   nav, labelled "Projects". Token required, like `/`: the panel is a
@@ -198,11 +204,21 @@ is gone (spec 94).
 ### Making a spec from the page (spec 93)
 
 Every spec that exists is a row, and every row runs. A spec that does
-not exist yet has no row — so above the table there is a shut "New spec"
-panel: a project, a title, a description, and a Create button that posts
-to `POST /api/queue/create`. It queues an ordinary job whose single step
-is `create`, and the run is guarded, budgeted and timed exactly like any
-other.
+not exist yet has no row — so above the table there is a "New spec"
+button, and it is a plain link to `/new` (spec 121). That page is the
+form and nothing else: a project, what the spec builds on, a title, a
+description, and two actions — Create, which posts to
+`POST /api/queue/create` and returns to the list, and Cancel, which
+returns having done nothing. Create queues an ordinary job whose single
+step is `create`, and the run is guarded, budgeted and timed exactly
+like any other.
+
+It was a disclosure folded into `/` until spec 121: pressing a primary
+button and having the page unfold under it read oddly, and there was no
+way out of the open form but pressing the same button again. Both
+actions work with no script at all — a link and a form POST — and a
+refused submission comes back to `/new?error=…`, where what was typed
+can be corrected.
 
 Two things about it are worth knowing:
 
@@ -282,8 +298,8 @@ tell it from a broken agent will start ignoring both.
 
 ### The token
 
-The whole queue surface — `GET /` and `GET /projects`, and the old
-addresses `/specs` and `/queue`, included — needs a token; a token a page
+The whole queue surface — `GET /`, `GET /new` and `GET /projects`, and
+the old addresses `/specs` and `/queue`, included — needs a token; a token a page
 hands to anyone who can load the page is not a secret. Open
 `/?token=<the token>` once and the browser keeps an `HttpOnly`
 cookie; API callers send `X-Aide-Token`. The generated pages

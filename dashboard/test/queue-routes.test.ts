@@ -12,7 +12,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
-import { renderQueuePage, type QueuePageOptions, type QueueRowView } from "../src/render.ts";
+import {
+  renderNewSpecPage,
+  renderQueuePage,
+  type NewSpecPageOptions,
+  type QueuePageOptions,
+  type QueueRowView,
+} from "../src/render.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
 
@@ -250,14 +256,16 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   });
 
   // Spec 100 criterion 1: the list itself, at the root, in one request.
-  test("GET / is the spec list: rows, filter controls and the New-spec form", async () => {
+  test("GET / is the spec list: rows, filter controls and the New-spec link", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/`, { ...auth, redirect: "manual" });
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('id="jobrows"');
     expect(html).toContain('data-folder="81-queue-and-runner"');
-    expect(html).toContain("New spec");
+    // Spec 121: a link to the form's own page, not the form.
+    expect(html).toContain('href="/new"');
+    expect(html).not.toContain('action="/api/queue/create"');
     // The overview it replaced is gone from this address, not merely
     // pushed below the fold.
     expect(html).not.toContain("<h2>Projects</h2>");
@@ -1552,9 +1560,10 @@ describe("a chosen dependency reaches the runner and the page", () => {
 });
 
 describe("the New-spec form offers what the spec may build on (criterion 7)", () => {
-  const page = (targets: QueuePageOptions["targets"]) =>
-    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
+  // On its own page since spec 121 — the chips, their order and their
+  // scoping are unchanged, only the page that draws them.
+  const page = (targets: NewSpecPageOptions["targets"]) =>
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-16T00:00:00Z", {
       targets,
       createProjects: ["aide", "aide-dashboard"],
     });
@@ -2155,11 +2164,13 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect((await fetch(`${base}/api/queue/create`, { headers: AUTH })).status).toBe(405);
   });
 
-  // Spec 100 criterion 7: the form on the page posts here without an
-  // `accept: application/json`, so it is sent back to the list — which
-  // is `/` now. A `/specs` here would bounce the reader through a
-  // redirect on every spec they create.
-  test("a form submit lands back on /, refusal and success alike", async () => {
+  // Spec 100 criterion 7: the form posts here without an `accept:
+  // application/json`, so the answer is a redirect rather than JSON.
+  // Spec 121 split the two destinations: a success goes to the list,
+  // where the new spec's row is; a refusal goes back to the page the
+  // form is ON (`/new`), where the reader can read the reason and try
+  // again — the same rule `/projects`' own forms follow.
+  test("a form submit lands on /new when refused and / when accepted", async () => {
     const { base } = start({ queueToken: TOKEN });
     const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
     const refused = await fetch(`${base}/api/queue/create`, {
@@ -2169,7 +2180,7 @@ describe("POST /api/queue/create (spec 93)", () => {
       body: new URLSearchParams({ project: "someone-elses", title: "t", description: "d" }),
     });
     expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/?error=")).toBe(true);
+    expect(refused.headers.get("location")!.startsWith("/new?error=")).toBe(true);
 
     const ok = await fetch(`${base}/api/queue/create`, {
       method: "POST",
@@ -2181,13 +2192,68 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(ok.headers.get("location")).toBe("/");
   });
 
-  test("the form on the page offers every allowlisted project, spec or no spec", async () => {
+  test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
     const form = html.slice(html.indexOf('action="/api/queue/create"'));
     expect(form).toContain('value="brandnew"');
     expect(form).toContain('name="title"');
     expect(form).toContain('name="description"');
+  });
+});
+
+// --- spec 121: GET /new -----------------------------------------------------
+//
+// The form left `/` for a page of its own. Served like `/` and
+// `/projects` are — same guard, same one-time token handover — because
+// it carries a real form and a real form needs a token checked per
+// request.
+describe("GET /new (spec 121)", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+
+  test("it is behind the same token as the rest of the queue, and GET only", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    expect((await fetch(`${base}/new`, { redirect: "manual" })).status).toBe(401);
+    expect((await fetch(`${base}/new`, { method: "POST", ...auth })).status).toBe(405);
+  });
+
+  test("it carries the create form and nothing about the spec list", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/new`, { ...auth, redirect: "manual" });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('action="/api/queue/create"');
+    expect(html).toContain('<a class="btn" href="/">Cancel</a>');
+    // No rows, and so nothing for the five-second swap to reach for.
+    expect(html).not.toContain('id="jobrows"');
+  });
+
+  test("the chips name every spec the new one may build on", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/new`, auth)).text();
+    expect(html).toContain('value="81-queue-and-runner"');
+  });
+
+  test("with no project on the allowlist it says so instead of drawing an empty form", async () => {
+    const { base } = start({ queueToken: TOKEN, queueProjects: [] });
+    const html = await (await fetch(`${base}/new`, auth)).text();
+    expect(html).not.toContain('action="/api/queue/create"');
+    expect(html).toContain("No project on this machine");
+  });
+
+  test("a refusal carried back in the query string is shown on the page", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/new?error=${encodeURIComponent("no such project: nope")}`, auth)
+    ).text();
+    expect(html).toContain("no such project: nope");
+  });
+
+  test("the token handover works here too, the way it does on / and /projects", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/new?token=${TOKEN}`, { redirect: "manual" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("set-cookie")).toContain("aide_token=");
   });
 });
 
@@ -3168,7 +3234,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
     // On the allowlist the MOMENT it is done — no restart, and no
     // waiting for the five-second scan: the New-spec form's project
     // list is the raw allowlist, so it shows a project with no spec yet.
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
   });
 

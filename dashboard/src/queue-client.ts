@@ -5,7 +5,9 @@
 // One rule, applied twice: never reload the page under a control
 // someone is half-way through setting. That is why the table refreshes
 // itself in place, and why every button on it posts from here rather
-// than letting the browser navigate.
+// than letting the browser navigate. Create is the one deliberate
+// exception, and it is not one of "the buttons on it": it is on a page
+// of its own with nothing to keep (spec 121, see `submitCreate`).
 //
 // It used to have a second — answering the spec dropdown above the
 // table, which had to update the step boxes, the "also touches" list
@@ -15,11 +17,10 @@
 
 const REFRESH_MS = 5000;
 /** The New-spec form, and never the Add-project one. Both wear
- *  `newspecform` — the Add form borrows the look — and on `/` the real
- *  one came first in the document, so a plain `form.newspecform` found
- *  it. On `/projects` (spec 115) there is no New-spec form at all, and
- *  the Add form would answer in its place: bound twice, two POSTs for
- *  one press. */
+ *  `newspecform` — the Add form borrows the look — and the two live on
+ *  different pages: the real one is the whole of `/new` (spec 121),
+ *  and `/projects` has only the Add form, which would otherwise answer
+ *  in its place — bound twice, two POSTs for one press. */
 const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform)";
 /** Presses whose request has not answered yet. The tick waits for zero. */
 let inFlight = 0;
@@ -304,9 +305,9 @@ async function submitAction(event: Event): Promise<void> {
 }
 
 // The New-spec form is the one control that is NOT about a spec that
-// exists, and it is bound directly rather than by delegation because it
-// sits OUTSIDE #jobrows on purpose — a half-typed description must
-// survive the five-second swap.
+// exists, and it is bound directly rather than by delegation: it is
+// the whole of its own page (spec 121), with no #jobrows around it for
+// a delegated listener to hang off.
 //
 // Its refusal has no row to land on: the spec it named was never made,
 // so the server has no `errorSpec` to give and never will. The reason
@@ -343,23 +344,20 @@ function syncDependsOn(): void {
   }
 }
 
+// The one control in this file that deliberately NAVIGATES on success,
+// against the rule at the top — because this form is a page (spec 121),
+// not a panel on one. There is nothing here to put back into a clean
+// state and no #jobrows beside it to refresh: the spec that was just
+// made is a row on the LIST, and going there to see it is what pressing
+// Create asked for. A refusal still answers in place, where what was
+// typed is still typed.
 async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
   await postForm(
     form,
     async () => {
-      formNote(form, "");
-      form.reset?.();
-      // `reset()` reverts the Project select in SILENCE — it fires no
-      // `change` — so the chips would keep showing the just-submitted
-      // project's specs for one whole create cycle.
-      syncDependsOn();
-      // Shut again: the spec it made is a row on the list now, which is
-      // what the reader wants to see.
-      const panel = form.closest?.("details") as HTMLDetailsElement | null;
-      if (panel) panel.open = false;
-      await swapRows();
+      location.href = "/";
     },
     (why) => formNote(form, why),
   );
@@ -434,8 +432,8 @@ function tick(): void {
 // would last five seconds.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
-// The one listener that is NOT delegated: this form sits outside
-// #jobrows so the swap cannot wipe what someone is typing into it.
+// The one listener that is NOT delegated: this form is the whole of its
+// own page, with no swapped container to hang a delegated one off.
 // The handler's promise is returned rather than dropped — a listener's
 // return value is ignored by the DOM, and it is what lets the test wait
 // for the request the press makes.

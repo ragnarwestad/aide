@@ -8,11 +8,13 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
+  renderNewSpecPage,
   renderQueuePage,
   navEntries,
   renderQueueRows,
   renderSite,
   type JobDetailView,
+  type NewSpecPageOptions,
   type Page,
   type ProjectView,
   type QueuePageOptions,
@@ -1919,7 +1921,15 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   });
 });
 
-describe("spec 113: New spec is a real button and the form lays out cleanly", () => {
+// --- spec 121: the New-spec form is a page of its own ------------------------
+//
+// It was a `<details>` folded into `/` (spec 113 gave its summary the
+// primary-button look). Pressing a primary button and having the page
+// unfold under it read oddly, and there was no way out but pressing the
+// same button again. The control is a plain link now, and the form is
+// everything `/new` has on it — with a Create that goes home and a
+// Cancel that goes home doing nothing.
+describe("spec 121: New spec is a link, and the form is its own page", () => {
   const page = (opts: Partial<QueuePageOptions> = {}) =>
     renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
@@ -1927,18 +1937,88 @@ describe("spec 113: New spec is a real button and the form lays out cleanly", ()
       createProjects: ["aide"],
       ...opts,
     });
+  const newPage = (opts: Partial<NewSpecPageOptions> = {}) =>
+    renderNewSpecPage([{ label: "Overview", path: "projects.html" }], "2026-08-19T00:00:00Z", {
+      createProjects: ["aide"],
+      targets: [],
+      ...opts,
+    });
 
-  test("the New-spec summary carries the primary button classes", () => {
-    expect(page()).toContain('<summary class="btn primary">New spec</summary>');
+  // Criterion 1.
+  test("the front page offers a plain link, not a toggle", () => {
+    const html = page();
+    expect(html).toContain('<a class="btn primary" href="/new">New spec</a>');
+    expect(html).not.toContain('<details class="newspec">');
+    // And the form itself is gone from this page entirely — not merely
+    // shut: `/new` is the only place it is rendered now.
+    expect(html).not.toContain('action="/api/queue/create"');
   });
 
-  test("Create sits before Description, not after it", () => {
-    const html = page();
-    const createAt = html.indexOf("Create</button>");
-    const descAt = html.indexOf('<textarea name="description"');
-    expect(createAt).toBeGreaterThan(-1);
-    expect(descAt).toBeGreaterThan(-1);
-    expect(createAt).toBeLessThan(descAt);
+  // Criterion 2: the same emptiness rule the form itself carried — a
+  // machine no project may create a spec in is offered nothing.
+  test("no project to create in, no link at all", () => {
+    const html = page({ createProjects: [] });
+    // The markup, not the word: the stylesheet is inlined into every
+    // page and its comments name the components they style.
+    expect(html).not.toContain(">New spec</a>");
+    expect(html).not.toContain('href="/new"');
+  });
+
+  // Criterion 3: the whole field order, and the per-project scoping
+  // the chips carry so the browser can narrow them.
+  test("the page carries Project, Depends on, Title, Create, Cancel, Description — in that order", () => {
+    const html = newPage({
+      targets: [
+        { project: "aide", specFolder: "92-a-spec-can-depend" },
+        { project: "aide-dashboard", specFolder: "01-first" },
+      ],
+    });
+    const at = (needle: string) => {
+      const i = html.indexOf(needle);
+      expect([needle, i > -1]).toEqual([needle, true]);
+      return i;
+    };
+    const order = [
+      '<select name="project">',
+      'name="dependsOn"',
+      '<input type="text" name="title"',
+      "Create</button>",
+      "Cancel</a>",
+      '<textarea name="description"',
+    ].map(at);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Spec 113's line-1 layout, carried forward: `.field.wide` breaks
+    // the wrapping row, so both actions have to come before it.
+    expect(at("Create</button>")).toBeLessThan(at('<textarea name="description"'));
+    expect(at("Cancel</a>")).toBeLessThan(at('<textarea name="description"'));
+    // Each chip says which project it belongs to.
+    expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
+  });
+
+  // Criterion 5: Cancel does nothing but leave. A plain `<a href="/">`
+  // is what makes "no request against /api/queue/create" true
+  // structurally — there is no script for it to depend on.
+  test("Cancel is a plain link home, not a button", () => {
+    const html = newPage();
+    expect(html).toContain('<a class="btn" href="/">Cancel</a>');
+    expect(html).not.toContain('name="cancel"');
+  });
+
+  // Criterion 4. Today the toggle simply omits itself from `/` when
+  // nothing may be created in — a page reachable by its own URL cannot
+  // answer that way.
+  test("with nothing to create in, the page says so instead of showing an empty form", () => {
+    const html = newPage({ createProjects: [] });
+    expect(html).not.toContain('action="/api/queue/create"');
+    expect(html).toContain("No project on this machine");
+  });
+
+  test("a refusal carried back in the query string is shown above the form", () => {
+    const html = newPage({ error: "no such project: nope" });
+    expect(html).toContain("no such project: nope");
+    expect(html.indexOf("no such project: nope")).toBeLessThan(
+      html.indexOf('action="/api/queue/create"'),
+    );
   });
 });
 
@@ -1954,15 +2034,13 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
   // the filter bar and nothing else.
   const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list">'));
 
-  test("no explanation stands between the notices and the New-spec form", () => {
+  test("no explanation stands between the notices and the New-spec link", () => {
     const html = page({ createProjects: ["aide"] });
     // The only `.intro` disclosure left on this page is inside the
     // refreshed rows container, so it comes after that container opens
-    // — and after the New-spec form, which stays outside it.
+    // — and after the New-spec link, which stays outside it.
     expect(html.indexOf('<details class="intro">')).toBeGreaterThan(html.indexOf('id="jobrows"'));
-    expect(html.indexOf('<details class="newspec">')).toBeLessThan(
-      html.indexOf('<details class="intro">'),
-    );
+    expect(html.indexOf('href="/new"')).toBeLessThan(html.indexOf('<details class="intro">'));
   });
 
   test("the runner-unavailable notice still needs no click", () => {
@@ -3065,10 +3143,10 @@ describe("the front page after the panel moved", () => {
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("New spec is still there, and still outside #jobrows", () => {
+  test("New spec is still there, and still above the rows (spec 121: as a link)", () => {
     const html = page({ createProjects: ["aide"] });
-    expect(html.indexOf('<details class="newspec">')).toBeGreaterThan(-1);
-    expect(html.indexOf('<details class="newspec">')).toBeLessThan(html.indexOf('<div id="jobrows">'));
+    expect(html.indexOf('href="/new"')).toBeGreaterThan(-1);
+    expect(html.indexOf('href="/new"')).toBeLessThan(html.indexOf('<div id="jobrows">'));
   });
 
   test("the nav takes the reader to the page that manages them", () => {

@@ -143,9 +143,9 @@ function harness(
     closest: (sel: string) => (sel === "tr" ? row : sel.includes(`.${formClass}`) ? form : null),
   };
 
-  // The New-spec form lives OUTSIDE #jobrows on purpose (a half-typed
-  // description must survive the five-second swap), so it is bound
-  // directly rather than by delegation — a second code path, tested as
+  // The New-spec form is the whole of `/new` since spec 121 — no
+  // #jobrows beside it and no disclosure around it — so it is bound
+  // directly rather than by delegation, a second code path tested as
   // one.
   const createButton = {
     textContent: "Create",
@@ -160,7 +160,6 @@ function harness(
   };
   createButton.classList = classes(createButton);
   const slot = { textContent: "" };
-  const details = { open: true };
   const resets: number[] = [];
   // Spec 110's Depends-on chips: one wrapper per active spec, each
   // naming its own project, plus the Project select they are scoped to.
@@ -192,7 +191,10 @@ function harness(
           : sel.includes("project")
             ? projectSelect
             : null,
-    closest: (sel: string) => (sel.includes("details") ? details : null),
+    // Nothing wraps this form on `/new` — the page IS the form. A fake
+    // that still handed a `<details>` back would let a re-added
+    // panel-close pass unnoticed.
+    closest: () => null,
     reset: () => {
       resets.push(1);
       projectSelect.value = "aide";
@@ -346,7 +348,7 @@ function harness(
 
   return {
     submit, submitCreate, button, createButton, requests, location, rows, inserted,
-    replaced, slot, details, resets, document, phases, otherPhases, tick: () => tick(),
+    replaced, slot, resets, document, phases, otherPhases, tick: () => tick(),
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
@@ -671,30 +673,31 @@ describe("every action button says it was pressed (criteria 4, 5)", () => {
   });
 });
 
-// The one form on the page that is not about a spec that exists. It has
-// no row for a refusal to land on — the spec it names was never made —
-// so the reason goes beside the form the reader was typing into, rather
-// than into a page-level banner above a disclosure that may well be shut.
+// The one form that is not about a spec that exists. It has no row for
+// a refusal to land on — the spec it names was never made — so the
+// reason goes beside the form the reader was typing into.
 describe("the New-spec form answers for itself (criteria 7, 8)", () => {
-  test("a refusal is written beside the form, and the form stays open", async () => {
+  test("a refusal is written beside the form, and the reader stays on the page", async () => {
     const h = harness(() => ({ ok: false, body: { error: "no such project: nope" } }));
     await h.submitCreate();
     expect(h.slot.textContent).toContain("no such project");
-    expect(h.details.open).toBe(true);
+    // Still on `/new`, with everything typed still typed.
     expect(h.location.href).toBe("http://dash.test/");
-    // Not the page-level banner, and no row: nothing was navigated to.
+    expect(h.resets).toHaveLength(0);
     expect(h.replaced).toHaveLength(0);
   });
 
-  test("a created spec swaps the rows, empties the form and shuts it", async () => {
+  // Spec 121, criterion 8. The form has a page of its own now: there is
+  // no panel to shut, no #jobrows beside it to swap, and the thing the
+  // reader asked to see — the new spec's row, with its progress — is on
+  // the page this navigates to.
+  test("a created spec takes the reader back to the list", async () => {
     const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
     await h.submitCreate();
-    expect(swapUrl(h)).toContain("rows=1");
-    expect(h.rows.innerHTML).toBe("<tr></tr>");
-    expect(h.resets).toHaveLength(1);
-    expect(h.details.open).toBe(false);
-    expect(h.slot.textContent).toBe("");
-    expect(h.location.href).toBe("http://dash.test/");
+    expect(h.location.href).toBe("/");
+    // Nothing is put back in place first: the reader has left.
+    expect(h.resets).toHaveLength(0);
+    expect(h.requests.some((r) => r.url.includes("rows=1"))).toBe(false);
   });
 
   // Spec 104 changed what the four ROW buttons do while their request
@@ -753,16 +756,18 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
     expect(h.chips[1]!.input.disabled).toBe(false);
   });
 
-  test("a successful create re-syncs them: `reset()` reverts the select in silence", async () => {
+  // Spec 121 retired the re-sync that used to follow a create: the
+  // success path navigates now, so there is no reset to chase and no
+  // half-cleared form to leave behind. What the reader picked stands
+  // until the browser leaves the page.
+  test("a successful create leaves them alone — the page is on its way out", async () => {
     const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
     h.changeProject("aide-dashboard");
     expect(h.chips[1]!.hidden).toBe(false);
     await h.submitCreate();
-    // The select is back on its first option; the chips have to follow,
-    // and `form.reset()` fires no `change` for the listener to hear.
-    expect(h.projectSelect.value).toBe("aide");
-    expect(h.chips[0]!.hidden).toBe(false);
-    expect(h.chips[1]!.hidden).toBe(true);
+    expect(h.location.href).toBe("/");
+    expect(h.projectSelect.value).toBe("aide-dashboard");
+    expect(h.chips[1]!.hidden).toBe(false);
   });
 });
 

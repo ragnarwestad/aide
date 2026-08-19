@@ -158,6 +158,10 @@ export const OVERVIEW_PAGE = "projects.html";
  *  Add and Remove controls on it have a token to be checked against. */
 export const PROJECTS_ROUTE = "/projects";
 
+/** Where a spec is made (spec 121). It was a disclosure folded into the
+ *  spec list until the button that opened it became a link to here. */
+export const NEW_SPEC_ROUTE = "/new";
+
 function aboutBody(): string {
   return (
     `<p class="intro">aide-dashboard is the read-only overview of ` +

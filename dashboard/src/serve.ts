@@ -33,12 +33,14 @@ import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
+  NEW_SPEC_ROUTE,
   OVERVIEW_PAGE,
   PROJECTS_ROUTE,
   FILTER_FIELD_PREFIX,
   FILTER_KEYS,
   navEntries,
   renderJobDetailPage,
+  renderNewSpecPage,
   renderProjectsPage,
   renderQueuePage,
   renderQueueRows,
@@ -203,9 +205,10 @@ function specsRedirect(
   body: unknown,
   refusal?: { error: string; spec?: string; reason?: string },
   // Which page the form was ON. `/` for every control on the spec list,
-  // which is all of them but two: the project panel moved to `/projects`
-  // with spec 115, and a reader who added a project there must not be
-  // dropped onto the spec list to read the answer.
+  // which is all of them but three: the project panel moved to
+  // `/projects` with spec 115 and the New-spec form to `/new` with spec
+  // 121, and a reader refused on either must not be dropped onto the
+  // spec list to read the answer.
   target: string = "/",
 ): Response {
   const sent = (body ?? {}) as Record<string, unknown>;
@@ -670,6 +673,10 @@ export function createServer(opts: ServerOptions) {
     // GENERATED `projects.html` stays outside the guard, as every
     // generated page does: it is a redirect and carries nothing.
     path === PROJECTS_ROUTE ||
+    // And the New-spec form's own page (spec 121), for the same
+    // reason: it carries a real form, and a form's token has to be
+    // checked per request.
+    path === NEW_SPEC_ROUTE ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -1188,9 +1195,38 @@ export function createServer(opts: ServerOptions) {
       return new Response(html, { headers });
     }
 
+    // The New-spec form's own page (spec 121). It was a disclosure on
+    // `/` until the button that opened it became a link to here.
+    //
+    // It needs three things off this server and no more: which projects
+    // a spec may be made in (the RAW allowlist, like the dropdown it
+    // feeds — a project whose FIRST spec this form exists to make has
+    // nothing on disk to be discovered from), what the new spec may
+    // build on, and the page code that scopes the second to the first.
+    if (path === NEW_SPEC_ROUTE) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const html = renderNewSpecPage(nav(), new Date().toISOString(), {
+        token: queueToken,
+        createProjects: [...allowed].sort(),
+        targets: await withFreshness(targets()),
+        script: queueClientScript(),
+        // Why the last submission was refused, carried back here by the
+        // create route's own redirect.
+        error: url.searchParams.get("error") ?? undefined,
+      });
+      const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
+      // The same one-time handover `/` and `/projects` do, for a reader
+      // who arrived with the token in the address.
+      if (url.searchParams.get("token") && queueToken) {
+        headers["set-cookie"] =
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+      }
+      return new Response(html, { headers });
+    }
+
     // The projects page (spec 115): the same listing the generator used
     // to write to projects.html, plus the panel that changes it. Beside
-    // the `/` branch above on purpose — the two full-page GET handlers
+    // the `/` branch above on purpose — the full-page GET handlers
     // belong together for anyone reading this function.
     if (path === PROJECTS_ROUTE) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -1241,18 +1277,18 @@ export function createServer(opts: ServerOptions) {
         return json({ error: "malformed body" }, 400);
       }
       const result = queue.enqueueCreate(raw);
+      // The two no-JS answers go to different pages on purpose (spec
+      // 121). A refusal goes back to the page the form is ON, where
+      // what was typed can be corrected — the same rule the Projects
+      // panel's own routes follow. A success goes to the list, because
+      // the thing the reader asked for is a row on it.
       if (!result.ok) {
         return wantsJson
           ? json({ error: result.error }, 400)
-          : new Response(null, {
-              status: 303,
-              headers: { location: `/?error=${encodeURIComponent(result.error)}` },
-            });
+          : specsRedirect(raw, { error: result.error }, NEW_SPEC_ROUTE);
       }
       runner?.tick();
-      return wantsJson
-        ? json({ ok: true, job: result.job })
-        : new Response(null, { status: 303, headers: { location: "/" } });
+      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, "/");
     }
 
     // --- the project allowlist (spec 112) -----------------------------

@@ -22,12 +22,12 @@
 
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
+import { NEW_SPEC_ROUTE } from "./site.ts";
 import {
   badge,
   btn,
   field,
   filterPills,
-  messageSlot,
   phaseChip,
   phases,
   pips,
@@ -1146,102 +1146,17 @@ function controlsRow(g: SpecGroup, opts: QueuePageOptions): string {
 
 // The one control on this page that is NOT about a spec that exists:
 // every other way in is a form on a spec's own row, and a spec that has
-// never been written has no row to put one on. So it is a panel above
-// the table — where the retired "Run a spec" form used to be, which is
-// also the only place left for it.
+// never been written has no row to put one on.
 //
-// Three fields and nothing else. Everything a job can be tuned with —
-// the model, the other repos, whether to stop for approval — belongs to
-// running a spec, and this form does not run one: it makes a spec, which
-// then appears as a row and is run from there like all the others.
-//
-// It posts a project NAME, a title and a description. What the spec ends
-// up being CALLED is decided by `/aide-create` alone: nothing here, and
-// nothing in `aide-run-spec`, computes a spec number or a folder slug.
-// What the new spec builds on (spec 110). One chip per active spec,
-// newest first — the number is the order a reader thinks in, and it is
-// the reverse of `discoverProjects`'s ascending sort.
-//
-// The chip's own project rides on a WRAPPER, not on the chip: `phaseChip`
-// ties its `data-` attribute to its form value, and the value here has
-// to be the folder. A bare `<span>` with a data attribute needs no class,
-// so the closed component vocabulary (`css-token-guard.test.ts`) is
-// untouched.
-//
-// Every project's chips are rendered, and the browser scopes them to the
-// chosen one (`queue-client.ts`). Without script they are all offered,
-// and a cross-project pick is caught by the same server refusal that
-// catches it from the API — the convenience is lost, the guard is not.
-function dependsOnField(opts: QueuePageOptions): string {
-  const specs = [...(opts.targets ?? [])].sort(
-    (a, b) =>
-      a.project.localeCompare(b.project) ||
-      -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
-  );
-  if (specs.length === 0) return "";
-  return field(
-    "Depends on",
-    phases(
-      specs
-        .map(
-          (t) =>
-            `<span data-project="${esc(t.project)}">` +
-            phaseChip({
-              dataAttr: "data-depends",
-              value: t.specFolder,
-              label: t.specFolder,
-              name: "dependsOn",
-            }) +
-            `</span>`,
-        )
-        .join(""),
-    ),
-    { group: true },
-  );
-}
-
-function newSpecForm(opts: QueuePageOptions): string {
-  const projects = opts.createProjects ?? [];
-  if (projects.length === 0) return "";
-  return (
-    // The page's one creating action, and it read as grey disclosure
-    // text. It stays a `<details>`/`<summary>` pair — that is what
-    // opens it without script, and what `queue-client.ts` closes on a
-    // successful create — but it wears the same primary-button look as
-    // every other action here.
-    `<details class="newspec"><summary class="btn primary">New spec</summary>` +
-    `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
-    field(
-      "Project",
-      `<select name="project">` +
-        projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
-        `</select>`,
-    ) +
-    dependsOnField(opts) +
-    field(
-      "Title",
-      `<input type="text" name="title" maxlength="120" required ` +
-        `placeholder="what the spec is about, in a few words">`,
-    ) +
-    // Create belongs on the first line with the short fields, not under
-    // the textarea it used to touch. `.field.wide` is `flex-basis:100%`,
-    // so Description breaks the wrapping row on its own; anything after
-    // it in the markup lands underneath it.
-    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
-    field(
-      "Description",
-      `<textarea name="description" rows="4" maxlength="2000" required ` +
-        `placeholder="the problem, and what you want instead"></textarea>`,
-      { wide: true },
-    ) +
-    // The slot a refusal is written into. A rejected create names a spec
-    // that was never made, so there is no row for the reason to land on
-    // the way there is for every other action — and the page-level
-    // banner sits above a disclosure that may well be shut, which is
-    // where a create refusal went unread. Empty until something fills
-    // it (`.refused:empty` draws nothing).
-    messageSlot("refused") + `</form></details>`
-  );
+// A link, not a form and not a disclosure (spec 121): the form has a
+// page of its own at `NEW_SPEC_ROUTE`, with a Create and a Cancel on
+// it. The control keeps the position the panel had — above the table,
+// outside `#jobrows` — and the primary-button look spec 113 gave it.
+// Not offered at all when no project on this machine may have a spec
+// made in it, exactly as the panel was not.
+function newSpecLink(opts: QueuePageOptions): string {
+  if ((opts.createProjects ?? []).length === 0) return "";
+  return `<a class="btn primary" href="${NEW_SPEC_ROUTE}">New spec</a>`;
 }
 
 // One line about the spec: what it is, and how far it has got. It has to
@@ -1546,9 +1461,11 @@ export function renderQueuePage(
     (opts.error && !opts.errorSpec
       ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n"
       : "") +
-    // OUTSIDE `#jobrows`, deliberately: the script swaps that container
-    // every five seconds, and a half-typed description must survive it.
-    newSpecForm(opts) +
+    // Outside `#jobrows`, where the panel it replaced was: the script
+    // swaps that container every five seconds, and a control that
+    // vanished and came back under the pointer is a control you cannot
+    // press.
+    newSpecLink(opts) +
     table;
   // The front page IS aide: the tab says only that.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {

@@ -3,9 +3,10 @@
 //   render/site.ts        projects.html + one page per project (static)
 //   render/projects-page.ts  /projects — the listing, and the panel that
 //                            adds and removes projects
-//   render/queue-list.ts  / — the form and the spec list
+//   render/queue-list.ts  / — the spec list
+//   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
-//   render/shell.ts       the frame all four sit in
+//   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting
 //   render/css.ts         the stylesheet, inlined into every page
@@ -13,17 +14,21 @@
 // This file is the door: callers ask render.ts for a page and do not
 // have to know which file it lives in. Every page is self-contained —
 // inline CSS, no external references — because the generated site is
-// published as plain files. The two SERVED pages — the spec list at `/`
-// and Projects at `/projects` — carry browser code, compiled from
-// queue-client.ts; the generated ones carry none.
+// published as plain files. The three SERVED pages — the spec list at
+// `/`, the New-spec form at `/new` and Projects at `/projects` — carry
+// browser code, compiled from queue-client.ts; the generated ones carry
+// none.
 
 export {
-  ABOUT_PAGE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite, navEntries,
+  ABOUT_PAGE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite, navEntries,
 } from "./render/site.ts";
 export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
 export { renderProjectsPage } from "./render/projects-page.ts";
 export type { ProjectsPageOptions } from "./render/projects-page.ts";
+
+export { renderNewSpecPage } from "./render/new-spec-page.ts";
+export type { NewSpecPageOptions } from "./render/new-spec-page.ts";
 
 export type { NavEntry } from "./render/shell.ts";
 

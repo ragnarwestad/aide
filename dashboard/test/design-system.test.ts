@@ -11,6 +11,7 @@ import { describe, expect, test } from "bun:test";
 import {
   navEntries,
   renderJobDetailPage,
+  renderNewSpecPage,
   renderProjectsPage,
   renderQueuePage,
   renderQueueRows,
@@ -535,6 +536,45 @@ describe("let aide resolve it (spec 106)", () => {
 });
 
 // --- dark mode is implemented, not merely declared ----------------------------
+
+// Spec 121 made two controls links rather than buttons — New spec on
+// the spec list, and Cancel on /new — because both GO somewhere and do
+// nothing else. They wear `.btn`, so the component has to survive being
+// worn by an `<a>`: the page's own a-rule underlines on hover, and a
+// button that grows an underline under the pointer stops looking like
+// one.
+describe("the button component works on a link too (spec 121)", () => {
+  const rules = async (): Promise<[string, string]> => {
+    const { CSS } = await import("../src/render/css.ts");
+    return [
+      CSS.match(/(?<![-.\w])\.btn \{[^}]*\}/)?.[0] ?? "",
+      CSS.match(/\.btn:hover \{[^}]*\}/)?.[0] ?? "",
+    ];
+  };
+
+  test("the rules are where this test thinks they are", async () => {
+    const [rest, hover] = await rules();
+    expect(rest).not.toBe("");
+    expect(hover).not.toBe("");
+  });
+
+  test("it carries no underline, at rest or under the pointer", async () => {
+    const [rest, hover] = await rules();
+    expect(rest).toContain("text-decoration: none");
+    expect(hover).toContain("text-decoration: none");
+  });
+
+  test("both controls really are links wearing it", () => {
+    const list = renderQueuePage([], AT, NAV, {
+      runnerAvailable: true,
+      targets: [],
+      createProjects: ["aide"],
+    });
+    expect(list).toContain('<a class="btn primary" href="/new">');
+    const form = renderNewSpecPage(NAV, AT, { createProjects: ["aide"], targets: [] });
+    expect(form).toContain('<a class="btn" href="/">');
+  });
+});
 
 describe("every token has a dark-surface value (acceptance criterion 13)", () => {
   // Contrast can only be judged in a browser. What a test CAN close is
