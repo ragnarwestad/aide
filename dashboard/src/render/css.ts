@@ -335,19 +335,25 @@ table.list tbody tr.spechead:first-child td { border-top: none; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
-/* The one line an open row grows above its phase lines — its controls,
-   the rarely-set fields included — is full width, directly under the
-   row it belongs to, so opening a row changes its height and no
-   column's width. */
-table.list tr[data-controls] td {
-  border-bottom: none; padding-top: 0; padding-bottom: 2px; }
+/* The first column is the row's ACTIONS (spec 124), and it is the one
+   column whose content comes and goes with the spec's state: a branch
+   becoming mergeable used to widen it for every row on the page at
+   once. Declared here, so what a row happens to offer cannot decide
+   how wide the column is. Scoped to the spec list's own header rows —
+   "table.list" is the specs page's table too, and it has no actions. */
+table.list tr.spechead > td:first-child { width: 14rem; }
 table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
-/* The phase lines are COLUMNS, not a ragged flex: the name gets a fixed
-   width so every select starts at the same x, under the caption's own
-   "Model" — which shares the width by matching the same selector. Only
-   the phase lines and their caption; the controls line keeps its flow. */
+/* The phase lines are COLUMNS, not a ragged flex: the box gets a fixed
+   width and so does the name, so every select starts at the same x,
+   under the caption's own "Model" — which shares both widths by
+   matching the same selectors. The "create" line has no box and the
+   caption has neither, and both still line up: their first span is
+   empty and holds the same place. */
 table.list tr.subrow[data-step] .phasecell > .row > :first-child,
 table.list tr.subrow[data-caption] .phasecell > .row > :first-child {
+  flex: 0 0 2.5rem; }
+table.list tr.subrow[data-step] .phasecell > .row > :nth-child(2),
+table.list tr.subrow[data-caption] .phasecell > .row > :nth-child(2) {
   flex: 0 0 6rem; }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
@@ -381,14 +387,29 @@ table.list tr.untried td { opacity: 0.55; }
 .fact { margin: var(--sp-1) 0; }
 .fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }
-.rowrun { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
-/* The controls line puts a labelled field (taller, for the line its
-   label takes) beside plain buttons and checkboxes, and the line they
-   share is their BOTTOM edge — the centring "row" asks for would set a
-   button's midpoint against a labelled field's, which is a different
-   place. Scoped by the attribute that row already carries, so the
-   filter bar's own "row" keeps the centred default it wants. */
-tr[data-controls] .row { align-items: flex-end; }
+/* Nothing but hidden fields since spec 124: the boxes it posts are on
+   the phase lines and the button that submits it is in the stack
+   above, both reaching it by the "form" attribute alone. It is still a
+   real form — the page works with script off — and still carries the
+   class queue-client.ts selects on, so a press is still intercepted.
+   It just has nothing to show, and a stack that gave it a gap would
+   open a hole between two buttons. */
+.rowrun { display: none; }
+/* The vertical one: a row's buttons, one under the next, in the cell
+   the list opens with (spec 124). Named by the archived design sheet
+   and never ported until now. Flex-start because the buttons are
+   different widths and a stack of centred ones has no edge to read
+   down; the gap is the container's, as everywhere else. */
+.stack { display: flex; flex-direction: column; align-items: flex-start;
+  gap: var(--sp-2); }
+/* The column above is 14rem because the longest label a row can draw —
+   the Merge button naming two repos at once — fits in it. The two
+   rules below are the backstop for the day one does not: a button
+   clips rather than demanding a wider column, since a column that
+   grows to fit one row's button moves every other row on the page,
+   which is what the width was declared to stop. */
+.stack > * { max-width: 100%; }
+.stack .btn { overflow: hidden; }
 /* No margin on any of the three below, nor on "extra": the space
    between two controls is declared once, by the "row" that holds them
    (spec 120). A margin here would travel into every layout the form is
@@ -398,12 +419,10 @@ tr[data-controls] .row { align-items: flex-end; }
 .mergeform { display: inline-block; }
 .resolveform { display: inline-block; }
 .mergeform form { display: inline-block; }
-/* The end of the controls line: the model, the gate and "also touches".
-   inline-flex, not the block-level flex "row" alone would give them —
-   the whole point of spec 117 is that they are ON the controls line,
-   and a block starts a line of its own directly under it, which is the
-   shape that was just removed. Small and bottom-aligned so Run still
-   reads first on a line they now share. */
+/* The end of the action stack: the gate and "also touches" (the model
+   left for the phase lines in spec 123). Small and bottom-aligned, so
+   a labelled field and a bare checkbox share one line, and quiet
+   enough that the buttons above them still read first. */
 .extra { display: inline-flex; vertical-align: bottom;
   font-size: var(--fs-s); align-items: flex-end; }
 /* A disclosure holding a form that is not about an existing spec. The

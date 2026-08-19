@@ -45,11 +45,27 @@ const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
-/** The row's controls line: since spec 109 the phase boxes, Run and
- *  Cancel sit on a `<tr>` of their own under an OPEN row, so that
- *  opening one cannot change the header line's shape. */
+/** Everything an OPEN row draws: its header line and the phase lines
+ *  under it. Since spec 124 the row's controls are split across the
+ *  two — Run and the other buttons stand in the header's own first
+ *  cell, each phase's checkbox on the phase's own line — so a test
+ *  about "what the row offers" reads the whole group. */
 const specControls = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
+  html.match(
+    new RegExp(
+      `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+        `(?=<tr class="[^"]*spechead|</tbody>)`,
+    ),
+  )?.[0] ?? "";
+
+/** Whether a phase's own line says it is done. Since spec 124 the
+ *  State column's badge is the one place that is said — the checkbox
+ *  beside it carries no second mark, which is the duplication the spec
+ *  set out to remove. */
+const phaseDone = (group: string, step: string): boolean =>
+  (
+    group.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">[\\s\\S]*?</tr>`))?.[0] ?? ""
+  ).includes('class="badge b-done"');
 
 /** Since spec 103 a row is COLLAPSED unless the view names it, and the
  *  run control comes with opening it. A test about that control asks
@@ -482,8 +498,13 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
-    // Marked done on the row, and still submittable.
-    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    // Said done by the phase line's own State column — the box beside
+    // it carries no second mark (spec 124) — and still submittable.
+    const analyze = specControls(html, "81-queue-and-runner")
+      .match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0];
+    expect(analyze).toContain('class="badge b-done"');
+    expect(analyze).toContain('<input type="checkbox" name="steps" value="analyze"');
+    expect(analyze).not.toContain("already done");
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -799,9 +820,9 @@ describe("the step boxes on a row follow that spec", () => {
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
-    expect(line).toMatch(/data-phase="analyze"[^]*?<input type="checkbox" name="steps" value="analyze">/);
-    expect(line).toMatch(/data-phase="implement"[^]*?value="implement" checked/);
-    expect(line).toContain('class="phase done" data-phase="analyze"');
+    expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze"(?![^>]*checked)/);
+    expect(line).toMatch(/data-phase="implement"[^]*?value="implement"[^>]*checked/);
+    expect(phaseDone(line, "analyze")).toBe(true);
   });
 
   test("a spec nothing has run yet offers the analyze/review-plan pair (criterion 1a)", async () => {
@@ -814,7 +835,7 @@ describe("the step boxes on a row follow that spec", () => {
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
-    expect(line).not.toContain('class="phase done"');
+    expect(phaseDone(line, "analyze")).toBe(false);
   });
 
   test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
@@ -827,7 +848,7 @@ describe("the step boxes on a row follow that spec", () => {
     );
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
-    expect(line).toContain('class="phase done" data-phase="analyze"');
+    expect(phaseDone(line, "analyze")).toBe(true);
     expect(line).not.toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="review-plan" checked/);
   });
@@ -926,9 +947,9 @@ describe("the files say what has happened, not the queue's history", () => {
     ).text();
     expect(html).toMatch(/value="implement" checked/);
     expect(html).not.toMatch(/value="archive" checked/);
-    // And the chip says the same: a step the queue ran is not a step the
-    // spec has HAD.
-    expect(html).not.toMatch(/class="phase[^"]*done" data-phase="implement"/);
+    // And the phase line says the same: a step the queue ran is not a
+    // step the spec has HAD.
+    expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(false);
   });
 
   test("the same step IS done once the status file says 100%", async () => {
@@ -939,7 +960,7 @@ describe("the files say what has happened, not the queue's history", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (22 of 22 completed)`\n");
 
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toMatch(/class="phase[^"]*done" data-phase="implement"/);
+    expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
     expect(html).toMatch(/value="archive" checked/);
     // The button says Run whatever has already run — the again-variant
     // went 2026-08-19.
@@ -2503,12 +2524,15 @@ describe("landing a created spec (spec 93)", () => {
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
-    // Runnable from the line its own row opens to (spec 109), like
-    // every other spec...
+    // Runnable from its own phase lines, like every other spec...
     expect(specControls(html, "94-a-new-spec")).toContain('name="steps" value="analyze"');
-    // ...and with nothing left to merge: the branch is landed, and a
-    // Merge button here would offer a name that no longer means anything.
-    expect(row).not.toContain("mergeform");
+    // ...and with nothing left to merge: the branch is landed. Since
+    // spec 124 the button stands in the row's stack whatever the
+    // state, so what says there is nothing to merge is that it cannot
+    // be pressed — not that it went missing.
+    const merge = row.match(/<form method="post" action="[^"]*\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(merge).toContain("disabled");
+    expect(merge).toContain('title="no branch is open yet"');
     expect(row).not.toContain("ready to merge");
   });
 
@@ -2576,11 +2600,11 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
     analysedSpec(dir);
     const line = specControls(await listPage(base), "81-queue-and-runner");
-    expect(line).not.toContain('class="phase done" data-phase="analyze"');
-    expect(line).not.toContain('class="phase done" data-phase="review-plan"');
+    expect(phaseDone(line, "analyze")).toBe(false);
+    expect(phaseDone(line, "review-plan")).toBe(false);
     // implement is untouched by this check: its own done-mark comes
     // from 4-status.md, and nothing here blocks running it.
-    expect(line).toContain('class="phase done" data-phase="implement"');
+    expect(phaseDone(line, "implement")).toBe(true);
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
   });
@@ -2600,8 +2624,8 @@ describe("a description newer than the analysis is shown on the row", () => {
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
     const line = specControls(html, "81-queue-and-runner");
-    expect(line).toContain('class="phase done" data-phase="analyze"');
-    expect(line).toContain('class="phase done" data-phase="review-plan"');
+    expect(phaseDone(line, "analyze")).toBe(true);
+    expect(phaseDone(line, "review-plan")).toBe(true);
   });
 
   test("a description older than the analysis changes nothing (criterion 4)", async () => {
@@ -2612,7 +2636,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
   });
 
   // A spec analysed by hand leaves no commit to compare against, and a
@@ -2626,7 +2650,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    expect(specControls(html, "81-queue-and-runner")).toContain('class="phase done" data-phase="analyze"');
+    expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
   });
 });
 

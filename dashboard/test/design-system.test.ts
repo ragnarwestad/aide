@@ -237,9 +237,12 @@ describe("the busy chip swaps its checkbox for the spinner", () => {
 // --- the step's name is not the reader's word --------------------------------
 
 describe("review-plan is shown as review (description item 4)", () => {
-  test("the phase chip shows the label and keeps the technical value", () => {
+  test("the phase box is named for the reader and keeps the technical value", () => {
     const html = rows([], { targets: [target()] });
-    expect(html).toMatch(/data-phase="review-plan"[^>]*>[\s\S]*?<span>review<\/span>/);
+    // Since spec 124 the box carries no visible label of its own — the
+    // phase's name is the next thing on the line — so the word a
+    // reader hears is the one it is given outright.
+    expect(html).toMatch(/data-phase="review-plan"[\s\S]*?aria-label="review"/);
     expect(html).toContain('value="review-plan"');
     // The word only ever appears as an attribute, never as text a
     // reader sees.
@@ -312,7 +315,7 @@ describe("refused and running are told apart by more than the word", () => {
 
 // --- nothing is left behind a second click ------------------------------------
 
-describe("the row's rarely-set controls sit flat on the controls line (item 4)", () => {
+describe("the row's rarely-set controls sit in the action stack (item 4)", () => {
   const html = () =>
     rows([], {
       targets: [target()],
@@ -320,8 +323,14 @@ describe("the row's rarely-set controls sit flat on the controls line (item 4)",
       modelChoices: [{ name: "opus", budgetUsd: 15 }],
     });
 
-  const controls = (h: string) =>
-    h.match(/<tr data-controls="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  /** The spec's action cell — since spec 124 the FIRST cell of its
+   *  header row, holding every button the row offers in one vertical
+   *  stack, with the rarely-set fields quietly under them. */
+  const controls = (h: string) => {
+    const head =
+      h.match(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    return head.split(/<t[dh]\b[^>]*>/)[1]?.replace(/<\/td>[\s\S]*$/, "") ?? "";
+  };
   /** The list itself. The "?" popover above it is a `<details>` too
    *  (spec 113) and has nothing to do with a row. */
   const list = (h: string) => h.match(/<table class="list">[\s\S]*<\/table>/)?.[0] ?? "";
@@ -335,12 +344,12 @@ describe("the row's rarely-set controls sit flat on the controls line (item 4)",
   });
 
   // Two of the three: since spec 123 the model is chosen on the phase
-  // line itself, not on this one.
-  test("gate and also-touches are both on the controls line", () => {
-    const line = controls(html());
-    expect(line).toContain('name="gate"');
-    expect(line).toContain('name="extraProjects"');
-    expect(line).not.toContain('name="model"');
+  // line itself, not with these.
+  test("gate and also-touches are both in the action cell", () => {
+    const cell = controls(html());
+    expect(cell).toContain('name="gate"');
+    expect(cell).toContain('name="extraProjects"');
+    expect(cell).not.toContain('name="model"');
   });
 
   test("nothing of the two is left anywhere else on the page", () => {
@@ -350,42 +359,39 @@ describe("the row's rarely-set controls sit flat on the controls line (item 4)",
     expect(outside).not.toContain('name="extraProjects"');
   });
 
-  test("they come after the phase boxes and Run, quietly", () => {
-    const line = controls(html());
-    expect(line.indexOf('name="gate"')).toBeGreaterThan(line.indexOf(">Run</button>"));
-    expect(line).toContain('<span class="row extra">');
+  test("they come after the buttons, quietly", () => {
+    const cell = controls(html());
+    expect(cell.indexOf('name="gate"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
+    expect(cell).toContain('<span class="row extra">');
   });
 
-  // Spec 120: presence on the line is not the same as SHARING it. The
-  // Run form is `display: flex`, which is block-level — three siblings
-  // glued straight into the `<td>` therefore stack instead of lining
-  // up, and only a container around them puts them on one line with
-  // one gap. The assertion is on the container, not on pixels: what
-  // the markup has to say is "these three are one group".
-  /** The outermost `<span class="row">` of a cell, with everything it
-   *  holds. Greedy to the LAST `</span>`, which is that wrapper's own —
-   *  `class="row extra"` is a different string and is never mistaken
-   *  for the wrapper's opening tag. */
-  const group = (h: string) => h.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
+  // Spec 120: presence in the cell is not the same as SHARING it. Each
+  // form is its own block, so siblings glued straight into the `<td>`
+  // decide their own spacing — only a container around them declares
+  // it once. Spec 124 turns that container on its side: the buttons
+  // are one under the next now, and the gap is still the container's.
+  /** The cell's own `<span class="stack">`, with everything it holds. */
+  const group = (h: string) => h.match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
 
-  test("Run, the extra fields and Cancel are one group, not three siblings (spec 120)", () => {
-    const line = controls(
+  test("Run, the action forms and the extra fields are one stack (spec 120)", () => {
+    const cell = controls(
       rows([row()], {
         targets: [target()],
         projects: ["aide", "atlasaurus"],
         modelChoices: [{ name: "opus", budgetUsd: 15 }],
       }),
     );
-    const outer = group(line);
+    const outer = group(cell);
     expect(outer).toContain('id="rowrun-');
+    expect(outer).toContain(">Run</button>");
     expect(outer).toContain('<span class="row extra">');
     expect(outer).toContain('class="actionform"');
   });
 
-  test("the group is there with no job to cancel either (spec 120)", () => {
-    // The same line with nothing in flight: Cancel is absent, and the
-    // two that remain still share the container rather than gaining
-    // one only when a third arrives.
+  test("the stack is there with no job to cancel either (spec 120)", () => {
+    // The same cell with nothing ever run: Approve and Cancel are not
+    // drawn at all (there is no job to act on), and what remains still
+    // shares the container rather than gaining one when a job arrives.
     const outer = group(controls(html()));
     expect(outer).toContain('id="rowrun-');
     expect(outer).toContain('<span class="row extra">');
@@ -550,12 +556,22 @@ describe("let aide resolve it (spec 106)", () => {
   // a margin each form carried with it. A margin travels into the next
   // layout the form is used in; a container's gap does not.
   test("Merge and resolve are one group, spaced by the container (spec 120)", () => {
-    const head = merged(CONFLICT).match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    // The action cell is the row's last, and holds nothing else.
-    const cell = head.slice(head.lastIndexOf("<td>"));
-    const outer = cell.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
-    expect(outer).toContain("mergeform");
-    expect(outer).toContain("resolveform");
+    const cell = (html: string) => {
+      const head = html.match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+      // The action cell is the row's FIRST since spec 124, and holds
+      // nothing else.
+      return head.split(/<t[dh]\b[^>]*>/)[1]?.replace(/<\/td>[\s\S]*$/, "") ?? "";
+    };
+    // Open: the two stand in the row's own stack, with every other
+    // button the row offers, and the gap is the stack's.
+    const stack = cell(merged(CONFLICT)).match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
+    expect(stack).toContain("mergeform");
+    expect(stack).toContain("resolveform");
+    // Shut: the same two, in the container a collapsed row has always
+    // put them in.
+    const shut = cell(merged({ ...CONFLICT, filter: {} })).match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
+    expect(shut).toContain("mergeform");
+    expect(shut).toContain("resolveform");
   });
 });
 

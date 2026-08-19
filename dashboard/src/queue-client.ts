@@ -147,13 +147,11 @@ async function postForm(
   const primary = buttons[0];
   const label = primary?.textContent ?? "";
   const titleBefore = primary?.title ?? "";
-  // A form on a spec's row, or the New-spec form above the table. Only
-  // a row has phase boxes to lend, and only a row can be shoved
-  // sideways by a button that changes size.
+  // A form on a spec's row, or the New-spec form above the table: the
+  // two say they were pressed in different ways, and this is the only
+  // question asked about where the form is.
   const row = form.closest("tr");
   const variant = VARIANTS.find((v) => primary?.classList.contains(v));
-  const phases = row?.querySelector(".phases") as HTMLElement | null;
-  const phasesBefore = phases?.innerHTML ?? "";
   for (const b of buttons) b.disabled = true;
   inFlight += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
@@ -165,13 +163,15 @@ async function postForm(
   // one moment it should look most in control (spec 104). So it goes
   // busy — the same variant the server renders for a job already in
   // flight — and the server's own pending word (`data-pending`) moves
-  // to the `title`, where it costs no width. The spinner takes the
-  // place of the phase boxes beside it: they are idle while the press
-  // is out, and they come back with the next render.
+  // to the `title`, where it costs no width. The spinner goes inside
+  // the button, where it costs no width either.
   //
-  // Called only once the form has been READ, never before: those boxes
-  // are the Run form's own fields, and a spinner standing where they
-  // were is a job queued with no phases at all.
+  // It used to be put where the row's phase boxes were instead, and
+  // borrow their width. Those boxes are on the phase LINES since spec
+  // 124 — a different `<tr>` from the button — and the only `.phases`
+  // group left in a button's own row is "also touches", which is not
+  // the row's spinner to take. One rule now, for every control alike:
+  // the button that was pressed carries it.
   const pressed = (): void => {
     if (!primary) return;
     if (!row) {
@@ -183,21 +183,9 @@ async function postForm(
     if (variant) primary.classList.remove(variant);
     primary.classList.add("busy");
     primary.title = primary.dataset?.pending || titleBefore;
-    // ONE spinner per row. When the row has phase boxes (the expanded
-    // controls), they hold it and the button only disables — a second
-    // spinner beside the label read as two jobs running (2026-08-19).
-    // A collapsed row has no boxes, so there the button carries it:
-    // without this, a Merge press showed nothing at all.
-    if (!phases) primary.insertAdjacentHTML("afterbegin", SPINNER);
-    if (phases) {
-      // The boxes lend their SPACE, and a spinner is 12px wide where
-      // four chips were: a `.phases` left to shrink around it would drag
-      // every button on the row leftwards — the same shove this spec
-      // exists to remove, in the other direction. So the width is held
-      // for as long as it is borrowed.
-      phases.style.minWidth = `${phases.offsetWidth}px`;
-      phases.innerHTML = SPINNER;
-    }
+    // ONE spinner per press, before the label and inside the button —
+    // which is where a collapsed row's Merge has always put it.
+    primary.insertAdjacentHTML("afterbegin", SPINNER);
   };
   try {
     // The token rides in the query string, as it does for a bookmarked
@@ -242,10 +230,6 @@ async function postForm(
       primary.title = titleBefore;
       primary.classList.remove("busy");
       if (variant) primary.classList.add(variant);
-    }
-    if (phases?.isConnected) {
-      phases.innerHTML = phasesBefore;
-      phases.style.minWidth = "";
     }
     for (const b of buttons) if (b.isConnected) b.disabled = false;
   }
