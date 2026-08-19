@@ -45,11 +45,6 @@ const specHead = (html: string, folder: string): string =>
 const specControls = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
 
-/** The row's "more" line: since spec 103 the model, the gate and the
- *  other repos sit on a `<tr>` of their own under an OPEN row. */
-const specMore = (html: string, folder: string): string =>
-  html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
-
 /** Since spec 103 a row is COLLAPSED unless the view names it, and the
  *  run control comes with opening it. A test about that control asks
  *  for the row open — the same query string the fold link builds. */
@@ -529,14 +524,13 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
     expect(html).toContain('<a class="brand" href="/">');
     // Every control says what it is: an unlabelled select next to some
-    // checkboxes tells the reader nothing. The steps and Run are on the
-    // spec's own row; the three nobody sets every time are behind the
-    // "more" disclosure on the line under it (spec 103).
+    // checkboxes tells the reader nothing. The steps, Run and the three
+    // nobody sets every time are all on the one line an open row grows
+    // (spec 117) — nothing waits behind a second click.
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toContain(">Run</button>");
-    const more = specMore(html, "81-queue-and-runner");
-    expect(more).toContain(">more</summary>");
-    expect(more).toContain("stop for approval between steps");
+    expect(line).toContain("stop for approval between steps");
+    expect(html).not.toContain(">more</summary>");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
     expect(html.toLowerCase()).toContain("no runner");
@@ -1621,8 +1615,8 @@ describe("each row asks which other repos its job will touch (criterion 5)", () 
       filter: { open: "aide/81-queue-and-runner" },
       projects,
     });
-  // The chips are on the open row's "more" line since spec 103.
-  const line = (projects: string[]) => specMore(page(projects), "81-queue-and-runner");
+  // The chips are on the open row's controls line since spec 117.
+  const line = (projects: string[]) => specControls(page(projects), "81-queue-and-runner");
 
   test("one checkbox per OTHER project, so a cross-repo job can say so up front", () => {
     const html = line(["aide", "aide-dashboard"]);

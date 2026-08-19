@@ -540,8 +540,8 @@ function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string 
 // work here. A front page does not open with four sentences a returning
 // reader has read, so the same facts sit behind a "?" beside the filter
 // chips instead. It is inside `#jobrows`, so it shuts again on the
-// five-second refresh — the same as `moreRow`'s own disclosure, and
-// fine for the same reason: nothing here is being typed into.
+// five-second refresh, and fine for that: nothing here is being typed
+// into.
 function runsHelp(): string {
   return (
     `<details class="intro"><summary title="How runs work here" ` +
@@ -934,9 +934,10 @@ function stepBoxes(g: SpecGroup, busy: boolean): string {
   );
 }
 
-// The run form's own id. It exists for the "more" line's sake alone:
-// those fields sit in a different `<tr>`, and `form="<id>"` is what
-// makes the browser post them with this form anyway.
+// The run form's own id. It exists for the rarely-set fields' sake
+// alone: they are written after the form's closing tag, on the same
+// line, and `form="<id>"` is what makes the browser post them with it
+// anyway.
 const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
 // The row's own anchor. `id`, not `data-folder`: a badge pointing at
@@ -947,10 +948,10 @@ const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.spec
 
 // The three things nobody sets every time — the model, the other repos
 // the job will touch, and whether to stop for approval between the
-// steps. Built here rather than inside `moreRow` so the `form`
+// steps. Built here rather than inline in `controlsRow` so the `form`
 // attribute every one of them needs is written once, beside the id it
 // has to match.
-function moreFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
   // Three fields that set up a job, on a row where no job can be
   // started: while the spec is busy every one of them is disabled, and
   // each carries the same sentence the phase boxes do.
@@ -1006,10 +1007,9 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
         { group: true },
       )
     : "";
-  // Off by default. It sits behind the same disclosure as the model and
-  // the other repos, because those three ARE what the row's "more"
-  // promises — one place for everything nobody sets every time, rather
-  // than one control in the open and two hidden.
+  // Off by default. It sits beside the model and the other repos,
+  // because those three are one thing: everything nobody sets every
+  // time, in one quiet place at the end of the line the row opens to.
   const gate = phaseChip({
     dataAttr: "data-gate",
     value: "1",
@@ -1033,8 +1033,8 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
 // is and how far it has got, not about starting it.
 //
 // Everything the retired form above the table asked for is still here:
-// four boxes and a button on the line the row opens to, and the three
-// rarely-set fields on the "more" line beneath that (`moreRow`).
+// four boxes and a button on the line the row opens to, with the three
+// rarely-set fields at the end of that same line (`controlsRow`).
 function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // Run while any phase is still to run for the first time; Run again
   // only once every phase has — a spec with `archive` pre-ticked and
@@ -1074,42 +1074,29 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
 // the header's last `<td>` beside whatever that cell already showed —
 // a cell nothing sets a width on, so it wrapped, and the header line
 // the reader was scanning moved down at the moment they acted on it
-// (spec 109). `moreRow` had already been pulled out of that same cell
-// for that same reason; this is the rest of it.
+// (spec 109). The rarely-set fields had already been pulled out of
+// that same cell for that same reason; this is the rest of it.
+//
+// They are here rather than on a "more" line of their own behind a
+// `<details>` (spec 117). That disclosure was a crowding fix from spec
+// 94, when the header, the phase boxes, Run and all three of them
+// shared ONE line; giving the controls a line of their own took the
+// crowding away and left a second click for two checkboxes. Opening a
+// row is the reader asking to see the controls, so the row shows them:
+// quiet and small-text at the end of the line (`.extra`), after Run,
+// where they read as secondary without being hidden.
 //
 // Cancel only, never Approve: a gate's Approve stays on the header,
 // where a shut row already offers it, so the one decision is in one
 // place. Merge stays there for the same reason.
 function controlsRow(g: SpecGroup, opts: QueuePageOptions): string {
+  const busy = specBusy(g);
   return (
     `<tr data-controls="${esc(g.specFolder)}"><td colspan="6">` +
     specRunForm(g, opts) +
+    `<span class="row extra">${extraFields(g, opts, busy)}</span>` +
     (g.lead ? actionForm(g.lead, opts.token, opts.filter, { cancelOnly: true }) : "") +
     `</td></tr>`
-  );
-}
-
-// "more" on a line of its OWN, under the row it belongs to. It used to
-// be a `<details>` inside the action cell: opening it widened that cell
-// and shoved every column sideways, so the reader lost their place on a
-// row they were reading. A full-width row cannot widen a column,
-// because it is not inside one.
-//
-// Drawn only when the row is open, and omitted rather than hidden —
-// the same rule the phase lines follow (`groupRows`).
-function moreRow(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
-  // `<details>` has no `disabled` of its own, and inventing CSS to fake
-  // one would be a new class for no new promise. So the disclosure
-  // still opens — every field inside it is individually disabled, which
-  // is where the promise actually lives — and the summary says why in
-  // the same words, in the muted look the page already has.
-  const summary = busy
-    ? `<summary class="muted" title="${esc(busyReason(g))}">more</summary>`
-    : `<summary title="more: model, gate, also touches">more</summary>`;
-  return (
-    `<tr data-more="${esc(g.specFolder)}"><td colspan="6">` +
-    `<details class="more">${summary}` +
-    `<span class="row">${moreFields(g, opts, busy)}</span></details></td></tr>`
   );
 }
 
@@ -1435,7 +1422,7 @@ function groupRows(
     .map((g) => {
       const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + controlsRow(g, opts) + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
+        ? head + controlsRow(g, opts) + phaseSubRows(g, now)
         : head;
     })
     .join("");

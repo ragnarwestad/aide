@@ -287,10 +287,11 @@ table.list tbody tr.spechead:first-child td { border-top: none; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
-/* The two lines an open row grows above its phase lines — its controls
-   and its "more" — are full width, directly under the row they belong
-   to, so opening a row changes its height and no column's width. */
-table.list tr[data-more] td, table.list tr[data-controls] td {
+/* The one line an open row grows above its phase lines — its controls,
+   the rarely-set fields included — is full width, directly under the
+   row it belongs to, so opening a row changes its height and no
+   column's width. */
+table.list tr[data-controls] td {
   border-bottom: none; padding-top: 0; padding-bottom: 2px; }
 table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
 /* A phase nobody has run yet still holds its place — that is what makes
@@ -330,9 +331,14 @@ td form { margin: 0; display: inline-block; }
 .actionform { margin-left: var(--sp-1); }
 .resolveform { display: inline-block; margin-left: var(--sp-1); }
 .mergeform form { display: inline-block; }
-.more { font-size: var(--fs-s); }
-.more summary { color: var(--muted); cursor: pointer; }
-.more .row { margin-top: var(--sp-2); align-items: flex-end; }
+/* The end of the controls line: the model, the gate and "also touches".
+   inline-flex, not the block-level flex "row" alone would give them —
+   the whole point of spec 117 is that they are ON the controls line,
+   and a block starts a line of its own directly under it, which is the
+   shape that was just removed. Small and bottom-aligned so Run still
+   reads first on a line they now share. */
+.extra { display: inline-flex; vertical-align: bottom; margin-left: var(--sp-2);
+  font-size: var(--fs-s); align-items: flex-end; }
 /* The one form on this page that is not about an existing spec. Shut by
    default: the list is what people come here for. */
 .newspec { margin: var(--sp-3) 0; }

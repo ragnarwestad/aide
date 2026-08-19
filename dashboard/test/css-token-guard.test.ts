@@ -183,7 +183,7 @@ const STRUCTURE = [
   // text roles
   "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
   // containers
-  "row", "fact", "intro", "tabpanel", "activity", "facts", "more",
+  "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
   "untried", "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
