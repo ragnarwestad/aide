@@ -20,6 +20,7 @@
   - [Tokens](#tokens)
   - [Components](#components)
   - [The guard](#the-guard)
+  - [Theme choice (spec 107)](#theme-choice-spec-107)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -572,6 +573,33 @@ structural names it writes out in full.
 So a spec that wants a look it cannot build from the tokens has to
 change the TOKENS — visibly, in one block — rather than add a colour
 beside them.
+
+### Theme choice (spec 107)
+
+The nav carries a Dark/Light/Auto control, stored in the browser
+(`localStorage`), not on the server — the generated pages are files
+with no server in front of them when opened from a folder, so nothing
+server-computed could carry the choice. An explicit pick sets
+`data-theme` on `<html>`; two extra token blocks in `css.ts`,
+`:root[data-theme="dark"]` and `:root[data-theme="light"]`, override
+the `@media (prefers-color-scheme: dark)` block by attribute-selector
+specificity (0-2-0 beats 0-1-0) regardless of source order. Auto needs
+no rule at all — no attribute set falls straight through to the
+existing OS-driven CSS.
+
+**This is the one deliberate exception to "generated pages carry no
+page code."** Applying the stored choice before first paint (no flash)
+needs a script that runs before body content, on every page — served
+and generated alike — so `src/render/shell.ts`'s `pageShell()` now
+emits exactly one shared, unconditional `<script>` in `<head>`:
+`src/render/theme-script.ts`, inlined the same way `serve.ts` inlines
+`queue-client.ts` for the served `/` page, and tested the same way
+(transpile the file and run it against a fake DOM — `theme-script.ts`
+cannot `import`/`export`, for the same reason `queue-client.ts` can't).
+This is a separate mechanism from `opts.script` (end-of-body,
+served-`/`-only, unchanged) — a page can now carry two `<script>` tags,
+so a test that locates "the" script by first occurrence will silently
+grab the wrong one; find each by a substring unique to its content.
 
 ## Deploying
 
