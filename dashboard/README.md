@@ -20,6 +20,7 @@
   - [Tokens](#tokens)
   - [Components](#components)
   - [The guard](#the-guard)
+  - [One busy flag, not a per-step lookup (spec 105)](#one-busy-flag-not-a-per-step-lookup-spec-105)
   - [Theme choice (spec 107)](#theme-choice-spec-107)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
@@ -573,6 +574,26 @@ structural names it writes out in full.
 So a spec that wants a look it cannot build from the tokens has to
 change the TOKENS — visibly, in one block — rather than add a colour
 beside them.
+
+`mergeoverride` in that allow-list and in `queue-client.ts`'s `ACTIONS`
+selector is dead in production since spec 105: no render path emits it
+any more (the server stopped emitting it in commit `cd81e95`, before
+that spec). It stays deliberately — generic pending/disable plumbing
+shared by four form classes, not worth touching `queue-client.ts`/
+`queue-client.test.ts` to remove for a class nothing else needs.
+
+### One busy flag, not a per-step lookup (spec 105)
+
+A spec's queue row reads its "is anything in flight" state from a
+single predicate, `specBusy()` in `queue-list.ts`, rather than each
+control re-deriving it from the in-flight job's own `steps` list. The
+earlier per-step lookup let a row show a step as tickable, and Run as
+clickable, while a job was already running on the spec — the queue
+would refuse the request, so the row promised something it could not
+keep. Every control that can act on a busy row — the phase boxes, the
+Run button, the model/gate/"also touches" fields, and both callers of
+the Merge button (collapsed and opened) — reads the same flag, so a
+new control cannot forget to check it.
 
 ### Theme choice (spec 107)
 
