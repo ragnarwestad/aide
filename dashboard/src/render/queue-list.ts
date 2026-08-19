@@ -407,6 +407,16 @@ function applyFilter(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   );
 }
 
+// A spec folder leads with its number, and that number is what a person
+// reads the column by — so `81-…` sorts before `103-…`, which plain text
+// order gets wrong the moment there are three digits. Same number (or
+// no number: a state, a create job's provisional key) falls back to text.
+function compareFolders(a: string, b: string): number {
+  const na = Number.parseInt(a, 10), nb = Number.parseInt(b, 10);
+  if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+  return a.localeCompare(b);
+}
+
 function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
@@ -419,7 +429,7 @@ function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);
     const cmp =
-      (typeof x === "string" ? String(x).localeCompare(String(y)) : (x as number) - (y as number)) * sign;
+      (typeof x === "string" ? compareFolders(String(x), String(y)) : (x as number) - (y as number)) * sign;
     if (cmp !== 0) return cmp;
     // Only between two specs that have BOTH never run. A general folder
     // tie-break is not free: 29 job fixtures sharing one `createdAt` all

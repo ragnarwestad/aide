@@ -1104,6 +1104,17 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("aa-spec")).toBeLessThan(html.indexOf("zz-spec"));
   });
 
+  // Spec folders lead with a number, and the first three-digit one
+  // (100, on 2026-08-18) sorted BEFORE 81 as text. The number is what a
+  // person reads the column by, so it is what the column sorts by.
+  test("sorting by spec orders by the leading number, not by text", () => {
+    const html = page([row("103"), row("81"), row("9"), row("104")], { sort: "spec", dir: "asc" });
+    const at = (n: string) => html.indexOf(`${n}-spec"`);
+    expect(at("9")).toBeLessThan(at("81"));
+    expect(at("81")).toBeLessThan(at("103"));
+    expect(at("103")).toBeLessThan(at("104"));
+  });
+
   test("a column header is a link that keeps the filter you are already in", () => {
     const html = page([row("a", { state: "running" })], { state: "active" });
     expect(html).toContain('href="/?state=active&amp;sort=cost"');
