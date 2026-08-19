@@ -11,6 +11,7 @@ New contributors (human or AI): read this first.
 - [Phase 4: Ideas borrowed from other tools](#phase-4-ideas-borrowed-from-other-tools)
   - [From OpenSpec](#from-openspec)
   - [From whippletree](#from-whippletree)
+  - [From OpenGeni](#from-opengeni)
 - [Phase 5: The dashboard — toward spec-driven, observable runs](#phase-5-the-dashboard--toward-spec-driven-observable-runs)
 - [Known quirks](#known-quirks)
 
@@ -158,6 +159,70 @@ installed to `~/.codex/`). The Stop guard needed a different construction:
 Codex has no prompt hooks, so PostToolUse markers ("code changed" /
 "tests run") are written per turn and judged by a command hook at Stop.
 All four verified in live `codex exec` sessions against 0.147.0.
+
+### From OpenGeni
+
+From reading [OpenGeni](https://github.com/Cloudgeni-ai/opengeni), an
+Apache-2.0 runtime for long-running agent sessions (durable event log in
+Postgres, Temporal for orchestration, human approvals before tool use,
+sessions that run on an enrolled machine of your own). It is not a tool we
+would install — it is a whole product, and running it means running
+Postgres, Temporal, NATS and S3 storage — but it is the closest thing we
+have found to a serious answer to the problem the dashboard is circling:
+what a headless agent run IS as durable state.
+
+It is also worth knowing HOW it was built, because that is what makes its
+conventions interesting. The public repo opens with "Initial OpenGeni open
+source release" on 12 May 2026 and carries 2234 commits by 19 August —
+roughly 1.29 million lines of TypeScript, 302 database migrations, 1180
+test files — with one dominant human author and `Co-authored-by: Cursor`
+on nearly every commit. The disciplines below are what a project reaches
+for when a machine writes the code faster than anyone can read it, which
+is the same position we are in.
+
+- [ ] **A commit body that says what was wrong and what stays unchanged.**
+      `core/rules/git.md` fixes the subject line (English, imperative) and
+      then says only "Optional: why, context, or details" about the body.
+      OpenGeni's bug-fix commits have a fixed shape worth copying: what the
+      wrong behavior was, the mechanism that caused it, what the
+      consequence was for a user, and — the part we have nothing about —
+      what deliberately does NOT change. That last clause is what stops the
+      next reader from undoing something that was intentional.
+- [ ] **One canonical map, updated in the same change.** OpenGeni's
+      `CLAUDE.md` points at a single `docs/architecture.md` and states the
+      rule: if a change alters the shape of the system, the map is updated
+      in that same change — "a stale map is a bug". It carries a "changing
+      X, read Y first" table. We have the content of that table already, as
+      prose warnings in `.claude/rules/development.md` (the two duplicated
+      step lists, `repos[].root` vs `repos[].worktree`, the six places the
+      spec layout is written down). Turn it into an actual table, and add
+      the same-change rule.
+- [ ] **A run that can ask a question and resume where it stopped.**
+      `aide-run-spec` today can only guess or fail when something is
+      genuinely unclear. OpenGeni lets an in-flight agent request a
+      validated answer and resume that exact tool call afterwards — or on
+      an allowed skip, an expiry, or a restart. The full mechanism is more
+      than we need; the small version is a job that parks itself as
+      `waiting` with its question on the row, and a reply field on the
+      dashboard.
+- [ ] **An append-only event log, not a last-state mirror.**
+      `dashboard/src/queue.ts` writes the current state of every job to a
+      JSON file, and `aide-emit-run` posts phase boundaries with
+      `curl --max-time 1` in the background — deliberately without any
+      guarantee of arrival. So there is no history to replay: a dropped
+      post is gone, and reloading the page does not reconstruct what
+      happened. OpenGeni appends every event to the log first and streams
+      from it, so a reload, a second client and an audit all replay the
+      same history. We do not need Postgres for that — a `runs/<id>.jsonl`
+      appended to would do.
+- [ ] **The anti-lesson: cap the file size before a barrel grows.**
+      `packages/db/src/index.ts` is 62 487 lines with 1134 exports, because
+      nothing enforces module boundaries and an assistant just appends at
+      the end. Our largest are `dashboard/src/serve.ts` at 1778 lines and
+      `queue.ts` at 744 — not a problem yet, and `serve.ts` is the one that
+      grows the same way. A test that fails when a file under
+      `dashboard/src/` passes a ceiling is the same mechanism that already
+      pins the two duplicated step lists to each other.
 
 ## Phase 5: The dashboard — toward spec-driven, observable runs
 
