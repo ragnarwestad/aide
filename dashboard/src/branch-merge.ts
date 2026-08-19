@@ -41,6 +41,19 @@ export interface RepoMergeResult {
    *  reads, so a failed one has to be visible — and the merge it
    *  follows is never turned back into a failure by it. */
   branchDeleteError?: string;
+  /** WHY it was refused, when the answer is one a machine acts on
+   *  (spec 106). Set at exactly ONE refusal — the real merge that
+   *  conflicted — because that is the only one a `resolve` step could
+   *  finish. Every other refusal here (a dirty tree, a branch gone from
+   *  origin, a base that will not fast-forward, a failed push) leaves it
+   *  unset, and so does a merge that went through.
+   *
+   *  `error` stays the sentence a person reads, and the page keeps
+   *  showing that. This field exists so the page can OFFER something on
+   *  the strength of the reason without matching against that sentence:
+   *  the text is joined with every other repo's before the page sees it,
+   *  and a rewording would silently take the offer away. */
+  reason?: "conflict";
 }
 
 const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
@@ -135,7 +148,10 @@ export async function mergeBranchIntoDefault(
       const real = await run(root, ["merge", "-q", "--no-edit", ref]);
       if (real.code !== 0) {
         await run(root, ["merge", "--abort"]);
-        return refuse(root, `cannot merge ${branch} into ${base} in ${root} (conflict — merge it by hand)`);
+        return {
+          ...refuse(root, `cannot merge ${branch} into ${base} in ${root} (conflict — merge it by hand)`),
+          reason: "conflict",
+        };
       }
     }
 

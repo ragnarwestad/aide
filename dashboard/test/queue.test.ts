@@ -649,3 +649,35 @@ describe("QueueStore.enqueueCreate", () => {
     expect(store.enqueueCreate(CREATE).ok).toBe(false);
   });
 });
+
+// --- spec 106: resolve is a step like the others ------------------------------
+//
+// The "let aide resolve it" control posts an ordinary job with
+// `steps: ["resolve"]`. Nothing about cost, caps, concurrency or model
+// selection is new — but the step has to be IN the vocabulary, or the
+// post is refused as "invalid entry in steps" before it reaches the
+// runner.
+
+describe("the resolve step (spec 106)", () => {
+  test("a job may be queued for it", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.steps).toEqual(["resolve"]);
+  });
+
+  test("it runs on the config's default model — a merge is not an implement", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model.resolve).toBe("sonnet");
+  });
+
+  test("a config that names it explicitly is still honoured", () => {
+    const named = { ...DEFAULTS, model: { ...DEFAULTS.model, resolve: "sonnet" } };
+    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: named });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model.resolve).toBe("sonnet");
+  });
+});

@@ -132,6 +132,12 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     expect(argv(git.calls)).toContain("merge --abort");
     // Nothing is published from a merge that did not happen.
     expect(ran(git.calls, "push")).toBe(false);
+    // Spec 106: the sentence above is for a person to read, and it is
+    // joined with every other repo's before the page sees it. What the
+    // page GATES on is this field — set at exactly one refusal, so the
+    // "let aide resolve it" control cannot be offered for a refusal
+    // resolving would not fix.
+    expect(result.reason).toBe("conflict");
   });
 
   test("a base that cannot be fast-forwarded is refused rather than merged over", async () => {
@@ -369,5 +375,71 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
+  });
+});
+
+// --- spec 106: only a real conflict is called one -----------------------------
+//
+// The "let aide resolve it" control is offered on the strength of this
+// one field, so a refusal that a resolve step could not fix must never
+// carry it. Each of these is a refusal the merge route already knows how
+// to produce; none of them is a conflict.
+
+describe("mergeBranchIntoDefault: reason is set at exactly one refusal", () => {
+  test("a dirty tree carries no reason", async () => {
+    const git = fakeGit({ ...CLEAN_MASTER, "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBeUndefined();
+  });
+
+  test("a branch that is not on origin carries no reason", async () => {
+    const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBeUndefined();
+  });
+
+  test("a base that cannot be fast-forwarded carries no reason", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 1 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBeUndefined();
+  });
+
+  test("a push that failed carries no reason — the merge itself went through", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 1 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBeUndefined();
+  });
+
+  test("a merge that went through carries no reason either", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBeUndefined();
   });
 });

@@ -167,7 +167,7 @@ const COMPONENTS = [
  *  Cancel, Merge or the refusal display in a browser, with no type
  *  error to catch it. */
 const JS_HOOKS = [
-  "rowrun", "actionform", "mergeform",
+  "rowrun", "actionform", "mergeform", "resolveform",
   "refused", "refusal", "newspec", "newspecform",
 ];
 

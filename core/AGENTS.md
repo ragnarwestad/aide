@@ -32,6 +32,7 @@ Available skills:
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
+- `/aide-resolve` - Finish a merge the Merge button refused for a conflict, and run the tests
 - `/aide-to-pdf` - Render the specs to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 

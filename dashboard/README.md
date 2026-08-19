@@ -16,6 +16,7 @@
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [Branches, and merging them](#branches-and-merging-them)
+    - [Letting aide resolve a conflict (spec 106)](#letting-aide-resolve-a-conflict-spec-106)
 - [How it looks (spec 102)](#how-it-looks-spec-102)
   - [Tokens](#tokens)
   - [Components](#components)
@@ -294,7 +295,7 @@ afterwards is a report, not a cap. They live in the queue config
     "implement": "bypassPermissions",
     "default": "acceptEdits"
   },
-  "model": { "implement": "opus", "default": "sonnet" },
+  "model": { "implement": "opus", "resolve": "sonnet", "default": "sonnet" },
   "push": "branch",
   "concurrency": 2,
   "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
@@ -496,7 +497,8 @@ and pushes, one repo at a time:
   branches touching the same file conflict at merge time, and running
   several specs side by side means it happens more often. Both sides
   refuse and name the repo rather than corrupting anything, which is
-  what turns this into a merge to do by hand.
+  what turns this into a merge to do by hand — or, since spec 106, into
+  one more queue step (below).
 - **The report is per repo, never one collective "ok".** Several repos
   cannot be merged atomically, and one succeeding while another fails
   is exactly what has to be readable.
@@ -507,11 +509,44 @@ An unfinished spec may be merged — every step makes branches, and
 merging after `analyze` is a legitimate thing to want. It goes through
 the confirmed "merge anyway", so it is a choice rather than a surprise.
 
+### Letting aide resolve a conflict (spec 106)
+
+A conflict refusal carries a second choice beside "merge it by hand":
+**let aide resolve it**. Pressing it queues an ordinary job with one
+step, `resolve`, which does by machine what the by-hand routine did —
+in a worktree of the spec's branch, merge origin's default branch into
+it, resolve the conflicts, run the project's test command, and push the
+BRANCH. The row then reads "ready to merge" again and a person presses
+Merge, so the resolution is a diff they look at first. The default
+branch is never touched by the step.
+
+- **It is offered for a conflict and nothing else.** Every other
+  refusal here — a dirty tree, a branch gone from origin, a base that
+  will not fast-forward, a failed push — is one a resolve step could
+  not finish, and the control is absent for all of them. The gate is a
+  structured `reason` field on the merge result, carried to the page as
+  `errorReason=conflict`, never a match against the refusal sentence:
+  that text is joined across repos before the page sees it, and a
+  rewording would silently take the offer away.
+- **It is a queue step like the others.** Visible on the row and the
+  job page, costed, cancellable, under the same caps and concurrency
+  limit, on the model the config names for it (`sonnet` — a merge is
+  not an implement). The two guards that already exist hold for it
+  unchanged: no two jobs for one spec run at once, and a second
+  unfinished job covering the same step is refused.
+- **It either finishes or puts the branch back.** Tests red, or a
+  conflict `/aide-resolve` will not decide, and the merge is undone to
+  the commit the branch started on. `aide-run-spec` pushes a repo only
+  when its `HEAD` moved, so a branch put back reaches origin at all —
+  no new rollback machinery, the gate that already exists. A step
+  interrupted mid-merge is aborted by the script before the commit
+  loop, so conflict markers are never committed.
+
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside
-the four (`explore`, `create`, `manifest` — valid steps the form does
-not offer) is appended after them rather than dropped, so a run is never
-invisible (spec 86).
+the four (`explore`, `create`, `manifest`, `resolve` — valid steps the
+form does not offer) is appended after them rather than dropped, so a
+run is never invisible (spec 86).
 
 ## How it looks (spec 102)
 

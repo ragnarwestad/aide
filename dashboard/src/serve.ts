@@ -63,7 +63,10 @@ const QUEUE_DEFAULTS: QueueDefaults = {
   dailyCapUsd: 20,
   timeoutSec: 1200,
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  model: { implement: "opus", default: "sonnet" },
+  // `resolve` would fall to `default` anyway; it is named because a
+  // merge is not an implement and that is a decision, not an accident
+  // of which key happens to be missing (spec 106).
+  model: { implement: "opus", resolve: "sonnet", default: "sonnet" },
 };
 
 export interface ServerOptions {
@@ -185,7 +188,10 @@ export function createRootLock() {
  *  which writes a space as `+`: a refusal's reason goes in this string
  *  and is read by a person. With nothing to carry the target stays
  *  exactly `/`, never `/?`. */
-function specsRedirect(body: unknown, refusal?: { error: string; spec?: string }): Response {
+function specsRedirect(
+  body: unknown,
+  refusal?: { error: string; spec?: string; reason?: string },
+): Response {
   const sent = (body ?? {}) as Record<string, unknown>;
   const parts: string[] = [];
   for (const key of FILTER_KEYS) {
@@ -198,6 +204,11 @@ function specsRedirect(body: unknown, refusal?: { error: string; spec?: string }
     // caller — the page lists up to 25 specs, and a reason attached to
     // none of them says nothing about which button was pressed.
     if (refusal.spec) parts.push(`errorSpec=${encodeURIComponent(refusal.spec)}`);
+    // And WHY, when the answer is one the page can act on rather than
+    // only show: a conflict is the one refusal a `resolve` step could
+    // finish, so it is the one the row may offer that step for. Absent
+    // for every other refusal, which is what keeps the offer narrow.
+    if (refusal.reason) parts.push(`errorReason=${encodeURIComponent(refusal.reason)}`);
   }
   const query = parts.join("&");
   return new Response(null, { status: 303, headers: { location: query ? `/?${query}` : "/" } });
@@ -998,6 +1009,10 @@ export function createServer(opts: ServerOptions) {
         // string with the reason itself, so it survives the
         // five-second row swap the same way the filter does.
         errorSpec: url.searchParams.get("errorSpec") ?? undefined,
+        // And why, when the reason is one the row offers a way out of.
+        // Rides in the query string beside the reason itself, for the
+        // same reason: it has to survive the five-second row swap.
+        errorReason: url.searchParams.get("errorReason") ?? undefined,
         projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
         // The raw allowlist, not the discovered set: a project whose
         // FIRST spec this form exists to make has nothing on disk to be
@@ -1162,7 +1177,11 @@ export function createServer(opts: ServerOptions) {
           .flatMap((r) => [r.error, r.installError, r.branchDeleteError])
           .filter(Boolean)
           .join("; ");
-        return summary ? specsRedirect(view, { error: summary, spec }) : specsRedirect(view);
+        // One repo conflicting is enough to offer the way out: the
+        // resolve step runs against the spec's branch in every repo it
+        // has one in, which is the same set this route just merged.
+        const reason = results.some((r) => r.reason === "conflict") ? "conflict" : undefined;
+        return summary ? specsRedirect(view, { error: summary, spec, reason }) : specsRedirect(view);
       }
       if (verb === "cancel") {
         // SIGTERM to the GROUP, never a bare pid: claude spawns

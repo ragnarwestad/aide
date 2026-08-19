@@ -74,7 +74,7 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
+WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest resolve"
 
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
@@ -643,10 +643,21 @@ base_ref_for() {   # sets $base_ref
 # and a branch left over from the morning made the step read the
 # morning's code. Measured 2026-08-16: a review-plan reviewed a file
 # whose bug had been fixed hours earlier.
+#
+# One step is the exception, and it is the exception on purpose: a
+# `resolve` run exists BECAUSE of the conflict, so it is handed the
+# worktree exactly as git left it — MERGE_HEAD set, the markers in the
+# files — and /aide-resolve decides. The condition is the literal string
+# `resolve` and nothing else, never a denylist: a step this got backwards
+# would carry conflict markers into a commit, which is worse than the
+# refusal it replaced.
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3"
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
   if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
+    if [ "$command_name" = "resolve" ]; then
+      return 0
+    fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
     refuse "cannot bring $branch up to date with $ref in $root (conflict — merge it by hand)"
   fi
@@ -938,6 +949,22 @@ suffix=""
 # and a worktree path is deleted when the run ends, so reporting it would
 # make the labels read as job ids, `isMerged` answer false forever, and
 # Merge fail in a directory that no longer exists.
+# A `resolve` step is the only one that can be interrupted MID-MERGE:
+# it is started with the conflict open, and a crash, a cancellation or a
+# budget stop between opening it and deciding leaves MERGE_HEAD set with
+# the markers still in the files. The generic loop below would then
+# `git add -A` those markers and commit them as the merge — the
+# half-merged tree the rest of this script exists to never leave
+# anywhere. Undoing it here puts the branch back exactly where the step
+# found it, which is also what "leaves the branch as it found it" means
+# when /aide-resolve gives up on purpose.
+if [ "$command_name" = "resolve" ]; then
+  for wt in "${work_roots[@]}"; do
+    git -C "$wt" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 || continue
+    git -C "$wt" merge --abort >/dev/null 2>&1 || true
+  done
+fi
+
 repos_json="[]"
 # Parallel to roots (bash 3.2 has no associative arrays): the HEAD this
 # loop ends on, whether it moved because this loop committed or because

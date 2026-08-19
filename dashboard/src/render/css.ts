@@ -313,7 +313,7 @@ table.list tr.untried td { opacity: 0.55; }
 .pip.now { background: var(--accent); }
 
 /* --- rows and forms ----------------------------------------------------- */
-/* "rowrun", "actionform", "mergeform", "newspecform",
+/* "rowrun", "actionform", "mergeform", "resolveform", "newspecform",
    "refused" and "refusal" are what queue-client.ts selects on. They are
    laid out here and coloured nowhere: a rename breaks the browser code
    with no type error to catch it. */
@@ -325,6 +325,7 @@ td form { margin: 0; display: inline-block; }
 .rowrun { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
 .mergeform { display: inline-block; margin-left: var(--sp-1); }
 .actionform { margin-left: var(--sp-1); }
+.resolveform { display: inline-block; margin-left: var(--sp-1); }
 .mergeform form { display: inline-block; }
 .more { font-size: var(--fs-s); }
 .more summary { color: var(--muted); cursor: pointer; }

@@ -108,6 +108,14 @@ export interface QueuePageOptions {
    *  button was pressed. Derived server-side from the job, never taken
    *  from the browser. */
   errorSpec?: string;
+  /** WHY that refusal happened, when the reason is one the row can
+   *  offer a way out of — today only `"conflict"` (spec 106). Derived
+   *  server-side from the merge result's own field, never from the
+   *  refusal sentence: that text is joined across repos before the page
+   *  sees it, and a rewording would silently take the offer away.
+   *  Absent for every other refusal, which is what keeps the offer
+   *  narrow. */
+  errorReason?: string;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -668,6 +676,34 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
   );
 }
 
+// The way out of the one refusal that HAS one (spec 106). Merging by
+// hand is still there beside it, unchanged — this is an alternative
+// offered, never a replacement, and it appears only after a merge was
+// refused for a real conflict.
+//
+// It queues a job, so it is `specRunForm`'s shape and not `mergeForm`'s:
+// a POST to /api/queue with the steps fixed, since this control never
+// lets a person pick them. Everything that follows — the cost, the
+// cancel, the caps, the model — is what any other step gets, because it
+// IS any other step.
+function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
+  const hidden =
+    tokenField(opts.token) +
+    filterFields(opts.filter) +
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `<input type="hidden" name="steps" value="resolve">`;
+  return (
+    `<form method="post" action="/api/queue" class="resolveform">${hidden}` +
+    btn({
+      label: "let aide resolve it",
+      pending: "queueing…",
+      title: "merge the default branch into the spec's branch, resolve, and run the tests",
+    }) +
+    `</form>`
+  );
+}
+
 // What a COLLAPSED row may ask of the reader: the one thing the spec
 // needs right now, or nothing at all. Approve while a gate waits, Merge
 // while a branch waits — the two the description names as reachable
@@ -677,7 +713,12 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
 // A selector, never a second copy of the markup: both branches call the
 // same component the expanded row calls, so a change to either form
 // reaches both places at once.
-function collapsedAction(g: SpecGroup, opts: QueuePageOptions, refused: boolean): string {
+function collapsedAction(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  refused: boolean,
+  conflict: boolean,
+): string {
   if (g.lead && g.lead.state === "awaiting-approval") {
     return actionForm(g.lead, opts.token, opts.filter, { approveOnly: true });
   }
@@ -686,7 +727,9 @@ function collapsedAction(g: SpecGroup, opts: QueuePageOptions, refused: boolean)
   // and the merge would be refused. Nothing at all, then — Cancel stays
   // one click away, by opening the row.
   if (specBusy(g)) return "";
-  return mergeForm(g, opts, refused);
+  // Both, in the order the reader decides between them: the merge they
+  // just tried, and the other way to get it.
+  return mergeForm(g, opts, refused) + (conflict ? resolveForm(g, opts) : "");
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
@@ -1055,6 +1098,10 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
   // "which spec" is invented.
   const refusal =
     opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
+  // The one refusal with a way out. Both halves are required: the
+  // reason belongs to whichever row the refusal does, so a conflict on
+  // another spec's row must not offer this one a resolve.
+  const conflict = !!refusal && opts.errorReason === "conflict";
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -1085,10 +1132,10 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
     // actually waiting on.
     `<td>${
       collapsed
-        ? collapsedAction(g, opts, !!refusal)
+        ? collapsedAction(g, opts, !!refusal, conflict)
         : specRunForm(g, opts) +
           (g.lead ? actionForm(g.lead, opts.token, opts.filter) : "") +
-          (specBusy(g) ? "" : mergeForm(g, opts, !!refusal))
+          (specBusy(g) ? "" : mergeForm(g, opts, !!refusal) + (conflict ? resolveForm(g, opts) : ""))
     }</td></tr>`
   );
 }
