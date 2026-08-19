@@ -102,6 +102,11 @@ export interface Job {
    *  is still the provisional key. */
   createTitle?: string;
   createDescription?: string;
+  /** Specs this one builds on, named by folder — the create form's
+   *  equivalent of the `Depends on:` line spec 92 gave a reader and no
+   *  writer but a person at a shell. Validated against the SAME
+   *  project's active specs; absent means no line at all. */
+  createDependsOn?: string[];
   /** Set while a finished step's work is being landed on a default
    *  branch — a merge that runs AFTER the step reported success, in this
    *  process, against a shared main checkout no worktree isolates. The
@@ -346,7 +351,7 @@ const provisionalKey = (): string =>
 
 export function parseCreateRequest(
   raw: unknown,
-  opts: { allow: CreateProjectAllower; defaults: QueueDefaults },
+  opts: { allow: CreateProjectAllower; resolve?: ProjectResolver; defaults: QueueDefaults },
 ): ParseResult {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     return { ok: false, error: "body is not an object" };
@@ -361,6 +366,29 @@ export function parseCreateRequest(
   if (title instanceof Error) return { ok: false, error: title.message };
   const description = text(r.description, DESCRIPTION_MAX, "description", true);
   if (description instanceof Error) return { ok: false, error: description.message };
+
+  // What the new spec builds on (spec 110). Scoped to the SAME project a
+  // dependency guard would later check it against — `aide-run-spec`
+  // resolves every "Depends on:" entry inside its own $specs_root — and
+  // read off the server's own resolver, never off whichever chips the
+  // browser happened to render. Refused entry by entry, like every other
+  // list-shaped field here; nothing is silently dropped.
+  const dependsOn: string[] = [];
+  if (r.dependsOn !== undefined && r.dependsOn !== null) {
+    if (!Array.isArray(r.dependsOn)) return { ok: false, error: "dependsOn must be a list" };
+    if (r.dependsOn.length > 20) return { ok: false, error: "dependsOn: at most 20" };
+    // No resolver, no known specs: a caller that never looks anything up
+    // cannot name a dependency, which is the right answer for a call
+    // site that does not carry the field at all.
+    const known = new Set(opts.resolve?.(r.project)?.specFolders ?? []);
+    for (const d of r.dependsOn) {
+      if (typeof d !== "string" || !FOLDER_RE.test(d) || !known.has(d)) {
+        return { ok: false, error: `unknown spec in dependsOn: ${String(d)}` };
+      }
+      if (dependsOn.includes(d)) return { ok: false, error: `dependsOn repeats ${d}` };
+      dependsOn.push(d);
+    }
+  }
 
   const steps: WorkflowStep[] = ["create"];
   return {
@@ -383,6 +411,9 @@ export function parseCreateRequest(
       extraProjects: [],
       createTitle: title,
       createDescription: description,
+      // Omitted entirely when nothing was chosen: "nothing chosen means
+      // no line", all the way down.
+      ...(dependsOn.length ? { createDependsOn: dependsOn } : {}),
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,
@@ -525,7 +556,11 @@ export class QueueStore {
    *  allowlist rather than the discovered set — the folder is what the
    *  job is FOR — and stored through the same tail as every other job. */
   enqueueCreate(raw: unknown): ParseResult {
-    const parsed = parseCreateRequest(raw, { allow: this.allowCreateProject, defaults: this.defaults });
+    const parsed = parseCreateRequest(raw, {
+      allow: this.allowCreateProject,
+      resolve: this.resolve,
+      defaults: this.defaults,
+    });
     if (!parsed.ok) return parsed;
     return this.insert(parsed);
   }

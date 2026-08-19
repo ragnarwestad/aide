@@ -82,6 +82,19 @@ Examples:
 - Create the directory: `<specs-root>/NN-slug/`
 - Create the files with content from `references/file-templates.md`
 - Replace placeholders: TITLE, FOLDER, DATE, DESC
+- **Depends on:** if the prompt states a Depends-on value (the "New spec"
+  form on the dashboard passes one as
+  `Use exactly this Depends-on value in Tracking info: <value>`), write it
+  into `1-description.md`'s Tracking info as a `Depends on:` line directly
+  after `Created`, using the value EXACTLY as stated — one backticked
+  identifier per comma-separated entry:
+
+  ```markdown
+  - **Depends on:** `105`, `92-a-spec-can-depend`
+  ```
+
+  When the prompt states no such value, write no such line. Never infer a
+  dependency from the description.
 
 ### Step 5: Stage in git
 

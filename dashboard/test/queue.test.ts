@@ -573,6 +573,68 @@ describe("parseCreateRequest", () => {
   });
 });
 
+// --- spec 110: what a new spec builds on --------------------------------------
+
+// A `Depends on:` line in 1-description.md (spec 92) has had a reader
+// since the day it existed and no writer but a person at a shell. The
+// create form names it now, so the value arrives as a request field —
+// and a name a request supplies is checked against server-known truth,
+// never against whatever chips the browser happened to render.
+describe("parseCreateRequest — dependsOn", () => {
+  const allow = (project: string) => project === "aide" || project === "brandnew";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+
+  test("a same-project active spec is accepted and stored on the job", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, dependsOn: ["81-queue-and-runner"] },
+      { allow, resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.createDependsOn).toEqual(["81-queue-and-runner"]);
+  });
+
+  test("an entry belonging to another project, or to none at all, is refused", () => {
+    // `01-first` is real — it is `aide-dashboard`'s. A dependency is
+    // resolved inside ONE specs root (aide-run-spec's own guard does
+    // the same), so another project's folder is as unknown as a made-up
+    // one.
+    for (const bad of [["01-first"], ["no-such-spec"], ["../etc/passwd"], [7]]) {
+      const r = parseCreateRequest({ ...CREATE, dependsOn: bad }, { allow, resolve, defaults: DEFAULTS });
+      expect(r.ok).toBe(false);
+    }
+  });
+
+  test("a repeat is refused, and so is a value that is not a list", () => {
+    expect(
+      parseCreateRequest(
+        { ...CREATE, dependsOn: ["81-queue-and-runner", "81-queue-and-runner"] },
+        { allow, resolve, defaults: DEFAULTS },
+      ).ok,
+    ).toBe(false);
+    expect(
+      parseCreateRequest({ ...CREATE, dependsOn: "81-queue-and-runner" }, { allow, resolve, defaults: DEFAULTS }).ok,
+    ).toBe(false);
+  });
+
+  test("nothing chosen means no field at all — exactly today's behaviour", () => {
+    const r = parseCreateRequest(CREATE, { allow, resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.createDependsOn).toBeUndefined();
+    // And a caller that passes no resolver at all still parses: the six
+    // calls above this block do exactly that, and a create that names
+    // nothing has nothing to look up.
+    expect(parseCreateRequest(CREATE, { allow, defaults: DEFAULTS }).ok).toBe(true);
+  });
+
+  test("a project whose first spec this is has nothing to depend on", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, project: "brandnew", dependsOn: ["81-queue-and-runner"] },
+      { allow, resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+  });
+});
+
 // The widened validation is for ONE route. `parseJobRequest` still
 // requires a project with a discovered spec — a regression guard, green
 // today and green afterwards.
@@ -597,6 +659,20 @@ describe("QueueStore.enqueueCreate", () => {
     // ...and it survives a restart, like every other job.
     const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allow });
     expect(reloaded.get(r.job.id)?.createDescription).toBe("Do the thing");
+  });
+
+  test("a chosen dependency survives a restart, like the title and the description", () => {
+    // "aide" here, not "brandnew": a dependency is one of the project's
+    // OWN active specs, and a project having none is the whole reason
+    // the create route exists at all.
+    const allowAide = (project: string) => project === "aide";
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allowAide });
+    const r = store.enqueueCreate({ ...CREATE, project: "aide", dependsOn: ["81-queue-and-runner"] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(store.get(r.job.id)?.createDependsOn).toEqual(["81-queue-and-runner"]);
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve, allowCreateProject: allowAide });
+    expect(reloaded.get(r.job.id)?.createDependsOn).toEqual(["81-queue-and-runner"]);
   });
 
   test("without a create allowlist nothing may be created", () => {

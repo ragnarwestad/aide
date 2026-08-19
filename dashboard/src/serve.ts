@@ -267,6 +267,7 @@ function bodyToObject(text: string, contentType: string | null): unknown {
     if (typeof out.steps === "string") out.steps = [out.steps];
     if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
     if (typeof out.extraProjects === "string") out.extraProjects = [out.extraProjects];
+    if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
     // A form posts a checkbox only when it is ticked. Unticked means
     // "run straight through", which must be said explicitly — the
     // schema's default is to gate after every step.
@@ -393,6 +394,10 @@ export function runnerArgv(
     // title and the description are the whole of what the step is for.
     ...(job.createTitle ? ["--title", job.createTitle] : []),
     ...(job.createDescription ? ["--description", job.createDescription] : []),
+    // What the new spec builds on (spec 110): ONE flag, comma-joined,
+    // because that is the shape the `Depends on:` line itself has on
+    // disk — nothing downstream has to rejoin a list.
+    ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
     ...(model ? ["--model", model] : []),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result
@@ -463,6 +468,10 @@ export function createServer(opts: ServerOptions) {
             dir: s.dir,
             title: s.title ?? undefined,
             description: s.description ?? undefined,
+            // What its own 1-description.md says it builds on (spec 92),
+            // shown on its row in the same words the run's dependency
+            // refusal uses.
+            dependsOn: s.dependsOn,
             phase: status?.phase ?? undefined,
             percent: status?.progress?.percent,
             // The FILES, and nothing else (spec 108). It used to be

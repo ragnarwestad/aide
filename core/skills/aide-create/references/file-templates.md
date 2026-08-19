@@ -21,7 +21,11 @@ Structure - follow the spec structure § 1-description:
 
 - `# TITLE - Description`
 - TOC with: Tracking info, Description
-- **Tracking info:** Task=`FOLDER/`, Created=`DATE`
+- **Tracking info:** Task=`FOLDER/`, Created=`DATE`, and — only when the
+  prompt states one — Depends on=the stated value, one backticked
+  identifier per comma-separated entry, on the line after `Created`
+  (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
+  when nothing was stated.
 - **Description:** DESC + editable note
 - NO criteria for done-ness here — they are part of the solution (3-solution.md)
 - NO affected files or estimate here — they are commitments about the

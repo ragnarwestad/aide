@@ -299,6 +299,31 @@ function formNote(form: HTMLFormElement, text: string): void {
   if (slot) slot.textContent = text;
 }
 
+// A dependency is resolved inside ONE specs root — `aide-run-spec`
+// checks every "Depends on:" entry against the chosen project's own —
+// so a chip belonging to another project is not a choice anyone can
+// make. The server refuses it either way; this is the half that means
+// nobody has to be refused to find out.
+//
+// Hidden AND disabled, and unticked on the way out: a disabled box posts
+// nothing, but a box that stays ticked while out of sight is a choice
+// the reader can no longer see they are making.
+function syncDependsOn(): void {
+  const form = document.querySelector("form.newspecform");
+  if (!form) return;
+  const select = form.querySelector("select[name=project]") as HTMLSelectElement | null;
+  if (!select) return;
+  for (const wrap of form.querySelectorAll("[data-project]")) {
+    const el = wrap as HTMLElement;
+    const mine = el.getAttribute("data-project") === select.value;
+    el.hidden = !mine;
+    const box = el.querySelector("input") as HTMLInputElement | null;
+    if (!box) continue;
+    box.disabled = !mine;
+    if (!mine) box.checked = false;
+  }
+}
+
 async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -307,6 +332,10 @@ async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> 
     async () => {
       formNote(form, "");
       form.reset?.();
+      // `reset()` reverts the Project select in SILENCE — it fires no
+      // `change` — so the chips would keep showing the just-submitted
+      // project's specs for one whole create cycle.
+      syncDependsOn();
       // Shut again: the spec it made is a row on the list now, which is
       // what the reader wants to see.
       const panel = form.closest?.("details") as HTMLDetailsElement | null;
@@ -339,5 +368,7 @@ document.getElementById("jobrows")?.addEventListener("submit", submitAction as E
 // for the request the press makes.
 const newSpec = document.querySelector("form.newspecform") as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
+syncDependsOn();
+newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 document.addEventListener("visibilitychange", tick);
 setInterval(tick, REFRESH_MS);

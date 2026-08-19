@@ -14,6 +14,9 @@ export interface SpecRef {
   /** What the spec is ABOUT. The title says `02-job-detail-view`; this
    *  says why anyone queued it (spec 02). */
   description: string | null;
+  /** Folder names from 1-description.md's `Depends on:` line (spec 92),
+   *  in the order written. Empty when the spec names none. */
+  dependsOn: string[];
 }
 
 export interface DiscoveredProject {
@@ -80,6 +83,31 @@ export function specDescription(dir: string): string | null {
     .trim() || null;
 }
 
+// The `Depends on:` line in Tracking info (spec 92) — the specs this one
+// builds on, comma-separated, backticks and whitespace stripped. A
+// SECOND reader of the same on-disk format, not a shared one: the shell
+// side has had `aide_spec_dependencies` since the line existed, and a
+// parser shared across bash and TypeScript is more machinery than two
+// lines of comma-splitting justify.
+export function specDependsOn(dir: string): string[] {
+  const desc = join(dir, "1-description.md");
+  if (!existsSync(desc)) return [];
+  let text: string;
+  try {
+    text = readFileSync(desc, "utf-8");
+  } catch {
+    return [];
+  }
+  // `[ \t]*`, never `\s*`: `\s` matches a newline, and a trailing `\s*`
+  // would run an empty field straight into the `---` on the next line.
+  const m = text.match(/^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*(.*)$/m);
+  if (!m) return [];
+  return m[1]
+    .split(",")
+    .map((s) => s.replace(/`/g, "").trim())
+    .filter(Boolean);
+}
+
 function specFolders(root: string, archived: boolean): SpecRef[] {
   if (!existsSync(root)) return [];
   const out: SpecRef[] = [];
@@ -87,7 +115,14 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
     if (!/^\d+-/.test(entry)) continue;
     const dir = join(root, entry);
     if (!statSync(dir).isDirectory()) continue;
-    out.push({ folder: entry, dir, archived, title: specTitle(dir), description: specDescription(dir) });
+    out.push({
+      folder: entry,
+      dir,
+      archived,
+      title: specTitle(dir),
+      description: specDescription(dir),
+      dependsOn: specDependsOn(dir),
+    });
   }
   return out;
 }

@@ -2101,6 +2101,30 @@ def test_create_asks_the_skill_for_a_spec_by_title_and_description(runner, works
     assert f"/aide-create {CREATE_KEY}" not in prompt
 
 
+def test_create_states_the_depends_on_value_the_form_chose(runner, workspace, fake_claude):
+    """Spec 110: the `Depends on:` line has had a reader since spec 92 and
+    no writer but a person at a shell. The value is STATED in the prompt,
+    in the same voice as the title, for the same reason: it is a fact the
+    skill is told, not a sub-format invented inside the argument string."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, depends_on="92,97-freshness", dry_run=True)
+    assert rc == 0, out
+    prompt = out["prompt"]
+    assert "Use exactly this Depends-on value in Tracking info: 92,97-freshness" in prompt, prompt
+    # Still the skill's own argument shape, and still the title beside it.
+    assert prompt.startswith("/aide-create TODO-a-new-spec"), prompt
+    assert "Use exactly this title for the spec: A new spec" in prompt, prompt
+
+
+def test_create_without_the_flag_says_nothing_about_dependencies(runner, workspace, fake_claude):
+    """Nothing chosen means no line — so the prompt must not mention the
+    field at all, rather than state an empty one for the skill to write."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = create(runner, workspace, claude, dry_run=True)
+    assert rc == 0, out
+    assert "Depends-on" not in out["prompt"], out["prompt"]
+
+
 def test_create_reports_the_folder_the_step_actually_made(runner, workspace, fake_claude):
     """Read off the disk, never computed: the run diffs the specs root
     before and after, so the number and the slug stay the skill's

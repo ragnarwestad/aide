@@ -162,13 +162,41 @@ function harness(
   const slot = { textContent: "" };
   const details = { open: true };
   const resets: number[] = [];
+  // Spec 110's Depends-on chips: one wrapper per active spec, each
+  // naming its own project, plus the Project select they are scoped to.
+  // `reset()` reverts the select the way the browser's own does —
+  // silently, without firing `change`, which is the whole reason the
+  // reset path needs a re-sync of its own.
+  const projectSelect = { value: "aide", addEventListener: (t: string, fn: (e: unknown) => void) => void (on[`select:${t}`] = fn) };
+  const chip = (project: string) => {
+    const input = { checked: true, disabled: false };
+    return {
+      dataset: { project },
+      getAttribute: (name: string) => (name === "data-project" ? project : null),
+      hidden: false,
+      querySelector: (sel: string) => (sel.includes("input") ? input : null),
+      input,
+    };
+  };
+  const chips = [chip("aide"), chip("aide-dashboard")];
   const createForm = {
     action: "http://dash.test/api/queue/create",
     fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
-    querySelectorAll: () => [createButton],
-    querySelector: (sel: string) => (sel.includes("token") ? tokenInput : sel.includes("refused") ? slot : null),
+    querySelectorAll: (sel: string) =>
+      sel.includes("data-project") ? (chips as unknown as typeof createButton[]) : [createButton],
+    querySelector: (sel: string) =>
+      sel.includes("token")
+        ? tokenInput
+        : sel.includes("refused")
+          ? slot
+          : sel.includes("project")
+            ? projectSelect
+            : null,
     closest: (sel: string) => (sel.includes("details") ? details : null),
-    reset: () => void resets.push(1),
+    reset: () => {
+      resets.push(1);
+      projectSelect.value = "aide";
+    },
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`create:${type}`] = fn),
   };
 
@@ -272,6 +300,11 @@ function harness(
   return {
     submit, submitCreate, button, createButton, requests, location, rows, inserted,
     replaced, slot, details, resets, document, phases, otherPhases, tick: () => tick(),
+    projectSelect, chips,
+    changeProject: (value: string) => {
+      projectSelect.value = value;
+      on["select:change"]?.({ target: projectSelect });
+    },
   };
 }
 
@@ -620,6 +653,47 @@ describe("the New-spec form answers for itself (criteria 7, 8)", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     await h.submitCreate({ defaultPrevented: true });
     expect(h.requests).toHaveLength(0);
+  });
+});
+
+// --- spec 110: the Depends-on chips follow the chosen project ----------------
+
+// A dependency is resolved inside ONE specs root, so a chip belonging to
+// another project is not a choice anyone can make. The server refuses it
+// either way; this is the half that means nobody has to be refused to
+// find out.
+describe("the Depends-on chips are scoped to the chosen project", () => {
+  test("only the chosen project's chips are live, from the moment the page loads", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    expect(h.chips[0]!.hidden).toBe(false);
+    expect(h.chips[0]!.input.disabled).toBe(false);
+    expect(h.chips[1]!.hidden).toBe(true);
+    expect(h.chips[1]!.input.disabled).toBe(true);
+  });
+
+  test("changing the project swaps which ones are live, and unticks what it hides", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.chips[0]!.input.checked = true;
+    h.changeProject("aide-dashboard");
+    expect(h.chips[0]!.hidden).toBe(true);
+    expect(h.chips[0]!.input.disabled).toBe(true);
+    // A hidden box the reader can no longer see is not a choice they
+    // are still making.
+    expect(h.chips[0]!.input.checked).toBe(false);
+    expect(h.chips[1]!.hidden).toBe(false);
+    expect(h.chips[1]!.input.disabled).toBe(false);
+  });
+
+  test("a successful create re-syncs them: `reset()` reverts the select in silence", async () => {
+    const h = harness(() => ({ ok: true, body: { ok: true, job: { id: "job-2" } } }));
+    h.changeProject("aide-dashboard");
+    expect(h.chips[1]!.hidden).toBe(false);
+    await h.submitCreate();
+    // The select is back on its first option; the chips have to follow,
+    // and `form.reset()` fires no `change` for the listener to hear.
+    expect(h.projectSelect.value).toBe("aide");
+    expect(h.chips[0]!.hidden).toBe(false);
+    expect(h.chips[1]!.hidden).toBe(true);
   });
 });
 

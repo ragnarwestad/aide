@@ -6,7 +6,7 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { configValue, discoverProjects, specDescription } from "../src/discover.ts";
+import { configValue, discoverProjects, specDependsOn, specDescription } from "../src/discover.ts";
 
 let root: string;
 let externalSpecs: string;
@@ -150,6 +150,51 @@ describe("specDescription", () => {
     const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
     const first = a.specs.find((s) => s.folder === "01-first-thing")!;
     expect(first.description).toBe("It does the first thing, thoroughly.");
+  });
+});
+
+// Spec 110: the `Depends on:` line (spec 92) has had a reader on the
+// shell side since the day it existed. The page reads it too now — the
+// row says what the spec builds on, in the same words the run's own
+// refusal uses.
+describe("specDependsOn", () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "aide-deps-"));
+  });
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  function spec(name: string, body: string): string {
+    const d = join(dir, name);
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "1-description.md"), body);
+    return d;
+  }
+
+  const TRACKING = (line: string) =>
+    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
+    `${line}\n\n---\n\n## Description\n\nprose\n`;
+
+  test("every identifier on the line, in the order written, backticks stripped", () => {
+    const d = spec("01-two", TRACKING("- **Depends on:** `105`, `92-a-spec-can-depend`"));
+    expect(specDependsOn(d)).toEqual(["105", "92-a-spec-can-depend"]);
+  });
+
+  test("a single dependency is a one-item list", () => {
+    expect(specDependsOn(spec("02-one", TRACKING("- **Depends on:** `105`")))).toEqual(["105"]);
+  });
+
+  test("no line, an empty one, or no file at all is an empty list — never a throw", () => {
+    expect(specDependsOn(spec("03-none", TRACKING("")))).toEqual([]);
+    expect(specDependsOn(spec("04-empty", TRACKING("- **Depends on:**")))).toEqual([]);
+    expect(specDependsOn(join(dir, "nowhere"))).toEqual([]);
+  });
+
+  test("discoverProjects carries it alongside the title and the description", () => {
+    const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
+    expect(a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn).toEqual([]);
   });
 });
 
