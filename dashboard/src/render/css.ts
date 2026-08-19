@@ -263,8 +263,11 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
+/* border-box, or width:100% means "100% plus padding and border" and
+   the box sticks 18px out of its own field — which is exactly the gap
+   to whatever stands beside it (seen against Create, 2026-08-19). */
 .field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
-  min-height: 84px; resize: vertical; width: 100%; }
+  min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 .field input[name="title"] { min-width: 18rem; }
 
