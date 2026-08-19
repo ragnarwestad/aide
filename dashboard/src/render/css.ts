@@ -266,7 +266,7 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 .filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
 /* The whole controls line keeps clear air down to the table. */
-.listcontrols { margin-bottom: var(--sp-3); }
+#jobrows > .row:first-child { margin-bottom: var(--sp-3); }
 /* Two elements, one pill. A filter is a link because it goes somewhere;
    a theme choice is a button because it does something. That difference
    belongs in the markup, not in a second class that looks the same. */
@@ -407,11 +407,10 @@ tr[data-controls] .row { align-items: flex-end; }
    tab bar and everything under it down. */
 .menu { position: relative; }
 .menu > summary { display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: var(--r);
-  border: 1px solid var(--line-strong); background: var(--surface);
+  width: 32px; height: 32px; border-radius: 999px; border: 0; background: none;
   color: var(--muted); line-height: 1; list-style: none; cursor: pointer; }
 .menu > summary::-webkit-details-marker { display: none; }
-.menu > summary:hover { border-color: var(--muted); color: var(--text); }
+.menu > summary:hover { background: var(--surface-2); color: var(--text); }
 /* Menu rows, not a box with text in it: every item is a full-width flat
    with a hover, the way a menu reads. */
 .menupanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;

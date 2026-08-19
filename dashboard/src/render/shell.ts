@@ -31,6 +31,9 @@ const THEME_SCRIPT = transpile("theme-script.ts");
 // what it is guarding against is page code drifting back onto the
 // generated pages, not a second small setting sharing the allowance.
 const UNIT_SCRIPT = transpile("unit-script.ts");
+// Close-on-outside-click and Escape for the "…" menu: what makes the
+// disclosure BEHAVE as a menu rather than a box that stays open.
+const MENU_SCRIPT = transpile("menu-script.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -76,7 +79,12 @@ function themeControl(): string {
 function pageHeader(): string {
   return (
     `<header>${WORDMARK}` +
-    `<details class="menu"><summary aria-label="More">&hellip;</summary>` +
+    // The trigger is a QUIET icon — no border, no button chrome; a round
+    // hover flat is all (PaceUp's header menu is the reference).
+    `<details class="menu"><summary aria-label="More">` +
+    `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
+    `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
+    `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
     `<div class="menupanel"><a href="about.html">About</a>${themeControl()}${unitControl()}</div>` +
     `</details></header>`
   );
@@ -140,7 +148,7 @@ export function pageShell(
 <title>${esc(opts.docTitle ?? `aide · ${title}`)}</title>
 ${ICON_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}
