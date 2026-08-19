@@ -102,6 +102,29 @@ changing anything here:
   `.aide/config` — symlinked in, and excluded from `git add -A` by
   pathspec, because a `dir/` gitignore rule does not match a symlink.
 
+**`WORKFLOW_STEPS` is duplicated with no shared source — a new step
+needs both copies.** `core/scripts/aide-run-spec`'s bash list and
+`dashboard/src/queue.ts`'s TypeScript array must name the same steps or
+the dashboard offers a step the script refuses (or the reverse). A
+regression test (`test_aide_run_spec.py`) reads both lists and asserts
+they match — add a step to only one and that test catches it, but the
+two lists themselves still have to be edited by hand together (spec
+106; the gap was already flagged at spec 91).
+
+**One step, `resolve`, can touch the worktree and fail to finish — the
+generic commit loop needed a guard for that.** Every other step either
+succeeds or refuses before touching the tree. `resolve` merges origin's
+default branch into the spec's branch inside the worktree and can be
+interrupted (crash, cancellation, a budget stop) after the merge opens
+but before the skill commits or aborts it. Left alone, the script's
+generic `git add -A` + commit loop would stage the conflict markers and
+commit them as the resolution. `core/scripts/aide-run-spec` now aborts
+an unfinished merge before that loop runs, but only when
+`command_name` is `resolve` — every other step is unaffected. The
+"leaves the branch as it found it" contract for a failed resolution
+therefore holds structurally (the script's own abort), not only because
+the skill behaves well.
+
 **A repo beyond the project and its specs root has to be NAMED**, with
 `--extra-project-dir` (repeatable; the queue's form calls it "Also
 touches"). The run only watches, commits and pushes the roots it knows
