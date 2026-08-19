@@ -317,7 +317,14 @@ table.list thead a { color: var(--muted); }
 .sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
 .sortlink.asc svg { transform: rotate(180deg); }
-.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m); }
+/* One line, always: the name is clamped with an ellipsis rather than
+   wrapped — a wrapped tail landed in front of the branch marks and
+   read as one of them (2026-08-19). The full name is in the title. */
+.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
+  display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; }
+.spec-name .branchlist { flex: none; }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs

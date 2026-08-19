@@ -838,8 +838,10 @@ function collapsedAction(
 // share a NAME and nothing else.
 function branchList(branches: BranchView[], activity?: string): string {
   if (branches.length === 0) return "";
+  // A lead-in, because bare repo names read as words that fell out of
+  // something else (asked for 2026-08-19).
   return (
-    `<span class="branchlist">` +
+    `<span class="branchlist"><span class="lbl">Affected repos:</span>` +
     branches
       .map(
         (b) =>
@@ -1205,9 +1207,13 @@ function specHeadRow(
   // it rather than replacing it — nothing a reader uses today disappears.
   // A spec that has never run has no job page to point at, so the name
   // is text: a link to nothing is worse than no link.
+  // `.label` so the name can be clamped to one line with an ellipsis
+  // (asked for 2026-08-19): a long folder name used to wrap, and its
+  // tail landed in front of the branch marks — "refusing, aide-specs,
+  // aide" read as a list of three marks.
   const spec = g.lead
-    ? `<a href="/specs/${esc(g.lead.id)}">${esc(g.specFolder)}</a>`
-    : esc(g.specFolder);
+    ? `<a class="label" href="/specs/${esc(g.lead.id)}" title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`
+    : `<span class="label" title="${esc(g.specFolder)}">${esc(g.specFolder)}</span>`;
   // The badge is about the branch AND the job that is still writing to
   // it, so the row's lead job comes down with the list.
   const diff = g.branches.length

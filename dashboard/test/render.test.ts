@@ -390,7 +390,20 @@ const openKeys = (
 describe("the queue row links to the job (criterion 12)", () => {
   test("the spec cell links to /specs/<id>", () => {
     const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
-    expect(html).toContain('<a href="/specs/job-1234">81-queue-and-runner</a>');
+    expect(html).toContain('<a class="label" href="/specs/job-1234" title="81-queue-and-runner">81-queue-and-runner</a>');
+  });
+
+  // The name is one line with an ellipsis, and the marks carry a
+  // lead-in — a wrapped name-tail used to land in front of bare repo
+  // names and read as one of them (2026-08-19).
+  test("the marks say what they are, and the stylesheet clamps the name", async () => {
+    const html = renderQueueRows(
+      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
+      { runnerAvailable: true, targets: [] },
+    );
+    expect(html).toContain('<span class="branchlist"><span class="lbl">Affected repos:</span>');
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toContain(".spec-name > .label { overflow: hidden; text-overflow: ellipsis;");
   });
 
   test("an existing branch link stays beside it, never replaced by it", () => {
@@ -398,7 +411,7 @@ describe("the queue row links to the job (criterion 12)", () => {
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).toContain('<a href="/specs/job-1234">81-queue-and-runner</a>');
+    expect(html).toContain('<a class="label" href="/specs/job-1234" title="81-queue-and-runner">81-queue-and-runner</a>');
     expect(html).toContain('href="https://example.test/compare"');
   });
 });
