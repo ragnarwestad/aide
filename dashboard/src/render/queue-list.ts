@@ -829,8 +829,14 @@ function collapsedAction(
   // one click away, by opening the row.
   if (specBusy(g)) return "";
   // Both, in the order the reader decides between them: the merge they
-  // just tried, and the other way to get it.
-  return mergeForm(g, opts, refused) + (conflict ? resolveForm(g, opts) : "");
+  // just tried, and the other way to get it. The space between them is
+  // the container's gap (spec 120) — each form used to carry its own
+  // margin, which every later layout the form was put in inherited
+  // whether it wanted it or not.
+  return (
+    `<span class="row">${mergeForm(g, opts, refused)}` +
+    `${conflict ? resolveForm(g, opts) : ""}</span>`
+  );
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
@@ -1125,11 +1131,16 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
 function controlsRow(g: SpecGroup, opts: QueuePageOptions): string {
   const busy = specBusy(g);
   return (
-    `<tr data-controls="${esc(g.specFolder)}"><td colspan="6">` +
+    // One container around the three, and the gap is the container's
+    // (spec 120). Without it they are siblings of the cell itself, and
+    // the Run form's own `display: flex` is block-level — so it took
+    // the whole width and pushed the other two onto lines of their own,
+    // which is the opposite of what putting them here was for.
+    `<tr data-controls="${esc(g.specFolder)}"><td colspan="6"><span class="row">` +
     specRunForm(g, opts) +
     `<span class="row extra">${extraFields(g, opts, busy)}</span>` +
     (g.lead ? actionForm(g.lead, opts.token, opts.filter, { cancelOnly: true }) : "") +
-    `</td></tr>`
+    `</span></td></tr>`
   );
 }
 

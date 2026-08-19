@@ -334,9 +334,21 @@ table.list tr.untried td { opacity: 0.55; }
 .fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }
 .rowrun { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
-.mergeform { display: inline-block; margin-left: var(--sp-1); }
-.actionform { margin-left: var(--sp-1); }
-.resolveform { display: inline-block; margin-left: var(--sp-1); }
+/* The controls line puts a labelled field (taller, for the line its
+   label takes) beside plain buttons and checkboxes, and the line they
+   share is their BOTTOM edge — the centring "row" asks for would set a
+   button's midpoint against a labelled field's, which is a different
+   place. Scoped by the attribute that row already carries, so the
+   filter bar's own "row" keeps the centred default it wants. */
+tr[data-controls] .row { align-items: flex-end; }
+/* No margin on any of the three below, nor on "extra": the space
+   between two controls is declared once, by the "row" that holds them
+   (spec 120). A margin here would travel into every layout the form is
+   put in next, and a container gap does not absorb it. "actionform"
+   has no rule left at all — "td form" above gives it everything it
+   had. */
+.mergeform { display: inline-block; }
+.resolveform { display: inline-block; }
 .mergeform form { display: inline-block; }
 /* The end of the controls line: the model, the gate and "also touches".
    inline-flex, not the block-level flex "row" alone would give them —
@@ -344,7 +356,7 @@ td form { margin: 0; display: inline-block; }
    and a block starts a line of its own directly under it, which is the
    shape that was just removed. Small and bottom-aligned so Run still
    reads first on a line they now share. */
-.extra { display: inline-flex; vertical-align: bottom; margin-left: var(--sp-2);
+.extra { display: inline-flex; vertical-align: bottom;
   font-size: var(--fs-s); align-items: flex-end; }
 /* The one form on this page that is not about an existing spec. Shut by
    default: the list is what people come here for. */

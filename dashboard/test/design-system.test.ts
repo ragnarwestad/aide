@@ -324,6 +324,42 @@ describe("the row's rarely-set controls sit flat on the controls line (item 4)",
     expect(line.indexOf('name="model"')).toBeGreaterThan(line.indexOf(">Run</button>"));
     expect(line).toContain('<span class="row extra">');
   });
+
+  // Spec 120: presence on the line is not the same as SHARING it. The
+  // Run form is `display: flex`, which is block-level — three siblings
+  // glued straight into the `<td>` therefore stack instead of lining
+  // up, and only a container around them puts them on one line with
+  // one gap. The assertion is on the container, not on pixels: what
+  // the markup has to say is "these three are one group".
+  /** The outermost `<span class="row">` of a cell, with everything it
+   *  holds. Greedy to the LAST `</span>`, which is that wrapper's own —
+   *  `class="row extra"` is a different string and is never mistaken
+   *  for the wrapper's opening tag. */
+  const group = (h: string) => h.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
+
+  test("Run, the extra fields and Cancel are one group, not three siblings (spec 120)", () => {
+    const line = controls(
+      rows([row()], {
+        targets: [target()],
+        projects: ["aide", "atlasaurus"],
+        modelChoices: [{ name: "opus", budgetUsd: 15 }],
+      }),
+    );
+    const outer = group(line);
+    expect(outer).toContain('id="rowrun-');
+    expect(outer).toContain('<span class="row extra">');
+    expect(outer).toContain('class="actionform"');
+  });
+
+  test("the group is there with no job to cancel either (spec 120)", () => {
+    // The same line with nothing in flight: Cancel is absent, and the
+    // two that remain still share the container rather than gaining
+    // one only when a third arrives.
+    const outer = group(controls(html()));
+    expect(outer).toContain('id="rowrun-');
+    expect(outer).toContain('<span class="row extra">');
+    expect(outer).not.toContain('class="actionform"');
+  });
 });
 
 // --- the button says what pressing it does ------------------------------------
@@ -482,6 +518,19 @@ describe("let aide resolve it (spec 106)", () => {
     const html = merged(CONFLICT);
     expect(html).toContain('action="/api/queue"');
     expect(html).toMatch(/name="steps"\s+value="resolve"/);
+  });
+
+  // Spec 120: the two are the one place on a header row where two
+  // controls stand side by side, and the space between them used to be
+  // a margin each form carried with it. A margin travels into the next
+  // layout the form is used in; a container's gap does not.
+  test("Merge and resolve are one group, spaced by the container (spec 120)", () => {
+    const head = merged(CONFLICT).match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    // The action cell is the row's last, and holds nothing else.
+    const cell = head.slice(head.lastIndexOf("<td>"));
+    const outer = cell.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
+    expect(outer).toContain("mergeform");
+    expect(outer).toContain("resolveform");
   });
 });
 

@@ -242,6 +242,41 @@ describe("render files use the component vocabulary and nothing else", () => {
   });
 });
 
+// --- the gap lives in the container (spec 120) ------------------------------
+//
+// A component that brings its own margin decides the spacing of every
+// layout it is ever put in, and the layout it is put in next cannot
+// take it back. The four rules below sat beside each other on the two
+// lines this page crowds most, each with a `margin-left` standing in
+// for a gap their container should have declared once. The guard above
+// checks class NAMES and never rule bodies, so nothing else in the
+// suite would notice one creeping back.
+
+describe("the space between two controls comes from their container", () => {
+  const GAPLESS = [".mergeform", ".actionform", ".resolveform", ".extra"];
+
+  for (const cls of GAPLESS) {
+    test(`${cls} declares no margin of its own`, async () => {
+      const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+      // A rule that is gone entirely passes: `.actionform`'s margin was
+      // its only declaration, and `td form` already gives it the rest.
+      const body = css.match(new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+      expect([cls, body.includes("margin")]).toEqual([cls, false]);
+    });
+  }
+
+  test("the controls line's bottom alignment is scoped to that row alone", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    // Both halves matter. The scoped rule is what lines a labelled
+    // field's control up with a plain button; `.row`'s own unscoped
+    // `center` is what the filter bar still needs, and replacing it
+    // instead of adding beside it would move the filter bar with no
+    // test to say so.
+    expect(css).toMatch(/tr\[data-controls\]\s*\.row\s*\{\s*align-items:\s*flex-end;\s*\}/);
+    expect(css).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
+  });
+});
+
 // --- the unit a reader chose (spec 118) -------------------------------------
 //
 // The same trick as the theme, applied to text instead of colour: every
