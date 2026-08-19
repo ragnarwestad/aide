@@ -182,7 +182,7 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "tabbar", "tab",
-  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
+  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop", "stackcell",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
@@ -279,18 +279,21 @@ describe("the space between two controls comes from their container", () => {
   });
 });
 
-// --- the action column holds still (spec 124) -------------------------------
+// --- the stack's cell holds still (spec 124) --------------------------------
 //
-// The buttons a row offers come and go with its state, and the column
-// they sit in was sized by whichever row on the page needed the most:
-// a branch becoming mergeable widened the column for every row at
-// once, which is the shove the spec was written to stop. The width is
-// declared, so the content cannot decide it.
+// The buttons a row offers come and go with its state, and the cell
+// they sit in must not be sized by whichever one is longest: a Merge
+// naming two repos would widen the column the whole table is aligned
+// on. The width is declared, so the content cannot decide it. (Spec
+// 124 declared it on a COLUMN of its own at the front of the table,
+// which pushed every other column sideways — 2026-08-19 moved the
+// stack into the spec column it already sat under, spanning the phase
+// lines.)
 
 describe("the action column's width is declared, not content-driven", () => {
-  test("the header row's first cell carries a fixed width", async () => {
+  test("the stack's cell carries a fixed width", async () => {
     const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const rule = css.match(/table\.list tr\.spechead > td:first-child \{([^}]*)\}/)?.[1] ?? "";
+    const rule = css.match(/\.stackcell \{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toMatch(/width:\s*[\d.]+rem;/);
   });
 

@@ -324,7 +324,6 @@ table.list thead a { color: var(--muted); }
   display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
-.spec-name .branchlist { flex: none; }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
@@ -341,8 +340,16 @@ table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
    once. Declared here, so what a row happens to offer cannot decide
    how wide the column is. Scoped to the spec list's own header rows —
    "table.list" is the specs page's table too, and it has no actions. */
-table.list tr.spechead > td:first-child { width: 14rem; }
-table.list tr.subrow .phasecell { padding-left: var(--sp-5); }
+/* The stack's cell: the spec column, beside the phase lines it acts
+   on, capped so a long button label cannot widen the column the whole
+   table is aligned on. Top-aligned — buttons belong at the top of the
+   lines they command, not floating in the middle of them. */
+.stackcell { width: 14rem; vertical-align: top; }
+/* The phase lines claim the width they need rather than wrapping: a
+   box, a name and a select on one line, or the column squeezes them
+   into three (2026-08-19). */
+table.list tr.subrow .phasecell { padding-left: var(--sp-5); white-space: nowrap; }
+table.list tr.subrow .phasecell > .row { flex-wrap: nowrap; }
 /* The phase lines are COLUMNS, not a ragged flex: the box gets a fixed
    width and so does the name, so every select starts at the same x,
    under the caption's own "Model" — which shares both widths by

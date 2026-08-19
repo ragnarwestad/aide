@@ -654,13 +654,14 @@ function sortableHead(f: QueueFilter): string {
     // moment the list became one line per spec. It holds the whole
     // workflow as pips on a header line, and how many attempts a phase
     // took on the lines beneath.
-    // The blank one FIRST since spec 124: the column it heads holds
-    // every button a row offers, and a heading over a stack of
-    // controls would be a word about the reader rather than the spec.
-    `<thead><tr><th></th>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
+    // The blank one LAST: it heads the cell a shut row's one action
+    // sits in, and a heading over a control would be a word about the
+    // reader rather than the spec. (Spec 124 put it first, for a
+    // button COLUMN that pushed the whole table sideways — 2026-08-19.)
+    `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
     `${th("started", "Started")}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>')}` +
-    `</tr></thead>`
+    `<th></th></tr></thead>`
   );
 }
 
@@ -1242,17 +1243,12 @@ function specHeadRow(
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
-    // The row's actions, in the column the table opens with (spec
-    // 124). A SHUT row offers the one thing the spec is waiting on and
-    // nothing else; an OPEN row offers the whole stack. This is the
-    // one conditional the redesign hangs on.
-    `<td>${
-      opened.has(groupKey(g.project, g.specFolder))
-        ? openActionsCell(g, opts)
-        : collapsedAction(g, opts, !!refusal, conflict)
-    }</td>` +
-    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
+    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
+    // The repo marks on a line of their own: beside the name they took
+    // the width the name needed, and clamping it to "124-…" told the
+    // reader nothing (2026-08-19).
+    diff +
     // Why the button you just pressed did nothing — on the row you
     // pressed it on, with the warning mark beside it, so a refusal is
     // never told from a running row by colour alone.
@@ -1276,7 +1272,16 @@ function specHeadRow(
       ),
     )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
-    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td></tr>`
+    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
+    // The action cell, LAST as before spec 124 — but only for a SHUT
+    // row: an open row's actions live in the stack beside its phase
+    // lines (the 14rem first column put every button in the page's
+    // left gutter and pushed the whole table right; seen 2026-08-19).
+    `<td>${
+      opened.has(groupKey(g.project, g.specFolder))
+        ? ""
+        : collapsedAction(g, opts, !!refusal, conflict)
+    }</td></tr>`
   );
 }
 
@@ -1334,21 +1339,16 @@ function modelPicker(
 // Merging the two cells and putting the flex-gap container inside is
 // the same trick `collapsedAction` uses to sit two controls together
 // whatever the table's auto-sized widths turn out to be.
-function phaseCaptionRow(opts: QueuePageOptions): string {
-  if (!(opts.modelChoices ?? []).length) return "";
+// The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
+// sub-row itself, so the stack cell can lead whichever row comes first.
+// The empty span holds the checkbox column's place, so "Phase" stands
+// over the phase NAMES and not over their boxes.
+function phaseCaptionCells(): string {
   return (
-    // No class of its own: it needs no rule, and the render vocabulary
-    // is a closed set (`css-token-guard.test.ts`).
-    //
-    // The leading cell is the action column's (spec 124) — reserved on
-    // every row of the table, filled once, by the spec's header row.
-    // The empty span after it holds the checkbox column's place, so
-    // "Phase" stands over the phase NAMES and not over their boxes.
-    `<tr class="subrow" data-caption="1">` +
-    `<td></td><td colspan="2" class="phasecell"><span class="row">` +
+    `<td class="phasecell"><span class="row">` +
     `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
-    `</span></td><td></td><td></td><td class="num"></td></tr>`
+    `</span></td><td></td><td></td><td class="num"></td><td></td>`
   );
 }
 
@@ -1378,8 +1378,17 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   const ticked = preTicked(g);
   const why = busy ? busyReason(g) : "";
   const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
-  return phaseCaptionRow(opts) + g.phases
-    .map((p) => {
+  // Every sub-row's tag and its cells, kept apart so the stack cell can
+  // lead whichever row comes first and span the rest (2026-08-19). A
+  // COLUMN of its own put the buttons in the page's left gutter and
+  // pushed the whole table sideways; the spec column they already sit
+  // under is where "left of the phases" actually is.
+  const lines: { tag: string; cells: string }[] = [];
+  if ((opts.modelChoices ?? []).length) {
+    lines.push({ tag: `<tr class="subrow" data-caption="1">`, cells: phaseCaptionCells() });
+  }
+  g.phases
+    .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest);
       const name = latest
@@ -1429,17 +1438,24 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             title: busy ? why : undefined,
           })
         : "";
-      return (
-        `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
-        `<td></td>` +
-        `<td colspan="2" class="phasecell"><span class="row"><span class="row">${box}</span>` +
-        `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
-        `<td>${phaseWordCell(word, latest)}</td>` +
-        `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
-        `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
-        `</tr>`
-      );
-    })
+      lines.push({
+        tag: `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">`,
+        cells:
+          `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
+          `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
+          `<td>${phaseWordCell(word, latest)}</td>` +
+          `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
+          `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
+          `<td></td>`,
+      });
+    });
+  // The stack, once, in the spec column and spanning every line beside
+  // it: one cell, so nothing about a row's buttons can change what any
+  // other row is shaped like.
+  const stack =
+    `<td class="stackcell" rowspan="${lines.length}">${openActionsCell(g, opts)}</td>`;
+  return lines
+    .map((l, i) => `${l.tag}${i === 0 ? stack : ""}${l.cells}</tr>`)
     .join("");
 }
 

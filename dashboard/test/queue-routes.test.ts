@@ -2524,16 +2524,17 @@ describe("landing a created spec (spec 93)", () => {
     ).text();
     const row = specHead(html, "94-a-new-spec");
     expect(row).not.toBe("");
+    const group = specControls(html, "94-a-new-spec");
     // Runnable from its own phase lines, like every other spec...
-    expect(specControls(html, "94-a-new-spec")).toContain('name="steps" value="analyze"');
-    // ...and with nothing left to merge: the branch is landed. Since
-    // spec 124 the button stands in the row's stack whatever the
-    // state, so what says there is nothing to merge is that it cannot
-    // be pressed — not that it went missing.
-    const merge = row.match(/<form method="post" action="[^"]*\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(group).toContain('name="steps" value="analyze"');
+    // ...and with nothing left to merge: the branch is landed. The
+    // button stands in the row's stack whatever the state, so what says
+    // there is nothing to merge is that it cannot be pressed — not that
+    // it went missing.
+    const merge = group.match(/<form method="post" action="[^"]*\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
     expect(merge).toContain("disabled");
     expect(merge).toContain('title="no branch is open yet"');
-    expect(row).not.toContain("ready to merge");
+    expect(group).not.toContain("ready to merge");
   });
 
   test("a create job that has not landed yet is still a row on the page", async () => {
@@ -2574,8 +2575,12 @@ describe("a description newer than the analysis is shown on the row", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (4 of 4 completed)`\n");
   };
 
+  /** A phase's own line, without the action stack that rides on the
+   *  first sub-row (it spans them all and belongs to the spec, not to
+   *  the phase). */
   const subRow = (html: string, phase: string): string =>
-    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
 
   /** The badge sits on the analyze phase line and the marks on the step
    *  boxes, and a collapsed row draws neither — so every fetch here

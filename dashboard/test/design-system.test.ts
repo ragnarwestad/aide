@@ -219,6 +219,27 @@ describe("the header and the two tabs (spec 119)", () => {
 // The phase lines are columns (asked for 2026-08-19, "få det nå
 // alignet"): the name has a fixed width so every model select starts at
 // the same x, sharing it with the caption row's own first span.
+// The action stack lives in the spec column, spanning the phase lines
+// it commands — spec 124 gave it a COLUMN of its own at the front of
+// the table, which put every button in the page's left gutter and
+// pushed every other column sideways (2026-08-19).
+describe("the action stack rides in the spec column, not in one of its own", () => {
+  test("the header declares its blank cell last, and no row leads with one", async () => {
+    const html = rows([], { targets: [target()] });
+    const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
+    expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
+    expect(thead).not.toMatch(/^<thead><tr><th><\/th>/);
+  });
+
+  test("an open row's stack is one spanning cell, beside its phase lines", () => {
+    const html = rows([], { targets: [target()] });
+    const stack = html.match(/<td class="stackcell" rowspan="(\d+)">([\s\S]*?)<\/td>/);
+    expect(stack).not.toBeNull();
+    expect(Number(stack![1])).toBeGreaterThan(1);
+    expect(stack![2]).toContain(">Run</button>");
+  });
+});
+
 describe("the phase lines line up in columns", () => {
   test("the stylesheet gives the phase name a fixed flex basis", async () => {
     const { CSS } = await import("../src/render/css.ts");
@@ -323,13 +344,16 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
       modelChoices: [{ name: "opus", budgetUsd: 15 }],
     });
 
-  /** The spec's action cell — since spec 124 the FIRST cell of its
-   *  header row, holding every button the row offers in one vertical
-   *  stack, with the rarely-set fields quietly under them. */
+  /** The spec's action cell: an open row's whole stack, in the cell
+   *  that leads its phase lines and spans them; a shut row's one
+   *  action, in the header's last cell. */
   const controls = (h: string) => {
+    const stack = h.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const head =
       h.match(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    return head.split(/<t[dh]\b[^>]*>/)[1]?.replace(/<\/td>[\s\S]*$/, "") ?? "";
+    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[cells.length - 1] ?? "";
   };
   /** The list itself. The "?" popover above it is a `<details>` too
    *  (spec 113) and has nothing to do with a row. */
@@ -556,11 +580,14 @@ describe("let aide resolve it (spec 106)", () => {
   // a margin each form carried with it. A margin travels into the next
   // layout the form is used in; a container's gap does not.
   test("Merge and resolve are one group, spaced by the container (spec 120)", () => {
+    // An open row's stack leads its phase lines; a shut row's one
+    // action is the header's last cell (2026-08-19).
     const cell = (html: string) => {
+      const stack = html.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+      if (stack !== undefined) return stack;
       const head = html.match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-      // The action cell is the row's FIRST since spec 124, and holds
-      // nothing else.
-      return head.split(/<t[dh]\b[^>]*>/)[1]?.replace(/<\/td>[\s\S]*$/, "") ?? "";
+      const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+      return cells[cells.length - 1] ?? "";
     };
     // Open: the two stand in the row's own stack, with every other
     // button the row offers, and the gap is the stack's.
