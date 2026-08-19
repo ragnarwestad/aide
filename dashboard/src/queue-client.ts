@@ -182,10 +182,10 @@ async function postForm(
     if (variant) primary.classList.remove(variant);
     primary.classList.add("busy");
     primary.title = primary.dataset?.pending || titleBefore;
-    // The label stays a text node rather than being written back
-    // through `innerHTML`: it is the server's escaped markup read out
-    // as text, and re-parsing it would be one round trip too many.
-    primary.insertAdjacentHTML("afterbegin", SPINNER);
+    // No spinner ON the button: the row has exactly one, in the phase
+    // boxes'"'"' place below — a second one beside the label read as two
+    // jobs running (2026-08-19). The busy class and the disabling are
+    // what the button itself says.
     if (phases) {
       // The boxes lend their SPACE, and a spinner is 12px wide where
       // four chips were: a `.phases` left to shrink around it would drag

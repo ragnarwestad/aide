@@ -33,6 +33,8 @@ export const CSS = `
   --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --lh: 1.45;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --r: 6px; --r-s: 4px;
+  --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 /* tokens:end */
   --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
@@ -357,14 +359,20 @@ td form { margin: 0; display: inline-block; }
 /* How runs work: a small question mark at the right-hand end of the
    filter row, not a block between the page's title and the list the
    reader came for. */
-.row > details.intro { margin-left: auto; }
+/* A POPOVER, not an inline fold: opening it lays the text over the page
+   instead of shoving the list down. The details element keeps the no-JS
+   behaviour; only the open box is lifted out of the flow. */
+.row > details.intro { margin-left: auto; position: relative; }
 .row > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid var(--line-strong); color: var(--muted);
   font-size: var(--fs-s); font-weight: 600; list-style: none; cursor: pointer; }
 .row > details.intro > summary::-webkit-details-marker { display: none; }
 .row > details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
-.row > details.intro p { margin: var(--sp-2) 0 0; max-width: 28rem; }
+.row > details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
+  z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r); box-shadow: var(--overlay-shadow); }
 p.intro { margin: 0 0 var(--sp-3); }
 
 /* --- the job page --------------------------------------------------------- */

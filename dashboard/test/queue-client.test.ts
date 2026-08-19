@@ -804,7 +804,9 @@ describe("a pressed row button holds its size (spec 104)", () => {
       // In PLACE of the variant, not beside it: two variants at once is
       // a button with two looks.
       expect(seen.variant).toBe(false);
-      expect(seen.spinner).toContain(SPINNER);
+      // ONE spinner per row, and it lives where the phase boxes were —
+      // a second one on the button read as two jobs (2026-08-19).
+      expect(seen.spinner).not.toContain(SPINNER);
     });
   }
 
