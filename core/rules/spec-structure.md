@@ -99,6 +99,14 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   origin has commits not on the default branch — unmerged, not merely
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
+- The dashboard's New-spec form can write this line too (spec 110): a
+  Depends-on chip set, scoped to the chosen project's active specs, goes
+  through `aide-run-spec --depends-on` to a stated value in the
+  `/aide-create` prompt. The line is parsed by two independent readers —
+  `aide_spec_dependencies` in `_aide-spec-lib.sh` (shell) and
+  `specDependsOn` in `dashboard/src/discover.ts` (TypeScript) — kept
+  deliberately unshared as a two-line duplication; a future change to
+  this line's format has to update both
 
 ---
 
