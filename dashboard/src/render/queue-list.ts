@@ -909,6 +909,12 @@ function stepBoxes(g: SpecGroup, busy: boolean): string {
 // makes the browser post them with this form anyway.
 const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
+// The row's own anchor. `id`, not `data-folder`: a badge pointing at
+// another spec's row needs something `href="#..."` can find with no
+// script at all — this page's own rule. Same shape as `runFormId`, so
+// "an id that names a spec" stays the one convention it already is.
+const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
+
 // The three things nobody sets every time — the model, the other repos
 // the job will touch, and whether to stop for approval between the
 // steps. Built here rather than inside `moreRow` so the `form`
@@ -1169,10 +1175,54 @@ function specSummary(g: SpecGroup): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
+// A dependency identifier — "106", or the whole folder name — resolved
+// the same narrow way `aide-run-spec`'s own `resolve_dependency_folder`
+// does: exact folder, or an `<id>-` prefix, and nothing fuzzier. Scoped
+// to the dependent spec's own project, so a spec numbered the same
+// somewhere else is never what a row is waiting on.
+function resolveDependency(from: SpecGroup, id: string, all: SpecGroup[]): SpecGroup | undefined {
+  return all.find(
+    (g) => g.project === from.project && (g.specFolder === id || g.specFolder.startsWith(`${id}-`)),
+  );
+}
+
+// "after 106" — one per dependency that is still in the way, by the same
+// rule `aide-run-spec` refuses a run on: that spec's own branch is still
+// unmerged. `dep.branches` already answers it for every spec on the
+// page, the identical expression the row reads about its OWN branches
+// one line below. No git is asked anything here.
+//
+// The RESOLVED folder's leading digits, not the identifier as written: a
+// `Depends on:` line naming the full slug would otherwise print it whole
+// on every row waiting on it. Every `specFolder` starts with digits by
+// construction — `discover.ts` only reads folders that do.
+function dependencyBadges(g: SpecGroup, all: SpecGroup[]): string {
+  return g.dependsOn
+    .map((id) => resolveDependency(g, id, all))
+    .filter((dep): dep is SpecGroup => !!dep && dep.branches.some((b) => !b.merged))
+    .map(
+      (dep) =>
+        ` <a href="#${esc(rowAnchorId(dep))}">` +
+        badge(
+          "waiting",
+          `after ${dep.specFolder.split("-", 1)[0]}`,
+          `${dep.specFolder} is not merged yet`,
+        ) +
+        `</a>`,
+    )
+    .join("");
+}
+
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and every action there is to take on it — running
 // its phases included.
-function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function specHeadRow(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   // The one new fact the row needs: a collapsed row is a status line,
   // an open one is the row this page has always had.
   const collapsed = !opened.has(groupKey(g.project, g.specFolder));
@@ -1228,7 +1278,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
-    `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
+    `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
@@ -1250,7 +1300,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
         g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
         readyPhase,
       ),
-    )}</div></td>` +
+    )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Run is about what the spec has still to do; approve/cancel is
@@ -1328,10 +1378,16 @@ function phaseSubRows(g: SpecGroup, now: number): string {
 // Collapsed is the default, and the URL names the exceptions. That is
 // what the fold is FOR: a list of twenty specs is read one state at a
 // time, and the row you are about to act on is the one you open.
-function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function groupRows(
+  groups: SpecGroup[],
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   return groups
     .map((g) => {
-      const head = specHeadRow(g, opts, now, opened);
+      const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
         : head;
@@ -1358,7 +1414,9 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
+    ? // `groups`, not `matched`: a dependency the filter or the 25-row
+      // cap has hidden is still in the way of the row that names it.
+      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f), groups)
     : `<tr><td colspan="6" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
