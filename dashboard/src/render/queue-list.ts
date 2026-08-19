@@ -42,7 +42,7 @@ import {
   inFlight,
   nextActionHint,
   notStartedChip,
-  stateChip,
+  specStateChip,
   stateLabel,
   unmergedBadge,
   wordPhase,
@@ -862,7 +862,7 @@ function branchList(branches: BranchView[], activity?: string): string {
 // A spec's state and a phase's state are the same question asked at two
 // altitudes, and they must never be worded differently.
 const stateCell = (r: QueueRowView): string =>
-  stateChip(r) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+  specStateChip(r) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
 // phase has neither happened nor been attempted. The attempt's own

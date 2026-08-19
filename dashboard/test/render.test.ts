@@ -2134,28 +2134,29 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(text).toContain("Run");
   });
 
-  test("a running job names the step it is on and the ones still to come", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 0, state: "running" })],
-        [target("101-a")],
-      ),
+  // In flight the sentence says nothing (asked for 2026-08-19): the
+  // chip itself reads "analyzing" and the running phase line says the
+  // rest — "analyze running — review to follow" was the same fact a
+  // third time.
+  test("a running job's chip carries the phase word; the sentence stays empty", () => {
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 0, state: "running" })],
+      [target("101-a")],
     );
-    expect(text).toContain("analyze");
-    expect(text).toContain("running");
-    // Shown as `review`; `review-plan` is the value, not the word.
-    expect(text).toContain("review");
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)![0];
+    expect(head).toContain(">analyzing<");
+    expect(head).not.toContain("to follow");
+    expect(hint(html)).toBe("");
   });
 
-  test("a job on its last step promises nothing after it", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 1, state: "running" })],
-        [target("101-a")],
-      ),
+  test("review-plan in flight gerunds from the reader's word: reviewing", () => {
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["analyze", "review-plan"], stepIndex: 1, state: "running" })],
+      [target("101-a")],
     );
-    expect(text).toContain("review");
-    expect(text).not.toContain("to follow");
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)![0];
+    expect(head).toContain(">reviewing<");
+    expect(head).not.toContain("review-planing");
   });
 
   test("a job waiting on a person says whose move it is", () => {
@@ -2329,7 +2330,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
       ),
     );
-    expect(text).toContain("archive running");
+    // The sentence is empty in flight; what must not happen is the
+    // stale note upstaging the retry.
     expect(text).not.toContain("held back");
   });
 

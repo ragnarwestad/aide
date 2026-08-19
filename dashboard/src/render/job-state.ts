@@ -2,7 +2,7 @@
 // words. Both the list and the single-job page need this, and neither
 // owns it.
 
-import { badge, stepLabel, stepLabels, type BadgeVariant, type PipKind } from "./components.ts";
+import { badge, stepLabel, type BadgeVariant, type PipKind } from "./components.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every
@@ -123,6 +123,23 @@ export function stateChip(r: QueueRowView): string {
   return badge(BADGE_VARIANT[r.state], stateLabel(r));
 }
 
+/** The SPEC row's own chip: a running job reads as "analyzing",
+ *  "implementing" — the phase word IS the state, so the row needs no
+ *  second sentence saying which step is on (asked for 2026-08-19). The
+ *  phase LINES keep the plain "running": their line already names the
+ *  phase, and doubling it would say "analyze analyzing". */
+export function specStateChip(r: QueueRowView): string {
+  if (r.state === "running") return badge("running", gerund(currentStep(r)));
+  return stateChip(r);
+}
+
+/** "analyze" → "analyzing", "review" → "reviewing" — from the reader's
+ *  word (`stepLabel`), so `review-plan` gerunds as "reviewing". */
+function gerund(step: string): string {
+  const label = stepLabel(step);
+  return label.endsWith("e") ? `${label.slice(0, -1)}ing` : `${label}ing`;
+}
+
 /** A spec that exists and has never been run. It is this page's own
  *  pseudo-state, so it has no `QueueRowView` to hand `stateChip` — but
  *  it must render through the same component, or the one row with no
@@ -216,12 +233,11 @@ export function nextActionHint(
 ): string {
   if (!r) return "never run — tick a phase and press Run";
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
-  if (r.state === "queued" || r.state === "running") {
-    const rest = r.steps.slice(r.stepIndex + 1);
-    return rest.length
-      ? `${activityLabel(r)} — ${stepLabels(rest).join(", ")} to follow`
-      : activityLabel(r);
-  }
+  // In flight the sentence says NOTHING (asked for 2026-08-19): the
+  // spec's chip already reads "analyzing" (`specStateChip`) and the
+  // running phase line says the rest — "analyze running — review to
+  // follow" was the same fact a third time.
+  if (r.state === "queued" || r.state === "running") return "";
   // Spec 108: archive is the one phase whose "did it happen" the job's
   // own exit status cannot answer — a run that declined to move the
   // folder finishes just as successfully as one that moved it. The file
