@@ -123,7 +123,7 @@ export function pageShell(
   // corner of every page read as noise.
   _generatedAt: string,
   refreshSeconds?: number,
-  opts: { refreshInNoscript?: boolean; script?: string; docTitle?: string } = {},
+  opts: { refreshInNoscript?: boolean; script?: string; docTitle?: string; hideHeading?: boolean } = {},
 ): string {
   // A meta refresh is fine on a page you only read. On a page with a
   // FORM it is hostile: it wipes what you were half-way through
@@ -154,8 +154,7 @@ ${ICON_LINKS}
 ${pageHeader()}
 ${tabBar(entries, currentPath)}
 <main>
-<div class="pagehead"><h1>${esc(title)}</h1></div>
-${body}
+${opts.hideHeading ? "" : `<div class="pagehead"><h1>${esc(title)}</h1></div>\n`}${body}
 </main>${script}
 </body>
 </html>

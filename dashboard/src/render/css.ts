@@ -266,7 +266,7 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 .filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
 /* The whole controls line keeps clear air down to the table. */
-#jobrows > .row:first-child { margin-bottom: var(--sp-3); }
+#jobrows > .row:first-child { margin: var(--sp-3) 0; }
 /* Two elements, one pill. A filter is a link because it goes somewhere;
    a theme choice is a button because it does something. That difference
    belongs in the markup, not in a second class that looks the same. */

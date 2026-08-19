@@ -1467,9 +1467,12 @@ export function renderQueuePage(
     // press.
     newSpecLink(opts) +
     table;
-  // The front page IS aide: the tab says only that.
+  // The front page IS aide: the tab says only that — and the heading
+  // said it a second time right under the Specs tab, so it is gone
+  // (2026-08-19). The title still names the page for the shell.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {
     docTitle: "aide",
+    hideHeading: true,
     refreshInNoscript: !!opts.script,
     script: opts.script,
   });

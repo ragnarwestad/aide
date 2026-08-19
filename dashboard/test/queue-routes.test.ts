@@ -275,7 +275,9 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain("<title>aide</title>");
-    expect(html).toContain("<h1>Specs</h1>");
+    // No heading: the Specs tab right above it already says it
+    // (2026-08-19). The tab bar is the page's name.
+    expect(html).not.toContain("<h1>Specs</h1>");
     // Spec 119: the list has a tab of its own again, and it is the
     // current one here. The wordmark still goes home too.
     expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);

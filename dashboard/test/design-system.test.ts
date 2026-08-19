@@ -169,7 +169,11 @@ describe("the header and the two tabs (spec 119)", () => {
         ["Specs", "Projects"],
       ]);
       expect([path, html.indexOf("</header>") < html.indexOf("<nav")]).toEqual([path, true]);
-      expect([path, html.indexOf("</nav>") < html.indexOf("<h1>")]).toEqual([path, true]);
+      // The generated pages keep their h1 under the tabs; the spec list
+      // has none (the Specs tab names it), so only assert where one is.
+      if (html.includes("<h1>")) {
+        expect([path, html.indexOf("</nav>") < html.indexOf("<h1>")]).toEqual([path, true]);
+      }
     }
   });
 
