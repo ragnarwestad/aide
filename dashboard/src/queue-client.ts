@@ -86,7 +86,7 @@ function afterMergeNote(text: string): void {
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
  *  they ask the server, not in what pressing them should look like. */
-const ACTIONS = "form.rowrun, form.actionform, form.mergeform";
+const ACTIONS = "form.rowrun, form.actionform, form.mergeform, form.resolveform";
 
 /** Character for character what `components.ts` renders (`SPINNER`).
  *  This file can neither import nor export, so the one thing keeping

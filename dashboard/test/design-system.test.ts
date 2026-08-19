@@ -283,6 +283,87 @@ describe("the primary button's label per row state (the design sheet's table)", 
   });
 });
 
+// --- spec 106: the way out of a conflict, offered where the refusal is --------
+//
+// The control is ADDITIVE — "merge it by hand" never goes away — and
+// NARROWLY GATED: it is offered for one refusal reason among several
+// that share the same free-text channel, so the test that matters most
+// is the one that says it is ABSENT everywhere else.
+
+describe("let aide resolve it (spec 106)", () => {
+  const buttons = (html: string) =>
+    [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) =>
+      m[1]!.replace(/<[^>]*>/g, "").trim(),
+    );
+
+  const merged = (opts: Partial<QueuePageOptions> = {}) =>
+    rows(
+      [
+        row({
+          state: "done",
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+        }),
+      ],
+      { targets: [target()], ...opts },
+    );
+
+  const CONFLICT = {
+    error: "cannot merge aide/102 into main in /repos/aide (conflict — merge it by hand)",
+    errorSpec: "aide/102-design-foundation",
+    errorReason: "conflict",
+  };
+
+  test("a conflict refusal offers it, beside Merge again and never instead of it", () => {
+    const html = merged(CONFLICT);
+    expect(html).toContain("resolveform");
+    expect(buttons(html)).toContain("let aide resolve it");
+    // The hand route is what the reader had yesterday, and it stays.
+    expect(buttons(html)).toContain("Merge again");
+  });
+
+  test("a collapsed row offers it too — the refusal is read there as well", () => {
+    const html = renderQueueRows(
+      [
+        row({
+          state: "done",
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+        }),
+      ],
+      { runnerAvailable: true, targets: [target()], filter: {}, ...CONFLICT },
+      NOW,
+    );
+    expect(html).toContain("resolveform");
+  });
+
+  test("a refusal that resolving would not fix does not offer it", () => {
+    // The three the merge route can produce beside a conflict. None of
+    // them is a merge a step could sit down and finish.
+    for (const error of [
+      "the tree is dirty in /repos/aide — commit or stash it first",
+      "aide/102 is not on origin in /repos/aide — there is nothing left to merge",
+      "merged locally in /repos/aide, but the push of main failed",
+    ]) {
+      const html = merged({ error, errorSpec: "aide/102-design-foundation" });
+      expect(html).not.toContain("resolveform");
+    }
+  });
+
+  test("a row with no refusal at all does not offer it", () => {
+    expect(merged()).not.toContain("resolveform");
+  });
+
+  test("a refusal belonging to ANOTHER spec does not put it on this row", () => {
+    const html = merged({ ...CONFLICT, errorSpec: "aide/99-someone-else" });
+    expect(html).not.toContain("resolveform");
+  });
+
+  test("it queues a resolve step, and says so in the form itself", () => {
+    const html = merged(CONFLICT);
+    expect(html).toContain('action="/api/queue"');
+    expect(html).toMatch(/name="steps"\s+value="resolve"/);
+  });
+});
+
 // --- dark mode is implemented, not merely declared ----------------------------
 
 describe("every token has a dark-surface value (acceptance criterion 13)", () => {

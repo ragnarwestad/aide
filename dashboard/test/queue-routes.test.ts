@@ -354,6 +354,22 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
+  // Spec 106: exactly what the "let aide resolve it" form sends — a
+  // fixed `steps=resolve` and nothing to pick. The gate boxes and the
+  // model dropdown are not on that form, so this is the whole body.
+  test("the resolve form's own body queues a resolve job (spec 106)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await postRow(base, {
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: "resolve",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { steps: string[]; model: Record<string, string> } };
+    expect(body.job.steps).toEqual(["resolve"]);
+    expect(body.job.model).toEqual({ resolve: "sonnet" });
+  });
+
   test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
     const res = await postRow(base, {
@@ -2707,6 +2723,82 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(decodeURIComponent(location)).toContain("dirty");
     expect(lines.join("\n")).toContain(SPEC);
     expect(lines.join("\n")).toContain("dirty");
+  });
+
+  // --- spec 106: a conflict says so in the redirect, and nothing else does ---
+  //
+  // Four files carry one boolean between the git call and the row's new
+  // control, and a gap at any hop breaks the chain silently — the
+  // control simply never appears, and nothing errors. This starts at the
+  // POST and reads the query string, so every hop is in it.
+
+  /** A git whose real merge conflicts: ff-only fails, the merge fails,
+   *  and the abort goes through. */
+  const conflictGit = () =>
+    gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "status --porcelain": { code: 0, stdout: "" },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 1 },
+      "merge --abort": { code: 0 },
+      "merge-base": { code: 1 },
+      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+    });
+
+  test("a conflict refusal says WHY in the redirect, not only what (spec 106)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: conflictGit().run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location).toContain("errorReason=conflict");
+    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
+    expect(decodeURIComponent(location)).toContain("conflict");
+  });
+
+  test("a dirty-tree refusal carries no reason at all (spec 106)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const dirtyTree = gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
+      "merge-base": { code: 1 },
+    });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    expect(res.headers.get("location")!).not.toContain("errorReason");
+  });
+
+  test("a merge that went through carries no reason either (spec 106)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const clean = gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "status --porcelain": { code: 0, stdout: "" },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "merge -q --ff-only": { code: 0 },
+      "merge-base": { code: 1 },
+      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+      push: { code: 0 },
+    });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: clean.run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    expect(res.headers.get("location")!).not.toContain("errorReason");
+  });
+
+  test("the row carries the resolve control after a conflict, and only then (spec 106)", async () => {
+    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: conflictGit().run });
+    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
+    const page = await (
+      await fetch(`${base}${res.headers.get("location")!}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(specHead(page, "81-queue-and-runner")).toContain("resolveform");
   });
 
   test("the page shows the reason on that spec's row (criterion 8)", async () => {

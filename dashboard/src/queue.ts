@@ -16,6 +16,12 @@ import { dirname } from "node:path";
 
 export const WORKFLOW_STEPS = [
   "explore", "create", "analyze", "review-plan", "implement", "archive", "manifest",
+  // Spec 106: not part of the workflow's own order — it is the way out
+  // of a merge the Merge button refused, queued from the row that
+  // refused it. `core/scripts/aide-run-spec` keeps the same list in a
+  // bash string with no shared source between them; a python test
+  // (`test_aide_run_spec.py`) compares the two.
+  "resolve",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
