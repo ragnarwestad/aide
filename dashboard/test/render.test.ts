@@ -1868,31 +1868,82 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   });
 });
 
-describe("spec 101: the intro is out of the way (criterion 10)", () => {
+describe("spec 113: New spec is a real button and the form lays out cleanly", () => {
   const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets: [],
+      createProjects: ["aide"],
+      ...opts,
+    });
+
+  test("the New-spec summary carries the primary button classes", () => {
+    expect(page()).toContain('<summary class="btn primary">New spec</summary>');
+  });
+
+  test("Create sits before Description, not after it", () => {
+    const html = page();
+    const createAt = html.indexOf("Create</button>");
+    const descAt = html.indexOf('<textarea name="description"');
+    expect(createAt).toBeGreaterThan(-1);
+    expect(descAt).toBeGreaterThan(-1);
+    expect(createAt).toBeLessThan(descAt);
+  });
+});
+
+describe("spec 113: the runs explanation is a popover beside the filter chips", () => {
+  const page = (opts: Partial<QueuePageOptions> = {}) =>
+    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       ...opts,
     });
 
-  test("the intro is behind a closed disclosure, not standing above the list", () => {
-    const html = page();
-    expect(html).toContain('<details class="intro">');
-    // Closed by default: `<details open>` would be the same paragraph
-    // with an extra click's worth of markup around it.
-    expect(html).not.toContain('<details class="intro" open');
-    expect(html).not.toContain('<p class="intro">');
-    // The copy itself is unchanged — this is where it is, not what it says.
-    expect(html).toContain("A job that hits a cap is");
+  // Everything the rows renderer puts out ahead of the table — which is
+  // the filter bar and nothing else.
+  const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list">'));
+
+  test("no explanation stands between the notices and the New-spec form", () => {
+    const html = page({ createProjects: ["aide"] });
+    // The only `.intro` disclosure left on this page is inside the
+    // refreshed rows container, so it comes after that container opens
+    // — and after the New-spec form, which stays outside it.
+    expect(html.indexOf('<details class="intro">')).toBeGreaterThan(html.indexOf('id="jobrows"'));
+    expect(html.indexOf('<details class="newspec">')).toBeLessThan(
+      html.indexOf('<details class="intro">'),
+    );
   });
 
-  test("the runner-unavailable notice stays outside it", () => {
+  test("the runner-unavailable notice still needs no click", () => {
     const html = page({ runnerAvailable: false });
     expect(html).toContain("No runner is installed");
     // "nothing here spends money" is safety-relevant context and must
     // not need a click.
-    expect(html.indexOf("No runner is installed")).toBeLessThan(html.indexOf('<details class="intro">'));
+    expect(html.indexOf("No runner is installed")).toBeLessThan(
+      html.indexOf('<details class="intro">'),
+    );
+  });
+
+  test("the popover sits in the filter bar when only one project has specs", () => {
+    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    expect(bar).toContain('<details class="intro">');
+    expect(bar).toContain(">?</summary>");
+  });
+
+  test("it sits there with several projects too, after the chips", () => {
+    const bar = beforeTable(
+      renderQueueRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
+        runnerAvailable: true,
+        targets: [],
+      }),
+    );
+    expect(bar).toContain("Project");
+    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf("Project"));
+  });
+
+  test("the copy still says what happens to a job that hits a cap", () => {
+    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    expect(bar).toContain("<em>stopped</em>");
   });
 });
 
@@ -1974,10 +2025,122 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(text.toLowerCase()).toContain("merge");
   });
 
+  // Spec 111: the fixture had no `done` at all, which under spec 111's
+  // rule means "nothing has happened yet" — the opposite of what the
+  // test's own name claims. It passed only because the sentence never
+  // read the files. Every phase is named here, so "nothing left out"
+  // is what the fixture actually says.
   test("a finished spec with nothing left out does not ask for a merge", () => {
-    const text = hint(rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]));
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      ),
+    );
     expect(text).toContain("done");
     expect(text.toLowerCase()).not.toContain("merge");
+  });
+
+  // --- spec 111: the sentence names the next phase, not "nothing waiting" ---
+
+  // "done" is the JOB's state and is correct for the job. What the
+  // sentence beneath it used to say — nothing is waiting on you — was a
+  // claim about the SPEC, and the spec's own files already knew better.
+  // Same rule as spec 108: the files say what has happened.
+  test("a spec whose plan is done but not implemented is ready for implement", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["review-plan"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("ready for implement");
+  });
+
+  test("the next phase is named the way a reader sees it, not by its step name", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
+        [target("101-a", { done: ["analyze"] })],
+      ),
+    );
+    expect(text).toBe("ready for review");
+    expect(text).not.toContain("review-plan");
+  });
+
+  test("a spec with only archive left says so", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement"] })],
+      ),
+    );
+    expect(text).toBe("ready for archive");
+  });
+
+  // Precedence is the whole of the risk here: merging first still
+  // outranks starting the next phase, exactly as before.
+  test("an unmerged branch still outranks the phase that is ready", () => {
+    const text = hint(
+      rows(
+        [
+          row({
+            specFolder: "101-a",
+            steps: ["review-plan"],
+            state: "done",
+            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+          }),
+        ],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("done — the branch is waiting to be merged");
+    expect(text).not.toContain("ready for");
+  });
+
+  test("a spec with every phase behind it still says nothing is waiting", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      ),
+    );
+    expect(text).toBe("done — nothing waiting on you");
+  });
+
+  // The bug as reported, on spec 108, 2026-08-19: the plan run finished,
+  // its branch was merged, and the row said nothing waited on a reader
+  // while implement had never been started.
+  test("a merged plan branch with implement still to run says implement is ready", () => {
+    const text = hint(
+      rows(
+        [
+          row({
+            specFolder: "101-a",
+            steps: ["review-plan"],
+            state: "done",
+            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
+          }),
+        ],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("ready for implement");
+    expect(text).not.toContain("nothing waiting on you");
+  });
+
+  // A run that stopped short has better wording of its own — it says
+  // why, and what to press. "ready for X" must not widen into it.
+  test("a job that stopped short keeps its retry wording, whatever the files say", () => {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+      const text = hint(
+        rows(
+          [row({ specFolder: "101-a", steps: ["implement"], state })],
+          [target("101-a", { done: ["analyze", "review-plan"] })],
+        ),
+      );
+      expect(text).toBe("press Run to try implement again");
+    }
   });
 
   // Spec 108: archive is the one phase whose "done" the job's own exit
@@ -2666,5 +2829,151 @@ describe("the static overview points at where projects are managed", () => {
     expect(overview).not.toContain('name="token"');
     expect(overview).not.toContain("?token=");
     expect(overview).not.toContain("/api/");
+  });
+});
+
+// --- spec 114: a spec with an unmerged dependency says so on the row ---------
+
+// `Depends on:` has been on the row since spec 110, as part of the
+// title line's summary — it says what a spec BUILDS on, always. What it
+// never said is whether that dependency is still in the way, and a
+// reader found that out only when Run refused. The badge answers the
+// second question and only while the answer is yes: the dependency's own
+// branch is still unmerged, by the same `branches` the dependency's own
+// row already reads for itself.
+describe("spec 114: a spec with an unmerged dependency says so on the row", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
+    renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-19T12:00:00Z"));
+  // One row, by folder — the same `data-folder` anchor every other block
+  // in this file matches a row with.
+  const rowHtml = (html: string, folder: string) =>
+    html.match(
+      new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`),
+    )?.[0] ?? "";
+  // The state cell's sentence, badge markup and all — the same cell the
+  // spec 101 block reads, but not escaped down to text, because the
+  // badge IS markup and its `href` is half of what is under test.
+  const hintCell = (html: string, folder: string) =>
+    (rowHtml(html, folder).split("<td")[3] ?? "").match(
+      /<div class="muted small">([\s\S]*?)<\/div><\/td>/,
+    )?.[1] ?? "";
+  const unmerged = (specFolder: string) =>
+    row({
+      specFolder,
+      state: "done",
+      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+    });
+  const merged = (specFolder: string) =>
+    row({
+      specFolder,
+      state: "done",
+      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
+    });
+
+  test("an unmerged dependency shows a badge linking to its own row", () => {
+    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
+    const id = rowHtml(html, "106-x").match(/ id="([^"]+)"/)?.[1];
+    expect(id).toBeTruthy();
+    const cell = hintCell(html, "114-b");
+    expect(cell).toContain("after 106");
+    expect(cell).toContain(`href="#${id}"`);
+  });
+
+  test("the badge names the dependency's number, not the identifier as written", () => {
+    const html = rows(
+      [unmerged("106-let-aide-resolve-a-merge-conflict")],
+      [
+        target("106-let-aide-resolve-a-merge-conflict"),
+        target("114-b", { dependsOn: ["106-let-aide-resolve-a-merge-conflict"] }),
+      ],
+    );
+    const cell = hintCell(html, "114-b");
+    expect(cell).toContain("after 106");
+    expect(cell).not.toContain("after 106-let-aide-resolve-a-merge-conflict");
+  });
+
+  test("a merged dependency shows no badge", () => {
+    const html = rows([merged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
+    expect(hintCell(html, "114-b")).not.toContain("after 106");
+  });
+
+  test("a dependency nothing has ever run shows no badge", () => {
+    const html = rows([], [target("107-y"), target("114-b", { dependsOn: ["107"] })]);
+    expect(hintCell(html, "114-b")).not.toContain("after 107");
+  });
+
+  test("two dependencies, one open, give exactly one badge", () => {
+    const html = rows(
+      [unmerged("106-x"), merged("107-y")],
+      [target("106-x"), target("107-y"), target("114-b", { dependsOn: ["106", "107"] })],
+    );
+    const cell = hintCell(html, "114-b");
+    expect([...cell.matchAll(/after \d+/g)].map((m) => m[0])).toEqual(["after 106"]);
+  });
+
+  test("two open dependencies give two badges", () => {
+    const html = rows(
+      [unmerged("106-x"), unmerged("107-y")],
+      [target("106-x"), target("107-y"), target("114-b", { dependsOn: ["106", "107"] })],
+    );
+    expect([...hintCell(html, "114-b").matchAll(/after \d+/g)].map((m) => m[0])).toEqual([
+      "after 106",
+      "after 107",
+    ]);
+  });
+
+  test("an identifier nothing on the page resolves shows no badge and does not throw", () => {
+    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["999"] })]);
+    expect(hintCell(html, "114-b")).not.toContain("after");
+  });
+
+  test("a spec with no dependency leaves the sentence cell exactly as it was", () => {
+    const html = rows([], [target("114-b")]);
+    // The whole cell is the sentence, and nothing else — the same shape
+    // the spec 101 block asserts across every row on the page.
+    expect(hintCell(html, "114-b")).toMatch(/^[^<]*$/);
+  });
+
+  test("the dependency is resolved inside its own project only", () => {
+    // The other project's 106 comes FIRST, so a resolver that forgot to
+    // scope by project would find it and answer for the wrong spec.
+    const targets = [
+      { project: "other", specFolder: "106-elsewhere" },
+      target("106-x"),
+      target("114-b", { dependsOn: ["106"] }),
+    ];
+    const elsewhere = (merged: boolean) =>
+      row({
+        project: "other",
+        specFolder: "106-elsewhere",
+        state: "done",
+        branchUrls: [{ label: "other", url: "https://example.test/other", merged }],
+      });
+    // Only the OTHER project's 106 is unmerged: nothing is in aide's way.
+    const away = rows([elsewhere(false), merged("106-x")], targets);
+    expect(hintCell(away, "114-b")).not.toContain("after 106");
+    // The same page with aide's own 106 unmerged: the badge is back.
+    const home = rows([elsewhere(true), unmerged("106-x")], targets);
+    expect(hintCell(home, "114-b")).toContain("after 106");
+  });
+
+  test("the badge is found even when the dependency's own row is off the page", () => {
+    // The filter hides the dependency's row; the dependency is still in
+    // the way, and the row that waits on it still says so.
+    const html = renderQueueRows(
+      [unmerged("106-x")],
+      {
+        runnerAvailable: true,
+        targets: [target("106-x"), target("114-b", { dependsOn: ["106"] })],
+        filter: { state: "not-started" },
+      },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+    expect(hintCell(html, "114-b")).toContain("after 106");
   });
 });

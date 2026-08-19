@@ -333,7 +333,11 @@ td form { margin: 0; display: inline-block; }
 /* The one form on this page that is not about an existing spec. Shut by
    default: the list is what people come here for. */
 .newspec { margin: var(--sp-3) 0; }
-.newspec > summary { color: var(--muted); cursor: pointer; }
+/* A summary draws its native triangle only while its computed display
+   is list-item, and .btn's inline-flex already suppresses it. The two
+   rules below are for older WebKit, which needs telling. */
+.newspec > summary { list-style: none; }
+.newspec > summary::-webkit-details-marker { display: none; }
 .newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
@@ -349,10 +353,17 @@ td form { margin: 0; display: inline-block; }
 .projectadmin .removeform [data-confirm] { display: flex; gap: var(--sp-2);
   align-items: flex-end; }
 .projectadmin .refused { flex-basis: 100%; }
-/* The intro is worth having and not worth the top of every load. */
-details.intro { margin: var(--sp-3) 0; }
-details.intro > summary { color: var(--muted); cursor: pointer; }
-details.intro p { margin: var(--sp-2) 0 0; }
+/* How runs work: a small question mark at the right-hand end of the
+   filter row, not a block between the page's title and the list the
+   reader came for. */
+.row > details.intro { margin-left: auto; }
+.row > details.intro > summary { display: inline-flex; align-items: center;
+  justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--line-strong); color: var(--muted);
+  font-size: var(--fs-s); font-weight: 600; list-style: none; cursor: pointer; }
+.row > details.intro > summary::-webkit-details-marker { display: none; }
+.row > details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
+.row > details.intro p { margin: var(--sp-2) 0 0; max-width: 28rem; }
 p.intro { margin: 0 0 var(--sp-3); }
 
 /* --- the job page --------------------------------------------------------- */

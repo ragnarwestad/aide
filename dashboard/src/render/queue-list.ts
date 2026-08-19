@@ -517,6 +517,23 @@ function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string 
   );
 }
 
+// What the page used to say in a paragraph above the list: how runs
+// work here. A front page does not open with four sentences a returning
+// reader has read, so the same facts sit behind a "?" beside the filter
+// chips instead. It is inside `#jobrows`, so it shuts again on the
+// five-second refresh — the same as `moreRow`'s own disclosure, and
+// fine for the same reason: nothing here is being typed into.
+function runsHelp(): string {
+  return (
+    `<details class="intro"><summary title="How runs work here" ` +
+    `aria-label="How runs work here">?</summary>` +
+    `<p>A few jobs run side by side here, each in a checkout of its own, ` +
+    `and never two on the same spec. Every step is bounded by its own ` +
+    `budget and a wall clock — a job that hits either cap is ` +
+    `<em>stopped</em>, not failed.</p></details>`
+  );
+}
+
 function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   const chips = (
     name: string,
@@ -553,7 +570,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   );
 
   const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="row">${states}</div>`;
+  if (names.length < 2) return `<div class="row">${states}${runsHelp()}</div>`;
   const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
@@ -565,7 +582,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
       patch: { project: p },
     })),
   ]);
-  return `<div class="row">${states}${projects}</div>`;
+  return `<div class="row">${states}${projects}${runsHelp()}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -893,6 +910,12 @@ function stepBoxes(g: SpecGroup, busy: boolean): string {
 // makes the browser post them with this form anyway.
 const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
+// The row's own anchor. `id`, not `data-folder`: a badge pointing at
+// another spec's row needs something `href="#..."` can find with no
+// script at all — this page's own rule. Same shape as `runFormId`, so
+// "an id that names a spec" stays the one convention it already is.
+const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
+
 // The three things nobody sets every time — the model, the other repos
 // the job will touch, and whether to stop for approval between the
 // steps. Built here rather than inside `moreRow` so the `form`
@@ -1098,7 +1121,12 @@ function newSpecForm(opts: QueuePageOptions): string {
   const projects = opts.createProjects ?? [];
   if (projects.length === 0) return "";
   return (
-    `<details class="newspec"><summary>New spec</summary>` +
+    // The page's one creating action, and it read as grey disclosure
+    // text. It stays a `<details>`/`<summary>` pair — that is what
+    // opens it without script, and what `queue-client.ts` closes on a
+    // successful create — but it wears the same primary-button look as
+    // every other action here.
+    `<details class="newspec"><summary class="btn primary">New spec</summary>` +
     `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
     field(
       "Project",
@@ -1112,13 +1140,17 @@ function newSpecForm(opts: QueuePageOptions): string {
       `<input type="text" name="title" maxlength="120" required ` +
         `placeholder="what the spec is about, in a few words">`,
     ) +
+    // Create belongs on the first line with the short fields, not under
+    // the textarea it used to touch. `.field.wide` is `flex-basis:100%`,
+    // so Description breaks the wrapping row on its own; anything after
+    // it in the markup lands underneath it.
+    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
     field(
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>`,
       { wide: true },
     ) +
-    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
     // the way there is for every other action — and the page-level
@@ -1237,10 +1269,54 @@ function specSummary(g: SpecGroup): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
+// A dependency identifier — "106", or the whole folder name — resolved
+// the same narrow way `aide-run-spec`'s own `resolve_dependency_folder`
+// does: exact folder, or an `<id>-` prefix, and nothing fuzzier. Scoped
+// to the dependent spec's own project, so a spec numbered the same
+// somewhere else is never what a row is waiting on.
+function resolveDependency(from: SpecGroup, id: string, all: SpecGroup[]): SpecGroup | undefined {
+  return all.find(
+    (g) => g.project === from.project && (g.specFolder === id || g.specFolder.startsWith(`${id}-`)),
+  );
+}
+
+// "after 106" — one per dependency that is still in the way, by the same
+// rule `aide-run-spec` refuses a run on: that spec's own branch is still
+// unmerged. `dep.branches` already answers it for every spec on the
+// page, the identical expression the row reads about its OWN branches
+// one line below. No git is asked anything here.
+//
+// The RESOLVED folder's leading digits, not the identifier as written: a
+// `Depends on:` line naming the full slug would otherwise print it whole
+// on every row waiting on it. Every `specFolder` starts with digits by
+// construction — `discover.ts` only reads folders that do.
+function dependencyBadges(g: SpecGroup, all: SpecGroup[]): string {
+  return g.dependsOn
+    .map((id) => resolveDependency(g, id, all))
+    .filter((dep): dep is SpecGroup => !!dep && dep.branches.some((b) => !b.merged))
+    .map(
+      (dep) =>
+        ` <a href="#${esc(rowAnchorId(dep))}">` +
+        badge(
+          "waiting",
+          `after ${dep.specFolder.split("-", 1)[0]}`,
+          `${dep.specFolder} is not merged yet`,
+        ) +
+        `</a>`,
+    )
+    .join("");
+}
+
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and every action there is to take on it — running
 // its phases included.
-function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function specHeadRow(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   // The one new fact the row needs: a collapsed row is a status line,
   // an open one is the row this page has always had.
   const collapsed = !opened.has(groupKey(g.project, g.specFolder));
@@ -1286,11 +1362,17 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
   // reason belongs to whichever row the refusal does, so a conflict on
   // another spec's row must not offer this one a resolve.
   const conflict = !!refusal && opts.errorReason === "conflict";
+  // The earliest phase the spec's own files say has not happened — the
+  // same pair `stepBoxes` ticks its box from and the Run button reads
+  // for "Run" vs "Run again", asked once more for the sentence. Worded
+  // for a reader here, so `review-plan` reaches it as "review".
+  const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
+  const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
-    `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
+    `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
@@ -1310,8 +1392,9 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
         g.lead,
         g.branches.some((b) => !b.merged),
         g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+        readyPhase,
       ),
-    )}</div></td>` +
+    )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Run is about what the spec has still to do; approve/cancel is
@@ -1389,10 +1472,16 @@ function phaseSubRows(g: SpecGroup, now: number): string {
 // Collapsed is the default, and the URL names the exceptions. That is
 // what the fold is FOR: a list of twenty specs is read one state at a
 // time, and the row you are about to act on is the one you open.
-function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function groupRows(
+  groups: SpecGroup[],
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   return groups
     .map((g) => {
-      const head = specHeadRow(g, opts, now, opened);
+      const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
         : head;
@@ -1419,7 +1508,9 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
+    ? // `groups`, not `matched`: a dependency the filter or the 25-row
+      // cap has hidden is still in the way of the row that names it.
+      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f), groups)
     : `<tr><td colspan="6" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
@@ -1451,17 +1542,6 @@ export function renderQueuePage(
       `queued jobs stay queued, and nothing here spends money.</p>\n`;
   const body =
     notice +
-    // Shut by default, like the New-spec form beside it and for the same
-    // reason: four sentences that never change were the one static block
-    // left standing between the page's title and the list, on every
-    // load, for a reader who has read them. The runner notice above is
-    // NOT folded in with them — "nothing here spends money" is safety
-    // context and must not need a click.
-    `<details class="intro"><summary>How runs work here</summary>` +
-    `<p>aide runs on this machine: a few jobs side by side, each in ` +
-    `a checkout of its own, and never two on the same spec. Every step is ` +
-    `bounded by its own budget and a wall clock. A job that hits a cap is ` +
-    `<em>stopped</em>, not failed.</p></details>\n` +
     // The fallback, and only that. A refusal that names its spec is
     // shown on that spec's own row (`specHeadRow`) — the page lists up
     // to 25 of them, so the banner said nothing about which button was
