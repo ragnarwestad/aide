@@ -188,8 +188,9 @@ const STRUCTURE = [
   // each shows exactly the one the reader asked for.
   "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
   "u-usd", "u-tok",
-  // containers
-  "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
+  // containers — "stack" is the vertical one (spec 124): the row's
+  // action buttons, one under the next, in the list's first column.
+  "row", "stack", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
   "untried", "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
@@ -266,15 +267,39 @@ describe("the space between two controls comes from their container", () => {
     });
   }
 
-  test("the controls line's bottom alignment is scoped to that row alone", async () => {
+  test("the row's own alignment rule stays scoped, and the filter bar keeps its own", async () => {
     const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    // Both halves matter. The scoped rule is what lines a labelled
-    // field's control up with a plain button; `.row`'s own unscoped
-    // `center` is what the filter bar still needs, and replacing it
-    // instead of adding beside it would move the filter bar with no
-    // test to say so.
-    expect(css).toMatch(/tr\[data-controls\]\s*\.row\s*\{\s*align-items:\s*flex-end;\s*\}/);
+    // The controls line the flex-end rule was written for is gone
+    // (spec 124), and with it the selector — a guard left pointing at
+    // `tr[data-controls]` would pass for ever without protecting
+    // anything. `.row`'s own unscoped `center` is what the filter bar
+    // still needs and must not be replaced by a row-shaped rule.
+    expect(css).not.toContain("data-controls");
     expect(css).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
+  });
+});
+
+// --- the action column holds still (spec 124) -------------------------------
+//
+// The buttons a row offers come and go with its state, and the column
+// they sit in was sized by whichever row on the page needed the most:
+// a branch becoming mergeable widened the column for every row at
+// once, which is the shove the spec was written to stop. The width is
+// declared, so the content cannot decide it.
+
+describe("the action column's width is declared, not content-driven", () => {
+  test("the header row's first cell carries a fixed width", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    const rule = css.match(/table\.list tr\.spechead > td:first-child \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/width:\s*[\d.]+rem;/);
+  });
+
+  test("the vertical stack is a container with a gap, like every other one", async () => {
+    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    const rule = css.match(/\.stack \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("flex-direction: column");
+    expect(rule).toMatch(/gap:\s*var\(--sp-\d\)/);
+    expect(rule).not.toContain("margin");
   });
 });
 

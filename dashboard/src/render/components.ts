@@ -133,6 +133,10 @@ export function phaseChip(o: {
   name: string;
   /** `data-phase` for a phase, `data-project` for a repo. */
   dataAttr: string;
+  /** The name assistive tech reads, for a box drawn with no visible
+   *  label of its own — a phase line's box, whose name is the next
+   *  thing on the line rather than inside the label (spec 124). */
+  ariaLabel?: string;
   checked?: boolean;
   done?: boolean;
   busy?: boolean;
@@ -154,9 +158,13 @@ export function phaseChip(o: {
   return (
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
     `${o.title ? ` title="${esc(o.title)}"` : ""}>` +
+    // `checked` directly after `value`, before the two attributes that
+    // are about plumbing rather than state: what a box SAYS is read
+    // together, in markup as on the page.
     `<input type="checkbox" name="${o.name}" value="${esc(o.value)}"` +
+    `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}` +
     `${o.form ? ` form="${esc(o.form)}"` : ""}` +
-    `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}>` +
+    `${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>` +
     `${mark} <span>${esc(o.label)}</span>${tick}</label>`
   );
 }

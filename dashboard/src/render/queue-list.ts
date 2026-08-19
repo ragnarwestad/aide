@@ -168,7 +168,7 @@ const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
 // The phase LINES a spec's expanded row shows, in order. `create` is
 // history, not a control (spec 116): a spec that exists cannot be
-// created again, so it is never a checkbox (`stepBoxes`), never a
+// created again, so it is never a checkbox (`phaseSubRows`), never a
 // progress pip (`specHeadRow`), and never "the next phase"
 // (`nextStep`/`readyPhase`/`allDone`) — all four of those keep reading
 // `QUEUE_STEPS` directly. Only the phase-line list reads this one.
@@ -654,10 +654,13 @@ function sortableHead(f: QueueFilter): string {
     // moment the list became one line per spec. It holds the whole
     // workflow as pips on a header line, and how many attempts a phase
     // took on the lines beneath.
-    `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
+    // The blank one FIRST since spec 124: the column it heads holds
+    // every button a row offers, and a heading over a stack of
+    // controls would be a word about the reader rather than the spec.
+    `<thead><tr><th></th>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
     `${th("started", "Started")}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>')}` +
-    `<th></th></tr></thead>`
+    `</tr></thead>`
   );
 }
 
@@ -671,24 +674,43 @@ function actionForm(
   r: QueueRowView,
   token: string | undefined,
   filter: QueueFilter | undefined,
-  o: { approveOnly?: boolean; cancelOnly?: boolean } = {},
+  o: { approveOnly?: boolean; cancelOnly?: boolean; always?: boolean } = {},
 ): string {
   const gated = r.state === "awaiting-approval";
   const canCancel = gated || r.state === "queued" || r.state === "running";
-  if (!(o.approveOnly ? gated : canCancel)) return "";
+  if (!o.always && !(o.approveOnly ? gated : canCancel)) return "";
   const hidden = tokenField(token) + filterFields(filter);
   // `actionform` is what the page's own code selects on, and
   // `data-pending` is what the button says while the request is out —
   // written here, beside the label it replaces, rather than as a verb
   // table in the script.
-  const one = (verb: "approve" | "cancel", label: string, pending: string, variant: "ok" | "danger") =>
+  const one = (
+    verb: "approve" | "cancel",
+    label: string,
+    pending: string,
+    variant: "ok" | "danger",
+    disabled = false,
+    why = "",
+  ) =>
     `<form method="post" action="/api/queue/${esc(r.id)}/${verb}" class="actionform">${hidden}` +
-    btn({ label, pending, variant }) +
+    btn({ label, pending, variant: disabled ? "" : variant, disabled, title: disabled ? why : undefined }) +
     `</form>`;
   // A collapsed row offers the one thing it needs RIGHT NOW and nothing
   // else — approving is that thing; stopping the job is a decision the
   // reader takes with the row open in front of them.
   if (o.approveOnly) return one("approve", "Approve", "approving…", "ok");
+  // The OPEN row's stack (spec 124): both buttons are in the markup
+  // whatever the state, and only `disabled` moves. A button that comes
+  // and goes changes the width of the column every row on the page
+  // shares — which is the shove this was written to stop. Reached only
+  // once the spec HAS a job: with none, there is nothing to approve or
+  // cancel, ever, and a permanently disabled pair would say otherwise.
+  if (o.always) {
+    return (
+      one("approve", "Approve", "approving…", "ok", !gated, "no job is waiting for approval") +
+      one("cancel", "Cancel", "cancelling…", "danger", !canCancel, "nothing is running to cancel")
+    );
+  }
   // The mirror of `approveOnly`, and it exists for the same reason the
   // two buttons ended up on different lines (spec 109): Approve is what
   // a gate needs RIGHT NOW, so it stays on the header the reader is
@@ -741,27 +763,43 @@ function mergeLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): s
   return code && plan ? "Merge the plan and the code" : code ? "Merge the code" : "Merge the plan";
 }
 
-function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): string {
+function mergeForm(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  refused: boolean,
+  o: { always?: boolean } = {},
+): string {
   const open = g.branches.filter((b) => !b.merged);
   // No lead means no job, which means no branch — the guard is for the
   // type checker, and it holds for the same reason the `if` above does.
-  if (open.length === 0 || !g.lead) return "";
+  // Both call sites already refuse to draw a Merge for a spec that has
+  // never run anything: nothing to merge is not "not now".
+  if (!g.lead) return "";
+  // Why it cannot be pressed, in the two words the row has for it. A
+  // SHUT row draws nothing at all in either case (it offers only what
+  // the spec needs right now); an OPEN row's stack draws the button
+  // anyway, disabled, so the column it sits in never changes width.
+  const blocked = open.length === 0 || specBusy(g);
+  if (!o.always && blocked) return "";
   const names = open.map((b) => b.label).join(", ");
   // A merge that was just refused is not a new decision to make — it is
   // the same one, again. The button says so, and stops being the
   // primary action on a row that has just told the reader why it could
-  // not be done.
-  const label = refused ? "Merge again" : mergeLabel(open, g, opts);
+  // not be done. With no branch at all there is nothing to name yet,
+  // so the label falls back to the bare verb.
+  const label = refused ? "Merge again" : open.length ? mergeLabel(open, g, opts) : "Merge";
+  const why = open.length === 0 ? "no branch is open yet" : busyReason(g);
   const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
-  // Only ever the ordinary button: both callers below refuse to invoke
-  // this while the spec is busy. It used to draw a disabled stand-in of
-  // its own instead — a second way of saying "not now", beside the one
-  // every other control on the row uses, on a row that has one thing to
-  // offer. Merging mid-job means cancelling the job first.
   return (
     `<form method="post" action="${action}" class="mergeform">${hidden}` +
-    btn({ label, pending: "merging…", title: names, variant: refused ? "" : "primary" }) +
+    btn({
+      label,
+      pending: "merging…",
+      title: blocked ? why : names,
+      variant: refused || blocked ? "" : "primary",
+      disabled: blocked,
+    }) +
     `</form>`
   );
 }
@@ -771,7 +809,7 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
 // offered, never a replacement, and it appears only after a merge was
 // refused for a real conflict.
 //
-// It queues a job, so it is `specRunForm`'s shape and not `mergeForm`'s:
+// It queues a job, so it is the Run form's shape and not `mergeForm`'s:
 // a POST to /api/queue with the steps fixed, since this control never
 // lets a person pick them. Everything that follows — the cost, the
 // cancel, the caps, the model — is what any other step gets, because it
@@ -800,10 +838,12 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 // without expanding. Everything else (Run, Cancel, the model, the gate,
 // the other repos) belongs to the row you have opened.
 //
-// Since spec 109 it is what the header cell draws whether the row is
-// open or shut, which is why the header line holds still when a row is
-// expanded: an OPEN row's extra controls go on their own line under it
-// (`controlsRow`), never into this cell.
+// Spec 109 made it what the header cell drew whether the row was open
+// or shut; spec 124 gave the OPEN row that cell for its whole stack
+// (`openActionsCell`), so this is the shut row's alone again. What it
+// answers is unchanged, and so is the reason for it: a collapsed row
+// is about what the spec IS, plus at most the one thing it is waiting
+// on.
 //
 // A selector, never a second copy of the markup: both branches call the
 // same component the expanded row calls, so a change to either form
@@ -897,74 +937,38 @@ const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
 const busyReason = (g: SpecGroup): string =>
   g.lead ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
 
-// A step the spec has already had is marked done and left unticked;
-// EVERY step is disabled while a job is in flight on the spec, because
-// the queue would refuse a second one anyway and a box that says so
-// before the press is kinder than a refusal after it.
+// What a press would run, if nothing else is ticked. It depends on how
+// far the spec has got, and on nothing about which phase is asking.
 //
-// What is TICKED depends on how far the spec has got. A spec nothing has
-// ever run pre-ticks `analyze` AND `review-plan` together — that pair as
-// one gated job is what every spec here has actually been started as,
-// and the two belong together. Any other spec pre-ticks the first phase
-// it has not had, which is what you almost always came to run.
+// A spec nothing has ever run pre-ticks `analyze` AND `review-plan`
+// together — that pair as one gated job is what every spec here has
+// actually been started as, and the two belong together. Any other
+// spec pre-ticks the first phase it has not had, which is what you
+// almost always came to run.
 //
-// `g.lead` is the test for "nothing has ever run": it is absent only for
-// a spec `emptyGroup` built, which is a spec with no job row at all. A
-// spec whose only job ran `explore` has a lead, and keeps the ordinary
-// single pre-tick even though its done-set is still empty.
+// `g.lead` is the test for "nothing has ever run": it is absent only
+// for a spec `emptyGroup` built, which is a spec with no job row at
+// all. A spec whose only job ran `explore` has a lead, and keeps the
+// ordinary single pre-tick even though its done-set is still empty.
 //
 // The pair is filtered against the done-set, because the two answer
 // different questions: `done` is read off the spec's own FILES, so a
 // spec analysed by hand and never queued has `analyze` done while
-// nothing has ever run for it. Ticking a box that also carries the done
-// mark would say two things at once. And a spec that has both of them
-// done already falls back to the ordinary rule rather than to nothing:
-// the pair exists to tick a spec's two STARTING phases, not to leave a
+// nothing has ever run for it. And a spec that has both of them done
+// already falls back to the ordinary rule rather than to nothing: the
+// pair exists to tick a spec's two STARTING phases, not to leave a
 // spec that is past them with no box ticked at all.
-function stepBoxes(g: SpecGroup, busy: boolean): string {
+//
+// It used to live inside the strip of chips the controls line drew
+// (`stepBoxes`, retired with that line in spec 124). The boxes are on
+// the phase lines now and each asks this the same question, so the
+// rule is read once per row and consulted per phase.
+function preTicked(g: SpecGroup): Set<string> {
   const done = new Set(g.done);
   const next = QUEUE_STEPS.find((s) => !done.has(s));
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
-  const checked = new Set(g.lead || pair.length === 0 ? single : pair);
-  // Every box, not merely the ones the in-flight job was queued with.
-  // The server refuses a second job on a spec that already has one,
-  // whatever steps the two name (`clashing()`, queue.ts, tests the
-  // whole job against UNFINISHED) — so a job queued as `implement` left
-  // `analyze` tickable and a press away from a refusal. The question is
-  // about the SPEC ("is anything in flight here"), which is why it
-  // arrives as one flag rather than being re-derived per step.
-  //
-  // Why the box will not take a click, on the label the pointer is
-  // already over — worded through `currentStep`/`stateLabel` rather
-  // than freshly, because a spec's state and a phase's state must never
-  // be worded differently.
-  const why = busy ? busyReason(g) : "";
-  // The step actually being WORKED gets the spinner; every other step
-  // gets the lock and the same sentence. Both are off — the difference
-  // is what a reader is being told, not what they can do. A queued job
-  // is spinning nothing yet, so none of its steps does either.
-  const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
-  return phases(
-    QUEUE_STEPS.map((s) =>
-      phaseChip({
-        // `data-phase`, not `data-step`: the phase LINES already carry
-        // `data-step`, and a test enumerating them would find four
-        // checkboxes on the header row as well.
-        dataAttr: "data-phase",
-        value: s,
-        // The step keeps its technical name everywhere it is a VALUE;
-        // the reader is shown `review`, never `review-plan`.
-        label: stepLabel(s),
-        name: "steps",
-        checked: checked.has(s) && !busy,
-        done: done.has(s),
-        busy: busy && s === running,
-        disabled: busy && s !== running,
-        title: busy ? why : undefined,
-      }),
-    ).join(""),
-  );
+  return new Set(g.lead || pair.length === 0 ? single : pair);
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake
@@ -981,8 +985,8 @@ const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.spec
 
 // The two things nobody sets every time — the other repos the job will
 // touch, and whether to stop for approval between the steps. Built here
-// rather than inline in `controlsRow` so the `form` attribute both of
-// them need is written once, beside the id it has to match.
+// rather than inline in `openActionsCell` so the `form` attribute both
+// of them need is written once, beside the id it has to match.
 //
 // The model used to be the third. It left for the phase lines in spec
 // 123: one shared dropdown could only ever set ONE model for every
@@ -1035,84 +1039,64 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
   return `${extraField}${gate}`;
 }
 
-// One control per spec, on the spec's own row: tick the phases, press
-// Run once, and they go as ONE job in the workflow's order — the browser
-// submits checkboxes in the order they are drawn, never in the order
-// they were clicked.
+// Everything an OPEN row offers, in the cell the table opens with.
 //
-// It sits on the spec's own CONTROLS line — under the header, never
-// inside it (`controlsRow`) — and it is drawn only for a row the reader
-// has OPENED (see `groupRows`): a collapsed row is about what the spec
-// is and how far it has got, not about starting it.
+// It used to be a `<tr>` of its own under the header (spec 109), which
+// was itself a fix for piling the same controls into the header's LAST
+// cell (a cell nothing sets a width on, so it wrapped and moved the
+// line the reader was scanning). Spec 124 moves them to the FIRST
+// cell instead, stacked, with a width declared in CSS: the column
+// cannot be widened by what a row happens to offer, so nothing on the
+// page moves when a branch becomes mergeable.
 //
-// Everything the retired form above the table asked for is still here:
-// four boxes and a button on the line the row opens to, with the three
-// rarely-set fields at the end of that same line (`controlsRow`).
-function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
+// Every button stands here whatever the state — only `disabled`
+// changes — for that same reason. The two exceptions are honest ones:
+// a spec with NO job at all draws no Approve, Cancel or Merge, because
+// there is nothing to ever approve, cancel or merge, and Resolve
+// appears only after a merge was refused for a conflict.
+//
+// The Run form is a carrier and nothing else: it holds the hidden
+// fields, and the button that submits it and the boxes that fill it
+// are written outside its tags, reaching it by `form="…"` — the trick
+// spec 123 introduced for the model select, used twice more here.
+function openActionsCell(g: SpecGroup, opts: QueuePageOptions): string {
+  const busy = specBusy(g);
+  const refused = opts.errorSpec === groupKey(g.project, g.specFolder);
   // Always "Run" — never "Run again". The again-variant tried to say
   // whether anything was left to run for the first time, guessed wrong
   // at the edges (archive ticked but not run still said "again"), and
   // the ticked boxes already say exactly what a press will do. Asked
   // for 2026-08-19: "om det er 'igjen' eller ei klarer vi ikke holde
-  // orden på". While a job is in flight the control reads as busy AND
-  // is disabled: it used to be only the first, with a title inviting
-  // the reader to tick a phase the job did not hold — the exact press
-  // the queue then refused.
-  const busy = specBusy(g);
-  // Plain disabled while busy — never the busy VARIANT, whose built-in
-  // spinner would stand beside the running phase chip's: the row has
-  // one spinner, and the chip holds it (2026-08-19).
-  const run = btn({
-    label: "Run",
-    variant: busy ? "" : "primary",
-    pending: "starting…",
-    disabled: busy,
-    title: busy ? busyReason(g) : undefined,
-  });
+  // orden på". While a job is in flight the control is disabled and
+  // says why: it used to be readable-as-busy only, with a title
+  // inviting the reader to tick a phase the job did not hold — the
+  // exact press the queue then refused.
+  //
+  // Built by hand rather than through `btn()`: it needs `form="…"`,
+  // an attribute that helper's signature does not carry — the same
+  // reason `modelPicker` builds its own `<select>`.
+  const run =
+    `<button type="submit" form="${esc(runFormId(g))}" class="btn${busy ? "" : " primary"}"` +
+    ` data-pending="starting…"${busy ? ` disabled title="${esc(busyReason(g))}"` : ""}>Run</button>`;
   return (
+    `<span class="stack">` +
+    // Hidden fields only, and hidden by CSS: the boxes are on the
+    // phase lines and the button is directly above. Still a real form
+    // with the class the page's own code selects on, so a press is
+    // intercepted and the row redrawn rather than the page reloaded.
     `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
     `${tokenField(opts.token)}${filterFields(opts.filter)}` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    stepBoxes(g, busy) +
+    `</form>` +
     run +
-    `</form>`
-  );
-}
-
-// Everything an OPEN row offers that a shut one does not, on a line of
-// its own directly under the header. It used to be concatenated into
-// the header's last `<td>` beside whatever that cell already showed —
-// a cell nothing sets a width on, so it wrapped, and the header line
-// the reader was scanning moved down at the moment they acted on it
-// (spec 109). The rarely-set fields had already been pulled out of
-// that same cell for that same reason; this is the rest of it.
-//
-// They are here rather than on a "more" line of their own behind a
-// `<details>` (spec 117). That disclosure was a crowding fix from spec
-// 94, when the header, the phase boxes, Run and all three of them
-// shared ONE line; giving the controls a line of their own took the
-// crowding away and left a second click for two checkboxes. Opening a
-// row is the reader asking to see the controls, so the row shows them:
-// quiet and small-text at the end of the line (`.extra`), after Run,
-// where they read as secondary without being hidden.
-//
-// Cancel only, never Approve: a gate's Approve stays on the header,
-// where a shut row already offers it, so the one decision is in one
-// place. Merge stays there for the same reason.
-function controlsRow(g: SpecGroup, opts: QueuePageOptions): string {
-  const busy = specBusy(g);
-  return (
-    // One container around the three, and the gap is the container's
-    // (spec 120). Without it they are siblings of the cell itself, and
-    // the Run form's own `display: flex` is block-level — so it took
-    // the whole width and pushed the other two onto lines of their own,
-    // which is the opposite of what putting them here was for.
-    `<tr data-controls="${esc(g.specFolder)}"><td colspan="6"><span class="row">` +
-    specRunForm(g, opts) +
+    (g.lead ? actionForm(g.lead, opts.token, opts.filter, { always: true }) : "") +
+    (g.lead ? mergeForm(g, opts, refused, { always: true }) : "") +
+    (refused && opts.errorReason === "conflict" ? resolveForm(g, opts) : "") +
+    // The two nobody sets every time, quiet and small-text at the end
+    // of the stack (spec 117's shape, one turn to the right).
     `<span class="row extra">${extraFields(g, opts, busy)}</span>` +
-    (g.lead ? actionForm(g.lead, opts.token, opts.filter, { cancelOnly: true }) : "") +
-    `</span></td></tr>`
+    `</span>`
   );
 }
 
@@ -1185,9 +1169,11 @@ function dependencyBadges(g: SpecGroup, all: SpecGroup[]): string {
 }
 
 // The header line for one spec: what it is, how far it has got, what it
-// has cost in total, and the one action the spec is actually waiting on.
-// Running its phases is NOT here — that, and stopping a run, live on the
-// controls line an open row grows beneath this one (`controlsRow`).
+// has cost in total, and — in the cell it opens with — what can be done
+// about it. A SHUT row's first cell holds at most the one action the
+// spec is waiting on; an OPEN row's holds the whole stack
+// (`openActionsCell`). Which phases a press would run is said on the
+// phase lines beneath (`phaseSubRows`), one box per line.
 function specHeadRow(
   g: SpecGroup,
   opts: QueuePageOptions,
@@ -1241,9 +1227,9 @@ function specHeadRow(
   // another spec's row must not offer this one a resolve.
   const conflict = !!refusal && opts.errorReason === "conflict";
   // The earliest phase the spec's own files say has not happened — the
-  // same pair `stepBoxes` ticks its box from and the Run button reads
-  // for "Run" vs "Run again", asked once more for the sentence. Worded
-  // for a reader here, so `review-plan` reaches it as "review".
+  // same one `preTicked` ticks a box for, asked once more for the
+  // sentence. Worded for a reader here, so `review-plan` reaches it as
+  // "review".
   const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   return (
@@ -1251,6 +1237,15 @@ function specHeadRow(
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
+    // The row's actions, in the column the table opens with (spec
+    // 124). A SHUT row offers the one thing the spec is waiting on and
+    // nothing else; an OPEN row offers the whole stack. This is the
+    // one conditional the redesign hangs on.
+    `<td>${
+      opened.has(groupKey(g.project, g.specFolder))
+        ? openActionsCell(g, opts)
+        : collapsedAction(g, opts, !!refusal, conflict)
+    }</td>` +
     `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
@@ -1274,12 +1269,7 @@ function specHeadRow(
       ),
     )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
-    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
-    // The same cell whether the row is open or shut, which is the whole
-    // point: at most one action — whichever the spec is actually
-    // waiting on — so opening a row cannot make this cell taller and
-    // take the line the reader was scanning down with it.
-    `<td>${collapsedAction(g, opts, !!refusal, conflict)}</td></tr>`
+    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td></tr>`
   );
 }
 
@@ -1342,10 +1332,16 @@ function phaseCaptionRow(opts: QueuePageOptions): string {
   return (
     // No class of its own: it needs no rule, and the render vocabulary
     // is a closed set (`css-token-guard.test.ts`).
+    //
+    // The leading cell is the action column's (spec 124) — reserved on
+    // every row of the table, filled once, by the spec's header row.
+    // The empty span after it holds the checkbox column's place, so
+    // "Phase" stands over the phase NAMES and not over their boxes.
     `<tr class="subrow" data-caption="1">` +
-    `<td colspan="2" class="phasecell"><span class="row">` +
+    `<td></td><td colspan="2" class="phasecell"><span class="row">` +
+    `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
-    `</span></td><td></td><td></td><td class="num"></td><td></td></tr>`
+    `</span></td><td></td><td></td><td class="num"></td></tr>`
   );
 }
 
@@ -1353,12 +1349,28 @@ function phaseCaptionRow(opts: QueuePageOptions): string {
 // happened. A phase nobody has run yet is the point of the fixed order:
 // it says what is still ahead without anyone counting rows.
 //
-// The phase is still RUN from the row's own controls line — the line
-// carries the picker for the NEXT run of that phase, not a Run button.
-// The trailing cell stays, empty — the table is six columns wide on
-// every row.
+// The line is where a phase is TICKED since spec 124 — the box the
+// header's strip of chips used to carry, on the phase's own line, with
+// the picker for the next run of it beside the name. What it does NOT
+// carry is a Run button: one press runs whatever is ticked, from the
+// stack in the row's first cell.
+//
+// The box is built without `done`: the phase's own State column two
+// cells along already says "done", and a checkmark here said it a
+// second time, in a second alphabet. It stays tickable — rerunning a
+// finished phase is the same submission it always was.
+//
+// The leading cell is the action column's, reserved and never filled:
+// the stack lives once, on the header row above.
 function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
+  // Row-level, all four: which phases a press would run, why the row
+  // will not take a click, and which step (if any) is actually being
+  // worked. Row-level facts, so they are asked once and consulted per
+  // phase — the same shape `busy` itself already had.
+  const ticked = preTicked(g);
+  const why = busy ? busyReason(g) : "";
+  const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
   return phaseCaptionRow(opts) + g.phases
     .map((p) => {
       const latest = p.attempts[0];
@@ -1387,14 +1399,38 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // The picker directly after the name, so the two line up in the
       // caption's columns; what the last run used is not spelled out in
       // text any more — it IS the select's pre-filled value.
+      // `create` has no box, as it never had one: the folder being on
+      // disk IS its answer, and a spec that exists cannot be created
+      // again. Its line is history, and history is read-only.
+      const box = QUEUE_STEPS.includes(p.step)
+        ? phaseChip({
+            // `data-phase`, not `data-step`: the line already carries
+            // `data-step`, and one attribute per question keeps a test
+            // that enumerates boxes from finding the lines too.
+            dataAttr: "data-phase",
+            value: p.step,
+            // No visible label — the phase's own name is the next
+            // thing on the line. The accessible one is given outright,
+            // since a wrapper with no text has no name to offer.
+            label: "",
+            ariaLabel: stepLabel(p.step),
+            name: "steps",
+            form: runFormId(g),
+            checked: ticked.has(p.step) && !busy,
+            busy: busy && p.step === running,
+            disabled: busy && p.step !== running,
+            title: busy ? why : undefined,
+          })
+        : "";
       return (
         `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
-        `<td colspan="2" class="phasecell"><span class="row">` +
+        `<td></td>` +
+        `<td colspan="2" class="phasecell"><span class="row"><span class="row">${box}</span>` +
         `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
         `<td>${phaseWordCell(word, latest)}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
-        `<td></td></tr>`
+        `</tr>`
       );
     })
     .join("");
@@ -1420,7 +1456,7 @@ function groupRows(
     .map((g) => {
       const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + controlsRow(g, opts) + phaseSubRows(g, opts, now)
+        ? head + phaseSubRows(g, opts, now)
         : head;
     })
     .join("");

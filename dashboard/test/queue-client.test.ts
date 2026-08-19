@@ -122,8 +122,18 @@ function harness(
   // it names, not how many pixels a browser would have said.
   const phases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
   const otherPhases = { innerHTML: boxes, isConnected: true, offsetWidth: 168, style: { minWidth: "" } };
+  /** Since spec 124 the boxes are on the phase LINES and the buttons
+   *  on the header row, so a button's own `<tr>` has none to lend —
+   *  and the code stopped asking. Every selector it does ask for is
+   *  recorded, so a lookup creeping back is a failed test rather than
+   *  a spinner appearing in the "also touches" chips beside the
+   *  button. */
+  const rowQueries: string[] = [];
   const row = {
-    querySelector: (sel: string) => (sel.includes("phases") && !o.collapsed ? phases : null),
+    querySelector: (sel: string) => {
+      rowQueries.push(sel);
+      return null;
+    },
   };
   const tokenInput = { value: "s3cret" };
   const form = {
@@ -348,7 +358,7 @@ function harness(
 
   return {
     submit, submitCreate, button, createButton, requests, location, rows, inserted,
-    replaced, slot, resets, document, phases, otherPhases, tick: () => tick(),
+    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick: () => tick(),
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
@@ -809,9 +819,10 @@ describe("a pressed row button holds its size (spec 104)", () => {
       // In PLACE of the variant, not beside it: two variants at once is
       // a button with two looks.
       expect(seen.variant).toBe(false);
-      // ONE spinner per row, and it lives where the phase boxes were —
-      // a second one on the button read as two jobs (2026-08-19).
-      expect(seen.spinner).not.toContain(SPINNER);
+      // ONE spinner per row, inside the button that was pressed: since
+      // spec 124 the phase boxes are on lines of their own and have no
+      // space to lend.
+      expect(seen.spinner).toContain(SPINNER);
     });
   }
 
@@ -828,48 +839,43 @@ describe("a pressed row button holds its size (spec 104)", () => {
     expect(seen).toBe("starting…");
   });
 
-  test("the spinner goes where the phase boxes were, on that row and no other", async () => {
-    let seen = "";
-    let seenOther = "";
-    const h = harness((url) => {
-      if (url.includes("/api/queue")) {
-        seen = h.phases.innerHTML;
-        seenOther = h.otherPhases.innerHTML;
-      }
-      return { ok: true, body: OK };
-    }, "rowrun");
-    await h.submit();
-    expect(seen).toBe(SPINNER);
-    expect(seenOther).toContain("class=\"phase\"");
-  });
-
-  // Lending the space is not giving it up: a spinner is 12px and four
-  // phase chips are not, so a `.phases` left to shrink around it would
-  // drag every button on the row leftwards — the same shove this spec
-  // exists to remove, in the other direction.
-  test("the boxes' space is held while the spinner stands in it", async () => {
-    let seen = "";
-    const h = harness((url) => {
-      if (url.includes("/api/queue")) seen = h.phases.style.minWidth;
-      return { ok: true, body: OK };
-    }, "rowrun");
-    await h.submit();
-    expect(seen).toBe("168px");
-  });
-
-  // Approve and Merge are on the same row as the boxes, so pressing
-  // either of them lends the same space.
-  for (const control of ["actionform", "mergeform"] as const) {
-    test(`${control} takes the phase boxes' place too`, async () => {
-      let seen = "";
+  // Spec 124: there are no boxes to borrow any more — the phase boxes
+  // are on the phase LINES, and every button on the row is on the
+  // header. So the spinner goes where it always went on a collapsed
+  // row: inside the button that was pressed, for every control alike.
+  for (const control of ["rowrun", "actionform", "cancel", "mergeform"] as const) {
+    test(`${control} carries its own spinner, and asks no row for boxes`, async () => {
+      let seen = { busy: false, spinner: "" };
       const h = harness((url) => {
-        if (url.includes("/api/queue")) seen = h.phases.innerHTML;
+        if (url.includes("/api/queue")) {
+          seen = { busy: h.button.classList.contains("busy"), spinner: h.button.innerHTML };
+        }
         return { ok: true, body: OK };
       }, control);
       await h.submit();
-      expect(seen).toBe(SPINNER);
+      expect(seen.busy).toBe(true);
+      expect(seen.spinner).toContain(SPINNER);
+      // The row is still asked for nothing at all: the "also touches"
+      // chips now share the button's own `<tr>`, and a `.phases`
+      // lookup would put the spinner in them.
+      expect(h.rowQueries.filter((q) => q.includes("phases"))).toEqual([]);
     });
   }
+
+  // The boxes are the Run form's own fields wherever they are drawn,
+  // and the press must not disturb them: a spinner written over them
+  // before the form is serialised posts a job with no phases at all.
+  test("the phase boxes are left alone by a press", async () => {
+    let seen = "";
+    const h = harness((url) => {
+      if (url.includes("/api/queue")) seen = h.phases.innerHTML;
+      return { ok: true, body: OK };
+    }, "rowrun");
+    await h.submit();
+    expect(seen).toContain('class="phase"');
+    expect(h.phases.style.minWidth).toBe("");
+    expect(String(h.requests[0]!.init.body)).toContain("steps=analyze");
+  });
 
   // Nothing puts the boxes back by hand: every path out of a press ends
   // in the rows being re-asked from the server, which draws whatever is
@@ -895,41 +901,14 @@ describe("a pressed row button holds its size (spec 104)", () => {
     expect(h.rows.innerHTML).toBe("<tr></tr>");
   });
 
-  // A collapsed row (spec 103) offers Approve or Merge and nothing
-  // else: no run form, so no phase boxes to lend. The button still says
-  // it was pressed, and the missing boxes are not an error.
-  test("a collapsed row has no boxes to lend — so the button carries the row's one spinner", async () => {
-    let seen = { busy: false, spinner: "" };
-    const h = harness(
-      (url) => {
-        if (url.includes("/api/queue")) seen = { busy: h.button.classList.contains("busy"), spinner: h.button.innerHTML };
-        return { ok: true, body: OK };
-      },
-      "actionform",
-      "",
-      { collapsed: true },
-    );
-    await h.submit();
-    expect(seen.busy).toBe(true);
-    // Still ONE spinner on the row — there are no boxes to hold it, so
-    // the button does. Without this, a Merge press on a collapsed row
-    // showed nothing at all (2026-08-19).
-    expect(seen.spinner).toContain(SPINNER);
-    expect(h.rows.innerHTML).toBe("<tr></tr>");
-  });
-
   // The redraw is what puts the boxes back — but a redraw that fails
   // (server restarting, tailnet hiccup) leaves the row standing, and a
   // row left holding a spinner for something that is over is worse than
   // the shove this spec set out to fix.
-  test("a redraw that never arrives puts the boxes and the button back itself", async () => {
+  test("a redraw that never arrives puts the button back itself", async () => {
     const h = harness((url) => (url.includes("rows=1") ? { ok: false } : { ok: true, body: OK }), "rowrun");
     await h.submit();
     expect(h.rows.innerHTML).toBe("");
-    expect(h.phases.innerHTML).toContain("class=\"phase\"");
-    // Including the space it was told to hold: the boxes size it
-    // themselves again.
-    expect(h.phases.style.minWidth).toBe("");
     expect(h.button.textContent).toBe("Run");
     expect(h.button.classList.contains("busy")).toBe(false);
     expect(h.button.classList.contains("primary")).toBe(true);
