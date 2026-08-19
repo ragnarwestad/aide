@@ -1074,10 +1074,6 @@ describe("a spec's row runs its own phases", () => {
    *  own under the header, rather than the header's last cell. */
   const runLine = (html: string, folder: string) =>
     html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** The row's "more" line — since spec 103 the model, the gate and the
-   *  other repos are on a `<tr>` of their own, not in the action cell. */
-  const more = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
@@ -1186,7 +1182,7 @@ describe("a spec's row runs its own phases", () => {
   });
 
   test("'also touches' lists the other projects and never the row's own (criterion 5)", () => {
-    const line = more(rows([], [target("94-never-run")], { projects: ["aide", "paceup"] }), "94-never-run");
+    const line = runLine(rows([], [target("94-never-run")], { projects: ["aide", "paceup"] }), "94-never-run");
     expect(line).toContain('name="extraProjects" value="paceup"');
     expect(line).not.toContain('name="extraProjects" value="aide"');
     // No script needed to exclude the row's own project: the row knows
@@ -1197,20 +1193,20 @@ describe("a spec's row runs its own phases", () => {
 
   test("with only its own project there is nothing to add (criterion 5)", () => {
     const html = rows([], [target("94-never-run")], { projects: ["aide"] });
-    expect(more(html, "94-never-run")).not.toBe("");
+    expect(runLine(html, "94-never-run")).not.toBe("");
     expect(html).not.toContain('name="extraProjects"');
   });
 
   test("the gate box is on every row, unticked, with or without 'also touches' (criterion 5a)", () => {
     for (const projects of [["aide"], ["aide", "paceup"]]) {
-      const line = more(rows([], [target("94-never-run")], { projects }), "94-never-run");
+      const line = runLine(rows([], [target("94-never-run")], { projects }), "94-never-run");
       expect(line).toContain('<input type="checkbox" name="gate" value="1"');
       expect(line).not.toContain('name="gate" checked');
     }
   });
 
   test("the row offers the configured models, and a default that changes nothing", () => {
-    const line = more(
+    const line = runLine(
       rows([], [target("94-never-run")], {
         modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
       }),
@@ -1223,7 +1219,7 @@ describe("a spec's row runs its own phases", () => {
 
   test("with no model configured the row offers no dropdown at all", () => {
     const html = rows([], [target("94-never-run")]);
-    expect(more(html, "94-never-run")).not.toBe("");
+    expect(runLine(html, "94-never-run")).not.toBe("");
     expect(html).not.toContain('name="model"');
   });
 
@@ -2245,9 +2241,6 @@ describe("spec 103: a collapsed row shows status only", () => {
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** The row's own "more" line: its own `<tr>`, not a cell of the header. */
-  const moreLine = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
   /** The row's own controls line: since spec 109 the run form and
    *  Cancel are a `<tr>` under the header, not a cell inside it. */
   const controlsLine = (html: string, folder: string) =>
@@ -2391,10 +2384,9 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
-    const more = moreLine(html, "103-idle");
-    expect(more).toContain('name="model"');
-    expect(more).toContain('name="gate"');
-    expect(more).toContain('name="extraProjects" value="paceup"');
+    expect(line).toContain('name="model"');
+    expect(line).toContain('name="gate"');
+    expect(line).toContain('name="extraProjects" value="paceup"');
     expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
   });
 
@@ -2416,31 +2408,47 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(cancel).toContain('name="view.open" value="aide/103-gated"');
   });
 
-  test("'more' is its own full-width line, never a cell of the header row (criterion 10)", () => {
+  test("the rarely-set fields share the controls line, full width (criterion 10)", () => {
     const html = rows([], [target("103-idle")], {
       ...open("103-idle"),
       projects: ["aide", "paceup"],
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
     });
     expect(head(html, "103-idle")).not.toContain('class="more"');
-    const more = moreLine(html, "103-idle");
-    expect(more).toContain('<td colspan="6">');
-    expect(more).toContain('<details class="more">');
+    const line = controlsLine(html, "103-idle");
+    expect(line).toContain('<td colspan="6">');
+    expect(line).toContain('<span class="row extra">');
     // It sits directly under the row it belongs to, above the phase lines.
-    expect(html.indexOf('<tr data-more="103-idle"')).toBeGreaterThan(
+    expect(html.indexOf('<tr data-controls="103-idle"')).toBeGreaterThan(
       html.indexOf('data-folder="103-idle"'),
     );
-    expect(html.indexOf('<tr data-more="103-idle"')).toBeLessThan(html.indexOf('<tr class="subrow'));
+    expect(html.indexOf('<tr data-controls="103-idle"')).toBeLessThan(
+      html.indexOf('<tr class="subrow'),
+    );
   });
 
-  test("a collapsed row emits no 'more' line at all (criterion 10)", () => {
-    const html = rows([], [target("103-idle")], { projects: ["aide", "paceup"] });
-    expect(html).not.toContain("data-more");
-    expect(html).not.toContain('class="more"');
+  test("no 'more' disclosure survives, open or shut (criterion 10)", () => {
+    for (const html of [
+      rows([], [target("103-idle")], { projects: ["aide", "paceup"] }),
+      rows([], [target("103-idle")], {
+        ...open("103-idle"),
+        projects: ["aide", "paceup"],
+        modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+      }),
+    ]) {
+      // Scoped to the list: the "?" popover above it is a `<details>`
+      // of its own (spec 113), about how runs work, not about a row.
+      const table = html.match(/<table class="list">[\s\S]*<\/table>/)?.[0] ?? "";
+      expect(table).not.toBe("");
+      expect(table).not.toContain("data-more");
+      expect(table).not.toContain('class="more"');
+      expect(table).not.toContain("<summary");
+    }
   });
 
   // The model, the gate and the also-touches chips left the action cell,
-  // so they are no longer INSIDE the form they submit with. The `form`
+  // so they are no longer INSIDE the form they submit with — they are
+  // written after its closing tag, on the same line. The `form`
   // attribute is what carries them back — an id that drifts from the
   // form's own silently runs the job with the defaults instead.
   test("the moved fields submit with the row's own Run form (criterion 10)", () => {
@@ -2449,9 +2457,10 @@ describe("spec 103: a collapsed row shows status only", () => {
       projects: ["aide", "paceup"],
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
     });
-    const id = controlsLine(html, "103-idle").match(/<form id="([^"]+)"/)![1];
-    const more = moreLine(html, "103-idle");
-    const fields = [...more.matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g)];
+    const line = controlsLine(html, "103-idle");
+    const id = line.match(/<form id="([^"]+)"/)![1];
+    const after = line.slice(line.indexOf("</form>"));
+    const fields = [...after.matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g)];
     expect(fields.length).toBe(3);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
   });
@@ -2496,10 +2505,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  const moreLine = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
   /** The line an open row reveals under its header: since spec 109 the
-   *  phase boxes, Run and Cancel are here, never in the header's cell. */
+   *  phase boxes, Run and Cancel are here, never in the header's cell —
+   *  and since spec 117 the model, the gate and "also touches" too. */
   const controlsLine = (html: string, folder: string) =>
     html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
   /** The last cell of the header row — which since spec 109 offers only
@@ -2584,17 +2592,22 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   test("the model select, the gate box and 'also touches' all lock (criterion 3)", () => {
     const html = rows([spec("running")], [target("105-busy")]);
-    const more = moreLine(html, "105-busy");
-    expect(more.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
-    expect(more.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).toContain("disabled");
-    expect(more.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).toContain("disabled");
+    const line = controlsLine(html, "105-busy");
+    expect(line.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+    expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).toContain("disabled");
+    expect(line.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).toContain("disabled");
   });
 
-  test("the 'more' summary carries the same reason, muted (criterion 3)", () => {
-    const more = moreLine(rows([spec("running")], [target("105-busy")]), "105-busy");
-    const summary = more.match(/<summary[^>]*>/)![0];
-    expect(summary).toContain('title="implement is running"');
-    expect(summary).toContain('class="muted"');
+  // There is no disclosure left to carry the reason on a summary, so
+  // every one of the three says it itself — which is where the promise
+  // always actually lived.
+  test("each locked field carries the same reason (criterion 3)", () => {
+    const line = controlsLine(rows([spec("running")], [target("105-busy")]), "105-busy");
+    expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("<summary");
+    for (const label of ["data-gate", "data-project"]) {
+      const chip = line.match(new RegExp(`<label class="phase[^"]*" ${label}="[^"]*"[^>]*>`))![0];
+      expect(chip).toContain('title="implement is running"');
+    }
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
@@ -2622,7 +2635,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       expect(box(line, step)).toContain('title="implement is waiting for approval"');
     }
     expect(runBtn(line)).toContain("disabled");
-    expect(moreLine(html, "105-busy").match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+    expect(line.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
   });
 
   // --- criterion 5: a settled spec is the ordinary row it always was ---------
@@ -2636,10 +2649,8 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       }
       expect(runBtn(line)).not.toContain("disabled");
       expect(actionCell(head(html, "105-busy"))).toContain('action="/api/queue/j1/merge"');
-      const more = moreLine(html, "105-busy");
-      expect(more.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
-      expect(more.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).not.toContain("disabled");
-      expect(more.match(/<summary[^>]*>/)![0]).not.toContain('class="muted"');
+      expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+      expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).not.toContain("disabled");
     });
   }
 
@@ -2650,7 +2661,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       expect(box(line, step)).not.toContain("disabled");
     }
     expect(runBtn(line)).not.toContain("disabled");
-    expect(moreLine(html, "105-never-run").match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+    expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
   });
 
   // Merge belongs to work that is finished; it comes back the moment
@@ -2672,8 +2683,8 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 // The header is the SAME line now, open or shut: its action cell always
 // draws what a collapsed row draws. What opening reveals is a
 // full-width row beneath it — the phase boxes, Run, and Cancel — built
-// the way `moreRow` and the phase lines already are, because a
-// full-width row cannot widen a column it is not inside.
+// the way the phase lines already are, because a full-width row cannot
+// widen a column it is not inside.
 describe("spec 109: an expanded row reveals its controls below the header line", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
@@ -2699,11 +2710,10 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
   /** The line this spec adds: an open row's controls, under the header
-   *  rather than inside it — the same shape `moreLine` matches. */
+   *  rather than inside it — everything an open row offers, since spec
+   *  117 folded the rarely-set fields onto it too. */
   const controlsLine = (html: string, folder: string) =>
     html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
-  const moreLine = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
   const actionCell = (line: string) => line.slice(line.lastIndexOf("<td>"));
 
   const branch = [{ label: "aide", url: "https://example.test/c", merged: false }];
@@ -2829,33 +2839,49 @@ describe("spec 109: an expanded row reveals its controls below the header line",
 
   // --- criterion 6: the order of the lines an open row grows ----------------
 
-  test("the controls line comes first, then 'more', then the phase lines (criterion 6)", () => {
+  test("the controls line comes first, then the phase lines (criterion 6)", () => {
     const html = rows([], [target("109-idle")], open("109-idle"));
     const at = (s: string) => html.indexOf(s);
     expect(at('<tr data-controls="109-idle"')).toBeGreaterThan(at('data-folder="109-idle"'));
-    expect(at('<tr data-controls="109-idle"')).toBeLessThan(at('<tr data-more="109-idle"'));
-    expect(at('<tr data-more="109-idle"')).toBeLessThan(at('<tr class="subrow'));
+    expect(at('<tr data-controls="109-idle"')).toBeLessThan(at('<tr class="subrow'));
+    // Nothing between them any more: spec 117 folded "more" into the
+    // controls line rather than leaving a second line under it.
+    expect(html).not.toContain("data-more");
   });
 
   // --- criterion 7: the "more" fields still reach the form that moved -------
 
-  test("the 'more' fields submit with the Run form now that it has moved (criterion 7)", () => {
+  test("the rarely-set fields submit with the Run form beside them (criterion 7)", () => {
     const html = rows([], [target("109-idle")], open("109-idle"));
-    const id = controlsLine(html, "109-idle").match(/<form id="([^"]+)"/)![1];
+    const line = controlsLine(html, "109-idle");
+    const id = line.match(/<form id="([^"]+)"/)![1];
     const fields = [
-      ...moreLine(html, "109-idle").matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g),
+      ...line.slice(line.indexOf("</form>")).matchAll(
+        /<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g,
+      ),
     ];
     expect(fields.length).toBe(3);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
   });
 
-  // The new line gets the rule the "more" line already has, rather than
-  // a second rule of its own: no bottom border, tucked up against the
-  // row it belongs to.
-  test("the controls line is styled full-width, on the 'more' line's own rule", async () => {
+  // One rule for the one line an open row grows above its phase lines:
+  // no bottom border, tucked up against the row it belongs to.
+  test("the controls line is styled full-width, on a rule of its own", async () => {
     const { CSS } = await import("../src/render/css.ts");
-    const rule = CSS.match(/table\.list tr\[data-more\][^{]*\{[^}]*\}/)![0];
-    expect(rule).toContain("tr[data-controls]");
+    expect(CSS).not.toContain("data-more");
+    const rule = CSS.match(/table\.list tr\[data-controls\][^{]*\{[^}]*\}/)![0];
+    expect(rule).toContain("border-bottom: none");
+  });
+
+  // `.row` on its own is block-level `flex`, which would put the
+  // rarely-set fields on a line directly UNDER the run form — the
+  // two-line shape spec 117 exists to remove, rebuilt in CSS. They
+  // have to sit BESIDE it, which is what `inline-flex` buys.
+  test("the rarely-set fields sit beside the run form, not under it (spec 117)", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const rule = CSS.match(/\n\.extra \{[^}]*\}/)![0];
+    expect(rule).toContain("display: inline-flex");
+    expect(rule).toContain("font-size: var(--fs-s)");
   });
 });
 

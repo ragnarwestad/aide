@@ -5,8 +5,8 @@
 // handful of things the design foundation itself promises: that the
 // mark and the favicons are on every page, that a phase's technical
 // name never reaches the reader, that each of the ten job states picks
-// a badge, and that the row's rarely-set controls sit behind one
-// disclosure rather than three places.
+// a badge, and that the row's rarely-set controls lie flat on the
+// controls line rather than behind a disclosure.
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
@@ -178,9 +178,9 @@ describe("refused and running are told apart by more than the word", () => {
   });
 });
 
-// --- one disclosure, not three ------------------------------------------------
+// --- nothing is left behind a second click ------------------------------------
 
-describe("the row's rarely-set controls sit behind one disclosure (item 4)", () => {
+describe("the row's rarely-set controls sit flat on the controls line (item 4)", () => {
   const html = () =>
     rows([], {
       targets: [target()],
@@ -188,25 +188,39 @@ describe("the row's rarely-set controls sit behind one disclosure (item 4)", () 
       modelChoices: [{ name: "opus", budgetUsd: 15 }],
     });
 
-  const more = (h: string) => h.match(/<details class="more">[\s\S]*?<\/details>/)?.[0] ?? "";
+  const controls = (h: string) =>
+    h.match(/<tr data-controls="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  /** The list itself. The "?" popover above it is a `<details>` too
+   *  (spec 113) and has nothing to do with a row. */
+  const list = (h: string) => h.match(/<table class="list">[\s\S]*<\/table>/)?.[0] ?? "";
 
-  test("model, gate and also-touches are all inside it", () => {
-    const inside = more(html());
-    expect(inside).toContain('name="model"');
-    expect(inside).toContain('name="gate"');
-    expect(inside).toContain('name="extraProjects"');
+  test("no disclosure is left for the row to hide them behind", () => {
+    const table = list(html());
+    expect(table).not.toBe("");
+    expect(table).not.toContain('class="more"');
+    expect(table).not.toContain("<details");
+    expect(table).not.toContain("<summary");
   });
 
-  test("nothing of the three is left outside it", () => {
+  test("model, gate and also-touches are all on the controls line", () => {
+    const line = controls(html());
+    expect(line).toContain('name="model"');
+    expect(line).toContain('name="gate"');
+    expect(line).toContain('name="extraProjects"');
+  });
+
+  test("nothing of the three is left anywhere else on the page", () => {
     const h = html();
-    const outside = h.replace(more(h), "");
+    const outside = h.replace(controls(h), "");
     expect(outside).not.toContain('name="model"');
     expect(outside).not.toContain('name="gate"');
     expect(outside).not.toContain('name="extraProjects"');
   });
 
-  test("the summary says what is behind it", () => {
-    expect(more(html())).toContain("model, gate, also touches");
+  test("they come after the phase boxes and Run, quietly", () => {
+    const line = controls(html());
+    expect(line.indexOf('name="model"')).toBeGreaterThan(line.indexOf(">Run</button>"));
+    expect(line).toContain('<span class="row extra">');
   });
 });
 

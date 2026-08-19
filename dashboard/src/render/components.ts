@@ -5,7 +5,7 @@
 // they solve was not that the stylesheet was ugly — it was that every
 // spec added a class for its own control. `.stepbox`, `.chip`,
 // `.state`, `.pip`, `.tick`, `.branch`, `.refusal`, `.newspec`,
-// `.rowrun`, `.more`, and a button in three versions depending on which
+// `.rowrun`, `.extra`, and a button in three versions depending on which
 // form it sat in. Shared CSS classes alone would not have stopped that:
 // nothing prevents the next spec writing its own markup with its own
 // class. A function does, and a guard test
@@ -139,9 +139,9 @@ export function phaseChip(o: {
   disabled?: boolean;
   title?: string;
   /** The id of the form this box belongs to, for a box drawn OUTSIDE
-   *  that form — the spec row's "more" fields sit on a line of their
-   *  own, which is a different `<tr>` from the one the Run form is in.
-   *  Without it the browser posts the form without them. */
+   *  that form — the spec row's rarely-set fields are written after the
+   *  Run form's closing tag, beside it on the same line rather than
+   *  inside it. Without this the browser posts the form without them. */
   form?: string;
 }): string {
   const state = o.busy ? "busy" : o.disabled ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
