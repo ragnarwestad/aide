@@ -97,8 +97,14 @@ function dependsOnField(opts: NewSpecPageOptions): string {
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
+  // Three lines, read top to bottom (asked for 2026-08-19): Project and
+  // Depends on side by side, Title on a line of its own, Description
+  // right under it with Create and Cancel at its right-hand side. Each
+  // `.frow` is a full-width row inside the same wrapping flex the Add
+  // form shares, so the shared `.newspecform` look is untouched.
   return (
     `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
+    `<span class="frow">` +
     field(
       "Project",
       `<select name="project">` +
@@ -106,25 +112,26 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         `</select>`,
     ) +
     dependsOnField(opts) +
+    `</span>` +
     field(
       "Title",
       `<input type="text" name="title" maxlength="120" required ` +
         `placeholder="what the spec is about, in a few words">`,
+      { wide: true },
     ) +
-    // Both actions belong on the first line with the short fields, not
-    // under the textarea. `.field.wide` is `flex-basis:100%`, so
-    // Description breaks the wrapping row on its own; anything after it
-    // in the markup lands underneath it (spec 113).
-    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
-    // Out, having done nothing. A plain link, so it needs no script and
-    // cannot post: there is nothing for a Cancel to send.
-    `<a class="btn" href="/">Cancel</a>` +
+    `<span class="frow">` +
     field(
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>`,
       { wide: true },
     ) +
+    `<span class="factions">` +
+    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
+    // Out, having done nothing. A plain link, so it needs no script and
+    // cannot post: there is nothing for a Cancel to send.
+    `<a class="btn" href="/">Cancel</a>` +
+    `</span></span>` +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
     // the way there is for every other action. Empty until something
