@@ -812,7 +812,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
   test("a phase that never ran keeps its place in the order (criterion 2)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "implement")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
+    expect(order).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
     expect(subRow(html, "review-plan")).toContain("not run yet");
   });
 
@@ -882,12 +882,12 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("j1", "analyze", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),
       job("j2", "implement", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
     expect(html.match(/<form method="post" action="\/api\/queue\/j2\/cancel"/g)).toHaveLength(1);
     // Approve/cancel is the SPEC's one action and belongs on the header —
     // as, since spec 94, does the form that runs the spec's phases. A
     // phase line is read-only.
-    for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
+    for (const phase of ["create", "analyze", "review-plan", "implement", "archive"]) {
       expect(subRow(html, phase)).not.toContain("/cancel");
       expect(subRow(html, phase)).not.toContain("/approve");
     }
@@ -898,11 +898,20 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(heads(html)).toHaveLength(2);
   });
 
-  test("a step outside the four is still shown, never silently dropped", () => {
+  // Spec 116: create is the FIRST phase line, not a straggler appended
+  // after archive — and it appears exactly once, never twice.
+  test("a create job leads the phase list, once (spec 116, criterion 8)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "create")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["analyze", "review-plan", "implement", "archive", "create"]);
+    expect(order).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
     expect(subRow(html, "create")).toContain('href="/specs/j2"');
+  });
+
+  test("a step outside the five is still shown, never silently dropped", () => {
+    const html = rows([job("j1", "analyze"), job("j2", "explore")]);
+    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["create", "analyze", "review-plan", "implement", "archive", "explore"]);
+    expect(subRow(html, "explore")).toContain('href="/specs/j2"');
   });
 });
 
@@ -1225,7 +1234,7 @@ describe("a spec's row runs its own phases", () => {
 
   test("a phase line is read-only now — it carries no form of its own", () => {
     const html = rows([job("j1", "analyze")], [target("94-row-runs-it")]);
-    for (const phase of ["analyze", "review-plan", "implement", "archive"]) {
+    for (const phase of ["create", "analyze", "review-plan", "implement", "archive"]) {
       expect(subRow(html, phase)).not.toContain("<form");
       expect(subRow(html, phase)).not.toContain("<button");
     }
@@ -1338,11 +1347,11 @@ describe("every spec is a row (criteria 1-10)", () => {
   const runLine = (html: string, folder: string) =>
     html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
 
-  test("a target with no jobs gets a header row and four phase lines (criterion 1)", () => {
+  test("a target with no jobs gets a header row and five phase lines (criterion 1)", () => {
     const html = rows([], [target("90-never-run")]);
     expect(heads(html)).toHaveLength(1);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
-    expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
+    expect(order).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
     for (const phase of order) expect(subRow(html, phase!)).toContain("not run yet");
   });
 
@@ -1493,7 +1502,7 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
     const html = rows([target("90-x")], { open: "aide/90-x" });
     const line = head(html, "90-x");
     expect(line).not.toBe("");
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
     expect(line).toContain('aria-expanded="true"');
     // Its own control now SHUTS it: the encoded key is gone from its href.
     expect(line).not.toContain("open=aide%2F90-x");
@@ -1513,8 +1522,8 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
 
   test("opening one spec leaves the other shut (criterion 13)", () => {
     const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x" });
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
-    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
+    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
       expect(html).toContain(`data-step="${step}"`);
     }
     expect(head(html, "90-y")).toContain('aria-expanded="false"');
@@ -2386,7 +2395,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(more).toContain('name="model"');
     expect(more).toContain('name="gate"');
     expect(more).toContain('name="extraProjects" value="paceup"');
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(4);
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
   });
 
   test("an expanded row's forms carry the open key forward (criterion 6)", () => {
@@ -3191,5 +3200,152 @@ describe("an archived spec's create job is not a row", () => {
     expect(before).toContain('data-folder="111-x"');
     const after = renderQueueRows([createJob("111-x")], { ...opts, archived: ["aide/111-x"] }, Date.parse("2026-08-19T12:00:00Z"));
     expect(after).not.toContain('data-folder="111-x"');
+  });
+});
+
+// A spec made from the New-spec form starts life as a `create` job — a
+// claude run that costs money and can fail — and that run used to be
+// findable only by knowing the job id, or appended after `archive` as a
+// straggler. It is the spec's FIRST phase, and every spec has had one,
+// whether or not the queue ran it.
+describe("spec 116: create is the first phase line", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const createJob = (specFolder: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+    row({
+      id: "c1",
+      specFolder,
+      steps: ["create"],
+      stepIndex: 0,
+      state: "done",
+      startedAt: "2026-08-19T10:00:00Z",
+      ...extra,
+    });
+  const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const runLine = (html: string) => html.match(/<tr data-controls="[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  const order = (html: string) => [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+  const pipFor = (html: string, label: string) =>
+    head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
+  /** Every pip's title, in order — the only way to prove one is ABSENT. */
+  const pipTitles = (html: string) =>
+    [...head(html).matchAll(/<span class="pip [a-z]+" title="([^"]+)"/g)].map((m) => m[1]);
+
+  // --- criterion 1: five lines, create first ---------------------------------
+
+  test("a spec with no job at all leads with create (criterion 1)", () => {
+    const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
+    expect(order(html)).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
+  });
+
+  // --- criterion 2: no create job means an inert line, not a missing one -----
+
+  test("a hand-made spec's create line reads done, with nothing to click (criterion 2)", () => {
+    const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
+    const line = subRow(html, "create");
+    expect(line).toContain("b-done");
+    expect(line).not.toContain("href=");
+    expect(line).not.toContain("not run yet");
+    // No model line, no elapsed time, no cost — the three cells a
+    // finished attempt fills and an attempt-less line leaves empty.
+    expect(line).toContain('<td></td><td><span class="badge b-done">done</span></td><td></td><td class="num"></td>');
+  });
+
+  // --- criteria 3-4: a real create job, before and after it lands ------------
+
+  test("an unlanded create job's line reads the job's own state (criterion 3)", () => {
+    // No target: the folder is what the job is still making, so the
+    // files cannot say create has happened.
+    const html = rows([createJob("116-landing", { state: "running" })], []);
+    expect(order(html)).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
+    const line = subRow(html, "create");
+    expect(line).toContain("running");
+    expect(line).not.toContain("b-done");
+  });
+
+  test("a landed create job's line reads done and links to the run (criterion 4)", () => {
+    const html = rows(
+      [createJob("116-landed", { model: "sonnet", spentUsd: 0.42 })],
+      [target("116-landed", { done: ["create", "analyze"] })],
+    );
+    expect(order(html)[0]).toBe("create");
+    const line = subRow(html, "create");
+    expect(line).toContain('href="/specs/c1"');
+    expect(line).toContain("b-done");
+    expect(line).toContain("sonnet");
+    expect(line).toContain("$0.42");
+  });
+
+  // --- criterion 5: history, not a fifth pip ---------------------------------
+
+  test("create is never a progress pip (criterion 5)", () => {
+    const withJob = rows(
+      [createJob("116-landed")],
+      [target("116-landed", { done: ["create", "analyze"] })],
+    );
+    const withoutJob = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
+    for (const html of [withJob, withoutJob]) {
+      expect(pipTitles(html)).toEqual(["analyze", "review", "implement", "archive"]);
+      expect(pipFor(html, "create")).toBe("");
+    }
+  });
+
+  // --- criterion 6: history, not a control -----------------------------------
+
+  test("create is never a run-form checkbox (criterion 6)", () => {
+    const html = rows(
+      [createJob("116-landed")],
+      [target("116-landed", { done: ["create", "analyze"] })],
+    );
+    const line = runLine(html);
+    const boxes = [...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    expect(boxes).toEqual(["analyze", "review-plan", "implement", "archive"]);
+  });
+
+  // --- criterion 7: the status sentence and the button do not move -----------
+
+  test("neither the next-phase sentence nor the Run button notices create (criterion 7)", () => {
+    // The same spec twice, differing only in whether create is done. A
+    // finished job, so the sentence is the one that names the phase the
+    // spec is ready for — "ready for create" is what a widened
+    // `QUEUE_STEPS` would produce here, and must not.
+    const analyzed = row({ id: "a1", specFolder: "116-status", steps: ["analyze"], state: "done" });
+    const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
+    const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
+    // Two `muted small` divs on a header row: the run count, then the
+    // sentence. The sentence is the second.
+    const hint = (html: string) =>
+      [...head(html).matchAll(/<div class="muted small">([^<]*)</g)].map((m) => m[1])[1] ?? "";
+    expect(hint(withCreate)).toBe(hint(withoutCreate));
+    expect(hint(withCreate)).toBe("ready for review");
+    expect(runLine(withCreate)).toContain(">Run</button>");
+    expect(runLine(withoutCreate)).toContain(">Run</button>");
+    // "Run again" still means the four runnable phases bar archive —
+    // create being done or not cannot reach it.
+    const allBuilt = rows([analyzed], [target("116-status", { done: ["analyze", "review-plan", "implement"] })]);
+    expect(runLine(allBuilt)).toContain("Run again");
+  });
+
+  // --- criterion 8: once, at the front, never twice --------------------------
+
+  test("a create job appears once, never also appended after archive (criterion 8)", () => {
+    const html = rows(
+      [createJob("116-landed"), row({ id: "a1", specFolder: "116-landed", steps: ["analyze"], state: "done" })],
+      [target("116-landed", { done: ["create", "analyze"] })],
+    );
+    expect(order(html)).toEqual(["create", "analyze", "review-plan", "implement", "archive"]);
+    expect(html.match(/data-step="create"/g)).toHaveLength(1);
   });
 });

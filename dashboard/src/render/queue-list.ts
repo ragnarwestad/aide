@@ -165,6 +165,14 @@ const CHEVRON =
 
 const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
+// The phase LINES a spec's expanded row shows, in order. `create` is
+// history, not a control (spec 116): a spec that exists cannot be
+// created again, so it is never a checkbox (`stepBoxes`), never a
+// progress pip (`specHeadRow`), and never "the next phase"
+// (`nextStep`/`readyPhase`/`allDone`) — all four of those keep reading
+// `QUEUE_STEPS` directly. Only the phase-line list reads this one.
+const PHASE_LINES = ["create", ...QUEUE_STEPS];
+
 // Every form on this page posts to the guarded surface, so every one of
 // them carries the token when the page has one. Written once: a form
 // that forgot it would be refused with a 401 the reader cannot act on.
@@ -345,7 +353,7 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     spentUsd: 0,
     activityAt: 0,
     branches: [],
-    phases: QUEUE_STEPS.map((step) => ({ step, attempts: [], ...heldBackFor(step, t) })),
+    phases: PHASE_LINES.map((step) => ({ step, attempts: [], ...heldBackFor(step, t) })),
     ...fromTarget(t),
   };
 }
@@ -415,12 +423,13 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const spec = fromTarget(target);
   const lead = recent.find(inFlight) ?? recent[0]!;
-  // The four the form offers, always, in order — a phase nobody has
-  // run yet still holds its place, which is what makes progress
-  // readable at a glance. A step outside them (explore, create,
-  // manifest) is appended rather than dropped: a job that ran is
-  // never invisible.
-  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !QUEUE_STEPS.includes(s));
+  // The five, always, in order — a phase nobody has run yet still holds
+  // its place, which is what makes progress readable at a glance. A
+  // step outside them (explore, manifest, resolve) is appended rather
+  // than dropped: a job that ran is never invisible. `create` is one of
+  // the five since spec 116, so a create job lands on its own line at
+  // the front rather than being appended after archive.
+  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !PHASE_LINES.includes(s));
   return {
     project: lead.project,
     specFolder: lead.specFolder,
@@ -430,7 +439,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
     activityAt: activityMs(recent[0]!),
     branches: branchesOf(recent),
-    phases: [...QUEUE_STEPS, ...extra].map((step) => ({
+    phases: [...PHASE_LINES, ...extra].map((step) => ({
       step,
       attempts: recent
         .map((r) => attemptFor(r, step))
@@ -1286,8 +1295,11 @@ function specHeadRow(
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
+  // `create` is a phase LINE and never a pip (spec 116): the glance is
+  // about the four phases a reader can still run, and a spec that
+  // exists cannot be created again.
   const progress = pips(
-    g.phases.map((p) => ({
+    g.phases.filter((p) => p.step !== "create").map((p) => ({
       // One rule, one function: what the FILES say, qualified by the
       // most relevant attempt (whatever is in flight, else the latest).
       // The pips used to read the job history alone, so a spec analysed

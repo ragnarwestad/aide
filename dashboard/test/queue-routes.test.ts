@@ -419,6 +419,17 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     }
   });
 
+  // Spec 116: the folder being on disk IS create's file-truth, so every
+  // spec the page can draw has that line, and it always reads done —
+  // including the ones made by hand, long before the queue existed.
+  test("a spec on disk reads create as done, and offers no box for it (spec 116)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
+    const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
+    expect(create).toContain("b-done");
+    expect(specControls(html, "81-queue-and-runner")).not.toContain('value="create"');
+  });
+
   test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {
     const { base } = start({ queueToken: TOKEN });
     // A browser sends one `steps` value per ticked box, in the order the
