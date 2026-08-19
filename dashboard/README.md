@@ -565,7 +565,7 @@ published as plain files and has to work opened from a folder.
 an off-scale font size anywhere in `css.ts` outside the token block,
 and on any CSS class a render file emits that is not one of the
 components, one of the named `queue-client.ts` selector hooks
-(`rowrun`, `actionform`, `mergeform`, `mergeoverride`, `refused`,
+(`rowrun`, `actionform`, `mergeform`, `refused`,
 `refusal`, `newspec`, `newspecform`) or one of the short list of
 structural names it writes out in full.
 
