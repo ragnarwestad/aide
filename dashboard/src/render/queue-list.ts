@@ -1048,9 +1048,12 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // archive can never be true for a row that is here to read. Requiring
   // it would make "Run again" unreachable for every spec there is.
   const allDone = QUEUE_STEPS.filter((s) => s !== "archive").every((s) => g.done.includes(s));
+  // Plain disabled while busy — never the busy VARIANT, whose built-in
+  // spinner would stand beside the running phase chip's: the row has
+  // one spinner, and the chip holds it (2026-08-19).
   const run = btn({
     label: allDone ? "Run again" : "Run",
-    variant: busy ? "busy" : "primary",
+    variant: busy ? "" : "primary",
     pending: "starting…",
     disabled: busy,
     title: busy ? busyReason(g) : undefined,

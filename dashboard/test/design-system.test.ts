@@ -246,10 +246,15 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(b).toContain("Cancel");
   });
 
-  test("a running job offers Cancel, and its Run control reads as busy", () => {
+  test("a running job offers Cancel; Run is disabled without a spinner of its own", () => {
     const html = rows([row({ state: "running" })], { targets: [target()] });
     expect(buttons(html)).toContain("Cancel");
-    expect(html).toMatch(/<button[^>]*class="btn busy"/);
+    // The busy VARIANT carries a spinner, and the running phase chip
+    // already has the row's one — two spinners read as two jobs
+    // (2026-08-19). Disabled, with the reason in the title, is enough.
+    const run = html.match(/<button[^>]*>Run(?: again)?<\/button>/)?.[0] ?? "";
+    expect(run).toContain("disabled");
+    expect(run).not.toContain("busy");
   });
 
   test("the merge button still says what it merges", () => {
