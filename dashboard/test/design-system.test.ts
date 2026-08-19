@@ -9,7 +9,10 @@
 // controls line rather than behind a disclosure.
 import { describe, expect, test } from "bun:test";
 import {
+  navEntries,
   renderJobDetailPage,
+  renderProjectsPage,
+  renderQueuePage,
   renderQueueRows,
   renderSite,
   type JobDetailView,
@@ -78,8 +81,11 @@ describe("the mark is on the page (description item 3)", () => {
     expect(html.indexOf(ICON_LINKS)).toBeLessThan(html.indexOf("<style>"));
   });
 
-  test("the wordmark opens the nav", () => {
-    for (const html of site.values()) expect(html).toContain(`<nav>${WORDMARK}<ul>`);
+  test("the wordmark opens the header, before the … menu", () => {
+    for (const html of site.values()) {
+      expect(html).toContain(`<header>${WORDMARK}`);
+      expect(html.indexOf(WORDMARK)).toBeLessThan(html.indexOf('<details class="menu">'));
+    }
   });
 
   test("the mark ships as inline SVG and data URIs — the site is opened from a folder too", () => {
@@ -99,6 +105,102 @@ describe("the mark is on the page (description item 3)", () => {
   // tabs by the product's name, not by which page happens to be open.
   test("a sub-page's tab title leads with aide", () => {
     expect(site.get("about.html")!).toContain("<title>aide · About</title>");
+  });
+});
+
+// --- the frame: header, … menu and the two tabs (spec 119) --------------------
+//
+// The left column is gone. What replaces it is a contract, not a look:
+// the mark is the leftmost thing on every page and the "…" menu the
+// rightmost, About and the theme buttons are BEHIND that menu and
+// nowhere else, and the two tabs under the header say which of the
+// site's two halves the reader is in. Each of those is a rule that
+// would break silently — a menu that also leaves About in the open
+// still renders, and a tab that marks the wrong page current looks
+// like a page that works.
+
+describe("the header and the two tabs (spec 119)", () => {
+  const project: ProjectView = { name: "aide", manifest: { ok: true, data: { name: "aide" } }, specs: [] };
+  const site = new Map(renderSite([project], AT).map((p) => [p.path, p.html]));
+  // The entries the SERVER passes — `navEntries` is what `serve.ts`
+  // calls, and the Projects entry it builds is the served route, which
+  // is what decides whether that tab reads as current on `/projects`.
+  const entries = navEntries([project]);
+  const served = {
+    "/": renderQueuePage([], AT, entries, { runnerAvailable: true, targets: [] }),
+    "/specs/job-1": renderJobDetailPage(detail(), AT, entries),
+    "/projects": renderProjectsPage([project], AT, entries, {}),
+  };
+  const every = new Map<string, string>([...site, ...Object.entries(served)]);
+
+  const menu = (h: string) => h.match(/<details class="menu">[\s\S]*?<\/details>/)?.[0] ?? "";
+  const tabs = (h: string) => h.match(/<nav>[\s\S]*?<\/nav>/)?.[0] ?? "";
+  /** One pill, by its label, out of the tab bar. */
+  const tab = (h: string, label: string) =>
+    tabs(h).match(new RegExp(`<a[^>]*>${label}</a>`))?.[0] ?? "";
+
+  test("the menu control is the last thing in the header, after the mark", () => {
+    for (const [path, html] of every) {
+      const head = html.match(/<header>[\s\S]*?<\/header>/)?.[0] ?? "";
+      expect([path, head.startsWith(`<header>${WORDMARK}`)]).toEqual([path, true]);
+      expect([path, head.includes('<details class="menu">')]).toEqual([path, true]);
+    }
+  });
+
+  test("About and the theme buttons live inside the menu, nowhere else", () => {
+    for (const [path, html] of every) {
+      const m = menu(html);
+      expect([path, m.includes('href="about.html"')]).toEqual([path, true]);
+      expect([path, m.includes("data-theme-choice")]).toEqual([path, true]);
+      const outside = html.replace(m, "");
+      // The theme SCRIPT names the attribute too, and is not a control.
+      const body = outside.slice(outside.indexOf("<body>"));
+      expect([path, body.includes('href="about.html"')]).toEqual([path, false]);
+      expect([path, body.includes("data-theme-choice")]).toEqual([path, false]);
+    }
+  });
+
+  test("two tabs, Specs and Projects, between the header and the page's own h1", () => {
+    for (const [path, html] of every) {
+      const bar = tabs(html);
+      expect([path, [...bar.matchAll(/<a[^>]*>([^<]*)<\/a>/g)].map((m) => m[1])]).toEqual([
+        path,
+        ["Specs", "Projects"],
+      ]);
+      expect([path, html.indexOf("</header>") < html.indexOf("<nav>")]).toEqual([path, true]);
+      expect([path, html.indexOf("</nav>") < html.indexOf("<h1>")]).toEqual([path, true]);
+    }
+  });
+
+  test("the tab bar carries no empty group caption", () => {
+    for (const [path, html] of every) {
+      expect([path, tabs(html).includes('<span class="lbl"></span>')]).toEqual([path, false]);
+    }
+  });
+
+  test("Specs is current on the spec list and on a job detail page", () => {
+    for (const html of [served["/"], served["/specs/job-1"]]) {
+      expect(tab(html, "Specs")).toContain('aria-current="page"');
+      expect(tab(html, "Projects")).not.toContain("aria-current");
+    }
+  });
+
+  test("Projects is current on the projects page and on a project's own page", () => {
+    for (const html of [served["/projects"], site.get("projects.html")!, site.get("aide.html")!]) {
+      expect(tab(html, "Projects")).toContain('aria-current="page"');
+      expect(tab(html, "Specs")).not.toContain("aria-current");
+    }
+  });
+
+  test("neither tab is current on About — it is reached through the menu now", () => {
+    const html = site.get("about.html")!;
+    expect(tabs(html)).not.toContain("aria-current");
+  });
+
+  test("no left column is left anywhere", () => {
+    for (const [path, html] of every) {
+      expect([path, html.includes('class="layout"')]).toEqual([path, false]);
+    }
   });
 });
 

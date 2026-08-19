@@ -268,8 +268,9 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain("<title>aide</title>");
     expect(html).toContain("<h1>Specs</h1>");
-    // No nav entry for the list itself: the wordmark is home.
-    expect(html).not.toContain(">Specs</a>");
+    // Spec 119: the list has a tab of its own again, and it is the
+    // current one here. The wordmark still goes home too.
+    expect(html).toMatch(/<nav>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
     expect(html).toContain('<a class="brand" href="/">');
     // Not one label left saying it either — the button and the form's
     // heading were the other two places the retired word was read.
@@ -618,12 +619,15 @@ describe("GET / (the spec list, HTML)", () => {
     expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
-  test("generated pages reach the list through the wordmark, not a Specs entry", async () => {
+  // A generated page is a FILE, and the list it points at is served.
+  // Both ways there are absolute: the wordmark and, since spec 119, the
+  // Specs tab — which is never the current one on a generated page.
+  test("generated pages reach the list through the wordmark and the Specs tab", async () => {
     const { renderSite } = await import("../src/render.ts");
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
     for (const p of pages) {
       expect(p.html).toContain('<a class="brand" href="/">');
-      expect(p.html).not.toContain(">Specs</a>");
+      expect(p.html).toContain('<a data-nav href="/">Specs</a>');
     }
   });
 });

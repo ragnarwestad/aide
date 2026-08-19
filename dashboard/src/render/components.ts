@@ -285,8 +285,12 @@ export function filterPills(
    *  `page` for the job page's tabs, which really are pages. */
   current: "true" | "page" = "true",
 ): string {
+  // A page-level tab bar needs no group caption the way "Job" does for
+  // the job page's own tabs — and an empty caption is a real element
+  // with real padding, not nothing.
+  const caption = label ? `<span class="lbl">${esc(label)}</span>` : "";
   return (
-    `<span class="filters" data-filter="${esc(name)}"><span class="lbl">${esc(label)}</span>` +
+    `<span class="filters" data-filter="${esc(name)}">${caption}` +
     entries
       .map(
         (e) =>

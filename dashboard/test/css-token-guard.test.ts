@@ -178,8 +178,10 @@ const JS_HOOKS = [
  *  like. Short on purpose — a new entry here is a decision, and it
  *  shows up in the diff as one. */
 const STRUCTURE = [
-  // the frame
-  "layout", "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
+  // the frame — "menu" and "menupanel" are the "…" disclosure in the
+  // header and the box it opens (spec 119, which removed "layout").
+  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
+  "menu", "menupanel",
   // text roles
   "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
   // containers

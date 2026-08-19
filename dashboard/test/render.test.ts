@@ -140,61 +140,68 @@ describe("nav (criterion 2)", () => {
     expect(navEntries([healthy, broken])[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
-  // The spec list is the front page (spec 100) and the wordmark is the
-  // way home, so the nav is exactly Projects and About: nothing points
-  // at `/`, and the project pages are the Projects page's business.
-  test("the nav is Projects and About — the wordmark is home", () => {
+  // Two tabs since spec 119, and only two: the site has a Specs half
+  // and a Projects half, and the project pages are the Projects page's
+  // business rather than tabs of their own. About left the bar for the
+  // "…" menu — it is not a half of the site.
+  test("the tabs are Specs and Projects; the wordmark is still home", () => {
     for (const page of site) {
       const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
-      const links = [...navHtml.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
+      const links = [...navHtml.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links).toEqual([["Projects", "/projects"], ["About", "about.html"]]);
+      expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"]]);
       expect(page.html).toContain('<a class="brand" href="/">');
     }
   });
 
-  test("exactly one current anchor: the page itself, or Projects on a project page", () => {
+  // Every generated page is a Projects page: the overview, the About
+  // page's siblings and one page per project. None of them is the spec
+  // list, so Specs is never the current tab here.
+  test("exactly one current tab, and on a generated page it is Projects", () => {
     for (const page of site) {
-      const currents = [...page.html.matchAll(/<a class="current" href="([^"]+)"/g)];
-      expect(currents).toHaveLength(1);
-      const expected = page.path === "about.html" ? "about.html" : "/projects";
-      expect(currents[0][1]).toBe(expected);
+      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const currents = [...navHtml.matchAll(/<a[^>]*aria-current="page"[^>]*>([^<]+)<\/a>/g)];
+      // About has no tab of its own — it is reached through the menu.
+      const expected = page.path === "about.html" ? [] : ["Projects"];
+      expect(currents.map((m) => m[1])).toEqual(expected);
     }
   });
 });
 
-// Spec 107. The three choices sit in the nav, under the page links but
-// inside <nav> — they are not a third page to go to, so they are not
-// <li><a> entries and cannot disturb the two tests above.
-describe("the theme choice in the nav (spec 107)", () => {
+// Spec 107. The three choices are not a page to go to, so they are not
+// tabs — and since spec 119 they are not on the page at all until the
+// reader opens the "…" menu in the header.
+describe("the theme choice in the … menu (specs 107, 119)", () => {
+  const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
+
   test("every page offers Dark, Light and Auto", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
-      const choices = [...navHtml.matchAll(/data-theme-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
-        (m) => [m[1], m[2]],
+      const m = menu(page.html);
+      const choices = [...m.matchAll(/data-theme-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
+        (x) => [x[1], x[2]],
       );
       expect(choices).toEqual([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]]);
-      expect(navHtml).toContain(">Theme</span>");
+      expect(m).toContain(">Theme</span>");
     }
   });
 
   test("the choices are buttons, not links — they go nowhere", () => {
-    const navHtml = site[0]!.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toMatch(/<button type="button" data-theme-choice="dark"/);
-    expect(navHtml).not.toMatch(/<a[^>]*data-theme-choice/);
+    const m = menu(site[0]!.html);
+    expect(m).toMatch(/<button type="button" data-theme-choice="dark"/);
+    expect(m).not.toMatch(/<a[^>]*data-theme-choice/);
   });
 
   test("Auto is marked as chosen, because the server cannot know better", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
-      const marked = [...navHtml.matchAll(/data-theme-choice="([^"]+)" aria-current=/g)].map(
-        (m) => m[1],
+      const m = menu(page.html);
+      const marked = [...m.matchAll(/data-theme-choice="([^"]+)" aria-current=/g)].map(
+        (x) => x[1],
       );
       expect(marked).toEqual(["auto"]);
       // `aria-current`, never `class="current"`: that class means "the
       // page you are on", and the theme control is not a page.
-      expect(navHtml).not.toMatch(/<button[^>]*class="current"/);
+      expect(m).not.toMatch(/<button[^>]*class="current"/);
     }
   });
 });
@@ -247,10 +254,13 @@ describe("the About page", () => {
     }
   });
 
-  test("it carries the shared nav and marks itself current", () => {
+  // Spec 119: About is reached from the "…" menu, so it has no tab of
+  // its own and marks none of the two current.
+  test("it is reached from the menu, and marks no tab current", () => {
     const page = byPath.get("about.html")!;
-    expect(page).toContain('<a href="/projects">Projects</a>');
-    expect(page).toContain('<a class="current" href="about.html">About</a>');
+    const menu = page.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
+    expect(menu).toContain('<a href="about.html">About</a>');
+    expect(page.match(/<nav>[\s\S]*?<\/nav>/)![0]).not.toContain("aria-current");
   });
 
   // The nav lists one entry per PROJECT page. About is a page too, and
@@ -649,10 +659,11 @@ describe("renderJobDetailPage", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
     expect(html).not.toMatch(/<link[^>]+href="(?!data:)/);
-    // The job page belongs to the spec list at `/`; the way there is
-    // the wordmark, since the list has no nav entry of its own.
+    // The job page belongs to the spec list at `/`, and says so twice
+    // over: the wordmark goes home, and the Specs tab is the current
+    // one (spec 119 — `job-page.ts` passes `currentPath = "/"`).
     expect(html).toContain('<a class="brand" href="/">');
-    expect(html).not.toContain(">Specs</a>");
+    expect(html).toMatch(/<nav>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -691,8 +702,12 @@ describe("the job page is split into tabs", () => {
 
   test("the open tab is marked, and it is the only one", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "activity" });
-    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
+    // The page proper, without the site's own tab bar above it — spec
+    // 119 put a second marked tab there, and Specs is legitimately
+    // current on a job page.
+    const page = html.replace(/<nav>[\s\S]*?<\/nav>/, "");
+    expect(page.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(page).toMatch(/aria-current="page"[^>]*>Activity/);
   });
 
   // While a step is running, what it is DOING is what you opened the
@@ -1763,22 +1778,25 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
   });
 });
 
-// Spec 100 made the spec list the front page; the nav's own "Specs"
-// entry went with the wordmark taking over as home. On `/` no list
-// entry is current — the wordmark is the page — and nothing links to
-// the old /specs.
-describe("spec 100: the list page's own nav", () => {
-  test("renderQueuePage has no Specs entry and no /specs link; the wordmark is home", () => {
+// Spec 100 made the spec list the front page and dropped the nav's own
+// "Specs" entry; spec 119 brought it back as one of the two tabs, at
+// `/` — the front page still, and still what the wordmark points at.
+// The old /specs address is linked from nowhere either way.
+describe("spec 119: the list page's own tab", () => {
+  test("renderQueuePage marks Specs current, points it at /, and keeps the wordmark home", () => {
     const html = renderQueuePage(
       [],
       "2026-08-18T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).not.toContain(">Specs</a>");
+    const navHtml = html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+    expect(navHtml).toContain('<a data-nav href="/" aria-current="page">Specs</a>');
     expect(html).not.toContain('href="/specs"');
     expect(html).toContain('<a class="brand" href="/">');
-    expect(html).toContain('<a href="projects.html">Overview</a>');
+    // The Projects tab points wherever the caller's first entry does —
+    // the served route in production, this stand-in here.
+    expect(navHtml).toContain('href="projects.html"');
   });
 });
 

@@ -97,21 +97,24 @@ export const CSS = `
 
 /* --- the page ------------------------------------------------------ */
 
-body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0;
+/* The full-viewport-height floor used to sit on the .layout wrapper
+   the sidebar shared with main (spec 119 removed it). It belongs on
+   the body now, or a short page stops painting the background where
+   its content ends. */
+body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
   background: var(--bg); color: var(--text); }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-strong); text-decoration: underline; }
-.layout { display: flex; min-height: 100vh; }
-.layout > nav { flex: 0 0 12rem; padding: var(--sp-5) var(--sp-4);
-  border-right: 1px solid var(--line); }
-.layout > nav ul { list-style: none; margin: 0; padding: 0; }
-.layout > nav li { margin: 2px 0; }
-.layout > nav a { display: block; padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--r-s); color: var(--text); }
-.layout > nav a:hover { background: var(--surface); text-decoration: none; }
-.layout > nav a.current { background: var(--accent-soft); color: var(--accent-strong);
-  font-weight: 600; }
-main { flex: 1; padding: var(--sp-5) var(--sp-6); max-width: 68rem; }
+/* The mark left, the "…" menu right — space-between is what puts the
+   menu at the right-hand end; DOM order alone would leave it beside
+   the mark. */
+header { display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) var(--sp-3); }
+header .brand { margin: 0; padding: 0; }
+/* The two tabs, on the line that separates the frame from the page. */
+body > nav { padding: 0 var(--sp-6) var(--sp-3);
+  border-bottom: 1px solid var(--line); }
+main { padding: var(--sp-5) var(--sp-6); max-width: 68rem; }
 h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
 h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
@@ -144,12 +147,6 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .specdesc { white-space: pre-wrap; max-width: 46rem; }
 .lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.06em; }
-.layout > nav .lbl { display: block; margin-top: var(--sp-4);
-  padding: 0 var(--sp-2); }
-/* The theme choices sit under the link list. The pill's own 9px of
-   padding is what lines its text up with the links above it, so the row
-   itself gets none. */
-.layout > nav .filters { margin-top: var(--sp-1); }
 
 /* --- button --------------------------------------------------------- */
 /* One button. Bare is secondary, and the variants are modifiers on it —
@@ -362,6 +359,24 @@ td form { margin: 0; display: inline-block; }
 .projectadmin .removeform [data-confirm] { display: flex; gap: var(--sp-2);
   align-items: flex-end; }
 .projectadmin .refused { flex-basis: 100%; }
+/* The "…" menu (spec 119): About and the theme choices, behind one
+   disclosure at the right-hand end of the header. A POPOVER like
+   .intro below — an open menu must lay over the page, not push the
+   tab bar and everything under it down. */
+.menu { position: relative; }
+.menu > summary { display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--r);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--muted); line-height: 1; list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary:hover { border-color: var(--muted); color: var(--text); }
+.menupanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
+  min-width: 11rem; padding: var(--sp-3); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r);
+  box-shadow: var(--overlay-shadow); }
+.menupanel > a { color: var(--text); }
+
 /* How runs work: a small question mark at the right-hand end of the
    filter row, not a block between the page's title and the list the
    reader came for. */
@@ -407,9 +422,8 @@ ul.activity li { padding: 2px 0; border-bottom: 1px solid var(--line);
 tr.spec-archived td { color: var(--muted); }
 
 @media (max-width: 40rem) {
-  .layout { flex-direction: column; }
-  .layout > nav { flex: none; border-right: none; border-bottom: 1px solid var(--line); }
-  .layout > nav li { display: inline-block; margin-right: var(--sp-2); }
+  header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+  body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
 }
 `;
