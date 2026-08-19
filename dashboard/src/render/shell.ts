@@ -18,9 +18,9 @@ export function nav(entries: NavEntry[], currentPath: string): string {
   };
   const [overview, ...projects] = entries;
   const lis = [
-    // The spec list leads: since spec 100 it IS the front page, and
-    // everything else in this menu sits under it.
-    link({ label: "Specs", path: "/" }),
+    // No "Specs" entry: the spec list IS the front page (spec 100), and
+    // the wordmark above this list is the way home — a second link to
+    // `/` said the same thing twice.
     link(overview),
     link({ label: "About", path: "about.html" }),
     `<li class="lbl">Projects</li>`,

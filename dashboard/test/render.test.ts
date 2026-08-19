@@ -130,17 +130,18 @@ describe("nav (criterion 2)", () => {
     }
   });
 
-  // Spec 100 criterion 9: the spec list is the front page, so "Specs"
-  // leads the nav and points at `/`; "Overview" follows it and points
-  // at the overview's new filename.
-  test("Specs leads the nav at /, ahead of Overview at projects.html", () => {
+  // The spec list is the front page (spec 100) and the wordmark is the
+  // way home, so the list itself has no "Specs" entry: Overview leads,
+  // About follows, and nothing in the list points at `/`.
+  test("the nav has no Specs entry — the wordmark is home; Overview leads", () => {
     for (const page of site) {
       const links = [...page.html.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links[0]).toEqual(["Specs", "/"]);
-      expect(links[1]).toEqual(["Overview", "projects.html"]);
-      expect(links.map((l) => l[0]).slice(0, 3)).toEqual(["Specs", "Overview", "About"]);
+      expect(links[0]).toEqual(["Overview", "projects.html"]);
+      expect(links.map((l) => l[0]).slice(0, 2)).toEqual(["Overview", "About"]);
+      expect(links.some((l) => l[1] === "/")).toBe(false);
+      expect(page.html).toContain('<a class="brand" href="/">');
     }
   });
 
@@ -587,9 +588,10 @@ describe("renderJobDetailPage", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
     expect(html).not.toMatch(/<link[^>]+href="(?!data:)/);
-    // The job page belongs to the spec list, which since spec 100 lives
-    // at `/`, so that nav entry is the current one.
-    expect(html).toContain('<a class="current" href="/">Specs</a>');
+    // The job page belongs to the spec list at `/`; the way there is
+    // the wordmark, since the list has no nav entry of its own.
+    expect(html).toContain('<a class="brand" href="/">');
+    expect(html).not.toContain(">Specs</a>");
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -1603,19 +1605,21 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
   });
 });
 
-// Spec 100 criterion 9: the spec list is the dashboard's front page, so
-// the page rendered for `/` marks "Specs" as the current nav entry —
-// the entry itself having moved to the head of the nav, pointing at `/`.
-describe("spec 100: the list page's own nav entry", () => {
-  test("renderQueuePage marks Specs current, at /", () => {
+// Spec 100 made the spec list the front page; the nav's own "Specs"
+// entry went with the wordmark taking over as home. On `/` no list
+// entry is current — the wordmark is the page — and nothing links to
+// the old /specs.
+describe("spec 100: the list page's own nav", () => {
+  test("renderQueuePage has no Specs entry and no /specs link; the wordmark is home", () => {
     const html = renderQueuePage(
       [],
       "2026-08-18T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).toContain('<a class="current" href="/">Specs</a>');
+    expect(html).not.toContain(">Specs</a>");
     expect(html).not.toContain('href="/specs"');
+    expect(html).toContain('<a class="brand" href="/">');
     expect(html).toContain('<a href="projects.html">Overview</a>');
   });
 });
