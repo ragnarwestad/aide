@@ -324,7 +324,13 @@ table.list thead a { color: var(--muted); }
   display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
-.spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
+/* The summary wraps at a sensible measure instead of dragging the
+   whole column wide: the phase lines start where this column ends, so
+   an un-capped line of text put a hand's width of nothing between the
+   buttons and the phases (2026-08-19). */
+.spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
+  max-width: 18rem; }
+.spec-name { max-width: 18rem; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */

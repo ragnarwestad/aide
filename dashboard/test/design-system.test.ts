@@ -240,6 +240,17 @@ describe("the action stack rides in the spec column, not in one of its own", () 
   });
 });
 
+// The phase lines begin where the spec column ends, so an un-capped
+// summary line put a hand's width of nothing between the buttons and
+// the phases (2026-08-19). The text wraps at a measure instead.
+describe("the spec column is capped, so the phases sit close", () => {
+  test("the name, the summary and the repo marks all wrap at a measure", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
+    expect(CSS).toMatch(/\.spec-name \{ max-width: \d+rem; \}/);
+  });
+});
+
 describe("the phase lines line up in columns", () => {
   test("the stylesheet gives the phase name a fixed flex basis", async () => {
     const { CSS } = await import("../src/render/css.ts");
