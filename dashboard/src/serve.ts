@@ -22,7 +22,7 @@ import { LiveEnricher } from "./live.ts";
 import { configValue, discoverProjects } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
-import { parseStatus } from "./parse-status.ts";
+import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import {
   QueueStore, mergeQueueDefaults,
@@ -431,8 +431,6 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
-  // Declared before `targets`, which asks it what has already run.
-  let queue: QueueStore;
   let scan: { at: number; targets: QueueTarget[] } | null = null;
   const targets = (): QueueTarget[] => {
     const now = Date.now();
@@ -445,12 +443,17 @@ export function createServer(opts: ServerOptions) {
           if (s.archived) continue;
           // What a reader needs to CHOOSE a spec: what it is called and
           // how far it has got. Both are already on disk.
-          let status: ReturnType<typeof parseStatus> | null = null;
+          let statusText = "";
           try {
-            status = parseStatus(readFileSync(join(s.dir, "4-status.md"), "utf-8"));
+            statusText = readFileSync(join(s.dir, "4-status.md"), "utf-8");
           } catch {
-            status = null;
+            statusText = "";
           }
+          const status = statusText ? parseStatus(statusText) : null;
+          // Read from the SAME content, not a second pass over the file:
+          // both answers come out of `4-status.md` and there is no
+          // reason for the page to open it twice.
+          const heldBack = statusText ? archiveHeldBackReason(statusText) : null;
           found.push({
             project: p.name,
             specFolder: s.folder,
@@ -462,16 +465,15 @@ export function createServer(opts: ServerOptions) {
             description: s.description ?? undefined,
             phase: status?.phase ?? undefined,
             percent: status?.progress?.percent,
-            // Two sources, union: what the files show, and what the
-            // queue actually ran. Neither alone is enough — a spec can
-            // be analysed by hand, and a percentage counts the user's
-            // own tasks too.
-            done: [
-              ...new Set([
-                ...stepsAlreadyDone(s.dir, status?.progress?.percent),
-                ...queue.stepsCompletedFor(p.name, s.folder),
-              ]),
-            ],
+            // The FILES, and nothing else (spec 108). It used to be
+            // unioned with the queue's own record of what it ran, so
+            // either one being true was enough — which is how an
+            // archive job that finished without moving anything counted
+            // as an archived spec, and how a phase could read "done" on
+            // a row whose files said otherwise. What a job reported is
+            // still shown, as a qualifier on the phase's line.
+            done: stepsAlreadyDone(s.dir, status?.progress?.percent),
+            archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
           });
         }
       }
@@ -484,7 +486,10 @@ export function createServer(opts: ServerOptions) {
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
     return folders.length > 0 ? { specFolders: folders } : null;
   };
-  queue = new QueueStore({
+  // Built after `resolveProject`, which it takes. Nothing above it reads
+  // it any more: `targets` used to ask the queue what it had run, and
+  // spec 108 made the spec's own files the only answer to that.
+  const queue = new QueueStore({
     mirrorPath: opts.queueMirrorPath,
     defaults: opts.queueDefaults ?? QUEUE_DEFAULTS,
     resolve: resolveProject,
@@ -1237,6 +1242,7 @@ export function createServer(opts: ServerOptions) {
       results: job.results,
       live,
       activity: streamFile ? summarizeStream(tailFile(streamFile)) : [],
+      archiveHeldBack: target?.archiveHeldBack?.reason,
     };
   }
 

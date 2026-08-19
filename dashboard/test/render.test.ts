@@ -905,12 +905,17 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
 // step. The analyze line was left showing an older attempt that had
 // failed on `unknown spec`, so a finished analysis read as failed.
 describe("a multi-step job is shown on every step it ran", () => {
-  const rows = (list: QueueRowView[]) =>
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
     renderQueueRows(
       list,
-      { runnerAvailable: true, targets: [], filter: { open: openKeys(list) } },
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
       Date.parse("2026-08-17T12:00:00Z"),
     );
+  // Since spec 108 a phase line says what the spec's own FILES say, and
+  // the job's outcome qualifies it. This block is about WHICH job
+  // speaks for a line, so the file side has to agree the analysis is
+  // done — otherwise the line is answering a different question.
+  const analysed: QueueTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
@@ -948,7 +953,7 @@ describe("a multi-step job is shown on every step it ran", () => {
         startedAt: "2026-08-17T09:00:00Z",
       }),
       twoStep(),
-    ]);
+    ], analysed);
     const analyze = subRow(html, "analyze");
     expect(analyze).toContain('href="/specs/both"');
     expect(analyze).toContain("b-done");
@@ -968,7 +973,7 @@ describe("a multi-step job is shown on every step it ran", () => {
   test("a finished step reads as done while the next one is still running", () => {
     const html = rows([
       twoStep({ state: "running", spentUsd: 5.95, results: [{ step: "analyze", ok: true, costUsd: 5.95 }] }),
-    ]);
+    ], analysed);
     expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "review-plan")).toContain("b-running");
   });
@@ -984,7 +989,7 @@ describe("a multi-step job is shown on every step it ran", () => {
           { step: "review-plan", ok: false, costUsd: 0 },
         ],
       }),
-    ]);
+    ], analysed);
     expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "analyze")).not.toContain("cannot fast-forward");
     expect(subRow(html, "review-plan")).toContain("b-refused");
@@ -1973,6 +1978,30 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(text.toLowerCase()).not.toContain("merge");
   });
 
+  // Spec 108: archive is the one phase whose "done" the job's own exit
+  // status cannot answer, so the sentence reads the file instead.
+  test("a spec whose archive run declined says so instead of 'done'", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
+        [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
+      ),
+    );
+    expect(text).toContain("archive held back — the Slack webhook");
+    expect(text).not.toContain("nothing waiting on you");
+  });
+
+  test("a run in flight outranks a stale held-back note from an earlier one", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["archive"], state: "running" })],
+        [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
+      ),
+    );
+    expect(text).toContain("archive running");
+    expect(text).not.toContain("held back");
+  });
+
   test("every row has the line — a hint that is blank on half the rows says nothing", () => {
     const html = rows(
       [row({ specFolder: "101-a", state: "running" })],
@@ -2400,5 +2429,142 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   test("Merge returns as soon as the spec stops being busy (criterion 5)", () => {
     expect(actionCell(openLine(spec("running")))).not.toContain("/merge");
     expect(actionCell(openLine(spec("done")))).toContain("/merge");
+  });
+});
+
+// --- spec 108: one rule for what a phase shows -------------------------------
+
+// The row for spec 81 said three things at once: pips and phase lines
+// read the JOB HISTORY (a July analysis re-run, cancelled, spoke for an
+// analysis that was long since done and merged), the checkbox read the
+// files unioned with that same history, and archive read "done" from a
+// job that had finished without moving anything.
+//
+// One rule now, for every phase: the FILES say what has happened, the
+// last attempt is a qualifier when it disagrees, and archive says "held
+// back" with its reason when a run declined to move the folder.
+describe("spec 108: one rule per phase", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+  const head = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  // The pips carry the phase's own reader-facing name as their title,
+  // which is how one is told from the next three.
+  const pipFor = (html: string, label: string) =>
+    head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
+  // The three phases that CAN be true from the files, for a spec whose
+  // only open question is archive.
+  const BUILT = ["analyze", "review-plan", "implement"];
+
+  test("a phase the files show done, with no job ever queued, reads done (criterion 1)", () => {
+    const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
+    expect(pipFor(html, "analyze")).toBe("past");
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain("b-done");
+    expect(analyze).not.toContain("not run yet");
+    expect(analyze).not.toContain("last re-run");
+  });
+
+  test("a cancelled re-run never overturns a finished analysis (criterion 2)", () => {
+    const html = rows(
+      [row({ id: "recancelled", specFolder: "108-recancelled", steps: ["analyze"], state: "cancelled" })],
+      [target("108-recancelled", { done: ["analyze"] })],
+    );
+    expect(pipFor(html, "analyze")).toBe("past");
+    const analyze = subRow(html, "analyze");
+    expect(analyze).toContain("b-done");
+    expect(analyze).toContain("last re-run cancelled");
+  });
+
+  test("with every phase but archive done the button reads Run again (criterion 3)", () => {
+    const html = rows([], [target("108-ready", { done: BUILT })]);
+    expect(pipFor(html, "archive")).toBe("todo");
+    expect(subRow(html, "archive")).toContain("not run yet");
+    expect(head(html)).toContain("Run again");
+  });
+
+  test("a spec with work still ahead of it does not offer Run again (criterion 3)", () => {
+    const html = rows([], [target("108-half-way", { done: ["analyze"] })]);
+    expect(head(html)).not.toContain("Run again");
+  });
+
+  test("an archive run that declined reads held back, not done (criterion 4)", () => {
+    const html = rows(
+      [row({ id: "declined", specFolder: "108-held", steps: ["archive"], state: "done" })],
+      [
+        target("108-held", {
+          done: BUILT,
+          archiveHeldBack: { reason: "the Slack webhook (Phase 4, still unchecked)" },
+        }),
+      ],
+    );
+    expect(pipFor(html, "archive")).toBe("todo");
+    const archive = subRow(html, "archive");
+    expect(archive).toContain("held back");
+    expect(archive).toContain("the Slack webhook (Phase 4, still unchecked)");
+    // The one thing it must never read as, which is what it read as
+    // before this spec: an ordinary finished step.
+    expect(archive).not.toContain("b-done");
+  });
+
+  test("an archive run in flight outranks a stale held-back note (criterion 6)", () => {
+    const html = rows(
+      [row({ id: "retry", specFolder: "108-retry", steps: ["archive"], state: "running" })],
+      [target("108-retry", { done: BUILT, archiveHeldBack: { reason: "the Slack webhook" } })],
+    );
+    expect(pipFor(html, "archive")).toBe("now");
+    expect(subRow(html, "archive")).toContain("b-running");
+  });
+
+  test("a finished implement job is not done while the files disagree (criterion 8)", () => {
+    const html = rows(
+      [row({ id: "lagging", specFolder: "108-lagging", steps: ["implement"], state: "done" })],
+      [target("108-lagging", { done: ["analyze", "review-plan"] })],
+    );
+    expect(pipFor(html, "implement")).toBe("todo");
+    const implement = subRow(html, "implement");
+    expect(implement).not.toContain("b-done");
+    // Never silently hidden: the job's own outcome is still on the line,
+    // as the qualifier it now is.
+    expect(implement).toContain("the files disagree");
+  });
+
+  test("the job page's Steps tab says held back where the row does (criterion 5)", () => {
+    const archiveRun = (extra: Partial<JobDetailView> = {}): JobDetailView =>
+      detail({
+        id: "job-archive",
+        steps: ["archive"],
+        state: "done",
+        results: [
+          {
+            step: "archive", ok: true, costUsd: 0.51, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-19T10:01:00Z",
+          },
+        ],
+        ...extra,
+      });
+    const held = renderJobDetailPage(
+      archiveRun({ archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)" }),
+      generatedAt,
+      NAV,
+      { tab: "steps" },
+    );
+    expect(held).toContain("held back — the Slack webhook (Phase 4, still unchecked)");
+    expect(held).not.toContain("<td>ok</td>");
+
+    // Without a reason the table is exactly what it always was.
+    const plain = renderJobDetailPage(archiveRun(), generatedAt, NAV, { tab: "steps" });
+    expect(plain).toContain("<td>ok</td>");
+    expect(plain).not.toContain("held back");
   });
 });

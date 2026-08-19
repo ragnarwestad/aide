@@ -38,8 +38,24 @@ into documentation that future work actually reads.
 ### Step 2: Check that the work is done
 
 Read `4-status.md`. If it does not clearly show finished work (open
-checkboxes, no conclusion), show the status and ask the user whether to
-archive anyway. Never archive silently past an unfinished status.
+checkboxes, no conclusion):
+
+- **Someone is there (interactive):** show the status and ask whether to
+  archive anyway. Never archive silently past an unfinished status.
+- **Nobody is there (headless — the prompt said so, or `AIDE_HEADLESS`
+  is set):** do NOT archive. Add — or replace, if one is already there —
+  a `## Archive held back` section in `4-status.md` holding ONE bullet
+  that names what is still open, e.g.
+  `- the Slack webhook (Phase 4, still unchecked)`. Then report the
+  hold-back plainly and stop: do not continue to Step 3 or Step 4.
+
+  One section, one bullet, replaced in place — a spec declined twice
+  carries its CURRENT reason, not a growing list of stale ones. The
+  dashboard reads that heading directly and shows the bullet as the
+  reason the spec's archive phase says "held back" instead of "done".
+  It is the only signal there is: the run's own exit status is the
+  claude session's, and a run that declined exits just as successfully
+  as one that moved the folder.
 
 ### Step 3: Close the loop
 

@@ -33,7 +33,6 @@ import {
   pips,
   rowMessage,
   stepLabel,
-  type PipKind,
 } from "./components.ts";
 import {
   IN_FLIGHT,
@@ -45,7 +44,9 @@ import {
   stateChip,
   stateLabel,
   unmergedBadge,
+  wordPhase,
   type BranchView,
+  type PhaseWord,
   type QueueRowView,
 } from "./job-state.ts";
 
@@ -70,6 +71,12 @@ export interface QueueTarget {
    *  states. Derived live at render time, never stored, exactly like
    *  the merge check: a re-run clears it by being newer. */
   analyzeStale?: boolean;
+  /** Why the last archive run did NOT move the folder, from the spec's
+   *  own `## Archive held back` section. Archive is the one phase whose
+   *  file-truth is always false for a row still on this page — a spec
+   *  whose folder moved has left the list — so "held back, and why" is
+   *  the only file-side answer archive has to give. */
+  archiveHeldBack?: { reason: string };
 }
 
 export interface QueuePageOptions {
@@ -249,6 +256,9 @@ interface Phase {
    *  phase can be re-run — `85-dashboard-into-aide` archived three
    *  times — so this is a list, not a job. */
   attempts: QueueRowView[];
+  /** Archive only: the spec's own reason for not having been archived.
+   *  Every other phase answers "has this happened" out of `done`. */
+  heldBack?: { reason: string };
 }
 
 interface SpecGroup {
@@ -317,7 +327,7 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     spentUsd: 0,
     activityAt: 0,
     branches: [],
-    phases: QUEUE_STEPS.map((step) => ({ step, attempts: [] })),
+    phases: QUEUE_STEPS.map((step) => ({ step, attempts: [], ...heldBackFor(step, t) })),
     ...fromTarget(t),
   };
 }
@@ -336,6 +346,11 @@ function fromTarget(
     analyzeStale: t?.analyzeStale ?? false,
   };
 }
+
+/** Archive's own file-side answer, on archive's line and nowhere else.
+ *  Written once because both constructors build their phases. */
+const heldBackFor = (step: string, t: QueueTarget | undefined): { heldBack?: { reason: string } } =>
+  step === "archive" && t?.archiveHeldBack ? { heldBack: t.archiveHeldBack } : {};
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
@@ -393,6 +408,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
       attempts: recent
         .map((r) => attemptFor(r, step))
         .filter((a): a is QueueRowView => a !== null),
+      ...heldBackFor(step, target),
     })),
     ...spec,
     // A create job has no target to read a title off — the spec it is
@@ -719,6 +735,15 @@ function branchList(branches: BranchView[], activity?: string): string {
 // altitudes, and they must never be worded differently.
 const stateCell = (r: QueueRowView): string =>
   stateChip(r) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+// The same two-part shape, for a PHASE — whose state is the file's
+// answer (`wordPhase`), not the last job's. No badge at all means the
+// phase has neither happened nor been attempted. The attempt's own
+// error text still rides along beneath it: a reader is told no less
+// than before, only in the file's order.
+const phaseWordCell = (w: PhaseWord, r: QueueRowView | undefined): string =>
+  (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
+  (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "") +
+  (r?.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
 // `blank` because a header with nothing spent still owes the reader a
 // dash, while an empty phase line should simply be empty.
 const costCell = (spentUsd: number, blank: string): string =>
@@ -914,7 +939,11 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // first, with a title inviting the reader to tick a phase the job did
   // not hold — the exact press the queue then refused.
   const busy = specBusy(g);
-  const allDone = QUEUE_STEPS.every((s) => g.done.includes(s));
+  // Archive is left out on purpose: a spec whose folder actually moved
+  // has left this page altogether (`serve.ts` drops archived specs), so
+  // archive can never be true for a row that is here to read. Requiring
+  // it would make "Run again" unreachable for every spec there is.
+  const allDone = QUEUE_STEPS.filter((s) => s !== "archive").every((s) => g.done.includes(s));
   const run = btn({
     label: allDone ? "Run again" : "Run",
     variant: busy ? "busy" : "primary",
@@ -1046,7 +1075,13 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
   // millimetres, on the line you are already reading.
   const progress = pips(
     g.phases.map((p) => ({
-      kind: (p.attempts.some(inFlight) ? "now" : p.attempts.length ? "past" : "todo") as PipKind,
+      // One rule, one function: what the FILES say, qualified by the
+      // most relevant attempt (whatever is in flight, else the latest).
+      // The pips used to read the job history alone, so a spec analysed
+      // by hand showed four grey pips and a cancelled re-run turned a
+      // finished phase grey again.
+      kind: wordPhase(g.done.includes(p.step), p.heldBack, p.attempts.find(inFlight) ?? p.attempts[0])
+        .pip,
       title: stepLabel(p.step),
     })),
   );
@@ -1074,7 +1109,13 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
     // branch marks each answer a narrower question, and a reader had to
     // assemble this from all of them.
     `<td>${g.lead ? stateCell(g.lead) : notStartedChip()}` +
-    `<div class="muted small">${esc(nextActionHint(g.lead, g.branches.some((b) => !b.merged)))}</div></td>` +
+    `<div class="muted small">${esc(
+      nextActionHint(
+        g.lead,
+        g.branches.some((b) => !b.merged),
+        g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+      ),
+    )}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // Run is about what the spec has still to do; approve/cancel is
@@ -1104,6 +1145,7 @@ function phaseSubRows(g: SpecGroup, now: number): string {
   return g.phases
     .map((p) => {
       const latest = p.attempts[0];
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest);
       const name = latest
         ? `<a href="/specs/${esc(latest.id)}">${esc(stepLabel(p.step))}</a>`
         : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
@@ -1133,7 +1175,7 @@ function phaseSubRows(g: SpecGroup, now: number): string {
         `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
         `<td class="phasecell">${name}${stale}</td>` +
         `<td>${tries}</td>` +
-        `<td>${latest ? stateCell(latest) : `<span class="muted small">not run yet</span>`}</td>` +
+        `<td>${phaseWordCell(word, latest)}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, "") : ""}</td>` +
         `<td></td></tr>`

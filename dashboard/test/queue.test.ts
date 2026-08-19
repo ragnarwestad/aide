@@ -226,51 +226,6 @@ describe("mergeQueueDefaults", () => {
   });
 });
 
-describe("stepsCompletedFor", () => {
-  test("a step the queue actually ran counts, whatever the status file says", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const r = store.enqueue({ ...REQ, steps: ["implement"] });
-    if (!r.ok) throw new Error(r.error);
-    expect(store.stepsCompletedFor("aide", "81-queue-and-runner")).toEqual([]);
-    store.update(r.job.id, {
-      state: "done",
-      results: [
-        {
-          step: "implement",
-          ok: true,
-          costUsd: 12.34,
-          costMeasured: true,
-          terminalReason: "completed",
-          at: "2026-08-16T18:00:00Z",
-        },
-      ],
-    });
-    expect(store.stepsCompletedFor("aide", "81-queue-and-runner")).toEqual(["implement"]);
-    // Another spec's history is not this spec's.
-    expect(store.stepsCompletedFor("aide-dashboard", "01-first")).toEqual([]);
-  });
-
-  test("a step that did NOT succeed does not count", () => {
-    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
-    const r = store.enqueue({ ...REQ, steps: ["implement"] });
-    if (!r.ok) throw new Error(r.error);
-    store.update(r.job.id, {
-      state: "stopped",
-      results: [
-        {
-          step: "implement",
-          ok: false,
-          costUsd: 15,
-          costMeasured: false,
-          terminalReason: "budget",
-          at: "2026-08-16T18:00:00Z",
-        },
-      ],
-    });
-    expect(store.stepsCompletedFor("aide", "81-queue-and-runner")).toEqual([]);
-  });
-});
-
 // Spec 89: which repos does this spec have a branch in RIGHT NOW? A
 // spec is taken through its steps as several jobs, and each job knows
 // only about the repos its own steps pushed to. The merge route needs

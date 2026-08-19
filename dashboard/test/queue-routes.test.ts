@@ -829,17 +829,20 @@ describe("the runner invocation", () => {
   });
 });
 
-describe("what the queue has run counts too", () => {
-  test("a step the queue completed is marked done, whatever the percentage says", async () => {
+// Spec 108: the FILES say what has happened to a spec — not the queue's
+// own record of what it ran. The two used to be unioned, so either one
+// being true was enough, which is how an archive job that finished
+// without moving anything counted as an archived spec.
+describe("the files say what has happened, not the queue's history", () => {
+  test("a step the queue completed is NOT done while the files still say otherwise", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    // Analysed and reviewed already; the status says 95% because the
-    // remaining task is the USER's, not the machine's.
+    // Analysed and reviewed already; the status says 95%, so implement
+    // is what the files say is still to do.
     writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
     writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
 
-    // Before the queue has run it, implement is what you came for.
     let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
 
@@ -854,8 +857,6 @@ describe("what the queue has run counts too", () => {
     const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
     // Finished, not still queued: since spec 105 a spec with a job in
     // flight pre-ticks nothing at all — every box on the row is locked.
-    // This test is about the step AFTER one that completed, so the job
-    // that completed it has to have completed.
     mirror[0].state = "done";
     mirror[0].results = [
       { step: "implement", ok: true, costUsd: 12.34, costMeasured: true,
@@ -864,8 +865,8 @@ describe("what the queue has run counts too", () => {
     writeFileSync(join(dir, "queue.json"), JSON.stringify(mirror));
     expect(made.job.id).toBeTruthy();
 
-    // A server reading that history offers the NEXT step instead.
-    // Same specs, same history — a fresh process reading both.
+    // A fresh process reading both: the job's `ok` flag changes nothing.
+    // The percentage is still 95, so implement is still what to run.
     const second = start({
       queueToken: TOKEN,
       queueMirrorPath: join(dir, "queue.json"),
@@ -874,10 +875,53 @@ describe("what the queue has run counts too", () => {
     html = await (
       await fetch(`${second.base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
     ).text();
-    expect(html).not.toMatch(/value="implement" checked/);
-    expect(html).toMatch(/value="archive" checked/);
-    // Queued again on top of a finished one: the chip says both.
+    expect(html).toMatch(/value="implement" checked/);
+    expect(html).not.toMatch(/value="archive" checked/);
+    // And the chip says the same: a step the queue ran is not a step the
+    // spec has HAD.
+    expect(html).not.toMatch(/class="phase[^"]*done" data-phase="implement"/);
+  });
+
+  test("the same step IS done once the status file says 100%", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (22 of 22 completed)`\n");
+
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/class="phase[^"]*done" data-phase="implement"/);
+    expect(html).toMatch(/value="archive" checked/);
+    // Everything but archive done — which is what "Run again" means for
+    // a spec still on this page (spec 108, criterion 3).
+    expect(html).toContain("Run again");
+  });
+
+  test("a spec whose archive run declined says why, on the row and in the sentence", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
+    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    writeFileSync(
+      join(spec, "4-status.md"),
+      "# Status\n\n**Total progress:** `100% (22 of 22 completed)`\n\n" +
+        "## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n",
+    );
+
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain("held back");
+    expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
+  });
+
+  test("a spec whose folder has been archived is off the list entirely (criterion 7)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const archived = join(dir, "root", "aide", "specs", "archive", "80-already-archived");
+    mkdirSync(archived, { recursive: true });
+    writeFileSync(join(archived, "1-description.md"), "# 80 - Description\n");
+
+    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain("81-queue-and-runner");
+    expect(html).not.toContain("80-already-archived");
   });
 });
 

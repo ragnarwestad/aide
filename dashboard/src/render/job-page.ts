@@ -39,6 +39,10 @@ export interface JobDetailView extends QueueRowView {
   live?: JobLiveView | null;
   /** Already-escaped lines from `parse-stream.ts`. */
   activity?: string[];
+  /** Why the spec's archive run did not move the folder (spec 108).
+   *  Read off the SPEC's `4-status.md`, exactly as the list's row reads
+   *  it, so the two pages cannot word the same fact differently. */
+  archiveHeldBack?: string;
 }
 
 function labelled(rows: [string, string][]): string {
@@ -49,7 +53,20 @@ function labelled(rows: [string, string][]): string {
   );
 }
 
-function stepResults(results: JobStepResultView[]): string {
+/** What a finished step actually DID. `ok` is the claude session's own
+ *  exit status, and for archive that is not the same question: a run
+ *  that read an unfinished `4-status.md` and declined to move the
+ *  folder exits just as successfully as one that moved it. So the one
+ *  archive row reads the spec's own reason instead — the same words the
+ *  list's row shows, from the same field. */
+function outcome(r: JobStepResultView, archiveHeldBack?: string): string {
+  if (r.step === "archive" && r.ok && archiveHeldBack) {
+    return `held back — ${esc(archiveHeldBack)}`;
+  }
+  return r.ok ? "ok" : esc(r.terminalReason || "failed");
+}
+
+function stepResults(results: JobStepResultView[], archiveHeldBack?: string): string {
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
@@ -59,7 +76,7 @@ function stepResults(results: JobStepResultView[]): string {
     .map(
       (r) =>
         `<tr><td>${esc(r.step ? stepLabel(r.step) : "–")}</td>` +
-        `<td>${r.ok ? "ok" : esc(r.terminalReason || "failed")}</td>` +
+        `<td>${outcome(r, archiveHeldBack)}</td>` +
         `<td class="num">${money(r.costUsd)}${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
@@ -202,7 +219,11 @@ export function renderJobDetailPage(
         : `<p class="muted">Nothing has been captured from this run yet.</p>`;
 
   const panel =
-    tab === "activity" ? activity : tab === "steps" ? stepResults(job.results) : head + live;
+    tab === "activity"
+      ? activity
+      : tab === "steps"
+        ? stepResults(job.results, job.archiveHeldBack)
+        : head + live;
 
   const body =
     `<p class="intro"><a href="/">← all jobs</a></p>\n` +

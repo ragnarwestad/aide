@@ -556,29 +556,17 @@ export class QueueStore {
     return [...this.jobs.values()].reverse(); // newest first
   }
 
-  /** Which steps this spec has actually HAD, according to the queue's
-   *  own history. More reliable than reading the spec's files: a
-   *  completed step is recorded here with its cost and session, whereas
-   *  a status percentage mixes the machine's work with the user's. */
-  stepsCompletedFor(project: string, specFolder: string): string[] {
-    const done = new Set<string>();
-    for (const job of this.jobs.values()) {
-      if (job.project !== project || job.specFolder !== specFolder) continue;
-      for (const r of job.results) {
-        if (r.ok && r.step) done.add(r.step);
-      }
-    }
-    return [...done];
-  }
-
   /** Which repos this spec has a branch in right now, across every job
    *  that ever ran for it. The merge route re-derives this itself on
    *  every POST rather than trusting a root the browser sent back —
    *  what the browser gets is labels and URLs, never a path to act on.
    *
-   *  Same shape as `stepsCompletedFor`: the queue's own history is more
-   *  reliable than re-deriving "which repos" from disk, because
-   *  `aide-run-spec` already recorded exactly the repos it pushed. */
+   *  The queue's own history is the right source for THIS question —
+   *  `aide-run-spec` recorded exactly the repos it pushed, and disk
+   *  cannot say it better. It is not the right source for "which steps
+   *  has this spec had": that is what the spec's own files say, and
+   *  a `stepsCompletedFor` that answered it from job history was
+   *  removed by spec 108 for saying otherwise. */
   branchesFor(project: string, specFolder: string): BranchRef[] {
     // Oldest first, so a later job's URL for the same root overwrites an
     // earlier one — `startedAt ?? createdAt` is the same recency signal

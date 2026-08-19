@@ -2,7 +2,7 @@
 // words. Both the list and the single-job page need this, and neither
 // owns it.
 
-import { badge, stepLabel, stepLabels, type BadgeVariant } from "./components.ts";
+import { badge, stepLabel, stepLabels, type BadgeVariant, type PipKind } from "./components.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every
@@ -191,7 +191,11 @@ export const branchActivity = (r: QueueRowView): string | undefined =>
  *  `openBranch` is the spec's, not the job's: whether anything this spec
  *  pushed is still sitting unmerged. A finished job with nothing left
  *  out must not be told to merge something. */
-export function nextActionHint(r: QueueRowView | undefined, openBranch = false): string {
+export function nextActionHint(
+  r: QueueRowView | undefined,
+  openBranch = false,
+  archiveHeldBack?: string,
+): string {
   if (!r) return "never run — tick a phase and press Run";
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
   if (r.state === "queued" || r.state === "running") {
@@ -200,6 +204,14 @@ export function nextActionHint(r: QueueRowView | undefined, openBranch = false):
       ? `${activityLabel(r)} — ${stepLabels(rest).join(", ")} to follow`
       : activityLabel(r);
   }
+  // Spec 108: archive is the one phase whose "did it happen" the job's
+  // own exit status cannot answer — a run that declined to move the
+  // folder finishes just as successfully as one that moved it. The file
+  // says so instead, and it outranks "done" here for exactly that
+  // reason. It does NOT outrank a job in flight above: a stale note
+  // from an earlier decline must not upstage the retry that may be
+  // resolving it.
+  if (archiveHeldBack) return `archive held back — ${archiveHeldBack}`;
   if (r.state === "done") {
     return openBranch ? "done — the branch is waiting to be merged" : "done — nothing waiting on you";
   }
@@ -207,4 +219,79 @@ export function nextActionHint(r: QueueRowView | undefined, openBranch = false):
   // already says which of the four it was, and the row's own error text
   // says why. What is missing is what to do about it.
   return `press Run to try ${stepLabel(currentStep(r))} again`;
+}
+
+// --- spec 108: one rule for what a phase shows --------------------------------
+
+/** What one phase reads as, in the three parts a row and a job page
+ *  both need: the pip, the word in the badge, and — only when the last
+ *  attempt disagrees with the file — a qualifier beneath it. */
+export interface PhaseWord {
+  pip: PipKind;
+  /** Absent means "nothing has happened and nothing was attempted" —
+   *  the row's "not run yet". */
+  badge?: { variant: BadgeVariant; label: string };
+  /** Said only when the last attempt disagrees with the truth above.
+   *  Never repeats what the badge already says. */
+  qualifier?: string;
+}
+
+/** The one rule, applied by everything that words a phase.
+ *
+ *  A row for spec 81 once said three things at once: pips and phase
+ *  lines read the JOB HISTORY (a cancelled July re-run spoke for an
+ *  analysis long since done and merged), the checkbox read the files
+ *  unioned with that history, and archive read "done" off a job that
+ *  had finished without moving anything.
+ *
+ *  So: `happened` — from the spec's own FILES — is what the phase IS.
+ *  `heldBack` is archive's own answer to a question no exit status can
+ *  give (see `archiveHeldBackReason`). The `attempt` is a qualifier
+ *  layered on top, never the phase's state.
+ *
+ *  The last branch is worded exactly as the row always worded an
+ *  attempt, with one exception: a job whose own state is `"done"` while
+ *  the files say the phase has NOT happened would otherwise render the
+ *  same badge as the first branch's real thing — the precise ambiguity
+ *  this exists to remove. That one state goes in the qualifier instead;
+ *  no other state's label collides with a file-truth badge. */
+export function wordPhase(
+  happened: boolean,
+  heldBack: { reason: string } | undefined,
+  attempt: QueueRowView | undefined,
+): PhaseWord {
+  const running = !!attempt && inFlight(attempt);
+  const disagrees = !!attempt && !running && attempt.state !== "done";
+  if (happened) {
+    return {
+      pip: running ? "now" : "past",
+      badge: { variant: "done", label: "done" },
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : undefined,
+    };
+  }
+  // Not while something is running: a note from an earlier decline must
+  // not upstage the retry that may be clearing it, and a pip reading
+  // "now" beside a badge reading "held back" is the row saying two
+  // things at once — the whole reason this function exists.
+  if (heldBack && !running) {
+    return {
+      pip: "todo",
+      // The sixth variant, not a seventh: "held back" is a common,
+      // healthy outcome — notice, not alarm — which is the same reason
+      // `stopped` takes this amber.
+      badge: { variant: "waiting", label: "held back" },
+      qualifier: heldBack.reason + (disagrees ? ` · last re-run ${stateLabel(attempt!)}` : ""),
+    };
+  }
+  if (!attempt) return { pip: "todo" };
+  if (attempt.state === "done") {
+    return {
+      pip: running ? "now" : "todo",
+      qualifier: "last run reported done, but the files disagree",
+    };
+  }
+  return {
+    pip: running ? "now" : "todo",
+    badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt) },
+  };
 }

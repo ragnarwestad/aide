@@ -5,7 +5,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseStatus } from "../src/parse-status.ts";
+import { archiveHeldBackReason, parseStatus } from "../src/parse-status.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "fixtures", "status", name), "utf-8");
@@ -63,5 +63,65 @@ describe("phase (criterion 3)", () => {
 
   test("no phase sections means no phase", () => {
     expect(parseStatus("# X - Status\n\nProse only.\n").phase).toBeNull();
+  });
+});
+
+// --- spec 108: an archive run that declined says so in the file --------------
+
+// A headless archive run that finds the status unfinished does not move
+// the folder — and the job's own exit status says nothing about that
+// either way. The reason is written into `4-status.md`, which is the
+// one place the dashboard can re-read it from.
+describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
+  const withSection = (reason: string) =>
+    [
+      "# 108 - Status",
+      "",
+      "**Total progress:** `95% (21 of 22 completed)`",
+      "",
+      "## Archive held back",
+      "",
+      reason,
+      "",
+      "---",
+      "",
+      "## Phase 4: Verify",
+      "",
+      "| Task | Status | Notes |",
+      "",
+    ].join("\n");
+
+  test("the bulleted reason comes back without its bullet or the divider (criterion 9)", () => {
+    const reason = archiveHeldBackReason(withSection("- the Slack webhook (Phase 4, still unchecked)"));
+    expect(reason).toBe("the Slack webhook (Phase 4, still unchecked)");
+  });
+
+  test("no such section means nothing is held back (criterion 10)", () => {
+    expect(archiveHeldBackReason("# 108 - Status\n\nProse only.\n")).toBeNull();
+  });
+
+  test("an empty section is no reason at all, not an empty badge", () => {
+    expect(archiveHeldBackReason("# X\n\n## Archive held back\n\n## Phase 1\n")).toBeNull();
+  });
+
+  test("the LATER of two declined runs is the current reason (criterion 11)", () => {
+    const twice =
+      withSection("- the Slack webhook (Phase 4, still unchecked)") +
+      "\n" +
+      withSection("- the manual browser check (Phase 4, still unchecked)");
+    expect(archiveHeldBackReason(twice)).toBe("the manual browser check (Phase 4, still unchecked)");
+  });
+
+  test("only the first line of the section is the reason", () => {
+    const many = [
+      "# X",
+      "",
+      "## Archive held back",
+      "",
+      "- the Slack webhook (Phase 4, still unchecked)",
+      "- and a second line nobody asked for",
+      "",
+    ].join("\n");
+    expect(archiveHeldBackReason(many)).toBe("the Slack webhook (Phase 4, still unchecked)");
   });
 });
