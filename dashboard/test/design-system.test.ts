@@ -209,6 +209,20 @@ describe("the header and the two tabs (spec 119)", () => {
   });
 });
 
+// --- the mark replaces the checkbox, never widens the chip -------------------
+
+// Said repeatedly, last 2026-08-19: when a phase runs, its spinner must
+// take the CHECKBOX's place — a spinner beside the box makes the chip
+// grow the moment a run starts. Same for the lock on a chip that will
+// not take a click. The rule is CSS (the input stays in the markup for
+// the form's sake), so the test pins the stylesheet itself.
+describe("the busy chip swaps its checkbox for the spinner", () => {
+  test("the stylesheet hides the input wherever a mark stands in for it", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toContain(".phase.busy input, .phase.off input { display: none; }");
+  });
+});
+
 // --- the step's name is not the reader's word --------------------------------
 
 describe("review-plan is shown as review (description item 4)", () => {

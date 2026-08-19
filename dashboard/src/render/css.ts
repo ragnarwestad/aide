@@ -239,6 +239,12 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .phase.busy { border-color: var(--accent); background: var(--accent-soft);
   color: var(--accent-strong); cursor: default; }
 .phase.off { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+/* The spinner and the lock REPLACE the checkbox, never stand beside it:
+   both marks are checkbox-sized, so the chip keeps its width when a
+   run starts (asked for repeatedly, last 2026-08-19). The input stays
+   in the markup for the form's sake — it is disabled in both states
+   and posts nothing. */
+.phase.busy input, .phase.off input { display: none; }
 .phase.off .box { color: var(--muted); }
 
 /* --- row-level message ---------------------------------------------- */
