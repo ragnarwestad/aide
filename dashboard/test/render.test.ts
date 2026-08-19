@@ -3144,10 +3144,12 @@ describe("the front page after the panel moved", () => {
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("New spec is still there, and still above the rows (spec 121: as a link)", () => {
+  test("New spec rides on the filter row, before the (?) at its right-hand end", () => {
     const html = page({ createProjects: ["aide"] });
-    expect(html.indexOf('href="/new"')).toBeGreaterThan(-1);
-    expect(html.indexOf('href="/new"')).toBeLessThan(html.indexOf('<div id="jobrows">'));
+    const at = html.indexOf('href="/new"');
+    expect(at).toBeGreaterThan(html.indexOf('<div id="jobrows">'));
+    expect(at).toBeLessThan(html.indexOf('<details class="intro"'));
+    expect(at).toBeLessThan(html.indexOf("<table"));
   });
 
   test("the nav takes the reader to the page that manages them", () => {

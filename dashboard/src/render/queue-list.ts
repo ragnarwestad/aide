@@ -578,7 +578,7 @@ function runsHelp(): string {
   );
 }
 
-function filterBar(groups: SpecGroup[], f: QueueFilter): string {
+function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions): string {
   const chips = (
     name: string,
     label: string,
@@ -614,7 +614,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   );
 
   const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="row">${states}${runsHelp()}</div>`;
+  if (names.length < 2) return `<div class="row">${states}${newSpecLink(opts)}${runsHelp()}</div>`;
   const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
@@ -626,7 +626,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
       patch: { project: p },
     })),
   ]);
-  return `<div class="row">${states}${projects}${runsHelp()}</div>`;
+  return `<div class="row">${states}${projects}${newSpecLink(opts)}${runsHelp()}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -1431,7 +1431,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
         : "No spec to show — no project on this machine has one to run.") +
       `</td></tr>`;
   return (
-    filterBar(groups, f) +
+    filterBar(groups, f, opts) +
     `<table class="list">${sortableHead(f)}<tbody>${body}</tbody></table>` +
     (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "") +
     dayTotal(opts)
@@ -1461,11 +1461,9 @@ export function renderQueuePage(
     (opts.error && !opts.errorSpec
       ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n"
       : "") +
-    // Outside `#jobrows`, where the panel it replaced was: the script
-    // swaps that container every five seconds, and a control that
-    // vanished and came back under the pointer is a control you cannot
-    // press.
-    newSpecLink(opts) +
+    // The New spec link rides on the filter row now (right-hand end,
+    // before the (?)): it is a plain link since spec 121, so the
+    // five-second swap of `#jobrows` holds no half-typed state to lose.
     table;
   // The front page IS aide: the tab says only that — and the heading
   // said it a second time right under the Specs tab, so it is gone
