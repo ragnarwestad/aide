@@ -200,6 +200,46 @@ function harness(
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`create:${type}`] = fn),
   };
 
+  // Spec 112's Projects panel: one Remove form, with the typed
+  // confirmation the browser gates its button on. The button is
+  // rendered ENABLED by the server — turning it off is this code's job,
+  // and a fake that started it disabled could not tell the two apart.
+  const removeButton = {
+    textContent: "Remove",
+    title: "",
+    disabled: false,
+    dataset: { pending: "removing…" },
+    className: "btn danger",
+    isConnected: true,
+    insertAdjacentHTML: () => {},
+  } as unknown as typeof createButton & { disabled: boolean };
+  removeButton.classList = classes(removeButton);
+  const confirmInput = { value: "" } as { value: string; addEventListener?: unknown };
+  const confirmWrap = {
+    getAttribute: (name: string) => (name === "data-confirm" ? "atlasaurus" : null),
+    querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
+  };
+  const removeSlot = { textContent: "" };
+  const removeForm = {
+    action: "http://dash.test/api/queue/projects/atlasaurus/remove",
+    fields: [["confirm", "atlasaurus"]] as [string, string][],
+    querySelectorAll: () => [removeButton],
+    querySelector: (sel: string) =>
+      sel.includes("data-confirm")
+        ? confirmWrap
+        : sel.includes("token")
+          ? tokenInput
+          : sel.includes("refused")
+            ? removeSlot
+            : null,
+    closest: () => null,
+    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`remove:${type}`] = fn),
+  };
+  let typed: (() => void) | undefined;
+  confirmInput.addEventListener = (type: string, fn: () => void) => {
+    if (type === "input") typed = fn;
+  };
+
   const inserted: { id: string; className: string; textContent: string }[] = [];
   const parentNode = {
     insertBefore: (node: { id: string; className: string; textContent: string }) => void inserted.push(node),
@@ -231,6 +271,10 @@ function harness(
     // lookup has to be visibly wrong rather than accidentally right.
     querySelector: (sel: string) =>
       sel.includes("newspecform") ? createForm : sel.includes("phases") ? otherPhases : null,
+    // Spec 112 binds its panel's forms as a SET, the same way it is
+    // rendered: one Add form and one Remove per allowlisted project.
+    querySelectorAll: (sel: string) =>
+      sel.includes("removeform") ? [removeForm] : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
     addEventListener: () => {},
     visibilityState: "hidden",
@@ -301,6 +345,14 @@ function harness(
     submit, submitCreate, button, createButton, requests, location, rows, inserted,
     replaced, slot, details, resets, document, phases, otherPhases, tick: () => tick(),
     projectSelect, chips,
+    removeButton, removeSlot, confirmInput,
+    submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
+      fire("remove:submit", removeButton, extra),
+    /** What the reader typing in the confirmation field does. */
+    type: (value: string) => {
+      confirmInput.value = value;
+      typed?.();
+    },
     changeProject: (value: string) => {
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
@@ -861,5 +913,52 @@ describe("a pressed row button holds its size (spec 104)", () => {
   // apart — one file cannot even name the other.
   test("the spinner it writes is the one components.ts renders", () => {
     expect(RAW).toContain(SPINNER);
+  });
+});
+
+// --- spec 112: the Projects panel --------------------------------------------
+
+describe("Remove is gated on the name being typed back", () => {
+  test("the button is off until the input matches, and on again when it does", () => {
+    const h = harness(() => ({ ok: true }));
+    // Off from the moment the page loads — the server renders it
+    // enabled, because a button it disabled could never be enabled
+    // again with script off.
+    expect(h.removeButton.disabled).toBe(true);
+    h.type("atlas");
+    expect(h.removeButton.disabled).toBe(true);
+    h.type("atlasaurus");
+    expect(h.removeButton.disabled).toBe(false);
+    // And off again the moment the reader edits it back out.
+    h.type("atlasaurus ");
+    expect(h.removeButton.disabled).toBe(true);
+  });
+
+  test("a removal posts the confirmation and reloads, keeping the view", async () => {
+    const h = harness(
+      () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
+      "mergeform",
+      "?state=running&sort=cost",
+    );
+    await h.submitRemove();
+    const post = h.requests.find((r) => r.url.includes("/remove"))!;
+    expect(post.init.method).toBe("POST");
+    expect(String(post.init.body)).toContain("confirm=atlasaurus");
+    expect((post.init.headers as Record<string, string>).accept).toBe("application/json");
+    // The panel is markup the server owns, and what changed is which
+    // projects are in it — so the page is asked again, with the
+    // reader's own query string.
+    expect(h.location.href).toBe("/?state=running&sort=cost");
+  });
+
+  test("a refusal is written beside the form, and the page stays put", async () => {
+    const h = harness(() => ({
+      ok: false,
+      body: { ok: false, results: [{ step: "confirm", error: 'type the project name exactly' }] },
+    }));
+    await h.submitRemove();
+    expect(h.removeSlot.textContent).toContain("type the project name exactly");
+    expect(h.location.href).toBe("http://dash.test/");
+    expect(h.replaced).toHaveLength(0);
   });
 });

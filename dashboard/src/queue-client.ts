@@ -346,6 +346,59 @@ async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> 
   );
 }
 
+// The Projects panel (spec 112): an Add form, and one Remove per
+// allowlisted project. Bound directly rather than by delegation, and
+// for the same reason the New-spec form is — the panel sits OUTSIDE
+// #jobrows so a half-typed git URL survives the five-second swap.
+//
+// Neither refusal has a row to land on: an Add names a project that was
+// never added, and a Remove that failed leaves the project exactly
+// where the reader can already see it. Both go into the form's own
+// `.refused` slot, like New spec's.
+async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  await postForm(
+    form,
+    async () => {
+      formNote(form, "");
+      // The whole panel is re-rendered by the next page load; until
+      // then, what changed is the list of projects, which lives in the
+      // markup this form is part of. Reloading is the honest answer —
+      // with the reader's own query string, so the sort and the filter
+      // survive it.
+      location.href = `/${location.search}`;
+    },
+    (why) => formNote(form, why),
+  );
+}
+
+// The typed confirmation, client side: the button is off until the name
+// is typed back exactly. The server refuses a mismatch either way —
+// this is the half that means nobody has to be refused to find out.
+//
+// The button is rendered ENABLED and turned off here, never the other
+// way round: a button the server rendered `disabled` could not be
+// enabled again with script off, and every control on this page is a
+// real form that works without it.
+function bindTypedConfirm(form: HTMLFormElement): void {
+  const wrap = form.querySelector("[data-confirm]") as HTMLElement | null;
+  if (!wrap) return;
+  const target = wrap.getAttribute("data-confirm") ?? "";
+  const input = wrap.querySelector("input[name=confirm]") as HTMLInputElement | null;
+  const button = wrap.querySelector("button") as HTMLButtonElement | null;
+  if (!input || !button) return;
+  const sync = (): void => void (button.disabled = input.value !== target);
+  sync();
+  input.addEventListener("input", sync);
+}
+
+for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
+  const form = el as HTMLFormElement;
+  bindTypedConfirm(form);
+  form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
+}
+
 // Pause while the tab is hidden: nobody is reading, and the mini has
 // better things to do than answer a closed laptop. And pause while a
 // press is in flight: the server still shows the OLD state until it

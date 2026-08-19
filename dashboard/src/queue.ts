@@ -464,6 +464,61 @@ function parseStoredJob(raw: unknown): Job | null {
   };
 }
 
+/** The project allowlist, as it is written in `queue-config.json`.
+ *
+ *  It used to be a `--queue-projects` argument baked into the launchd
+ *  plist, so adding a project cost a plist re-render, an scp and a
+ *  `launchctl bootout`/`bootstrap` — which is why adding one was four
+ *  hand steps rather than a button (spec 112). Reading it from the
+ *  config file the server ALREADY reads makes the change survive a
+ *  restart without any of that; the CLI flag stays as the seed for a
+ *  first install, where no config file exists yet.
+ *
+ *  `null` for anything malformed, so the caller keeps the flag rather
+ *  than silently running with a shorter list — an empty ARRAY is a real
+ *  answer ("nothing may be queued") and is returned as one. Each name is
+ *  checked with the same rule a job's project is: these become directory
+ *  names under the projects root. */
+export function parseQueueProjects(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  if (!raw.every((p) => typeof p === "string" && NAME_RE.test(p) && !p.includes(".."))) return null;
+  return raw as string[];
+}
+
+/** Write the allowlist back, keeping everything else in the file.
+ *
+ *  `projects` is passed in from the server's live `Set` — never read
+ *  back out of the file and edited — so two changes in immediate
+ *  succession cannot lose each other: each write carries the whole
+ *  current answer, and the write itself is synchronous, which on one JS
+ *  thread is what stops two of them interleaving. The other keys are
+ *  read first because they are not ours to drop, and they are the one
+ *  part a concurrent write could clobber — a risk taken deliberately
+ *  over the alternative of this route owning the whole file's schema.
+ *
+ *  Written-then-renamed, exactly as `QueueStore.mirror()` does it: a
+ *  half-written config is a server that comes up with no allowlist.
+ *  Returns why it could not be written, or `null`. */
+export function persistQueueProjects(file: string, projects: string[]): string | null {
+  try {
+    let raw: Record<string, unknown> = {};
+    if (existsSync(file)) {
+      const parsed = JSON.parse(readFileSync(file, "utf-8")) as unknown;
+      if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+        raw = parsed as Record<string, unknown>;
+      }
+    }
+    raw.projects = [...projects];
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.tmp`;
+    writeFileSync(tmp, JSON.stringify(raw, null, 2));
+    renameSync(tmp, file);
+    return null;
+  } catch (err) {
+    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 // Caps and per-step policy belong in a file on the machine that runs
 // the jobs, never in the code: a number that turns out wrong should
 // cost a config edit and a restart, not a release.

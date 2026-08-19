@@ -3068,3 +3068,264 @@ describe("jobs of a project no longer in the allowlist are not rows", () => {
     expect(api.jobs.some((j) => j.project === "aide-dashboard")).toBe(true);
   });
 });
+
+// --- spec 112: adding and removing a project ---------------------------------
+//
+// Both are ordinary mutating routes on the queue surface: same token,
+// same per-step answer the merge route gives, same refusal in
+// `serve.log`. What is new is that they change the ALLOWLIST while the
+// server runs — the list used to be a launchd argument, so every change
+// cost a plist re-render and a restart.
+
+interface StepBody {
+  ok: boolean;
+  project?: string;
+  results: { step: string; ok: boolean; error?: string; note?: string }[];
+}
+
+/** A git that makes the directory a real clone would have made. Every
+ *  step after the clone reads that directory, so a fake leaving nothing
+ *  behind would exercise only the first one. */
+const cloningGit = (): ServerOptions["gitRun"] => async (dir, args) => {
+  if (args[0] === "clone") {
+    mkdirSync(join(dir, args[2]!), { recursive: true });
+    return { code: 0, stdout: "" };
+  }
+  return { code: 1, stdout: "" };
+};
+
+/** A queue config of this suite's own, so a route that persists the
+ *  allowlist has somewhere to write it. */
+function ownConfig(contents: Record<string, unknown> = {}): string {
+  const dir = mkdtempSync(join(tmpdir(), "aide-queue-projects-"));
+  ownDirs.push(dir);
+  const file = join(dir, "queue-config.json");
+  writeFileSync(file, JSON.stringify(contents, null, 2));
+  return file;
+}
+
+const projectsIn = (file: string): string[] =>
+  (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
+
+describe("POST /api/queue/projects (spec 112)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  // Criterion 1.
+  test("a git URL is cloned, given a manifest, and put on the allowlist", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.results.map((r) => r.step)).toEqual(["name", "clone", "manifest", "allowlist"]);
+    expect(body.results.every((r) => r.ok)).toBe(true);
+    expect(existsSync(join(dir, "root", "newproj", ".aide", "project.yaml"))).toBe(true);
+    // On the allowlist the MOMENT it is done — no restart, and no
+    // waiting for the five-second scan: the New-spec form's project
+    // list is the raw allowlist, so it shows a project with no spec yet.
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="newproj"');
+  });
+
+  // Criterion 2.
+  test("a name already taken under the projects root is refused, and names the collision", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "aide", gitUrl: "https://example.com/aide.git" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(false);
+    expect(body.results.find((r) => r.step === "clone")!.error).toContain("aide");
+    expect(existsSync(join(dir, "root", "aide", ".git"))).toBe(false);
+  });
+
+  // Criterion 3, at the route level.
+  test("an unsafe name is refused before anything is cloned or written", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: cloningGit() });
+    for (const name of ["../escape", "a/b", ".hidden", ""]) {
+      const res = await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name, gitUrl: "https://example.com/x.git" }),
+      });
+      expect([name, res.status]).toEqual([name, 400]);
+    }
+    expect(existsSync(join(dir, "escape"))).toBe(false);
+    expect(existsSync(join(dir, "root", ".hidden"))).toBe(false);
+  });
+
+  // Criterion 6: an existing checkout with no manifest gets one, and
+  // the answer says so rather than leaving the operator to find out.
+  test("a checkout already on the host is registered, and a made manifest is reported", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const path = join(dir, "root", "already-here");
+    mkdirSync(path, { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "already-here", existingPath: path, description: "on disk already" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.results.map((r) => r.step)).toEqual(["name", "register", "manifest", "allowlist"]);
+    expect(body.results.find((r) => r.step === "manifest")!.note).toMatch(/aide-manifest/);
+  });
+
+  // Criterion 9: the change survives a restart, because it is written to
+  // the file the server reads on the way up.
+  test("the new allowlist is persisted to the queue config", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const { base } = start({ queueToken: TOKEN, queueConfigFile: file, gitRun: cloningGit() });
+    await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "newproj", gitUrl: "https://example.com/newproj.git" }),
+    });
+    expect(projectsIn(file).sort()).toEqual(["aide", "newproj"]);
+    // The rest of the config is untouched.
+    expect(JSON.parse(readFileSync(file, "utf-8")).concurrency).toBe(2);
+  });
+
+  // Criterion 15: two requests in immediate succession, neither losing
+  // the other's change. Every write is derived from the live allowlist,
+  // never from a copy of the file read before the other one landed.
+  test("two changes in immediate succession both survive", async () => {
+    const file = ownConfig({});
+    const { base } = start({ queueToken: TOKEN, queueConfigFile: file, gitRun: cloningGit() });
+    const add = (name: string) =>
+      fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name, gitUrl: `https://example.com/${name}.git` }),
+      });
+    await Promise.all([add("one"), add("two")]);
+    expect(projectsIn(file).sort()).toEqual(["aide", "one", "two"]);
+    await Promise.all([
+      fetch(`${base}/api/queue/projects/one/remove`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ confirm: "one" }),
+      }),
+      fetch(`${base}/api/queue/projects/aide/remove`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ confirm: "aide" }),
+      }),
+    ]);
+    expect(projectsIn(file).sort()).toEqual(["two"]);
+  });
+
+  test("a form submit lands back on /, refusal and success alike", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const refused = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ name: "../escape", gitUrl: "https://example.com/x.git" }),
+    });
+    expect(refused.status).toBe(303);
+    expect(refused.headers.get("location")!.startsWith("/?error=")).toBe(true);
+
+    const path = join(dir, "root", "on-disk");
+    mkdirSync(path, { recursive: true });
+    const ok = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ name: "on-disk", existingPath: path }),
+    });
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("location")).toBe("/");
+  });
+
+  test("a refusal reaches the log", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const written: string[] = [];
+    const realError = console.error;
+    console.error = (...args: unknown[]) => void written.push(args.join(" "));
+    try {
+      await fetch(`${base}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name: "../escape", gitUrl: "https://example.com/x.git" }),
+      });
+    } finally {
+      console.error = realError;
+    }
+    expect(written.join("\n")).toContain("add-project refused");
+  });
+});
+
+describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  // Criterion 7.
+  test("the name typed back removes it from the allowlist and touches no file", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ confirm: "aide" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.results.map((r) => r.step)).toEqual(["confirm", "allowlist"]);
+    // The checkout and its specs are exactly where they were.
+    expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
+    expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
+    // And the page no longer offers it.
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
+  });
+
+  // Criterion 8.
+  test("a confirmation that does not match is refused and changes nothing", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    for (const confirm of ["", "Aide", "aide "]) {
+      const res = await fetch(`${base}/api/queue/projects/aide/remove`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ confirm }),
+      });
+      expect([confirm, res.status]).toEqual([confirm, 400]);
+      const body = (await res.json()) as StepBody;
+      expect(body.results[0]!.step).toBe("confirm");
+    }
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('action="/api/queue/projects/aide/remove"');
+  });
+
+  test("a project that was never on the allowlist is refused", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue/projects/nosuch/remove`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ confirm: "nosuch" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // Criterion 4, for the second route.
+  test("it is behind the same token, and POST only", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const body = JSON.stringify({ confirm: "aide" });
+    expect(
+      (await fetch(`${base}/api/queue/projects/aide/remove`, { method: "POST", body })).status,
+    ).toBe(401);
+    expect((await fetch(`${base}/api/queue/projects/aide/remove`, { headers: AUTH })).status).toBe(405);
+    const off = start({});
+    expect(
+      (await fetch(`${off.base}/api/queue/projects/aide/remove`, { method: "POST", body })).status,
+    ).toBe(503);
+  });
+});

@@ -33,6 +33,7 @@ import {
   pips,
   rowMessage,
   stepLabel,
+  typedConfirm,
 } from "./components.ts";
 import {
   IN_FLIGHT,
@@ -919,6 +920,12 @@ function stepBoxes(g: SpecGroup, busy: boolean): string {
 // makes the browser post them with this form anyway.
 const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
+// The row's own anchor. `id`, not `data-folder`: a badge pointing at
+// another spec's row needs something `href="#..."` can find with no
+// script at all — this page's own rule. Same shape as `runFormId`, so
+// "an id that names a spec" stays the one convention it already is.
+const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
+
 // The three things nobody sets every time — the model, the other repos
 // the job will touch, and whether to stop for approval between the
 // steps. Built here rather than inside `moreRow` so the `form`
@@ -1184,6 +1191,99 @@ function newSpecForm(opts: QueuePageOptions): string {
   );
 }
 
+// The Projects panel (spec 112). Adding a project used to be four hand
+// steps on the serving host, one of which — the queue's allowlist —
+// meant re-rendering the launchd plist and restarting the server.
+//
+// It lives HERE, on `/`, and not on the static projects.html the
+// description names, for one reason: everything these two actions need
+// already exists on this page and nowhere else — the token guard, the
+// per-step refusal shape, the `postForm` machinery and the
+// disclosure-form idiom. A static page has no server behind it to check
+// a token against per request, so building the controls there would
+// mean inventing a second, worse copy of all four, on a page kept
+// deliberately free of them (README.md: "the generated pages … carry
+// nothing that needs the token"). projects.html gets a link here
+// instead (`render/site.ts`).
+//
+// Shut by default, and outside `#jobrows` for the same reason the
+// New-spec form is: the script swaps that container every five seconds,
+// and a half-typed git URL must survive it.
+function projectAdminPanel(opts: QueuePageOptions): string {
+  // The RAW allowlist, exactly as the New-spec dropdown uses it: this
+  // panel is about which projects the queue may run, which is what that
+  // list IS. A project with no spec yet appears in no other list here.
+  const projects = opts.createProjects ?? [];
+  const add =
+    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +
+    tokenField(opts.token) +
+    field(
+      "Name",
+      `<input type="text" name="name" required maxlength="64" ` +
+        `pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" ` +
+        `placeholder="the directory it gets under the projects root">`,
+    ) +
+    field(
+      "Git URL",
+      `<input type="text" name="gitUrl" maxlength="300" placeholder="cloned under the projects root">`,
+    ) +
+    field(
+      "…or a path on this host",
+      `<input type="text" name="existingPath" maxlength="300" ` +
+        `placeholder="a checkout that is already there">`,
+    ) +
+    field(
+      "Specs root",
+      `<input type="text" name="specsPath" maxlength="300" ` +
+        `placeholder="optional — its own specs/ otherwise">`,
+    ) +
+    field(
+      "Description",
+      `<textarea name="description" rows="2" maxlength="500" ` +
+        `placeholder="one line: what the project is"></textarea>`,
+      { wide: true },
+    ) +
+    // The copy 1-description.md asks for, in the form itself rather
+    // than in a doc nobody has open: what is written here is the least
+    // a manifest can be, and the rest is a separate job.
+    rowMessage(
+      "info",
+      "A minimal .aide/project.yaml is written — the name and this description, nothing else. " +
+        "Run /aide-manifest in the project afterwards to fill in the stack, deployment and docs.",
+      { tag: "p" },
+    ) +
+    btn({ label: "Add project", variant: "primary", pending: "adding…" }) +
+    // Its refusal has no row to land on — the project was never added —
+    // so it goes beside the form that was refused, like New spec's.
+    messageSlot("refused") +
+    `</form>`;
+  const rows = projects
+    .map(
+      (name) =>
+        `<form method="post" action="/api/queue/projects/${esc(name)}/remove" class="removeform">` +
+        tokenField(opts.token) +
+        `<span class="label">${esc(name)}</span>` +
+        // What removal MEANS, before the field that does it — the
+        // reader should not have to know the answer to read the form.
+        rowMessage(
+          "info",
+          `Removing ${name} takes it off the allowlist and off this dashboard. ` +
+            `Its checkout and its specs stay on disk, untouched.`,
+          { tag: "p" },
+        ) +
+        typedConfirm({ target: name, label: "Type the name to remove it", button: "Remove", pending: "removing…" }) +
+        messageSlot("refused") +
+        `</form>`,
+    )
+    .join("");
+  return (
+    `<details class="newspec projectadmin"><summary>Projects</summary>` +
+    add +
+    rows +
+    `</details>`
+  );
+}
+
 // One line about the spec: what it is, and how far it has got. It has to
 // SAY something even when there is nothing recorded — a line that is
 // blank on half the rows reads as a page that failed to load.
@@ -1199,11 +1299,55 @@ function specSummary(g: SpecGroup): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
+// A dependency identifier — "106", or the whole folder name — resolved
+// the same narrow way `aide-run-spec`'s own `resolve_dependency_folder`
+// does: exact folder, or an `<id>-` prefix, and nothing fuzzier. Scoped
+// to the dependent spec's own project, so a spec numbered the same
+// somewhere else is never what a row is waiting on.
+function resolveDependency(from: SpecGroup, id: string, all: SpecGroup[]): SpecGroup | undefined {
+  return all.find(
+    (g) => g.project === from.project && (g.specFolder === id || g.specFolder.startsWith(`${id}-`)),
+  );
+}
+
+// "after 106" — one per dependency that is still in the way, by the same
+// rule `aide-run-spec` refuses a run on: that spec's own branch is still
+// unmerged. `dep.branches` already answers it for every spec on the
+// page, the identical expression the row reads about its OWN branches
+// one line below. No git is asked anything here.
+//
+// The RESOLVED folder's leading digits, not the identifier as written: a
+// `Depends on:` line naming the full slug would otherwise print it whole
+// on every row waiting on it. Every `specFolder` starts with digits by
+// construction — `discover.ts` only reads folders that do.
+function dependencyBadges(g: SpecGroup, all: SpecGroup[]): string {
+  return g.dependsOn
+    .map((id) => resolveDependency(g, id, all))
+    .filter((dep): dep is SpecGroup => !!dep && dep.branches.some((b) => !b.merged))
+    .map(
+      (dep) =>
+        ` <a href="#${esc(rowAnchorId(dep))}">` +
+        badge(
+          "waiting",
+          `after ${dep.specFolder.split("-", 1)[0]}`,
+          `${dep.specFolder} is not merged yet`,
+        ) +
+        `</a>`,
+    )
+    .join("");
+}
+
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and the one action the spec is actually waiting on.
 // Running its phases is NOT here — that, and stopping a run, live on the
 // controls line an open row grows beneath this one (`controlsRow`).
-function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function specHeadRow(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   // Three answers, not two — and named `run-*` rather than
   // `active`/`archived`, which `site.ts` uses for the unrelated
   // question of whether a spec folder has been archived on disk. The
@@ -1256,7 +1400,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
-    `<tr class="spechead ${rowClass}" data-folder="${esc(g.specFolder)}">` +
+    `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}${diff}</div>` +
     `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
     // Why the button you just pressed did nothing — on the row you
@@ -1278,7 +1422,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
         g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
         readyPhase,
       ),
-    )}</div></td>` +
+    )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, "–")}</td>` +
     // The same cell whether the row is open or shut, which is the whole
@@ -1348,10 +1492,16 @@ function phaseSubRows(g: SpecGroup, now: number): string {
 // Collapsed is the default, and the URL names the exceptions. That is
 // what the fold is FOR: a list of twenty specs is read one state at a
 // time, and the row you are about to act on is the one you open.
-function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, opened: Set<string>): string {
+function groupRows(
+  groups: SpecGroup[],
+  opts: QueuePageOptions,
+  now: number,
+  opened: Set<string>,
+  all: SpecGroup[],
+): string {
   return groups
     .map((g) => {
-      const head = specHeadRow(g, opts, now, opened);
+      const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + controlsRow(g, opts) + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
         : head;
@@ -1378,7 +1528,9 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
+    ? // `groups`, not `matched`: a dependency the filter or the 25-row
+      // cap has hidden is still in the way of the row that names it.
+      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f), groups)
     : `<tr><td colspan="6" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
@@ -1421,6 +1573,9 @@ export function renderQueuePage(
     // OUTSIDE `#jobrows`, deliberately: the script swaps that container
     // every five seconds, and a half-typed description must survive it.
     newSpecForm(opts) +
+    // After New spec, before the list: both are panels about something
+    // that is not on the table yet, and this one is the rarer of the two.
+    projectAdminPanel(opts) +
     table;
   // The front page IS aide: the tab says only that.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {
