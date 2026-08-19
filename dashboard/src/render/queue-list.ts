@@ -1218,6 +1218,12 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
   // reason belongs to whichever row the refusal does, so a conflict on
   // another spec's row must not offer this one a resolve.
   const conflict = !!refusal && opts.errorReason === "conflict";
+  // The earliest phase the spec's own files say has not happened — the
+  // same pair `stepBoxes` ticks its box from and the Run button reads
+  // for "Run" vs "Run again", asked once more for the sentence. Worded
+  // for a reader here, so `review-plan` reaches it as "review".
+  const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
+  const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -1242,6 +1248,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
         g.lead,
         g.branches.some((b) => !b.merged),
         g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+        readyPhase,
       ),
     )}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
