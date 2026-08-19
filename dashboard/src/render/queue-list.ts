@@ -1231,7 +1231,6 @@ function specHeadRow(
       title: stepLabel(p.step),
     })),
   );
-  const jobs = g.phases.reduce((n, p) => n + p.attempts.length, 0);
   // The same key the fold state is written in, so no second format for
   // "which spec" is invented.
   const refusal =
@@ -1258,8 +1257,10 @@ function specHeadRow(
     // never told from a running row by colour alone.
     (refusal ? rowMessage("err", refusal, { hook: "refused" }) : "") +
     `</td>` +
-    `<td>${progress}` +
-    `<div class="muted small">${jobs} ${jobs === 1 ? "run" : "runs"}</div></td>` +
+    // The pips alone: a "N runs" count under them said less than they
+    // do (it counted phase-runs, not jobs, and the phase lines already
+    // say "N attempts" on a re-run). Removed 2026-08-19.
+    `<td>${progress}</td>` +
     // The badge says the state; the sentence beside it says what is
     // going on and what the next click is. The pips, the badge and the
     // branch marks each answer a narrower question, and a reader had to

@@ -3509,10 +3509,10 @@ describe("spec 116: create is the first phase line", () => {
     const analyzed = row({ id: "a1", specFolder: "116-status", steps: ["analyze"], state: "done" });
     const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
     const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
-    // Two `muted small` divs on a header row: the run count, then the
-    // sentence. The sentence is the second.
+    // One `muted small` div on a header row since the run count went
+    // (2026-08-19): the sentence.
     const hint = (html: string) =>
-      [...head(html).matchAll(/<div class="muted small">([^<]*)</g)].map((m) => m[1])[1] ?? "";
+      [...head(html).matchAll(/<div class="muted small">([^<]*)</g)].map((m) => m[1])[0] ?? "";
     expect(hint(withCreate)).toBe(hint(withoutCreate));
     expect(hint(withCreate)).toBe("ready for review");
     expect(runLine(withCreate)).toContain(">Run</button>");
