@@ -45,6 +45,9 @@ import {
   renderJobDetailPage,
   renderNewSpecPage,
   renderProjectsPage,
+  renderAddProjectPage,
+  renderRemoveProjectPage,
+  ADD_PROJECT_ROUTE,
   renderQueuePage,
   renderQueueRows,
   type JobDetailView,
@@ -816,6 +819,8 @@ export function createServer(opts: ServerOptions) {
     // GENERATED `projects.html` stays outside the guard, as every
     // generated page does: it is a redirect and carries nothing.
     path === PROJECTS_ROUTE ||
+    // The Add and Remove pages carry real forms too (2026-08-19).
+    path.startsWith("/projects/") ||
     // And the New-spec form's own page (spec 121), for the same
     // reason: it carries a real form, and a form's token has to be
     // checked per request.
@@ -1231,9 +1236,12 @@ export function createServer(opts: ServerOptions) {
     for (const s of steps) if (s.error) logRefusal(action, project, s.error);
     if (wantsJson) return json({ ok, project, results: steps }, ok ? 200 : 400);
     const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
-    // Back to the page these two forms are on (spec 115), never to `/`.
+    // A refusal goes back to the page the FORM is on — the Add page or
+    // the row's own Remove page (2026-08-19) — a success to the list.
+    const formPage =
+      action === "add-project" ? ADD_PROJECT_ROUTE : `/projects/${encodeURIComponent(project)}/remove`;
     return summary
-      ? specsRedirect(sent, { error: summary }, PROJECTS_ROUTE)
+      ? specsRedirect(sent, { error: summary }, formPage)
       : specsRedirect(sent, undefined, PROJECTS_ROUTE);
   }
 
@@ -1358,6 +1366,39 @@ export function createServer(opts: ServerOptions) {
           `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
+    }
+
+    // The Add-project form on a page of its own, and the Remove
+    // confirmation likewise (2026-08-19, New spec as the pattern). Both
+    // only exist where /projects itself does — without --root there is
+    // nothing to add to.
+    if (path === ADD_PROJECT_ROUTE) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      if (!opts.projectRoot) {
+        return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
+      }
+      const html = renderAddProjectPage(nav(), new Date().toISOString(), {
+        token: queueToken,
+        script: queueClientScript(),
+        error: url.searchParams.get("error") ?? undefined,
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+    const removePage = path.match(/^\/projects\/([^/]+)\/remove$/);
+    if (removePage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(removePage[1]!);
+      // Only a project the allowlist knows has anything to be removed
+      // from — everything else is a mistyped address.
+      if (!opts.projectRoot || !allowed.has(name)) {
+        return new Response("no such project\n", { status: 404 });
+      }
+      const html = renderRemoveProjectPage(name, nav(), new Date().toISOString(), {
+        token: queueToken,
+        script: queueClientScript(),
+        error: url.searchParams.get("error") ?? undefined,
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
     // The projects page (spec 115): the same listing the generator used

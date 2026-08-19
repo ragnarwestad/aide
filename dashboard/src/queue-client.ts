@@ -379,13 +379,10 @@ async function submitProjectChange(form: HTMLFormElement, event: Event): Promise
     form,
     async () => {
       formNote(form, "");
-      // The whole panel is re-rendered by the next page load; until
-      // then, what changed is the list of projects, which lives in the
-      // markup this form is part of. Reloading is the honest answer —
-      // this page, with the reader's own query string. No route name is
-      // written down here: the panel lives on `/projects` (spec 115) and
-      // lived on `/` before it.
-      location.href = location.pathname + location.search;
+      // The forms live on pages of their own now (2026-08-19): a
+      // successful Save or Remove returns to the list they changed,
+      // with the reader's own query string (the token rides there).
+      location.href = "/projects" + location.search;
     },
     (why) => formNote(form, why),
   );

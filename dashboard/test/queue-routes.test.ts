@@ -3429,7 +3429,8 @@ describe("POST /api/queue/projects (spec 112)", () => {
       body: new URLSearchParams({ name: "../escape", gitUrl: "https://example.com/x.git" }),
     });
     expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/projects?error=")).toBe(true);
+    // Back to the page the FORM is on (2026-08-19): the Add page.
+    expect(refused.headers.get("location")!.startsWith("/projects/new?error=")).toBe(true);
 
     const path = join(dir, "root", "on-disk");
     mkdirSync(path, { recursive: true });
@@ -3498,7 +3499,9 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
       expect(body.results[0]!.step).toBe("confirm");
     }
     const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain('action="/api/queue/projects/aide/remove"');
+    // The row still stands, its Remove link with it (the form itself
+    // lives on the row's own confirm page since 2026-08-19).
+    expect(html).toContain('href="/projects/aide/remove"');
   });
 
   test("a project that was never on the allowlist is refused", async () => {

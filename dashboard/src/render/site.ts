@@ -169,11 +169,15 @@ function aboutBody(generatedAt: string): string {
   return aboutProse() + buildStampLine(generatedAt);
 }
 
-function overviewRow(p: ProjectView, path: string): string {
+// `removeHref` only on the served page: a generated file has no token
+// behind it, so its rows carry no control (asked for 2026-08-19 —
+// Remove lives ON the row, at the right of the description).
+function overviewRow(p: ProjectView, path: string, removeHref?: string): string {
+  const remove = removeHref ? `<a class="btn small" href="${esc(removeHref)}">Remove</a>` : "";
   if (!p.manifest.ok) {
     return (
-      `<div class="proj-row error"><a href="${esc(path)}">${esc(p.name)}</a>` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p></div>`
+      `<div class="proj-row error"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p></div>${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -182,10 +186,10 @@ function overviewRow(p: ProjectView, path: string): string {
     ? `<p class="desc">${esc(p.manifest.data.description)}</p>`
     : "";
   return (
-    `<div class="proj-row"><a href="${esc(path)}">${esc(p.name)}</a>` +
+    `<div class="proj-row"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
     `<span class="counts">${active} active · ${archived} archived</span>` +
     desc +
-    `</div>`
+    `</div>${remove}</div>`
   );
 }
 
@@ -201,7 +205,10 @@ function projectBody(p: ProjectView): string {
  *  `/projects` page draws exactly this (spec 115) — same rows, same
  *  data, one function, so "the same page plus two controls" is true by
  *  construction rather than by convention. */
-export function projectListBody(projects: ProjectView[]): string {
+export function projectListBody(
+  projects: ProjectView[],
+  opts: { removeHref?: (name: string) => string | undefined } = {},
+): string {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   const totalActive = projects.reduce(
@@ -221,7 +228,9 @@ export function projectListBody(projects: ProjectView[]): string {
   return (
     intro +
     `\n<h2>Projects</h2>\n` +
-    ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n")
+    ordered
+      .map((p) => overviewRow(p, `${slugs.get(p)!}.html`, opts.removeHref?.(p.name)))
+      .join("\n")
   );
 }
 

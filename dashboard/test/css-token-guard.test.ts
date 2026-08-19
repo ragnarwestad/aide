@@ -182,7 +182,7 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "tabbar", "tab",
-  "menu", "menupanel", "about", "aboutpanel", "aboutclose",
+  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

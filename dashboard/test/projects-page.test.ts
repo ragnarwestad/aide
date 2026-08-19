@@ -9,6 +9,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderProjectsPage,
+  renderAddProjectPage,
+  renderRemoveProjectPage,
   type ProjectView,
   type ProjectsPageOptions,
 } from "../src/render.ts";
@@ -66,52 +68,87 @@ describe("the listing on /projects", () => {
   });
 });
 
-// --- the Projects panel, moved here from `/` (spec 112's tests) --------------
+// --- the Add and Remove controls (2026-08-19: pages of their own) ------------
+//
+// The panel used to be a fold at the bottom of this page, whose opener
+// was the bare word "Projects". Now Add is a real button at the top
+// right of the list opening a page with Save and Cancel, and each
+// allowlisted row carries its own Remove linking to a confirm page.
 
-describe("the Projects panel on /projects", () => {
-  /** The panel's markup, from its own disclosure to the end of it. */
-  const panel = (html: string): string => {
-    const at = html.indexOf('<details class="newspec projectadmin">');
-    expect(at).toBeGreaterThan(-1);
-    return html.slice(at, html.indexOf("</details>", html.lastIndexOf("</form>")) + 10);
-  };
-
-  test("the Add form asks for what cannot be derived, and posts to the project route", () => {
-    const form = panel(page([project("aide")], { createProjects: ["aide"] }));
-    expect(form).toContain('action="/api/queue/projects"');
-    expect(form).toContain('name="name"');
-    expect(form).toContain('name="gitUrl"');
-    expect(form).toContain('name="existingPath"');
-    expect(form).toContain('name="specsPath"');
-    expect(form).toContain('name="description"');
-    // The same refusal slot the New-spec form has, and for the same
-    // reason: a project that was never added has no row to land on.
-    expect(form).toContain('class="refused rowmsg err"');
+describe("the Add button and the Remove links on /projects", () => {
+  test("Add is a button above the list, at the right — like New spec", () => {
+    const html = page([project("aide")], { createProjects: ["aide"] });
+    expect(html).toContain('<div class="listtop"><a class="btn primary" href="/projects/new">Add</a></div>');
+    expect(html.indexOf('href="/projects/new"')).toBeLessThan(html.indexOf("<h2>Projects</h2>"));
+    // The old fold is gone with its bare-word opener.
+    expect(html).not.toContain('<details class="newspec projectadmin">');
+    expect(html).not.toContain('action="/api/queue/projects"');
   });
 
   test("it is offered before there is a single project to list", () => {
-    const form = panel(page([], { createProjects: [] }));
-    expect(form).toContain('action="/api/queue/projects"');
+    expect(page([], { createProjects: [] })).toContain('href="/projects/new"');
   });
 
-  test("the Add form says the manifest it writes is minimal", () => {
-    const form = panel(page([project("aide")], { createProjects: ["aide"] }));
-    expect(form).toContain("/aide-manifest");
-    expect(form.toLowerCase()).toContain("minimal");
+  test("every allowlisted project's row carries its own Remove, at the right", () => {
+    const html = page([project("aide"), project("atlasaurus")], {
+      createProjects: ["aide", "atlasaurus"],
+    });
+    expect(html).toContain('href="/projects/aide/remove"');
+    expect(html).toContain('href="/projects/atlasaurus/remove"');
+    // On the row, after the row's own text.
+    expect(html).toMatch(/atlasaurus[\s\S]*?<a class="btn small" href="\/projects\/atlasaurus\/remove">Remove<\/a>/);
   });
 
-  test("every allowlisted project has a Remove of its own", () => {
-    const form = panel(page([], { createProjects: ["aide", "atlasaurus"] }));
-    expect(form).toContain('action="/api/queue/projects/aide/remove"');
-    expect(form).toContain('action="/api/queue/projects/atlasaurus/remove"');
-    expect(form).toContain('data-confirm="atlasaurus"');
-    expect(form).toContain('name="confirm"');
+  test("a discovered project the allowlist does not know gets no Remove", () => {
+    const html = page([project("aide"), project("stranger")], { createProjects: ["aide"] });
+    expect(html).toContain('href="/projects/aide/remove"');
+    expect(html).not.toContain('href="/projects/stranger/remove"');
+  });
+});
+
+describe("the Add page", () => {
+  const add = (opts: Partial<ProjectsPageOptions> = {}) =>
+    renderAddProjectPage(NAV, AT, opts);
+
+  test("the form asks for what cannot be derived, and posts to the project route", () => {
+    const html = add();
+    expect(html).toContain('action="/api/queue/projects"');
+    expect(html).toContain('name="name"');
+    expect(html).toContain('name="gitUrl"');
+    expect(html).toContain('name="existingPath"');
+    expect(html).toContain('name="specsPath"');
+    expect(html).toContain('name="description"');
+    // The same refusal slot the New-spec form has, and for the same
+    // reason: a project that was never added has no row to land on.
+    expect(html).toContain('class="refused rowmsg err"');
   });
 
-  test("Remove says what it does and does not do, before the confirmation field", () => {
-    const form = panel(page([], { createProjects: ["atlasaurus"] }));
-    const said = form.slice(form.indexOf('action="/api/queue/projects/atlasaurus/remove"'));
-    const copy = said.slice(0, said.indexOf('name="confirm"'));
+  test("Save and Cancel — Save posts, Cancel is a plain link to the list", () => {
+    const html = add();
+    expect(html).toContain(">Save</button>");
+    expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
+  });
+
+  test("it says the manifest it writes is minimal", () => {
+    const html = add();
+    expect(html).toContain("/aide-manifest");
+    expect(html.toLowerCase()).toContain("minimal");
+  });
+
+  test("a refusal carried back in the query string is shown here", () => {
+    expect(add({ error: "the name is already taken" })).toContain("the name is already taken");
+  });
+});
+
+describe("the Remove page", () => {
+  const remove = (name: string, opts: Partial<ProjectsPageOptions> = {}) =>
+    renderRemoveProjectPage(name, NAV, AT, opts);
+
+  test("it says what removal does and does not do, before the confirmation field", () => {
+    // The form and the copy above it — not the shell, whose stylesheet
+    // contains ":disabled" selectors of its own.
+    const html = remove("atlasaurus").split("</style>").pop()!;
+    const copy = html.slice(0, html.indexOf('name="confirm"'));
     expect(copy).toContain("allowlist");
     expect(copy.toLowerCase()).toContain("checkout");
     expect(copy.toLowerCase()).toContain("specs");
@@ -120,16 +157,17 @@ describe("the Projects panel on /projects", () => {
     // (`data-confirm`), and the server refuses a mismatch either way.
     // The button is rendered ENABLED on purpose — one the server
     // disabled could never be enabled again with script off.
-    expect(said).toContain('data-confirm="atlasaurus"');
-    expect(said).not.toContain("disabled");
+    expect(html).toContain('data-confirm="atlasaurus"');
+    expect(html).toContain('action="/api/queue/projects/atlasaurus/remove"');
+    expect(html).not.toContain("disabled");
+    expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
   });
 
   // Without the page's own code the typed confirmation is server-side
-  // only and every refusal costs a page load. The panel had both on `/`;
-  // moving it must not quietly take them away.
-  test("the page carries the browser code the panel's controls need", () => {
-    const html = page([project("aide")], { createProjects: ["aide"], script: "/*code*/" });
-    expect(html).toContain("<script>/*code*/</script>");
+  // only and every refusal costs a page load.
+  test("the pages carry the browser code the controls need", () => {
+    expect(remove("aide", { script: "/*code*/" })).toContain("<script>/*code*/</script>");
+    expect(renderAddProjectPage(NAV, AT, { script: "/*code*/" })).toContain("<script>/*code*/</script>");
   });
 
   // A no-JS form POST is answered with a redirect back here carrying the

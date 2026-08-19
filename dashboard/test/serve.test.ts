@@ -125,9 +125,25 @@ describe("GET /projects (spec 115)", () => {
     // The listing, from the same rows the generated page drew.
     expect(html).toContain('class="proj-row"');
     expect(html).toContain('href="aide.html"');
-    // And the panel that changes it.
-    expect(html).toContain('action="/api/queue/projects"');
-    expect(html).toContain('action="/api/queue/projects/aide/remove"');
+    // And the two controls that change it (2026-08-19): the Add button
+    // to its own page, and each row's Remove to its confirm page.
+    expect(html).toContain('href="/projects/new"');
+    expect(html).toContain('href="/projects/aide/remove"');
+  });
+
+  test("the Add page and a row's Remove page are served behind the same guard", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const add = await fetch(`${base}/projects/new`, { headers: AUTH });
+    expect(add.status).toBe(200);
+    expect(await add.text()).toContain('action="/api/queue/projects"');
+    const remove = await fetch(`${base}/projects/aide/remove`, { headers: AUTH });
+    expect(remove.status).toBe(200);
+    expect(await remove.text()).toContain('action="/api/queue/projects/aide/remove"');
+    // A name the allowlist does not know is a mistyped address.
+    const nosuch = await fetch(`${base}/projects/nosuch/remove`, { headers: AUTH });
+    expect(nosuch.status).toBe(404);
+    // And no token means no page, exactly as /projects itself.
+    expect((await fetch(`${base}/projects/new`)).status).toBe(401);
   });
 
   test("the same guard as `/`: no token 503, wrong token 401", async () => {
