@@ -548,13 +548,21 @@ describe("GET / (the spec list, HTML)", () => {
   // this test says which script that is rather than allowing scripts
   // in general: anything else appearing here is still the drift the
   // test was written to stop.
+  //
+  // Spec 115 widened it by exactly one more, on exactly one page: the
+  // overview is a redirect now, and sending a reader on is what that
+  // page is FOR. Named here rather than allowed in general — the rule
+  // for every other page is unchanged, and this one's second script is
+  // asserted to be the redirect and nothing else.
   test("the generated pages carry no page code beyond the shared theme switcher", async () => {
-    const { renderSite } = await import("../src/render.ts");
+    const { renderSite, OVERVIEW_PAGE } = await import("../src/render.ts");
     for (const page of renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "x")) {
       const scripts = [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
-      expect(scripts).toHaveLength(1);
+      const allowed = page.path === OVERVIEW_PAGE ? 2 : 1;
+      expect([page.path, scripts.length]).toEqual([page.path, allowed]);
       expect(scripts[0]).toContain("data-theme-choice");
-      expect(page.html.match(/<script/g)).toHaveLength(1);
+      if (allowed === 2) expect(scripts[1]).toBe("location.replace('/projects' + location.search);");
+      expect(page.html.match(/<script/g)).toHaveLength(allowed);
     }
   });
 
@@ -3247,7 +3255,10 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(projectsIn(file).sort()).toEqual(["two"]);
   });
 
-  test("a form submit lands back on /, refusal and success alike", async () => {
+  // Spec 115: back to the page the form is ON, which is `/projects` now.
+  // Every other route here still lands on `/` — the target is a
+  // parameter with `/` as its default, not a rewrite.
+  test("a form submit lands back on /projects, refusal and success alike", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
     const refused = await fetch(`${base}/api/queue/projects`, {
@@ -3257,7 +3268,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
       body: new URLSearchParams({ name: "../escape", gitUrl: "https://example.com/x.git" }),
     });
     expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/?error=")).toBe(true);
+    expect(refused.headers.get("location")!.startsWith("/projects?error=")).toBe(true);
 
     const path = join(dir, "root", "on-disk");
     mkdirSync(path, { recursive: true });
@@ -3268,7 +3279,7 @@ describe("POST /api/queue/projects (spec 112)", () => {
       body: new URLSearchParams({ name: "on-disk", existingPath: path }),
     });
     expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")).toBe("/");
+    expect(ok.headers.get("location")).toBe("/projects");
   });
 
   test("a refusal reaches the log", async () => {
@@ -3308,7 +3319,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
     expect(existsSync(join(dir, "root", "aide", ".aide", "project.yaml"))).toBe(true);
     expect(existsSync(join(dir, "root", "aide", "specs", "81-queue-and-runner"))).toBe(true);
     // And the page no longer offers it.
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
@@ -3325,7 +3336,7 @@ describe("POST /api/queue/projects/<name>/remove (spec 112)", () => {
       const body = (await res.json()) as StepBody;
       expect(body.results[0]!.step).toBe("confirm");
     }
-    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await (await fetch(`${base}/projects`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain('action="/api/queue/projects/aide/remove"');
   });
 

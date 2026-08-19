@@ -6,7 +6,9 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { configValue, discoverProjects, specDependsOn, specDescription } from "../src/discover.ts";
+import {
+  buildProjectViews, configValue, discoverProjects, specDependsOn, specDescription,
+} from "../src/discover.ts";
 
 let root: string;
 let externalSpecs: string;
@@ -57,6 +59,39 @@ beforeAll(() => {
 
 afterAll(() => {
   rmSync(root, { recursive: true, force: true });
+});
+
+// Spec 115: the walk from a projects root to what a page shows —
+// discovery, then each project's manifest, then each spec's status —
+// used to be inline in `main.ts`, where only the generator could reach
+// it. The served `/projects` page needs the identical data from the
+// identical files, so it moved here rather than being written a second
+// time. What is asserted below is what the inline version produced for
+// this same fixture, recorded before it was deleted.
+describe("buildProjectViews", () => {
+  test("every discovered project, with its manifest parsed", () => {
+    const views = buildProjectViews(root);
+    expect(views.map((p) => p.name)).toEqual(["proj-a", "proj-b", "proj-c"]);
+    const a = views.find((p) => p.name === "proj-a")!;
+    expect(a.manifest.ok).toBe(true);
+    expect(a.manifest.ok && a.manifest.data.name).toBe("proj-a");
+  });
+
+  test("every spec, with its status where there is one and null where there is not", () => {
+    const a = buildProjectViews(root).find((p) => p.name === "proj-a")!;
+    expect(a.specs.map((s) => [s.folder, s.archived])).toEqual([
+      ["01-first-thing", false],
+      ["02-old-thing", true],
+    ]);
+    expect(a.specs[0]!.status?.progress).toEqual({ percent: 50, done: 1, total: 2 });
+    // No 4-status.md at all: null, never a throw and never an invented
+    // zero — the page tells "not started" and "no file" apart.
+    expect(a.specs[1]!.status).toBeNull();
+  });
+
+  test("a projects root that is not there is no projects, not a throw", () => {
+    expect(buildProjectViews(join(root, "nowhere-at-all"))).toEqual([]);
+  });
 });
 
 describe("discoverProjects", () => {

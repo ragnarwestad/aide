@@ -19,7 +19,7 @@ import {
 import { DescriptionFreshnessChecker } from "./description-freshness.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
-import { configValue, discoverProjects } from "./discover.ts";
+import { buildProjectViews, configValue, discoverProjects } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
@@ -34,10 +34,12 @@ import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
   OVERVIEW_PAGE,
+  PROJECTS_ROUTE,
   FILTER_FIELD_PREFIX,
   FILTER_KEYS,
   navEntries,
   renderJobDetailPage,
+  renderProjectsPage,
   renderQueuePage,
   renderQueueRows,
   type JobDetailView,
@@ -200,6 +202,11 @@ export function createRootLock() {
 function specsRedirect(
   body: unknown,
   refusal?: { error: string; spec?: string; reason?: string },
+  // Which page the form was ON. `/` for every control on the spec list,
+  // which is all of them but two: the project panel moved to `/projects`
+  // with spec 115, and a reader who added a project there must not be
+  // dropped onto the spec list to read the answer.
+  target: string = "/",
 ): Response {
   const sent = (body ?? {}) as Record<string, unknown>;
   const parts: string[] = [];
@@ -220,7 +227,7 @@ function specsRedirect(
     if (refusal.reason) parts.push(`errorReason=${encodeURIComponent(refusal.reason)}`);
   }
   const query = parts.join("&");
-  return new Response(null, { status: 303, headers: { location: query ? `/?${query}` : "/" } });
+  return new Response(null, { status: 303, headers: { location: query ? `${target}?${query}` : target } });
 }
 
 /** Every refusal, in `serve.log`. Both streams of the launchd job go to
@@ -231,8 +238,17 @@ function logRefusal(action: string, spec: string | undefined, reason: string): v
   console.error(`queue: ${action} refused for ${spec ?? "an unknown spec"} — ${reason}`);
 }
 
-// Nav for /live when no project set is injected: reconstruct entries
-// from the generated site (the overview + every *.html except live).
+// Nav for a server started without `--root`: reconstruct the entries
+// from the generated site directory (the overview + every *.html except
+// About).
+//
+// It does NOT call `navEntries()`, deliberately and not by oversight.
+// That function points Projects at the SERVED page (spec 115), which
+// this server cannot render: with no project root it has nothing to
+// list. So the fallback keeps naming the generated file, which is
+// exactly what it has always shown — and `GET /projects` on such a
+// server redirects there too. Change one of the two and you have made
+// them disagree; they answer differently on purpose.
 function navFromSite(siteDir: string): NavEntry[] {
   const entries: NavEntry[] = [{ label: "Projects", path: OVERVIEW_PAGE }];
   try {
@@ -643,6 +659,11 @@ export function createServer(opts: ServerOptions) {
   // would tell an unauthenticated caller the page exists.
   const isQueuePath = (path: string) =>
     path === "/" ||
+    // The overview is a served page since spec 115, and it carries the
+    // Add and Remove forms — so it is guarded exactly as `/` is. The
+    // GENERATED `projects.html` stays outside the guard, as every
+    // generated page does: it is a redirect and carries nothing.
+    path === PROJECTS_ROUTE ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -1048,7 +1069,10 @@ export function createServer(opts: ServerOptions) {
     for (const s of steps) if (s.error) logRefusal(action, project, s.error);
     if (wantsJson) return json({ ok, project, results: steps }, ok ? 200 : 400);
     const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
-    return summary ? specsRedirect(sent, { error: summary }) : specsRedirect(sent);
+    // Back to the page these two forms are on (spec 115), never to `/`.
+    return summary
+      ? specsRedirect(sent, { error: summary }, PROJECTS_ROUTE)
+      : specsRedirect(sent, undefined, PROJECTS_ROUTE);
   }
 
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
@@ -1138,6 +1162,46 @@ export function createServer(opts: ServerOptions) {
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
       // Hand the token over ONCE, as an HttpOnly cookie, so the forms
       // never have to carry it in their markup.
+      if (url.searchParams.get("token") && queueToken) {
+        headers["set-cookie"] =
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+      }
+      return new Response(html, { headers });
+    }
+
+    // The projects page (spec 115): the same listing the generator used
+    // to write to projects.html, plus the panel that changes it. Beside
+    // the `/` branch above on purpose — the two full-page GET handlers
+    // belong together for anyone reading this function.
+    if (path === PROJECTS_ROUTE) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      // No `--root`, no project set: an empty listing would read as "no
+      // projects on this machine" rather than "this server was never
+      // told where they are". The generated page is what such a server
+      // has always shown, and it is still there.
+      if (!opts.projectRoot) {
+        return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
+      }
+      // Read fresh, uncached: unlike `/` nothing polls this page, so a
+      // scan per request is the same cost `make generate` already treats
+      // as cheap — and no invalidation to get wrong.
+      const html = renderProjectsPage(
+        buildProjectViews(opts.projectRoot),
+        new Date().toISOString(),
+        nav(),
+        {
+          token: queueToken,
+          // The RAW allowlist, like the New-spec dropdown: a project
+          // with no spec yet is exactly what this page is for.
+          createProjects: [...allowed].sort(),
+          script: queueClientScript(),
+          error: url.searchParams.get("error") ?? undefined,
+        },
+      );
+      const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
+      // The same one-time handover `/` does: projects.html passes the
+      // address on with its query string, so a bookmarked token arrives
+      // here.
       if (url.searchParams.get("token") && queueToken) {
         headers["set-cookie"] =
           `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;

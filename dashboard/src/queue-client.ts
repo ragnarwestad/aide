@@ -14,6 +14,13 @@
 // selection left to react to and none of that code has a caller.
 
 const REFRESH_MS = 5000;
+/** The New-spec form, and never the Add-project one. Both wear
+ *  `newspecform` — the Add form borrows the look — and on `/` the real
+ *  one came first in the document, so a plain `form.newspecform` found
+ *  it. On `/projects` (spec 115) there is no New-spec form at all, and
+ *  the Add form would answer in its place: bound twice, two POSTs for
+ *  one press. */
+const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform)";
 /** Presses whose request has not answered yet. The tick waits for zero. */
 let inFlight = 0;
 
@@ -216,8 +223,9 @@ async function postForm(
     // Offline, or the server restarting mid-request: the page reload is
     // the always-correct answer, because it asks the server again. With
     // the reader's own query string — the sort and the filter live
-    // there, and a bare `/` threw them away.
-    location.href = `/${location.search}`;
+    // there, and a bare `/` threw them away. And with the reader's own
+    // PATH: this code runs on `/projects` too since spec 115.
+    location.href = location.pathname + location.search;
   } finally {
     inFlight -= 1;
     // `isConnected` because a successful swapRows has already replaced
@@ -318,7 +326,7 @@ function formNote(form: HTMLFormElement, text: string): void {
 // nothing, but a box that stays ticked while out of sight is a choice
 // the reader can no longer see they are making.
 function syncDependsOn(): void {
-  const form = document.querySelector("form.newspecform");
+  const form = document.querySelector(NEW_SPEC_FORM);
   if (!form) return;
   const select = form.querySelector("select[name=project]") as HTMLSelectElement | null;
   if (!select) return;
@@ -374,9 +382,10 @@ async function submitProjectChange(form: HTMLFormElement, event: Event): Promise
       // The whole panel is re-rendered by the next page load; until
       // then, what changed is the list of projects, which lives in the
       // markup this form is part of. Reloading is the honest answer —
-      // with the reader's own query string, so the sort and the filter
-      // survive it.
-      location.href = `/${location.search}`;
+      // this page, with the reader's own query string. No route name is
+      // written down here: the panel lives on `/projects` (spec 115) and
+      // lived on `/` before it.
+      location.href = location.pathname + location.search;
     },
     (why) => formNote(form, why),
   );
@@ -428,7 +437,7 @@ document.getElementById("jobrows")?.addEventListener("submit", submitAction as E
 // The handler's promise is returned rather than dropped — a listener's
 // return value is ignored by the DOM, and it is what lets the test wait
 // for the request the press makes.
-const newSpec = document.querySelector("form.newspecform") as HTMLFormElement | null;
+const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);

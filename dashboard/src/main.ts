@@ -3,13 +3,11 @@
 // (projects.html + one page per project). The bare `/` is not a file
 // here: the Bun server answers it with the spec list (spec 100).
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverProjects } from "./discover.ts";
-import { parseManifest } from "./parse-manifest.ts";
-import { parseStatus } from "./parse-status.ts";
-import { renderSite, type Page, type ProjectView } from "./render.ts";
+import { buildProjectViews } from "./discover.ts";
+import { renderSite, type Page } from "./render.ts";
 
 // Write every page and remove ONLY .html files not in the produced
 // page set — the local directory must mirror the site exactly (the
@@ -40,19 +38,10 @@ export function main(argv: string[]): number {
     }
   }
 
-  const projects: ProjectView[] = discoverProjects(root).map((p) => ({
-    name: p.name,
-    manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
-    specs: p.specs.map((s) => {
-      const statusPath = join(s.dir, "4-status.md");
-      return {
-        ...s,
-        status: existsSync(statusPath)
-          ? parseStatus(readFileSync(statusPath, "utf-8"))
-          : null,
-      };
-    }),
-  }));
+  // The same walk the served `/projects` page makes (spec 115): one
+  // function, so the generated page and the served one can never
+  // disagree about what is on disk.
+  const projects = buildProjectViews(root);
 
   const pages = renderSite(projects, new Date().toISOString());
   writeSite(pages, out);

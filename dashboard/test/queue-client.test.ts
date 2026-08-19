@@ -92,7 +92,7 @@ function harness(
   reply: (url: string) => Reply,
   control_ = "mergeform",
   search = "",
-  o: { collapsed?: boolean } = {},
+  o: { collapsed?: boolean; pathname?: string } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -251,7 +251,10 @@ function harness(
   };
   const on: Record<string, (e: unknown) => void> = {};
   const requests: { url: string; init: Record<string, unknown> }[] = [];
-  const location = { search, href: "http://dash.test/" };
+  // `pathname` because the page's own reloads go back to the page they
+  // are on — the Projects panel is served at `/projects` since spec 115,
+  // and a hardcoded `/` would throw the reader onto the spec list.
+  const location = { search, href: "http://dash.test/", pathname: o.pathname ?? "/" };
   // `replaceState` moves the address bar WITHOUT loading a document, so
   // it writes `search` (which `swapRows` reads back) and deliberately
   // leaves `href` alone: in this file `href` means "the page navigated",
@@ -948,11 +951,12 @@ describe("Remove is gated on the name being typed back", () => {
     expect(h.removeButton.disabled).toBe(true);
   });
 
-  test("a removal posts the confirmation and reloads, keeping the view", async () => {
+  test("a removal posts the confirmation and reloads the page it is on, keeping the view", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
       "mergeform",
       "?state=running&sort=cost",
+      { pathname: "/projects" },
     );
     await h.submitRemove();
     const post = h.requests.find((r) => r.url.includes("/remove"))!;
@@ -961,8 +965,9 @@ describe("Remove is gated on the name being typed back", () => {
     expect((post.init.headers as Record<string, string>).accept).toBe("application/json");
     // The panel is markup the server owns, and what changed is which
     // projects are in it — so the page is asked again, with the
-    // reader's own query string.
-    expect(h.location.href).toBe("/?state=running&sort=cost");
+    // reader's own query string. THIS page: no route name is written
+    // down on either side of the move (spec 115).
+    expect(h.location.href).toBe("/projects?state=running&sort=cost");
   });
 
   test("a refusal is written beside the form, and the page stays put", async () => {
@@ -974,5 +979,56 @@ describe("Remove is gated on the name being typed back", () => {
     expect(h.removeSlot.textContent).toContain("type the project name exactly");
     expect(h.location.href).toBe("http://dash.test/");
     expect(h.replaced).toHaveLength(0);
+  });
+});
+
+// --- spec 115: the same code on a page with no spec list ---------------------
+//
+// The Add form wears `newspecform` for its looks, and on `/` that was
+// harmless: the real New-spec form came first in the document, so
+// `querySelector` found it. On `/projects` there is no New-spec form at
+// all — the Add form would answer in its place and be bound twice, once
+// as a project change and once as a spec create, sending two POSTs for
+// one press.
+describe("on /projects, where there is no New-spec form", () => {
+  /** Enough of a matcher for the two selectors the file uses: every
+   *  `.class` in the compound has to be on the element, and none of the
+   *  `:not(.class)` ones may be. */
+  const matches = (selector: string, className: string): boolean => {
+    const classes = className.split(/\s+/);
+    const negated = [...selector.matchAll(/:not\(\.([\w-]+)\)/g)].map((m) => m[1]!);
+    const required = [...selector.replace(/:not\([^)]*\)/g, "").matchAll(/\.([\w-]+)/g)].map((m) => m[1]!);
+    return required.every((c) => classes.includes(c)) && !negated.some((c) => classes.includes(c));
+  };
+
+  test("the Add form is bound once — as a project change, not also as a create", () => {
+    const bound: string[] = [];
+    const addForm = {
+      className: "newspecform addprojectform",
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      addEventListener: (type: string) => void bound.push(type),
+    };
+    const document = {
+      getElementById: () => null,
+      querySelector: (sel: string) => (matches(sel, addForm.className) ? addForm : null),
+      querySelectorAll: (sel: string) =>
+        sel.includes("addprojectform") || sel.includes("removeform") ? [addForm] : [],
+      createElement: () => ({ id: "", className: "", textContent: "" }),
+      addEventListener: () => {},
+      visibilityState: "hidden",
+    };
+    // eslint-disable-next-line no-new-func -- the file under test IS a script
+    new Function("document", "location", "fetch", "setInterval", "history", "FormData", SOURCE)(
+      document,
+      { search: "", href: "http://dash.test/projects", pathname: "/projects" },
+      async () => ({ ok: true, json: async () => ({}), text: async () => "" }),
+      () => 0,
+      { replaceState: () => {} },
+      class {
+        forEach(): void {}
+      },
+    );
+    expect(bound).toEqual(["submit"]);
   });
 });

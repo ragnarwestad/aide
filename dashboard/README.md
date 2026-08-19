@@ -49,9 +49,16 @@ no host is named anywhere in this repo.
   line, watch one, approve a gate (token required). The front page: it
   is what the dashboard is used for, so it is what the dashboard opens
   on.
-- `/projects.html` — overview: every project with description and
-  active/archived spec counts. Reached from the nav, labelled
-  "Overview"; no token needed, like every other generated page.
+- `/projects` — every project with description and active/archived spec
+  counts, plus the panel that adds and removes them. Reached from the
+  nav, labelled "Projects". Token required, like `/`: the panel is a
+  mutating control, and a page carrying one needs a server to check the
+  token per request.
+- `/projects.html` — where that overview was generated until it was
+  served. Now a redirect to `/projects`, keeping whatever the address
+  carried; no token needed, like every other generated page. The file
+  stays: bookmarks point at it, and `deploy/rsync-publish.sh` refuses to
+  publish a site without it.
 - `/<slug>.html` — one page per project (slug = lowercased name,
   non-alphanumerics → hyphens; collisions get `-2`, `-3`, …; `index`,
   `about` and `projects` are reserved)
@@ -275,9 +282,9 @@ tell it from a broken agent will start ignoring both.
 
 ### The token
 
-The whole queue surface — `GET /` and its old addresses `/specs` and
-`/queue` included — needs a token; a token a page hands to anyone who
-can load the page is not a secret. Open
+The whole queue surface — `GET /` and `GET /projects`, and the old
+addresses `/specs` and `/queue`, included — needs a token; a token a page
+hands to anyone who can load the page is not a secret. Open
 `/?token=<the token>` once and the browser keeps an `HttpOnly`
 cookie; API callers send `X-Aide-Token`. The generated pages
 (`/projects.html`, `/<slug>.html`, `/about.html`) and `/live` stay open:
@@ -329,8 +336,11 @@ same direction every other key here fails in.
 
 ### Adding and removing a project
 
-The Projects panel on `/`, behind the queue token like every other
-mutating control. Add takes a name plus either a git URL (cloned to
+The Projects panel on `/projects`, behind the queue token like every
+other mutating control. It sits under the listing it changes — spec 112
+had to put it on `/` because the overview was a generated file with no
+server behind it to check a token against, and spec 115 made the
+overview a served page. Add takes a name plus either a git URL (cloned to
 `<projects root>/<name>`) or a path to a checkout already there, and
 optionally a specs root and a one-line description. It writes a minimal
 manifest — the name and that description, nothing else — only when the
@@ -344,9 +354,15 @@ server refuses anything but an exact match — the browser turning the
 button off until it matches is a convenience over that check, not the
 check itself.
 
-The static `projects.html` carries neither control, only a link here.
-The generated pages stay open, which means they carry nothing that
-needs the token — and both of these actions do.
+The generated `projects.html` carries neither control: it is a redirect
+to the served page now. The generated pages stay open, which means they
+carry nothing that needs the token — and both of these actions do.
+
+A server started without `--root` has no projects root to list or add
+to. Its `GET /projects` redirects to the generated `projects.html`
+instead of rendering an empty listing, and its nav goes on naming that
+file — an empty page would read as "no projects on this machine" rather
+than "this server was never told where they are".
 
 The daily cap counts the budgets of the steps **already in flight**, not
 only what has been recorded. Recording happens at completion, so with

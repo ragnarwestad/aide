@@ -5,6 +5,9 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { parseManifest } from "./parse-manifest.ts";
+import { parseStatus } from "./parse-status.ts";
+import type { ProjectView } from "./render/site.ts";
 
 export interface SpecRef {
   folder: string;
@@ -146,4 +149,27 @@ export function discoverProjects(root: string): DiscoveredProject[] {
     projects.push({ name: entry, dir, manifestPath, specsRoot, specs });
   }
   return projects.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Everything a page shows about a projects root: the manifest scan
+ *  above, plus each project's parsed manifest and each spec's parsed
+ *  status. The generator and the served `/projects` page (spec 115) both
+ *  want exactly this, from exactly these files — so it is written once
+ *  here rather than twice, the way `serve.ts` already refuses to read
+ *  one file for two answers.
+ *
+ *  A spec with no `4-status.md` gets `null`, never an invented zero: the
+ *  page tells "not started" and "nothing written down" apart. */
+export function buildProjectViews(root: string): ProjectView[] {
+  return discoverProjects(root).map((p) => ({
+    name: p.name,
+    manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
+    specs: p.specs.map((s) => {
+      const statusPath = join(s.dir, "4-status.md");
+      return {
+        ...s,
+        status: existsSync(statusPath) ? parseStatus(readFileSync(statusPath, "utf-8")) : null,
+      };
+    }),
+  }));
 }

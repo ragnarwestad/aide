@@ -123,12 +123,19 @@ function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
 }
 
 // The nav entries for a project set — shared by the generator and the
-// server (which renders /live through the same layout).
+// live server when it was started with a `--root` of its own.
+//
+// The Projects entry points at the SERVED page (spec 115), not at the
+// generated file: the page that lists the projects is the page that adds
+// and removes them, and that needs a server behind it. `navFromSite()`
+// in serve.ts is the no-`--root` fallback and deliberately still names
+// the file — it has no project set to link the served page's contents
+// from.
 export function navEntries(projects: ProjectView[]): NavEntry[] {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return [
-    { label: "Projects", path: OVERVIEW_PAGE },
+    { label: "Projects", path: PROJECTS_ROUTE },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 }
@@ -139,8 +146,17 @@ export const ABOUT_PAGE = "about.html";
 
 /** The project overview. It answered `/` until spec 100 gave the root to
  *  the spec list, so it needs a filename of its own — and the Bun server
- *  never reaches `serveStatic` for `/` any more. */
+ *  never reaches `serveStatic` for `/` any more.
+ *
+ *  Since spec 115 the file itself is a redirect: the overview is SERVED,
+ *  at `PROJECTS_ROUTE`. The filename stays because people bookmarked it
+ *  and because `deploy/rsync-publish.sh` will not publish a site without
+ *  it. */
 export const OVERVIEW_PAGE = "projects.html";
+
+/** Where the overview actually lives (spec 115): a served route, so the
+ *  Add and Remove controls on it have a token to be checked against. */
+export const PROJECTS_ROUTE = "/projects";
 
 function aboutBody(): string {
   return (
@@ -181,11 +197,14 @@ function projectBody(p: ProjectView): string {
   return manifestBlock(p.manifest.data) + `<h3>Specs</h3>` + specTable(p.specs);
 }
 
-export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
+/** The listing itself: the counts, then one row per project, linking to
+ *  each project's generated page. Exported because the served
+ *  `/projects` page draws exactly this (spec 115) — same rows, same
+ *  data, one function, so "the same page plus two controls" is true by
+ *  construction rather than by convention. */
+export function projectListBody(projects: ProjectView[]): string {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  const entries = navEntries(projects);
-
   const totalActive = projects.reduce(
     (n, p) => n + p.specs.filter((s) => !s.archived).length,
     0,
@@ -200,23 +219,36 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
   const intro =
     `<p class="summary">${projects.length} projects · ` +
     `${totalActive} active · ${totalArchived} archived</p>`;
-  const overview =
+  return (
     intro +
-    // Where the list can be CHANGED (spec 112). Adding and removing a
-    // project is a mutating, token-gated action, so it lives on the
-    // served page with the token behind it — this page stays what it
-    // has been: generated, open, and carrying nothing that needs a
-    // secret. The link is the one thing that has to cross that line.
-    `\n<p class="muted small"><a href="/">Manage projects &rarr;</a></p>\n` +
     `\n<h2>Projects</h2>\n` +
-    ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
+    ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n")
+  );
+}
+
+export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
+  const slugs = assignSlugs(projects);
+  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
+  const entries = navEntries(projects);
+
+  // The overview is served now (spec 115), because the controls that
+  // change the project list need a token checked per request and a file
+  // has no server behind it to do that. What is written HERE is the way
+  // on: the script for a browser, the link for everything else. Both are
+  // in the generated content rather than in the server, so a site
+  // rsynced behind a plain file server sends the reader on too.
+  const moved =
+    `<p>This page has moved to <a href="${PROJECTS_ROUTE}">${PROJECTS_ROUTE}</a>.</p>`;
   const pages: Page[] = [
     {
       path: OVERVIEW_PAGE,
       // The tab always leads with aide; the tagline rides on the
       // overview, the one page that is about aide itself.
-      html: pageShell("Projects", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
+      html: pageShell("Projects", entries, PROJECTS_ROUTE, moved, generatedAt, undefined, {
         docTitle: "aide — from spec to merge",
+        // The query string comes along: a bookmark that carried the
+        // token is how a reader arrives here with one.
+        script: `location.replace('${PROJECTS_ROUTE}' + location.search);`,
       }),
     },
   ];

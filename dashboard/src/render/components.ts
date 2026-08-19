@@ -212,6 +212,17 @@ export function field(
   );
 }
 
+/** The token, when the page was given one, as the form's own hidden
+ *  field. The server prefers the header, the query string and the
+ *  cookie; this is what is left for a plain form POST from a browser
+ *  that got the page some other way. Empty when there is no token —
+ *  never an empty field, which would post a wrong one.
+ *
+ *  Shared since spec 115: the Projects panel moved to its own page and
+ *  every form on it needs the same field the spec list's do. */
+export const tokenField = (token?: string): string =>
+  token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+
 // --- typed confirmation ----------------------------------------------------------
 
 /** The name typed back, before something leaves the dashboard.

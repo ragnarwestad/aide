@@ -33,7 +33,7 @@ import {
   pips,
   rowMessage,
   stepLabel,
-  typedConfirm,
+  tokenField,
 } from "./components.ts";
 import {
   IN_FLIGHT,
@@ -168,9 +168,6 @@ const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 // Every form on this page posts to the guarded surface, so every one of
 // them carries the token when the page has one. Written once: a form
 // that forgot it would be refused with a 401 the reader cannot act on.
-const tokenField = (token?: string): string =>
-  token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
-
 /** How the list is cut and ordered. One list, exported so `serve.ts`
  *  builds the redirect after a POST from the same five keys the forms
  *  send — two copies would eventually disagree about what "the view" is. */
@@ -1204,99 +1201,6 @@ function newSpecForm(opts: QueuePageOptions): string {
   );
 }
 
-// The Projects panel (spec 112). Adding a project used to be four hand
-// steps on the serving host, one of which — the queue's allowlist —
-// meant re-rendering the launchd plist and restarting the server.
-//
-// It lives HERE, on `/`, and not on the static projects.html the
-// description names, for one reason: everything these two actions need
-// already exists on this page and nowhere else — the token guard, the
-// per-step refusal shape, the `postForm` machinery and the
-// disclosure-form idiom. A static page has no server behind it to check
-// a token against per request, so building the controls there would
-// mean inventing a second, worse copy of all four, on a page kept
-// deliberately free of them (README.md: "the generated pages … carry
-// nothing that needs the token"). projects.html gets a link here
-// instead (`render/site.ts`).
-//
-// Shut by default, and outside `#jobrows` for the same reason the
-// New-spec form is: the script swaps that container every five seconds,
-// and a half-typed git URL must survive it.
-function projectAdminPanel(opts: QueuePageOptions): string {
-  // The RAW allowlist, exactly as the New-spec dropdown uses it: this
-  // panel is about which projects the queue may run, which is what that
-  // list IS. A project with no spec yet appears in no other list here.
-  const projects = opts.createProjects ?? [];
-  const add =
-    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +
-    tokenField(opts.token) +
-    field(
-      "Name",
-      `<input type="text" name="name" required maxlength="64" ` +
-        `pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" ` +
-        `placeholder="the directory it gets under the projects root">`,
-    ) +
-    field(
-      "Git URL",
-      `<input type="text" name="gitUrl" maxlength="300" placeholder="cloned under the projects root">`,
-    ) +
-    field(
-      "…or a path on this host",
-      `<input type="text" name="existingPath" maxlength="300" ` +
-        `placeholder="a checkout that is already there">`,
-    ) +
-    field(
-      "Specs root",
-      `<input type="text" name="specsPath" maxlength="300" ` +
-        `placeholder="optional — its own specs/ otherwise">`,
-    ) +
-    field(
-      "Description",
-      `<textarea name="description" rows="2" maxlength="500" ` +
-        `placeholder="one line: what the project is"></textarea>`,
-      { wide: true },
-    ) +
-    // The copy 1-description.md asks for, in the form itself rather
-    // than in a doc nobody has open: what is written here is the least
-    // a manifest can be, and the rest is a separate job.
-    rowMessage(
-      "info",
-      "A minimal .aide/project.yaml is written — the name and this description, nothing else. " +
-        "Run /aide-manifest in the project afterwards to fill in the stack, deployment and docs.",
-      { tag: "p" },
-    ) +
-    btn({ label: "Add project", variant: "primary", pending: "adding…" }) +
-    // Its refusal has no row to land on — the project was never added —
-    // so it goes beside the form that was refused, like New spec's.
-    messageSlot("refused") +
-    `</form>`;
-  const rows = projects
-    .map(
-      (name) =>
-        `<form method="post" action="/api/queue/projects/${esc(name)}/remove" class="removeform">` +
-        tokenField(opts.token) +
-        `<span class="label">${esc(name)}</span>` +
-        // What removal MEANS, before the field that does it — the
-        // reader should not have to know the answer to read the form.
-        rowMessage(
-          "info",
-          `Removing ${name} takes it off the allowlist and off this dashboard. ` +
-            `Its checkout and its specs stay on disk, untouched.`,
-          { tag: "p" },
-        ) +
-        typedConfirm({ target: name, label: "Type the name to remove it", button: "Remove", pending: "removing…" }) +
-        messageSlot("refused") +
-        `</form>`,
-    )
-    .join("");
-  return (
-    `<details class="newspec projectadmin"><summary>Projects</summary>` +
-    add +
-    rows +
-    `</details>`
-  );
-}
-
 // One line about the spec: what it is, and how far it has got. It has to
 // SAY something even when there is nothing recorded — a line that is
 // blank on half the rows reads as a page that failed to load.
@@ -1586,9 +1490,6 @@ export function renderQueuePage(
     // OUTSIDE `#jobrows`, deliberately: the script swaps that container
     // every five seconds, and a half-typed description must survive it.
     newSpecForm(opts) +
-    // After New spec, before the list: both are panels about something
-    // that is not on the table yet, and this one is the rarer of the two.
-    projectAdminPanel(opts) +
     table;
   // The front page IS aide: the tab says only that.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {

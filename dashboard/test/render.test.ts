@@ -9,6 +9,7 @@ import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
   renderQueuePage,
+  navEntries,
   renderQueueRows,
   renderSite,
   type JobDetailView,
@@ -106,7 +107,9 @@ describe("slugs and filenames (criterion 1)", () => {
   test("a project named Projects is suffixed, not allowed over the overview", () => {
     const pages = renderSite([project("Projects")], generatedAt);
     const overview = pages.find((p) => p.path === "projects.html")!;
-    expect(overview.html).toContain("<h2>Projects</h2>");
+    // Still the overview's file, whatever it holds — since spec 115 the
+    // way on to the served page.
+    expect(overview.html).toContain('<a href="/projects">');
     expect(pages.map((p) => p.path)).toContain("projects-2.html");
   });
 
@@ -123,15 +126,18 @@ describe("nav (criterion 2)", () => {
   test("the nav lists no project pages, and no Projects label", () => {
     for (const page of site) {
       expect(page.html).not.toContain('<li class="lbl">Projects</li>');
-      expect(page.html).toContain('href="projects.html"');
+      // Spec 115: the entry points at the SERVED page, not at the file.
+      expect(page.html).toContain('href="/projects"');
       expect(page.html).not.toMatch(/<nav>[\s\S]*href="goodproj.html"[\s\S]*<\/nav>/);
     }
   });
 
-  test("the Projects page links to every project page", () => {
-    const html = byPath.get("projects.html")!;
-    expect(html).toContain('href="goodproj.html"');
-    expect(html).toContain('href="brokenproj.html"');
+  // Criterion 9 (spec 115), at the source: one entry, retargeted at the
+  // served page. `navFromSite()` in serve.ts is a SEPARATE fallback and
+  // deliberately still answers `projects.html` — serve.test.ts holds
+  // that half.
+  test("the Projects entry points at the served page", () => {
+    expect(navEntries([healthy, broken])[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
   // The spec list is the front page (spec 100) and the wordmark is the
@@ -143,7 +149,7 @@ describe("nav (criterion 2)", () => {
       const links = [...navHtml.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links).toEqual([["Projects", "projects.html"], ["About", "about.html"]]);
+      expect(links).toEqual([["Projects", "/projects"], ["About", "about.html"]]);
       expect(page.html).toContain('<a class="brand" href="/">');
     }
   });
@@ -152,7 +158,7 @@ describe("nav (criterion 2)", () => {
     for (const page of site) {
       const currents = [...page.html.matchAll(/<a class="current" href="([^"]+)"/g)];
       expect(currents).toHaveLength(1);
-      const expected = page.path === "about.html" ? "about.html" : "projects.html";
+      const expected = page.path === "about.html" ? "about.html" : "/projects";
       expect(currents[0][1]).toBe(expected);
     }
   });
@@ -193,36 +199,37 @@ describe("the theme choice in the nav (spec 107)", () => {
   });
 });
 
-describe("overview (criterion 3)", () => {
+// Spec 115: the listing itself moved to the SERVED `/projects`, where
+// the panel that changes the list can sit beside it. What the generator
+// still writes at this filename is a redirect — the file has to keep
+// existing (`rsync-publish.sh` will not publish a site without it, and
+// people have bookmarked it), but the reader belongs on the served page.
+// The listing's own tests went with it, to projects-page.test.ts.
+describe("the generated overview is a redirect to /projects", () => {
   const index = byPath.get("projects.html")!;
 
-  test("a Projects heading above the project rows", () => {
-    expect(index).toContain("<h2>Projects</h2>");
+  test("it sends the reader on, keeping whatever the address carried", () => {
+    expect(index).toContain("location.replace('/projects' + location.search)");
   });
 
-  // Read on a phone, the explanation filled the screen before anything
-  // the reader came for. It is documentation, not status: the counts
-  // belong here, the rest belongs on its own page in the menu.
-  test("the counts are here; the explanation is not", () => {
-    expect(index).toContain("2 projects · 1 active · 1 archived");
-    expect(index).not.toContain("read-only overview");
+  // The script is the fast path, not the only one: a browser with
+  // JavaScript off, or a folder opened without a server, still has
+  // something to click.
+  test("a plain link too, for a reader the script never reaches", () => {
+    expect(index).toContain('<a href="/projects">');
+    expect(index.toLowerCase()).toContain("moved");
   });
 
-  test("linked name, description and normative counts per project", () => {
-    expect(index).toContain('href="goodproj.html"');
-    expect(index).toContain("A healthy project");
-    expect(index).toContain("1 active · 1 archived");
-  });
-
-  test("broken project marked as error with the parse error text", () => {
-    expect(index).toMatch(/class="[^"]*error[^"]*"/);
-    expect(index).toContain("YAML parse error at line 3");
-  });
-
-  test("generated-at stamp, and no tables on the overview", () => {
-    expect(index).toContain(generatedAt);
-    expect(index).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+  test("it lists nothing itself — that is the served page's job now", () => {
+    expect(index).not.toContain('class="proj-row"');
+    expect(index).not.toContain("2 projects · 1 active · 1 archived");
+    expect(index).not.toContain("Manage projects");
     expect(index).not.toContain("<table");
+  });
+
+  test("it is still a page of the site, nav and stamp and all", () => {
+    expect(index).toContain("<nav>");
+    expect(index).toContain(generatedAt);
   });
 });
 
@@ -242,7 +249,7 @@ describe("the About page", () => {
 
   test("it carries the shared nav and marks itself current", () => {
     const page = byPath.get("about.html")!;
-    expect(page).toContain('<a href="projects.html">Projects</a>');
+    expect(page).toContain('<a href="/projects">Projects</a>');
     expect(page).toContain('<a class="current" href="about.html">About</a>');
   });
 
@@ -2982,101 +2989,37 @@ describe("spec 108: one rule per phase", () => {
   });
 });
 
-// --- spec 112: the Projects panel --------------------------------------------
+// --- spec 115: the Projects panel left the front page ------------------------
 //
-// Adding and removing a project is a mutating, token-gated action, so it
-// lives where every other one already does: the dynamic `/` page. The
-// static overview keeps carrying no form, no script and no token — it
-// gets a link to `/` instead.
-describe("the Projects panel on /", () => {
+// It was here because a generated file had no server behind it to check
+// a token against (spec 112). `/projects` is served now, so the panel
+// sits on the page that lists what it changes — and `/` is back to one
+// panel above the list. Its own tests live in projects-page.test.ts.
+describe("the front page after the panel moved", () => {
   const page = (opts: Partial<QueuePageOptions> = {}): string =>
-    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
       runnerAvailable: true,
       targets: [],
       ...opts,
     });
 
-  /** The panel's markup, from its own disclosure to the end of it. */
-  const panel = (html: string): string => {
-    const at = html.indexOf('<details class="newspec projectadmin">');
-    expect(at).toBeGreaterThan(-1);
-    return html.slice(at, html.indexOf("</details>", html.lastIndexOf("</form>")) + 10);
-  };
-
-  // Criterion 11.
-  test("the Add form asks for what cannot be derived, and posts to the new route", () => {
-    const form = panel(page({ createProjects: ["aide"] }));
-    expect(form).toContain('action="/api/queue/projects"');
-    expect(form).toContain('name="name"');
-    expect(form).toContain('name="gitUrl"');
-    expect(form).toContain('name="existingPath"');
-    expect(form).toContain('name="specsPath"');
-    expect(form).toContain('name="description"');
-    // The same refusal slot the New-spec form has, and for the same
-    // reason: a project that was never added has no row to land on.
-    expect(form).toContain('class="refused rowmsg err"');
+  test("no Projects disclosure under New spec", () => {
+    const html = page({ createProjects: ["aide", "atlasaurus"] });
+    // The MARKUP, not the word: the stylesheet is inlined into every
+    // page and still carries the panel's rules, for the page that has it.
+    expect(html).not.toContain('<details class="newspec projectadmin">');
+    expect(html).not.toContain('action="/api/queue/projects"');
+    expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("it is offered before there is a single project to list", () => {
-    const form = panel(page({ createProjects: [] }));
-    expect(form).toContain('action="/api/queue/projects"');
-  });
-
-  // Criterion 12: the copy 1-description.md asks for.
-  test("the Add form says the manifest it writes is minimal", () => {
-    const form = panel(page({ createProjects: ["aide"] }));
-    expect(form).toContain("/aide-manifest");
-    expect(form.toLowerCase()).toContain("minimal");
-  });
-
-  // Criterion 11: one row per allowed project, each with its own Remove.
-  test("every allowlisted project has a Remove of its own", () => {
-    const form = panel(page({ createProjects: ["aide", "atlasaurus"] }));
-    expect(form).toContain('action="/api/queue/projects/aide/remove"');
-    expect(form).toContain('action="/api/queue/projects/atlasaurus/remove"');
-    expect(form).toContain('data-confirm="atlasaurus"');
-    expect(form).toContain('name="confirm"');
-  });
-
-  // Criterion 13: what removal MEANS, before the field that does it.
-  test("Remove says what it does and does not do, before the confirmation field", () => {
-    const form = panel(page({ createProjects: ["atlasaurus"] }));
-    const said = form.slice(form.indexOf('action="/api/queue/projects/atlasaurus/remove"'));
-    const copy = said.slice(0, said.indexOf('name="confirm"'));
-    expect(copy).toContain("allowlist");
-    expect(copy.toLowerCase()).toContain("checkout");
-    expect(copy.toLowerCase()).toContain("specs");
-    // The typed confirmation is a real gate: the name has to be typed
-    // back, the browser turns the button off until it matches
-    // (`data-confirm`), and the server refuses a mismatch either way.
-    // The button is rendered ENABLED on purpose — one the server
-    // disabled could never be enabled again with script off.
-    expect(said).toContain('data-confirm="atlasaurus"');
-    expect(said).not.toContain("disabled");
-  });
-
-  test("the panel sits outside #jobrows, so the five-second swap cannot wipe it", () => {
+  test("New spec is still there, and still outside #jobrows", () => {
     const html = page({ createProjects: ["aide"] });
-    expect(html.indexOf('<details class="newspec projectadmin">')).toBeLessThan(
-      html.indexOf('<div id="jobrows">'),
-    );
+    expect(html.indexOf('<details class="newspec">')).toBeGreaterThan(-1);
+    expect(html.indexOf('<details class="newspec">')).toBeLessThan(html.indexOf('<div id="jobrows">'));
   });
-});
 
-describe("the static overview points at where projects are managed", () => {
-  // Criterion 14.
-  test("projects.html links to / and stays free of forms, script and tokens", () => {
-    const pages = renderSite([project("alpha")], "2026-08-18T00:00:00Z");
-    const overview = pages.find((p) => p.path === "projects.html")!.html;
-    expect(overview).toContain('<a href="/">Manage projects');
-    // The boundary the link exists to respect: the generated pages
-    // carry nothing that needs the token. The theme script in the shell
-    // is not an exception — it is on every page, talks to nobody, and
-    // predates this (spec 107).
-    expect(overview).not.toContain("<form");
-    expect(overview).not.toContain('name="token"');
-    expect(overview).not.toContain("?token=");
-    expect(overview).not.toContain("/api/");
+  test("the nav takes the reader to the page that manages them", () => {
+    expect(page()).toContain('href="/projects"');
   });
 });
 
