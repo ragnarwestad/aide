@@ -29,6 +29,9 @@ interface Reply {
   ok: boolean;
   body?: unknown;
   throws?: boolean;
+  /** Hold the request open until this settles — for what happens
+   *  WHILE a press is in flight. */
+  hold?: Promise<void>;
 }
 
 /** What each control is called before and during its request. The
@@ -122,6 +125,7 @@ function harness(reply: (url: string) => Reply, formClass = "mergeform", search 
     requests.push({ url: at, init });
     const r = reply(at);
     if (r.throws) throw new Error("offline");
+    if (r.hold) await r.hold;
     return {
       ok: r.ok,
       json: async () => r.body,
@@ -139,11 +143,15 @@ function harness(reply: (url: string) => Reply, formClass = "mergeform", search 
   }
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
+  let tick: () => void = () => {};
   new Function("document", "location", "fetch", "setInterval", "history", "FormData", SOURCE)(
     document,
     location,
     fetchStub,
-    () => 0,
+    (fn: () => void) => {
+      tick = fn;
+      return 0;
+    },
     history,
     FakeFormData,
   );
@@ -176,7 +184,7 @@ function harness(reply: (url: string) => Reply, formClass = "mergeform", search 
 
   return {
     submit, submitCreate, button, createButton, requests, location, rows, inserted,
-    replaced, slot, details, resets,
+    replaced, slot, details, resets, document, tick: () => tick(),
   };
 }
 
@@ -215,6 +223,32 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     await h.submit();
     expect(swapUrl(h)).toContain("rows=1");
     expect(h.rows.innerHTML).toBe("<tr></tr>");
+  });
+
+  // The five-second tick swaps `#jobrows` from the server. While a press
+  // is in flight the server still shows the OLD state, so a swap in that
+  // window put back an untouched "Merge the plan" over the "merging…"
+  // the press had just shown — seen on 2026-08-19: no feedback, then a
+  // jump. The tick waits while anything is in flight.
+  test("the tick does not swap the rows while a press is in flight", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: OK_MERGE, hold: held } : { ok: true }));
+    h.document.visibilityState = "visible";
+    const pressed = h.submit();
+    await Promise.resolve();
+    h.tick();
+    await Promise.resolve();
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(0);
+    expect(h.button.textContent).toBe("merging…");
+    release();
+    await pressed;
+    // Once the answer is in, the rows are fetched (criterion 11) — once.
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(1);
+    h.tick();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(2);
   });
 
   test("a merge that cannot be sent at all reloads rather than lying (criterion 12)", async () => {

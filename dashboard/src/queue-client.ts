@@ -14,6 +14,8 @@
 // selection left to react to and none of that code has a caller.
 
 const REFRESH_MS = 5000;
+/** Presses whose request has not answered yet. The tick waits for zero. */
+let inFlight = 0;
 
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
@@ -117,6 +119,7 @@ async function postForm(
   const primary = buttons[0];
   const label = primary?.textContent ?? "";
   for (const b of buttons) b.disabled = true;
+  inFlight += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
   // these buttons takes seconds, and a button that looks untouched for
   // that long reads as a button that did not register the click. What
@@ -150,6 +153,7 @@ async function postForm(
     // the always-correct answer, because it asks the server again.
     location.href = "/";
   } finally {
+    inFlight -= 1;
     // `isConnected` because a successful swapRows has already replaced
     // this form with a fresh one from the server.
     if (primary?.isConnected) primary.textContent = label;
@@ -245,9 +249,13 @@ async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> 
 }
 
 // Pause while the tab is hidden: nobody is reading, and the mini has
-// better things to do than answer a closed laptop.
+// better things to do than answer a closed laptop. And pause while a
+// press is in flight: the server still shows the OLD state until it
+// answers, so a swap in that window would put an untouched button back
+// over the "merging…" the press just showed — the click looked
+// unregistered, and then the row jumped.
 function tick(): void {
-  if (document.visibilityState === "visible") void swapRows();
+  if (document.visibilityState === "visible" && inFlight === 0) void swapRows();
 }
 
 // Delegated from the container, because the controls are replaced along
