@@ -23,6 +23,7 @@
   - [The guard](#the-guard)
   - [Spacing lives in the container, not the component (spec 120)](#spacing-lives-in-the-container-not-the-component-spec-120)
   - [One busy flag, not a per-step lookup (spec 105)](#one-busy-flag-not-a-per-step-lookup-spec-105)
+  - [A structural marker with no CSS rule uses data-*, not a class (spec 123)](#a-structural-marker-with-no-css-rule-uses-data--not-a-class-spec-123)
   - [Theme choice (spec 107)](#theme-choice-spec-107)
   - [Header and tab bar, not a sidebar (spec 119)](#header-and-tab-bar-not-a-sidebar-spec-119)
 - [Deploying](#deploying)
@@ -742,6 +743,18 @@ keep. Every control that can act on a busy row — the phase boxes, the
 Run button, the model/gate/"also touches" fields, and both callers of
 the Merge button (collapsed and opened) — reads the same flag, so a
 new control cannot forget to check it.
+
+### A structural marker with no CSS rule uses data-*, not a class (spec 123)
+
+`test/css-token-guard.test.ts` holds render files to a closed class
+vocabulary (see [The guard](#the-guard)). A render change that needs to
+mark up a structural role — nothing to style, just something a test or
+a future render pass needs to find — should not grow that vocabulary
+for a class that carries no CSS rule. Spec 123's per-phase caption row
+(`Phase` / `Model` above the phase lines' pickers) is marked
+`data-caption="1"` instead of a class for exactly this reason: adding
+it to the guard's allow-list would have been accepted, but every entry
+there is meant to declare tokens, and this one declares nothing.
 
 ### Theme choice (spec 107)
 
