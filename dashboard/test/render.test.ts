@@ -1868,31 +1868,82 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
   });
 });
 
-describe("spec 101: the intro is out of the way (criterion 10)", () => {
+describe("spec 113: New spec is a real button and the form lays out cleanly", () => {
   const page = (opts: Partial<QueuePageOptions> = {}) =>
-    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets: [],
+      createProjects: ["aide"],
+      ...opts,
+    });
+
+  test("the New-spec summary carries the primary button classes", () => {
+    expect(page()).toContain('<summary class="btn primary">New spec</summary>');
+  });
+
+  test("Create sits before Description, not after it", () => {
+    const html = page();
+    const createAt = html.indexOf("Create</button>");
+    const descAt = html.indexOf('<textarea name="description"');
+    expect(createAt).toBeGreaterThan(-1);
+    expect(descAt).toBeGreaterThan(-1);
+    expect(createAt).toBeLessThan(descAt);
+  });
+});
+
+describe("spec 113: the runs explanation is a popover beside the filter chips", () => {
+  const page = (opts: Partial<QueuePageOptions> = {}) =>
+    renderQueuePage([], "2026-08-19T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [],
       ...opts,
     });
 
-  test("the intro is behind a closed disclosure, not standing above the list", () => {
-    const html = page();
-    expect(html).toContain('<details class="intro">');
-    // Closed by default: `<details open>` would be the same paragraph
-    // with an extra click's worth of markup around it.
-    expect(html).not.toContain('<details class="intro" open');
-    expect(html).not.toContain('<p class="intro">');
-    // The copy itself is unchanged — this is where it is, not what it says.
-    expect(html).toContain("A job that hits a cap is");
+  // Everything the rows renderer puts out ahead of the table — which is
+  // the filter bar and nothing else.
+  const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list">'));
+
+  test("no explanation stands between the notices and the New-spec form", () => {
+    const html = page({ createProjects: ["aide"] });
+    // The only `.intro` disclosure left on this page is inside the
+    // refreshed rows container, so it comes after that container opens
+    // — and after the New-spec form, which stays outside it.
+    expect(html.indexOf('<details class="intro">')).toBeGreaterThan(html.indexOf('id="jobrows"'));
+    expect(html.indexOf('<details class="newspec">')).toBeLessThan(
+      html.indexOf('<details class="intro">'),
+    );
   });
 
-  test("the runner-unavailable notice stays outside it", () => {
+  test("the runner-unavailable notice still needs no click", () => {
     const html = page({ runnerAvailable: false });
     expect(html).toContain("No runner is installed");
     // "nothing here spends money" is safety-relevant context and must
     // not need a click.
-    expect(html.indexOf("No runner is installed")).toBeLessThan(html.indexOf('<details class="intro">'));
+    expect(html.indexOf("No runner is installed")).toBeLessThan(
+      html.indexOf('<details class="intro">'),
+    );
+  });
+
+  test("the popover sits in the filter bar when only one project has specs", () => {
+    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    expect(bar).toContain('<details class="intro">');
+    expect(bar).toContain(">?</summary>");
+  });
+
+  test("it sits there with several projects too, after the chips", () => {
+    const bar = beforeTable(
+      renderQueueRows([row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })], {
+        runnerAvailable: true,
+        targets: [],
+      }),
+    );
+    expect(bar).toContain("Project");
+    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf("Project"));
+  });
+
+  test("the copy still says what happens to a job that hits a cap", () => {
+    const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
+    expect(bar).toContain("<em>stopped</em>");
   });
 });
 

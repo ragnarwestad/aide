@@ -516,6 +516,23 @@ function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string 
   );
 }
 
+// What the page used to say in a paragraph above the list: how runs
+// work here. A front page does not open with four sentences a returning
+// reader has read, so the same facts sit behind a "?" beside the filter
+// chips instead. It is inside `#jobrows`, so it shuts again on the
+// five-second refresh — the same as `moreRow`'s own disclosure, and
+// fine for the same reason: nothing here is being typed into.
+function runsHelp(): string {
+  return (
+    `<details class="intro"><summary title="How runs work here" ` +
+    `aria-label="How runs work here">?</summary>` +
+    `<p>A few jobs run side by side here, each in a checkout of its own, ` +
+    `and never two on the same spec. Every step is bounded by its own ` +
+    `budget and a wall clock — a job that hits either cap is ` +
+    `<em>stopped</em>, not failed.</p></details>`
+  );
+}
+
 function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   const chips = (
     name: string,
@@ -552,7 +569,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
   );
 
   const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="row">${states}</div>`;
+  if (names.length < 2) return `<div class="row">${states}${runsHelp()}</div>`;
   const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
@@ -564,7 +581,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
       patch: { project: p },
     })),
   ]);
-  return `<div class="row">${states}${projects}</div>`;
+  return `<div class="row">${states}${projects}${runsHelp()}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -1097,7 +1114,12 @@ function newSpecForm(opts: QueuePageOptions): string {
   const projects = opts.createProjects ?? [];
   if (projects.length === 0) return "";
   return (
-    `<details class="newspec"><summary>New spec</summary>` +
+    // The page's one creating action, and it read as grey disclosure
+    // text. It stays a `<details>`/`<summary>` pair — that is what
+    // opens it without script, and what `queue-client.ts` closes on a
+    // successful create — but it wears the same primary-button look as
+    // every other action here.
+    `<details class="newspec"><summary class="btn primary">New spec</summary>` +
     `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
     field(
       "Project",
@@ -1111,13 +1133,17 @@ function newSpecForm(opts: QueuePageOptions): string {
       `<input type="text" name="title" maxlength="120" required ` +
         `placeholder="what the spec is about, in a few words">`,
     ) +
+    // Create belongs on the first line with the short fields, not under
+    // the textarea it used to touch. `.field.wide` is `flex-basis:100%`,
+    // so Description breaks the wrapping row on its own; anything after
+    // it in the markup lands underneath it.
+    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
     field(
       "Description",
       `<textarea name="description" rows="4" maxlength="2000" required ` +
         `placeholder="the problem, and what you want instead"></textarea>`,
       { wide: true },
     ) +
-    btn({ label: "Create", variant: "primary", pending: "creating…" }) +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
     // the way there is for every other action — and the page-level
@@ -1357,17 +1383,6 @@ export function renderQueuePage(
       `queued jobs stay queued, and nothing here spends money.</p>\n`;
   const body =
     notice +
-    // Shut by default, like the New-spec form beside it and for the same
-    // reason: four sentences that never change were the one static block
-    // left standing between the page's title and the list, on every
-    // load, for a reader who has read them. The runner notice above is
-    // NOT folded in with them — "nothing here spends money" is safety
-    // context and must not need a click.
-    `<details class="intro"><summary>How runs work here</summary>` +
-    `<p>aide runs on this machine: a few jobs side by side, each in ` +
-    `a checkout of its own, and never two on the same spec. Every step is ` +
-    `bounded by its own budget and a wall clock. A job that hits a cap is ` +
-    `<em>stopped</em>, not failed.</p></details>\n` +
     // The fallback, and only that. A refusal that names its spec is
     // shown on that spec's own row (`specHeadRow`) — the page lists up
     // to 25 of them, so the banner said nothing about which button was
