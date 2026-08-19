@@ -1049,23 +1049,21 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 // four boxes and a button on the line the row opens to, with the three
 // rarely-set fields at the end of that same line (`controlsRow`).
 function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
-  // Run while any phase is still to run for the first time; Run again
-  // only once every phase has — a spec with `archive` pre-ticked and
-  // never run was offering "Run again" for it. While a job is in flight
-  // the control reads as busy AND is disabled: it used to be only the
-  // first, with a title inviting the reader to tick a phase the job did
-  // not hold — the exact press the queue then refused.
+  // Always "Run" — never "Run again". The again-variant tried to say
+  // whether anything was left to run for the first time, guessed wrong
+  // at the edges (archive ticked but not run still said "again"), and
+  // the ticked boxes already say exactly what a press will do. Asked
+  // for 2026-08-19: "om det er 'igjen' eller ei klarer vi ikke holde
+  // orden på". While a job is in flight the control reads as busy AND
+  // is disabled: it used to be only the first, with a title inviting
+  // the reader to tick a phase the job did not hold — the exact press
+  // the queue then refused.
   const busy = specBusy(g);
-  // Archive is left out on purpose: a spec whose folder actually moved
-  // has left this page altogether (`serve.ts` drops archived specs), so
-  // archive can never be true for a row that is here to read. Requiring
-  // it would make "Run again" unreachable for every spec there is.
-  const allDone = QUEUE_STEPS.filter((s) => s !== "archive").every((s) => g.done.includes(s));
   // Plain disabled while busy — never the busy VARIANT, whose built-in
   // spinner would stand beside the running phase chip's: the row has
   // one spinner, and the chip holds it (2026-08-19).
   const run = btn({
-    label: allDone ? "Run again" : "Run",
+    label: "Run",
     variant: busy ? "" : "primary",
     pending: "starting…",
     disabled: busy,

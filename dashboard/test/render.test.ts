@@ -3092,16 +3092,14 @@ describe("spec 108: one rule per phase", () => {
     expect(analyze).toContain("last re-run cancelled");
   });
 
-  test("with every phase but archive done the button reads Run again (criterion 3)", () => {
+  // Criterion 3's "Run again" wording was retired 2026-08-19: the
+  // button says Run whatever has already run.
+  test("with every phase but archive done the button still just reads Run", () => {
     const html = rows([], [target("108-ready", { done: BUILT })]);
     expect(pipFor(html, "archive")).toBe("todo");
     expect(subRow(html, "archive")).toContain("not run yet");
-    expect(runLine(html)).toContain("Run again");
-  });
-
-  test("a spec with work still ahead of it does not offer Run again (criterion 3)", () => {
-    const html = rows([], [target("108-half-way", { done: ["analyze"] })]);
     expect(runLine(html)).not.toContain("Run again");
+    expect(runLine(html)).toContain(">Run</button>");
   });
 
   test("an archive run that declined reads held back, not done (criterion 4)", () => {
@@ -3517,10 +3515,11 @@ describe("spec 116: create is the first phase line", () => {
     expect(hint(withCreate)).toBe("ready for review");
     expect(runLine(withCreate)).toContain(">Run</button>");
     expect(runLine(withoutCreate)).toContain(">Run</button>");
-    // "Run again" still means the four runnable phases bar archive —
-    // create being done or not cannot reach it.
+    // And with everything built the button still just reads Run — the
+    // again-variant went 2026-08-19.
     const allBuilt = rows([analyzed], [target("116-status", { done: ["analyze", "review-plan", "implement"] })]);
-    expect(runLine(allBuilt)).toContain("Run again");
+    expect(runLine(allBuilt)).not.toContain("Run again");
+    expect(runLine(allBuilt)).toContain(">Run</button>");
   });
 
   // --- criterion 8: once, at the front, never twice --------------------------

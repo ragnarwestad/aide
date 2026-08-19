@@ -941,9 +941,10 @@ describe("the files say what has happened, not the queue's history", () => {
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/class="phase[^"]*done" data-phase="implement"/);
     expect(html).toMatch(/value="archive" checked/);
-    // Everything but archive done — which is what "Run again" means for
-    // a spec still on this page (spec 108, criterion 3).
-    expect(html).toContain("Run again");
+    // The button says Run whatever has already run — the again-variant
+    // went 2026-08-19.
+    expect(html).not.toContain("Run again");
+    expect(html).toContain(">Run</button>");
   });
 
   test("a spec whose archive run declined says why, on the row and in the sentence", async () => {
