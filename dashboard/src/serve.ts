@@ -335,13 +335,19 @@ function queueClientScript(): string | undefined {
 
 // Which workflow steps a spec has already had. Read off the files
 // themselves, so the answer cannot drift from what is on disk:
+//   * create — the folder exists at all
 //   * analyze — 2-analysis.md is no longer the placeholder
 //   * review-plan — 3-solution.md carries a "Plan review" section
 //   * implement — the status file reports 100%
 // A finished step is MARKED, not forbidden: re-analyzing after the code
 // has moved on is a legitimate thing to want.
 function stepsAlreadyDone(specDir: string, percent: number | undefined): string[] {
-  const done: string[] = [];
+  // `create`'s file-truth is that this folder EXISTS — which it does, by
+  // construction: this function only ever runs against a directory
+  // `discoverProjects` already found on disk (spec 116). The three
+  // checks below each exist because their truth is not implied by the
+  // folder alone; create's is, so it needs no read.
+  const done: string[] = ["create"];
   const read = (name: string): string => {
     try {
       return readFileSync(join(specDir, name), "utf-8");
