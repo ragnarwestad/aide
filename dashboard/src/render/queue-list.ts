@@ -654,24 +654,12 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
       `</form>`
     );
   }
-  // Two controls, not one button that flips: a button re-enabled the
-  // moment someone notices is still the default action in every way
-  // that matters — same size, same place, one click. Merging mid-job
-  // stays possible for someone who MEANS it, which is what makes the
-  // small one behind a confirmation the right shape.
-  //
-  // The confirm text is fixed on purpose. Interpolating the step or the
-  // repo names would put render-time strings inside a JS string literal
-  // inside an HTML attribute — two escaping contexts at once, for a
-  // sentence that needs neither.
-  return (
-    `<span class="mergeform">` +
-    btn({ label, type: "button", disabled: true, title: names }) +
-    ` <form method="post" action="${action}" class="mergeoverride" ` +
-    `onsubmit="return confirm('This spec still has a step running. Merge anyway?')">${hidden}` +
-    btn({ label: "merge anyway", small: true, pending: "merging…", title: names }) +
-    `</form></span>`
-  );
+  // While a step is running the button is disabled and that is all.
+  // There used to be a small "merge anyway" beside it, behind a
+  // confirm — never used on purpose, used twice by accident (a plan
+  // merged mid-review), and meaningless to read without the context.
+  // Merging mid-job means cancelling the job first; that is honest.
+  return `<span class="mergeform">${btn({ label, type: "button", disabled: true, title: names })}</span>`;
 }
 
 // What a COLLAPSED row may ask of the reader: the one thing the spec

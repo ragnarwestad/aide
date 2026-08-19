@@ -86,7 +86,7 @@ function afterMergeNote(text: string): void {
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
  *  they ask the server, not in what pressing them should look like. */
-const ACTIONS = "form.rowrun, form.actionform, form.mergeform, form.mergeoverride";
+const ACTIONS = "form.rowrun, form.actionform, form.mergeform";
 
 interface ActionResult {
   ok?: boolean;
@@ -188,10 +188,8 @@ async function showRefusal(why: string, spec: string | undefined): Promise<void>
 }
 
 async function submitAction(event: Event): Promise<void> {
-  // The override form asks `confirm()` from its own onsubmit, which runs
-  // BEFORE this delegated one and cancels the event when the answer is
-  // no. Without this line, cancelling the dialog would merge anyway —
-  // the exact opposite of what the dialog is for.
+  // A form that cancelled its own submit (an `onsubmit` that returned
+  // false) is not ours to post.
   if (event.defaultPrevented) return;
   const form = (event.target as Element | null)?.closest?.(ACTIONS) as HTMLFormElement | null;
   if (!form) return;

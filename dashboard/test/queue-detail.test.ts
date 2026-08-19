@@ -406,15 +406,14 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
     expect(html).toContain("Merge the plan and the code");
   });
 
-  // Not gone — behind a confirmation, and visibly not the default
-  // action. Merging mid-job stays possible for someone who means it.
-  test("an override still posts to the same route, behind a confirm (criterion 2)", async () => {
+  // Gone since 2026-08-19: the small "merge anyway" behind a confirm was
+  // never used on purpose and read as nonsense without its context.
+  // Merging mid-job means cancelling the job first.
+  test("no override beside the disabled button while a step runs", async () => {
     const html = await listWith(await seededWith(BOTH, "running"));
-    expect(html).toContain('class="mergeoverride"');
-    expect(html).toContain("confirm(");
-    expect(html).toContain("merge anyway");
-    // The same route as the ordinary button — no second endpoint.
-    expect(html.match(/action="\/api\/queue\/[^"]+\/merge"/g)).toHaveLength(1);
+    expect(html).not.toContain('class="mergeoverride"');
+    expect(html).not.toContain("merge anyway");
+    expect(html).not.toContain("confirm(");
   });
 
   test("a finished job's button is enabled, with no override beside it", async () => {

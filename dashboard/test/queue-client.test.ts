@@ -39,7 +39,6 @@ interface Reply {
  *  only has to carry it the way the DOM would. */
 const CONTROLS: Record<string, { label: string; pending: string; action: string }> = {
   mergeform: { label: "Merge the code", pending: "merging…", action: "http://dash.test/api/queue/job-1/merge" },
-  mergeoverride: { label: "Merge the code", pending: "merging…", action: "http://dash.test/api/queue/job-1/merge" },
   rowrun: { label: "Run", pending: "starting…", action: "http://dash.test/api/queue" },
   actionform: { label: "Approve", pending: "approving…", action: "http://dash.test/api/queue/job-1/approve" },
 };
@@ -285,11 +284,10 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     expect(h.inserted).toHaveLength(0);
   });
 
-  // The override form asks confirm() from its own onsubmit and cancels
-  // the event when the answer is no. A delegated handler that ignored
-  // that would merge anyway — the opposite of what the dialog is for.
-  test("a cancelled confirmation merges nothing", async () => {
-    const h = harness(() => ({ ok: true, body: OK_MERGE }), "mergeoverride");
+  // A form whose own onsubmit cancelled the event is not ours to post:
+  // a delegated handler that ignored that would post anyway.
+  test("a submit that was already cancelled posts nothing", async () => {
+    const h = harness(() => ({ ok: true, body: OK_MERGE }), "mergeform");
     await h.submit({ defaultPrevented: true });
     expect(h.requests).toHaveLength(0);
     expect(h.button.disabled).toBe(false);

@@ -267,7 +267,7 @@ table.list tr.untried td { opacity: 0.55; }
 .pip.now { background: var(--accent); }
 
 /* --- rows and forms ----------------------------------------------------- */
-/* "rowrun", "actionform", "mergeform", "mergeoverride", "newspecform",
+/* "rowrun", "actionform", "mergeform", "newspecform",
    "refused" and "refusal" are what queue-client.ts selects on. They are
    laid out here and coloured nowhere: a rename breaks the browser code
    with no type error to catch it. */
