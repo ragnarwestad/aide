@@ -23,6 +23,7 @@
   - [The guard](#the-guard)
   - [One busy flag, not a per-step lookup (spec 105)](#one-busy-flag-not-a-per-step-lookup-spec-105)
   - [Theme choice (spec 107)](#theme-choice-spec-107)
+  - [Header and tab bar, not a sidebar (spec 119)](#header-and-tab-bar-not-a-sidebar-spec-119)
 - [Deploying](#deploying)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
@@ -750,6 +751,29 @@ This is a separate mechanism from `opts.script` (end-of-body,
 served-`/`-only, unchanged) — a page can now carry two `<script>` tags,
 so a test that locates "the" script by first occurrence will silently
 grab the wrong one; find each by a substring unique to its content.
+
+### Header and tab bar, not a sidebar (spec 119)
+
+Every page's `<body>` is `header + nav.tabs + main` now — `pageShell()`
+no longer wraps a `.layout` flex-row around a sidebar `nav()` and
+`main`. `nav()` is gone; `shell.ts` builds `pageHeader()` (the wordmark,
+then a "..." menu) and `tabBar()` (Specs/Projects) instead, and the
+sidebar's ~12rem reserved column is gone with it.
+
+The "..." menu is a `<details>`/`<summary>` disclosure, the same pattern
+`.more`, `.newspec` and `.intro` already used — not a JS-driven popover.
+That keeps `queue-routes.test.ts`'s "no page script beyond the theme
+switcher" guarantee true by construction and keeps the menu working with
+JavaScript off, like every other control on the site. The tab bar reuses
+`filterPills()` in its `"page"` mode (the same call the job detail page
+already made for its own tabs), which is why `filterPills()` now omits
+the `<span class="lbl">` wrapper when its `label` argument is `""` — a
+page-level tab bar needs no group caption, and the wrapper used to render
+empty regardless.
+
+`.layout`'s `min-height: 100vh` had no other rule carrying it — removing
+`.layout` without carrying that forward would have let short pages (an
+empty spec list) stop filling the viewport. It now sits on `body`.
 
 ## Deploying
 
