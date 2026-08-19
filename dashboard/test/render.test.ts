@@ -1974,10 +1974,122 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(text.toLowerCase()).toContain("merge");
   });
 
+  // Spec 111: the fixture had no `done` at all, which under spec 111's
+  // rule means "nothing has happened yet" — the opposite of what the
+  // test's own name claims. It passed only because the sentence never
+  // read the files. Every phase is named here, so "nothing left out"
+  // is what the fixture actually says.
   test("a finished spec with nothing left out does not ask for a merge", () => {
-    const text = hint(rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]));
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      ),
+    );
     expect(text).toContain("done");
     expect(text.toLowerCase()).not.toContain("merge");
+  });
+
+  // --- spec 111: the sentence names the next phase, not "nothing waiting" ---
+
+  // "done" is the JOB's state and is correct for the job. What the
+  // sentence beneath it used to say — nothing is waiting on you — was a
+  // claim about the SPEC, and the spec's own files already knew better.
+  // Same rule as spec 108: the files say what has happened.
+  test("a spec whose plan is done but not implemented is ready for implement", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["review-plan"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("ready for implement");
+  });
+
+  test("the next phase is named the way a reader sees it, not by its step name", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
+        [target("101-a", { done: ["analyze"] })],
+      ),
+    );
+    expect(text).toBe("ready for review");
+    expect(text).not.toContain("review-plan");
+  });
+
+  test("a spec with only archive left says so", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement"] })],
+      ),
+    );
+    expect(text).toBe("ready for archive");
+  });
+
+  // Precedence is the whole of the risk here: merging first still
+  // outranks starting the next phase, exactly as before.
+  test("an unmerged branch still outranks the phase that is ready", () => {
+    const text = hint(
+      rows(
+        [
+          row({
+            specFolder: "101-a",
+            steps: ["review-plan"],
+            state: "done",
+            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+          }),
+        ],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("done — the branch is waiting to be merged");
+    expect(text).not.toContain("ready for");
+  });
+
+  test("a spec with every phase behind it still says nothing is waiting", () => {
+    const text = hint(
+      rows(
+        [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
+        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      ),
+    );
+    expect(text).toBe("done — nothing waiting on you");
+  });
+
+  // The bug as reported, on spec 108, 2026-08-19: the plan run finished,
+  // its branch was merged, and the row said nothing waited on a reader
+  // while implement had never been started.
+  test("a merged plan branch with implement still to run says implement is ready", () => {
+    const text = hint(
+      rows(
+        [
+          row({
+            specFolder: "101-a",
+            steps: ["review-plan"],
+            state: "done",
+            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
+          }),
+        ],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
+      ),
+    );
+    expect(text).toBe("ready for implement");
+    expect(text).not.toContain("nothing waiting on you");
+  });
+
+  // A run that stopped short has better wording of its own — it says
+  // why, and what to press. "ready for X" must not widen into it.
+  test("a job that stopped short keeps its retry wording, whatever the files say", () => {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+      const text = hint(
+        rows(
+          [row({ specFolder: "101-a", steps: ["implement"], state })],
+          [target("101-a", { done: ["analyze", "review-plan"] })],
+        ),
+      );
+      expect(text).toBe("press Run to try implement again");
+    }
   });
 
   // Spec 108: archive is the one phase whose "done" the job's own exit

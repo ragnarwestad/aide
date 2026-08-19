@@ -190,11 +190,20 @@ export const branchActivity = (r: QueueRowView): string | undefined =>
  *
  *  `openBranch` is the spec's, not the job's: whether anything this spec
  *  pushed is still sitting unmerged. A finished job with nothing left
- *  out must not be told to merge something. */
+ *  out must not be told to merge something.
+ *
+ *  `readyPhase` is the spec's too, and for the same reason (spec 111):
+ *  the reader-facing word for the earliest phase the spec's own FILES
+ *  say has not happened, or nothing when none is left. A finished JOB
+ *  is not a finished SPEC — "nothing waiting on you" was being said to
+ *  a reader whose next phase was sitting there ready to start. The
+ *  caller works the phase out, so this stays a plain function of its
+ *  arguments and does not have to learn the queue page's phase list. */
 export function nextActionHint(
   r: QueueRowView | undefined,
   openBranch = false,
   archiveHeldBack?: string,
+  readyPhase?: string,
 ): string {
   if (!r) return "never run — tick a phase and press Run";
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
@@ -213,7 +222,12 @@ export function nextActionHint(
   // resolving it.
   if (archiveHeldBack) return `archive held back — ${archiveHeldBack}`;
   if (r.state === "done") {
-    return openBranch ? "done — the branch is waiting to be merged" : "done — nothing waiting on you";
+    if (openBranch) return "done — the branch is waiting to be merged";
+    // Spec 111: merging still comes first, and a phase left to run
+    // still beats "nothing waiting". Only a spec with every phase
+    // behind it has nothing waiting on anyone.
+    if (readyPhase) return `ready for ${readyPhase}`;
+    return "done — nothing waiting on you";
   }
   // failed, stopped, cancelled, interrupted: the chip beside this line
   // already says which of the four it was, and the row's own error text
