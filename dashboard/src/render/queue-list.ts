@@ -656,19 +656,16 @@ function mergeForm(g: SpecGroup, opts: QueuePageOptions, refused: boolean): stri
   const label = refused ? "Merge again" : mergeLabel(open, g, opts);
   const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
-  if (!inFlight(g.lead)) {
-    return (
-      `<form method="post" action="${action}" class="mergeform">${hidden}` +
-      btn({ label, pending: "merging…", title: names, variant: refused ? "" : "primary" }) +
-      `</form>`
-    );
-  }
-  // While a step is running the button is disabled and that is all.
-  // There used to be a small "merge anyway" beside it, behind a
-  // confirm — never used on purpose, used twice by accident (a plan
-  // merged mid-review), and meaningless to read without the context.
-  // Merging mid-job means cancelling the job first; that is honest.
-  return `<span class="mergeform">${btn({ label, type: "button", disabled: true, title: names })}</span>`;
+  // Only ever the ordinary button: both callers below refuse to invoke
+  // this while the spec is busy. It used to draw a disabled stand-in of
+  // its own instead — a second way of saying "not now", beside the one
+  // every other control on the row uses, on a row that has one thing to
+  // offer. Merging mid-job means cancelling the job first.
+  return (
+    `<form method="post" action="${action}" class="mergeform">${hidden}` +
+    btn({ label, pending: "merging…", title: names, variant: refused ? "" : "primary" }) +
+    `</form>`
+  );
 }
 
 // What a COLLAPSED row may ask of the reader: the one thing the spec
@@ -684,6 +681,11 @@ function collapsedAction(g: SpecGroup, opts: QueuePageOptions, refused: boolean)
   if (g.lead && g.lead.state === "awaiting-approval") {
     return actionForm(g.lead, opts.token, opts.filter, { approveOnly: true });
   }
+  // A branch an earlier job left behind does not make a busy row
+  // actionable: the step still running is writing to that very branch,
+  // and the merge would be refused. Nothing at all, then — Cancel stays
+  // one click away, by opening the row.
+  if (specBusy(g)) return "";
   return mergeForm(g, opts, refused);
 }
 
@@ -722,10 +724,27 @@ const stateCell = (r: QueueRowView): string =>
 const costCell = (spentUsd: number, blank: string): string =>
   spentUsd > 0 ? `$${spentUsd.toFixed(2)}` : blank;
 
-// A step the spec has already had is marked done and left unticked; a
-// step already queued or running is disabled, because the queue would
-// refuse it anyway and a button that says so before the press is kinder
-// than a refusal after it.
+/** Whether a job is in flight on this spec — queued, running, or parked
+ *  at a gate. ONE rule for the whole row, read off the SPEC and not off
+ *  the steps some job happens to name: the queue refuses a second job
+ *  on a spec that already has one (`clashing()`, queue.ts), so every
+ *  control the row draws beside Cancel would be promising a press the
+ *  server was going to turn down. `actionForm` already narrows itself
+ *  to Cancel (or Approve + Cancel); everything else on the row reads
+ *  THIS, so a control added later has one question to ask rather than a
+ *  rule to remember. */
+const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
+
+/** Why the row will not take a click, in the words the badge uses. One
+ *  sentence for the whole row: about the JOB, so every locked control
+ *  says the same thing rather than each wording it freshly. */
+const busyReason = (g: SpecGroup): string =>
+  g.lead ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
+
+// A step the spec has already had is marked done and left unticked;
+// EVERY step is disabled while a job is in flight on the spec, because
+// the queue would refuse a second one anyway and a box that says so
+// before the press is kinder than a refusal after it.
 //
 // What is TICKED depends on how far the spec has got. A spec nothing has
 // ever run pre-ticks `analyze` AND `review-plan` together — that pair as
@@ -746,38 +765,33 @@ const costCell = (spentUsd: number, blank: string): string =>
 // done already falls back to the ordinary rule rather than to nothing:
 // the pair exists to tick a spec's two STARTING phases, not to leave a
 // spec that is past them with no box ticked at all.
-function stepBoxes(g: SpecGroup): string {
+function stepBoxes(g: SpecGroup, busy: boolean): string {
   const done = new Set(g.done);
   const next = QUEUE_STEPS.find((s) => !done.has(s));
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
   const checked = new Set(g.lead || pair.length === 0 ? single : pair);
-  // Every step the job in flight was queued with, not merely the one it
-  // has reached. The server refuses a second job naming ANY of them
-  // (`clashing()`, queue.ts, tests the whole job against UNFINISHED), so
-  // a page that only greyed out the current step offered a box whose
-  // press could only ever be refused: a job queued as analyze +
-  // review-plan left review-plan tickable until the moment the job got
-  // to it. `g.lead` IS "whatever is in flight for this spec" — the same
-  // test the server makes — so this reads the answer rather than
-  // deriving a second one that can drift from it.
-  const busy = new Set(g.lead && inFlight(g.lead) ? g.lead.steps : []);
+  // Every box, not merely the ones the in-flight job was queued with.
+  // The server refuses a second job on a spec that already has one,
+  // whatever steps the two name (`clashing()`, queue.ts, tests the
+  // whole job against UNFINISHED) — so a job queued as `implement` left
+  // `analyze` tickable and a press away from a refusal. The question is
+  // about the SPEC ("is anything in flight here"), which is why it
+  // arrives as one flag rather than being re-derived per step.
+  //
   // Why the box will not take a click, on the label the pointer is
-  // already over. About the JOB, so every step it holds says the same
-  // sentence — and worded through `currentStep`/`stateLabel` rather
+  // already over — worded through `currentStep`/`stateLabel` rather
   // than freshly, because a spec's state and a phase's state must never
   // be worded differently.
-  const why = g.lead && busy.size ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
+  const why = busy ? busyReason(g) : "";
   // The step actually being WORKED gets the spinner; every other step
-  // the job holds gets the lock and the same sentence. Both are off —
-  // the difference is what a reader is being told, not what they can
-  // do. A queued job is spinning nothing yet, so none of its steps
-  // does either.
+  // gets the lock and the same sentence. Both are off — the difference
+  // is what a reader is being told, not what they can do. A queued job
+  // is spinning nothing yet, so none of its steps does either.
   const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
   return phases(
-    QUEUE_STEPS.map((s) => {
-      const off = busy.has(s);
-      return phaseChip({
+    QUEUE_STEPS.map((s) =>
+      phaseChip({
         // `data-phase`, not `data-step`: the phase LINES already carry
         // `data-step`, and a test enumerating them would find four
         // checkboxes on the header row as well.
@@ -787,13 +801,13 @@ function stepBoxes(g: SpecGroup): string {
         // the reader is shown `review`, never `review-plan`.
         label: stepLabel(s),
         name: "steps",
-        checked: checked.has(s) && !off,
+        checked: checked.has(s) && !busy,
         done: done.has(s),
-        busy: off && s === running,
-        disabled: off && s !== running,
-        title: off ? why : undefined,
-      });
-    }).join(""),
+        busy: busy && s === running,
+        disabled: busy && s !== running,
+        title: busy ? why : undefined,
+      }),
+    ).join(""),
   );
 }
 
@@ -807,7 +821,11 @@ const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.spec
 // steps. Built here rather than inside `moreRow` so the `form`
 // attribute every one of them needs is written once, beside the id it
 // has to match.
-function moreFields(g: SpecGroup, opts: QueuePageOptions): string {
+function moreFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+  // Three fields that set up a job, on a row where no job can be
+  // started: while the spec is busy every one of them is disabled, and
+  // each carries the same sentence the phase boxes do.
+  const why = busy ? busyReason(g) : "";
   // The heavy model is worth reserving for heavy work, so the choice is
   // explicit and the default is "whatever the config says per step".
   // Each option carries what it is granted per step, because that is the
@@ -825,7 +843,7 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions): string {
   const select = models.length
     ? field(
         "Model",
-        `<select name="model" form="${esc(formId)}">` +
+        `<select name="model" form="${esc(formId)}"${busy ? " disabled" : ""}>` +
           `<option value="">${esc(asConfigured)}</option>` +
           models
             .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
@@ -850,6 +868,8 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions): string {
                 label: p,
                 name: "extraProjects",
                 form: formId,
+                disabled: busy,
+                title: busy ? why : undefined,
               }),
             )
             .join(""),
@@ -867,6 +887,8 @@ function moreFields(g: SpecGroup, opts: QueuePageOptions): string {
     label: "stop for approval between steps",
     name: "gate",
     form: formId,
+    disabled: busy,
+    title: busy ? why : undefined,
   });
   return `${select}${extraField}${gate}`;
 }
@@ -888,23 +910,24 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
   // Run while any phase is still to run for the first time; Run again
   // only once every phase has — a spec with `archive` pre-ticked and
   // never run was offering "Run again" for it. While a job is in flight
-  // the control reads as busy — but it is NOT disabled: a job holding
-  // only `analyze` leaves the other three phases tickable, and taking
-  // that away would lose an action the page has always had.
-  const running = !!g.lead && inFlight(g.lead);
+  // the control reads as busy AND is disabled: it used to be only the
+  // first, with a title inviting the reader to tick a phase the job did
+  // not hold — the exact press the queue then refused.
+  const busy = specBusy(g);
   const allDone = QUEUE_STEPS.every((s) => g.done.includes(s));
   const run = btn({
     label: allDone ? "Run again" : "Run",
-    variant: running ? "busy" : "primary",
+    variant: busy ? "busy" : "primary",
     pending: "starting…",
-    title: running ? "a job is running — tick a phase it does not hold to run more" : undefined,
+    disabled: busy,
+    title: busy ? busyReason(g) : undefined,
   });
   return (
     `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
     `${tokenField(opts.token)}${filterFields(opts.filter)}` +
     `<input type="hidden" name="project" value="${esc(g.project)}">` +
     `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    stepBoxes(g) +
+    stepBoxes(g, busy) +
     run +
     `</form>`
   );
@@ -918,11 +941,19 @@ function specRunForm(g: SpecGroup, opts: QueuePageOptions): string {
 //
 // Drawn only when the row is open, and omitted rather than hidden —
 // the same rule the phase lines follow (`groupRows`).
-function moreRow(g: SpecGroup, opts: QueuePageOptions): string {
+function moreRow(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+  // `<details>` has no `disabled` of its own, and inventing CSS to fake
+  // one would be a new class for no new promise. So the disclosure
+  // still opens — every field inside it is individually disabled, which
+  // is where the promise actually lives — and the summary says why in
+  // the same words, in the muted look the page already has.
+  const summary = busy
+    ? `<summary class="muted" title="${esc(busyReason(g))}">more</summary>`
+    : `<summary title="more: model, gate, also touches">more</summary>`;
   return (
     `<tr data-more="${esc(g.specFolder)}"><td colspan="6">` +
-    `<details class="more"><summary title="more: model, gate, also touches">more</summary>` +
-    `<span class="row">${moreFields(g, opts)}</span></details></td></tr>`
+    `<details class="more">${summary}` +
+    `<span class="row">${moreFields(g, opts, busy)}</span></details></td></tr>`
   );
 }
 
@@ -1057,7 +1088,7 @@ function specHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number, opened: 
         ? collapsedAction(g, opts, !!refusal)
         : specRunForm(g, opts) +
           (g.lead ? actionForm(g.lead, opts.token, opts.filter) : "") +
-          mergeForm(g, opts, !!refusal)
+          (specBusy(g) ? "" : mergeForm(g, opts, !!refusal))
     }</td></tr>`
   );
 }
@@ -1125,7 +1156,7 @@ function groupRows(groups: SpecGroup[], opts: QueuePageOptions, now: number, ope
     .map((g) => {
       const head = specHeadRow(g, opts, now, opened);
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + moreRow(g, opts) + phaseSubRows(g, now)
+        ? head + moreRow(g, opts, specBusy(g)) + phaseSubRows(g, now)
         : head;
     })
     .join("");

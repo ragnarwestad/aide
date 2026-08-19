@@ -1076,15 +1076,17 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "review-plan")).toContain('value="review-plan" checked');
   });
 
-  test("a phase in flight is disabled; its siblings on the same row are not (criterion 2)", () => {
+  // Criterion 2, as spec 105 rewrote it: the siblings lock too. The
+  // rule is read off the spec — one job in flight on it, so no second
+  // job from this row — not off the one step that job happens to name.
+  test("a phase in flight locks every box on the row, not only its own (criterion 2)", () => {
     for (const state of ["queued", "running", "awaiting-approval"] as const) {
       const line = head(
         rows([job("j1", "implement", { state })], [target("94-row-runs-it")]),
         "94-row-runs-it",
       );
-      expect(box(line, "implement")).toContain("disabled");
-      for (const other of ["analyze", "review-plan", "archive"]) {
-        expect(box(line, other)).not.toContain("disabled");
+      for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+        expect(box(line, step)).toContain("disabled");
       }
     }
   });
@@ -1714,7 +1716,12 @@ describe("spec 100: the list page's own nav", () => {
 // that looks live, a job whose later steps read as free while it holds
 // them, and an intro paragraph standing between the title and the list
 // on every load.
-describe("spec 101: a busy job holds every step it was queued with (criteria 1-3)", () => {
+// Spec 105 widened the rule this block is about: the lock is read off
+// the SPEC's state, not off the list of steps the in-flight job happens
+// to hold. A job queued as `analyze` + `review-plan` used to leave
+// `implement` and `archive` tickable, which promised a press the queue
+// was going to refuse anyway.
+describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -1753,15 +1760,39 @@ describe("spec 101: a busy job holds every step it was queued with (criteria 1-3
     // one of them as available.
     expect(box(l, "analyze")).toContain("disabled");
     expect(box(l, "review-plan")).toContain("disabled");
-    // A step the job never held stays offerable.
-    expect(box(l, "implement")).not.toContain("disabled");
-    expect(box(l, "archive")).not.toContain("disabled");
+  });
+
+  // Spec 105: the step the job never named is locked too. The queue
+  // refuses a second job on a spec that already has one in flight
+  // (`clashing()`), whatever steps the two name — so a tickable
+  // `implement` beside a running `analyze` was an offer the page could
+  // not keep.
+  test("a step the running job never held is locked all the same (spec 105)", () => {
+    const l = line(pair("running"));
+    expect(box(l, "implement")).toContain("disabled");
+    expect(box(l, "archive")).toContain("disabled");
   });
 
   test("a queued job holds its steps before it has started any of them", () => {
     const l = line(pair("queued"));
     expect(box(l, "analyze")).toContain("disabled");
     expect(box(l, "review-plan")).toContain("disabled");
+  });
+
+  test("a queued job holds the steps it never named either (spec 105)", () => {
+    const l = line(pair("queued"));
+    expect(box(l, "implement")).toContain("disabled");
+    expect(box(l, "archive")).toContain("disabled");
+  });
+
+  // A gate is a job in flight as much as a running one is — the queue
+  // refuses a second job for it, so the row must not offer one. Nothing
+  // exercised this state here before spec 105.
+  test("a job parked at a gate holds every step too (spec 105)", () => {
+    const l = line(pair("awaiting-approval"));
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(l, step)).toContain("disabled");
+    }
   });
 
   test("a disabled box says why, on the label the pointer is over", () => {
@@ -1772,8 +1803,10 @@ describe("spec 101: a busy job holds every step it was queued with (criteria 1-3
     expect(box(l, "review-plan")).toContain('title="analyze is running"');
   });
 
-  test("a step nothing is holding carries no title at all", () => {
-    expect(box(line(pair("running")), "implement")).not.toContain("title=");
+  test("a step the job never named carries the same reason (spec 105)", () => {
+    // One sentence for the whole row: the reader is told what the SPEC
+    // is doing, not which steps some job happens to list.
+    expect(box(line(pair("running")), "implement")).toContain('title="analyze is running"');
   });
 
   test("a finished job holds nothing — every box is offerable again", () => {
@@ -2018,6 +2051,46 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(cell).not.toContain("<form");
   });
 
+  // Spec 105, criterion 1b: the branch a previous job left behind does
+  // not make a busy row actionable. Merge while a step is still writing
+  // to that very branch is the press the queue refuses — the collapsed
+  // row offers it no more than the open one does. Cancel stays where
+  // spec 103 put it: one click away, by opening the row.
+  test("a busy collapsed row with an unmerged branch offers no Merge either (spec 105)", () => {
+    for (const state of ["queued", "running"] as const) {
+      const cell = actionCell(
+        head(
+          rows(
+            [row({ id: "j1", specFolder: "103-busy-branch", state,
+                   branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
+            [target("103-busy-branch")],
+          ),
+          "103-busy-branch",
+        ),
+      );
+      expect(cell).not.toContain("<form");
+      expect(cell).not.toContain("mergeform");
+      expect(cell).not.toContain("/merge");
+    }
+  });
+
+  // The gated case is spec 103's, unchanged by 105: Approve is the one
+  // thing a gate needs, and an unmerged branch does not add a second.
+  test("a gated collapsed row with an unmerged branch still offers Approve alone (spec 105)", () => {
+    const cell = actionCell(
+      head(
+        rows(
+          [row({ id: "j1", specFolder: "103-gated-branch", state: "awaiting-approval",
+                 branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
+          [target("103-gated-branch")],
+        ),
+        "103-gated-branch",
+      ),
+    );
+    expect(cell).toContain('action="/api/queue/j1/approve"');
+    expect(cell.match(/<form/g)).toHaveLength(1);
+  });
+
   test("a collapsed row with nothing pending has an empty action cell (criterion 4)", () => {
     const cell = actionCell(head(rows([], [target("103-idle")]), "103-idle"));
     expect(cell).not.toContain("<form");
@@ -2106,5 +2179,191 @@ describe("spec 103: a collapsed row shows status only", () => {
     const fields = [...more.matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g)];
     expect(fields.length).toBe(3);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
+  });
+});
+
+// --- spec 105: while a spec is busy, its row offers Cancel and nothing else ---
+
+// The row's controls used to be governed step by step: spec 101
+// disabled the boxes the in-flight job named, and everything else on
+// the row stayed live. Seen on 2026-08-19 on spec 103 — `implement`
+// running, its spinner up, and the other three phase boxes still
+// tickable, "more" still setting a model for a job that could not be
+// started, and a second Run one press away. The queue refuses that
+// press ("already running on this spec"), so the row was promising
+// what the page could not keep.
+//
+// ONE rule, read off the SPEC's state: while any job is in flight —
+// queued, running, or parked at a gate — the row offers exactly what
+// that state allows. Every test here is about an OPENED row, because
+// a collapsed one has no phase box, no model and no Run to lock in the
+// first place (its narrower promise is in the spec 103 block above).
+describe("spec 105: a busy row offers only what its state allows", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        projects: ["aide", "paceup"],
+        modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+        ...opts,
+      },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  const moreLine = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr data-more="${folder}">.*?</tr>`))?.[0] ?? "";
+  /** The last cell of the header row — where every action lives. */
+  const actionCell = (line: string) => line.slice(line.lastIndexOf("<td>"));
+  const box = (line: string, step: string) =>
+    line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
+  /** The Run button itself, with whatever attributes it carries. */
+  const runBtn = (line: string) => line.match(/<button [^>]*>(?:<[^>]*>)*Run(?: again)?<\/button>/)?.[0] ?? "";
+
+  /** A spec with a job in the given state AND a branch an earlier job
+   *  left unmerged — the shape that makes "and nothing else" testable:
+   *  there is something to merge, and the row must still not offer it. */
+  const spec = (state: QueueRowView["state"], folder = "105-busy") =>
+    row({
+      id: "j1",
+      specFolder: folder,
+      steps: ["implement"],
+      stepIndex: 0,
+      state,
+      branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }],
+    });
+
+  const openLine = (r: QueueRowView, folder = "105-busy") => head(rows([r], [target(folder)]), folder);
+
+  // --- criterion 1: running or queued, Cancel and only Cancel ---------------
+
+  for (const state of ["queued", "running"] as const) {
+    test(`a ${state} spec's opened row offers Cancel, and no Approve or Merge (criterion 1)`, () => {
+      const cell = actionCell(openLine(spec(state)));
+      expect(cell).toContain('action="/api/queue/j1/cancel"');
+      expect(cell).not.toContain('action="/api/queue/j1/approve"');
+      // The branch is unmerged and Merge is still not offered: merging
+      // mid-job means cancelling the job first.
+      expect(cell).not.toContain('action="/api/queue/j1/merge"');
+      expect(cell).not.toContain("mergeform");
+    });
+  }
+
+  // --- criterion 2: every phase box locks, with the reason on it -------------
+
+  for (const state of ["queued", "running"] as const) {
+    test(`a ${state} spec locks every phase box, not the ones its job named (criterion 2)`, () => {
+      const line = openLine(spec(state));
+      for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+        expect(box(line, step)).toContain("disabled");
+        expect(box(line, step)).toContain(`title="implement is ${state === "running" ? "running" : "queued"}"`);
+      }
+    });
+  }
+
+  test("the step being worked carries the spinner; the rest carry the lock (criterion 2)", () => {
+    const line = openLine(spec("running"));
+    expect(box(line, "implement")).toContain('class="phase busy"');
+    expect(box(line, "analyze")).toContain('class="phase off"');
+  });
+
+  test("a queued job spins nothing — every box reads as locked (criterion 2)", () => {
+    const line = openLine(spec("queued"));
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(line, step)).toContain('class="phase off"');
+    }
+  });
+
+  // --- criterion 3: Run, the model and the "more" fields lock too ------------
+
+  test("the Run button is disabled while the spec is busy, and says why (criterion 3)", () => {
+    const run = runBtn(openLine(spec("running")));
+    expect(run).toContain("disabled");
+    expect(run).toContain('title="implement is running"');
+    // The old title told the reader to do the exact thing this rule
+    // removes; it must not survive anywhere on the row.
+    expect(run).not.toContain("tick a phase it does not hold");
+  });
+
+  test("the model select, the gate box and 'also touches' all lock (criterion 3)", () => {
+    const html = rows([spec("running")], [target("105-busy")]);
+    const more = moreLine(html, "105-busy");
+    expect(more.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+    expect(more.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).toContain("disabled");
+    expect(more.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).toContain("disabled");
+  });
+
+  test("the 'more' summary carries the same reason, muted (criterion 3)", () => {
+    const more = moreLine(rows([spec("running")], [target("105-busy")]), "105-busy");
+    const summary = more.match(/<summary[^>]*>/)![0];
+    expect(summary).toContain('title="implement is running"');
+    expect(summary).toContain('class="muted"');
+  });
+
+  // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
+
+  test("a gated spec's opened row offers Approve and Cancel, and no Merge (criterion 4)", () => {
+    const cell = actionCell(openLine(spec("awaiting-approval")));
+    expect(cell).toContain('action="/api/queue/j1/approve"');
+    expect(cell).toContain('action="/api/queue/j1/cancel"');
+    expect(cell).not.toContain('action="/api/queue/j1/merge"');
+    // Not even the disabled stand-in the row used to draw in its place.
+    expect(cell).not.toContain("mergeform");
+  });
+
+  test("a gated spec locks the boxes, the model and Run exactly as a running one does (criterion 4)", () => {
+    const html = rows([spec("awaiting-approval")], [target("105-busy")]);
+    const line = head(html, "105-busy");
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(line, step)).toContain("disabled");
+      expect(box(line, step)).toContain('title="implement is waiting for approval"');
+    }
+    expect(runBtn(line)).toContain("disabled");
+    expect(moreLine(html, "105-busy").match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+  });
+
+  // --- criterion 5: a settled spec is the ordinary row it always was ---------
+
+  for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+    test(`a ${state} spec's row is fully interactive again, Merge included (criterion 5)`, () => {
+      const html = rows([spec(state)], [target("105-busy")]);
+      const line = head(html, "105-busy");
+      for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+        expect(box(line, step)).not.toContain("disabled");
+      }
+      expect(runBtn(line)).not.toContain("disabled");
+      expect(actionCell(line)).toContain('action="/api/queue/j1/merge"');
+      const more = moreLine(html, "105-busy");
+      expect(more.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+      expect(more.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).not.toContain("disabled");
+      expect(more.match(/<summary[^>]*>/)![0]).not.toContain('class="muted"');
+    });
+  }
+
+  test("a spec with no job at all is untouched by the rule (criterion 5)", () => {
+    const html = rows([], [target("105-never-run")]);
+    const line = head(html, "105-never-run");
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(line, step)).not.toContain("disabled");
+    }
+    expect(runBtn(line)).not.toContain("disabled");
+    expect(moreLine(html, "105-never-run").match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+  });
+
+  // Merge belongs to work that is finished; it comes back the moment
+  // the job settles, so the rule takes nothing away permanently.
+  test("Merge returns as soon as the spec stops being busy (criterion 5)", () => {
+    expect(actionCell(openLine(spec("running")))).not.toContain("/merge");
+    expect(actionCell(openLine(spec("done")))).toContain("/merge");
   });
 });

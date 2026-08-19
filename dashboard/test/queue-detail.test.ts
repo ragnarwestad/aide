@@ -399,17 +399,20 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
 
   // The description's own read-off-the-page: a `Merge (1)` button,
   // enabled, while the step writing that very plan was still running.
-  test("while a step is still running the button is disabled (criterion 1)", async () => {
+  // It was disabled first, and since spec 105 it is not drawn at all —
+  // a busy spec's row offers Cancel and nothing else, and a control
+  // that cannot be pressed is one more thing to read past.
+  test("while a step is still running there is no Merge button at all (criterion 1)", async () => {
     const html = await listWith(await seededWith(BOTH, "running"));
-    const form = html.slice(html.indexOf('class="mergeform"'));
-    expect(form.slice(0, 400)).toContain("disabled");
-    expect(html).toContain("Merge the plan and the code");
+    expect(html).not.toContain('class="mergeform"');
+    expect(html).not.toContain("/merge");
+    expect(html).not.toContain("Merge the plan and the code");
   });
 
   // Gone since 2026-08-19: the small "merge anyway" behind a confirm was
   // never used on purpose and read as nonsense without its context.
   // Merging mid-job means cancelling the job first.
-  test("no override beside the disabled button while a step runs", async () => {
+  test("no override beside it either while a step runs", async () => {
     const html = await listWith(await seededWith(BOTH, "running"));
     expect(html).not.toContain('class="mergeoverride"');
     expect(html).not.toContain("merge anyway");

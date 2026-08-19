@@ -811,6 +811,11 @@ describe("what the queue has run counts too", () => {
       })
     ).json()) as { job: { id: string } };
     const mirror = JSON.parse(readFileSync(join(dir, "queue.json"), "utf-8")) as Record<string, unknown>[];
+    // Finished, not still queued: since spec 105 a spec with a job in
+    // flight pre-ticks nothing at all — every box on the row is locked.
+    // This test is about the step AFTER one that completed, so the job
+    // that completed it has to have completed.
+    mirror[0].state = "done";
     mirror[0].results = [
       { step: "implement", ok: true, costUsd: 12.34, costMeasured: true,
         terminalReason: "completed", at: "2026-08-16T18:00:00Z" },
