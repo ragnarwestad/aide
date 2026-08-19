@@ -148,11 +148,11 @@ default; see [How the list reads](#how-the-list-reads)). It carries a
 checkbox per phase, a model dropdown, and one Run button that queues
 everything ticked as a single job in the workflow's order — the browser
 submits checkboxes in the order they are drawn, so ticking `implement`
-before `analyze` still queues analyze first. Behind a "more" disclosure
-— its own fixed-place line under the row's controls, so opening it
-never reflows a column — sit the two things nobody sets every time:
-which other repos the job will touch, and whether to stop for approval
-between the steps (off by default).
+before `analyze` still queues analyze first. After the model, quiet and
+small-text on that same controls line (spec 117 — no disclosure to
+open), sit the two things nobody sets every time: which other repos the
+job will touch, and whether to stop for approval between the steps (off
+by default).
 
 **Every phase the job in flight was queued with shows its box
 disabled**, not merely the step it has reached, because the queue would
@@ -243,9 +243,9 @@ every row it has: an empty spec list means "we cannot tell", never
 A spec's row is collapsed by default: name, title, one status line, the
 four phase pips, and at most one action button (Approve if a gate is
 waiting, Merge if a branch is not). The four phase lines and every
-control — phase checkboxes, model dropdown, "more" (gate,
-also-touches), Run, Cancel — sit behind the same chevron in front of
-the name (spec 103). Expanding is a link and lives in the query string
+control — phase checkboxes, model dropdown, gate and also-touches
+fields, Run, Cancel — sit behind the same chevron in front of the name
+(spec 103). Expanding is a link and lives in the query string
 (`?open=<project>/<folder>,…`), which is what makes it survive the
 table's own five-second refresh, what makes it work with JavaScript
 switched off, and what keeps the row a person just acted on open across
@@ -429,7 +429,8 @@ name, title, one status line, the phase pips, and at most one action
 button. Expanding it (the chevron in front of the name, `?open=…`)
 reveals the workflow phases underneath, always in that order, so how
 far a spec has got is readable without counting rows, plus the run
-controls (phase checkboxes, model, "more", Run/Run again, Cancel). A
+controls (phase checkboxes, model, gate and also-touches fields after
+it, Run/Run again, Cancel). A
 phase never run shows a muted "not run yet". A phase run more than once
 shows its LATEST attempt with the count beside it, because a re-run is
 ordinary: one spec needed three `archive` runs.
