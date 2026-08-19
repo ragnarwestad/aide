@@ -146,13 +146,16 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 /* Inline SVG and data URIs, per the handoff: the site is also opened
    straight from a folder, so there is no file to point a <link> at. */
 
+/* Header-sized, not list-sized: the mark and the wordmark are the
+   page's identity, and 22px next to the tab bar read as an icon that
+   had shrunk in the wash (2026-08-19). */
 .brand { display: flex; align-items: center; gap: var(--sp-2);
   margin: 0 0 var(--sp-3); padding: 0 var(--sp-2); text-decoration: none;
-  color: var(--text); font-size: var(--fs-l); font-weight: 600;
+  color: var(--text); font-size: var(--fs-xl); font-weight: 600;
   letter-spacing: -0.035em; }
 .brand:hover { text-decoration: none; color: var(--text); }
 .brand i { font-style: normal; color: var(--accent); }
-.brand .mark, .brand .mark svg { display: block; width: 22px; height: 22px; }
+.brand .mark, .brand .mark svg { display: block; width: 30px; height: 30px; }
 .brand .mark-d { display: none; }
 
 /* --- text roles ----------------------------------------------------- */
