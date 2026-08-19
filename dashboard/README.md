@@ -125,13 +125,16 @@ time, each step a `claude -p "/aide-<step> <spec>"` process started by
 aide's `aide-run-spec`. A job is an ordered list of steps; a step that
 ends either advances the job, parks it for approval, or ends it.
 
-One way in: the spec's own row. It carries a checkbox per phase, a
-model dropdown, and one Run button that queues everything ticked as a
-single job in the workflow's order — the browser submits checkboxes in
-the order they are drawn, so ticking `implement` before `analyze` still
-queues analyze first. Behind a "more" disclosure sit the two things
-nobody sets every time: which other repos the job will touch, and
-whether to stop for approval between the steps (off by default).
+One way in: the spec's own row, expanded (spec 103 — collapsed is the
+default; see [How the list reads](#how-the-list-reads)). It carries a
+checkbox per phase, a model dropdown, and one Run button that queues
+everything ticked as a single job in the workflow's order — the browser
+submits checkboxes in the order they are drawn, so ticking `implement`
+before `analyze` still queues analyze first. Behind a "more" disclosure
+— its own fixed-place line under the row's controls, so opening it
+never reflows a column — sit the two things nobody sets every time:
+which other repos the job will touch, and whether to stop for approval
+between the steps (off by default).
 
 **Every phase the job in flight was queued with shows its box
 disabled**, not merely the step it has reached, because the queue would
@@ -218,17 +221,22 @@ renders each one. A project the server knows no specs for at all keeps
 every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
-A spec's four phase lines fold away behind the control in front of its
-name. The fold is a link and lives in the query string
-(`?fold=<project>/<folder>,…`), which is what makes it survive the
-table's own five-second refresh — and what makes it work with JavaScript
-switched off.
+A spec's row is collapsed by default: name, title, one status line, the
+four phase pips, and at most one action button (Approve if a gate is
+waiting, Merge if a branch is not). The four phase lines and every
+control — phase checkboxes, model dropdown, "more" (gate,
+also-touches), Run, Cancel — sit behind the same chevron in front of
+the name (spec 103). Expanding is a link and lives in the query string
+(`?open=<project>/<folder>,…`), which is what makes it survive the
+table's own five-second refresh, what makes it work with JavaScript
+switched off, and what keeps the row a person just acted on open across
+the swap/redirect that follows their own submit.
 
 Every control here is a plain form first: ticking phases and pressing
 Run works with JavaScript switched off, and so do Approve, Cancel,
-Merge, Create and the fold — each posts its form and follows a 303 back
-to the list. `queue-client.ts` is a layer ABOVE that floor, never the
-mechanism (see
+Merge, Create and expanding a row — each posts its form and follows a
+303 back to the list. `queue-client.ts` is a layer ABOVE that floor,
+never the mechanism (see
 [what the script adds](#what-the-script-adds-specs-96-and-101)). It
 cannot `import` anything: `queueClientScript()` runs
 `Bun.Transpiler.transformSync` over it and inlines the result into a
@@ -237,7 +245,7 @@ plain `<script>` tag — that transpiles, it does not bundle. An
 classic inline script (a 404, since this server does not serve that
 path), and an `export` is a syntax error. Any shared, unit-testable
 browser module needs a bundle step or a `type="module"` tag first; the
-fold was built to need neither.
+expand/collapse link was built to need neither.
 
 The page was called Queue until spec 87. That a queue orders the runs is
 an implementation detail — `QueueStore`, `/api/queue`, `QUEUE_PROJECTS`
@@ -357,18 +365,24 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
 
 ### How the list reads
 
-One row per spec, not per job. Underneath it sit the four workflow
-phases — analyze, review-plan, implement, archive — always in that
-order, so how far a spec has got is readable without counting rows. A
-phase never run shows a muted "not run yet". A phase run more than once
-shows its LATEST attempt with the count beside it, because a re-run is
-ordinary: one spec needed three `archive` runs.
+One row per spec, not per job, and collapsed by default (spec 103):
+name, title, one status line, the phase pips, and at most one action
+button. Expanding it (the chevron in front of the name, `?open=…`)
+reveals the four workflow phases underneath — analyze, review-plan,
+implement, archive — always in that order, so how far a spec has got is
+readable without counting rows, plus the run controls (phase
+checkboxes, model, "more", Run/Run again, Cancel). A phase never run
+shows a muted "not run yet". A phase run more than once shows its
+LATEST attempt with the count beside it, because a re-run is ordinary:
+one spec needed three `archive` runs.
 
-The header carries what belongs to the spec rather than to one run: the
-summed cost, one link per repo the spec pushed to, and the state that
-matters most right now — whatever is in flight, else the most recent
-outcome. The approve/cancel action sits there too, once per spec
-instead of once per job.
+The header carries what belongs to the spec rather than to one run,
+unconditionally (collapsed or expanded): the summed cost, one link per
+repo the spec pushed to, and the state that matters most right now —
+whatever is in flight, else the most recent outcome. A collapsed row's
+single action button — Approve if a gate is waiting, else Merge if a
+branch is not — sits there too, once per spec instead of once per job;
+Cancel is only offered once the row is expanded.
 
 ### What the script adds (specs 96 and 101)
 
