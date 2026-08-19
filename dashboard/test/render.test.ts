@@ -1251,14 +1251,15 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
+  // Since spec 123 the choice is offered once per PHASE, not once per
+  // row — but it is still the config that says which models exist, and
+  // still a default that changes nothing.
   test("the row offers the configured models, and a default that changes nothing", () => {
-    const line = runLine(
-      rows([], [target("94-never-run")], {
-        modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
-      }),
-      "94-never-run",
-    );
-    expect(line).toContain('name="model"');
+    const html = rows([], [target("94-never-run")], {
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+    });
+    const line = subRow(html, "analyze");
+    expect(line).toContain('name="model.analyze"');
     expect(line).toContain('value="fable"');
     expect(line).toContain('<option value="">');
   });
@@ -2513,10 +2514,13 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
-    expect(line).toContain('name="model"');
     expect(line).toContain('name="gate"');
     expect(line).toContain('name="extraProjects" value="paceup"');
-    expect(html.match(/<tr class="subrow/g)).toHaveLength(5);
+    // The model went with the rest of them, onto the phase lines it
+    // belongs to (spec 123) — still revealed by opening, one per phase.
+    expect(html).toContain('name="model.analyze"');
+    // Five phase lines, plus the caption line above them.
+    expect(html.match(/<tr class="subrow/g)).toHaveLength(6);
   });
 
   test("an expanded row's forms carry the open key forward (criterion 6)", () => {
@@ -2589,9 +2593,15 @@ describe("spec 103: a collapsed row shows status only", () => {
     const line = controlsLine(html, "103-idle");
     const id = line.match(/<form id="([^"]+)"/)![1];
     const after = line.slice(line.indexOf("</form>"));
-    const fields = [...after.matchAll(/<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g)];
-    expect(fields.length).toBe(3);
+    const fields = [...after.matchAll(/<(?:select|input)\b[^>]*name="(gate|extraProjects)"[^>]*>/g)];
+    expect(fields.length).toBe(2);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
+    // The model left this line for the phase lines (spec 123) and is
+    // even further from its form there — the same attribute is the only
+    // thing carrying it back.
+    for (const sel of html.matchAll(/<select\b[^>]*name="model\.[^"]*"[^>]*>/g)) {
+      expect(sel[0]).toContain(`form="${id}"`);
+    }
   });
 });
 
@@ -2722,7 +2732,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   test("the model select, the gate box and 'also touches' all lock (criterion 3)", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     const line = controlsLine(html, "105-busy");
-    expect(line.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+    // The model select is on the phase lines since spec 123; the rule
+    // it obeys is this one, unchanged.
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
     expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).toContain("disabled");
     expect(line.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).toContain("disabled");
   });
@@ -2731,8 +2743,11 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   // every one of the three says it itself — which is where the promise
   // always actually lived.
   test("each locked field carries the same reason (criterion 3)", () => {
-    const line = controlsLine(rows([spec("running")], [target("105-busy")]), "105-busy");
-    expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("<summary");
+    const html = rows([spec("running")], [target("105-busy")]);
+    const line = controlsLine(html, "105-busy");
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain(
+      'title="implement is running"',
+    );
     for (const label of ["data-gate", "data-project"]) {
       const chip = line.match(new RegExp(`<label class="phase[^"]*" ${label}="[^"]*"[^>]*>`))![0];
       expect(chip).toContain('title="implement is running"');
@@ -2764,7 +2779,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       expect(box(line, step)).toContain('title="implement is waiting for approval"');
     }
     expect(runBtn(line)).toContain("disabled");
-    expect(line.match(/<select name="model"[^>]*>/)![0]).toContain("disabled");
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
   });
 
   // --- criterion 5: a settled spec is the ordinary row it always was ---------
@@ -2778,7 +2793,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       }
       expect(runBtn(line)).not.toContain("disabled");
       expect(actionCell(head(html, "105-busy"))).toContain('action="/api/queue/j1/merge"');
-      expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+      expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
       expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).not.toContain("disabled");
     });
   }
@@ -2790,7 +2805,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       expect(box(line, step)).not.toContain("disabled");
     }
     expect(runBtn(line)).not.toContain("disabled");
-    expect(line.match(/<select name="model"[^>]*>/)![0]).not.toContain("disabled");
+    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
   });
 
   // Merge belongs to work that is finished; it comes back the moment
@@ -2986,11 +3001,15 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     const id = line.match(/<form id="([^"]+)"/)![1];
     const fields = [
       ...line.slice(line.indexOf("</form>")).matchAll(
-        /<(?:select|input)\b[^>]*name="(model|gate|extraProjects)"[^>]*>/g,
+        /<(?:select|input)\b[^>]*name="(gate|extraProjects)"[^>]*>/g,
       ),
     ];
-    expect(fields.length).toBe(3);
+    expect(fields.length).toBe(2);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
+    // And the model, from the phase lines it moved to (spec 123).
+    for (const sel of html.matchAll(/<select\b[^>]*name="model\.[^"]*"[^>]*>/g)) {
+      expect(sel[0]).toContain(`form="${id}"`);
+    }
   });
 
   // One rule for the one line an open row grows above its phase lines:
@@ -3413,9 +3432,12 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).toContain("b-done");
     expect(line).not.toContain("href=");
     expect(line).not.toContain("not run yet");
-    // No model line, no elapsed time, no cost — the three cells a
-    // finished attempt fills and an attempt-less line leaves empty.
-    expect(line).toContain('<td></td><td><span class="badge b-done">done</span></td><td></td><td class="num"></td>');
+    // No model note, no elapsed time, no cost — what a finished attempt
+    // fills and an attempt-less line leaves empty. Since spec 123 the
+    // model shares the phase name's own cell rather than having one of
+    // its own, so the emptiness is inside that cell.
+    expect(line).toContain('<td colspan="2" class="phasecell"><span class="row"><span class="muted">create</span></span></td>');
+    expect(line).toContain('<td><span class="badge b-done">done</span></td><td></td><td class="num"></td>');
   });
 
   // --- criteria 3-4: a real create job, before and after it lands ------------
@@ -3699,5 +3721,191 @@ describe("the day total that used to sit under the list", () => {
       targets: [],
     });
     expect(html).not.toContain("Spent today");
+  });
+});
+
+// --- spec 123: the model is chosen on the phase line -------------------------
+
+// One dropdown for the whole row used to sit on the controls line
+// between Run and the other rarely-set fields, carrying option labels
+// like "fable — $12 per step". It landed beside the State column by
+// accident of content width, tied to nothing around it, and the phase
+// lines below it showed their model as dead text with a wide empty gap
+// before it.
+//
+// The choice belongs where the phase is: each phase line carries its
+// own picker, under a "Phase"/"Model" caption, and the budget figure
+// moves off the label into the option's own tooltip — the number still
+// reachable, no longer read out on every option.
+describe("spec 123: each phase line picks its own model", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const CHOICES = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12 },
+  ];
+
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [target("123-picks")],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        modelChoices: CHOICES,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  const controlsLine = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr data-controls="${folder}">.*?</tr>`))?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  /** The caption line: a subrow with no phase of its own, above them
+   *  all. Marked by a data attribute rather than a class — it needs no
+   *  rule of its own, and the render vocabulary is a closed set
+   *  (`css-token-guard.test.ts`). */
+  const caption = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">.*?<\/tr>/)?.[0] ?? "";
+
+  // --- criterion 1 -----------------------------------------------------------
+
+  test("the controls line carries no shared Model select any more", () => {
+    const html = rows([]);
+    expect(controlsLine(html, "123-picks")).not.toBe("");
+    expect(controlsLine(html, "123-picks")).not.toContain('name="model"');
+    // Nor anywhere else on the row: the whole-job field is gone, not moved.
+    expect(html).not.toContain('<select name="model"');
+  });
+
+  // --- criterion 2 -----------------------------------------------------------
+
+  test("every phase line carries its own select, on the row's Run form", () => {
+    const html = rows([]);
+    const id = controlsLine(html, "123-picks").match(/<form id="([^"]+)"/)![1];
+    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
+      const line = subRow(html, step);
+      expect(line).not.toBe("");
+      const select = line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
+      expect(select).not.toBe("");
+      // It is written outside the form's own tags, so only the `form`
+      // attribute carries it back — an id that drifts runs the job on
+      // the defaults instead, silently.
+      expect(select).toContain(`form="${id}"`);
+    }
+  });
+
+  test("the first option is the default, and every listed model follows", () => {
+    const line = subRow(rows([]), "analyze");
+    expect(line).toMatch(/<select name="model\.analyze"[^>]*><option value="">/);
+    expect(line).toContain('value="sonnet"');
+    expect(line).toContain('value="fable"');
+  });
+
+  test("no option label reads out a budget figure", () => {
+    const html = rows([]);
+    for (const option of html.matchAll(/<option[^>]*>([^<]*)<\/option>/g)) {
+      expect(option[1]).not.toContain("$");
+    }
+  });
+
+  test("the figure is still reachable — it moved to the option's tooltip", () => {
+    const line = subRow(rows([]), "analyze");
+    expect(line).toContain('title="$12 per step"');
+  });
+
+  // --- criterion 3 -----------------------------------------------------------
+
+  test("a Phase/Model caption sits directly above the phase lines", () => {
+    const html = rows([]);
+    const cap = caption(html);
+    expect(cap).toContain(">Phase<");
+    expect(cap).toContain(">Model<");
+    expect(html.indexOf(cap)).toBeLessThan(html.indexOf('data-step="create"'));
+    expect(html.indexOf(cap)).toBeGreaterThan(html.indexOf('<tr data-controls="123-picks"'));
+  });
+
+  // --- criterion 4 -----------------------------------------------------------
+
+  test("with no model configured there is no picker and no caption at all", () => {
+    const html = rows([], [target("123-picks")], { modelChoices: undefined });
+    expect(controlsLine(html, "123-picks")).not.toBe("");
+    expect(html).not.toContain("<select");
+    expect(caption(html)).toBe("");
+    expect(html).not.toContain(">Phase<");
+  });
+
+  // --- criterion 11 ----------------------------------------------------------
+
+  test("a phase that has run once still says what it ran on", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" })],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).toContain("last ran: fable");
+    // Alongside the picker for the NEXT run, not instead of it.
+    expect(line).toContain('<select name="model.analyze"');
+  });
+
+  test("a phase run more than once keeps its attempt count", () => {
+    const html = rows(
+      [
+        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
+      ],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).toContain("2 attempts");
+    expect(line).toContain('<select name="model.analyze"');
+  });
+
+  // --- the gap the description asked to close --------------------------------
+
+  test("the phase name and its picker share one cell, so nothing sits between them", () => {
+    const line = subRow(rows([]), "analyze");
+    // Two columns merged into one, with the flex-gap container that
+    // holds a name and a control together whatever the table's
+    // auto-sized widths turn out to be.
+    expect(line).toContain('<td colspan="2" class="phasecell"><span class="row">');
+  });
+
+  // --- the lock spec 105 put on the shared field follows it here -------------
+
+  test("a busy spec's phase pickers lock exactly as the shared one did", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "running" })],
+      [target("123-picks")],
+    );
+    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    expect(select).toContain("disabled");
+    expect(select).toContain('title="implement is running"');
+  });
+
+  test("a settled spec's phase pickers are live again", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "done" })],
+      [target("123-picks")],
+    );
+    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    expect(select).not.toContain("disabled");
+  });
+
+  // A collapsed row has no phase lines, so it has no picker either —
+  // the same promise spec 103 made about the shared field.
+  test("a collapsed row offers no picker", () => {
+    const html = rows([], [target("123-picks")], { filter: {} });
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain('<tr class="subrow');
   });
 });

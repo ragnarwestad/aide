@@ -993,7 +993,7 @@ describe("picking a model for a job", () => {
   // every page here opens the one spec it renders.
   const OPEN = { open: "aide/81-queue-and-runner" };
 
-  test("the form offers the configured models, and says what each is granted", () => {
+  test("the form offers the configured models, one picker per phase", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
@@ -1003,9 +1003,12 @@ describe("picking a model for a job", () => {
         { name: "fable", budgetUsd: 12 },
       ],
     });
-    expect(html).toContain('name="model"');
+    expect(html).toContain('name="model.analyze"');
+    expect(html).toContain('name="model.implement"');
     expect(html).toContain("fable");
-    expect(html).toContain("$12");
+    // What each is granted is still said — in the option's tooltip
+    // since spec 123, not read out on every label.
+    expect(html).toContain('title="$12 per step"');
     // The per-step configuration must stay reachable — picking a model
     // is an override, not the only way to queue anything.
     expect(html).toContain('value=""');
@@ -1014,7 +1017,9 @@ describe("picking a model for a job", () => {
   // Every option but one carried a number, and the one without it was
   // the default — so "opus — $15 per step" read as the expensive
   // choice when leaving the field alone granted $35 for the same model.
-  // A comparison you cannot make is a trap, not a choice.
+  // A comparison you cannot make is a trap, not a choice. Spec 123 took
+  // the figures off the labels; the comparison survives in the tooltips,
+  // the default's own included.
   test("the default option says what IT grants, so the numbers can be compared", () => {
     const html = renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
@@ -1023,7 +1028,10 @@ describe("picking a model for a job", () => {
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
       defaultBudgetUsd: 35,
     });
-    expect(html).toMatch(/<option value="">[^<]*\$35[^<]*<\/option>/);
+    expect(html).toMatch(/<option value="" title="[^"]*\$35[^"]*">/);
+    expect(html).toMatch(/<option value="fable" title="[^"]*\$12[^"]*">/);
+    // And no figure is read out on the label itself any more.
+    expect(html).not.toMatch(/<option[^>]*>[^<]*\$/);
   });
 
   test("with no default budget known the option still stands, just without a figure", () => {
@@ -1034,7 +1042,7 @@ describe("picking a model for a job", () => {
       modelChoices: [{ name: "fable", budgetUsd: 12 }],
     });
     expect(html).toContain('value=""');
-    expect(html).not.toMatch(/<option value="">[^<]*\$/);
+    expect(html).not.toMatch(/<option value="" title="[^"]*\$/);
   });
 
   test("with nothing configured the page offers no model at all", () => {
@@ -1103,6 +1111,92 @@ describe("picking a model for a job", () => {
     const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
     expect(body.job.model).toEqual({ implement: "opus" });
     expect(body.job.budgetUsd).toBe(3);
+  });
+
+  // Spec 123: the choice moved onto the phase lines, so a form now
+  // posts one field PER PHASE — `model.analyze=…&model.implement=…`.
+  // A urlencoded body cannot carry a nested object, so the dotted keys
+  // are folded back into one on the way in. Tested through the real
+  // route rather than against the two functions separately: they are
+  // only proven to AGREE if something drives an actual wire body from
+  // one end to the other.
+  test("one press can run two phases on two different models", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        target: "aide/81-queue-and-runner",
+        steps: "analyze",
+        "model.analyze": "sonnet",
+      }).toString() + "&steps=implement&model.implement=fable",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number };
+    };
+    expect(body.job.model).toEqual({ analyze: "sonnet", implement: "fable" });
+    // The more generous of the two grants, not the two added together.
+    expect(body.job.budgetUsd).toBe(12);
+    expect(body.job.jobCapUsd).toBe(30);
+  });
+
+  // Every select on the page posts, including the ones left alone —
+  // a browser sends `model.review-plan=` for a phase whose picker still
+  // reads "default". Passed through as an empty string it would be
+  // refused as an invalid model name; it has to be dropped instead.
+  test("a phase left on 'default' posts a blank that is dropped, not refused", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body:
+        "target=aide%2F81-queue-and-runner&steps=analyze&steps=implement" +
+        "&model.analyze=fable&model.implement=",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { model: Record<string, string> } };
+    expect(body.job.model).toEqual({ analyze: "fable", implement: "opus" });
+  });
+
+  test("every phase left on 'default' queues no override at all", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { model: Record<string, string>; budgetUsd: number } };
+    expect(body.job.model).toEqual({ implement: "opus" });
+    expect(body.job.budgetUsd).toBe(3);
+  });
+
+  test("a per-phase field naming a model the config does not list is refused", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: CHOICES });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: "target=aide%2F81-queue-and-runner&steps=implement&model.implement=gpt-9",
+    });
+    expect(res.status).toBe(400);
+    expect(await res.text()).toContain("gpt-9");
   });
 });
 

@@ -286,22 +286,61 @@ export function parseJobRequest(
   }
 
   // A model may be picked for the whole job — that is how the heaviest
-  // model is reserved for the heaviest work. The NAME comes from the
-  // request; everything it is granted comes from the config.
+  // model is reserved for the heaviest work — or once per STEP, which
+  // is what the phase lines post since spec 123. The NAME comes from
+  // the request either way; everything it is granted comes from the
+  // config, looked up in exactly the same table.
   let modelChoice: string | undefined;
   let choice: ModelChoice | undefined;
-  if (r.model !== undefined && r.model !== null && r.model !== "") {
-    if (typeof r.model !== "string" || !NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
-    choice = defaults.modelChoices?.[r.model];
-    if (!choice) {
-      return {
-        ok: false,
-        error: defaults.modelChoices
-          ? `unknown or not-allowed model: ${r.model}`
-          : "no model choice is configured on this server",
+  let stepModels: Record<string, string> | undefined;
+  const lookUp = (name: string): ModelChoice | { error: string } => {
+    const found = defaults.modelChoices?.[name];
+    if (found) return found;
+    return {
+      error: defaults.modelChoices
+        ? `unknown or not-allowed model: ${name}`
+        : "no model choice is configured on this server",
+    };
+  };
+  if (typeof r.model === "string" && r.model !== "") {
+    if (!NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
+    const found = lookUp(r.model);
+    if ("error" in found) return { ok: false, error: found.error };
+    choice = found;
+    modelChoice = r.model;
+  } else if (r.model !== undefined && r.model !== null && r.model !== "") {
+    // The per-step shape. An empty string keeps meaning "use the
+    // configuration" — the branch above lets it fall through here, and
+    // this guard has to let it fall through again rather than call it a
+    // malformed object.
+    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: "invalid model" };
+    stepModels = {};
+    const grants: ModelChoice[] = [];
+    for (const [step, name] of Object.entries(r.model as Record<string, unknown>)) {
+      // A phase left on "default" posts nothing to apply. Skipped, not
+      // refused: the config's own per-step choice is the answer.
+      if (name === undefined || name === null || name === "") continue;
+      if (!steps.includes(step as WorkflowStep)) {
+        return { ok: false, error: `model names a step not in this job: ${step}` };
+      }
+      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: `invalid model for ${step}` };
+      const found = lookUp(name);
+      if ("error" in found) return { ok: false, error: found.error };
+      stepModels[step] = name;
+      grants.push(found);
+    }
+    // Two picks together may not buy more headroom than the more
+    // generous of them already had on its own: the file's rule is that
+    // a request may only TIGHTEN a cap, so the ceiling is the LARGEST
+    // single grant, never the sum.
+    if (grants.length) {
+      choice = {
+        budgetUsd: Math.max(...grants.map((c) => c.budgetUsd)),
+        jobCapUsd: grants.some((c) => c.jobCapUsd !== undefined)
+          ? Math.max(...grants.map((c) => c.jobCapUsd ?? c.budgetUsd))
+          : undefined,
       };
     }
-    modelChoice = r.model;
   }
 
   const budgetUsd = tighten(r.budgetUsd, choice?.budgetUsd ?? defaults.budgetUsd, "budgetUsd");
@@ -325,12 +364,15 @@ export function parseJobRequest(
       jobCapUsd,
       timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
-      // A picked model applies to EVERY step: "reserve the heavy model
-      // for the heavy job" is a decision about the job, not about one
-      // step inside it. Run a single step as its own job to be finer.
+      // A whole-job pick applies to EVERY step: "reserve the heavy
+      // model for the heavy job" is a decision about the job. A
+      // per-step map overrides only the steps it names, and every
+      // other step keeps the config's own choice.
       model: modelChoice
         ? Object.fromEntries(steps.map((s) => [s, modelChoice]))
-        : perStep(steps, defaults.model),
+        : { ...perStep(steps, defaults.model), ...stepModels },
+      // Left unset for a per-step map: it means "one model for the
+      // whole job", which is no longer true once the steps may differ.
       modelChoice,
       extraProjects,
       createdAt: new Date().toISOString(),

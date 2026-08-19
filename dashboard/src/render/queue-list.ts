@@ -978,41 +978,21 @@ const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.spec
 // "an id that names a spec" stays the one convention it already is.
 const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
-// The three things nobody sets every time — the model, the other repos
-// the job will touch, and whether to stop for approval between the
-// steps. Built here rather than inline in `controlsRow` so the `form`
-// attribute every one of them needs is written once, beside the id it
-// has to match.
+// The two things nobody sets every time — the other repos the job will
+// touch, and whether to stop for approval between the steps. Built here
+// rather than inline in `controlsRow` so the `form` attribute both of
+// them need is written once, beside the id it has to match.
+//
+// The model used to be the third. It left for the phase lines in spec
+// 123: one shared dropdown could only ever set ONE model for every
+// phase a press ticked, and it landed beside the State column by
+// accident of content width, tied to nothing around it.
 function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
-  // Three fields that set up a job, on a row where no job can be
-  // started: while the spec is busy every one of them is disabled, and
+  // Two fields that set up a job, on a row where no job can be
+  // started: while the spec is busy both of them are disabled, and
   // each carries the same sentence the phase boxes do.
   const why = busy ? busyReason(g) : "";
-  // The heavy model is worth reserving for heavy work, so the choice is
-  // explicit and the default is "whatever the config says per step".
-  // Each option carries what it is granted per step, because that is the
-  // number that decides whether the job can finish — the default one
-  // included. Without a figure the default was the only option on the
-  // list without one, which read as the cheap or the unknown choice
-  // while it was in fact the most generous: picking `opus` granted $15
-  // for the same model the default ran at $35.
-  const models = opts.modelChoices ?? [];
-  const asConfigured =
-    typeof opts.defaultBudgetUsd === "number"
-      ? `as configured per step — $${opts.defaultBudgetUsd} per step`
-      : "as configured per step";
   const formId = runFormId(g);
-  const select = models.length
-    ? field(
-        "Model",
-        `<select name="model" form="${esc(formId)}"${busy ? " disabled" : ""}>` +
-          `<option value="">${esc(asConfigured)}</option>` +
-          models
-            .map((m) => `<option value="${esc(m.name)}">${esc(m.name)} — $${m.budgetUsd} per step</option>`)
-            .join("") +
-          `</select>`,
-      )
-    : "";
   // The row's own project is watched already, so offering it again is an
   // error waiting to be submitted. The row knows which spec it is before
   // it is drawn, so this is a filter at render time — the old shared
@@ -1051,7 +1031,7 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
     disabled: busy,
     title: busy ? why : undefined,
   });
-  return `${select}${extraField}${gate}`;
+  return `${extraField}${gate}`;
 }
 
 // One control per spec, on the spec's own row: tick the phases, press
@@ -1304,15 +1284,77 @@ function specHeadRow(
   );
 }
 
+// The picker a phase line carries, and the caption above the list that
+// says what the two things on that line are. One `<select>` per phase
+// since spec 123: the model is a choice about the PHASE, and a single
+// dropdown for the row could only ever set one model for every phase a
+// press ticked.
+//
+// Written outside the Run form's own tags, like the other fields on an
+// open row — the `form` attribute is what carries it back, and an id
+// that drifts from the form's own silently runs the job on the
+// defaults instead.
+//
+// The figure each model is granted is in the option's TOOLTIP, not its
+// label. It has to stay reachable: without one, the default read as the
+// cheap or the unknown choice while it was in fact the most generous
+// (picking `opus` granted $15 for the same model the default ran at
+// $35). Read out on every option, it was three lines of money on a page
+// about work.
+function modelPicker(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  step: string,
+  busy: boolean,
+): string {
+  const models = opts.modelChoices ?? [];
+  if (!models.length) return "";
+  const why = busy ? busyReason(g) : "";
+  const asConfigured =
+    typeof opts.defaultBudgetUsd === "number"
+      ? ` title="as configured per step — $${opts.defaultBudgetUsd} per step"`
+      : "";
+  return (
+    `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
+    (busy ? ` disabled title="${esc(why)}"` : "") +
+    `>` +
+    `<option value=""${asConfigured}>default</option>` +
+    models
+      .map((m) => `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step">${esc(m.name)}</option>`)
+      .join("") +
+    `</select>`
+  );
+}
+
+// The phase names used to stand alone in a cell sized for a spec name,
+// with the model they ran on in the NEXT cell — sized for the progress
+// pips. Two short words with a hand's width of nothing between them.
+// Merging the two cells and putting the flex-gap container inside is
+// the same trick `collapsedAction` uses to sit two controls together
+// whatever the table's auto-sized widths turn out to be.
+function phaseCaptionRow(opts: QueuePageOptions): string {
+  if (!(opts.modelChoices ?? []).length) return "";
+  return (
+    // No class of its own: it needs no rule, and the render vocabulary
+    // is a closed set (`css-token-guard.test.ts`).
+    `<tr class="subrow" data-caption="1">` +
+    `<td colspan="2" class="phasecell"><span class="row">` +
+    `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
+    `</span></td><td></td><td></td><td class="num"></td><td></td></tr>`
+  );
+}
+
 // One line per phase, in the workflow's own order, whether or not it has
 // happened. A phase nobody has run yet is the point of the fixed order:
 // it says what is still ahead without anyone counting rows.
 //
-// Read-only: the phase is RUN from the header row, which is the only
-// line a collapsed spec leaves in the page. The trailing cell stays,
-// empty — the table is six columns wide on every row.
-function phaseSubRows(g: SpecGroup, now: number): string {
-  return g.phases
+// The phase is still RUN from the row's own controls line — the line
+// carries the picker for the NEXT run of that phase, not a Run button.
+// The trailing cell stays, empty — the table is six columns wide on
+// every row.
+function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
+  const busy = specBusy(g);
+  return phaseCaptionRow(opts) + g.phases
     .map((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest);
@@ -1335,16 +1377,19 @@ function phaseSubRows(g: SpecGroup, now: number): string {
               "1-description.md was committed after the last finished analyze",
             )
           : "";
+      // What the LAST run used, beside the picker for the next one —
+      // two different questions, and turning the plain text into a live
+      // control must not take the answer to the first one away.
       const tries =
         p.attempts.length > 1
-          ? `<div class="muted small">${p.attempts.length} attempts</div>`
+          ? `<span class="muted small">${p.attempts.length} attempts</span>`
           : latest?.model
-            ? `<div class="muted small">${esc(latest.model)}</div>`
+            ? `<span class="muted small">last ran: ${esc(latest.model)}</span>`
             : "";
       return (
         `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">` +
-        `<td class="phasecell">${name}${stale}</td>` +
-        `<td>${tries}</td>` +
+        `<td colspan="2" class="phasecell"><span class="row">` +
+        `${name}${stale}${tries}${modelPicker(g, opts, p.step, busy)}</span></td>` +
         `<td>${phaseWordCell(word, latest)}</td>` +
         `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
         `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
@@ -1374,7 +1419,7 @@ function groupRows(
     .map((g) => {
       const head = specHeadRow(g, opts, now, opened, all);
       return opened.has(groupKey(g.project, g.specFolder))
-        ? head + controlsRow(g, opts) + phaseSubRows(g, now)
+        ? head + controlsRow(g, opts) + phaseSubRows(g, opts, now)
         : head;
     })
     .join("");

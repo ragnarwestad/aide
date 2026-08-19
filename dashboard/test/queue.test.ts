@@ -387,6 +387,183 @@ describe("per-job model choice", () => {
   });
 });
 
+// Spec 123: the model is chosen ON THE PHASE LINE, so one Run press can
+// carry a DIFFERENT model for each phase it ticks. The whole-job string
+// above is kept working unchanged; this is the shape the per-phase
+// dropdowns post. Two rules carry over from the whole-job path and one
+// is new:
+//   * every NAME is still looked up in the config, so a request can
+//     never invent a model — checked once per entry now
+//   * a step named here must be one this job is actually running
+//   * the budget is the LARGEST any one chosen model was granted, never
+//     the sum: `queue.ts`'s own rule is that a request may only TIGHTEN
+//     a cap, and two picks together may not buy more headroom than the
+//     more generous of them already had.
+describe("per-step model choice", () => {
+  const WITH_CHOICES: QueueDefaults = {
+    ...DEFAULTS,
+    modelChoices: {
+      sonnet: { budgetUsd: 3 },
+      opus: { budgetUsd: 3 },
+      fable: { budgetUsd: 12, jobCapUsd: 30 },
+    },
+  };
+
+  test("a per-step map runs each named step on its own model", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "sonnet", implement: "fable" });
+    // No single name applies to the job any more, so the field that
+    // means "one pick for the whole job" is left unset.
+    expect(r.job.modelChoice).toBeUndefined();
+  });
+
+  test("the budget is the MAX across the chosen models, never their sum", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // sonnet grants 3, fable grants 12 — the job gets 12, not 15.
+    expect(r.job.budgetUsd).toBe(12);
+    // Same rule for the job cap: fable's 30, not 30 + sonnet's.
+    expect(r.job.jobCapUsd).toBe(30);
+  });
+
+  test("a map naming only cheap models buys no more headroom than they were granted", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "opus" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.budgetUsd).toBe(3);
+    // Neither names a job cap of its own, so the configured one stands.
+    expect(r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
+  });
+
+  test("a step outside this job's own steps is refused, and named in the error", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], model: { implement: "fable" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("implement");
+  });
+
+  test("an unlisted model in the map is refused, exactly as a whole-job one is", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], model: { analyze: "gpt-9" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("gpt-9");
+  });
+
+  test("with no choices configured, a per-step map is refused rather than ignored", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], model: { analyze: "fable" } },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("model");
+  });
+
+  test("a step left on 'default' falls back to the config, without refusing the rest", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "fable", implement: "" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // `implement`'s own config default is opus (DEFAULTS.model).
+    expect(r.job.model).toEqual({ analyze: "fable", implement: "opus" });
+  });
+
+  test("a step this job runs but the map does not name keeps the config's own choice", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "fable" } },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "fable", implement: "opus" });
+  });
+
+  test("the request still cannot raise the budget past what the map was granted", () => {
+    const raised = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" }, budgetUsd: 40 },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(raised.ok).toBe(false);
+
+    const tightened = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: { analyze: "sonnet", implement: "fable" }, budgetUsd: 5 },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(tightened.ok).toBe(true);
+    if (!tightened.ok) return;
+    expect(tightened.job.budgetUsd).toBe(5);
+  });
+
+  test("a list is not a map — it is refused rather than half-read", () => {
+    const r = parseJobRequest(
+      { ...REQ, model: ["fable"] },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  // The whole-job string is the shape every API caller written before
+  // this spec still posts. It must behave byte for byte as it did.
+  test("a legacy single-string model still applies to every step, unchanged", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: "fable" },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "fable", implement: "fable" });
+    expect(r.job.modelChoice).toBe("fable");
+    expect(r.job.budgetUsd).toBe(12);
+  });
+
+  // An empty string has always meant "use the configuration" rather
+  // than "refuse this request" — the no-JS form posts one whenever the
+  // reader leaves the field alone. A per-step branch that swallows it
+  // turns a 200 into a 400 with nothing on the page to say why.
+  test("an empty whole-job model is still 'use the configuration', not an error", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: "" },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "sonnet", implement: "opus" });
+    expect(r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
+  });
+
+  test("an empty map is 'use the configuration' too", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], model: {} },
+      { resolve, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ analyze: "sonnet", implement: "opus" });
+    expect(r.job.modelChoice).toBeUndefined();
+    expect(r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
+  });
+});
+
 // Two jobs for the same spec and the same step is never what anyone
 // meant: it happened on 2026-08-16 when the same analyze was posted
 // from the API and from the page seconds apart, and the queue took

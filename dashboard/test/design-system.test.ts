@@ -323,24 +323,25 @@ describe("the row's rarely-set controls sit flat on the controls line (item 4)",
     expect(table).not.toContain("<summary");
   });
 
-  test("model, gate and also-touches are all on the controls line", () => {
+  // Two of the three: since spec 123 the model is chosen on the phase
+  // line itself, not on this one.
+  test("gate and also-touches are both on the controls line", () => {
     const line = controls(html());
-    expect(line).toContain('name="model"');
     expect(line).toContain('name="gate"');
     expect(line).toContain('name="extraProjects"');
+    expect(line).not.toContain('name="model"');
   });
 
-  test("nothing of the three is left anywhere else on the page", () => {
+  test("nothing of the two is left anywhere else on the page", () => {
     const h = html();
     const outside = h.replace(controls(h), "");
-    expect(outside).not.toContain('name="model"');
     expect(outside).not.toContain('name="gate"');
     expect(outside).not.toContain('name="extraProjects"');
   });
 
   test("they come after the phase boxes and Run, quietly", () => {
     const line = controls(html());
-    expect(line.indexOf('name="model"')).toBeGreaterThan(line.indexOf(">Run</button>"));
+    expect(line.indexOf('name="gate"')).toBeGreaterThan(line.indexOf(">Run</button>"));
     expect(line).toContain('<span class="row extra">');
   });
 

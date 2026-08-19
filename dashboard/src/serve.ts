@@ -310,6 +310,31 @@ function bodyToObject(text: string, contentType: string | null): unknown {
     if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
     if (typeof out.extraProjects === "string") out.extraProjects = [out.extraProjects];
     if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
+    // The model is picked on the PHASE line since spec 123, so a form
+    // posts one field per phase — `model.<step>`. A urlencoded body
+    // cannot carry a nested object, and this is the one seam every form
+    // on the page passes through (`postForm` in queue-client.ts always
+    // urlencodes, and the no-JS fallback does too), so the dotted keys
+    // are folded back into one object here.
+    //
+    // A select left on "default" posts an EMPTY value, which every
+    // browser sends whether or not the reader touched it. Dropped here
+    // rather than passed on: an empty string is not a model name, so
+    // the object this builds carries only what someone actually picked.
+    // `parseJobRequest` skips a blank entry of its own accord too — a
+    // JSON caller reaches it without coming through here — so this is
+    // about the SHAPE at this seam, not the only thing standing between
+    // an untouched field and a refused request.
+    const modelKeys = [...new Set(params.keys())].filter((k) => k.startsWith("model."));
+    if (modelKeys.length) {
+      const picked: Record<string, string> = {};
+      for (const key of modelKeys) {
+        const value = params.get(key);
+        if (value) picked[key.slice("model.".length)] = value;
+        delete out[key];
+      }
+      if (Object.keys(picked).length) out.model = picked;
+    }
     // A form posts a checkbox only when it is ticked. Unticked means
     // "run straight through", which must be said explicitly — the
     // schema's default is to gate after every step.
