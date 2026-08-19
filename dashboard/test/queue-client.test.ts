@@ -250,10 +250,14 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(2);
   });
 
-  test("a merge that cannot be sent at all reloads rather than lying (criterion 12)", async () => {
-    const h = harness(() => ({ ok: false, throws: true }));
+  // The reload keeps the reader's view: a press that failed while the
+  // server restarted used to land on a bare `/`, and the sort and
+  // filter they had set were gone (seen 2026-08-19: "Spec ▴" reset to
+  // "Started ▾" with no press of theirs).
+  test("a merge that cannot be sent at all reloads rather than lying — and keeps the view (criterion 12)", async () => {
+    const h = harness(() => ({ ok: false, throws: true }), "mergeform", "?sort=spec&dir=asc");
     await h.submit();
-    expect(h.location.href).toBe("/");
+    expect(h.location.href).toBe("/?sort=spec&dir=asc");
   });
 
   // Merged is not deployed: the code reaching the default branch changes

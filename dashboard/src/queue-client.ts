@@ -150,8 +150,10 @@ async function postForm(
     await onRefused(refusalText(answer), answer?.spec);
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
-    // the always-correct answer, because it asks the server again.
-    location.href = "/";
+    // the always-correct answer, because it asks the server again. With
+    // the reader's own query string — the sort and the filter live
+    // there, and a bare `/` threw them away.
+    location.href = `/${location.search}`;
   } finally {
     inFlight -= 1;
     // `isConnected` because a successful swapRows has already replaced
