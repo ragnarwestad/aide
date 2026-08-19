@@ -128,7 +128,7 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return [
-    { label: "Overview", path: OVERVIEW_PAGE },
+    { label: "Projects", path: OVERVIEW_PAGE },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 }
@@ -209,7 +209,7 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
       path: OVERVIEW_PAGE,
       // The tab always leads with aide; the tagline rides on the
       // overview, the one page that is about aide itself.
-      html: pageShell("Overview", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
+      html: pageShell("Projects", entries, OVERVIEW_PAGE, overview, generatedAt, undefined, {
         docTitle: "aide — from spec to merge",
       }),
     },

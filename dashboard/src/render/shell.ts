@@ -12,19 +12,23 @@ export interface NavEntry {
 }
 
 export function nav(entries: NavEntry[], currentPath: string): string {
-  const link = (e: NavEntry) => {
-    const cls = e.path === currentPath ? ' class="current"' : "";
+  const link = (e: NavEntry, current: boolean) => {
+    const cls = current ? ' class="current"' : "";
     return `<li><a${cls} href="${esc(e.path)}">${esc(e.label)}</a></li>`;
   };
-  const [overview, ...projects] = entries;
+  // The first entry is the Projects page; the rest are the project
+  // pages, which are NOT listed here — the Projects page lists them,
+  // and two lists of the same projects were one too many. A project's
+  // own page counts as being "in" Projects, so that entry is current
+  // there too.
+  const [projectsPage, ...projects] = entries;
+  const onAProject = projects.some((p) => p.path === currentPath);
   const lis = [
-    // The spec list leads: since spec 100 it IS the front page, and
-    // everything else in this menu sits under it.
-    link({ label: "Specs", path: "/" }),
-    link(overview),
-    link({ label: "About", path: "about.html" }),
-    `<li class="lbl">Projects</li>`,
-    ...projects.map(link),
+    // No "Specs" entry: the spec list IS the front page (spec 100), and
+    // the wordmark above this list is the way home — a second link to
+    // `/` said the same thing twice.
+    link(projectsPage, projectsPage.path === currentPath || onAProject),
+    link({ label: "About", path: "about.html" }, currentPath === "about.html"),
   ];
   // The mark sits above the link list, per the brand handoff's step 2.
   return `<nav>${WORDMARK}<ul>${lis.join("")}</ul></nav>`;

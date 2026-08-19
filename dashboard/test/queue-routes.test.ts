@@ -267,7 +267,9 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).toContain("<title>aide</title>");
     expect(html).toContain("<h1>Specs</h1>");
-    expect(html).toContain('<a class="current" href="/">Specs</a>');
+    // No nav entry for the list itself: the wordmark is home.
+    expect(html).not.toContain(">Specs</a>");
+    expect(html).toContain('<a class="brand" href="/">');
     // Not one label left saying it either — the button and the form's
     // heading were the other two places the retired word was read.
     expect(html).not.toContain("Queue a job");
@@ -492,7 +494,7 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain("<nav>");
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
-    expect(html).toMatch(/<a class="current" href="\/"/);
+    expect(html).toContain('<a class="brand" href="/">');
     // Every control says what it is: an unlabelled select next to some
     // checkboxes tells the reader nothing. The steps and Run are on the
     // spec's own row; the three nobody sets every time are behind the
@@ -571,10 +573,13 @@ describe("GET / (the spec list, HTML)", () => {
     expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
-  test("generated pages carry the Specs nav entry", async () => {
+  test("generated pages reach the list through the wordmark, not a Specs entry", async () => {
     const { renderSite } = await import("../src/render.ts");
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
-    for (const p of pages) expect(p.html).toContain('<a href="/">Specs</a>');
+    for (const p of pages) {
+      expect(p.html).toContain('<a class="brand" href="/">');
+      expect(p.html).not.toContain(">Specs</a>");
+    }
   });
 });
 
