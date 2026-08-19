@@ -164,7 +164,7 @@ describe("GET /projects (spec 115)", () => {
   test("the no---root nav still points at projects.html", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN, projectRoot: undefined } });
     const html = await (await fetch(`${base}/`, { headers: AUTH })).text();
-    const navHtml = html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+    const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
     expect(navHtml).toContain('href="projects.html"');
     expect(navHtml).not.toContain('href="/projects"');
   });

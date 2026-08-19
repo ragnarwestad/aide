@@ -278,7 +278,7 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     expect(html).toContain("<h1>Specs</h1>");
     // Spec 119: the list has a tab of its own again, and it is the
     // current one here. The wordmark still goes home too.
-    expect(html).toMatch(/<nav>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
+    expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
     expect(html).toContain('<a class="brand" href="/">');
     // Not one label left saying it either — the button and the form's
     // heading were the other two places the retired word was read.
@@ -528,7 +528,7 @@ describe("GET / (the spec list, HTML)", () => {
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     await fetch(`${base}/api/queue`, { method: "POST", headers, body: JSON.stringify(JOB) });
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain("<nav>");
+    expect(html).toContain("<nav");
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
     expect(html).toContain('<a class="brand" href="/">');
@@ -635,7 +635,7 @@ describe("GET / (the spec list, HTML)", () => {
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
     for (const p of pages) {
       expect(p.html).toContain('<a class="brand" href="/">');
-      expect(p.html).toContain('<a data-nav href="/">Specs</a>');
+      expect(p.html).toContain('<a class="tab" data-nav href="/">Specs</a>');
     }
   });
 });

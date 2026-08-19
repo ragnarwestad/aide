@@ -135,7 +135,7 @@ describe("the header and the two tabs (spec 119)", () => {
   const every = new Map<string, string>([...site, ...Object.entries(served)]);
 
   const menu = (h: string) => h.match(/<details class="menu">[\s\S]*?<\/details>/)?.[0] ?? "";
-  const tabs = (h: string) => h.match(/<nav>[\s\S]*?<\/nav>/)?.[0] ?? "";
+  const tabs = (h: string) => h.match(/<nav[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
   /** One pill, by its label, out of the tab bar. */
   const tab = (h: string, label: string) =>
     tabs(h).match(new RegExp(`<a[^>]*>${label}</a>`))?.[0] ?? "";
@@ -168,7 +168,7 @@ describe("the header and the two tabs (spec 119)", () => {
         path,
         ["Specs", "Projects"],
       ]);
-      expect([path, html.indexOf("</header>") < html.indexOf("<nav>")]).toEqual([path, true]);
+      expect([path, html.indexOf("</header>") < html.indexOf("<nav")]).toEqual([path, true]);
       expect([path, html.indexOf("</nav>") < html.indexOf("<h1>")]).toEqual([path, true]);
     }
   });

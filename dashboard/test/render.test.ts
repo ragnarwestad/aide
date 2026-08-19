@@ -148,7 +148,7 @@ describe("nav (criterion 2)", () => {
   // "…" menu — it is not a half of the site.
   test("the tabs are Specs and Projects; the wordmark is still home", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const links = [...navHtml.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(
         (m) => [m[2], m[1]],
       );
@@ -162,7 +162,7 @@ describe("nav (criterion 2)", () => {
   // list, so Specs is never the current tab here.
   test("exactly one current tab, and on a generated page it is Projects", () => {
     for (const page of site) {
-      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const currents = [...navHtml.matchAll(/<a[^>]*aria-current="page"[^>]*>([^<]+)<\/a>/g)];
       // About has no tab of its own — it is reached through the menu.
       const expected = page.path === "about.html" ? [] : ["Projects"];
@@ -236,9 +236,10 @@ describe("the generated overview is a redirect to /projects", () => {
     expect(index).not.toContain("<table");
   });
 
-  test("it is still a page of the site, nav and stamp and all", () => {
-    expect(index).toContain("<nav>");
-    expect(index).toContain(generatedAt);
+  test("it is still a page of the site, nav and all; the stamp lives on About", () => {
+    expect(index).toContain("<nav");
+    expect(index).not.toContain(generatedAt);
+    expect(byPath.get("about.html")).toContain(generatedAt);
   });
 });
 
@@ -262,7 +263,7 @@ describe("the About page", () => {
     const page = byPath.get("about.html")!;
     const menu = page.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
     expect(menu).toContain('<a href="about.html">About</a>');
-    expect(page.match(/<nav>[\s\S]*?<\/nav>/)![0]).not.toContain("aria-current");
+    expect(page.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0]).not.toContain("aria-current");
   });
 
   // The nav lists one entry per PROJECT page. About is a page too, and
@@ -665,7 +666,7 @@ describe("renderJobDetailPage", () => {
     // over: the wordmark goes home, and the Specs tab is the current
     // one (spec 119 — `job-page.ts` passes `currentPath = "/"`).
     expect(html).toContain('<a class="brand" href="/">');
-    expect(html).toMatch(/<nav>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
+    expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
   });
 
   test("a finished job shows no live panel — there is no session to follow", () => {
@@ -707,7 +708,7 @@ describe("the job page is split into tabs", () => {
     // The page proper, without the site's own tab bar above it — spec
     // 119 put a second marked tab there, and Specs is legitimately
     // current on a job page.
-    const page = html.replace(/<nav>[\s\S]*?<\/nav>/, "");
+    const page = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
     expect(page.match(/aria-current="page"/g)).toHaveLength(1);
     expect(page).toMatch(/aria-current="page"[^>]*>Activity/);
   });
@@ -1792,8 +1793,8 @@ describe("spec 119: the list page's own tab", () => {
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [] },
     );
-    const navHtml = html.match(/<nav>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toContain('<a data-nav href="/" aria-current="page">Specs</a>');
+    const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
+    expect(navHtml).toContain('<a class="tab" data-nav href="/" aria-current="page">Specs</a>');
     expect(html).not.toContain('href="/specs"');
     expect(html).toContain('<a class="brand" href="/">');
     // The Projects tab points wherever the caller's first entry does —

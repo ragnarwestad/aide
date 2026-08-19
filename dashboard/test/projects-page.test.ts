@@ -58,10 +58,10 @@ describe("the listing on /projects", () => {
     expect(page([project("alpha")])).not.toContain("Manage projects");
   });
 
-  test("it carries the nav and the generated-at stamp, like every other page", () => {
+  test("it carries the nav — and no stamp: the build time lives on About now", () => {
     const html = page([project("alpha")]);
-    expect(html).toContain("<nav>");
-    expect(html).toContain(AT);
+    expect(html).toContain("<nav");
+    expect(html).not.toContain(AT);
     expect(html).toContain("<h1>Projects</h1>");
   });
 });

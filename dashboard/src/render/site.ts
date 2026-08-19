@@ -162,7 +162,7 @@ export const PROJECTS_ROUTE = "/projects";
  *  spec list until the button that opened it became a link to here. */
 export const NEW_SPEC_ROUTE = "/new";
 
-function aboutBody(): string {
+function aboutBody(generatedAt: string): string {
   return (
     `<p class="intro">aide-dashboard is the read-only overview of ` +
     `AI-assisted development across the projects on this machine: every ` +
@@ -170,7 +170,11 @@ function aboutBody(): string {
     `showing what the project IS (stack, deployment, logging, statistics, ` +
     `docs) and where its specs stand (phase and progress, active and ` +
     `archived). The site is static — regenerate and publish with ` +
-    `<code>make publish</code>.</p>`
+    `<code>make publish</code>.</p>` +
+    // The build stamp lives HERE, said in words — it sat unlabelled in
+    // every page's corner, where it read as noise (2026-08-19).
+    `<p class="stamp">Build: these static pages (Projects, About, the ` +
+    `project pages) were last generated ${esc(generatedAt)}.</p>`
   );
 }
 
@@ -258,7 +262,7 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
   ];
   pages.push({
     path: ABOUT_PAGE,
-    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(), generatedAt),
+    html: pageShell("About", entries, ABOUT_PAGE, aboutBody(generatedAt), generatedAt),
   });
   for (const p of ordered) {
     const path = `${slugs.get(p)!}.html`;

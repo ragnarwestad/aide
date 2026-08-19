@@ -8,7 +8,6 @@ import { join } from "node:path";
 
 import { CSS } from "./css.ts";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
-import { filterPills } from "./components.ts";
 import { esc } from "./html.ts";
 
 export interface NavEntry {
@@ -93,22 +92,17 @@ function tabBar(entries: NavEntry[], currentPath: string): string {
   // The spec list is `/` for the list itself AND for every job detail
   // page — `job-page.ts` passes the literal `"/"` — so one check covers
   // both halves of Specs.
-  const pills = filterPills(
-    "toptab",
-    "",
-    [
-      { label: "Specs", on: currentPath === "/", href: "/" },
-      {
-        label: "Projects",
-        on: projectsPage!.path === currentPath || onAProject,
-        href: projectsPage!.path,
-      },
-    ],
-    "page",
+  // Real tabs, not filter pills: a hairline the row sits on, and the
+  // current tab marked by an underline in the accent colour (asked for
+  // 2026-08-19, with PaceUp's tab bar as the reference).
+  const tab = (label: string, href: string, on: boolean) =>
+    `<a class="tab" data-nav href="${href}"${on ? ` aria-current="page"` : ""}>${label}</a>`;
+  return (
+    `<nav class="tabbar">` +
+    tab("Specs", "/", currentPath === "/") +
+    tab("Projects", projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
+    `</nav>`
   );
-  // A bare <nav>: it is the page's navigation, and the pills inside it
-  // are the same control the job page's own tabs are.
-  return `<nav>${pills}</nav>`;
 }
 
 export function pageShell(
@@ -116,7 +110,10 @@ export function pageShell(
   entries: NavEntry[],
   currentPath: string,
   body: string,
-  generatedAt: string,
+  // Kept in the signature for the callers' sake; the stamp itself moved
+  // to the About page (2026-08-19) — an unlabelled ISO timestamp in the
+  // corner of every page read as noise.
+  _generatedAt: string,
   refreshSeconds?: number,
   opts: { refreshInNoscript?: boolean; script?: string; docTitle?: string } = {},
 ): string {
@@ -149,7 +146,7 @@ ${ICON_LINKS}
 ${pageHeader()}
 ${tabBar(entries, currentPath)}
 <main>
-<div class="pagehead"><h1>${esc(title)}</h1><span class="stamp">Generated ${esc(generatedAt)}</span></div>
+<div class="pagehead"><h1>${esc(title)}</h1></div>
 ${body}
 </main>${script}
 </body>

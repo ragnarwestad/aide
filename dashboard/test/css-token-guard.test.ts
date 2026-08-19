@@ -181,6 +181,7 @@ const STRUCTURE = [
   // the frame — "menu" and "menupanel" are the "…" disclosure in the
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
+  "tabbar", "tab",
   "menu", "menupanel",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule

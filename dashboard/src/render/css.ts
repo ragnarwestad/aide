@@ -121,10 +121,20 @@ a:hover { color: var(--accent-strong); text-decoration: underline; }
 header { display: flex; align-items: center; justify-content: space-between;
   gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) var(--sp-3); }
 header .brand { margin: 0; padding: 0; }
-/* The two tabs, on the line that separates the frame from the page. */
-body > nav { padding: 0 var(--sp-6) var(--sp-3);
+/* The two tabs: a real tab bar — the row sits ON the hairline, and the
+   current tab is marked by an underline in the accent colour, PaceUp's
+   tab bar being the reference (2026-08-19). */
+body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
   border-bottom: 1px solid var(--line); }
+.tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
+  color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }
+.tabbar .tab:hover { color: var(--text); text-decoration: none; }
+.tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
+  border-bottom-color: var(--accent); }
 main { padding: var(--sp-5) var(--sp-6); max-width: 68rem; }
+/* The frame is CENTRED: header, tabs and page share one width and sit
+   in the middle of the window instead of flush against its left edge. */
+header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
 h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
 h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
@@ -255,6 +265,8 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 /* --- filter pill ------------------------------------------------------ */
 
 .filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+/* The whole controls line keeps clear air down to the table. */
+.listcontrols { margin-bottom: var(--sp-3); }
 /* Two elements, one pill. A filter is a link because it goes somewhere;
    a theme choice is a button because it does something. That difference
    belongs in the markup, not in a second class that looks the same. */
@@ -400,12 +412,16 @@ tr[data-controls] .row { align-items: flex-end; }
   color: var(--muted); line-height: 1; list-style: none; cursor: pointer; }
 .menu > summary::-webkit-details-marker { display: none; }
 .menu > summary:hover { border-color: var(--muted); color: var(--text); }
+/* Menu rows, not a box with text in it: every item is a full-width flat
+   with a hover, the way a menu reads. */
 .menupanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
-  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
-  min-width: 11rem; padding: var(--sp-3); background: var(--surface);
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+  min-width: 13rem; padding: var(--sp-1); background: var(--surface);
   border: 1px solid var(--line-strong); border-radius: var(--r);
   box-shadow: var(--overlay-shadow); }
+.menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
+.menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
 
 /* How runs work: a small question mark at the right-hand end of the
    filter row, not a block between the page's title and the list the
