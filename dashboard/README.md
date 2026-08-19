@@ -427,13 +427,21 @@ aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · htt
 One row per spec, not per job, and collapsed by default (spec 103):
 name, title, one status line, the phase pips, and at most one action
 button. Expanding it (the chevron in front of the name, `?open=…`)
-reveals the four workflow phases underneath — analyze, review-plan,
-implement, archive — always in that order, so how far a spec has got is
-readable without counting rows, plus the run controls (phase
-checkboxes, model, "more", Run/Run again, Cancel). A phase never run
-shows a muted "not run yet". A phase run more than once shows its
-LATEST attempt with the count beside it, because a re-run is ordinary:
-one spec needed three `archive` runs.
+reveals the workflow phases underneath, always in that order, so how
+far a spec has got is readable without counting rows, plus the run
+controls (phase checkboxes, model, "more", Run/Run again, Cancel). A
+phase never run shows a muted "not run yet". A phase run more than once
+shows its LATEST attempt with the count beside it, because a re-run is
+ordinary: one spec needed three `archive` runs.
+
+The first line is `create` (spec 116) — history, not a control. Its
+file-truth is that the spec's folder exists, so the line always reads
+done; a spec with a create job in the queue's history additionally
+shows that run (state, model, time, cost, link), and a spec made by
+hand or before spec 93 shows the line inert, the same way any phase run
+outside the queue does. It has no checkbox and no pip of its own — the
+pips still count only the four RUNNABLE phases below it: analyze,
+review-plan, implement, archive.
 
 The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per
