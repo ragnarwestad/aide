@@ -104,7 +104,7 @@ interface ActionResult {
   ok?: boolean;
   spec?: string;
   error?: string;
-  results?: { error?: string; installError?: string; branchDeleteError?: string }[];
+  results?: { error?: string; reason?: string; installError?: string; branchDeleteError?: string }[];
 }
 
 /** Why the server said no, whichever shape it said it in: merge answers
@@ -112,6 +112,14 @@ interface ActionResult {
 function refusalText(body: ActionResult | null): string {
   const perRepo = (body?.results ?? []).map((r) => r.error).filter(Boolean).join("; ");
   return perRepo || body?.error || "the request failed";
+}
+
+/** The one machine-readable refusal class the page acts on: a per-repo
+ *  `reason: "conflict"` is what makes the row offer the resolve step.
+ *  The no-JS redirect carries it as `errorReason`; this path lost it,
+ *  and the resolve button never appeared for anyone with JS on. */
+function refusalReason(body: ActionResult | null): string | undefined {
+  return (body?.results ?? []).some((r) => r.reason === "conflict") ? "conflict" : undefined;
 }
 
 /** Post a form as JSON-wanting XHR and hand the answer on. The button
@@ -125,7 +133,7 @@ function refusalText(body: ActionResult | null): string {
 async function postForm(
   form: HTMLFormElement,
   onOk: (body: ActionResult | null) => Promise<void> | void,
-  onRefused: (why: string, spec: string | undefined) => Promise<void> | void,
+  onRefused: (why: string, spec: string | undefined, reason?: string) => Promise<void> | void,
 ): Promise<void> {
   const buttons = Array.from(form.querySelectorAll("button"));
   const primary = buttons[0];
@@ -203,7 +211,7 @@ async function postForm(
       await onOk(answer);
       return;
     }
-    await onRefused(refusalText(answer), answer?.spec);
+    await onRefused(refusalText(answer), answer?.spec, refusalReason(answer));
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
     // the always-correct answer, because it asks the server again. With
@@ -240,13 +248,13 @@ async function postForm(
 // every refusal back on the default list, which is the thing the plain
 // form POST was fixed for. `errorSpec` is the server's own answer for
 // WHICH row this belongs to, and `specHeadRow` puts it there.
-async function showRefusal(why: string, spec: string | undefined): Promise<void> {
+async function showRefusal(why: string, spec: string | undefined, reason?: string): Promise<void> {
   const back = new URLSearchParams(location.search);
   // Handed over once as a cookie: putting it back in the address bar
   // would leave the token in history for nothing. `rows` and the two
   // this is about to set would otherwise be carried over from a URL
   // that is already showing a refusal.
-  for (const drop of ["token", "rows", "error", "errorSpec"]) back.delete(drop);
+  for (const drop of ["token", "rows", "error", "errorSpec", "errorReason"]) back.delete(drop);
   // Percent-encoded one key at a time, exactly as the server's own
   // redirect does it (`specsRedirect`): `URLSearchParams.toString()`
   // writes a space as `+`, and this string is a sentence a person reads
@@ -254,6 +262,7 @@ async function showRefusal(why: string, spec: string | undefined): Promise<void>
   const parts = [...back].map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
   parts.push(`error=${encodeURIComponent(why)}`);
   if (spec) parts.push(`errorSpec=${encodeURIComponent(spec)}`);
+  if (reason) parts.push(`errorReason=${encodeURIComponent(reason)}`);
   history.replaceState(null, "", `/?${parts.join("&")}`);
   await swapRows();
 }

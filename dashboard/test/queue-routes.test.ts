@@ -2277,6 +2277,30 @@ describe("landing a created spec (spec 93)", () => {
     expect(landedJob.landing).toBeFalsy();
   });
 
+  // The landing races the runs that pull the same checkout: 111 and 112
+  // were both stranded by a first-try index.lock loss. A transient
+  // failure is retried; only a merge that keeps failing is reported.
+  test("a landing that fails once and then succeeds lands on the retry", async () => {
+    let failures = 1;
+    const inner = gitFor([]);
+    const git = {
+      calls: inner.calls,
+      run: (dir: string, args: string[]) => {
+        if (args.join(" ").startsWith("merge -q --no-edit") && dir === SPECS_REPO && failures > 0) {
+          failures -= 1;
+          return Promise.resolve({ code: 1, stdout: "", stderr: "index.lock" });
+        }
+        return inner.run(dir, args);
+      },
+    };
+    const { base, results } = serverWithRunner(git as never);
+    const job = await createJob(base);
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    const landed = await settle(base, job.id, (j) => j.specFolder !== job.specFolder || !!j.error);
+    expect(landed.error).toBeFalsy();
+    expect(landed.specFolder).not.toBe(job.specFolder);
+  });
+
   test("a landing that fails keeps the provisional key and says which repo and why", async () => {
     const git = gitFor([SPECS_REPO]);
     const { base, results } = serverWithRunner(git);

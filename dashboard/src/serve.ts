@@ -895,7 +895,16 @@ export function createServer(opts: ServerOptions) {
           failures.push(`cannot work out the default branch in ${repo.root}`);
           continue;
         }
-        const result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+        // Up to three tries with a pause: this landing races the runs
+        // that pull the same checkout (index.lock, a briefly stale
+        // main), and both 111 and 112 were left stranded by giving up
+        // on the first loss. A real conflict fails all three the same
+        // way and is reported as before.
+        let result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+        for (let retry = 0; !result.ok && retry < 2; retry++) {
+          await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
+          result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+        }
         if (result.ok) branchStatus.invalidate(repo.root, branch);
         else failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
       }

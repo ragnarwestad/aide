@@ -520,6 +520,20 @@ describe("a refused action keeps the view and names its spec (criteria 7, 8)", (
     expect(to.searchParams.get("error")).toContain("the tree is dirty");
   });
 
+  // The no-JS redirect carries errorReason; the XHR path lost it, so
+  // the resolve button never appeared for anyone with JS on — seen on
+  // 109 and 112, 2026-08-19.
+  test("a conflict refusal carries errorReason=conflict into the view", async () => {
+    const h = harness(() => ({
+      ok: false,
+      body: { ok: false, spec: "109-x", results: [{ error: "cannot merge (conflict)", reason: "conflict" }] },
+    }));
+    await h.submit();
+    const url = h.replaced[h.replaced.length - 1] ?? "";
+    expect(url).toContain("errorReason=conflict");
+    expect(url).toContain("errorSpec=109-x");
+  });
+
   test("a refusal the server did not attribute still says the reason", async () => {
     const h = harness((url) =>
       url.includes("/merge")
