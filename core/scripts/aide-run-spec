@@ -84,6 +84,11 @@ kill_grace_sec="30"; do_pull="no"; dry_run="no"
 # /aide-create needs come in as arguments instead. Required for a create
 # whose --spec does not resolve, meaningless everywhere else.
 title=""; description=""
+# What the new spec BUILDS ON (spec 110): the `Depends on:` line spec 92
+# gave a reader and no writer but a person at a shell. Comma-separated,
+# exactly the shape the line has on disk — stated in the create prompt,
+# meaningless everywhere else.
+depends_on=""
 # Where to keep the claude transcript. Opt-in: without it the captured
 # output goes with the rest of $work_dir, exactly as it always has, so
 # no existing caller changes behaviour.
@@ -111,6 +116,7 @@ while [ $# -gt 0 ]; do
     --spec) spec_arg="${2:-}"; shift 2 ;;
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
+    --depends-on) depends_on="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
@@ -417,9 +423,16 @@ else
   title_slug="$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' \
     | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//')"
   [ -n "$title_slug" ] || title_slug="new-spec"
+  # Same voice as the title line, for the same reason: a value the skill
+  # is TOLD, not one it has to infer or that a sub-format inside the
+  # argument string would have to be parsed back out of. Nothing chosen
+  # means the prompt says nothing about dependencies at all.
+  depends_line=""
+  [ -n "$depends_on" ] && depends_line="
+Use exactly this Depends-on value in Tracking info: $depends_on"
   prompt="/aide-create TODO-$title_slug $description
 
-Use exactly this title for the spec: $title
+Use exactly this title for the spec: $title$depends_line
 $headless_note"
 fi
 # stream-json, not json: `json` prints ONE object at the very end, so a

@@ -1459,6 +1459,119 @@ describe("passenger projects reach the runner", () => {
   });
 });
 
+// --- spec 110: what a new spec builds on --------------------------------------
+
+describe("a chosen dependency reaches the runner and the page", () => {
+  const createJob = (dependsOn?: string[]) =>
+    ({
+      project: "aide", specFolder: "new-abcd1234", steps: ["create"],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {}, extraProjects: [],
+      createTitle: "A new spec", createDescription: "Do the thing",
+      ...(dependsOn ? { createDependsOn: dependsOn } : {}),
+    }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
+
+  const argvFor = async (dependsOn?: string[]) => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    return runnerArgv(createJob(dependsOn), "create", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+    });
+  };
+
+  test("every chosen folder goes over as one --depends-on value", async () => {
+    const argv = await argvFor(["92-a-spec-can-depend", "97-freshness"]);
+    expect(argv).toContain("--depends-on");
+    expect(argv[argv.indexOf("--depends-on") + 1]).toBe("92-a-spec-can-depend,97-freshness");
+    // The two fields it sits beside are untouched.
+    expect(argv[argv.indexOf("--title") + 1]).toBe("A new spec");
+  });
+
+  test("a create that names none passes no such flag", async () => {
+    expect(await argvFor()).not.toContain("--depends-on");
+    expect(await argvFor([])).not.toContain("--depends-on");
+  });
+
+  test("one ticked chip arrives as a list, not a bare string", async () => {
+    const { base } = start({ queueToken: TOKEN, queueProjects: ["aide"] });
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({
+        project: "aide",
+        title: "A new spec",
+        description: "Do the thing",
+        dependsOn: "81-queue-and-runner",
+      }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { job: { createDependsOn: string[] } };
+    expect(body.job.createDependsOn).toEqual(["81-queue-and-runner"]);
+  });
+});
+
+describe("the New-spec form offers what the spec may build on (criterion 7)", () => {
+  const page = (targets: QueuePageOptions["targets"]) =>
+    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets,
+      createProjects: ["aide", "aide-dashboard"],
+    });
+  const form = (html: string): string => html.slice(html.indexOf('action="/api/queue/create"'));
+
+  const TARGETS = [
+    { project: "aide", specFolder: "09-ninth" },
+    { project: "aide", specFolder: "92-a-spec-can-depend" },
+    { project: "aide-dashboard", specFolder: "01-first" },
+  ];
+
+  test("one chip per active spec, each saying which project it belongs to", () => {
+    const html = form(page(TARGETS));
+    expect(html).toContain('name="dependsOn"');
+    expect(html).toContain('value="92-a-spec-can-depend"');
+    expect(html).toContain('value="01-first"');
+    // The chip's own project, so the browser can scope the list to
+    // whichever one the reader picks.
+    expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
+  });
+
+  test("newest first — the number is the order a reader thinks in", () => {
+    const html = form(page(TARGETS));
+    expect(html.indexOf('value="92-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
+  });
+
+  test("none ticked by default, and no field at all when there is nothing to depend on", () => {
+    const html = form(page(TARGETS));
+    const chips = html.slice(html.indexOf('name="dependsOn"'));
+    expect(chips.slice(0, 200)).not.toContain("checked");
+    expect(form(page([]))).not.toContain('name="dependsOn"');
+  });
+});
+
+describe("a spec's row says what it depends on (criterion 12)", () => {
+  const row = (dependsOn: string[]) =>
+    specHead(
+      renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+        runnerAvailable: true,
+        targets: [{ project: "aide", specFolder: "109-expanded-row", title: "Expanded row", dependsOn }],
+      }),
+      "109-expanded-row",
+    );
+
+  test("named the way the run's own refusal names it — by folder", () => {
+    expect(row(["105-busy-row"])).toContain("depends on 105-busy-row");
+    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain(
+      "depends on 105-busy-row, 92-a-spec-can-depend",
+    );
+  });
+
+  test("a spec that names none reads exactly as it does today", () => {
+    expect(row([])).not.toContain("depends on");
+  });
+});
+
 describe("each row asks which other repos its job will touch (criterion 5)", () => {
   const page = (projects: string[]) =>
     renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {

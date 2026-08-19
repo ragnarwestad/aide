@@ -48,6 +48,7 @@ const healthy: ProjectView = {
       archived: false,
       title: "Active spec",
       description: null,
+      dependsOn: [],
       status: { progress: { percent: 50, done: 1, total: 2 }, phase: "Phase 2: GREEN" },
     },
     {
@@ -56,6 +57,7 @@ const healthy: ProjectView = {
       archived: true,
       title: "Archived spec",
       description: null,
+      dependsOn: [],
       status: { progress: { percent: 100, done: 4, total: 4 }, phase: "done" },
     },
   ],

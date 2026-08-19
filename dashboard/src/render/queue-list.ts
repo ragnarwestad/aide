@@ -60,6 +60,10 @@ export interface QueueTarget {
   description?: string;
   phase?: string;
   percent?: number;
+  /** What this spec builds on, from its own `Depends on:` line (spec
+   *  92). Named by folder, the way `aide-run-spec`'s own dependency
+   *  refusal names it. Empty or absent when it names none. */
+  dependsOn?: string[];
   /** Steps this spec has already had. Marked, never forbidden. */
   done?: string[];
   /** Where the spec's folder is on this machine. Server-side only — it
@@ -296,6 +300,9 @@ interface SpecGroup {
   title?: string;
   phase?: string;
   percent?: number;
+  /** The specs this one builds on, by folder — from its own
+   *  1-description.md, not from anything the queue ran. */
+  dependsOn: string[];
   /** This spec's description has moved on since its last analysis. The
    *  analyze line says so; nothing is blocked by it. */
   analyzeStale: boolean;
@@ -337,12 +344,13 @@ function emptyGroup(t: QueueTarget): SpecGroup {
  *  spec's done-set or progress is the one way this join can go wrong. */
 function fromTarget(
   t: QueueTarget | undefined,
-): Pick<SpecGroup, "done" | "title" | "phase" | "percent" | "analyzeStale"> {
+): Pick<SpecGroup, "done" | "title" | "phase" | "percent" | "dependsOn" | "analyzeStale"> {
   return {
     done: t?.done ?? [],
     title: t?.title,
     phase: t?.phase,
     percent: t?.percent,
+    dependsOn: t?.dependsOn ?? [],
     analyzeStale: t?.analyzeStale ?? false,
   };
 }
@@ -1000,6 +1008,48 @@ function moreRow(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
+// What the new spec builds on (spec 110). One chip per active spec,
+// newest first — the number is the order a reader thinks in, and it is
+// the reverse of `discoverProjects`'s ascending sort.
+//
+// The chip's own project rides on a WRAPPER, not on the chip: `phaseChip`
+// ties its `data-` attribute to its form value, and the value here has
+// to be the folder. A bare `<span>` with a data attribute needs no class,
+// so the closed component vocabulary (`css-token-guard.test.ts`) is
+// untouched.
+//
+// Every project's chips are rendered, and the browser scopes them to the
+// chosen one (`queue-client.ts`). Without script they are all offered,
+// and a cross-project pick is caught by the same server refusal that
+// catches it from the API — the convenience is lost, the guard is not.
+function dependsOnField(opts: QueuePageOptions): string {
+  const specs = [...(opts.targets ?? [])].sort(
+    (a, b) =>
+      a.project.localeCompare(b.project) ||
+      -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
+  );
+  if (specs.length === 0) return "";
+  return field(
+    "Depends on",
+    phases(
+      specs
+        .map(
+          (t) =>
+            `<span data-project="${esc(t.project)}">` +
+            phaseChip({
+              dataAttr: "data-depends",
+              value: t.specFolder,
+              label: t.specFolder,
+              name: "dependsOn",
+            }) +
+            `</span>`,
+        )
+        .join(""),
+    ),
+    { group: true },
+  );
+}
+
 function newSpecForm(opts: QueuePageOptions): string {
   const projects = opts.createProjects ?? [];
   if (projects.length === 0) return "";
@@ -1012,6 +1062,7 @@ function newSpecForm(opts: QueuePageOptions): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
+    dependsOnField(opts) +
     field(
       "Title",
       `<input type="text" name="title" maxlength="120" required ` +
@@ -1042,6 +1093,10 @@ function specSummary(g: SpecGroup): string {
   if (g.title) bits.push(esc(g.title));
   if (g.phase) bits.push(esc(g.phase));
   if (typeof g.percent === "number") bits.push(`${g.percent}% done`);
+  // The same words `aide-run-spec`'s dependency guard refuses in — by
+  // folder, one per dependency — so the row and the refusal say the same
+  // thing about the same fact.
+  if (g.dependsOn.length) bits.push(`depends on ${g.dependsOn.map(esc).join(", ")}`);
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 

@@ -332,8 +332,8 @@ describe("the two row-state vocabularies are distinct (acceptance criterion 9)",
       name: "aide",
       manifest: { ok: true, data: { name: "aide" } },
       specs: [
-        { folder: "101-x", dir: "/x/101-x", archived: false, title: "Open", description: null, status: null },
-        { folder: "99-y", dir: "/x/archive/99-y", archived: true, title: "Done", description: null, status: null },
+        { folder: "101-x", dir: "/x/101-x", archived: false, title: "Open", description: null, dependsOn: [], status: null },
+        { folder: "99-y", dir: "/x/archive/99-y", archived: true, title: "Done", description: null, dependsOn: [], status: null },
       ],
     };
     const html = renderSite([project], AT).find((p) => p.path === "aide.html")!.html;
