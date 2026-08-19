@@ -21,6 +21,7 @@
   - [Tokens](#tokens)
   - [Components](#components)
   - [The guard](#the-guard)
+  - [Spacing lives in the container, not the component (spec 120)](#spacing-lives-in-the-container-not-the-component-spec-120)
   - [One busy flag, not a per-step lookup (spec 105)](#one-busy-flag-not-a-per-step-lookup-spec-105)
   - [Theme choice (spec 107)](#theme-choice-spec-107)
   - [Header and tab bar, not a sidebar (spec 119)](#header-and-tab-bar-not-a-sidebar-spec-119)
@@ -711,6 +712,23 @@ any more (the server stopped emitting it in commit `cd81e95`, before
 that spec). It stays deliberately — generic pending/disable plumbing
 shared by four form classes, not worth touching `queue-client.ts`/
 `queue-client.test.ts` to remove for a class nothing else needs.
+
+### Spacing lives in the container, not the component (spec 120)
+
+A gap between two interactive controls comes from the flex `gap` on
+the row that holds them, never from a `margin` on one of the
+components. Spec 102 fixed colours, sizes and radii the same way — one
+token, used everywhere — but left spacing per spot: `.mergeform`,
+`.actionform`, `.resolveform` and `.extra` each carried their own
+`margin-left`, so a component that looked right beside one sibling
+carried the wrong (or doubled) gap into the next place it was used.
+`test/css-token-guard.test.ts` now asserts these classes declare no
+`margin`, alongside the existing check that `tr[data-controls] .row`
+still has a scoped, non-`center` `align-items` — a row that mixes a
+labelled field with plain buttons needs its own baseline, not `.row`'s
+default, and the override must stay scoped to that one row's
+`data-controls` attribute rather than changing what `.row` means
+everywhere else (the filter bar uses `.row` too).
 
 ### One busy flag, not a per-step lookup (spec 105)
 
