@@ -30,7 +30,8 @@ export const CSS = `
   --ok: #2F7D4F; --ok-soft: #E3F0E7;
   --warn: #B7791F; --warn-soft: #F8EDD6;
   --danger: #6B1D0C; --danger-soft: #F1DDD7;
-  --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --lh: 1.45;
+  --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
+  --lh: 1.45;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
   --r: 6px; --r-s: 4px;
   --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -127,6 +128,7 @@ header .brand { margin: 0; padding: 0; }
 body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
   border-bottom: 1px solid var(--line); }
 .tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
+  min-width: 7rem; text-align: center;
   color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }
 .tabbar .tab:hover { color: var(--text); text-decoration: none; }
 .tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
@@ -147,15 +149,16 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
    straight from a folder, so there is no file to point a <link> at. */
 
 /* Header-sized, not list-sized: the mark and the wordmark are the
-   page's identity, and 22px next to the tab bar read as an icon that
-   had shrunk in the wash (2026-08-19). */
+   page's identity. 22px read as an icon that had shrunk in the wash,
+   and 30px still did (2026-08-19) — so the brand gets a size of its
+   own above the heading scale. */
 .brand { display: flex; align-items: center; gap: var(--sp-2);
   margin: 0 0 var(--sp-3); padding: 0 var(--sp-2); text-decoration: none;
-  color: var(--text); font-size: var(--fs-xl); font-weight: 600;
+  color: var(--text); font-size: var(--fs-brand); font-weight: 600;
   letter-spacing: -0.035em; }
 .brand:hover { text-decoration: none; color: var(--text); }
 .brand i { font-style: normal; color: var(--accent); }
-.brand .mark, .brand .mark svg { display: block; width: 30px; height: 30px; }
+.brand .mark, .brand .mark svg { display: block; width: 40px; height: 40px; }
 .brand .mark-d { display: none; }
 
 /* --- text roles ----------------------------------------------------- */
@@ -431,7 +434,10 @@ tr[data-controls] .row { align-items: flex-end; }
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
-.row > details.intro { margin-left: auto; position: relative; }
+/* The New spec button carries the auto margin, so button and question
+   mark sit together at the row's right-hand end. */
+#jobrows > .row:first-child > .btn { margin-left: auto; }
+.row > details.intro { position: relative; }
 .row > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid var(--line-strong); color: var(--muted);
