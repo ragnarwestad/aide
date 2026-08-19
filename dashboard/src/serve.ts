@@ -214,7 +214,7 @@ function logRefusal(action: string, spec: string | undefined, reason: string): v
 // Nav for /live when no project set is injected: reconstruct entries
 // from the generated site (the overview + every *.html except live).
 function navFromSite(siteDir: string): NavEntry[] {
-  const entries: NavEntry[] = [{ label: "Overview", path: OVERVIEW_PAGE }];
+  const entries: NavEntry[] = [{ label: "Projects", path: OVERVIEW_PAGE }];
   try {
     const { readdirSync } = require("node:fs") as typeof import("node:fs");
     for (const f of readdirSync(siteDir).sort()) {

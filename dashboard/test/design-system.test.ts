@@ -80,7 +80,7 @@ describe("the mark is on the page (description item 3)", () => {
   test("the overview's tab title carries the tagline; its heading does not change", () => {
     const html = site.get("projects.html")!;
     expect(html).toContain("<title>aide — from spec to merge</title>");
-    expect(html).toContain("<h1>Overview</h1>");
+    expect(html).toContain("<h1>Projects</h1>");
   });
 
   // Every tab leads with aide: the reader picks it out of a row of

@@ -116,40 +116,42 @@ describe("slugs and filenames (criterion 1)", () => {
 });
 
 describe("nav (criterion 2)", () => {
-  test("a Projects label separates the overview entry from the project links", () => {
+  // The project pages are reached from the Projects page, not from the
+  // nav: two lists of the same projects were one too many.
+  test("the nav lists no project pages, and no Projects label", () => {
     for (const page of site) {
-      expect(page.html).toContain('<li class="lbl">Projects</li>');
+      expect(page.html).not.toContain('<li class="lbl">Projects</li>');
+      expect(page.html).toContain('href="projects.html"');
+      expect(page.html).not.toMatch(/<nav>[\s\S]*href="goodproj.html"[\s\S]*<\/nav>/);
     }
   });
 
-  test("every page links to the overview and every project page", () => {
-    for (const page of site) {
-      expect(page.html).toContain('href="projects.html"');
-      expect(page.html).toContain('href="goodproj.html"');
-      expect(page.html).toContain('href="brokenproj.html"');
-    }
+  test("the Projects page links to every project page", () => {
+    const html = byPath.get("projects.html")!;
+    expect(html).toContain('href="goodproj.html"');
+    expect(html).toContain('href="brokenproj.html"');
   });
 
   // The spec list is the front page (spec 100) and the wordmark is the
-  // way home, so the list itself has no "Specs" entry: Overview leads,
-  // About follows, and nothing in the list points at `/`.
-  test("the nav has no Specs entry — the wordmark is home; Overview leads", () => {
+  // way home, so the nav is exactly Projects and About: nothing points
+  // at `/`, and the project pages are the Projects page's business.
+  test("the nav is Projects and About — the wordmark is home", () => {
     for (const page of site) {
-      const links = [...page.html.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
+      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const links = [...navHtml.matchAll(/<li><a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a><\/li>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links[0]).toEqual(["Overview", "projects.html"]);
-      expect(links.map((l) => l[0]).slice(0, 2)).toEqual(["Overview", "About"]);
-      expect(links.some((l) => l[1] === "/")).toBe(false);
+      expect(links).toEqual([["Projects", "projects.html"], ["About", "about.html"]]);
       expect(page.html).toContain('<a class="brand" href="/">');
     }
   });
 
-  test("exactly one current anchor, pointing at the page itself", () => {
+  test("exactly one current anchor: the page itself, or Projects on a project page", () => {
     for (const page of site) {
       const currents = [...page.html.matchAll(/<a class="current" href="([^"]+)"/g)];
       expect(currents).toHaveLength(1);
-      expect(currents[0][1]).toBe(page.path);
+      const expected = page.path === "about.html" ? "about.html" : "projects.html";
+      expect(currents[0][1]).toBe(expected);
     }
   });
 });
@@ -203,7 +205,7 @@ describe("the About page", () => {
 
   test("it carries the shared nav and marks itself current", () => {
     const page = byPath.get("about.html")!;
-    expect(page).toContain('<li class="lbl">Projects</li>');
+    expect(page).toContain('<a href="projects.html">Projects</a>');
     expect(page).toContain('<a class="current" href="about.html">About</a>');
   });
 
