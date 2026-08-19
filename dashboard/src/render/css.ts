@@ -226,7 +226,8 @@ table.list thead a { color: var(--muted); }
   margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
 .sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
 .sortlink.on { color: var(--text); font-weight: 600; }
-.sortlink svg { transition: transform 120ms ease; }
+.sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
+.sortlink.on svg, .sortlink:hover svg { opacity: 1; }
 .sortlink.asc svg { transform: rotate(180deg); }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }

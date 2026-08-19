@@ -1351,6 +1351,7 @@ describe("every spec is a row (criteria 1-10)", () => {
         job("j2", "analyze", { specFolder: "bb-spec", startedAt: "2026-08-16T09:00:00Z" }),
       ],
       [],
+      { filter: { sort: "started" } },
     );
     const order = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
       (m) => m[1],

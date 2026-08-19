@@ -1076,11 +1076,24 @@ describe("the job list sorts and filters", () => {
     expect(html).not.toContain("a-spec");
   });
 
-  test("newest first is the default order", () => {
+  // The default view is the newest SPEC at the top — by number, not by
+  // last activity (chosen 2026-08-19: activity order put a spec that
+  // had just been created at the bottom, under everything that had
+  // ever run). Started is still one click away.
+  test("newest spec first is the default order", () => {
     const html = page([
-      row("old", { startedAt: "2026-08-16T09:00:00Z" }),
-      row("new", { startedAt: "2026-08-16T11:00:00Z" }),
+      row("104", { startedAt: "2026-08-16T11:00:00Z" }),
+      row("109", { startedAt: "2026-08-16T09:00:00Z" }),
     ]);
+    expect(html.indexOf("109-spec")).toBeLessThan(html.indexOf("104-spec"));
+    expect(html).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*>Spec<svg/);
+  });
+
+  test("sorting by started puts the most recent activity first", () => {
+    const html = page(
+      [row("old", { startedAt: "2026-08-16T09:00:00Z" }), row("new", { startedAt: "2026-08-16T11:00:00Z" })],
+      { sort: "started" },
+    );
     expect(html.indexOf("new-spec")).toBeLessThan(html.indexOf("old-spec"));
   });
 
@@ -1099,8 +1112,8 @@ describe("the job list sorts and filters", () => {
     expect(html.indexOf("cheap-spec")).toBeLessThan(html.indexOf("dear-spec"));
   });
 
-  test("sorting by spec is alphabetical", () => {
-    const html = page([row("zz"), row("aa")], { sort: "spec" });
+  test("sorting by spec ascending is alphabetical", () => {
+    const html = page([row("zz"), row("aa")], { sort: "spec", dir: "asc" });
     expect(html.indexOf("aa-spec")).toBeLessThan(html.indexOf("zz-spec"));
   });
 
@@ -1135,8 +1148,11 @@ describe("the job list sorts and filters", () => {
     const asc = page([row("a")], { sort: "cost", dir: "asc" });
     expect(asc).toMatch(/<a class="sortlink on asc"[^>]*>Cost<svg/);
     expect(asc).not.toContain("▴");
-    // An unsorted column has the link, no chevron.
-    expect(desc).toMatch(/<a class="sortlink"[^>]*>Spec<\/a>/);
+    // An unsorted column carries the chevron too (faint in CSS), pointing
+    // the way its first click will sort: Started defaults to descending.
+    expect(desc).toMatch(/<a class="sortlink"[^>]*>Started<svg/);
+    // …and State to ascending, so its chevron is already turned.
+    expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State<svg/);
   });
 
   test("a filter that matches nothing says so instead of showing a bare table", () => {
@@ -1147,7 +1163,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("the list is capped, and says how many it left out", () => {
-    const html = page(Array.from({ length: 29 }, (_, i) => row(`j${i}`)));
+    const html = page(Array.from({ length: 29 }, (_, i) => row(`j${i}`)), { sort: "started" });
     expect(html).toContain("j0-spec");
     expect(html).toContain("j24-spec");
     expect(html).not.toContain("j25-spec");
@@ -1266,11 +1282,14 @@ describe("filtering and sorting work on specs, not jobs", () => {
     [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
   test("sorting by started uses the spec's most recent activity (criterion 13)", () => {
-    const html = page([
-      job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
-      job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
-      job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
-    ]);
+    const html = page(
+      [
+        job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
+        job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
+        job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
+      ],
+      { sort: "started" },
+    );
     expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
   });
 

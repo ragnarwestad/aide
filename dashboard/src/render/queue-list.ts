@@ -189,10 +189,14 @@ const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
 ];
 
 const SORTS = ["started", "spec", "state", "cost"];
+// The default view: newest spec at the top. Chosen 2026-08-19 over
+// "last activity", which put a spec that had just been created at the
+// bottom of the list — under everything that had ever run.
+const DEFAULT_SORT = "spec";
 // Each column has the direction you almost always want first: newest
 // run, dearest job, but names from A.
 const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
-  started: "desc", cost: "desc", spec: "asc", state: "asc",
+  started: "desc", cost: "desc", spec: "desc", state: "asc",
 };
 
 function stateFilter(key: string | undefined): { key: string; states?: string[] } {
@@ -418,7 +422,7 @@ function compareFolders(a: string, b: string): number {
 }
 
 function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const sign = dir === "asc" ? 1 : -1;
   const key = (g: SpecGroup): number | string =>
@@ -532,16 +536,21 @@ function filterBar(groups: SpecGroup[], f: QueueFilter): string {
 }
 
 function sortableHead(f: QueueFilter): string {
-  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : "started";
+  const sort = SORTS.includes(f.sort ?? "") ? f.sort! : DEFAULT_SORT;
   const dir = f.dir === "asc" || f.dir === "desc" ? f.dir : SORT_DEFAULT_DIR[sort]!;
   const th = (key: string, label: string, cls = "") => {
     const on = key === sort;
     // Clicking the column you are already sorted by turns it round.
     const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
-    // The chevron only on the sorted column; ascending turns it by a
-    // class rather than swapping a glyph, same as the fold control.
-    const mark = on ? CHEVRON : "";
-    const linkCls = on ? (dir === "asc" ? "sortlink on asc" : "sortlink on") : "sortlink";
+    // Every sortable column carries the chevron — faint until hovered,
+    // so the reader can see the column CAN be sorted; full on the sorted
+    // one, and ascending turns it by a class rather than swapping a
+    // glyph, same as the fold control. Which way an unsorted column
+    // will go on the first click is what its chevron points.
+    const mark = CHEVRON;
+    const linkCls = on
+      ? (dir === "asc" ? "sortlink on asc" : "sortlink on")
+      : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
     const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
       `<th class="${cls}"${aria}>` +
