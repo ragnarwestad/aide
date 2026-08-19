@@ -156,6 +156,41 @@ describe("nav (criterion 2)", () => {
   });
 });
 
+// Spec 107. The three choices sit in the nav, under the page links but
+// inside <nav> — they are not a third page to go to, so they are not
+// <li><a> entries and cannot disturb the two tests above.
+describe("the theme choice in the nav (spec 107)", () => {
+  test("every page offers Dark, Light and Auto", () => {
+    for (const page of site) {
+      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const choices = [...navHtml.matchAll(/data-theme-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
+        (m) => [m[1], m[2]],
+      );
+      expect(choices).toEqual([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]]);
+      expect(navHtml).toContain(">Theme</span>");
+    }
+  });
+
+  test("the choices are buttons, not links — they go nowhere", () => {
+    const navHtml = site[0]!.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+    expect(navHtml).toMatch(/<button type="button" data-theme-choice="dark"/);
+    expect(navHtml).not.toMatch(/<a[^>]*data-theme-choice/);
+  });
+
+  test("Auto is marked as chosen, because the server cannot know better", () => {
+    for (const page of site) {
+      const navHtml = page.html.match(/<nav>[\s\S]*?<\/nav>/)![0];
+      const marked = [...navHtml.matchAll(/data-theme-choice="([^"]+)" aria-current=/g)].map(
+        (m) => m[1],
+      );
+      expect(marked).toEqual(["auto"]);
+      // `aria-current`, never `class="current"`: that class means "the
+      // page you are on", and the theme control is not a page.
+      expect(navHtml).not.toMatch(/<button[^>]*class="current"/);
+    }
+  });
+});
+
 describe("overview (criterion 3)", () => {
   const index = byPath.get("projects.html")!;
 

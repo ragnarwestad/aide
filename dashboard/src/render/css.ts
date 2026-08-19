@@ -56,6 +56,42 @@ export const CSS = `
 .brand .mark-l { display: none; }
 .brand .mark-d { display: block; }
 }
+/* Spec 107: the same two sets again, this time by choice rather than by
+   preference. Both directions need a block of their own, and the reason
+   is specificity, not tidiness: :root[data-theme="light"] (0-2-0)
+   beats the bare :root inside the media query above (0-1-0) whatever
+   the source order, so an explicit Light survives a machine set to
+   dark — and the mirror image for Dark on a machine set to light.
+   "Auto" has no block at all: it is the ABSENCE of the attribute, which
+   falls straight through to the two rules above, unchanged. */
+:root[data-theme="dark"] {
+/* tokens:start */
+  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
+  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --on-accent: #16181C;
+  --ok: #6FC08F; --ok-soft: #22352A;
+  --warn: #E0A84A; --warn-soft: #3A2F1C;
+  --danger: #F5B7A3; --danger-soft: #3D211B;
+/* tokens:end */
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .brand .mark-l { display: none; }
+:root[data-theme="dark"] .brand .mark-d { display: block; }
+:root[data-theme="light"] {
+/* tokens:start */
+  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
+  --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
+  --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
+  --on-accent: #FCFAF7;
+  --ok: #2F7D4F; --ok-soft: #E3F0E7;
+  --warn: #B7791F; --warn-soft: #F8EDD6;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+/* tokens:end */
+  color-scheme: light;
+}
+:root[data-theme="light"] .brand .mark-l { display: block; }
+:root[data-theme="light"] .brand .mark-d { display: none; }
 
 /* --- the page ------------------------------------------------------ */
 
@@ -108,6 +144,10 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
   text-transform: uppercase; letter-spacing: 0.06em; }
 .layout > nav .lbl { display: block; margin-top: var(--sp-4);
   padding: 0 var(--sp-2); }
+/* The theme choices sit under the link list. The pill's own 9px of
+   padding is what lines its text up with the links above it, so the row
+   itself gets none. */
+.layout > nav .filters { margin-top: var(--sp-1); }
 
 /* --- button --------------------------------------------------------- */
 /* One button. Bare is secondary, and the variants are modifiers on it —
@@ -199,13 +239,18 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 /* --- filter pill ------------------------------------------------------ */
 
 .filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
-.filters a { padding: 3px 9px; border-radius: 999px; font-size: var(--fs-s);
+/* Two elements, one pill. A filter is a link because it goes somewhere;
+   a theme choice is a button because it does something. That difference
+   belongs in the markup, not in a second class that looks the same. */
+.filters a, .filters button { padding: 3px 9px; border-radius: 999px; font-size: var(--fs-s);
   color: var(--muted); border: 1px solid transparent; }
-.filters a:hover { background: var(--surface); text-decoration: none; }
+.filters button { background: none; font-family: var(--sans); line-height: var(--lh);
+  cursor: pointer; }
+.filters a:hover, .filters button:hover { background: var(--surface); text-decoration: none; }
 /* No bold on the chosen one: bold text is WIDER, so the pill grew and
    shoved its neighbours along every time you clicked. */
-.filters a[aria-current] { background: var(--surface); border-color: var(--line-strong);
-  color: var(--text); }
+.filters a[aria-current], .filters button[aria-current] { background: var(--surface);
+  border-color: var(--line-strong); color: var(--text); }
 
 /* --- the list ---------------------------------------------------------- */
 
