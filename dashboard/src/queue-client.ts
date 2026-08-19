@@ -182,10 +182,12 @@ async function postForm(
     if (variant) primary.classList.remove(variant);
     primary.classList.add("busy");
     primary.title = primary.dataset?.pending || titleBefore;
-    // No spinner ON the button: the row has exactly one, in the phase
-    // boxes'"'"' place below — a second one beside the label read as two
-    // jobs running (2026-08-19). The busy class and the disabling are
-    // what the button itself says.
+    // ONE spinner per row. When the row has phase boxes (the expanded
+    // controls), they hold it and the button only disables — a second
+    // spinner beside the label read as two jobs running (2026-08-19).
+    // A collapsed row has no boxes, so there the button carries it:
+    // without this, a Merge press showed nothing at all.
+    if (!phases) primary.insertAdjacentHTML("afterbegin", SPINNER);
     if (phases) {
       // The boxes lend their SPACE, and a spinner is 12px wide where
       // four chips were: a `.phases` left to shrink around it would drag

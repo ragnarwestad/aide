@@ -893,11 +893,11 @@ describe("a pressed row button holds its size (spec 104)", () => {
   // A collapsed row (spec 103) offers Approve or Merge and nothing
   // else: no run form, so no phase boxes to lend. The button still says
   // it was pressed, and the missing boxes are not an error.
-  test("a collapsed row has no boxes to lend, and that is not a failure", async () => {
-    let seen = false;
+  test("a collapsed row has no boxes to lend — so the button carries the row's one spinner", async () => {
+    let seen = { busy: false, spinner: "" };
     const h = harness(
       (url) => {
-        if (url.includes("/api/queue")) seen = h.button.classList.contains("busy");
+        if (url.includes("/api/queue")) seen = { busy: h.button.classList.contains("busy"), spinner: h.button.innerHTML };
         return { ok: true, body: OK };
       },
       "actionform",
@@ -905,7 +905,11 @@ describe("a pressed row button holds its size (spec 104)", () => {
       { collapsed: true },
     );
     await h.submit();
-    expect(seen).toBe(true);
+    expect(seen.busy).toBe(true);
+    // Still ONE spinner on the row — there are no boxes to hold it, so
+    // the button does. Without this, a Merge press on a collapsed row
+    // showed nothing at all (2026-08-19).
+    expect(seen.spinner).toContain(SPINNER);
     expect(h.rows.innerHTML).toBe("<tr></tr>");
   });
 
