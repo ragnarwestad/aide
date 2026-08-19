@@ -25,9 +25,10 @@ import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import {
-  QueueStore, mergeQueueDefaults,
+  QueueStore, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
   type BranchRef, type Job, type QueueDefaults, type ProjectResolver,
 } from "./queue.ts";
+import { addProject, projectNameError, removeProject, type ProjectStep } from "./project-admin.ts";
 import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
@@ -88,8 +89,16 @@ export interface ServerOptions {
   /** Root scanned for `.aide/project.yaml` — the queue resolves project
    *  NAMES against it, so a request never carries a path. */
   projectRoot?: string;
-  /** The allowlist. Empty or absent means no project may be queued. */
+  /** The allowlist. Empty or absent means no project may be queued.
+   *  Seeded from `--queue-projects` on a first install and from
+   *  `queue-config.json`'s `projects` field after that; mutated live by
+   *  the Add/Remove routes (spec 112). */
   queueProjects?: string[];
+  /** Where that allowlist is PERSISTED — the `--queue-config` file.
+   *  Threaded through from `parseArgs` because the routes that change
+   *  the allowlist have to write it back, and a config path that stops
+   *  at `parseArgs` leaves them with nowhere to write (spec 112). */
+  queueConfigFile?: string;
   queueDefaults?: QueueDefaults;
   /** Path to `aide-run-spec`. Without it the queue only stores jobs —
    *  nothing is ever started, and the page says so. */
@@ -982,6 +991,49 @@ export function createServer(opts: ServerOptions) {
     }
   }
 
+  /** Write the allowlist back to the file the server reads on the way
+   *  up, so an Add or a Remove survives a restart. Derived from the
+   *  live `Set` and never from a copy of the file, which is what stops
+   *  two changes a millisecond apart from losing each other.
+   *
+   *  Never fatal: the clone already happened, and the project IS on the
+   *  allowlist in this process. But it is not silent either — a change
+   *  that will vanish on the next restart is exactly the thing the
+   *  operator has to be told, so it comes back as a failed step with
+   *  the reason in it. */
+  function persistAllowlist(what: string): ProjectStep {
+    if (!opts.queueConfigFile) {
+      return {
+        step: "allowlist",
+        ok: true,
+        note: `${what}; this server has no --queue-config file, so the list is not saved across a restart`,
+      };
+    }
+    const error = persistQueueProjects(opts.queueConfigFile, [...allowed].sort());
+    return error
+      ? { step: "allowlist", ok: false, error: `${what}, but it could not be saved and will be lost on restart: ${error}` }
+      : { step: "allowlist", ok: true };
+  }
+
+  /** One answer shape for both project routes — the merge route's, step
+   *  for step: `results[]` with `ok = every(...)`, so the page's own
+   *  `refusalText()` renders an Add refusal exactly as it renders a
+   *  merge's. Every refusal reaches `serve.log` too, which is the only
+   *  record left once the page has moved on. */
+  function answerProjectChange(
+    action: string,
+    project: string,
+    steps: ProjectStep[],
+    sent: unknown,
+    wantsJson: boolean,
+  ): Response {
+    const ok = steps.every((s) => s.ok);
+    for (const s of steps) if (s.error) logRefusal(action, project, s.error);
+    if (wantsJson) return json({ ok, project, results: steps }, ok ? 200 : 400);
+    const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
+    return summary ? specsRedirect(sent, { error: summary }) : specsRedirect(sent);
+  }
+
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
     const wantsJson = (req.headers.get("accept") ?? "").includes("application/json");
 
@@ -1099,6 +1151,89 @@ export function createServer(opts: ServerOptions) {
       return wantsJson
         ? json({ ok: true, job: result.job })
         : new Response(null, { status: 303, headers: { location: "/" } });
+    }
+
+    // --- the project allowlist (spec 112) -----------------------------
+    //
+    // Before the `<id>/<verb>` and `<id>` matches below, which would
+    // otherwise read "projects" as a job id and answer 404 for it —
+    // the same reason `/api/queue/create` sits above them.
+    //
+    // Both routes are under `/api/queue/`, so `isQueuePath()` already
+    // guards them: a sibling `/api/projects/*` would have been exactly
+    // the silent bypass that predicate exists to prevent.
+    if (path === "/api/queue/projects") {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      let raw: unknown;
+      try {
+        raw = bodyToObject(body.text, req.headers.get("content-type"));
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const asked = (raw ?? {}) as Record<string, unknown>;
+      const text = (v: unknown): string | undefined =>
+        typeof v === "string" && v.trim() ? v.trim() : undefined;
+      const name = typeof asked.name === "string" ? asked.name : "";
+      // Adding a project means putting a directory under the projects
+      // root, and without `--root` there is no such root: refused in
+      // those words rather than half-done somewhere arbitrary.
+      if (!opts.projectRoot) {
+        return answerProjectChange(
+          "add-project",
+          name,
+          [{ step: "name", ok: false, error: "this server was started without --root, so it has no projects root to add to" }],
+          raw,
+          wantsJson,
+        );
+      }
+      const result = await addProject(gitRun, opts.projectRoot, {
+        name,
+        gitUrl: text(asked.gitUrl),
+        existingPath: text(asked.existingPath),
+        description: text(asked.description),
+        specsPath: text(asked.specsPath),
+      });
+      const steps = [...result.steps];
+      if (result.ok) {
+        allowed.add(name);
+        // The five-second scan is what every other list on this page
+        // reads; without this the very request after an Add would still
+        // not see the project.
+        scan = null;
+        steps.push(persistAllowlist("added to the allowlist"));
+      }
+      return answerProjectChange("add-project", name, steps, raw, wantsJson);
+    }
+
+    const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
+    if (removal) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(removal[1]!);
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      let raw: unknown;
+      try {
+        raw = bodyToObject(body.text, req.headers.get("content-type"));
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const nameError = projectNameError(name);
+      if (nameError) {
+        return answerProjectChange("remove-project", name, [{ step: "name", ok: false, error: nameError }], raw, wantsJson);
+      }
+      const asked = (raw ?? {}) as Record<string, unknown>;
+      const result = removeProject(allowed, { name, confirm: asked.confirm });
+      const steps = [...result.steps];
+      if (result.ok) {
+        scan = null;
+        // `removeProject` already reported the allowlist step; this
+        // replaces it with the same step told from the other side of the
+        // write, rather than reporting the one thing twice.
+        steps[steps.length - 1] = persistAllowlist("removed from the allowlist");
+      }
+      return answerProjectChange("remove-project", name, steps, raw, wantsJson);
     }
 
     if (path === "/api/queue") {
@@ -1286,7 +1421,7 @@ export function createServer(opts: ServerOptions) {
   };
 }
 
-function parseArgs(argv: string[]): ServerOptions {
+export function parseArgs(argv: string[]): ServerOptions {
   const opts: ServerOptions = { siteDir: join(homedir(), "aide-dashboard", "site"), port: 8788 };
   let root: string | undefined;
   let tokenFile: string | undefined;
@@ -1325,6 +1460,10 @@ function parseArgs(argv: string[]): ServerOptions {
     }
   }
   if (queueConfigFile) {
+    // Kept whether or not the file is readable: the Add/Remove routes
+    // write the allowlist back here, and a first install has no such
+    // file yet (spec 112).
+    opts.queueConfigFile = queueConfigFile;
     // A missing or broken config leaves the built-in caps in place —
     // the tight ones. Failing towards "spends less" is the only safe
     // direction here.
@@ -1339,6 +1478,13 @@ function parseArgs(argv: string[]): ServerOptions {
       }
       if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
       opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
+      // The allowlist WINS over `--queue-projects` when the file has
+      // one: the flag is the seed for a first install, and the file is
+      // what every Add and Remove since has written (spec 112). A
+      // malformed field is ignored entirely, leaving the flag — the
+      // same direction every other key here fails in.
+      const projects = parseQueueProjects(raw.projects);
+      if (projects) opts.queueProjects = projects;
     } catch {
       console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
     }

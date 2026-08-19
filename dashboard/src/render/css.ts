@@ -337,6 +337,18 @@ td form { margin: 0; display: inline-block; }
 .newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
+/* The Projects panel (spec 112). One Add form built out of the same
+   pieces as New spec, and one line per allowlisted project under it.
+   "projectadmin", "addprojectform" and "removeform" are what
+   queue-client.ts selects on — laid out here, coloured nowhere. */
+.projectadmin .removeform { display: flex; gap: var(--sp-3); align-items: flex-end;
+  flex-wrap: wrap; margin-top: var(--sp-3); padding-top: var(--sp-3);
+  border-top: 1px solid var(--line); }
+.projectadmin .removeform > .label { flex-basis: 100%; font-family: var(--mono); }
+.projectadmin .removeform .rowmsg { flex-basis: 100%; margin: 0; }
+.projectadmin .removeform [data-confirm] { display: flex; gap: var(--sp-2);
+  align-items: flex-end; }
+.projectadmin .refused { flex-basis: 100%; }
 /* The intro is worth having and not worth the top of every load. */
 details.intro { margin: var(--sp-3) 0; }
 details.intro > summary { color: var(--muted); cursor: pointer; }

@@ -2570,3 +2570,101 @@ describe("spec 108: one rule per phase", () => {
     expect(plain).not.toContain("held back");
   });
 });
+
+// --- spec 112: the Projects panel --------------------------------------------
+//
+// Adding and removing a project is a mutating, token-gated action, so it
+// lives where every other one already does: the dynamic `/` page. The
+// static overview keeps carrying no form, no script and no token — it
+// gets a link to `/` instead.
+describe("the Projects panel on /", () => {
+  const page = (opts: Partial<QueuePageOptions> = {}): string =>
+    renderQueuePage([], "2026-08-18T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
+      runnerAvailable: true,
+      targets: [],
+      ...opts,
+    });
+
+  /** The panel's markup, from its own disclosure to the end of it. */
+  const panel = (html: string): string => {
+    const at = html.indexOf('<details class="newspec projectadmin">');
+    expect(at).toBeGreaterThan(-1);
+    return html.slice(at, html.indexOf("</details>", html.lastIndexOf("</form>")) + 10);
+  };
+
+  // Criterion 11.
+  test("the Add form asks for what cannot be derived, and posts to the new route", () => {
+    const form = panel(page({ createProjects: ["aide"] }));
+    expect(form).toContain('action="/api/queue/projects"');
+    expect(form).toContain('name="name"');
+    expect(form).toContain('name="gitUrl"');
+    expect(form).toContain('name="existingPath"');
+    expect(form).toContain('name="specsPath"');
+    expect(form).toContain('name="description"');
+    // The same refusal slot the New-spec form has, and for the same
+    // reason: a project that was never added has no row to land on.
+    expect(form).toContain('class="refused rowmsg err"');
+  });
+
+  test("it is offered before there is a single project to list", () => {
+    const form = panel(page({ createProjects: [] }));
+    expect(form).toContain('action="/api/queue/projects"');
+  });
+
+  // Criterion 12: the copy 1-description.md asks for.
+  test("the Add form says the manifest it writes is minimal", () => {
+    const form = panel(page({ createProjects: ["aide"] }));
+    expect(form).toContain("/aide-manifest");
+    expect(form.toLowerCase()).toContain("minimal");
+  });
+
+  // Criterion 11: one row per allowed project, each with its own Remove.
+  test("every allowlisted project has a Remove of its own", () => {
+    const form = panel(page({ createProjects: ["aide", "atlasaurus"] }));
+    expect(form).toContain('action="/api/queue/projects/aide/remove"');
+    expect(form).toContain('action="/api/queue/projects/atlasaurus/remove"');
+    expect(form).toContain('data-confirm="atlasaurus"');
+    expect(form).toContain('name="confirm"');
+  });
+
+  // Criterion 13: what removal MEANS, before the field that does it.
+  test("Remove says what it does and does not do, before the confirmation field", () => {
+    const form = panel(page({ createProjects: ["atlasaurus"] }));
+    const said = form.slice(form.indexOf('action="/api/queue/projects/atlasaurus/remove"'));
+    const copy = said.slice(0, said.indexOf('name="confirm"'));
+    expect(copy).toContain("allowlist");
+    expect(copy.toLowerCase()).toContain("checkout");
+    expect(copy.toLowerCase()).toContain("specs");
+    // The typed confirmation is a real gate: the name has to be typed
+    // back, the browser turns the button off until it matches
+    // (`data-confirm`), and the server refuses a mismatch either way.
+    // The button is rendered ENABLED on purpose — one the server
+    // disabled could never be enabled again with script off.
+    expect(said).toContain('data-confirm="atlasaurus"');
+    expect(said).not.toContain("disabled");
+  });
+
+  test("the panel sits outside #jobrows, so the five-second swap cannot wipe it", () => {
+    const html = page({ createProjects: ["aide"] });
+    expect(html.indexOf('<details class="newspec projectadmin">')).toBeLessThan(
+      html.indexOf('<div id="jobrows">'),
+    );
+  });
+});
+
+describe("the static overview points at where projects are managed", () => {
+  // Criterion 14.
+  test("projects.html links to / and stays free of forms, script and tokens", () => {
+    const pages = renderSite([project("alpha")], "2026-08-18T00:00:00Z");
+    const overview = pages.find((p) => p.path === "projects.html")!.html;
+    expect(overview).toContain('<a href="/">Manage projects');
+    // The boundary the link exists to respect: the generated pages
+    // carry nothing that needs the token. The theme script in the shell
+    // is not an exception — it is on every page, talks to nobody, and
+    // predates this (spec 107).
+    expect(overview).not.toContain("<form");
+    expect(overview).not.toContain('name="token"');
+    expect(overview).not.toContain("?token=");
+    expect(overview).not.toContain("/api/");
+  });
+});

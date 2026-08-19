@@ -7,8 +7,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest, type QueueDefaults,
+  QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest, persistQueueProjects,
+  type QueueDefaults,
 } from "../src/queue.ts";
+import { parseArgs } from "../src/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -710,5 +712,112 @@ describe("the resolve step (spec 106)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.job.model.resolve).toBe("sonnet");
+  });
+});
+
+// --- spec 112: the allowlist lives in the config file ------------------------
+//
+// It used to be a `--queue-projects` argument baked into the launchd
+// plist, so adding a project meant re-rendering the plist and
+// restarting the server. The list moves into `queue-config.json`, which
+// the server already reads: `--queue-projects` stays, as the seed for a
+// first install where that file does not exist yet.
+describe("the project allowlist round-trips through queue-config.json", () => {
+  const configDirs: string[] = [];
+  const configFile = (contents?: Record<string, unknown>): string => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-projects-"));
+    configDirs.push(dir);
+    const file = join(dir, "queue-config.json");
+    if (contents) writeFileSync(file, JSON.stringify(contents, null, 2));
+    return file;
+  };
+
+  afterEach(() => {
+    while (configDirs.length) rmSync(configDirs.pop()!, { recursive: true, force: true });
+  });
+
+  test("a written list is read back as the allowlist (criterion 9)", () => {
+    const file = configFile({ concurrency: 3 });
+    expect(persistQueueProjects(file, ["aide", "atlasaurus"])).toBeNull();
+    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+    expect(opts.queueProjects).toEqual(["aide", "atlasaurus"]);
+  });
+
+  test("the file's other keys survive the write", () => {
+    const file = configFile({ concurrency: 3, push: "none", notifyCommand: ["/bin/echo", "hi"] });
+    persistQueueProjects(file, ["aide"]);
+    const raw = JSON.parse(readFileSync(file, "utf-8")) as Record<string, unknown>;
+    expect(raw).toEqual({
+      concurrency: 3,
+      push: "none",
+      notifyCommand: ["/bin/echo", "hi"],
+      projects: ["aide"],
+    });
+    const opts = parseArgs(["--queue-config", file]);
+    expect(opts.queueConcurrency).toBe(3);
+    expect(opts.queuePush).toBe("none");
+    expect(opts.queueNotifyCommand).toEqual(["/bin/echo", "hi"]);
+  });
+
+  test("the config beats a conflicting --queue-projects (criterion 10)", () => {
+    const file = configFile({ projects: ["atlasaurus"] });
+    const opts = parseArgs([
+      "--queue-config", file,
+      "--queue-projects", "aide,aide-dashboard",
+    ]);
+    expect(opts.queueProjects).toEqual(["atlasaurus"]);
+  });
+
+  test("no projects field means the CLI flag still seeds a first install", () => {
+    const file = configFile({ concurrency: 2 });
+    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide,aide-dashboard"]);
+    expect(opts.queueProjects).toEqual(["aide", "aide-dashboard"]);
+  });
+
+  test("an empty list is a real answer, not a missing one", () => {
+    const file = configFile({ projects: [] });
+    const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+    expect(opts.queueProjects).toEqual([]);
+  });
+
+  test("a malformed projects field is ignored, and the flag is kept", () => {
+    for (const projects of ["aide", [1, 2], ["../escape"], ["a/b"], {}]) {
+      const file = configFile({ projects });
+      const opts = parseArgs(["--queue-config", file, "--queue-projects", "aide"]);
+      expect([projects, opts.queueProjects]).toEqual([projects, ["aide"]]);
+    }
+  });
+
+  test("the config file path reaches the server, so a route can write it", () => {
+    const file = configFile({ projects: ["aide"] });
+    expect(parseArgs(["--queue-config", file]).queueConfigFile).toBe(file);
+  });
+
+  // Criterion 15: the write is derived from the caller's list and lands
+  // synchronously, so two in a row cannot interleave — the second sees
+  // the first's file, and neither reads a copy taken before the other
+  // wrote.
+  test("two writes in immediate succession both land", () => {
+    const file = configFile({ concurrency: 2 });
+    const allowed = new Set(["aide"]);
+    allowed.add("atlasaurus");
+    persistQueueProjects(file, [...allowed]);
+    allowed.delete("aide");
+    persistQueueProjects(file, [...allowed]);
+    expect(parseArgs(["--queue-config", file]).queueProjects).toEqual(["atlasaurus"]);
+  });
+
+  test("a config file that does not exist yet is created", () => {
+    const file = configFile();
+    expect(existsSync(file)).toBe(false);
+    expect(persistQueueProjects(file, ["aide"])).toBeNull();
+    expect(parseArgs(["--queue-config", file]).queueProjects).toEqual(["aide"]);
+  });
+
+  test("a path that cannot be written is reported, never thrown", () => {
+    // A file where a directory would have to be: mkdir -p cannot help.
+    const blocked = configFile({});
+    const error = persistQueueProjects(join(blocked, "c.json"), ["aide"]);
+    expect(typeof error).toBe("string");
   });
 });

@@ -70,6 +70,14 @@ no host is named anywhere in this repo.
 - `POST /api/queue/create` — project, title and description in; a job
   that MAKES a spec out, which then lands itself and becomes an ordinary
   row (token required, like the rest of `/api/queue*`)
+- `POST /api/queue/projects` — add a project to the allowlist: clone it
+  under the projects root (`gitUrl`) or register a checkout already
+  there (`existingPath`), write a minimal `.aide/project.yaml` if it has
+  none, and optionally write `AIDE_SPECS_PATH` into its `.aide/config`.
+  Answers per step, in the merge route's shape (spec 112).
+- `POST /api/queue/projects/<name>/remove` — take it off the allowlist
+  and off this dashboard. Requires `confirm` to equal the project's name
+  exactly, and never touches the checkout or the specs root.
 
 Keep the scheme stable: the pages are linked from outside.
 
@@ -191,7 +199,8 @@ other.
 
 Two things about it are worth knowing:
 
-- **The project list is the raw allowlist** (`QUEUE_PROJECTS`), not the
+- **The project list is the raw allowlist** (`queue-config.json`'s
+  `projects`, seeded from `QUEUE_PROJECTS`), not the
   projects the server has found specs for. Every other control on the
   page is about a spec that exists; this one is about a project whose
   FIRST spec may not, and such a project appears in no other list here.
@@ -300,6 +309,7 @@ afterwards is a report, not a cap. They live in the queue config
   "model": { "implement": "opus", "resolve": "sonnet", "default": "sonnet" },
   "push": "branch",
   "concurrency": 2,
+  "projects": ["aide", "aide-dashboard"],
   "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
 }
 ```
@@ -307,6 +317,36 @@ afterwards is a report, not a cap. They live in the queue config
 A job may only TIGHTEN a cap, and cannot set the permission mode at all.
 A timed-out step is charged its full budget: the accounting over-charges
 what it could not measure, never the other way round.
+
+`projects` is the odd one out in that file: it is the only key the
+server WRITES as well as reads. It is the queue's allowlist, and the
+Projects panel on `/` rewrites it on every Add and Remove (spec 112) —
+which is what makes those take effect without a restart. The
+`--queue-projects` flag is the seed for a first install where this file
+does not exist yet; where the file HAS a `projects` array, it wins over
+the flag. A malformed one is ignored entirely and the flag is kept, the
+same direction every other key here fails in.
+
+### Adding and removing a project
+
+The Projects panel on `/`, behind the queue token like every other
+mutating control. Add takes a name plus either a git URL (cloned to
+`<projects root>/<name>`) or a path to a checkout already there, and
+optionally a specs root and a one-line description. It writes a minimal
+manifest — the name and that description, nothing else — only when the
+checkout has none; filling in the rest is `/aide-manifest`'s job
+afterwards, and the form says so.
+
+Remove takes the project off the allowlist and off this dashboard, and
+that is all it does: the checkout and the specs root stay on disk,
+untouched. It asks for the project's name to be typed back, and the
+server refuses anything but an exact match — the browser turning the
+button off until it matches is a convenience over that check, not the
+check itself.
+
+The static `projects.html` carries neither control, only a link here.
+The generated pages stay open, which means they carry nothing that
+needs the token — and both of these actions do.
 
 The daily cap counts the budgets of the steps **already in flight**, not
 only what has been recorded. Recording happens at completion, so with
@@ -680,7 +720,7 @@ All paths are relative to the serving host's own `$HOME`.
 | `REMOTE_STATE` | `aide-dashboard` | site, mirrors, queue state |
 | `REMOTE_BUN` | `.local/share/mise/shims/bun` | bun on that host |
 | `LABEL` | `com.aide-dashboard.serve` | launchd job label |
-| `QUEUE_PROJECTS` | `aide,aide-dashboard` | what the queue may run |
+| `QUEUE_PROJECTS` | `aide,aide-dashboard` | the allowlist's first-boot seed |
 | `ROOT` | unset | project root there (omitted when unset) |
 | `BIND` | unset | address to bind (omitted when unset) |
 | `CLAUDE_USAGE` | unset | claude-usage URL (omitted when unset) |

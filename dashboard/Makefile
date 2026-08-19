@@ -50,6 +50,11 @@ REMOTE_STATE ?= aide-dashboard
 REMOTE_BUN ?= .local/share/mise/shims/bun
 # A project identifier, not a per-operator one.
 LABEL ?= com.aide-dashboard.serve
+# The BOOTSTRAP seed only. Since spec 112 the allowlist lives in
+# queue-config.json on the serving host, where the Projects panel on /
+# writes it — so this value is what a host with no such file yet starts
+# from, and is ignored once that file has a `projects` array. Changing it
+# here does not change the allowlist on a host that has one.
 QUEUE_PROJECTS ?= aide,aide-dashboard
 REPO_URL := $(shell git config --get remote.origin.url)
 

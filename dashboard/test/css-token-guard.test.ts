@@ -169,6 +169,9 @@ const COMPONENTS = [
 const JS_HOOKS = [
   "rowrun", "actionform", "mergeform", "resolveform",
   "refused", "refusal", "newspec", "newspecform",
+  // spec 112: the Projects panel — the Add form and one Remove per
+  // allowlisted project.
+  "projectadmin", "addprojectform", "removeform",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks

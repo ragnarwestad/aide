@@ -202,6 +202,12 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
     `${totalActive} active · ${totalArchived} archived</p>`;
   const overview =
     intro +
+    // Where the list can be CHANGED (spec 112). Adding and removing a
+    // project is a mutating, token-gated action, so it lives on the
+    // served page with the token behind it — this page stays what it
+    // has been: generated, open, and carrying nothing that needs a
+    // secret. The link is the one thing that has to cross that line.
+    `\n<p class="muted small"><a href="/">Manage projects &rarr;</a></p>\n` +
     `\n<h2>Projects</h2>\n` +
     ordered.map((p) => overviewRow(p, `${slugs.get(p)!}.html`)).join("\n");
   const pages: Page[] = [
