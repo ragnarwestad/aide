@@ -19,7 +19,10 @@ import {
 import { DescriptionFreshnessChecker } from "./description-freshness.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
-import { buildProjectViews, configValue, discoverProjects } from "./discover.ts";
+import {
+  buildProjectViews, configValue, discoverProjects,
+  type DiscoveredProject, type SpecRef,
+} from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
@@ -470,6 +473,47 @@ export function parseQueueConcurrency(raw: unknown): number {
   return raw;
 }
 
+/** The steps a dependency actually holds back (spec 122): the ones that
+ *  BUILD on merged code. `analyze`, `review-plan` and `create` write
+ *  only the spec's own folder in the specs repo and conflict with
+ *  nothing, so a chain of dependent specs can be analysed in parallel
+ *  the moment it is queued.
+ *
+ *  A literal array, matched by a test rather than shared: the same
+ *  vocabulary is a plain string in `core/scripts/aide-run-spec`, with no
+ *  shared source and no compiler between the two, and
+ *  `test_the_two_copies_of_the_dependency_gate_agree` is what notices
+ *  the drift — exactly as `WORKFLOW_STEPS` already does. */
+export const DEPENDENCY_GATED_STEPS = ["implement", "resolve", "archive"] as const;
+
+const GATED = new Set<string>(DEPENDENCY_GATED_STEPS);
+
+/** Which folder a `Depends on:` entry means — a second reader of
+ *  `resolve_dependency_folder`'s rule in `aide-run-spec`: the exact
+ *  folder first, then an `<id>-` prefix, live specs before archived
+ *  ones. The same trade-off `discover.ts`'s `specDependsOn` already
+ *  made for the line itself, so it gets what that one has: its own
+ *  tests, mirroring the bash suite's cases one for one.
+ *
+ *  `undefined` for an identifier nothing matches. That is a REFUSAL, not
+ *  a wait, and it belongs to `aide-run-spec` — a typo must reach the run
+ *  that says so rather than park a job forever against a spec that will
+ *  never exist. */
+export function resolveDependencyFolder(
+  project: DiscoveredProject,
+  id: string,
+): SpecRef | undefined {
+  const live = project.specs.filter((s) => !s.archived);
+  const archived = project.specs.filter((s) => s.archived);
+  for (const set of [live, archived]) {
+    const exact = set.find((s) => s.folder === id);
+    if (exact) return exact;
+    const prefixed = set.find((s) => s.folder.startsWith(`${id}-`));
+    if (prefixed) return prefixed;
+  }
+  return undefined;
+}
+
 export function createServer(opts: ServerOptions) {
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
   const enricher = new LiveEnricher({
@@ -649,13 +693,87 @@ export function createServer(opts: ServerOptions) {
       })
     : null;
 
+  /** Which queued jobs are waiting on a dependency that has not merged
+   *  yet (spec 122) — job id → the folder it is waiting for.
+   *
+   *  The same question `aide-run-spec`'s guard asks, asked HERE so the
+   *  answer arrives before a job is spawned rather than after: a job
+   *  that reached the script was refused, marked `failed`, and had to be
+   *  pressed again by hand (97 three times, 102 twice, against
+   *  dependencies that merged minutes later).
+   *
+   *  Computed fresh immediately before every `tick()`, never cached
+   *  across calls: a job enqueued a line of code ago must be judged
+   *  against data that existed after it did. What it rests on is cached
+   *  anyway — `targets()` for 5 s, each merge answer for 30 s. */
+  async function blockedDependencies(): Promise<Map<string, string>> {
+    const blocked = new Map<string, string>();
+    if (!opts.projectRoot) return blocked;
+    const waiting = queue.list().filter((job) => {
+      if (job.state !== "queued") return false;
+      const step = job.steps[job.stepIndex];
+      return step !== undefined && GATED.has(step);
+    });
+    if (waiting.length === 0) return blocked;
+    // The cheap half first, off the scan the page already keeps: a spec
+    // that names nothing costs neither a walk of the specs root nor a
+    // git call, the same way a spec without the field asks origin
+    // nothing in the script.
+    const named = new Map(targets().map((t) => [`${t.project}/${t.specFolder}`, t.dependsOn ?? []]));
+    if (!waiting.some((j) => (named.get(`${j.project}/${j.specFolder}`) ?? []).length > 0)) return blocked;
+
+    // Not `targets()`: that drops archived specs, and an archived
+    // dependency is precisely the case that must resolve — to
+    // "satisfied", without asking origin anything.
+    const projects = new Map(discoverProjects(opts.projectRoot).map((p) => [p.name, p]));
+    for (const job of waiting) {
+      const project = projects.get(job.project);
+      const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
+      if (!project || !spec) continue;
+      for (const id of spec.dependsOn) {
+        const dep = resolveDependencyFolder(project, id);
+        // An unknown identifier, or the spec itself: both are refusals
+        // the script makes on its own, and neither is something waiting
+        // could ever fix. Parking on one would hide a typo forever.
+        if (!dep || dep.folder === spec.folder) continue;
+        // Archiving only ever happens to finished work, so an archived
+        // dependency is merged by definition — the script's own
+        // shortcut, and it costs no network.
+        if (dep.archived) continue;
+        const branch = specBranch(dep.folder);
+        // Every root a run of this spec touches, as the script asks
+        // across `roots`: a dependency merged in the code repo but not
+        // in the specs repo is not merged. Both are asked either way —
+        // `&&` short-circuiting would leave the second answer uncached
+        // and the next tick asking again.
+        let merged = true;
+        for (const root of [projectDir(job.project), project.specsRoot]) {
+          merged = (await branchStatus.isMerged(root, branch)) && merged;
+        }
+        if (!merged) {
+          blocked.set(job.id, dep.folder);
+          break;
+        }
+      }
+    }
+    return blocked;
+  }
+
+  /** Every `tick()` goes through here: the map has to be computed with
+   *  the queue as it is at that instant, so there is no version of this
+   *  that a caller may skip. */
+  async function tickRunner(): Promise<void> {
+    if (!runner) return;
+    runner.tick(await blockedDependencies());
+  }
+
   // On boot, resolve every job left `running` by the last restart
   // before anything new is started.
   runner?.reconcile();
   const timer = runner
     ? setInterval(() => {
         runner.poll();
-        runner.tick();
+        void tickRunner();
       }, 2000)
     : null;
   timer?.unref?.();
@@ -1287,7 +1405,7 @@ export function createServer(opts: ServerOptions) {
           ? json({ error: result.error }, 400)
           : specsRedirect(raw, { error: result.error }, NEW_SPEC_ROUTE);
       }
-      runner?.tick();
+      await tickRunner();
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, "/");
     }
 
@@ -1408,7 +1526,7 @@ export function createServer(opts: ServerOptions) {
           ? json({ error: result.error, spec }, 400)
           : specsRedirect(raw, { error: result.error, spec });
       }
-      runner?.tick();
+      await tickRunner();
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw);
     }
 
@@ -1449,6 +1567,13 @@ export function createServer(opts: ServerOptions) {
             if (note) console.error(`queue: merge of ${spec} in ${r.root} — ${note}`);
           }
         }
+        // A merge from the page is the very event a parked job is
+        // waiting on (spec 122). The other four actions already
+        // re-tick; this one never did, so a job held back on the spec
+        // just merged would have sat until the next interval. Above
+        // BOTH answers, never beside one of them: an API caller merges
+        // for the same reason a reader pressing the button does.
+        await tickRunner();
         // `spec` is additive and for the page's own code: it navigates
         // on a refusal and has to say WHICH row the reason belongs to,
         // which only the server can answer.
@@ -1494,7 +1619,7 @@ export function createServer(opts: ServerOptions) {
         }
         // Approving a gate releases the job back into the queue.
         queue.update(id, { state: "queued" });
-        runner?.tick();
+        await tickRunner();
       }
       return wantsJson ? json({ ok: true, job: queue.get(id) }) : specsRedirect(view);
     }

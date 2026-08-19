@@ -3487,3 +3487,241 @@ describe("a job's token count reaches the page", () => {
     expect(html).toContain('<span class="u-tok">1.2M tok</span>');
   });
 });
+
+// --- spec 122: a queued step waits for its dependency, it does not fail -----
+//
+// Before this, a queued implement whose dependency was still unmerged
+// started, was refused by `aide-run-spec`, and landed in `failed` — a
+// state nothing retries. The queue now asks the same question the script
+// asks (is the dependency's branch merged on origin?) BEFORE spawning
+// anything, and leaves the job queued with the reason on its row until
+// the answer changes.
+describe("a job parked on an unmerged dependency (spec 122)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const DEPENDENT = "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n";
+
+  /** A projects root this suite owns, so the paths git is asked about
+   *  are the paths the test names. The shared harness makes its own and
+   *  leaves `queueProjectRoot` unset, which resolves the project's
+   *  checkout to a bare relative name — fine for a suite that never
+   *  looks at it, useless for one that is entirely about which repo was
+   *  asked. */
+  function root(dir: string): { root: string; project: string; specs: string } {
+    const projectsRoot = join(dir, "root");
+    const project = join(projectsRoot, "aide");
+    const specs = join(project, "specs");
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
+    mkdirSync(join(specs, "81-queue-and-runner"), { recursive: true });
+    writeFileSync(join(specs, "81-queue-and-runner", "1-description.md"), DEPENDENT);
+    mkdirSync(join(specs, "80-dependency"), { recursive: true });
+    writeFileSync(join(specs, "80-dependency", "1-description.md"), "# 80-dependency\n");
+    return { root: projectsRoot, project, specs };
+  }
+
+  /** A stub runner that records the argv it was called with — the same
+   *  shape "the runner invocation" uses. The proof that nothing was
+   *  spawned is that this file never appears. */
+  function stub(dir: string): { bin: string; argvFile: string } {
+    const argvFile = join(dir, "runner-argv.txt");
+    const bin = join(dir, "fake-run-spec");
+    writeFileSync(bin, `#!/usr/bin/env bash\nprintf '%s\\n' "$*" > ${argvFile}\n`, { mode: 0o755 });
+    return { bin, argvFile };
+  }
+
+  /** A git that answers `isMerged` per repo root. `unmerged` names the
+   *  roots where the dependency's branch still has commits of its own;
+   *  everywhere else it is an ancestor of the default branch. Read
+   *  through a function, so one test can watch the answer change under a
+   *  live server. */
+  function gitFor(unmerged: () => string[]) {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      // The branch IS on origin — absence is the other way a dependency
+      // counts as merged, and this suite is about the ancestry answer.
+      if (a.startsWith("ls-remote")) return { code: 0, stdout: "abc123\trefs/heads/x\n" };
+      if (a.startsWith("merge-base --is-ancestor")) {
+        return { code: unmerged().includes(dir) ? 1 : 0, stdout: "" };
+      }
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  const queueImplement = (base: string) =>
+    fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+
+  /** Long enough for a spawn to have written its file: the runner ticks
+   *  on the enqueue itself, so a job that was going to start has started
+   *  well before this returns. */
+  const settle = () => Bun.sleep(400);
+
+  function own(prefix: string) {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    ownDirs.push(dir);
+    return dir;
+  }
+
+  test("an implement job whose dependency is unmerged never invokes the runner", async () => {
+    const dir = own("aide-queue-parked-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    const git = gitFor(() => [paths.project, paths.specs]);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: git.run,
+      },
+    });
+    expect((await queueImplement(base)).status).toBe(200);
+    await settle();
+    expect(existsSync(argvFile)).toBe(false);
+
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      jobs: { state: string; error?: string }[];
+    };
+    expect(listed.jobs[0].state).toBe("queued");
+    expect(listed.jobs[0].error).toContain("80-dependency");
+  });
+
+  test("a dependency merged in one root but not the other still parks the job", async () => {
+    const dir = own("aide-queue-parked-two-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    // Merged in the project checkout, still open in the specs repo.
+    const git = gitFor(() => [paths.specs]);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: git.run,
+      },
+    });
+    expect((await queueImplement(base)).status).toBe(200);
+    await settle();
+    expect(existsSync(argvFile)).toBe(false);
+    // Both roots were actually asked — a check that stopped at the
+    // project would have started this job.
+    expect(git.calls.some((c) => c.dir === paths.project)).toBe(true);
+    expect(git.calls.some((c) => c.dir === paths.specs)).toBe(true);
+  });
+
+  test("merging the dependency's branch releases the parked job at once", async () => {
+    const dir = own("aide-queue-release-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    const mirror = join(dir, "queue.json");
+    let unmerged = [paths.project, paths.specs];
+    const git = gitFor(() => unmerged);
+    const common = {
+      queueToken: TOKEN,
+      projectRoot: paths.root,
+      queueProjectRoot: paths.root,
+      queueMirrorPath: mirror,
+      gitRun: git.run,
+    };
+
+    // The dependency's own finished job, recorded through a server with
+    // no runner: it must leave a branch behind without ever running.
+    const { base: seeder } = harness.start({ extra: common });
+    const dep = (await (
+      await fetch(`${seeder}/api/queue`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", specFolder: "80-dependency", steps: ["analyze"] }),
+      })
+    ).json()) as { job: { id: string } };
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const stored = jobs.find((j) => j.id === dep.job.id)!;
+    stored.state = "done";
+    stored.branchUrls = [
+      { root: paths.project, url: "https://example.test/aide" },
+      { root: paths.specs, url: "https://example.test/aide-specs" },
+    ];
+    writeFileSync(mirror, JSON.stringify(jobs));
+
+    const { base } = harness.start({
+      extra: { ...common, queueRunnerBin: bin, queueResultDir: join(dir, "jobs") },
+    });
+    expect((await queueImplement(base)).status).toBe(200);
+    await settle();
+    expect(existsSync(argvFile)).toBe(false);
+
+    // The merge lands the dependency. The cached "not merged" answer is
+    // dropped by the merge itself, and the route re-evaluates the queue
+    // rather than leaving the parked job to the next interval.
+    unmerged = [];
+    const merged = await fetch(`${base}/api/queue/${dep.job.id}/merge`, { method: "POST", headers: AUTH });
+    expect(merged.status).toBe(200);
+    // The spawn itself is a real process: the decision was made inside
+    // the merge request, the file appears a moment later.
+    for (let i = 0; i < 40 && !existsSync(argvFile); i++) await Bun.sleep(25);
+    expect(existsSync(argvFile)).toBe(true);
+    expect(readFileSync(argvFile, "utf-8")).toContain("--command implement");
+  });
+
+  test("a parked job's row shows the queued badge and the reason it is held back", async () => {
+    const dir = own("aide-queue-parked-row-");
+    const { bin } = stub(dir);
+    const paths = root(dir);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: gitFor(() => [paths.project, paths.specs]).run,
+      },
+    });
+    expect((await queueImplement(base)).status).toBe(200);
+    await settle();
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    // The ordinary queued badge, with the reason underneath it — no
+    // seventh badge variant and no new job state were introduced.
+    expect(html).toContain('badge b-idle">queued');
+    expect(html).toContain("held back: depends on 80-dependency");
+  });
+
+  test("cancelling a parked job cancels it like any other queued job", async () => {
+    const dir = own("aide-queue-parked-cancel-");
+    const { bin } = stub(dir);
+    const paths = root(dir);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: gitFor(() => [paths.project, paths.specs]).run,
+      },
+    });
+    const made = (await (await queueImplement(base)).json()) as { job: { id: string } };
+    await settle();
+    expect((await fetch(`${base}/api/queue/${made.job.id}/cancel`, { method: "POST", headers: AUTH })).status)
+      .toBe(200);
+    const after = (await (await fetch(`${base}/api/queue`, { headers: AUTH })).json()) as {
+      jobs: { id: string; state: string }[];
+    };
+    expect(after.jobs.find((j) => j.id === made.job.id)?.state).toBe("cancelled");
+  });
+});

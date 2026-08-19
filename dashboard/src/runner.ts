@@ -216,8 +216,17 @@ export class Runner {
     return this.o.store.list().filter((j) => j.state === "running");
   }
 
-  /** Fill every free slot, oldest queued job first. */
-  tick(): void {
+  /** Fill every free slot, oldest queued job first.
+   *
+   *  `blocked` maps a job id to the folder of the dependency it is
+   *  waiting for (spec 122). The Runner takes the answer rather than
+   *  working it out: whether a dependency has merged is a live git
+   *  question, and `serve.ts` — which owns the git runner and knows
+   *  which steps a dependency holds back — computes it fresh
+   *  immediately before every call. Asking here would make `tick()`
+   *  async, and with it every call site and every test that has
+   *  nothing to do with dependencies. */
+  tick(blocked?: Map<string, string>): void {
     // NOTHING starts while a job is landing, whatever it is and whatever
     // repo it is for. A landing merges directly into the SHARED main
     // checkout — the one every run switches and reads at its own start —
@@ -237,6 +246,19 @@ export class Runner {
       // refuse the second worktree on that branch anyway — which is a
       // refusal mid-run, not a scheduling decision.
       if (this.runningJobs().some((r) => r.project === job.project && r.specFolder === job.specFolder)) {
+        continue;
+      }
+      // Held back, not failed — the same shape `startOne`'s daily-cap
+      // check uses one call down: the reason is written, the state is
+      // left alone, no slot is taken, and the next tick tries again. It
+      // used to start, be refused by `aide-run-spec` and land in
+      // `failed`, which nothing retries.
+      const dependency = blocked?.get(job.id);
+      if (dependency !== undefined) {
+        const reason = `held back: depends on ${dependency}, whose branch is not merged yet`;
+        // Only when it changed: an unconditional update would rewrite
+        // the mirror every two seconds for a job that is doing nothing.
+        if (job.error !== reason) this.o.store.update(job.id, { error: reason });
         continue;
       }
       this.startOne(job);

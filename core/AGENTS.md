@@ -1601,6 +1601,26 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   origin has commits not on the default branch — unmerged, not merely
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
+- The line holds back only the steps that BUILD on merged code —
+  `implement`, `resolve`, `archive` (spec 122). `analyze`, `review-plan`
+  and `create` write only the spec's own folder in the specs repo, so a
+  whole chain of dependent specs can be analysed in parallel the moment
+  it is queued. The trade-off is stated rather than hidden: a plan
+  analysed before its dependency merged describes the code WITHOUT it
+- Queued through the dashboard, such a step WAITS rather than fails: the
+  job stays `queued` with the reason on its row and starts by itself
+  when the dependency merges (the runner re-checks on every tick, and a
+  merge from the page triggers one). It is cancellable like anything
+  queued. A run started by hand still gets the immediate refusal —
+  there is no scheduler there to park it against
+- The dashboard's New-spec form can write this line too (spec 110): a
+  Depends-on chip set, scoped to the chosen project's active specs, goes
+  through `aide-run-spec --depends-on` to a stated value in the
+  `/aide-create` prompt. The line is parsed by two independent readers —
+  `aide_spec_dependencies` in `_aide-spec-lib.sh` (shell) and
+  `specDependsOn` in `dashboard/src/discover.ts` (TypeScript) — kept
+  deliberately unshared as a two-line duplication; a future change to
+  this line's format has to update both
 
 ---
 

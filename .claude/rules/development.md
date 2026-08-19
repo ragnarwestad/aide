@@ -111,6 +111,17 @@ they match — add a step to only one and that test catches it, but the
 two lists themselves still have to be edited by hand together (spec
 106; the gap was already flagged at spec 91).
 
+**`DEPENDENCY_GATED_STEPS` is the second list of that shape (spec 122),
+and it works the same way.** `implement`, `resolve` and `archive` are
+the steps an unmerged dependency holds back; the other steps run
+regardless. The bash string in `core/scripts/aide-run-spec` and the
+TypeScript array in `dashboard/src/serve.ts` are pinned to each other by
+`test_the_two_copies_of_the_dependency_gate_agree`, and are edited by
+hand together exactly as `WORKFLOW_STEPS` is. The dashboard's copy is
+what decides whether a queued job is PARKED (left `queued` with the
+reason on its row until the dependency merges); the script's copy is
+what decides whether a run started by hand is REFUSED.
+
 **One step, `resolve`, can touch the worktree and fail to finish — the
 generic commit loop needed a guard for that.** Every other step either
 succeeds or refuses before touching the tree. `resolve` merges origin's

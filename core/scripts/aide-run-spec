@@ -81,6 +81,15 @@ rm -f "$0"
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
 WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest resolve"
+# The steps a dependency actually holds back (spec 122): the ones that
+# BUILD on merged code. analyze, review-plan and create write only the
+# spec's own folder in the specs repo and conflict with nothing, so
+# refusing them cost a chain of dependent specs its parallelism for
+# nothing. Kept as a plain string for the same reason WORKFLOW_STEPS is:
+# the dashboard has a second copy (DEPENDENCY_GATED_STEPS in
+# dashboard/src/serve.ts) with no shared source between them, and
+# test_the_two_copies_of_the_dependency_gate_agree pins the two.
+DEPENDENCY_GATED_STEPS="implement resolve archive"
 
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
@@ -254,6 +263,11 @@ done
 # contain it — a merge conflict later at best, and at worst work built on
 # old code that nobody notices until someone reads the diff.
 #
+# For the steps that BUILD on that code, and no others (spec 122): see
+# DEPENDENCY_GATED_STEPS. A queue that can wait parks such a job instead
+# of ever reaching this refusal; a run started by hand still gets it,
+# because there is no scheduler there to park it against.
+#
 # The whole block sits AFTER roots is complete (the check needs them) and
 # BEFORE anything touches a checkout, so a refusal here leaves nothing
 # behind.
@@ -333,22 +347,31 @@ dependency_branch_unmerged_on_origin() {
   return 1
 }
 
+# Only the LOOP is gated on the command, never the three functions above
+# it: `default_branch` is called unconditionally four more times further
+# down, so gating its definition would leave every non-gated command
+# calling a function that does not exist.
+#
 # Guarded like every other library call here: the library is sourced
 # conditionally, and an unguarded call would silently no-op under
 # `set -uo pipefail` rather than failing loudly.
-if declare -f aide_spec_dependencies >/dev/null 2>&1; then
-  for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
-    resolve_dependency_folder "$dep_id"
-    [ -n "$dep_folder" ] \
-      || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
-    [ "$dep_folder" = "$spec_folder" ] \
-      && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
-    [ "$dep_archived" = "yes" ] && continue
-    dep_branch="aide/$dep_folder"
-    dependency_branch_unmerged_on_origin "$dep_branch" \
-      && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch has commits not on origin's default branch (not merged yet — merge it first)"
-  done
-fi
+case " $DEPENDENCY_GATED_STEPS " in
+  *" $command_name "*)
+    if declare -f aide_spec_dependencies >/dev/null 2>&1; then
+      for dep_id in $(aide_spec_dependencies "$specs_root" "$spec_folder"); do
+        resolve_dependency_folder "$dep_id"
+        [ -n "$dep_folder" ] \
+          || refuse "spec $spec_folder depends on an unknown spec: $dep_id (not under $specs_root)"
+        [ "$dep_folder" = "$spec_folder" ] \
+          && refuse "spec $spec_folder cannot depend on itself ($dep_id)"
+        [ "$dep_archived" = "yes" ] && continue
+        dep_branch="aide/$dep_folder"
+        dependency_branch_unmerged_on_origin "$dep_branch" \
+          && refuse "spec $spec_folder depends on $dep_folder, whose branch $dep_branch has commits not on origin's default branch (not merged yet — merge it first)"
+      done
+    fi
+    ;;
+esac
 
 for root in "${roots[@]}"; do
   if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then

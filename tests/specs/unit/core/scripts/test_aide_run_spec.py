@@ -1851,6 +1851,13 @@ def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
 # implemented against a main that does not contain it (spec 92). The
 # refusal has to land BEFORE claude is launched, because that is where
 # the money is.
+#
+# Since spec 122 the guard runs only for the steps that BUILD on merged
+# code — implement, resolve, archive. Every test below therefore names
+# its command explicitly: the default `analyze` no longer reaches the
+# guard at all, and a test left on the default would pass for the wrong
+# reason. The steps that write only the spec's own folder in the specs
+# repo (analyze, review-plan, create) have their own tests further down.
 
 
 @pytest.fixture
@@ -1939,7 +1946,8 @@ def test_a_spec_without_the_field_asks_origin_nothing(
     leave_branch_on_origin(workspace, "aide/80-dependency")
 
     rc, out, trace = run_traced(
-        runner, workspace, writing_claude(fake_claude, workspace), tmp_path
+        runner, workspace, writing_claude(fake_claude, workspace), tmp_path,
+        command="implement",
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
@@ -1954,7 +1962,7 @@ def test_refuses_while_a_named_dependency_is_still_unmerged(
     set_depends_on(workspace, "80")
 
     claude = fake_claude("exit 1")  # would fail loudly if it were called
-    rc, out, _ = run(runner, workspace, claude)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 2
     assert out["ok"] is False
     assert out["terminalReason"] == "refused"
@@ -1982,7 +1990,9 @@ def test_a_dependency_whose_branch_is_merged_but_not_yet_deleted_lets_the_run_pr
     leave_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command="implement"
+    )
     assert rc == 0, out.get("error")
     assert out["terminalReason"] == "completed"
 
@@ -1994,7 +2004,9 @@ def test_a_dependency_whose_branch_is_gone_lets_the_run_proceed(
     add_spec(workspace, "80-dependency")
     set_depends_on(workspace, "80")
 
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command="implement"
+    )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
@@ -2006,7 +2018,7 @@ def test_the_full_folder_name_resolves_as_well_as_the_number(
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "`80-dependency`")
 
-    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
     assert rc == 2
     assert "80-dependency" in out["error"]
 
@@ -2016,7 +2028,7 @@ def test_refuses_an_unknown_dependency(runner, workspace, fake_claude, local_ori
     for' — a silently ignored dependency is worse than none."""
     set_depends_on(workspace, "77")
 
-    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
     assert rc == 2
     assert out["terminalReason"] == "refused"
     assert "77" in out["error"]
@@ -2029,7 +2041,7 @@ def test_refuses_a_spec_that_depends_on_itself(
 ):
     set_depends_on(workspace, "81")
 
-    rc, out, _ = run(runner, workspace, fake_claude("exit 1"))
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command="implement")
     assert rc == 2
     assert out["terminalReason"] == "refused"
     assert "itself" in out["error"]
@@ -2047,7 +2059,8 @@ def test_an_archived_dependency_is_satisfied_without_asking_origin(
     set_depends_on(workspace, "80")
 
     rc, out, trace = run_traced(
-        runner, workspace, writing_claude(fake_claude, workspace), tmp_path
+        runner, workspace, writing_claude(fake_claude, workspace), tmp_path,
+        command="implement",
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
@@ -2081,9 +2094,119 @@ def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
     )
     set_depends_on(workspace, "80")
 
-    rc, out, _ = run(runner, workspace, writing_claude(fake_claude, workspace))
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command="implement"
+    )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
+
+
+# --- Spec 122: the guard holds back only the steps that build on code -------
+# analyze, review-plan and create write only the spec's own folder in the
+# specs repo — nothing they touch conflicts with an unmerged dependency,
+# so refusing them cost a chain of dependent specs its whole parallelism
+# for nothing (2026-08-19). The honest trade-off, stated rather than
+# hidden: a plan analysed before its dependency merged describes the code
+# WITHOUT it.
+
+
+def test_analyze_proceeds_despite_an_unmerged_dependency(
+    runner, workspace, fake_claude, local_origins
+):
+    add_spec(workspace, "80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command="analyze"
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+@pytest.mark.parametrize("command", ["review-plan", "create"])
+def test_review_plan_and_create_proceed_despite_an_unmerged_dependency(
+    runner, workspace, fake_claude, local_origins, command
+):
+    """Criterion 2: what holds for analyze holds for the other two steps
+    that only write the spec's own folder."""
+    add_spec(workspace, "80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command=command
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+@pytest.mark.parametrize("command", ["review-plan", "create"])
+def test_review_plan_and_create_proceed_despite_an_unknown_or_self_dependency(
+    runner, workspace, fake_claude, local_origins, command
+):
+    """The unknown and self cases are refusals for the gated steps only.
+    A non-gated step never reaches the loop, so a typo is not its
+    problem either — the step that acts on the dependency is where the
+    refusal belongs."""
+    set_depends_on(workspace, "77")  # nothing resolves to it
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command=command
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+    set_depends_on(workspace, "81")  # the spec's own number
+    rc, out, _ = run(
+        runner, workspace, writing_claude(fake_claude, workspace), command=command
+    )
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+@pytest.mark.parametrize("command", ["resolve", "archive"])
+def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
+    runner, workspace, fake_claude, local_origins, command
+):
+    """Criterion 3: implement is not the only gated step. resolve merges
+    the default branch in, and archive moves the folder — both build on
+    what has landed."""
+    add_spec(workspace, "80-dependency")
+    leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
+    set_depends_on(workspace, "80")
+
+    rc, out, _ = run(runner, workspace, fake_claude("exit 1"), command=command)
+    assert rc == 2
+    assert out["terminalReason"] == "refused"
+    assert "80-dependency" in out["error"]
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+# --- the gated-step list lives in two files, like the step vocabulary -------
+# Same shape of duplication as WORKFLOW_STEPS, and the same treatment: a
+# bash string here, a TypeScript array there, no shared source and no
+# compiler between them. Gating one and not the other gives a dashboard
+# that parks a job the script would have run, or starts one it refuses.
+
+
+def test_the_two_copies_of_the_dependency_gate_agree(workspace_root):
+    import re
+
+    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    m = re.search(r'^DEPENDENCY_GATED_STEPS="([^"]*)"', bash, re.M)
+    assert m, "aide-run-spec no longer declares DEPENDENCY_GATED_STEPS as a plain string"
+    from_bash = set(m.group(1).split())
+
+    ts = (workspace_root / "dashboard" / "src" / "serve.ts").read_text()
+    m = re.search(r"export const DEPENDENCY_GATED_STEPS = \[(.*?)\] as const;", ts, re.S)
+    assert m, "serve.ts no longer declares DEPENDENCY_GATED_STEPS as a literal array"
+    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
+
+    assert from_bash == from_ts, (
+        "the script and the dashboard disagree about which steps a dependency "
+        f"holds back: only in the script {sorted(from_bash - from_ts)}, "
+        f"only in the dashboard {sorted(from_ts - from_bash)}"
+    )
 
 
 # --- Spec 93: create, for a spec that does not exist yet ---------------------

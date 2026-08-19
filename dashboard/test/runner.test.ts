@@ -851,3 +851,71 @@ describe("a resolve job in flight (spec 106)", () => {
     expect(store.get(theirs.id)?.state).toBe("running");
   });
 });
+
+// --- spec 122: a dependency parks a job, it does not fail it -----------------
+//
+// A queued implement whose dependency was still unmerged used to start,
+// be refused by `aide-run-spec`, and land in `failed` — a state nothing
+// retries, so somebody had to notice and press Run again (97 was pressed
+// three times, 102 twice, against dependencies that merged minutes
+// later). The job now waits instead, in exactly the shape the daily cap
+// already waits in: `error` set, `state` untouched, no slot taken.
+//
+// `Runner` stays policy-free and synchronous. WHICH jobs are held back
+// is decided by the caller (`serve.ts`, which owns the git answer) and
+// arrives as a plain map — the Runner trusts it verbatim and knows
+// nothing about steps or branches.
+
+describe("parked on a dependency (spec 122)", () => {
+  test("a job named in the blocked map is not spawned and stays queued with a reason", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick(new Map([[job.id, "80-dependency"]]));
+    expect(spawns.length).toBe(0);
+    const stored = store.get(job.id);
+    expect(stored?.state).toBe("queued");
+    expect(stored?.error).toContain("80-dependency");
+  });
+
+  test("the same job starts once the map no longer names it", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick(new Map([[job.id, "80-dependency"]]));
+    expect(spawns.length).toBe(0);
+    runner.tick(new Map());
+    expect(spawns.length).toBe(1);
+    const stored = store.get(job.id);
+    expect(stored?.state).toBe("running");
+    // Cleared by the start itself, the way every other held-back reason
+    // is — a stale line under a running row is a lie.
+    expect(stored?.error).toBeUndefined();
+  });
+
+  test("a parked job takes no slot: a job behind it still starts", () => {
+    const parked = enqueue({ steps: ["implement"] });
+    const other = enqueue({ specFolder: "91-parallel-spec-runs" });
+    const runner = makeRunner({ maxConcurrent: 1 });
+    runner.tick(new Map([[parked.id, "80-dependency"]]));
+    expect(spawns.length).toBe(1);
+    expect(spawns[0].jobId).toBe(other.id);
+    expect(store.get(parked.id)?.state).toBe("queued");
+  });
+
+  test("no map at all is exactly today's behaviour", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick();
+    expect(spawns.length).toBe(1);
+    expect(store.get(job.id)?.state).toBe("running");
+  });
+
+  test("an entry for a job that is not queued changes nothing", () => {
+    const job = enqueue({ steps: ["implement"] });
+    const runner = makeRunner();
+    runner.tick();
+    expect(store.get(job.id)?.state).toBe("running");
+    runner.tick(new Map([[job.id, "80-dependency"]]));
+    expect(store.get(job.id)?.state).toBe("running");
+    expect(store.get(job.id)?.error).toBeUndefined();
+  });
+});

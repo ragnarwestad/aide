@@ -179,3 +179,56 @@ describe("generated site nav (criterion 5)", () => {
     for (const p of pages) expect(p.html).not.toContain('href="/live"');
   });
 });
+
+// --- spec 122: which folder a `Depends on:` entry means ----------------------
+//
+// The scheduling gate needs the same answer `aide-run-spec`'s own
+// `resolve_dependency_folder` gives, in TypeScript: exact folder first,
+// then an `<id>-` prefix, live specs before archived ones. A second
+// reader of one rule, so it gets its own tests — the cases below mirror
+// the bash suite's one for one.
+describe("resolveDependencyFolder (spec 122)", () => {
+  const spec = (folder: string, archived = false) => ({
+    folder,
+    dir: `/specs/${folder}`,
+    archived,
+    title: null,
+    description: null,
+    dependsOn: [],
+  });
+  const project = {
+    name: "aide",
+    dir: "/repos/aide",
+    manifestPath: "/repos/aide/.aide/project.yaml",
+    specsRoot: "/specs",
+    specs: [spec("80-dependency"), spec("81-queue-and-runner"), spec("77-old", true)],
+  };
+
+  test("a number resolves through the `<id>-` prefix", async () => {
+    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    expect(resolveDependencyFolder(project, "80")?.folder).toBe("80-dependency");
+  });
+
+  test("the full folder name resolves as well as the number", async () => {
+    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    expect(resolveDependencyFolder(project, "80-dependency")?.folder).toBe("80-dependency");
+  });
+
+  test("an archived spec resolves too, and says it is archived", async () => {
+    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const found = resolveDependencyFolder(project, "77");
+    expect(found?.folder).toBe("77-old");
+    expect(found?.archived).toBe(true);
+  });
+
+  test("a live spec wins over an archived one with the same number", async () => {
+    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const both = { ...project, specs: [...project.specs, spec("77-still-here")] };
+    expect(resolveDependencyFolder(both, "77")?.folder).toBe("77-still-here");
+  });
+
+  test("an unknown id resolves to nothing — that refusal belongs to the run", async () => {
+    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    expect(resolveDependencyFolder(project, "99")).toBeUndefined();
+  });
+});
