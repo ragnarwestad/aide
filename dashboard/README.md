@@ -394,10 +394,23 @@ the reader where they are. Every one of the five — Run, Approve,
 Cancel, Merge, Create — is a real `<form>` that works on its own, and
 the script only intercepts.
 
-- **A press changes the button at once.** It disables and says what it
-  is doing ("starting…", "approving…", "cancelling…", "merging…",
-  "creating…"). The wording is in the markup, as `data-pending` beside
-  the label it replaces, not in a verb table inside the script.
+- **A press changes the button at once, without changing its width**
+  (spec 104). It disables, gains the `busy` look and a spinner ahead of
+  its own label — the label itself stays put, only the `title` carries
+  the pending word ("starting…", "approving…", "cancelling…",
+  "merging…", "creating…"), read from `data-pending` beside the label
+  it used to replace. On a row control the same press swaps that row's
+  own `.phases` chips for the same spinner, holding their width with
+  `style.minWidth` so the buttons beside them do not shift — freed
+  again once the boxes come back. The `finally` block that undoes all
+  of this runs under the same `isConnected` guard the button already
+  had, which matters because `swapRows()` returns without touching
+  `#jobrows` when the rows re-fetch itself fails: without that guard a
+  row can get stuck holding a spinner for a request that is already
+  over. The `.phases` boxes are Run's own form fields — the ticked
+  checkboxes live there — so the swap only happens after `new
+  FormData(form)` has already read them; writing the spinner in first
+  would silently queue a job with no phases at all.
 - **The answer lands in place.** `#jobrows` is re-fetched and swapped;
   the page does not reload, does not scroll to the top, and does not
   wipe a control someone is half-way through setting.
