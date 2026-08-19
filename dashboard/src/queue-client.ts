@@ -88,6 +88,18 @@ function afterMergeNote(text: string): void {
  *  they ask the server, not in what pressing them should look like. */
 const ACTIONS = "form.rowrun, form.actionform, form.mergeform";
 
+/** Character for character what `components.ts` renders (`SPINNER`).
+ *  This file can neither import nor export, so the one thing keeping
+ *  the two equal is a test that reads both (`queue-client.test.ts`).
+ *  Change one and change the other. */
+const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
+
+/** The looks a button can arrive in. `busy` goes IN PLACE of whichever
+ *  one it has, the same swap `btn()` makes server-side for a job
+ *  already in flight — two variants at once is a button with two
+ *  looks. */
+const VARIANTS = ["primary", "ok", "danger"];
+
 interface ActionResult {
   ok?: boolean;
   spec?: string;
@@ -118,14 +130,57 @@ async function postForm(
   const buttons = Array.from(form.querySelectorAll("button"));
   const primary = buttons[0];
   const label = primary?.textContent ?? "";
+  const titleBefore = primary?.title ?? "";
+  // A form on a spec's row, or the New-spec form above the table. Only
+  // a row has phase boxes to lend, and only a row can be shoved
+  // sideways by a button that changes size.
+  const row = form.closest("tr");
+  const variant = VARIANTS.find((v) => primary?.classList.contains(v));
+  const phases = row?.querySelector(".phases") as HTMLElement | null;
+  const phasesBefore = phases?.innerHTML ?? "";
   for (const b of buttons) b.disabled = true;
   inFlight += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
   // these buttons takes seconds, and a button that looks untouched for
-  // that long reads as a button that did not register the click. What
-  // it says while it waits is the server's word, in the markup
-  // (`data-pending`), beside the label it replaces.
-  if (primary) primary.textContent = primary.dataset?.pending || "working…";
+  // that long reads as a button that did not register the click.
+  //
+  // What changes is the LOOK, not the word: a button that swapped "Run"
+  // for "starting…" grew to fit and took the whole row with it, at the
+  // one moment it should look most in control (spec 104). So it goes
+  // busy — the same variant the server renders for a job already in
+  // flight — and the server's own pending word (`data-pending`) moves
+  // to the `title`, where it costs no width. The spinner takes the
+  // place of the phase boxes beside it: they are idle while the press
+  // is out, and they come back with the next render.
+  //
+  // Called only once the form has been READ, never before: those boxes
+  // are the Run form's own fields, and a spinner standing where they
+  // were is a job queued with no phases at all.
+  const pressed = (): void => {
+    if (!primary) return;
+    if (!row) {
+      // The New-spec form: no row to shove, no boxes to lend. It keeps
+      // the word swap it has always had.
+      primary.textContent = primary.dataset?.pending || "working…";
+      return;
+    }
+    if (variant) primary.classList.remove(variant);
+    primary.classList.add("busy");
+    primary.title = primary.dataset?.pending || titleBefore;
+    // The label stays a text node rather than being written back
+    // through `innerHTML`: it is the server's escaped markup read out
+    // as text, and re-parsing it would be one round trip too many.
+    primary.insertAdjacentHTML("afterbegin", SPINNER);
+    if (phases) {
+      // The boxes lend their SPACE, and a spinner is 12px wide where
+      // four chips were: a `.phases` left to shrink around it would drag
+      // every button on the row leftwards — the same shove this spec
+      // exists to remove, in the other direction. So the width is held
+      // for as long as it is borrowed.
+      phases.style.minWidth = `${phases.offsetWidth}px`;
+      phases.innerHTML = SPINNER;
+    }
+  };
   try {
     // The token rides in the query string, as it does for a bookmarked
     // page: the guard reads a header, the query string or the cookie,
@@ -137,6 +192,7 @@ async function postForm(
     new FormData(form).forEach((value, key) => {
       if (typeof value === "string") body.append(key, value);
     });
+    pressed();
     const res = await fetch(url.toString(), {
       method: "POST",
       headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
@@ -157,8 +213,21 @@ async function postForm(
   } finally {
     inFlight -= 1;
     // `isConnected` because a successful swapRows has already replaced
-    // this form with a fresh one from the server.
-    if (primary?.isConnected) primary.textContent = label;
+    // this form with a fresh one from the server. What is put back here
+    // is for the case it did not: the row the reader is looking at must
+    // not be left holding a spinner for something that is over.
+    // `textContent` takes the spinner out with it — it replaces every
+    // child.
+    if (primary?.isConnected) {
+      primary.textContent = label;
+      primary.title = titleBefore;
+      primary.classList.remove("busy");
+      if (variant) primary.classList.add(variant);
+    }
+    if (phases?.isConnected) {
+      phases.innerHTML = phasesBefore;
+      phases.style.minWidth = "";
+    }
     for (const b of buttons) if (b.isConnected) b.disabled = false;
   }
 }
