@@ -813,7 +813,7 @@ describe("spec 93: the completion hook and the landing window", () => {
 
 // --- spec 106: a resolve job is a job like any other -------------------------
 //
-// The "let aide resolve it" control queues an ordinary job, so the two
+// The Resolve control queues an ordinary job, so the two
 // guards that already exist have to hold for it: the scheduler never
 // starts two jobs for one spec, and the store refuses a second
 // unfinished job covering the same step. No third guard was built for

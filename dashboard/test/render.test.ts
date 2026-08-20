@@ -2544,16 +2544,18 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     }
   });
 
-  // The one label branch this spec keeps: a merge that was refused is
-  // the same decision again, not a new one.
-  test("a refused merge still says Merge again", () => {
+  // Spec 135 took the last label branch out too: a refused merge is the
+  // same decision, and the button says the same verb for it. That a
+  // merge was refused is the row's to say, on its State line.
+  test("a refused merge still says Merge, and nothing about the refusal", () => {
     const html = rows([done([at("aide")])], [target("132-a")], {
       filter: { open: "aide/132-a" },
       error: "cannot merge — conflict",
       errorSpec: "aide/132-a",
     });
     const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toContain(">Merge again</button>");
+    expect(form).toContain(">Merge</button>");
+    expect(form).not.toContain("Merge again");
   });
 });
 
@@ -4605,8 +4607,32 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
       errorSpec: "aide/124-stack",
       errorReason: "conflict",
     });
-    expect(actionCell(group(withConflict, "124-stack"))).toContain("let aide resolve it");
-    expect(actionCell(group(rows(list), "124-stack"))).not.toContain("let aide resolve it");
+    expect(actionCell(group(withConflict, "124-stack"))).toContain(">Resolve</button>");
+    expect(actionCell(group(rows(list), "124-stack"))).not.toContain(">Resolve</button>");
+  });
+
+  // Spec 135: Merge demotes itself on a row that has just told the
+  // reader why it could not be done, and until now nothing took the
+  // role it vacated. Resolving IS what to do next there, so the pair is
+  // asserted as a pair — exactly one primary, and it is Resolve.
+  test("a conflict refusal leaves Resolve primary and Merge demoted", () => {
+    const cell = actionCell(
+      group(
+        rows([row({ id: "j1", specFolder: "124-stack", state: "failed", branchUrls: branch })], [target("124-stack")], {
+          error: "cannot merge — conflict",
+          errorSpec: "aide/124-stack",
+          errorReason: "conflict",
+        }),
+        "124-stack",
+      ),
+    );
+    const form = (cls: string) =>
+      cell.match(new RegExp(`<form[^>]*class="${cls}"[\\s\\S]*?</form>`))?.[0] ?? "";
+    expect(form("resolveform")).toContain('class="btn primary"');
+    // Exactly one of the pair is primary, and it is not Merge. (Run is
+    // primary on this row too — that is the row's own action, not this
+    // pair's, so the count is taken over the pair and not the cell.)
+    expect(form("mergeform")).not.toContain("primary");
   });
 
   test("the rarely-set fields end the stack, on no line of their own (criterion 11)", () => {

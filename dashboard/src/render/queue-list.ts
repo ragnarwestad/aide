@@ -802,12 +802,15 @@ function mergeForm(
   const blocked = open.length === 0 || specBusy(g);
   if (!o.always && blocked) return "";
   const names = open.map((b) => b.label).join(", ");
-  // A merge that was just refused is not a new decision to make — it is
-  // the same one, again. The button says so, and stops being the
-  // primary action on a row that has just told the reader why it could
-  // not be done. Otherwise it is the bare verb: what it would land is
-  // on the State line (spec 132), and the repo names are in the title.
-  const label = refused ? "Merge again" : "Merge";
+  // A button says the verb for what pressing it does, not the row's
+  // history: a merge pressed a second time is not a different action
+  // from the first, so "Merge again" left the label (spec 135) and the
+  // refusal is read where the rest of the row's state is. What it
+  // would land is on the State line (spec 132), and the repo names are
+  // in the title. `refused` still stands the button DOWN from primary
+  // below — it stops being the primary action on a row that has just
+  // told the reader why it could not be done.
+  const label = "Merge";
   const why = open.length === 0 ? "no branch is open yet" : busyReason(g);
   const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
@@ -844,9 +847,15 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
   return (
     `<form method="post" action="/api/queue" class="resolveform">${hidden}` +
     btn({
-      label: "let aide resolve it",
+      label: "Resolve",
       pending: "queueing…",
       title: "merge the default branch into the spec's branch, resolve, and run the tests",
+      // Primary, and only ever here: the form is drawn on one kind of
+      // row only — a merge refused for a conflict — and resolving is
+      // what to do next there. Merge stands itself down on that row
+      // (`mergeForm`'s variant), so without this the row has no
+      // primary action at the moment it most needs one (spec 135).
+      variant: "primary",
     }) +
     `</form>`
   );
