@@ -1,0 +1,104 @@
+#!/bin/bash
+# Keep a checkout the dashboard READS up to date, on a machine nobody is
+# sitting at.
+#
+# The dashboard lists specs by reading the spec folders straight off the
+# serving host's working copy. Nothing pulls that copy: a spec written
+# and pushed from another machine simply is not there, and the page says
+# so by not showing it. Measured 2026-08-20 — spec 137 was made on the
+# laptop, pushed, and invisible on the dashboard until someone ran
+# `git pull` on the mini by hand.
+#
+# What it is NOT for: the aide checkout itself. Merging code and
+# installing it belong together (`AIDE_INSTALL_CMD`, spec 96), and a
+# background pull would move the code under a server that goes on
+# running the old version — merged but not deployed, told as deployed.
+# This script carries DATA the dashboard reads, and refuses nothing else
+# only because it cannot tell the difference: pointing it at a code repo
+# is the operator's mistake to avoid.
+#
+# Usage:  aide-pull-specs <repo-path> [<repo-path> ...]
+#
+# Each repo is pulled only when it is safe to do so unattended:
+#   - it is a git working tree (not a bare repo, not a worktree of one)
+#   - it has nothing uncommitted, staged or unstaged
+#   - it sits on its own default branch
+#   - the pull is a fast-forward
+# A repo failing any of those is SKIPPED with a reason, and the others
+# are still pulled. Nothing is ever committed, merged or reset here.
+#
+# Output is quiet by design: a repo already up to date says nothing, so
+# a cron entry mails only when something actually happened.
+set -u
+
+usage() {
+  echo "usage: aide-pull-specs <repo-path> [<repo-path> ...]" >&2
+  exit 2
+}
+
+[ "$#" -gt 0 ] || usage
+
+# A skipped repo is not a failure — a person may be mid-edit in it, and
+# the next run picks it up. A pull that was ATTEMPTED and failed is,
+# because that is the case nobody will notice otherwise.
+status=0
+
+for root in "$@"; do
+  name="$(basename "$root")"
+
+  if [ ! -d "$root" ]; then
+    echo "$name: skipped — no such directory: $root" >&2
+    continue
+  fi
+
+  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "$name: skipped — not a git working tree" >&2
+    continue
+  fi
+
+  # Uncommitted work of ANY kind, tracked files only: an untracked file
+  # is no obstacle to a fast-forward, and a specs root collects those
+  # (editor scratch, exports) between commits. `--quiet` exits non-zero
+  # on the first difference, which is the whole question.
+  if ! git -C "$root" diff --quiet HEAD 2>/dev/null; then
+    echo "$name: skipped — uncommitted changes"
+    continue
+  fi
+
+  # The default branch, resolved the same way `aide-run-spec` resolves
+  # it: origin's own HEAD first, then the usual names, then whatever is
+  # checked out. A checkout parked on a spec branch is left alone —
+  # pulling it would fetch a branch whose upstream may be gone.
+  base="$(git -C "$root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)"
+  base="${base#origin/}"
+  if [ -z "$base" ]; then
+    for candidate in main master; do
+      if git -C "$root" show-ref --verify --quiet "refs/heads/$candidate"; then
+        base="$candidate"
+        break
+      fi
+    done
+  fi
+  current="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null)"
+  if [ -z "$base" ] || [ "$current" != "$base" ]; then
+    echo "$name: skipped — on $current, not the default branch ${base:-(unknown)}"
+    continue
+  fi
+
+  before="$(git -C "$root" rev-parse HEAD 2>/dev/null)"
+  if ! out="$(git -C "$root" pull --ff-only 2>&1)"; then
+    echo "$name: pull failed" >&2
+    echo "$out" >&2
+    status=1
+    continue
+  fi
+  after="$(git -C "$root" rev-parse HEAD 2>/dev/null)"
+
+  # Silence is the normal answer. Only a checkout that MOVED is worth a
+  # line, and the two revisions are what makes the line checkable.
+  if [ "$before" != "$after" ]; then
+    echo "$name: ${before:0:8} -> ${after:0:8}"
+  fi
+done
+
+exit "$status"
