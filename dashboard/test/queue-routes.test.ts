@@ -2605,10 +2605,13 @@ describe("a description newer than the analysis is shown on the row", () => {
 
   /** The specs repo answering for one spec: when its description was
    *  last committed, and what its analyze history looks like. */
-  const gitSaying = (descriptionAt: string, analyzeLog: string) =>
+  const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
       "log -1 --format=%aI": { code: 0, stdout: `${descriptionAt}\n` },
-      "log --format=%aI%x09%s": { code: 0, stdout: analyzeLog },
+      "log --format=%H%x09%aI%x09%s": { code: 0, stdout: analyzeLog },
+      // `git diff --quiet`: 1 means the description says something the
+      // analysis never read, 0 means the commit changed nothing.
+      "diff --quiet": { code: differs ? 1 : 0 },
     });
 
   /** A spec whose files alone would mark analyze AND review-plan done. */
@@ -2634,7 +2637,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   test("the analyze line says the description changed since (criterion 1)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
-      gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
     const html = await listPage(base);
@@ -2645,7 +2648,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   test("analyze and review-plan stop counting as done (criteria 2, 3)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
-      gitRun: gitSaying(DESCRIPTION_EDITED, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -2680,7 +2683,7 @@ describe("a description newer than the analysis is shown on the row", () => {
   test("a description older than the analysis changes nothing (criterion 4)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
-      gitRun: gitSaying("2026-08-18T08:00:00+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+      gitRun: gitSaying("2026-08-18T08:00:00+02:00", `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
     });
     analysedSpec(dir);
     const html = await listPage(base);

@@ -12,7 +12,8 @@ import { describe, expect, test } from "bun:test";
 import {
   DescriptionFreshnessChecker,
   isAnalyzeStale,
-  lastAnalyzeCommitAt,
+  descriptionDiffers,
+  lastAnalyzeCommit,
   lastCommitAt,
 } from "../src/description-freshness.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
@@ -24,11 +25,18 @@ const SUBJECT = `Run /aide-analyze for ${FOLDER} (headless)`;
 /** What the two lookups are keyed on: the description's own history,
  *  and the analyze commits. Kept apart so a test can move one without
  *  the other. */
-const gitFor = (description: string | null, analyzeLog: string | null) =>
+const gitFor = (description: string | null, analyzeLog: string | null, differs = true) =>
   fakeGit({
     "log -1 --format=%aI": description === null ? { code: 1 } : { code: 0, stdout: `${description}\n` },
-    "log --format=%aI%x09%s": analyzeLog === null ? { code: 1 } : { code: 0, stdout: analyzeLog },
+    "log --format=%H%x09%aI%x09%s":
+      analyzeLog === null ? { code: 1 } : { code: 0, stdout: analyzeLog },
+    // `git diff --quiet`: 0 identical, 1 different.
+    "diff --quiet": { code: differs ? 1 : 0 },
   });
+
+/** An analyze log line in the shape the lookup now reads. The sha is
+ *  arbitrary; only the diff stub above cares that there is one. */
+const analyzeLine = (at: string, subject = SUBJECT) => `deadbee\t${at}\t${subject}`;
 
 describe("isAnalyzeStale", () => {
   test("a description committed after the analyze is stale (criterion 1)", () => {
@@ -75,12 +83,12 @@ describe("lastCommitAt", () => {
   });
 });
 
-describe("lastAnalyzeCommitAt", () => {
+describe("lastAnalyzeCommit", () => {
   test("matches the exact success message a headless run leaves", async () => {
-    const git = gitFor(null, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`);
-    expect(await lastAnalyzeCommitAt(git.run, DIR, FOLDER)).toBe("2026-08-18T08:57:16+02:00");
+    const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
     expect(git.calls[0]!.args).toEqual([
-      "log", "--format=%aI%x09%s", "--fixed-strings", `--grep=${SUBJECT}`,
+      "log", "--format=%H%x09%aI%x09%s", "--fixed-strings", `--grep=${SUBJECT}`,
     ]);
   });
 
@@ -91,49 +99,68 @@ describe("lastAnalyzeCommitAt", () => {
     const git = gitFor(
       null,
       [
-        `2026-08-18T09:00:00+02:00\t${SUBJECT} (stopped: budget)`,
-        `2026-08-18T08:00:00+02:00\t${SUBJECT}`,
+        analyzeLine("2026-08-18T09:00:00+02:00", `${SUBJECT} (stopped: budget)`),
+        analyzeLine("2026-08-18T08:00:00+02:00"),
       ].join("\n"),
     );
-    expect(await lastAnalyzeCommitAt(git.run, DIR, FOLDER)).toBe("2026-08-18T08:00:00+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:00:00+02:00");
   });
 
   test("the newest of several re-runs wins (criterion 5)", async () => {
     const git = gitFor(
       null,
       [
-        `2026-08-18T11:00:00+02:00\t${SUBJECT}`,
-        `2026-08-18T08:57:16+02:00\t${SUBJECT}`,
+        analyzeLine("2026-08-18T11:00:00+02:00"),
+        analyzeLine("2026-08-18T08:57:16+02:00"),
       ].join("\n"),
     );
-    expect(await lastAnalyzeCommitAt(git.run, DIR, FOLDER)).toBe("2026-08-18T11:00:00+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T11:00:00+02:00");
   });
 
   test("a plan-merge commit is not mistaken for an analyze (criterion 6)", async () => {
     const git = gitFor(
       null,
       [
-        `2026-08-18T10:00:00+02:00\tMerge remote-tracking branch 'refs/remotes/origin/aide/${FOLDER}'`,
-        `2026-08-18T08:57:16+02:00\t${SUBJECT}`,
+        analyzeLine("2026-08-18T10:00:00+02:00", `Merge remote-tracking branch 'refs/remotes/origin/aide/${FOLDER}'`),
+        analyzeLine("2026-08-18T08:57:16+02:00"),
       ].join("\n"),
     );
-    expect(await lastAnalyzeCommitAt(git.run, DIR, FOLDER)).toBe("2026-08-18T08:57:16+02:00");
+    expect((await lastAnalyzeCommit(git.run, DIR, FOLDER))?.at).toBe("2026-08-18T08:57:16+02:00");
   });
 
   test("null when no analyze has ever been committed (criterion 8)", async () => {
-    expect(await lastAnalyzeCommitAt(gitFor(null, "").run, DIR, FOLDER)).toBeNull();
-    expect(await lastAnalyzeCommitAt(gitFor(null, null).run, DIR, FOLDER)).toBeNull();
+    expect(await lastAnalyzeCommit(gitFor(null, "").run, DIR, FOLDER)).toBeNull();
+    expect(await lastAnalyzeCommit(gitFor(null, null).run, DIR, FOLDER)).toBeNull();
   });
 
   test("another spec's analyze commit does not count as this one's", async () => {
-    const git = gitFor(null, `2026-08-18T08:57:16+02:00\tRun /aide-analyze for 95-other (headless)\n`);
-    expect(await lastAnalyzeCommitAt(git.run, DIR, FOLDER)).toBeNull();
+    const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00", "Run /aide-analyze for 95-other (headless)") + "\n");
+    expect(await lastAnalyzeCommit(git.run, DIR, FOLDER)).toBeNull();
+  });
+});
+
+describe("descriptionDiffers", () => {
+  test("exit 1 means the file says something else, 0 means it does not", async () => {
+    expect(await descriptionDiffers(fakeGit({ diff: { code: 1 } }).run, DIR, "deadbee")).toBe(true);
+    expect(await descriptionDiffers(fakeGit({ diff: { code: 0 } }).run, DIR, "deadbee")).toBe(false);
+  });
+
+  // Every unknown in this module points the same way: it cannot prove
+  // staleness, so it does not claim any.
+  test("any other exit code cannot prove a difference", async () => {
+    expect(await descriptionDiffers(fakeGit({ diff: { code: 128 } }).run, DIR, "deadbee")).toBe(false);
+  });
+
+  test("it compares the working tree against the analyzed commit", async () => {
+    const git = fakeGit({ diff: { code: 1 } });
+    await descriptionDiffers(git.run, DIR, "deadbee");
+    expect(git.calls[0]!.args).toEqual(["diff", "--quiet", "deadbee", "--", "1-description.md"]);
   });
 });
 
 describe("DescriptionFreshnessChecker", () => {
   const stale = () =>
-    gitFor("2026-08-18T09:10:36+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`);
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
 
   test("a description newer than the last analyze is stale (criterion 1)", async () => {
     const git = stale();
@@ -141,8 +168,32 @@ describe("DescriptionFreshnessChecker", () => {
     expect(await checker.isStale(DIR, FOLDER)).toBe(true);
   });
 
+  // The whole point of comparing content: a description rewritten to
+  // exactly what it was has a newer commit and says nothing new. Seen
+  // on spec 132, where a section was added and taken out again and the
+  // row went on asking for a re-analysis it did not need.
+  test("a newer commit that changed nothing is not stale", async () => {
+    const git = gitFor(
+      "2026-08-18T09:10:36+02:00",
+      analyzeLine("2026-08-18T08:57:16+02:00") + "\n",
+      false,
+    );
+    const checker = new DescriptionFreshnessChecker({ run: git.run });
+    expect(await checker.isStale(DIR, FOLDER)).toBe(false);
+    expect(git.calls.some((c) => c.args[0] === "diff")).toBe(true);
+  });
+
+  // The dates are the cheap gate: an older description cannot be stale
+  // whatever it says, so the content is never asked for.
+  test("an older description is settled without a diff", async () => {
+    const git = gitFor("2026-08-18T08:00:00+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    const checker = new DescriptionFreshnessChecker({ run: git.run });
+    expect(await checker.isStale(DIR, FOLDER)).toBe(false);
+    expect(git.calls.some((c) => c.args[0] === "diff")).toBe(false);
+  });
+
   test("a description older than the last analyze is not (criterion 4)", async () => {
-    const git = gitFor("2026-08-18T08:00:00+02:00", `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`);
+    const git = gitFor("2026-08-18T08:00:00+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
   });
@@ -179,7 +230,7 @@ describe("DescriptionFreshnessChecker", () => {
   // lookup would be a subprocess spawned for an answer that cannot
   // change the result.
   test("no description commit asks git nothing further", async () => {
-    const git = gitFor(null, `2026-08-18T08:57:16+02:00\t${SUBJECT}\n`);
+    const git = gitFor(null, analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
     expect(git.calls).toHaveLength(1);

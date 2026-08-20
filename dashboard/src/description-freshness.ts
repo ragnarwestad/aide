@@ -54,20 +54,54 @@ export async function lastCommitAt(
  *  `git log` prints newest first, so the first surviving line is the
  *  most recent successful analyze: a re-run simply supersedes the one
  *  that went stale. */
-export async function lastAnalyzeCommitAt(
+export interface AnalyzeCommit {
+  /** The commit itself, so the description can be compared against the
+   *  version that run actually read. */
+  sha: string;
+  at: string;
+}
+
+export async function lastAnalyzeCommit(
   run: GitRunner,
   dir: string,
   specFolder: string,
-): Promise<string | null> {
+): Promise<AnalyzeCommit | null> {
   const subject = analyzeSubject(specFolder);
-  const out = await run(dir, ["log", "--format=%aI%x09%s", "--fixed-strings", `--grep=${subject}`]);
+  const out = await run(dir, [
+    "log",
+    "--format=%H%x09%aI%x09%s",
+    "--fixed-strings",
+    `--grep=${subject}`,
+  ]);
   if (out.code !== 0) return null;
   for (const line of out.stdout.split("\n")) {
-    const tab = line.indexOf("\t");
-    if (tab < 0) continue;
-    if (line.slice(tab + 1) === subject) return line.slice(0, tab);
+    const [sha, at, ...rest] = line.split("\t");
+    if (!sha || !at || rest.length === 0) continue;
+    if (rest.join("\t") === subject) return { sha, at };
   }
   return null;
+}
+
+/** Does the description SAY anything the analyze run did not read?
+ *
+ *  The dates are the cheap gate, not the answer. A description can be
+ *  rewritten to exactly what it was — a section added and taken out
+ *  again, a typo fixed, a `Depends on:` line tried and dropped — and
+ *  the commit is newer every time while the file says the same thing.
+ *  Seen on spec 132 (2026-08-20): two commits after the analysis, and
+ *  `git diff` against the analyzed version was empty.
+ *
+ *  `--quiet` implies `--exit-code`: 0 means identical, 1 means
+ *  different. Any other code is git failing to answer, and that reads
+ *  as "cannot prove staleness" — the same direction every other
+ *  unknown in this module takes. */
+export async function descriptionDiffers(
+  run: GitRunner,
+  dir: string,
+  analyzedSha: string,
+): Promise<boolean> {
+  const out = await run(dir, ["diff", "--quiet", analyzedSha, "--", "1-description.md"]);
+  return out.code === 1;
 }
 
 /** Strictly newer, and only when BOTH dates are known. An analyze run
@@ -122,7 +156,14 @@ export class DescriptionFreshnessChecker {
       // No description commit ends it here: the second lookup cannot
       // change the answer, and it costs a subprocess per spec.
       if (describedAt) {
-        stale = isAnalyzeStale(describedAt, await lastAnalyzeCommitAt(this.run, dir, specFolder));
+        const analyzed = await lastAnalyzeCommit(this.run, dir, specFolder);
+        // The dates first, because they cost nothing beyond the lookup
+        // already made: a description older than the analysis cannot be
+        // stale whatever it says. Only when they point the other way is
+        // the content worth a third subprocess.
+        stale =
+          isAnalyzeStale(describedAt, analyzed?.at ?? null) &&
+          (await descriptionDiffers(this.run, dir, analyzed!.sha));
       }
     } catch {
       stale = false;
