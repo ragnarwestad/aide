@@ -340,11 +340,11 @@ function bodyToObject(text: string, contentType: string | null): unknown {
       }
       if (Object.keys(picked).length) out.model = picked;
     }
-    // A form posts a checkbox only when it is ticked. Unticked means
-    // "run straight through", which must be said explicitly — the
-    // schema's default is to gate after every step.
-    if (out.gateAfter === undefined) out.gateAfter = out.gate ? undefined : [];
-    delete out.gate;
+    // No form on the page can gate a job, so a urlencoded body's silence
+    // always means "run straight through" — the opposite of the schema's
+    // own default, which gates after every step. A caller that does want
+    // a gate names `gateAfter` itself, and is left alone above.
+    if (out.gateAfter === undefined) out.gateAfter = [];
     for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
       if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
     }

@@ -1280,11 +1280,15 @@ describe("a spec's row runs its own phases", () => {
     expect(html).not.toContain('name="extraProjects"');
   });
 
-  test("the gate box is on every row, unticked, with or without 'also touches' (criterion 5a)", () => {
+  // Spec 133 took the "stop for approval between steps" box out: its
+  // two states were "run straight through" and "stop after every step",
+  // and the second is reached better by ticking one phase at a time.
+  test("no row offers a gate control at all (spec 133, criterion 1)", () => {
     for (const projects of [["aide"], ["aide", "paceup"]]) {
-      const line = runLine(rows([], [target("94-never-run")], { projects }), "94-never-run");
-      expect(line).toContain('<input type="checkbox" name="gate" value="1"');
-      expect(line).not.toContain('name="gate" checked');
+      const html = rows([], [target("94-never-run")], { projects });
+      expect(runLine(html, "94-never-run")).not.toBe("");
+      expect(html).not.toContain('name="gate"');
+      expect(html).not.toContain("data-gate");
     }
   });
 
@@ -2604,9 +2608,8 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
-    expect(line).toContain('name="gate"');
     expect(line).toContain('name="extraProjects" value="paceup"');
-    // Run and the two rarely-set fields are in the header's own action
+    // Run and the rarely-set field are in the header's own action
     // cell since spec 124; the boxes are on the phase lines below it.
     expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Run</button>");
     expect(
@@ -2674,8 +2677,8 @@ describe("spec 103: a collapsed row shows status only", () => {
     }
   });
 
-  // The model, the gate and the also-touches chips left the action cell,
-  // so they are no longer INSIDE the form they submit with — they are
+  // The model and the also-touches chips left the action cell, so
+  // they are no longer INSIDE the form they submit with — they are
   // written after its closing tag, on the same line. The `form`
   // attribute is what carries them back — an id that drifts from the
   // form's own silently runs the job with the defaults instead.
@@ -2688,8 +2691,8 @@ describe("spec 103: a collapsed row shows status only", () => {
     const line = controlsLine(html, "103-idle");
     const id = line.match(/<form id="([^"]+)"/)![1];
     const after = line.slice(line.indexOf("</form>"));
-    const fields = [...after.matchAll(/<(?:select|input)\b[^>]*name="(gate|extraProjects)"[^>]*>/g)];
-    expect(fields.length).toBe(2);
+    const fields = [...after.matchAll(/<(?:select|input)\b[^>]*name="extraProjects"[^>]*>/g)];
+    expect(fields.length).toBe(1);
     // The phase boxes reach it the same way since spec 124 — they are
     // on lines of their own, further from the form than the fields are.
     for (const b of line.matchAll(/<input type="checkbox" name="steps"[^>]*>/g)) {
@@ -2744,7 +2747,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   /** The line an open row reveals under its header: since spec 109 the
    *  phase boxes, Run and Cancel are here, never in the header's cell —
-   *  and since spec 117 the model, the gate and "also touches" too. */
+   *  and since spec 117 the model and "also touches" too. */
   const controlsLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -2845,29 +2848,26 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     expect(run).not.toContain("tick a phase it does not hold");
   });
 
-  test("the model select, the gate box and 'also touches' all lock (criterion 3)", () => {
+  test("the model select and 'also touches' both lock (criterion 3)", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     const line = controlsLine(html, "105-busy");
     // The model select is on the phase lines since spec 123; the rule
     // it obeys is this one, unchanged.
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
-    expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).toContain("disabled");
     expect(line.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).toContain("disabled");
   });
 
   // There is no disclosure left to carry the reason on a summary, so
-  // every one of the three says it itself — which is where the promise
-  // always actually lived.
+  // each of them says it itself — which is where the promise always
+  // actually lived.
   test("each locked field carries the same reason (criterion 3)", () => {
     const html = rows([spec("running")], [target("105-busy")]);
     const line = controlsLine(html, "105-busy");
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain(
       'title="implement is running"',
     );
-    for (const label of ["data-gate", "data-project"]) {
-      const chip = line.match(new RegExp(`<label class="phase[^"]*" ${label}="[^"]*"[^>]*>`))![0];
-      expect(chip).toContain('title="implement is running"');
-    }
+    const chip = line.match(/<label class="phase[^"]*" data-project="[^"]*"[^>]*>/)![0];
+    expect(chip).toContain('title="implement is running"');
   });
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
@@ -2905,7 +2905,9 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       expect(runBtn(line)).not.toContain("disabled");
       expect(actionCell(controlsLine(html, "105-busy"))).toContain('action="/api/queue/j1/merge"');
       expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
-      expect(line.match(/<input type="checkbox" name="gate"[^>]*>/)![0]).not.toContain("disabled");
+      expect(line.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).not.toContain(
+        "disabled",
+      );
     });
   }
 
@@ -3144,10 +3146,10 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     const id = line.match(/<form id="([^"]+)"/)![1];
     const fields = [
       ...line.slice(line.indexOf("</form>")).matchAll(
-        /<(?:select|input)\b[^>]*name="(gate|extraProjects)"[^>]*>/g,
+        /<(?:select|input)\b[^>]*name="extraProjects"[^>]*>/g,
       ),
     ];
-    expect(fields.length).toBe(2);
+    expect(fields.length).toBe(1);
     for (const f of fields) expect(f[0]).toContain(`form="${id}"`);
     // And the model, from the phase lines it moved to (spec 123).
     for (const sel of html.matchAll(/<select\b[^>]*name="model\.[^"]*"[^>]*>/g)) {
@@ -4406,11 +4408,10 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(cell).toContain('<span class="row extra">');
     expect(cell).toContain('name="extraProjects" value="paceup"');
     expect(cell).not.toContain('name="extraProjects" value="aide"');
-    expect(cell).toContain('name="gate"');
     // After the buttons, quietly — never before them.
     expect(cell.indexOf('class="row extra"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
     // And nowhere else on the page.
-    expect(html.replace(cell, "")).not.toContain('name="gate"');
+    expect(html.replace(cell, "")).not.toContain('name="extraProjects"');
   });
 
   test("a shut row's action cell is what a collapsed row has always offered (criterion 12)", () => {

@@ -157,7 +157,7 @@ function refusalReason(body: ActionResult | null): string | undefined {
  *  press has to change something the instant it happens.
  *
  *  The form's own fields go with it. Merge needs none — but Run IS its
- *  fields (the phases ticked, the model, the other repos, the gate), and
+ *  fields (the phases ticked, the model, the other repos), and
  *  the hidden view fields are what the server rebuilds the reader's
  *  filter from on the no-JS path. */
 async function postForm(

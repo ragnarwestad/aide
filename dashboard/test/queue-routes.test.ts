@@ -412,8 +412,8 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     };
     expect(body.job.steps).toEqual(["implement"]);
     expect(body.job.model).toEqual({ implement: "fable" });
-    // The gate box was left unticked, so the form posted no `gate` at
-    // all — which must mean "run straight through", not "gate after
+    // A form names no gate at all (spec 133 took the checkbox out), and
+    // that silence must mean "run straight through", not "gate after
     // every step" (the schema's own default).
     expect(body.job.gateAfter).toEqual([]);
   });
@@ -474,7 +474,11 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(made.job.gateAfter).toEqual([]);
   });
 
-  test("the row's gate box decides whether the job stops between them (criterion 3a)", async () => {
+  // The checkbox that used to send this key is gone (spec 133), so a
+  // urlencoded body naming `gate` is a stray from somewhere else. It
+  // must not gate the job: `gateAfter` follows the same rule as any
+  // other form post — `[]` unless `gateAfter` itself is named.
+  test("a stray gate key no longer gates the job (criterion 3)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
@@ -490,7 +494,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: body.toString(),
     });
     const made = (await res.json()) as { job: { gateAfter: string[] } };
-    expect(made.job.gateAfter).toEqual(["analyze", "implement"]);
+    expect(made.job.gateAfter).toEqual([]);
   });
 
   test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
@@ -555,13 +559,16 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain("81-queue-and-runner");
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
     expect(html).toContain('<a class="brand" href="/">');
-    // Every control says what it is: an unlabelled select next to some
-    // checkboxes tells the reader nothing. The steps, Run and the three
-    // nobody sets every time are all on the one line an open row grows
-    // (spec 117) — nothing waits behind a second click.
+    // Every control says what it is: an unlabelled checkbox next to some
+    // buttons tells the reader nothing. The steps, Run and what is left
+    // of the fields nobody sets every time are all on the one line an
+    // open row grows (spec 117) — nothing waits behind a second click.
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toContain(">Run</button>");
-    expect(line).toContain("stop for approval between steps");
+    for (const step of ["analyze", "implement", "archive"]) {
+      expect(line).toContain(`name="steps" value="${step}"`);
+      expect(line).toContain(`aria-label="${step}"`);
+    }
     expect(html).not.toContain(">more</summary>");
     // 81a ships no runner: the page must say so rather than leave a
     // job sitting in "queued" with no explanation.
@@ -620,34 +627,6 @@ describe("GET / (the spec list, HTML)", () => {
     expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
     expect(line).toContain(">Run</button>");
-  });
-
-  test("the gate checkbox decides: unticked runs straight through", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const post = (body: URLSearchParams) =>
-      fetch(`${base}/api/queue`, {
-        method: "POST",
-        redirect: "manual",
-        headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
-        body,
-      });
-    await post(new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner", steps: "analyze" }));
-    // A different step: the same one twice is refused, and that is a
-    // separate rule with its own tests. The gate flag is what this one
-    // is about.
-    const params = new URLSearchParams({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: "implement",
-    });
-    params.append("gate", "on");
-    await post(params);
-    const listed = (await (
-      await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } })
-    ).json()) as { jobs: { gateAfter: string[] }[] };
-    // Newest first: the gated one, then the straight-through one.
-    expect(listed.jobs[0].gateAfter).toEqual(["implement"]);
-    expect(listed.jobs[1].gateAfter).toEqual([]);
   });
 
   // A generated page is a FILE, and the list it points at is served.

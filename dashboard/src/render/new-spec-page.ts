@@ -89,9 +89,9 @@ function dependsOnField(opts: NewSpecPageOptions): string {
 }
 
 // Three fields and nothing else. Everything a job can be tuned with —
-// the model, the other repos, whether to stop for approval — belongs to
-// running a spec, and this form does not run one: it makes a spec, which
-// then appears as a row and is run from there like all the others.
+// the model, the other repos — belongs to running a spec, and this form
+// does not run one: it makes a spec, which then appears as a row and is
+// run from there like all the others.
 //
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and

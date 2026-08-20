@@ -836,8 +836,8 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 // What a COLLAPSED row may ask of the reader: the one thing the spec
 // needs right now, or nothing at all. Approve while a gate waits, Merge
 // while a branch waits — the two the description names as reachable
-// without expanding. Everything else (Run, Cancel, the model, the gate,
-// the other repos) belongs to the row you have opened.
+// without expanding. Everything else (Run, Cancel, the model, the
+// other repos) belongs to the row you have opened.
 //
 // Spec 109 made it what the header cell drew whether the row was open
 // or shut; spec 124 gave the OPEN row that cell for its whole stack
@@ -986,19 +986,22 @@ const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.spec
 // "an id that names a spec" stays the one convention it already is.
 const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
-// The two things nobody sets every time — the other repos the job will
-// touch, and whether to stop for approval between the steps. Built here
-// rather than inline in `openActionsCell` so the `form` attribute both
-// of them need is written once, beside the id it has to match.
+// The one thing nobody sets every time — the other repos the job will
+// touch. Built here rather than inline in `openActionsCell` so the
+// `form` attribute it needs is written once, beside the id it has to
+// match.
 //
-// The model used to be the third. It left for the phase lines in spec
+// It used to have company. The model left for the phase lines in spec
 // 123: one shared dropdown could only ever set ONE model for every
 // phase a press ticked, and it landed beside the State column by
-// accident of content width, tied to nothing around it.
+// accident of content width, tied to nothing around it. The "stop for
+// approval between steps" box left altogether in spec 133: its two
+// states were "run straight through" and "stop after every step", and
+// a reader who wants the second ticks one phase at a time instead.
 function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
-  // Two fields that set up a job, on a row where no job can be
-  // started: while the spec is busy both of them are disabled, and
-  // each carries the same sentence the phase boxes do.
+  // A field that sets up a job, on a row where no job can be started:
+  // while the spec is busy it is disabled, and it carries the same
+  // sentence the phase boxes do.
   const why = busy ? busyReason(g) : "";
   const formId = runFormId(g);
   // The row's own project is watched already, so offering it again is an
@@ -1027,19 +1030,7 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
         { group: true },
       )
     : "";
-  // Off by default. It sits beside the model and the other repos,
-  // because those three are one thing: everything nobody sets every
-  // time, in one quiet place at the end of the line the row opens to.
-  const gate = phaseChip({
-    dataAttr: "data-gate",
-    value: "1",
-    label: "stop for approval between steps",
-    name: "gate",
-    form: formId,
-    disabled: busy,
-    title: busy ? why : undefined,
-  });
-  return `${extraField}${gate}`;
+  return extraField;
 }
 
 // Everything an OPEN row offers, in the cell the table opens with.

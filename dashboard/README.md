@@ -160,9 +160,11 @@ everything ticked as a single job in the workflow's order — the browser
 submits checkboxes in the order they are drawn, so ticking `implement`
 before `analyze` still queues analyze first. After the model, quiet and
 small-text on that same controls line (spec 117 — no disclosure to
-open), sit the two things nobody sets every time: which other repos the
-job will touch, and whether to stop for approval between the steps (off
-by default).
+open), sits the one thing nobody sets every time: which other repos the
+job will touch. A "stop for approval between steps" box sat beside it
+until spec 133; its two states were "run straight through" and "stop
+after every step", and a reader who wants the second runs one phase at
+a time instead.
 
 **Every phase the job in flight was queued with shows its box
 disabled**, not merely the step it has reached, because the queue would
@@ -464,10 +466,13 @@ default branch and no run can see another's.
 
 ### Gates and notifications
 
-A gate sits BETWEEN steps, never inside one. By default, every step
-gates: the job parks in `awaiting-approval`, the notifier fires once,
-and nothing starts until someone presses Approve. A job posted with
-`gateAfter: []` runs straight through.
+A gate sits BETWEEN steps, never inside one. A step named in the job's
+`gateAfter` list parks it in `awaiting-approval`: the notifier fires
+once, and nothing starts until someone presses Approve. The schema's own
+default gates after every step, but no form on the page can ask for
+that — since spec 133 a browser post always means `gateAfter: []`, run
+straight through, and a gated job is something only an API caller
+naming `gateAfter` can start. Approve stays on the row for it.
 
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line
 of JSON on stdin (claude-usage's contract, copied so one wrapper can

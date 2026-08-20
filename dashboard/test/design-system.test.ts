@@ -381,25 +381,25 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
     expect(table).not.toContain("<summary");
   });
 
-  // Two of the three: since spec 123 the model is chosen on the phase
-  // line itself, not with these.
-  test("gate and also-touches are both in the action cell", () => {
+  // One of the three now: the model went to the phase line itself in
+  // spec 123, and the gate box went altogether in spec 133.
+  test("also-touches is in the action cell", () => {
     const cell = controls(html());
-    expect(cell).toContain('name="gate"');
     expect(cell).toContain('name="extraProjects"');
     expect(cell).not.toContain('name="model"');
+    expect(cell).not.toContain('name="gate"');
   });
 
-  test("nothing of the two is left anywhere else on the page", () => {
+  test("nothing of it is left anywhere else on the page", () => {
     const h = html();
     const outside = h.replace(controls(h), "");
-    expect(outside).not.toContain('name="gate"');
     expect(outside).not.toContain('name="extraProjects"');
+    expect(h).not.toContain('name="gate"');
   });
 
-  test("they come after the buttons, quietly", () => {
+  test("it comes after the buttons, quietly", () => {
     const cell = controls(html());
-    expect(cell.indexOf('name="gate"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
+    expect(cell.indexOf('name="extraProjects"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
     expect(cell).toContain('<span class="row extra">');
   });
 
