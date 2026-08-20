@@ -123,13 +123,41 @@ export function stateChip(r: QueueRowView): string {
   return badge(BADGE_VARIANT[r.state], stateLabel(r));
 }
 
+/** What the badge says when nothing is running: the resting state and
+ *  what can happen next, in one sentence. Handed in rather than worked
+ *  out here, because none of it is the JOB's to know — `openBranch` and
+ *  `readyPhase` are the SPEC's answers (see `nextActionHint`), and the
+ *  "ready to merge X" wording needs `mergeReadyLabel`, which only
+ *  `queue-list.ts` can compute: it alone knows which repo is code. */
+export interface RestingState {
+  archiveHeldBack?: string;
+  mergeReady?: string;
+  readyPhase?: string;
+}
+
 /** The SPEC row's own chip: a running job reads as "analyzing",
  *  "implementing" — the phase word IS the state, so the row needs no
  *  second sentence saying which step is on (asked for 2026-08-19). The
  *  phase LINES keep the plain "running": their line already names the
- *  phase, and doubling it would say "analyze analyzing". */
-export function specStateChip(r: QueueRowView): string {
+ *  phase, and doubling it would say "analyze analyzing".
+ *
+ *  Spec 132 made that one rule instead of one case: the first line is
+ *  the verb for what is happening, or the resting state and what is
+ *  next. `queued` said neither — one bare word, with the step it was
+ *  waiting to run known all along — and `done` said the resting state
+ *  without the half that matters, while the sentence disambiguating it
+ *  sat one line lower. The order of the resting cases is
+ *  `nextActionHint`'s own, unchanged: a branch to merge outranks a
+ *  phase to run, and a held-back archive outranks both. */
+export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
+  if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
+  if (r.state === "done") {
+    if (resting.archiveHeldBack) return badge("waiting", `archive held back — ${resting.archiveHeldBack}`);
+    if (resting.mergeReady) return badge("ready", resting.mergeReady);
+    if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
+    return badge("done", "done — nothing waiting on you");
+  }
   return stateChip(r);
 }
 
@@ -202,35 +230,30 @@ export function unmergedBadge(b: BranchView, activity?: string): string {
 export const branchActivity = (r: QueueRowView): string | undefined =>
   inFlight(r) ? activityLabel(r) : undefined;
 
-/** The one line a reader should be able to stop at: what is going on,
- *  and what the next click is. Everything else on the row answers a
- *  narrower question — the pips say what has run, the chip says the
- *  state, the badges say what is unmerged — and a reader had to
- *  assemble the answer from all of them.
+/** The line UNDER the badge, for the states whose badge cannot carry
+ *  the whole answer: never run, waiting on a person, or stopped short.
+ *  Everything else on the row answers a narrower question — the pips
+ *  say what has run, the chip says the state, the badges say what is
+ *  unmerged — and a reader had to assemble the answer from all of them.
  *
- *  Built from `activityLabel`/`currentStep` rather than from new
- *  literals, for the same reason those exist: the same job must not be
- *  worded one way in the chip and another way here. It says nothing the
- *  row does not already contain — it says it in one place, as a
- *  sentence.
+ *  Spec 132: a resting `done` says nothing here any more. Its four
+ *  sub-cases are what the badge itself now reads (`specStateChip`), the
+ *  same way an in-flight row has said its verb in the badge and nothing
+ *  below it since spec 101 — saying it in both places is the row
+ *  telling a reader one fact at two levels of precision.
  *
- *  `openBranch` is the spec's, not the job's: whether anything this spec
- *  pushed is still sitting unmerged. A finished job with nothing left
- *  out must not be told to merge something.
+ *  That move took two of this function's arguments with it. The spec's
+ *  open branch (spec 96) and the earliest phase its own FILES say has
+ *  not happened (spec 111) were read HERE only to word the `done`
+ *  sentence; the caller works both out exactly as before and hands them
+ *  to `specStateChip` instead. What is left is the held-back archive,
+ *  which is not a `done`-only case and never was.
  *
- *  `readyPhase` is the spec's too, and for the same reason (spec 111):
- *  the reader-facing word for the earliest phase the spec's own FILES
- *  say has not happened, or nothing when none is left. A finished JOB
- *  is not a finished SPEC — "nothing waiting on you" was being said to
- *  a reader whose next phase was sitting there ready to start. The
- *  caller works the phase out, so this stays a plain function of its
- *  arguments and does not have to learn the queue page's phase list. */
-export function nextActionHint(
-  r: QueueRowView | undefined,
-  openBranch = false,
-  archiveHeldBack?: string,
-  readyPhase?: string,
-): string {
+ *  Built from `stepLabel`/`currentStep` rather than from new literals,
+ *  for the same reason those exist: the same job must not be worded one
+ *  way in the chip and another way here. It says nothing the row does
+ *  not already contain — it says it in one place, as a sentence. */
+export function nextActionHint(r: QueueRowView | undefined, archiveHeldBack?: string): string {
   if (!r) return "never run — tick a phase and press Run";
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
   // In flight the sentence says NOTHING (asked for 2026-08-19): the
@@ -245,15 +268,17 @@ export function nextActionHint(
   // reason. It does NOT outrank a job in flight above: a stale note
   // from an earlier decline must not upstage the retry that may be
   // resolving it.
-  if (archiveHeldBack) return `archive held back — ${archiveHeldBack}`;
-  if (r.state === "done") {
-    if (openBranch) return "done — the branch is waiting to be merged";
-    // Spec 111: merging still comes first, and a phase left to run
-    // still beats "nothing waiting". Only a spec with every phase
-    // behind it has nothing waiting on anyone.
-    if (readyPhase) return `ready for ${readyPhase}`;
-    return "done — nothing waiting on you";
-  }
+  //
+  // Spec 132: for a `done` row the badge says this instead. For the
+  // four states BELOW — failed, stopped, cancelled, interrupted — it is
+  // still said here, because the badge that reads "failed" has no room
+  // for the file's reason and the reader would otherwise never be told
+  // it. The check is scoped, not deleted.
+  if (archiveHeldBack && r.state !== "done") return `archive held back — ${archiveHeldBack}`;
+  // A resting `done` says the whole of it in the badge (`specStateChip`):
+  // the held-back reason, the branch waiting, the phase that is ready,
+  // or that nothing is waiting on anyone.
+  if (r.state === "done") return "";
   // failed, stopped, cancelled, interrupted: the chip beside this line
   // already says which of the four it was, and the row's own error text
   // says why. What is missing is what to do about it.

@@ -180,13 +180,25 @@ that pair as one gated job is how a spec is actually started here. A
 phase already done is marked with a tick and left unticked; ticking it
 anyway is a rerun, and no rule stands in the way.
 
-Under the spec's name sits one line for what a reader came to find out:
-what is going on and what the next click is — "analyze running —
-review-plan to follow", "waiting for your approval to carry on", "done
-— the branch is waiting to be merged", "press Run to try implement
-again". It invents no vocabulary: the sentence is built from the same
-`stateLabel`/`currentStep` the chip and the phase lines use, so the row
-cannot say one thing in two ways. Everything it summarises is still
+The State column answers what a reader came to find out, and its FIRST
+line is one of two things, always (spec 132): the verb for what is
+happening — "analyzing", "implementing", "implementing queued" — or,
+once nothing is running, the resting state and what can happen next —
+"ready to merge the code", "ready for implement", "archive held back —
+the Slack webhook", "done — nothing waiting on you". The bare words
+"done" and "queued" are neither, and neither appears alone: "done" said
+nothing about WHAT was done, and "queued" said nothing about which step
+was waiting, while both facts were known.
+
+The line beneath it is for the states whose badge cannot carry the
+whole answer: "never run — tick a phase and press Run", "waiting for
+your approval to carry on", "press Run to try implement again", and the
+held-back archive of a run that stopped short. For a row at rest it is
+empty, exactly as it has been for a running row since spec 101 — the
+sentence is in the badge, and saying it twice is the row telling a
+reader one fact at two levels of precision. It invents no vocabulary:
+both are built from the same `stateLabel`/`currentStep` the chip and the
+phase lines use, so the row cannot say one thing in two ways. Everything it summarises is still
 there beside it — the pips, the chip, the branch badges — each
 answering its own narrower question.
 
@@ -262,7 +274,7 @@ every row it has: an empty spec list means "we cannot tell", never
 
 A spec's row is collapsed by default: name, title, one status line, the
 four phase pips, and at most one action button (Approve if a gate is
-waiting, Merge if a branch is not). The four phase lines and every
+waiting, "let aide resolve it" after a conflict on that very row). The four phase lines and every
 control — phase checkboxes, model dropdown, gate and also-touches
 fields, Run, Cancel — sit behind the same chevron in front of the name
 (spec 103). Expanding is a link and lives in the query string
@@ -521,9 +533,10 @@ The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per
 repo the spec pushed to, and the state that matters most right now —
 whatever is in flight, else the most recent outcome. A collapsed row's
-single action button — Approve if a gate is waiting, else Merge if a
-branch is not — sits there too, once per spec instead of once per job;
-Cancel is only offered once the row is expanded.
+single action button — Approve if a gate is waiting, else the way out
+of a conflict where the refusal is — sits there too, once per spec
+instead of once per job; Cancel and Merge are only offered once the row
+is expanded.
 
 ### What the script adds (specs 96 and 101)
 
@@ -591,13 +604,27 @@ spec's job is in flight the badge names what it is doing
 to merge**.
 
 Beside the approve/cancel action sits the merge button, and it says
-what pressing it will land: **Merge the plan** when only the specs repo
-is behind, **Merge the code** when only the project is, **Merge the
-plan and the code** when both are. The repo names stay in the tooltip.
-A branch whose label is a known project name is that project's code; a
-label that is not any project on this machine is the specs repo, which
-is a closed set rather than a guess (`.claude/rules/development.md`:
-"the run only watches ... the roots it knows about").
+**Merge** — one word. What a press would land is said on the row
+instead, in the State column: **ready to merge the plan** when only the
+specs repo is behind, **ready to merge the code** when only the project
+is, **ready to merge plan and code** when both are. The repo names stay
+in the tooltip. A branch whose label is a known project name is that
+project's code; a label that is not any project on this machine is the
+specs repo, which is a closed set rather than a guess
+(`.claude/rules/development.md`: "the run only watches ... the roots it
+knows about").
+
+Spec 96 put that sentence ON the button, because the button was where a
+reader was looking; spec 132 moved it to where the rest of the row's
+state lives. What 96 was for is untouched — a plan merge changes only
+the specs repo, a code merge is what reaches the serving host, and the
+page still says which. What went is a button whose label was a sentence
+for a control with one outcome: whatever it read, pressing it merged
+whatever was open. There is no choice AT the button, so there was
+nothing there for a label to help decide. The button also left the
+collapsed row entirely: it was the one action on this page living
+outside the panel every other action lives in, and acting now means
+opening the row.
 
 While a step is still running that button is **disabled**, and a small
 "merge anyway" sits beside it behind a confirmation. Merging an
@@ -794,9 +821,9 @@ earlier per-step lookup let a row show a step as tickable, and Run as
 clickable, while a job was already running on the spec — the queue
 would refuse the request, so the row promised something it could not
 keep. Every control that can act on a busy row — the phase boxes, the
-Run button, the model/gate/"also touches" fields, and both callers of
-the Merge button (collapsed and opened) — reads the same flag, so a
-new control cannot forget to check it.
+Run button, the model/gate/"also touches" fields, and the Merge button
+in the opened row's stack — reads the same flag, so a new control
+cannot forget to check it.
 
 ### A structural marker with no CSS rule uses data-*, not a class (spec 123)
 
