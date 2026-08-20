@@ -41,6 +41,7 @@ import {
   currentStep,
   inFlight,
   nextActionHint,
+  specNotice,
   type RestingState,
   notStartedChip,
   specStateChip,
@@ -928,16 +929,21 @@ function branchList(branches: BranchView[], activity?: string): string {
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
 // altitudes, and they must never be worded differently.
+// Spec 143: the job's own error is NOT written here any more. It is a
+// sentence a runner wrote — "the specs tree is dirty: /Users/…" — and
+// this cell is sized for a badge, so it went off the right edge of the
+// table. The row's panel says it instead (`specNoticeRow`).
 const stateCell = (r: QueueRowView, resting: RestingState = {}): string =>
-  specStateChip(r, resting) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+  specStateChip(r, resting);
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
 // phase has neither happened nor been attempted. The attempt's own
-// error text still rides along beneath it: a reader is told no less
-// than before, only in the file's order.
+// error text is NOT repeated here since spec 143: the row's panel says
+// it once for the whole row, and the phase's own detail page — which
+// this line links to — carries it in Activity, where that phase
+// already reports what it did.
 const phaseWordCell = (
   w: PhaseWord,
-  r: QueueRowView | undefined,
   /** Marks that belong to the phase's STATE but used to be written on
    *  its name cell, beside the model picker: the stale-description
    *  badge and the attempt count. Out there they had no width of their
@@ -950,8 +956,7 @@ const phaseWordCell = (
 ): string =>
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
   (aside ? `<div class="muted small">${aside}</div>` : "") +
-  (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "") +
-  (r?.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+  (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "");
 // `blank` because a header with nothing spent still owes the reader a
 // dash, while an empty phase line should simply be empty. That
 // distinction is the whole reason this takes a parameter the shared
@@ -1308,7 +1313,7 @@ function specHeadRow(
         : notStartedChip()
     }` +
     `<div class="muted small">${esc(
-      nextActionHint(g.lead, heldBack),
+      nextActionHint(g.lead),
     )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
@@ -1556,7 +1561,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         cells:
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
-          `<td>${phaseWordCell(word, latest, `${stale}${tries}`)}</td>` +
+          `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
           `<td></td>`,
@@ -1570,6 +1575,28 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   return lines
     .map((l, i) => `${l.tag}${i === 0 ? stack : ""}${l.cells}</tr>`)
     .join("");
+}
+
+/** How many columns the list has. Two rows span the whole table — the
+ *  "no spec matches" line and a row's message panel — and a count
+ *  written twice is a count that drifts the next time a column moves. */
+const LIST_COLUMNS = 6;
+
+// The panel a row's long messages go into (spec 143): a row of its own,
+// spanning the table, wrapping rather than overflowing. Everything the
+// State column used to hold and could not — the runner's refusal, the
+// spec's own reason for an archive that declined — is said here, once
+// for the whole row, in the message component the page already has.
+//
+// Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
+// but an empty `<tr>` is still a row of padding.
+function specNoticeRow(g: SpecGroup): string {
+  const notice = specNotice(g.lead, g.phases.find((p) => p.step === "archive")?.heldBack?.reason);
+  if (!notice) return "";
+  return (
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
+    `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text)}</td></tr>`
+  );
 }
 
 // A collapsed row OMITS its phase lines and its "more" line rather than
@@ -1590,7 +1617,9 @@ function groupRows(
 ): string {
   return groups
     .map((g) => {
-      const head = specHeadRow(g, opts, now, opened, all);
+      // The panel belongs to the row, not to the phase lines: a
+      // collapsed row is told what went wrong without being opened.
+      const head = specHeadRow(g, opts, now, opened, all) + specNoticeRow(g);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;
@@ -1620,7 +1649,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
     ? // `groups`, not `matched`: a dependency the filter or the 25-row
       // cap has hidden is still in the way of the row that names it.
       groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f), groups)
-    : `<tr><td colspan="6" class="empty muted">` +
+    : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
       // all" is not, and telling that reader to pick one above is

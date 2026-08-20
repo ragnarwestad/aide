@@ -247,6 +247,10 @@ const STRUCTURE = [
   "row", "stack", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
+  // the row's message panel (spec 143): a full-width row of its own, so
+  // a sentence out of a status file or a runner's refusal wraps instead
+  // of running off the right edge of a cell sized for a word.
+  "specnotice",
   "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
   "branchlist", "branch",
   "pips", "pip", "now", "past", "todo",

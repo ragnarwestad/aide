@@ -1091,7 +1091,12 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "review-plan")).toContain("b-running");
   });
 
-  test("the step that failed keeps the error; the steps before it do not", () => {
+  // Spec 143 moved the reason itself off the phase line and into the
+  // row's panel: it is a sentence, and the State column is a cell sized
+  // for a word. Which STEP failed is still said on the line — that half
+  // is what this test has always been about — and the sentence is said
+  // once, for the row.
+  test("the step that failed is marked as such; the reason is said once, on the row", () => {
     const html = rows([
       twoStep({
         state: "failed",
@@ -1106,7 +1111,11 @@ describe("a multi-step job is shown on every step it ran", () => {
     expect(subRow(html, "analyze")).toContain("b-done");
     expect(subRow(html, "analyze")).not.toContain("cannot fast-forward");
     expect(subRow(html, "review-plan")).toContain("b-refused");
-    expect(subRow(html, "review-plan")).toContain("cannot fast-forward");
+    expect(subRow(html, "review-plan")).not.toContain("cannot fast-forward");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "cannot fast-forward main",
+    );
+    expect([...html.matchAll(/cannot fast-forward main/g)]).toHaveLength(1);
   });
 
   test("a job with no per-step results still lands on the step it is on", () => {
@@ -2443,24 +2452,35 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
       [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
     );
-    expect(chip(html)).toBe("archive held back — the Slack webhook");
+    // Spec 143: the badge keeps the WORD — it is `nowrap`, and the
+    // reason is a sentence — and the row's panel says the reason.
+    expect(chip(html)).toBe("archive held back");
     expect(chip(html)).not.toContain("nothing waiting on you");
     // Once, not twice: the badge says it, so the line below has nothing
     // left to add (spec 132).
     expect(hint(html)).toBe("");
     expect(html.match(/the Slack webhook/g)).toHaveLength(1);
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "archive held back — the Slack webhook",
+    );
   });
 
-  // Spec 132, criterion 11: `archiveHeldBack` was never a `done`-only
-  // case. A run that stopped short still says the file's reason on the
-  // line below its badge — only `done` moved that sentence up.
-  test("a run that stopped short still says the held-back reason on the line below", () => {
+  // Spec 132, criterion 11 said the file's reason on the line below the
+  // badge for the four states that stopped short. Spec 143 took it to
+  // the row's panel instead — the same sentence, the same four states,
+  // in the one place on the row that has the width for it. The line
+  // below goes back to saying what to press.
+  test("a run that stopped short says the held-back reason in the row's panel", () => {
     for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
         [row({ specFolder: "101-a", steps: ["archive"], state })],
         [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
       );
-      expect(hint(html)).toBe("archive held back — the Slack webhook");
+      expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+        "archive held back — the Slack webhook",
+      );
+      expect(hint(html)).toBe("press Run to try archive again");
+      expect(html.match(/the Slack webhook/g)).toHaveLength(1);
     }
   });
 
@@ -3461,7 +3481,12 @@ describe("spec 108: one rule per phase", () => {
     expect(pipFor(html, "archive")).toBe("todo");
     const archive = subRow(html, "archive");
     expect(archive).toContain("held back");
-    expect(archive).toContain("the Slack webhook (Phase 4, still unchecked)");
+    // Spec 143: the REASON is the row's panel's, said once for the
+    // whole row. The phase line keeps the word that is its own answer.
+    expect(archive).not.toContain("the Slack webhook (Phase 4, still unchecked)");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      "the Slack webhook (Phase 4, still unchecked)",
+    );
     // The one thing it must never read as, which is what it read as
     // before this spec: an ordinary finished step.
     expect(archive).not.toContain("b-done");
@@ -5075,5 +5100,266 @@ describe("spec 141: the AI select's resting value is a stated default", () => {
     // And the picker beside it is still resting on its stated default —
     // history is read out by the phase's own select, not by this one.
     expect(picker(html)).toMatch(/<option value="claude"[^>]*selected/);
+  });
+});
+
+// --- spec 143: a row's long message gets a panel, not the State column -------
+//
+// Measured on spec 141, 2026-08-20, at 1568px: a 130-character sentence
+// out of `4-status.md` was written into the State column — a cell sized
+// for a word — where it ran off the right edge of the table and, on an
+// open row, was drawn a second time under the archive phase line. Two
+// producers feed it (the spec's own held-back reason and the job's
+// `error`), and both now write into one wrapping panel row of their
+// own, under the head row, once.
+
+describe("spec 143: a long message gets a panel row of its own", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], open = true) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        ...(open ? { filter: { open: openKeys(list, targets) } } : {}),
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+  /** Everything one spec draws: its head row, its panel and its phase
+   *  lines. The duplication this spec removes is only visible across
+   *  all three at once, which is why no existing helper caught it. */
+  const wholeRow = (html: string) =>
+    html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
+  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  /** The State column: third cell of the head row. */
+  const stateCell = (html: string) =>
+    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[2] ?? "";
+  const panel = (html: string) =>
+    html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const subRow = (html: string, phase: string) =>
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+  const BUILT = ["analyze", "review-plan", "implement"];
+  const REASON =
+    'the manual browser check (Phase 4, still "Not started"): fresh load shows ' +
+    "Claude Code selected, hand ticks survive one 5s refresh";
+
+  // Criterion 1.
+  test("the held-back sentence is written once for the whole row, panel included", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "done" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+    );
+    expect([...wholeRow(html).matchAll(/hand ticks survive/g)]).toHaveLength(1);
+  });
+
+  // Criterion 1: the State column keeps the word and loses the sentence.
+  test("the State column says the short word and never the reason", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "done" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+    );
+    expect(stateCell(html)).toContain("archive held back");
+    expect(stateCell(html)).not.toContain("hand ticks survive");
+  });
+
+  // Criterion 1: the panel itself — full width, and the existing
+  // wrapping message component rather than new markup.
+  test("the panel is a full-width row under the head row, built from rowMessage", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "done" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+    );
+    expect(panel(html)).toContain('data-folder="141-says-what"');
+    expect(panel(html)).toContain('colspan="6"');
+    expect(panel(html)).toContain("rowmsg");
+    expect(panel(html)).toContain("hand ticks survive");
+    // Under the head row, not above it.
+    expect(html.indexOf('<tr class="specnotice"')).toBeGreaterThan(html.indexOf('<tr class="spechead'));
+  });
+
+  // Criterion 1 again, for a row nobody opened: the panel is not a
+  // thing you have to expand the row to be told.
+  test("a collapsed row gets the panel too", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "done" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+      false,
+    );
+    expect(panel(html)).toContain("hand ticks survive");
+    expect(stateCell(html)).not.toContain("hand ticks survive");
+  });
+
+  // Criterion 2: the qualifier loses the reason and keeps everything
+  // else it ever said.
+  test("the archive phase line keeps its own re-run qualifier without the reason", () => {
+    const html = rows(
+      [row({ id: "held", specFolder: "141-says-what", steps: ["archive"], state: "failed" })],
+      [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+    );
+    const archive = subRow(html, "archive");
+    expect(archive).toContain("held back");
+    expect(archive).toContain("last re-run failed");
+    expect(archive).not.toContain("hand ticks survive");
+  });
+
+  // The second producer, and the one the description names first: a run
+  // that was refused or failed writes a full sentence into `error`.
+  test("a job's error is written in the panel, not in the State cell (criterion 3)", () => {
+    const html = rows(
+      [
+        row({
+          id: "dirty",
+          specFolder: "141-says-what",
+          steps: ["implement"],
+          state: "failed",
+          error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
+        }),
+      ],
+      [target("141-says-what")],
+    );
+    expect(panel(html)).toContain("the specs tree is dirty");
+    expect(stateCell(html)).not.toContain("the specs tree is dirty");
+    expect([...wholeRow(html).matchAll(/the specs tree is dirty/g)]).toHaveLength(1);
+    // The bare cell rendering it used to get is gone from both the head
+    // row and the phase line.
+    expect(subRow(html, "implement")).not.toContain("the specs tree is dirty");
+  });
+
+  // Criterion 6: a message from an earlier attempt must not stand next
+  // to a run that is under way.
+  test("a new run on the row clears the panel", () => {
+    for (const state of ["running", "queued"] as const) {
+      const html = rows(
+        [
+          row({ id: "retry", specFolder: "141-says-what", steps: ["archive"], state }),
+          row({
+            id: "old",
+            specFolder: "141-says-what",
+            steps: ["archive"],
+            state: "failed",
+            error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
+          }),
+        ],
+        [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
+      );
+      expect(panel(html)).toBe("");
+      expect(wholeRow(html)).not.toContain("hand ticks survive");
+      expect(wholeRow(html)).not.toContain("the specs tree is dirty");
+    }
+  });
+
+  // A spec nothing has ever run has no message and no panel: an empty
+  // `.rowmsg` draws nothing, but an empty `<tr>` is still a row.
+  test("a row with nothing to say has no panel row at all", () => {
+    const html = rows([], [target("141-says-what")]);
+    expect(html).not.toContain('<tr class="specnotice"');
+  });
+});
+
+// --- spec 143: the same message on the phase's own detail page ---------------
+//
+// Requirement 2 of 1-description.md: the message is also written into
+// Activity, where that phase already reports what it did. Today only
+// one case reaches it — a run refused before it ever started.
+
+describe("spec 143: the Activity tab carries the message too", () => {
+  const archiveJob = (extra: Partial<JobDetailView> = {}): JobDetailView =>
+    detail({
+      id: "job-archive",
+      state: "done",
+      steps: ["archive"],
+      live: null,
+      activity: [],
+      results: [
+        {
+          step: "archive", ok: true, costUsd: 0.1, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-20T10:01:00Z",
+        },
+      ],
+      ...extra,
+    });
+  /** The open tab's own panel. The page's banner already repeats
+   *  `job.error` above the tabs on every tab, so a count taken over the
+   *  whole page would answer a different question than this block asks. */
+  const activityTab = (job: JobDetailView) =>
+    renderJobDetailPage(job, "2026-08-20T10:05:00Z", NAV, { tab: "activity" }).match(
+      /<div class="tabpanel">[\s\S]*?<\/div>/,
+    )?.[0] ?? "";
+
+  // Criterion 4: the archive run that finished successfully and moved
+  // nothing. It neither streamed anything nor was refused, so it fell
+  // through to "nothing captured" and the reason was nowhere.
+  test("an archive job that was held back says so in Activity", () => {
+    const html = activityTab(archiveJob({ archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)" }));
+    expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
+    expect(html).not.toContain("Nothing has been captured");
+  });
+
+  // The note is the SPEC's, and it belongs to archive. A job that ran
+  // some other step must not report it as its own.
+  test("a job that did not run archive does not show the spec's held-back note", () => {
+    const html = activityTab(
+      archiveJob({
+        steps: ["implement"],
+        results: [
+          {
+            step: "implement", ok: true, costUsd: 0.1, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-20T10:01:00Z",
+          },
+        ],
+        archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)",
+      }),
+    );
+    expect(html).not.toContain("the Slack webhook");
+    expect(html).toContain("Nothing has been captured");
+  });
+
+  // Criterion 5: a job that streamed real work and THEN failed. The
+  // transcript ends mid-air and never says why.
+  test("a job that streamed and then failed ends its Activity with the reason", () => {
+    const html = activityTab(
+      archiveJob({
+        state: "failed",
+        activity: ["Bash ls", "Edit src/render/css.ts"],
+        error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
+      }),
+    );
+    expect(html).toContain("Edit src/render/css.ts");
+    expect(html).toContain("the specs tree is dirty");
+  });
+
+  test("the reason is not repeated when the last streamed line already said it", () => {
+    const html = activityTab(
+      archiveJob({
+        state: "failed",
+        activity: ["Bash ls", "the tree is dirty"],
+        error: "the tree is dirty",
+      }),
+    );
+    expect([...html.matchAll(/the tree is dirty/g)]).toHaveLength(1);
+  });
+
+  // Unchanged: a refusal before the run started still reads as one.
+  test("a run refused before it started still says so, with its reason", () => {
+    const html = activityTab(
+      archiveJob({
+        state: "failed",
+        activity: [],
+        results: [
+          {
+            step: "archive", ok: false, costUsd: 0, costMeasured: false,
+            terminalReason: "refused", at: "2026-08-20T10:01:00Z",
+          },
+        ],
+        error: "held back: depends on 80-dependency, whose branch is not merged yet",
+      }),
+    );
+    expect(html).toContain("refused before it started");
+    expect(html).toContain("held back: depends on 80-dependency");
   });
 });

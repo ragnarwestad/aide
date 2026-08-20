@@ -334,6 +334,13 @@ table.list thead a { color: var(--muted); }
 table.list tr.spechead td { border-bottom: none; border-top: 1px solid var(--line);
   padding-top: var(--sp-3); }
 table.list tbody tr.spechead:first-child td { border-top: none; }
+/* The row's message panel (spec 143): part of the row above it, not a
+   row of its own. It draws no rule and adds no padding the message's
+   own box already brings — the separator a reader sees is still the
+   next spec's top border. */
+table.list tr.specnotice td { border-bottom: none; border-top: none;
+  padding-top: 0; padding-bottom: var(--sp-2); }
+table.list tr.specnotice .rowmsg { margin: 0; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }

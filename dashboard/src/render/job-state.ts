@@ -2,7 +2,7 @@
 // words. Both the list and the single-job page need this, and neither
 // owns it.
 
-import { badge, stepLabel, type BadgeVariant, type PipKind } from "./components.ts";
+import { badge, stepLabel, type BadgeVariant, type MessageVariant, type PipKind } from "./components.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every
@@ -153,7 +153,11 @@ export function specStateChip(r: QueueRowView, resting: RestingState = {}): stri
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
   if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
   if (r.state === "done") {
-    if (resting.archiveHeldBack) return badge("waiting", `archive held back — ${resting.archiveHeldBack}`);
+    // The WORD only. The reason is a sentence out of `4-status.md` —
+    // 130 characters on spec 141 — and a badge is `nowrap`, so it ran
+    // off the right edge of the table. It is said in full in the row's
+    // own panel instead (`specNotice`), once (spec 143).
+    if (resting.archiveHeldBack) return badge("waiting", "archive held back");
     if (resting.mergeReady) return badge("ready", resting.mergeReady);
     if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
     return badge("done", "done — nothing waiting on you");
@@ -246,14 +250,16 @@ export const branchActivity = (r: QueueRowView): string | undefined =>
  *  open branch (spec 96) and the earliest phase its own FILES say has
  *  not happened (spec 111) were read HERE only to word the `done`
  *  sentence; the caller works both out exactly as before and hands them
- *  to `specStateChip` instead. What is left is the held-back archive,
- *  which is not a `done`-only case and never was.
+ *  to `specStateChip` instead. Spec 143 took the third — the held-back
+ *  archive — to the row's panel (`specNotice`) for the same reason it
+ *  took it out of the badge: it is a sentence, and every cell on this
+ *  row is sized for a word. Nothing free-text is left here.
  *
  *  Built from `stepLabel`/`currentStep` rather than from new literals,
  *  for the same reason those exist: the same job must not be worded one
  *  way in the chip and another way here. It says nothing the row does
  *  not already contain — it says it in one place, as a sentence. */
-export function nextActionHint(r: QueueRowView | undefined, archiveHeldBack?: string): string {
+export function nextActionHint(r: QueueRowView | undefined): string {
   if (!r) return "never run — tick a phase and press Run";
   if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
   // In flight the sentence says NOTHING (asked for 2026-08-19): the
@@ -261,28 +267,72 @@ export function nextActionHint(r: QueueRowView | undefined, archiveHeldBack?: st
   // running phase line says the rest — "analyze running — review to
   // follow" was the same fact a third time.
   if (r.state === "queued" || r.state === "running") return "";
-  // Spec 108: archive is the one phase whose "did it happen" the job's
-  // own exit status cannot answer — a run that declined to move the
-  // folder finishes just as successfully as one that moved it. The file
-  // says so instead, and it outranks "done" here for exactly that
-  // reason. It does NOT outrank a job in flight above: a stale note
-  // from an earlier decline must not upstage the retry that may be
-  // resolving it.
+  // Spec 132 said the file's reason here for the four states BELOW —
+  // failed, stopped, cancelled, interrupted — because the badge that
+  // reads "failed" has no room for it. Spec 143 moved it to the row's
+  // own panel (`specNotice`), which has the width for a sentence and
+  // draws it for every state: the State column is a cell sized for a
+  // word, and putting the sentence back here would only reinstate the
+  // overflow one state further along. What is left is the same thing
+  // the other stopped-short rows say — what to press.
   //
-  // Spec 132: for a `done` row the badge says this instead. For the
-  // four states BELOW — failed, stopped, cancelled, interrupted — it is
-  // still said here, because the badge that reads "failed" has no room
-  // for the file's reason and the reader would otherwise never be told
-  // it. The check is scoped, not deleted.
-  if (archiveHeldBack && r.state !== "done") return `archive held back — ${archiveHeldBack}`;
-  // A resting `done` says the whole of it in the badge (`specStateChip`):
-  // the held-back reason, the branch waiting, the phase that is ready,
-  // or that nothing is waiting on anyone.
+  // A resting `done` says the whole of it in the badge
+  // (`specStateChip`): the branch waiting, the phase that is ready, or
+  // that nothing is waiting on anyone.
   if (r.state === "done") return "";
   // failed, stopped, cancelled, interrupted: the chip beside this line
   // already says which of the four it was, and the row's own error text
   // says why. What is missing is what to do about it.
   return `press Run to try ${stepLabel(currentStep(r))} again`;
+}
+
+// --- spec 143: the one long message a row has to say -------------------------
+
+/** A sentence a row has to show, and how loudly. The row draws it in a
+ *  panel of its own (`specNoticeRow`, queue-list.ts) rather than in a
+ *  table cell: both producers write free text out of a file or a
+ *  runner's refusal — 130 characters on spec 141 — and every cell on
+ *  this row is sized for a word. */
+export interface RowNotice {
+  variant: MessageVariant;
+  text: string;
+}
+
+/** Which of the two applies, if either. The order is the row's own: a
+ *  job that failed says why it failed, and the spec's standing note
+ *  about an archive that declined is what is left when no job is
+ *  complaining.
+ *
+ *  Requirement 3 of 1-description.md — the panel cleared when a new
+ *  action starts on the row — is already answered by each of them, in
+ *  its own way, and neither needs a rule invented here:
+ *
+ *  `error` belongs to the job and is current by construction. The
+ *  runner clears it the moment a step starts (`startOne`) and a freshly
+ *  queued job is built without one, so a job that HAS one is parked,
+ *  refused or stopped — and in every one of those the message is why
+ *  the row is not moving. A job PARKED on an unmerged dependency is
+ *  queued and holding its reason, which is why this is not gated on
+ *  "nothing in flight": that gate would blank the one row whose whole
+ *  point is to say why it is waiting.
+ *
+ *  The held-back note is the SPEC's and outlives any job, so it takes
+ *  the gate `wordPhase` and `specStateChip` already keep: not while
+ *  something is running, because a note from an earlier decline must
+ *  not upstage the retry that may be clearing it. It needs no job at
+ *  all, for the same reason `wordPhase` shows "held back" without an
+ *  attempt — a spec archived by hand, or one whose archive job has
+ *  aged out of the queue, still has its file saying why. */
+export function specNotice(
+  lead: QueueRowView | undefined,
+  archiveHeldBack?: string,
+): RowNotice | undefined {
+  if (lead?.error) return { variant: "err", text: lead.error };
+  if (lead && inFlight(lead)) return undefined;
+  // The same amber the badge takes, and for the same reason: a held-back
+  // archive is a common, healthy outcome — notice, not alarm.
+  if (archiveHeldBack) return { variant: "warn", text: `archive held back — ${archiveHeldBack}` };
+  return undefined;
 }
 
 // --- spec 108: one rule for what a phase shows --------------------------------
@@ -344,7 +394,11 @@ export function wordPhase(
       // healthy outcome — notice, not alarm — which is the same reason
       // `stopped` takes this amber.
       badge: { variant: "waiting", label: "held back" },
-      qualifier: heldBack.reason + (disagrees ? ` · last re-run ${stateLabel(attempt!)}` : ""),
+      // Not the reason: it is a sentence, and the row's panel says it
+      // once for the whole row (spec 143). Said here as well, it was
+      // the same 130 characters twice on an open row — the duplication
+      // 1-description.md reports.
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : undefined,
     };
   }
   if (!attempt) return { pip: "todo" };

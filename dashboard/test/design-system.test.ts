@@ -726,3 +726,31 @@ describe("the two row-state vocabularies are distinct (acceptance criterion 9)",
     expect(html).not.toContain('<tr class="active">');
   });
 });
+
+// Spec 143: the panel a row's long message goes into is the message
+// component the page already has, in a row of its own — not a second
+// way of drawing the same thing.
+describe("the row's message panel is the component, not new markup", () => {
+  test("the panel wraps rowMessage and spans the whole table", () => {
+    const html = rows([row({ state: "failed", error: "the specs tree is dirty: /repos/aide-specs" })], {
+      targets: [target()],
+    });
+    const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(panel).toContain('<td colspan="6">');
+    expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
+    // The same colspan the "no spec matches" row uses — one column
+    // count for the table, not two that can drift apart.
+    const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
+    expect(empty).toContain('colspan="6"');
+  });
+
+  test("a held-back note is amber, like the badge that announces it", async () => {
+    const html = rows([row({ state: "done", steps: ["archive"] })], {
+      targets: [target({ archiveHeldBack: { reason: "the Slack webhook" } })],
+    });
+    const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(panel).toContain("rowmsg warn");
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS.match(/\.rowmsg\.warn\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
+  });
+});

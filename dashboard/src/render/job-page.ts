@@ -250,14 +250,36 @@ export function renderJobDetailPage(
   // a lost transcript; the reader opened this tab to find out what
   // happened, so say what happened.
   const refused = job.results.some((r) => r.terminalReason === "refused");
+  // Spec 143: whatever the row's panel says about this job is said here
+  // too, at the end of what the run did — the phase's own page is where
+  // a reader goes to find out what that phase did, and the transcript
+  // otherwise ends mid-air with no word of why.
+  //
+  // The held-back note is the SPEC's, not the job's, so it is shown
+  // only on a job that actually ran `archive` — the same gate the Steps
+  // tab already applies (`outcome`). A spec whose archive has never
+  // been attempted has no job and so no page to write it into; the
+  // row's panel is the only place it appears.
+  const archiveNotice = job.results.some((r) => r.step === "archive")
+    ? job.archiveHeldBack
+    : undefined;
+  const trailingNotice = job.error ?? archiveNotice;
+  const streamed = !!job.activity && job.activity.length > 0;
   const activity =
-    job.activity && job.activity.length > 0
-      ? `<ul class="activity">${job.activity.map((a) => `<li>${a}</li>`).join("")}</ul>`
-      : refused
-        ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
-          `no transcript exists.</p>` +
-          (job.error ? rowMessage("err", job.error, { hook: "refusal", tag: "p" }) : "")
-        : `<p class="muted">Nothing has been captured from this run yet.</p>`;
+    streamed || refused || trailingNotice
+      ? (streamed
+          ? `<ul class="activity">${job.activity!.map((a) => `<li>${a}</li>`).join("")}</ul>`
+          : refused
+            ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
+              `no transcript exists.</p>`
+            : "") +
+        // Not when the transcript's own last line already said it — the
+        // summarizer reads the run, and a run that ends by reporting
+        // its own refusal would otherwise say it twice.
+        (trailingNotice && job.activity?.at(-1) !== trailingNotice
+          ? rowMessage("err", trailingNotice, { hook: "refusal", tag: "p" })
+          : "")
+      : `<p class="muted">Nothing has been captured from this run yet.</p>`;
 
   const panel =
     tab === "activity"
