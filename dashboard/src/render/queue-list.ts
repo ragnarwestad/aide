@@ -1511,9 +1511,16 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             ariaLabel: stepLabel(p.step),
             name: "steps",
             form: runFormId(g),
-            checked: ticked.has(p.step) && !busy,
+            // While busy this says what the RUNNING job will do with
+            // the step, not what a fresh press would pre-tick
+            // (`ticked`) — a step queued behind the running one is
+            // still one this job named, and still reads as ticked.
+            checked: busy ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
             busy: busy && p.step === running,
             disabled: busy && p.step !== running,
+            // Inert, but not padlocked: the tick already says whether
+            // this job will get to the step (spec 145).
+            plain: true,
             title: busy ? why : undefined,
           })
         : "";

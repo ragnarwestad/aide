@@ -141,6 +141,14 @@ export function phaseChip(o: {
   done?: boolean;
   busy?: boolean;
   disabled?: boolean;
+  /** `disabled` because the row is busy running a job that already
+   *  decided this box's tick, not because the box itself is off
+   *  limits. The box keeps whatever look `checked` gives it, dropping
+   *  only the interactivity — the padlock is for a control with
+   *  nothing else on it to say why it will not take a click, and a
+   *  phase queued behind the running one has its tick to say it with
+   *  (spec 145). */
+  plain?: boolean;
   title?: string;
   /** The id of the form this box belongs to, for a box drawn OUTSIDE
    *  that form — the spec row's rarely-set fields are written after the
@@ -148,12 +156,13 @@ export function phaseChip(o: {
    *  inside it. Without this the browser posts the form without them. */
   form?: string;
 }): string {
-  const state = o.busy ? "busy" : o.disabled ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
+  const locked = !!o.disabled && !o.plain;
+  const state = o.busy ? "busy" : locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
   // `done` is a FACT about the phase, not one of the five looks: a step
   // the spec has already had can also be the step a job is running
   // right now, and a chip that showed only the second lost the first.
   const cls = ["phase", state, o.done && state !== "done" ? "done" : ""].filter(Boolean).join(" ");
-  const mark = o.busy ? SPINNER : o.disabled ? `<span class="box">${ICON_LOCK}</span>` : "";
+  const mark = o.busy ? SPINNER : locked ? `<span class="box">${ICON_LOCK}</span>` : "";
   const tick = o.done ? ` <span class="box" title="already done">${ICON_CHECK}</span>` : "";
   return (
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
