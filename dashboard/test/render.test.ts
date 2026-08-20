@@ -4978,3 +4978,90 @@ describe("spec 127: the row names its AI once", () => {
     expect(at).toBeGreaterThan(cap.indexOf(">Model<"));
   });
 });
+
+// --- spec 141: the AI picker says what the row will run on -------------------
+//
+// The picker was drawn with no `selected` on any option, so a browser
+// showed whichever one `modelChoices` happened to list first and called
+// it the row's AI. Measured on spec 138's row, 2026-08-20: the select
+// read "Claude Code" while four of the five phases below it held Codex
+// models. The resting value has to be a stated one, and the model a
+// phase with no history falls back to has to be that same tool's.
+describe("spec 141: the AI select's resting value is a stated default", () => {
+  const target = (specFolder = "141-says-what"): QueueTarget => ({ project: "aide", specFolder });
+
+  /** Codex FIRST, deliberately: the bug is that config order decided
+   *  both the picker's resting option and the fallback model, so a list
+   *  that leads with Claude cannot tell a fix from its absence. */
+  const CODEX_FIRST = [
+    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12 },
+  ];
+
+  const rows = (
+    list: QueueRowView[] = [],
+    opts: Partial<QueuePageOptions> = {},
+    targets: QueueTarget[] = [target()],
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        modelChoices: CODEX_FIRST,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+
+  const picker = (html: string) => html.match(/<select[^>]*data-tool-picker[\s\S]*?<\/select>/)![0];
+  const select = (html: string, step: string) =>
+    html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))![0];
+
+  // --- criterion 1 -----------------------------------------------------------
+
+  test("Claude Code is the option marked selected, whatever the config's order", () => {
+    const p = picker(rows());
+    expect(p).toMatch(/<option value="claude"[^>]*selected/);
+    expect(p).not.toMatch(/<option value="codex"[^>]*selected/);
+  });
+
+  // --- criterion 2 -----------------------------------------------------------
+
+  test("a phase with no history and no configured model falls back to a Claude one", () => {
+    const html = rows();
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      const line = select(html, step);
+      // The picked option is a claude entry — not `codex-fast`, which
+      // is merely the first thing the configuration lists.
+      expect([step, /<option value="sonnet"[^>]*selected/.test(line)]).toEqual([step, true]);
+      expect([step, /<option value="codex-fast"[^>]*selected/.test(line)]).toEqual([step, false]);
+    }
+  });
+
+  test("a configured default still wins over the tool-scoped fallback", () => {
+    const line = select(rows([], { defaultModels: { default: "codex-fast" } }), "analyze");
+    expect(line).toMatch(/<option value="codex-fast"[^>]*selected/);
+  });
+
+  // --- criterion 3: the fallback is reached only when there is no history ----
+
+  test("a phase that ran on Codex still shows the model it ran on", () => {
+    const html = rows([
+      row({
+        id: "j1",
+        specFolder: "141-says-what",
+        steps: ["implement"],
+        stepIndex: 0,
+        state: "done",
+        model: "codex-fast",
+      }),
+    ]);
+    expect(select(html, "implement")).toMatch(/<option value="codex-fast"[^>]*selected/);
+    // And the picker beside it is still resting on its stated default —
+    // history is read out by the phase's own select, not by this one.
+    expect(picker(html)).toMatch(/<option value="claude"[^>]*selected/);
+  });
+});

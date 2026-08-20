@@ -416,6 +416,13 @@ and what a request posts, so a readable name can front a model string
 nobody wants to read. An entry naming a tool other than claude says so
 in the dropdown, so two entries are tellable apart before one is picked.
 
+That baseline is what the row's own AI select rests on: it opens on
+Claude Code whatever order `modelChoices` is written in, and a phase
+with no run behind it and no `model` default of its own is pre-filled
+with a Claude entry rather than with whichever entry the table happens
+to list first. A phase that HAS run still shows the model it ran on,
+and a per-step `model` default still wins over both.
+
 The queue, the worktrees, the wall-clock timeout and all the git
 handling are one path for both tools. Three things differ, and all three
 are visible on the page rather than papered over:

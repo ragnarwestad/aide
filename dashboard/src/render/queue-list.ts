@@ -1356,7 +1356,18 @@ function modelPicker(
   const why = busy ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
-  const chosen = has(used) ? used : has(configured) ? configured : models[0]!.name;
+  // The last resort is the first CLAUDE model, not the first model:
+  // `modelChoices` is a configuration list in configuration order, and
+  // taking its head meant a step nobody had configured could be
+  // pre-filled with a Codex model under a picker resting on Claude Code
+  // (spec 141). Claude is this page's stated baseline everywhere else
+  // — `m.tool ?? "claude"`, README "every step runs on Claude Code
+  // unless a `modelChoices` entry says otherwise" — so it is the one
+  // here too. Only this branch moves: a phase that HAS run still shows
+  // what it ran on, and an admin's configured default still outranks
+  // any of it.
+  const claudeFirst = models.find((m) => (m.tool ?? "claude") === "claude") ?? models[0]!;
+  const chosen = has(used) ? used : has(configured) ? configured : claudeFirst.name;
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     (busy ? ` disabled title="${esc(why)}"` : "") +
@@ -1433,7 +1444,20 @@ function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
     `<select data-tool-picker form="${esc(runFormId(g))}"` +
     (busy ? ` disabled title="${esc(why)}"` : "") +
     `>` +
-    tools.map((t) => `<option value="${esc(t)}">${esc(TOOL_NAMES[t] ?? t)}</option>`).join("") +
+    // The resting option is STATED, not left to the browser (spec 141).
+    // With no `selected` anywhere a select shows its first option, so
+    // the row's AI was whatever `modelChoices` happened to list first —
+    // a value nothing on the page had chosen and nothing about the run
+    // obeyed. Claude Code is the baseline the rest of this file already
+    // assumes (`m.tool ?? "claude"`), so it is the one the control
+    // rests on.
+    tools
+      .map(
+        (t) =>
+          `<option value="${esc(t)}"${t === "claude" ? " selected" : ""}>` +
+          `${esc(TOOL_NAMES[t] ?? t)}</option>`,
+      )
+      .join("") +
     `</select></label>`
   );
 }

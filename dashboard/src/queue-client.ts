@@ -43,13 +43,14 @@ let pressGen = 0;
  *  names and its own name. Reported 2026-08-20: pick Codex on a row,
  *  and five seconds later the select is back on Claude Code.
  *
- *  The rows are replaced wholesale on every tick, and the server draws
- *  the AI picker with no `selected` at all — so the fresh one shows its
- *  first option, and the phase selects show the CONFIGURED model rather
- *  than the one just picked. Nothing about that is visible in the
- *  moment it happens. The cost is the press afterwards: a row asked for
- *  Codex, left alone for six seconds and then Run, started the step on
- *  Claude without a word.
+ *  The rows are replaced wholesale on every tick, and the fresh markup
+ *  is the server's answer: the AI picker back on its resting default
+ *  (Claude Code, stated since spec 141 — it used to be whichever option
+ *  the configuration listed first), and the phase selects on the
+ *  CONFIGURED model rather than the one just picked. Nothing about that
+ *  is visible in the moment it happens. The cost is the press
+ *  afterwards: a row asked for Codex, left alone for six seconds and
+ *  then Run, started the step on Claude without a word.
  *
  *  Only hand-made choices are kept. A select nobody touched belongs to
  *  the server — that is how a phase that has run shows the model it
@@ -58,6 +59,26 @@ let pressGen = 0;
 const chosen = new Map<string, string>();
 
 const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") ?? ""}|${el.name}`;
+
+/** The same promise for the row's PHASE BOXES, which the select fix
+ *  above left out — and they are the half a press actually runs.
+ *  Reported 2026-08-20: tick implement and archive, wait six seconds,
+ *  press Run, and the job started whatever the SERVER had ticked. The
+ *  server re-derives the ticks from the spec's own history on every
+ *  render (`preTicked`), so a swap does not leave them alone; it
+ *  overwrites them.
+ *
+ *  Keyed on THREE parts, where a select needs two: every box on a row
+ *  shares the one name `steps`, and only its value says which phase it
+ *  is. A two-part key would file all of them together and let the last
+ *  box touched answer for the row.
+ *
+ *  Same rule as the selects: only a box a hand moved is kept, and a
+ *  hand-made "off" is kept exactly as a hand-made "on" is. */
+const chosenSteps = new Map<string, boolean>();
+
+const checkboxKey = (el: HTMLInputElement): string =>
+  `${el.getAttribute("form") ?? ""}|${el.name}|${el.value}`;
 
 /** Put the hand-made choices back on the rows that were just drawn.
  *
@@ -69,7 +90,7 @@ const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") 
  *  not hidden it — a value no visible option carries is not a choice
  *  the row can honour. */
 function restoreChosen(body: Element): void {
-  if (!chosen.size) return;
+  if (!chosen.size && !chosenSteps.size) return;
   for (const el of body.querySelectorAll("select[data-tool-picker]")) {
     const picker = el as HTMLSelectElement;
     const want = chosen.get(selectKey(picker));
@@ -84,6 +105,12 @@ function restoreChosen(body: Element): void {
     for (const option of model.options) {
       if (option.value === want && !option.hidden) model.value = want;
     }
+  }
+  for (const el of body.querySelectorAll('input[name="steps"]')) {
+    const box = el as HTMLInputElement;
+    const want = chosenSteps.get(checkboxKey(box));
+    if (want === undefined) continue;
+    box.checked = want;
   }
 }
 
@@ -548,6 +575,11 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // for the next run is the same promise the AI picker makes.
   const select = picker ?? (target?.closest?.("select") as HTMLSelectElement | null);
   if (select) chosen.set(selectKey(select), select.value);
+  // And the phase boxes, for the same reason and in a map of their own:
+  // what is remembered about a box is whether it is ticked, which is
+  // not a value a select can be restored from (spec 141).
+  const step = target?.closest?.('input[name="steps"]') as HTMLInputElement | null;
+  if (step) chosenSteps.set(checkboxKey(step), step.checked);
   if (picker) syncToolFilter(picker);
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its

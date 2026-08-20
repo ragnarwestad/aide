@@ -216,9 +216,11 @@ function harness(
       options,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
       // A change lands on the select itself, and the handler walks up
-      // with `closest`. A model select is NOT the AI picker, so it
-      // answers the picker's selector with null and its own with itself.
-      closest: (sel: string): unknown => (sel.includes("data-tool-picker") ? null : self),
+      // with `closest`. A model select is NOT the AI picker and not a
+      // phase box either, so it answers both of those selectors with
+      // null and its own with itself.
+      closest: (sel: string): unknown =>
+        sel.includes("data-tool-picker") || sel.includes('name="steps"') ? null : self,
       get selectedOptions() {
         return options.filter((o) => o.selected);
       },
@@ -260,10 +262,39 @@ function harness(
     name: "",
     getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
     closest: (sel: string) => (sel.includes("data-tool-picker") ? toolSelect : null),
-    /** The server draws the picker with no `selected` at all, so a
-     *  fresh one shows its first option: Claude Code. */
+    /** The picker's resting value, which the server states outright
+     *  since spec 141: Claude Code. */
     redraw: () => void (toolSelect.value = "claude"),
   };
+  // Spec 141: the row's phase boxes. They share one `name` — the step
+  // is in the VALUE — which is why what is remembered about them is
+  // keyed on three parts and not the two a select needs. `create` has
+  // no box (a spec that exists cannot be created again), so the four
+  // that can be run are the four that are here.
+  const stepCheckbox = (value: string, served: boolean) => {
+    const self = {
+      name: "steps",
+      value,
+      checked: served,
+      getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      // A tick lands on the input itself. It is not a select of any
+      // kind, so it answers both select selectors with null and its
+      // own with itself — otherwise the delegated listener would file
+      // it in the map the model selects use.
+      closest: (sel: string): unknown => (sel.includes('name="steps"') ? self : null),
+      /** What the SERVER drew: `preTicked` re-derives the ticks from
+       *  the row's own history on every render, so a swap puts them
+       *  back exactly as they were before the reader touched them. */
+      redraw: () => void (self.checked = served),
+    };
+    return self;
+  };
+  const stepBoxes = [
+    stepCheckbox("analyze", true),
+    stepCheckbox("review-plan", true),
+    stepCheckbox("implement", false),
+    stepCheckbox("archive", false),
+  ];
   const createForm = {
     action: "http://dash.test/api/queue/create",
     fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
@@ -378,13 +409,16 @@ function harness(
       toolSelect.redraw();
       for (const m of modelSelects) m.redraw();
       otherRowSelect.redraw();
+      for (const b of stepBoxes) b.redraw();
     },
     querySelectorAll: (sel: string) =>
       sel.includes("data-tool-picker")
         ? [toolSelect]
         : sel.includes("model.")
           ? [...modelSelects, otherRowSelect]
-          : [],
+          : sel.includes('name="steps"')
+            ? stepBoxes
+            : [],
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
@@ -509,7 +543,7 @@ function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, toolSelect,
+    modelSelects, otherRowSelect, toolSelect, stepBoxes,
     changeTool: (value: string) => {
       toolSelect.value = value;
       on["change"]?.({ target: toolSelect });
@@ -520,6 +554,13 @@ function harness(
       const select = modelSelects[index]!;
       select.value = value;
       on["change"]?.({ target: select });
+    },
+    /** A phase box ticked or unticked by hand — the third control on
+     *  the row a swap used to wash away. */
+    changeStep: (index: number, checked: boolean) => {
+      const box = stepBoxes[index]!;
+      box.checked = checked;
+      on["change"]?.({ target: box });
     },
     /** A change on something in the table that is NOT the AI select. */
     changeOther: () =>
@@ -1270,8 +1311,7 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
 
   // Reported 2026-08-20, from the page: pick Codex, wait, and the
   // select is back on Claude Code. The rows are replaced wholesale
-  // every five seconds and the server draws the picker with no
-  // `selected` at all, so the first option — Claude Code — wins. The
+  // every five seconds and the fresh markup rests on Claude Code. The
   // damage is not the flicker: a press after that reversion starts the
   // step on Claude without a word, having been asked for Codex.
   test("a chosen AI survives the five-second swap", async () => {
@@ -1317,6 +1357,76 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
       "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
     ]);
     expect(hidden(h)).toEqual([[], [], [], [], []]);
+  });
+});
+
+// --- spec 141: the phase boxes survive the swap too --------------------------
+//
+// The 2026-08-20 fix above covered the row's SELECTS. The boxes beside
+// them were left out, and they are what a press actually runs: tick
+// implement and archive, wait six seconds, press Run — and the job
+// started whatever the server had ticked, without a word. The server
+// re-derives its ticks from the row's history (`preTicked`) on every
+// render, so a swap is not a no-op for them; it is an overwrite.
+describe("a hand-ticked phase box survives the five-second swap (spec 141)", () => {
+  const ticks = (h: ReturnType<typeof harness>) => h.stepBoxes.map((b) => b.checked);
+
+  const swap = async (h: ReturnType<typeof harness>) => {
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+  };
+
+  test("a box the reader ticked is still ticked after the swap", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeStep(2, true); // implement
+    h.changeStep(3, true); // archive
+    await swap(h);
+
+    expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+    expect(ticks(h)).toEqual([true, true, true, true]);
+  });
+
+  // A hand-made "off" is as much a choice as a hand-made "on": the
+  // server had these two ticked, and the reader said no to one.
+  test("a box the reader unticked stays unticked", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeStep(1, false); // review-plan, which the server pre-ticked
+    await swap(h);
+
+    expect(ticks(h)).toEqual([true, false, false, false]);
+  });
+
+  test("a row nobody has touched keeps the ticks the server drew", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    await swap(h);
+
+    expect(ticks(h)).toEqual([true, true, false, false]);
+  });
+
+  // The boxes share one `name`, so a key built the way a select's is
+  // would file all four under `form|steps` and the last tick would
+  // decide the lot.
+  test("each box is remembered on its own, not one answer for the row", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeStep(0, false); // analyze off
+    h.changeStep(3, true); // archive on
+    await swap(h);
+
+    expect(ticks(h)).toEqual([false, true, false, true]);
+  });
+
+  // The two maps must not spill into each other: a tick is not a value
+  // the model selects can be restored from, and vice versa.
+  test("ticking a box leaves the row's selects to the server", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeStep(2, true);
+    await swap(h);
+
+    expect(h.toolSelect.value).toBe("claude");
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
+    ]);
   });
 });
 
