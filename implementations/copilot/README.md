@@ -167,11 +167,11 @@ Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
 `~/.claude/commands/`), so slash commands work **natively** — no setup beyond
 `install.sh`:
 
-| Command | Function |
-|----------|----------|
-| `/aide-create` | Create JIRA documentation |
-| `/aide-analyze` | Analyze codebase |
-| `/aide-implement` | Implement with TDD |
+| Command           | Function                  |
+|-------------------|---------------------------|
+| `/aide-create`    | Create JIRA documentation |
+| `/aide-analyze`   | Analyze codebase          |
+| `/aide-implement` | Implement with TDD        |
 
 Type the command in a `copilot` session, just like in Claude Code.
 
@@ -361,43 +361,43 @@ copilot --yolo                            # Allow everything without prompts
 
 ## Comparison with Claude Code
 
-| Feature | Claude Code | Copilot CLI |
-|---------|-------------|-------------|
-| **Commands** | Slash commands (`/aide-create`) | Slash commands + natural language |
-| **Instructions** | CLAUDE.md (auto-read) | CLAUDE.md + copilot-instructions.md |
-| **Plan mode** | ✅ Native | ✅ Native (Shift+Tab) |
-| **Autopilot mode** | ✅ (via permissions) | ✅ Native (`--yolo`) |
-| **Agents** | `@agent-jira-analyzer` | Specialized (Explore, Task, Code Review) |
-| **Skills** | ✅ `.claude/skills/` | ✅ Reads `~/.claude/commands/` + `.claude/skills/` |
-| **TDD** | Built-in RED→GREEN→REFACTOR | Agent Mode iterates |
-| **Codebase analysis** | ✅ | ✅ |
-| **Tool calling** | ✅ | ✅ |
-| **MCP servers** | ✅ | ✅ (built-in GitHub MCP) |
-| **Permanent permissions** | ✅ `settings.json` | ✅ `config.json` + CLI flags |
-| **Multi-step autonomy** | ✅ | ✅ |
-| **Models** | Claude Opus/Sonnet/Haiku | Claude, GPT |
-| **Context window** | 200K tokens | Varies by model |
-| **IDE integration** | VS Code (via CLI) | VS Code (native) + CLI |
+| Feature                   | Claude Code                     | Copilot CLI                                        |
+|---------------------------|---------------------------------|----------------------------------------------------|
+| **Commands**              | Slash commands (`/aide-create`) | Slash commands + natural language                  |
+| **Instructions**          | CLAUDE.md (auto-read)           | CLAUDE.md + copilot-instructions.md                |
+| **Plan mode**             | ✅ Native                       | ✅ Native (Shift+Tab)                              |
+| **Autopilot mode**        | ✅ (via permissions)            | ✅ Native (`--yolo`)                               |
+| **Agents**                | `@agent-jira-analyzer`          | Specialized (Explore, Task, Code Review)           |
+| **Skills**                | ✅ `.claude/skills/`            | ✅ Reads `~/.claude/commands/` + `.claude/skills/` |
+| **TDD**                   | Built-in RED→GREEN→REFACTOR     | Agent Mode iterates                                |
+| **Codebase analysis**     | ✅                              | ✅                                                 |
+| **Tool calling**          | ✅                              | ✅                                                 |
+| **MCP servers**           | ✅                              | ✅ (built-in GitHub MCP)                           |
+| **Permanent permissions** | ✅ `settings.json`              | ✅ `config.json` + CLI flags                       |
+| **Multi-step autonomy**   | ✅                              | ✅                                                 |
+| **Models**                | Claude Opus/Sonnet/Haiku        | Claude, GPT                                        |
+| **Context window**        | 200K tokens                     | Varies by model                                    |
+| **IDE integration**       | VS Code (via CLI)               | VS Code (native) + CLI                             |
 
 ### Available models
 
-| Model | Claude Code | Copilot CLI |
-|--------|-------------|-------------|
-| Claude Opus 4.7 | ✅ | ✅ |
-| Claude Sonnet 4.6 | ✅ | ✅ |
-| Claude Haiku 4.5 | ✅ | ✅ |
-| GPT-5.5 | ❌ | ✅ |
+| Model             | Claude Code | Copilot CLI |
+|-------------------|-------------|-------------|
+| Claude Opus 4.7   | ✅          | ✅          |
+| Claude Sonnet 4.6 | ✅          | ✅          |
+| Claude Haiku 4.5  | ✅          | ✅          |
+| GPT-5.5           | ❌          | ✅          |
 
 ### When to use what?
 
-| Scenario | Recommendation |
-|----------|-----------|
-| **Complex JIRA analysis** | Claude Code (better skills/agents) |
-| **Quick edits** | Copilot (faster in VS Code) |
-| **TDD implementation** | Both work well |
-| **Refactoring** | Copilot (native VS Code integration) |
-| **Cross-cutting issues** | Claude Code (better multi-repo support) |
-| **Full automation** | Copilot CLI (`--yolo` mode) |
+| Scenario                  | Recommendation                          |
+|---------------------------|-----------------------------------------|
+| **Complex JIRA analysis** | Claude Code (better skills/agents)      |
+| **Quick edits**           | Copilot (faster in VS Code)             |
+| **TDD implementation**    | Both work well                          |
+| **Refactoring**           | Copilot (native VS Code integration)    |
+| **Cross-cutting issues**  | Claude Code (better multi-repo support) |
+| **Full automation**       | Copilot CLI (`--yolo` mode)             |
 
 ---
 
@@ -441,29 +441,29 @@ copilot -p "/aide-create PROJ-TEST"
 
 ### Flag reference
 
-| Flag | Description |
-|-------|-------------|
-| `-p "prompt"` | Headless/programmatic mode |
-| `--allow-all-tools` | Allow all tools without confirmation |
-| `--allow-tool 'tool'` | Allow a specific tool |
-| `--deny-tool 'tool'` | Block a specific tool |
-| `--allow-all-paths` | Allow access to all file paths |
-| `--allow-all-urls` | Allow access to all URLs |
-| `--allow-url <domain>` | Pre-approve a specific domain |
+| Flag                     | Description                           |
+|--------------------------|---------------------------------------|
+| `-p "prompt"`            | Headless/programmatic mode            |
+| `--allow-all-tools`      | Allow all tools without confirmation  |
+| `--allow-tool 'tool'`    | Allow a specific tool                 |
+| `--deny-tool 'tool'`     | Block a specific tool                 |
+| `--allow-all-paths`      | Allow access to all file paths        |
+| `--allow-all-urls`       | Allow access to all URLs              |
+| `--allow-url <domain>`   | Pre-approve a specific domain         |
 | `--yolo` / `--allow-all` | Allow everything without confirmation |
 
 **Security:** Use `--yolo` / `--allow-all-tools` only in isolated environments (containers, VMs).
 
 ### Slash commands in the CLI
 
-| Command | Description |
-|----------|-------------|
-| `/model` | Switch model mid-session |
-| `/diff` | View all changes in the session with syntax highlighting |
-| `/plugin install owner/repo` | Install plugins from GitHub |
-| `/login` | Authentication |
-| `/lsp` | Show LSP server status |
-| `/feedback` | Send feedback |
+| Command                      | Description                                              |
+|------------------------------|----------------------------------------------------------|
+| `/model`                     | Switch model mid-session                                 |
+| `/diff`                      | View all changes in the session with syntax highlighting |
+| `/plugin install owner/repo` | Install plugins from GitHub                              |
+| `/login`                     | Authentication                                           |
+| `/lsp`                       | Show LSP server status                                   |
+| `/feedback`                  | Send feedback                                            |
 
 ---
 

@@ -370,11 +370,11 @@ pytest -m "e2e and codex"
 
 ### Headless mode per CLI
 
-| CLI         | Headless flag      | Status     | Example                                                 |
-|-------------|--------------------|------------|---------------------------------------------------------|
-| Claude Code | `-p`               | ✅ Works    | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
-| Copilot     | `-p`               | ✅ Works    | `copilot -p "prompt" --allow-all-tools`                 |
-| Codex       | `exec --full-auto` | ✅ Works    | `codex exec --full-auto --skip-git-repo-check "prompt"` |
+| CLI         | Headless flag      | Status   | Example                                                 |
+|-------------|--------------------|----------|---------------------------------------------------------|
+| Claude Code | `-p`               | ✅ Works | `claude -p "prompt" --allowedTools "Bash,Read,Write"`   |
+| Copilot     | `-p`               | ✅ Works | `copilot -p "prompt" --allow-all-tools`                 |
+| Codex       | `exec --full-auto` | ✅ Works | `codex exec --full-auto --skip-git-repo-check "prompt"` |
 
 ### Claude Code
 

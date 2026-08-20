@@ -405,12 +405,12 @@ claude -p "Complex task" --output-format stream-json
 
 **Important flags:**
 
-| Flag | Description |
-|------|-------------|
-| `-p "prompt"` | Headless mode - runs without the interactive UI |
-| `--allowedTools` | Grants permissions without user input |
-| `--output-format json` | JSON output for parsing |
-| `--output-format stream-json` | Streaming JSON for multi-turn |
+| Flag                          | Description                                     |
+|-------------------------------|-------------------------------------------------|
+| `-p "prompt"`                 | Headless mode - runs without the interactive UI |
+| `--allowedTools`              | Grants permissions without user input           |
+| `--output-format json`        | JSON output for parsing                         |
+| `--output-format stream-json` | Streaming JSON for multi-turn                   |
 
 ---
 

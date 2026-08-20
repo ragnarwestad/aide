@@ -93,11 +93,11 @@ Claude Code has built-in support for LSP plugins that provide semantic code navi
 
 **Installed plugins:**
 
-| Plugin | Language | Used for |
-|--------|-------|-------------|
-| `typescript-lsp` | TypeScript/JavaScript | my-app |
-| `kotlin-lsp` | Kotlin | my-api |
-| `jdtls-lsp` | Java | my-api |
+| Plugin           | Language              | Used for |
+|------------------|-----------------------|----------|
+| `typescript-lsp` | TypeScript/JavaScript | my-app   |
+| `kotlin-lsp`     | Kotlin                | my-api   |
+| `jdtls-lsp`      | Java                  | my-api   |
 
 **Manual installation** (if needed):
 
@@ -117,20 +117,20 @@ If you have a JIRA MCP server, it can be used instead of cookie-based authentica
 
 ### Slash commands (skills in Claude Code)
 
-| Command | Description |
-|----------|-------------|
-| `/aide-create PROJ-XXXX` | Create JIRA documentation |
-| `/aide-create todo-name Description` | Create TODO plan |
-| `/aide-analyze PROJ-XXXX` | Analyze codebase |
-| `/aide-implement PROJ-XXXX` | Implement with TDD |
+| Command                              | Description               |
+|--------------------------------------|---------------------------|
+| `/aide-create PROJ-XXXX`             | Create JIRA documentation |
+| `/aide-create todo-name Description` | Create TODO plan          |
+| `/aide-analyze PROJ-XXXX`            | Analyze codebase          |
+| `/aide-implement PROJ-XXXX`          | Implement with TDD        |
 
 ### Terminal scripts
 
-| Script | Description |
-|--------|-------------|
-| `aide-generate-pdf` | Generate PDF from a spec |
+| Script               | Description               |
+|----------------------|---------------------------|
+| `aide-generate-pdf`  | Generate PDF from a spec  |
 | `aide-generate-html` | Generate HTML from a spec |
-| `upgrade-ai-tools` | Update the AI CLIs |
+| `upgrade-ai-tools`   | Update the AI CLIs        |
 
 Document creation happens via the slash command `/aide-create` (not a terminal script).
 

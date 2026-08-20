@@ -97,16 +97,16 @@ README and the docs folder first. A project without such docs is normal:
 the code itself is the source, so search it instead of hunting for
 documents.
 
-| Problem type | Workflow |
-|-------------|----------|
-| **Frontend UI bug** | Reproduce - Identify component - Check API - TDD |
-| **Backend API error** | Identify endpoint - Check ripple effects - TDD |
-| **Cross-project** | Backend first - Test - Frontend - Full stack test |
-| **Refactoring** | Secure tests - Refactor - Verify green tests |
-| **Test generation** | Read code - Identify edge cases - Write tests |
-| **New functionality** | Read JIRA/TODO - Analyze scope - TDD |
-| **Database change** | Identify ripple effects - Migration script - Test |
-| **Performance** | Profile - Find root cause - Benchmark - Optimize |
+| Problem type          | Workflow                                          |
+|-----------------------|---------------------------------------------------|
+| **Frontend UI bug**   | Reproduce - Identify component - Check API - TDD  |
+| **Backend API error** | Identify endpoint - Check ripple effects - TDD    |
+| **Cross-project**     | Backend first - Test - Frontend - Full stack test |
+| **Refactoring**       | Secure tests - Refactor - Verify green tests      |
+| **Test generation**   | Read code - Identify edge cases - Write tests     |
+| **New functionality** | Read JIRA/TODO - Analyze scope - TDD              |
+| **Database change**   | Identify ripple effects - Migration script - Test |
+| **Performance**       | Profile - Find root cause - Benchmark - Optimize  |
 
 **Quick reference:**
 - **Testing?** See `the testing rules`

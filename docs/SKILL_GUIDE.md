@@ -34,11 +34,11 @@ Read these first — we do not repeat their content here:
 
 Anthropic describes three levels of loading:
 
-| Level | What | When it is loaded |
-|------|-----|----------------|
-| 1. Frontmatter | `name` + `description` | Always (in the system prompt) |
-| 2. SKILL.md body | Core instructions | When Claude thinks the skill is relevant |
-| 3. `references/` | Heavy documentation | When Claude needs details |
+| Level            | What                   | When it is loaded                        |
+|------------------|------------------------|------------------------------------------|
+| 1. Frontmatter   | `name` + `description` | Always (in the system prompt)            |
+| 2. SKILL.md body | Core instructions      | When Claude thinks the skill is relevant |
+| 3. `references/` | Heavy documentation    | When Claude needs details                |
 
 **Consequence:** Keep SKILL.md focused on core instructions. Move heavy
 documentation (SQL queries, enum references, API mapping) to `references/`.
@@ -170,12 +170,12 @@ A skill that only explains the happy path is a reference. A skill that
 documents what goes wrong, why, and how you figure it out
 is a tool.
 
-| Mediocre | Good |
-|-------------|-----|
+| Mediocre                  | Good                                          |
+|---------------------------|-----------------------------------------------|
 | Explains the domain model | + what happens when relationships are missing |
-| Lists services | + common failure situations per service |
-| Shows correct usage | + what NOT to do and why |
-| General warnings | Dated, evidence-based claims |
+| Lists services            | + common failure situations per service       |
+| Shows correct usage       | + what NOT to do and why                      |
+| General warnings          | Dated, evidence-based claims                  |
 
 ---
 
@@ -243,12 +243,12 @@ AND pi.OPPRETTET_TID < SYSDATE - INTERVAL '1' HOUR;
 
 ## Size and depth
 
-| Lines in SKILL.md | Assessment |
-|--------------------|-----------|
-| < 80 | Too thin — use as a router skill or expand |
-| 80-200 | Good for workflow skills and focused domain skills |
-| 200-350 | Good for broad domain skills — consider references/ |
-| 350+ | Move details to references/, keep SKILL.md under 200 |
+| Lines in SKILL.md | Assessment                                           |
+|-------------------|------------------------------------------------------|
+| < 80              | Too thin — use as a router skill or expand           |
+| 80-200            | Good for workflow skills and focused domain skills   |
+| 200-350           | Good for broad domain skills — consider references/  |
+| 350+              | Move details to references/, keep SKILL.md under 200 |
 
 **Hyperspecialization works.** A skill like `pom-from-recording`
 (480 lines total, split between SKILL.md + references/) solves one hard
@@ -289,15 +289,15 @@ One deep skill > four shallow skills.
 
 ### Workflow skills (aide/core/skills/)
 
-| Skill | Why it is good |
-|-------|--------------------|
+| Skill       | Why it is good                                                  |
+|-------------|-----------------------------------------------------------------|
 | `tdd-coach` | Clear formula (RED-GREEN-REFACTOR), ground rules, test commands |
 
 ### Traits of strong skills (from earlier skill collections)
 
-| Trait | Example |
-|------------|----------|
-| Anti-patterns with timelines | Race conditions documented with the sequence of events |
-| Evidence-based troubleshooting | Dated claims with flake rates |
-| Decision trees and checklists | 13-point checklist before completion |
-| Heavy details in references/ | Database queries and enum references on demand |
+| Trait                          | Example                                                |
+|--------------------------------|--------------------------------------------------------|
+| Anti-patterns with timelines   | Race conditions documented with the sequence of events |
+| Evidence-based troubleshooting | Dated claims with flake rates                          |
+| Decision trees and checklists  | 13-point checklist before completion                   |
+| Heavy details in references/   | Database queries and enum references on demand         |

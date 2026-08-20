@@ -143,4 +143,4 @@ echo "Hello"
 
 **Preventive fix:**
 - The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#code-blocks)
+- But the source should be fixed - see [documentation.md](./documentation.md#code-blocks)

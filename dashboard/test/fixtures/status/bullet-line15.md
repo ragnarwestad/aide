@@ -58,7 +58,7 @@ Verifisert 2026-03-04 (re-verifisert etter steg 9) - alle referanser løst i ins
 | `.claude/rules/testing.md`          | `testing-reglene`          |
 | `.claude/rules/git.md`              | `git-reglene`              |
 | `.claude/rules/documentation.md`    | `dokumentasjonsstandarden` |
-| `.claude/rules/spec-structure.md` | `spec-strukturen`       |
+| `.claude/rules/spec-structure.md`   | `spec-strukturen`          |
 | `.claude/rules/markdown-linting.md` | `markdown-linting-reglene` |
 
 ---

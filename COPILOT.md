@@ -115,11 +115,11 @@ Copilot will then:
 
 Instead of slash commands (like Claude Code), use natural language:
 
-| Claude Code | Copilot equivalent |
-|-------------|-------------------|
-| `/aide-create PROJ-7890` | "Create documentation for PROJ-7890" |
-| `/aide-analyze PROJ-7890` | "Analyze PROJ-7890" |
-| `/aide-implement PROJ-7890` | "Implement PROJ-7890 with TDD" |
+| Claude Code                 | Copilot equivalent                   |
+|-----------------------------|--------------------------------------|
+| `/aide-create PROJ-7890`    | "Create documentation for PROJ-7890" |
+| `/aide-analyze PROJ-7890`   | "Analyze PROJ-7890"                  |
+| `/aide-implement PROJ-7890` | "Implement PROJ-7890 with TDD"       |
 
 ---
 
@@ -227,15 +227,15 @@ Enable Agent Mode in Copilot Chat:
 
 ## 🔄 Comparison with Claude Code
 
-| Feature | Claude Code | Copilot (VS Code) |
-|---------|-------------|-------------------|
-| **Commands** | `/aide-create` | Natural language |
-| **Instructions** | `CLAUDE.md` (auto-read) | `.github/copilot-instructions.md` |
-| **Permissions** | Fine-grained in settings.json | Workspace Trust (all-or-nothing) |
-| **Bash commands** | Direct execution (pre-approved) | Manual terminal |
-| **Git commit** | Blocked (deny list) | Copilot cannot run it (must be done manually) |
-| **Agent Mode** | Built-in | Built-in (since 2024) |
-| **MCP support** | ✅ | ✅ (via extensions) |
+| Feature           | Claude Code                     | Copilot (VS Code)                             |
+|-------------------|---------------------------------|-----------------------------------------------|
+| **Commands**      | `/aide-create`                  | Natural language                              |
+| **Instructions**  | `CLAUDE.md` (auto-read)         | `.github/copilot-instructions.md`             |
+| **Permissions**   | Fine-grained in settings.json   | Workspace Trust (all-or-nothing)              |
+| **Bash commands** | Direct execution (pre-approved) | Manual terminal                               |
+| **Git commit**    | Blocked (deny list)             | Copilot cannot run it (must be done manually) |
+| **Agent Mode**    | Built-in                        | Built-in (since 2024)                         |
+| **MCP support**   | ✅                              | ✅ (via extensions)                           |
 
 ---
 

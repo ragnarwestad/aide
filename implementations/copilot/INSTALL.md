@@ -228,16 +228,16 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 ## Comparison with Claude Code
 
-| Feature | Claude Code | Copilot CLI / VS Code |
-|---------|-------------|----------------------|
-| **Slash commands / Skills** | ✅ Native `/aide-create` | ✅ Native in the CLI (reads `~/.claude/commands/` as skills) |
-| **Custom instructions** | ✅ Auto-read CLAUDE.md | ✅ Auto-read CLAUDE.md + copilot-instructions.md |
-| **Permissions** | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags |
-| **Plan mode** | ✅ Native | ✅ Native (Shift+Tab in the CLI) |
-| **IDE integration** | ⚠️ Via CLI | ✅ Native VS Code |
-| **Agent Mode** | ✅ Autonomous workflows | ✅ Autonomous workflows |
-| **Models** | The Claude family | Claude, GPT |
-| **Setup** | ✅ `install.sh` | ✅ `install.sh` |
+| Feature                     | Claude Code                       | Copilot CLI / VS Code                                        |
+|-----------------------------|-----------------------------------|--------------------------------------------------------------|
+| **Slash commands / Skills** | ✅ Native `/aide-create`          | ✅ Native in the CLI (reads `~/.claude/commands/` as skills) |
+| **Custom instructions**     | ✅ Auto-read CLAUDE.md            | ✅ Auto-read CLAUDE.md + copilot-instructions.md             |
+| **Permissions**             | ✅ Pre-approval via settings.json | ✅ config.json + CLI flags                                   |
+| **Plan mode**               | ✅ Native                         | ✅ Native (Shift+Tab in the CLI)                             |
+| **IDE integration**         | ⚠️ Via CLI                        | ✅ Native VS Code                                            |
+| **Agent Mode**              | ✅ Autonomous workflows           | ✅ Autonomous workflows                                      |
+| **Models**                  | The Claude family                 | Claude, GPT                                                  |
+| **Setup**                   | ✅ `install.sh`                   | ✅ `install.sh`                                              |
 
 **Conclusion:**
 

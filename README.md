@@ -37,11 +37,11 @@ This workspace enables a workflow where **any AI assistant** can:
 
 Download the ready-made package for your AI tool:
 
-| AI tool | Package | Documentation |
-|------------|-------|---------------|
-| Claude Code | `dist/aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
-| GitHub Copilot | `dist/aide-copilot.zip` | [INSTALL.md](implementations/copilot/INSTALL.md) |
-| Codex | `dist/aide-codex.zip` | [README.md](implementations/codex/README.md) |
+| AI tool        | Package                     | Documentation                                        |
+|----------------|-----------------------------|------------------------------------------------------|
+| Claude Code    | `dist/aide-claude-code.zip` | [INSTALL.md](implementations/claude-code/INSTALL.md) |
+| GitHub Copilot | `dist/aide-copilot.zip`     | [INSTALL.md](implementations/copilot/INSTALL.md)     |
+| Codex          | `dist/aide-codex.zip`       | [README.md](implementations/codex/README.md)         |
 
 Each package contains everything you need: instructions, commands/prompts, scripts and documentation.
 

@@ -201,11 +201,11 @@ Codex's instruction file is `AGENTS.md`. aide generates `core/AGENTS.md` from `c
 `hooks/aide-*.sh` scripts to `~/.codex/hooks/`. They port the four Claude Code
 hooks from `implementations/claude-code/settings.json`:
 
-| Hook | Event | What it does |
-|------|-------|--------------|
-| `aide-markdownlint.sh` | PostToolUse | Lints markdown files right after they are edited |
-| `aide-block-git-add-all.sh` | PreToolUse | Blocks `git add .` / `git add -A` (explicit file names only) |
-| `aide-block-watch-mode.sh` | PreToolUse | Blocks `pnpm test` without `--run` (watch mode never exits) |
+| Hook                                        | Event              | What it does                                                  |
+|---------------------------------------------|--------------------|---------------------------------------------------------------|
+| `aide-markdownlint.sh`                      | PostToolUse        | Lints markdown files right after they are edited              |
+| `aide-block-git-add-all.sh`                 | PreToolUse         | Blocks `git add .` / `git add -A` (explicit file names only)  |
+| `aide-block-watch-mode.sh`                  | PreToolUse         | Blocks `pnpm test` without `--run` (watch mode never exits)   |
 | `aide-track-turn.sh` + `aide-stop-guard.sh` | PostToolUse + Stop | Refuses to end a turn where source code changed without tests |
 
 The Stop guard works differently from Claude Code's: Codex has no prompt
@@ -402,31 +402,31 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 
 ## Comparison with Claude Code
 
-| Feature | Claude Code | OpenAI Codex |
-|---------|-------------|--------------|
-| **Commands** | Slash commands (`/aide-create`) | Natural language prompts |
-| **Instructions** | CLAUDE.md (auto-read) | AGENTS.md (~/.codex/AGENTS.md) |
-| **Agents** | `@agent-jira-analyzer` | General agent |
-| **TDD** | Built-in RED→GREEN→REFACTOR | Supports the TDD cycle |
-| **Codebase analysis** | ✅ | ✅ |
-| **Tool calling** | ✅ | ✅ |
-| **Parallel tasks** | ❌ | ✅ |
-| **GitHub integration** | Via gh CLI | Native |
-| **Slack integration** | ❌ | ✅ |
-| **Context window** | 200K tokens | Varies (GPT-5) |
-| **IDE integration** | VS Code (via CLI) | IntelliJ, VS Code, Cursor |
-| **Price** | Free (beta) | $1.50-$6/1M tokens |
+| Feature                | Claude Code                     | OpenAI Codex                   |
+|------------------------|---------------------------------|--------------------------------|
+| **Commands**           | Slash commands (`/aide-create`) | Natural language prompts       |
+| **Instructions**       | CLAUDE.md (auto-read)           | AGENTS.md (~/.codex/AGENTS.md) |
+| **Agents**             | `@agent-jira-analyzer`          | General agent                  |
+| **TDD**                | Built-in RED→GREEN→REFACTOR     | Supports the TDD cycle         |
+| **Codebase analysis**  | ✅                              | ✅                             |
+| **Tool calling**       | ✅                              | ✅                             |
+| **Parallel tasks**     | ❌                              | ✅                             |
+| **GitHub integration** | Via gh CLI                      | Native                         |
+| **Slack integration**  | ❌                              | ✅                             |
+| **Context window**     | 200K tokens                     | Varies (GPT-5)                 |
+| **IDE integration**    | VS Code (via CLI)               | IntelliJ, VS Code, Cursor      |
+| **Price**              | Free (beta)                     | $1.50-$6/1M tokens             |
 
 ### When to use what?
 
-| Scenario | Recommendation |
-|----------|-----------|
+| Scenario                  | Recommendation                     |
+|---------------------------|------------------------------------|
 | **Complex JIRA analysis** | Claude Code (larger context, free) |
-| **Parallel tasks** | Codex (native support) |
-| **TDD implementation** | Both work well |
-| **GitHub workflows** | Codex (native integration) |
-| **Team collaboration** | Codex (Slack integration) |
-| **Cost-conscious** | Claude Code (free in beta) |
+| **Parallel tasks**        | Codex (native support)             |
+| **TDD implementation**    | Both work well                     |
+| **GitHub workflows**      | Codex (native integration)         |
+| **Team collaboration**    | Codex (Slack integration)          |
+| **Cost-conscious**        | Claude Code (free in beta)         |
 
 ---
 
@@ -469,11 +469,11 @@ codex exec "/aide-create PROJ-TEST"
 
 ### Flags for automation
 
-| Flag | Description |
-|-------|-------------|
-| `exec "prompt"` | Headless mode - run without the interactive UI |
-| `--output-last-message <file>` | Write the last message to a file |
-| `--format jsonl` | JSONL output for parsing |
+| Flag                           | Description                                    |
+|--------------------------------|------------------------------------------------|
+| `exec "prompt"`                | Headless mode - run without the interactive UI |
+| `--output-last-message <file>` | Write the last message to a file               |
+| `--format jsonl`               | JSONL output for parsing                       |
 
 **Note:** Authentication can be challenging in headless environments (requires an OAuth flow).
 

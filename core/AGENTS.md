@@ -47,16 +47,16 @@ the user. Detect them — never assume a toolchain:
    `AIDE_LINT_CMD` or `AIDE_BUILD_CMD`, use those.
 2. **Otherwise detect** from what the project ships:
 
-| Found in the project root | Toolchain | Typical commands |
-|---------------------------|-----------|------------------|
-| `pnpm-lock.yaml` | pnpm | `pnpm test -- --run`, `pnpm run lint`, `pnpm run build` |
-| `package-lock.json` | npm | `npm test`, `npm run lint`, `npm run build` |
-| `yarn.lock` | yarn | `yarn test`, `yarn lint`, `yarn build` |
-| `gradlew` | Gradle | `./gradlew test`, `./gradlew build` |
-| `pom.xml` | Maven | `mvn test`, `mvn verify` |
-| `pytest.ini` / `pyproject.toml` | pytest | `python -m pytest` (prefer the project's venv) |
-| `go.mod` | Go | `go test ./...`, `go build ./...` |
-| `Cargo.toml` | Cargo | `cargo test`, `cargo build` |
+| Found in the project root       | Toolchain | Typical commands                                        |
+|---------------------------------|-----------|---------------------------------------------------------|
+| `pnpm-lock.yaml`                | pnpm      | `pnpm test -- --run`, `pnpm run lint`, `pnpm run build` |
+| `package-lock.json`             | npm       | `npm test`, `npm run lint`, `npm run build`             |
+| `yarn.lock`                     | yarn      | `yarn test`, `yarn lint`, `yarn build`                  |
+| `gradlew`                       | Gradle    | `./gradlew test`, `./gradlew build`                     |
+| `pom.xml`                       | Maven     | `mvn test`, `mvn verify`                                |
+| `pytest.ini` / `pyproject.toml` | pytest    | `python -m pytest` (prefer the project's venv)          |
+| `go.mod`                        | Go        | `go test ./...`, `go build ./...`                       |
+| `Cargo.toml`                    | Cargo     | `cargo test`, `cargo build`                             |
 
 For JS/TS projects, read `package.json` `scripts` for the exact names — the
 table's commands are the usual defaults, not a promise. Test runners must run
@@ -74,14 +74,14 @@ in single-run mode, never watch mode (see the testing rules).
 Optional file in the project root: `.aide/config`, plain `KEY=value` lines
 with `#` comments. Recognized keys:
 
-| Key | Purpose |
-|-----|---------|
-| `AIDE_JIRA_BASE_URL` | JIRA root, e.g. `https://jira.mycompany.com` — issue links become `<url>/browse/<KEY>` |
-| `AIDE_TEST_CMD` | Overrides the detected test command |
-| `AIDE_LINT_CMD` | Overrides the detected lint command |
-| `AIDE_BUILD_CMD` | Overrides the detected build command |
+| Key                   | Purpose                                                                                                                       |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `AIDE_JIRA_BASE_URL`  | JIRA root, e.g. `https://jira.mycompany.com` — issue links become `<url>/browse/<KEY>`                                        |
+| `AIDE_TEST_CMD`       | Overrides the detected test command                                                                                           |
+| `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                                           |
+| `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                                          |
 | `AIDE_WORKTREE_LINKS` | Space-separated repo-relative paths a headless run needs but git does not carry — `.venv dashboard/node_modules` and the like |
-| `AIDE_INSTALL_CMD` | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged |
+| `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged              |
 
 `AIDE_WORKTREE_LINKS` exists because `aide-run-spec` gives every run a
 `git worktree` of its own, and a worktree carries **tracked files only**:
@@ -232,16 +232,16 @@ README and the docs folder first. A project without such docs is normal:
 the code itself is the source, so search it instead of hunting for
 documents.
 
-| Problem type | Workflow |
-|-------------|----------|
-| **Frontend UI bug** | Reproduce - Identify component - Check API - TDD |
-| **Backend API error** | Identify endpoint - Check ripple effects - TDD |
-| **Cross-project** | Backend first - Test - Frontend - Full stack test |
-| **Refactoring** | Secure tests - Refactor - Verify green tests |
-| **Test generation** | Read code - Identify edge cases - Write tests |
-| **New functionality** | Read JIRA/TODO - Analyze scope - TDD |
-| **Database change** | Identify ripple effects - Migration script - Test |
-| **Performance** | Profile - Find root cause - Benchmark - Optimize |
+| Problem type          | Workflow                                          |
+|-----------------------|---------------------------------------------------|
+| **Frontend UI bug**   | Reproduce - Identify component - Check API - TDD  |
+| **Backend API error** | Identify endpoint - Check ripple effects - TDD    |
+| **Cross-project**     | Backend first - Test - Frontend - Full stack test |
+| **Refactoring**       | Secure tests - Refactor - Verify green tests      |
+| **Test generation**   | Read code - Identify edge cases - Write tests     |
+| **New functionality** | Read JIRA/TODO - Analyze scope - TDD              |
+| **Database change**   | Identify ripple effects - Migration script - Test |
+| **Performance**       | Profile - Find root cause - Benchmark - Optimize  |
 
 **Quick reference:**
 - **Testing?** See `the testing rules`
@@ -1278,7 +1278,7 @@ const value = useSelector(state => state.value);
 - Lists and tables
 - Metadata fields
 
-**See also:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detailed linting rules.
+**See also:** [markdown-linting.md](./markdown-linting.md) for detailed linting rules.
 
 ---
 
@@ -1354,7 +1354,7 @@ Avoid mocks for validation - use real test data.
 ## See also
 
 - [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
+- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
 
 ---
 
@@ -1503,7 +1503,7 @@ echo "Hello"
 
 **Preventive fix:**
 - The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#code-blocks)
+- But the source should be fixed - see [documentation.md](./documentation.md#code-blocks)
 
 ---
 
@@ -1896,21 +1896,21 @@ progress percentage below says how far the TDD phases inside
 
 ## Separation of content
 
-| Content                    | Location          |
-|----------------------------|-------------------|
-| Problem description        | 1-description.md  |
-| Metadata                   | 1-description.md  |
-| Mapping/findings           | 2-analysis.md      |
-| Scope (files, estimate)    | 3-solution.md      |
-| Complexity analysis        | 3-solution.md      |
-| Risk analysis              | 3-solution.md      |
-| Approaches                 | 3-solution.md      |
-| Behavior delta             | 3-solution.md      |
-| Acceptance criteria        | 3-solution.md      |
-| Before/after examples      | 3-solution.md      |
-| Implementation plan        | 3-solution.md      |
-| Testing strategy           | 3-solution.md      |
-| Progress                   | 4-status.md       |
+| Content                 | Location         |
+|-------------------------|------------------|
+| Problem description     | 1-description.md |
+| Metadata                | 1-description.md |
+| Mapping/findings        | 2-analysis.md    |
+| Scope (files, estimate) | 3-solution.md    |
+| Complexity analysis     | 3-solution.md    |
+| Risk analysis           | 3-solution.md    |
+| Approaches              | 3-solution.md    |
+| Behavior delta          | 3-solution.md    |
+| Acceptance criteria     | 3-solution.md    |
+| Before/after examples   | 3-solution.md    |
+| Implementation plan     | 3-solution.md    |
+| Testing strategy        | 3-solution.md    |
+| Progress                | 4-status.md      |
 
 ---
 
@@ -1918,12 +1918,12 @@ progress percentage below says how far the TDD phases inside
 
 JIRA issues and TODO plans have an **identical structure**, but differ in content:
 
-| Aspect          | JIRA issues                   | TODO plans            |
-|-----------------|-------------------------------|-----------------------|
-| **Location**    | `specs/<NN>-PROJ-XXXX-slug/` | `specs/<NN>-slug/`  |
-| **Source**      | JIRA API (external)           | Created manually      |
-| **Description** | Copied from JIRA              | Written by the developer |
-| **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |
+| Aspect          | JIRA issues                      | TODO plans               |
+|-----------------|----------------------------------|--------------------------|
+| **Location**    | `specs/<NN>-PROJ-XXXX-slug/`     | `specs/<NN>-slug/`       |
+| **Source**      | JIRA API (external)              | Created manually         |
+| **Description** | Copied from JIRA                 | Written by the developer |
+| **Metadata**    | JIRA fields (type, status, etc.) | Number, date             |
 
 **In common:**
 - 4 files: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
@@ -1944,8 +1944,8 @@ The `/aide-analyze` command fills in the analysis, solution and status.
 
 ## See also
 
-- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - General documentation rules
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
+- [documentation.md](./documentation.md) - General documentation rules
+- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
 
 ---
 

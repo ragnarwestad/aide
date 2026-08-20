@@ -123,13 +123,13 @@ cd implementations/claude-code && ./uninstall.sh
 
 ### Installation overview
 
-| What | Source | Installed to |
-|-----|-------|-----------------|
-| Skills | `core/skills/` | `~/.claude/skills/` |
-| Scripts | `core/scripts/` | `~/.local/bin/` |
-| Agents | `implementations/claude-code/agents/` | `~/.claude/agents/` |
-| Rules | `core/rules/` | `~/.claude/rules/` |
-| CLAUDE.md (template) | `implementations/claude-code/CLAUDE.md` | `<project>/.claude/CLAUDE.md` |
+| What                 | Source                                                    | Installed to                                |
+|----------------------|-----------------------------------------------------------|---------------------------------------------|
+| Skills               | `core/skills/`                                            | `~/.claude/skills/`                         |
+| Scripts              | `core/scripts/`                                           | `~/.local/bin/`                             |
+| Agents               | `implementations/claude-code/agents/`                     | `~/.claude/agents/`                         |
+| Rules                | `core/rules/`                                             | `~/.claude/rules/`                          |
+| CLAUDE.md (template) | `implementations/claude-code/CLAUDE.md`                   | `<project>/.claude/CLAUDE.md`               |
 | Copilot instructions | `implementations/copilot/.github/copilot-instructions.md` | `<project>/.github/copilot-instructions.md` |
 
 ### Special cases

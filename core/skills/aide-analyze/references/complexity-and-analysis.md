@@ -2,12 +2,12 @@
 
 ## Classification
 
-| Factor | LOW | MEDIUM | HIGH |
-|--------|-----|--------|------|
-| Number of files | 1-2 | 3-10 | 10+ |
-| Operation | remove/replace/fix | refactor/improve | migrate/upgrade |
-| Keywords | specific file mentioned | one component/module | "all", "migrate", "entire" |
-| API impact | none | minor changes | new/changed contracts |
+| Factor          | LOW                     | MEDIUM               | HIGH                       |
+|-----------------|-------------------------|----------------------|----------------------------|
+| Number of files | 1-2                     | 3-10                 | 10+                        |
+| Operation       | remove/replace/fix      | refactor/improve     | migrate/upgrade            |
+| Keywords        | specific file mentioned | one component/module | "all", "migrate", "entire" |
+| API impact      | none                    | minor changes        | new/changed contracts      |
 
 See the workflows rules § Complexity detection for details.
 

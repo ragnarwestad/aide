@@ -57,13 +57,13 @@ specs/                 # Output (AI-agnostic)
 
 ### Layered architecture
 
-| Layer                | Responsibility                             | Example                            |
-|----------------------|-------------------------------------------|------------------------------------|
-| **Core**             | Workflows, standards, data                | `core/rules/workflows.md`           |
-| **Implementation**   | AI-specific commands/instructions         | `implementations/claude-code/`     |
-| **Scripts**          | CLI tools                                 | `core/scripts/`                         |
-| **Templates**        | Document structures                       | `core/templates/todo/`             |
-| **Output**           | Generated documentation and analysis      | `specs/<NN>-PROJ-XXXX-slug/`       |
+| Layer              | Responsibility                       | Example                        |
+|--------------------|--------------------------------------|--------------------------------|
+| **Core**           | Workflows, standards, data           | `core/rules/workflows.md`      |
+| **Implementation** | AI-specific commands/instructions    | `implementations/claude-code/` |
+| **Scripts**        | CLI tools                            | `core/scripts/`                |
+| **Templates**      | Document structures                  | `core/templates/todo/`         |
+| **Output**         | Generated documentation and analysis | `specs/<NN>-PROJ-XXXX-slug/`   |
 
 ---
 

@@ -1051,7 +1051,7 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
   // it is drawn, so this is a filter at render time — the old shared
   // form had to disable the box from script as the selection changed.
   const others = (opts.projects ?? []).filter((p) => p !== g.project);
-  const extraField = others.length
+  return others.length
     ? field(
         "Also touches",
         phases(
@@ -1072,7 +1072,6 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
         { group: true },
       )
     : "";
-  return extraField;
 }
 
 // Everything an OPEN row offers, in the cell the table opens with.

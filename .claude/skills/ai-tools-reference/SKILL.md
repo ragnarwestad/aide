@@ -36,14 +36,14 @@ Last verified: 2026-03-28
 Skills are a cross-cutting standard. All three tools read skills from
 overlapping paths:
 
-| Path | Claude Code | Copilot | Codex |
-|-----|:-----------:|:-------:|:-----:|
-| `~/.claude/skills/<name>/SKILL.md` | yes | no (dropped; verified 1.0.79) | no |
-| `~/.copilot/skills/<name>/SKILL.md` | no | yes | no |
-| `~/.agents/skills/<name>/SKILL.md` | no | yes (v1.0.11+) | yes |
-| `.claude/skills/<name>/SKILL.md` | yes | yes | no |
-| `.github/skills/<name>/SKILL.md` | no | yes | no |
-| `.agents/skills/<name>/SKILL.md` | no | yes | yes |
+| Path                                | Claude Code |            Copilot            | Codex |
+|-------------------------------------|:-----------:|:-----------------------------:|:-----:|
+| `~/.claude/skills/<name>/SKILL.md`  |     yes     | no (dropped; verified 1.0.79) |  no   |
+| `~/.copilot/skills/<name>/SKILL.md` |     no      |              yes              |  no   |
+| `~/.agents/skills/<name>/SKILL.md`  |     no      |        yes (v1.0.11+)         |  yes  |
+| `.claude/skills/<name>/SKILL.md`    |     yes     |              yes              |  no   |
+| `.github/skills/<name>/SKILL.md`    |     no      |              yes              |  no   |
+| `.agents/skills/<name>/SKILL.md`    |     no      |              yes              |  yes  |
 
 **Format:** Folder with `SKILL.md` as the entry point. YAML frontmatter with
 `name` and `description` (required). Markdown body with instructions.
@@ -53,14 +53,14 @@ overlapping paths:
 fields — `name`, `description`, `license`, `compatibility`, `metadata`,
 `allowed-tools`. Tool support:
 
-| Field | Spec | Claude Code | Copilot | Codex |
-|-------|:----:|:-----------:|:-------:|:-----:|
-| `name`, `description` | yes | yes | yes | yes |
-| `license` | yes | accepted, inert | yes | ignored |
-| `compatibility`, `metadata` | yes | accepted, inert | ignored | ignored |
-| `allowed-tools` | experimental | enforced | yes | ignored |
-| `effort`, `argument-hint` | no | yes | ignored | ignored |
-| 12 more Claude Code fields (`model`, `context`, `hooks`, `paths`, …) | no | yes | ignored | ignored |
+| Field                                                                |     Spec     |   Claude Code   | Copilot |  Codex  |
+|----------------------------------------------------------------------|:------------:|:---------------:|:-------:|:-------:|
+| `name`, `description`                                                |     yes      |       yes       |   yes   |   yes   |
+| `license`                                                            |     yes      | accepted, inert |   yes   | ignored |
+| `compatibility`, `metadata`                                          |     yes      | accepted, inert | ignored | ignored |
+| `allowed-tools`                                                      | experimental |    enforced     |   yes   | ignored |
+| `effort`, `argument-hint`                                            |      no      |       yes       | ignored | ignored |
+| 12 more Claude Code fields (`model`, `context`, `hooks`, `paths`, …) |      no      |       yes       | ignored | ignored |
 
 **aide's policy (additive-only):** beyond the spec's six fields, skills may
 only use Claude Code extras that degrade additively — a tool that ignores
@@ -87,11 +87,11 @@ still read by the Copilot CLI (same verification).
 
 All tools have a project instruction file that is read automatically:
 
-| Tool | File | Global |
-|---------|-----|--------|
-| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| Copilot | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` |
-| Codex | `AGENTS.md` | `~/.codex/AGENTS.md` |
+| Tool        | File                               | Global                               |
+|-------------|------------------------------------|--------------------------------------|
+| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md`                |
+| Copilot     | `.github/copilot-instructions.md`  | `~/.copilot/copilot-instructions.md` |
+| Codex       | `AGENTS.md`                        | `~/.codex/AGENTS.md`                 |
 
 **Copilot also reads the others' files** (only in Coding Agent):
 `AGENTS.md` and `CLAUDE.md` in the repo root.
@@ -104,17 +104,17 @@ All tools have a project instruction file that is read automatically:
 
 ### Configuration files
 
-| File | Path | Purpose |
-|-----|-----|--------|
-| CLAUDE.md | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` | Instructions |
-| settings.json | `.claude/settings.json`, `~/.claude/settings.json` | Permissions, hooks, env |
-| settings.local.json | `.claude/settings.local.json` | Local overrides (gitignored) |
-| Skills | `~/.claude/skills/<name>/SKILL.md` | Slash commands |
-| Rules | `~/.claude/rules/*.md`, `.claude/rules/*.md` | Automatically loaded rules |
-| Agents | `~/.claude/agents/*.md`, `.claude/agents/*.md` | Subagent definitions |
-| Commands | `~/.claude/commands/*.md` | Unified with skills (both create `/` commands) |
-| MCP | `~/.claude/.mcp.json`, `.claude/.mcp.json` | MCP servers |
-| Memory | `~/.claude/projects/<project>/memory/` | Auto-memory |
+| File                | Path                                                        | Purpose                                        |
+|---------------------|-------------------------------------------------------------|------------------------------------------------|
+| CLAUDE.md           | `./CLAUDE.md`, `./.claude/CLAUDE.md`, `~/.claude/CLAUDE.md` | Instructions                                   |
+| settings.json       | `.claude/settings.json`, `~/.claude/settings.json`          | Permissions, hooks, env                        |
+| settings.local.json | `.claude/settings.local.json`                               | Local overrides (gitignored)                   |
+| Skills              | `~/.claude/skills/<name>/SKILL.md`                          | Slash commands                                 |
+| Rules               | `~/.claude/rules/*.md`, `.claude/rules/*.md`                | Automatically loaded rules                     |
+| Agents              | `~/.claude/agents/*.md`, `.claude/agents/*.md`              | Subagent definitions                           |
+| Commands            | `~/.claude/commands/*.md`                                   | Unified with skills (both create `/` commands) |
+| MCP                 | `~/.claude/.mcp.json`, `.claude/.mcp.json`                  | MCP servers                                    |
+| Memory              | `~/.claude/projects/<project>/memory/`                      | Auto-memory                                    |
 
 ### Rules
 
@@ -139,15 +139,15 @@ Hooks support an `if` field with permission rule syntax for conditional executio
 
 Skills and agents support these frontmatter fields:
 
-| Field | Purpose |
-|------|--------|
-| `name` | Identifier |
-| `description` | Trigger matching (max ~250 chars shown in `/skills`) |
-| `effort` | Reasoning effort for the skill (low/medium/high) |
-| `maxTurns` | Max number of turns for the agent |
-| `disallowedTools` | Tools the agent does not have access to |
-| `initialPrompt` | Auto-submit first turn |
-| `paths` | YAML list of globs for path-specific activation |
+| Field             | Purpose                                              |
+|-------------------|------------------------------------------------------|
+| `name`            | Identifier                                           |
+| `description`     | Trigger matching (max ~250 chars shown in `/skills`) |
+| `effort`          | Reasoning effort for the skill (low/medium/high)     |
+| `maxTurns`        | Max number of turns for the agent                    |
+| `disallowedTools` | Tools the agent does not have access to              |
+| `initialPrompt`   | Auto-submit first turn                               |
+| `paths`           | YAML list of globs for path-specific activation      |
 
 ---
 
@@ -157,16 +157,16 @@ Skills and agents support these frontmatter fields:
 
 ### Configuration files
 
-| File | Path | Purpose |
-|-----|-----|--------|
-| Custom instructions | `.github/copilot-instructions.md` | Repo-wide instructions |
-| Path-specific | `.github/instructions/*.instructions.md` | Path-specific rules |
-| Global instructions | `~/.copilot/copilot-instructions.md` | Personal instructions |
-| Skills | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-based skills |
-| Custom agents | `.github/agents/*.md` | Agent definitions |
-| CLI config | `~/.copilot/config.json` | CLI configuration |
-| VS Code settings | `.vscode/settings.json` | IDE configuration |
-| Coding Agent env | `.github/workflows/copilot-setup-steps.yml` | CI environment for Coding Agent |
+| File                | Path                                                                              | Purpose                         |
+|---------------------|-----------------------------------------------------------------------------------|---------------------------------|
+| Custom instructions | `.github/copilot-instructions.md`                                                 | Repo-wide instructions          |
+| Path-specific       | `.github/instructions/*.instructions.md`                                          | Path-specific rules             |
+| Global instructions | `~/.copilot/copilot-instructions.md`                                              | Personal instructions           |
+| Skills              | `~/.claude/skills/`, `~/.copilot/skills/`, `~/.agents/skills/`, `.github/skills/` | SKILL.md-based skills           |
+| Custom agents       | `.github/agents/*.md`                                                             | Agent definitions               |
+| CLI config          | `~/.copilot/config.json`                                                          | CLI configuration               |
+| VS Code settings    | `.vscode/settings.json`                                                           | IDE configuration               |
+| Coding Agent env    | `.github/workflows/copilot-setup-steps.yml`                                       | CI environment for Coding Agent |
 
 ### Path-specific instructions
 
@@ -213,13 +213,13 @@ means projects can have project-specific skills in
 
 ### Configuration files
 
-| File | Path | Purpose |
-|-----|-----|--------|
-| AGENTS.md | Repo root and down to cwd | Instructions (directory walk) |
-| AGENTS.override.md | Same paths | Override without deleting AGENTS.md |
-| config.toml | `~/.codex/config.toml`, `<repo>/.codex/config.toml` | Configuration |
-| Skills | `~/.agents/skills/`, `.agents/skills/` | SKILL.md-based skills |
-| hooks.json | `~/.codex/hooks.json`, `<repo>/.codex/hooks.json` | Hooks (experimental) |
+| File               | Path                                                | Purpose                             |
+|--------------------|-----------------------------------------------------|-------------------------------------|
+| AGENTS.md          | Repo root and down to cwd                           | Instructions (directory walk)       |
+| AGENTS.override.md | Same paths                                          | Override without deleting AGENTS.md |
+| config.toml        | `~/.codex/config.toml`, `<repo>/.codex/config.toml` | Configuration                       |
+| Skills             | `~/.agents/skills/`, `.agents/skills/`              | SKILL.md-based skills               |
+| hooks.json         | `~/.codex/hooks.json`, `<repo>/.codex/hooks.json`   | Hooks (experimental)                |
 
 ### AGENTS.md
 
@@ -246,32 +246,32 @@ structured inter-agent messaging.
 
 ### Instructions and rules
 
-| Feature | Claude Code | Copilot | Codex |
-|----------|:-----------:|:-------:|:-----:|
-| Project instructions | CLAUDE.md | copilot-instructions.md | AGENTS.md |
-| Path-specific rules | rules/ with paths | instructions/*.instructions.md | no |
-| Directory walk | yes | no (single file) | yes (root→cwd) |
-| Global instructions | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md |
-| File import | no | no | no |
+| Feature              |     Claude Code     |              Copilot               |       Codex        |
+|----------------------|:-------------------:|:----------------------------------:|:------------------:|
+| Project instructions |      CLAUDE.md      |      copilot-instructions.md       |     AGENTS.md      |
+| Path-specific rules  |  rules/ with paths  |   instructions/*.instructions.md   |         no         |
+| Directory walk       |         yes         |          no (single file)          |   yes (root→cwd)   |
+| Global instructions  | ~/.claude/CLAUDE.md | ~/.copilot/copilot-instructions.md | ~/.codex/AGENTS.md |
+| File import          |         no          |                 no                 |         no         |
 
 ### Skills and commands
 
-| Feature | Claude Code | Copilot | Codex |
-|----------|:-----------:|:-------:|:-----:|
-| Skills (SKILL.md) | yes | yes | yes |
-| Custom commands | unified with skills (.md) | no | no |
-| Slash commands | /skill-name | /skill-name | /skill-name |
-| Auto-activation | yes (description match) | yes | yes |
+| Feature           |        Claude Code        |   Copilot   |    Codex    |
+|-------------------|:-------------------------:|:-----------:|:-----------:|
+| Skills (SKILL.md) |            yes            |     yes     |     yes     |
+| Custom commands   | unified with skills (.md) |     no      |     no      |
+| Slash commands    |        /skill-name        | /skill-name | /skill-name |
+| Auto-activation   |  yes (description match)  |     yes     |     yes     |
 
 ### Configuration
 
-| Feature | Claude Code | Copilot | Codex |
-|----------|:-----------:|:-------:|:-----:|
-| Config format | JSON | JSON | TOML |
-| Config path | .claude/ | .github/, .vscode/ | .codex/ |
-| MCP servers | yes | yes (agents) | yes |
-| Hooks | yes | no | yes (experimental) |
-| Agents/subagents | yes | yes (.github/agents/) | yes (v0.117+, plugins) |
+| Feature          | Claude Code |        Copilot        |         Codex          |
+|------------------|:-----------:|:---------------------:|:----------------------:|
+| Config format    |    JSON     |         JSON          |          TOML          |
+| Config path      |  .claude/   |  .github/, .vscode/   |        .codex/         |
+| MCP servers      |     yes     |     yes (agents)      |          yes           |
+| Hooks            |     yes     |          no           |   yes (experimental)   |
+| Agents/subagents |     yes     | yes (.github/agents/) | yes (v0.117+, plugins) |
 
 ---
 

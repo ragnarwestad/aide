@@ -495,13 +495,13 @@ The checks are `aide-run-spec`'s own prerequisites, read-only, taken
 after the Add has written its files — the `.aide` written a second
 earlier is part of what the runner will see:
 
-| Check | Blocks a run when |
-|-------|-------------------|
-| `gitRoot` | the project directory is no repository, or is inside a bigger one — a run would branch and push that one |
-| `specsRoot` | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory |
-| `specsRepo` | that specs root is in no git repository, so nothing would commit the spec a run writes |
-| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out |
-| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there |
+| Check           | Blocks a run when                                                                                        |
+|-----------------|----------------------------------------------------------------------------------------------------------|
+| `gitRoot`       | the project directory is no repository, or is inside a bigger one — a run would branch and push that one |
+| `specsRoot`     | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory           |
+| `specsRepo`     | that specs root is in no git repository, so nothing would commit the spec a run writes                   |
+| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out         |
+| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                              |
 
 `defaultBranch` is asked of **every** repository a run touches — the
 project's, and the specs repo when the specs live elsewhere — because
@@ -910,14 +910,14 @@ it carries a `.rowmsg.err` with a warning mark beside the reason.
 
 `src/render/components.ts` is the one place markup for them is built:
 
-| Component | Variants |
-|---|---|
-| `btn()` | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small` |
-| `badge()` | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done` |
-| `phaseChip()` | `default`, `checked`, `done`, `busy`, `off` (with the reason in `title`) |
-| `rowMessage()` | `err`, `warn`, `info` |
-| `field()` | label above any control, one height and one radius |
-| `filterPills()` | "Label · count", the chosen one marked with `aria-current` |
+| Component       | Variants                                                                 |
+|-----------------|--------------------------------------------------------------------------|
+| `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`   |
+| `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`     |
+| `phaseChip()`   | `default`, `checked`, `done`, `busy`, `off` (with the reason in `title`) |
+| `rowMessage()`  | `err`, `warn`, `info`                                                    |
+| `field()`       | label above any control, one height and one radius                       |
+| `filterPills()` | "Label · count", the chosen one marked with `aria-current`               |
 
 `STEP_LABELS` lives there too: the `review-plan` step is SHOWN as
 `review` everywhere a reader sees it, while `data-phase`, the checkbox
@@ -1055,18 +1055,18 @@ Everything is overridable, nothing personal is baked in:
 
 All paths are relative to the serving host's own `$HOME`.
 
-| Variable | Default | What it is |
-| --- | --- | --- |
-| `MINI` | — required | the ssh target |
-| `PORT` | `8788` | port to serve on |
-| `MINI_SRC` | `develop/aide-dashboard` | the checkout |
-| `REMOTE_STATE` | `aide-dashboard` | site, mirrors, queue state |
-| `REMOTE_BUN` | `.local/share/mise/shims/bun` | bun on that host |
-| `LABEL` | `com.aide-dashboard.serve` | launchd job label |
-| `QUEUE_PROJECTS` | `aide,aide-dashboard` | the allowlist's first-boot seed |
-| `ROOT` | unset | project root there (omitted when unset) |
-| `BIND` | unset | address to bind (omitted when unset) |
-| `CLAUDE_USAGE` | unset | claude-usage URL (omitted when unset) |
+| Variable         | Default                       | What it is                              |
+|------------------|-------------------------------|-----------------------------------------|
+| `MINI`           | — required                    | the ssh target                          |
+| `PORT`           | `8788`                        | port to serve on                        |
+| `MINI_SRC`       | `develop/aide-dashboard`      | the checkout                            |
+| `REMOTE_STATE`   | `aide-dashboard`              | site, mirrors, queue state              |
+| `REMOTE_BUN`     | `.local/share/mise/shims/bun` | bun on that host                        |
+| `LABEL`          | `com.aide-dashboard.serve`    | launchd job label                       |
+| `QUEUE_PROJECTS` | `aide,aide-dashboard`         | the allowlist's first-boot seed         |
+| `ROOT`           | unset                         | project root there (omitted when unset) |
+| `BIND`           | unset                         | address to bind (omitted when unset)    |
+| `CLAUDE_USAGE`   | unset                         | claude-usage URL (omitted when unset)   |
 
 Publishing the generated site to that host is separate:
 `AIDE_DASH_HOST=<host> make publish`. Before rsyncing (with `--delete`),

@@ -394,21 +394,21 @@ progress percentage below says how far the TDD phases inside
 
 ## Separation of content
 
-| Content                    | Location          |
-|----------------------------|-------------------|
-| Problem description        | 1-description.md  |
-| Metadata                   | 1-description.md  |
-| Mapping/findings           | 2-analysis.md      |
-| Scope (files, estimate)    | 3-solution.md      |
-| Complexity analysis        | 3-solution.md      |
-| Risk analysis              | 3-solution.md      |
-| Approaches                 | 3-solution.md      |
-| Behavior delta             | 3-solution.md      |
-| Acceptance criteria        | 3-solution.md      |
-| Before/after examples      | 3-solution.md      |
-| Implementation plan        | 3-solution.md      |
-| Testing strategy           | 3-solution.md      |
-| Progress                   | 4-status.md       |
+| Content                 | Location         |
+|-------------------------|------------------|
+| Problem description     | 1-description.md |
+| Metadata                | 1-description.md |
+| Mapping/findings        | 2-analysis.md    |
+| Scope (files, estimate) | 3-solution.md    |
+| Complexity analysis     | 3-solution.md    |
+| Risk analysis           | 3-solution.md    |
+| Approaches              | 3-solution.md    |
+| Behavior delta          | 3-solution.md    |
+| Acceptance criteria     | 3-solution.md    |
+| Before/after examples   | 3-solution.md    |
+| Implementation plan     | 3-solution.md    |
+| Testing strategy        | 3-solution.md    |
+| Progress                | 4-status.md      |
 
 ---
 
@@ -416,12 +416,12 @@ progress percentage below says how far the TDD phases inside
 
 JIRA issues and TODO plans have an **identical structure**, but differ in content:
 
-| Aspect          | JIRA issues                   | TODO plans            |
-|-----------------|-------------------------------|-----------------------|
-| **Location**    | `specs/<NN>-PROJ-XXXX-slug/` | `specs/<NN>-slug/`  |
-| **Source**      | JIRA API (external)           | Created manually      |
-| **Description** | Copied from JIRA              | Written by the developer |
-| **Metadata**    | JIRA fields (type, status, etc.)| Number, date        |
+| Aspect          | JIRA issues                      | TODO plans               |
+|-----------------|----------------------------------|--------------------------|
+| **Location**    | `specs/<NN>-PROJ-XXXX-slug/`     | `specs/<NN>-slug/`       |
+| **Source**      | JIRA API (external)              | Created manually         |
+| **Description** | Copied from JIRA                 | Written by the developer |
+| **Metadata**    | JIRA fields (type, status, etc.) | Number, date             |
 
 **In common:**
 - 4 files: 1-description.md, 2-analysis.md, 3-solution.md, 4-status.md
@@ -442,5 +442,5 @@ The `/aide-analyze` command fills in the analysis, solution and status.
 
 ## See also
 
-- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - General documentation rules
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
+- [documentation.md](./documentation.md) - General documentation rules
+- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
