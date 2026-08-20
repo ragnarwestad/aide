@@ -385,36 +385,6 @@ function queueClientScript(): string | undefined {
   return queueScript || undefined;
 }
 
-// Which workflow steps a spec has already had. Read off the files
-// themselves, so the answer cannot drift from what is on disk:
-//   * create — the folder exists at all
-//   * analyze — 2-analysis.md is no longer the placeholder
-//   * review-plan — 3-solution.md carries a "Plan review" section
-//   * implement — the status file reports 100%
-// A finished step is MARKED, not forbidden: re-analyzing after the code
-// has moved on is a legitimate thing to want.
-function stepsAlreadyDone(specDir: string, percent: number | undefined): string[] {
-  // `create`'s file-truth is that this folder EXISTS — which it does, by
-  // construction: this function only ever runs against a directory
-  // `discoverProjects` already found on disk (spec 116). The three
-  // checks below each exist because their truth is not implied by the
-  // folder alone; create's is, so it needs no read.
-  const done: string[] = ["create"];
-  const read = (name: string): string => {
-    try {
-      return readFileSync(join(specDir, name), "utf-8");
-    } catch {
-      return "";
-    }
-  };
-  const analysis = read("2-analysis.md");
-  if (analysis.length > 400 && !analysis.includes("[filled in by")) done.push("analyze");
-  const solution = read("3-solution.md");
-  if (/^##\s+Plan review/m.test(solution)) done.push("review-plan");
-  if (percent === 100) done.push("implement");
-  return done;
-}
-
 // The tail of a file, without reading the rest of it. A 25-minute
 // implement run's transcript is not something a page render should ever
 // pull into memory whole — and the tail is the part that answers "what
@@ -643,7 +613,15 @@ export function createServer(opts: ServerOptions) {
             // as an archived spec, and how a phase could read "done" on
             // a row whose files said otherwise. What a job reported is
             // still shown, as a qualifier on the phase's line.
-            done: stepsAlreadyDone(s.dir, status?.progress?.percent),
+            //
+            // One line of that file, and no inference from any other
+            // (spec 139): each step writes its own name into
+            // `4-status.md` once it has succeeded. The three heuristics
+            // this replaces — the size of 2-analysis.md, a heading in
+            // 3-solution.md, the percentage here — each answered a
+            // question next to the one being asked, and the first of
+            // them marked spec 138 analysed before any analyze had run.
+            done: status?.workflowSteps ?? [],
             archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
           });
         }

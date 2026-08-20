@@ -1518,6 +1518,7 @@ echo "Hello"
   - [2-analysis](#2-analysis)
   - [3-solution](#3-solution)
   - [4-status](#4-status)
+    - [Workflow steps completed](#workflow-steps-completed)
 - [Separation of content](#separation-of-content)
 - [Differences JIRA vs TODO](#differences-jira-vs-todo)
 - [Templates](#templates)
@@ -1821,8 +1822,13 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ```markdown
 # [Title] - Status
 
-**Total progress:** X% (Y of Z completed)
-**Estimate:** [time]
+## Tracking info
+
+- **Task:** `NN-slug/`
+- **Workflow steps completed:** create, analyze
+- **Total progress:** X% (Y of Z completed)
+- **Estimate:** [time]
+- **Last updated:** `YYYY-MM-DD`
 
 ## Table of contents
 
@@ -1858,6 +1864,33 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 - Organized in phases (matches 3-solution.md)
 - Table format for clarity
 - Updated continuously
+
+#### Workflow steps completed
+
+One line in Tracking info, and the ONLY record of how far a spec has
+got through the workflow:
+
+```markdown
+- **Workflow steps completed:** create, analyze, review-plan
+```
+
+The allowed values, in workflow order, are `create`, `analyze`,
+`review-plan`, `implement` and `archive`. A missing line means nothing
+is known to have completed; an unknown value is ignored.
+
+**Each step writes its own value, and only once it has succeeded.**
+`/aide-create` starts the line at `create`; `/aide-analyze`,
+`/aide-review-plan`, `/aide-implement` and `/aide-archive` each add
+their own, keeping the values already there. A step that failed, was
+declined, was held back or had nothing it could do writes nothing —
+the line says what HAPPENED, never what was attempted. Re-running a
+step leaves one occurrence, not two.
+
+The dashboard reads this line to mark a spec's phases done and to
+pre-tick the step to run next. It reads nothing else for that: the
+progress percentage below says how far the TDD phases inside
+`implement` have got, which is a different question from whether
+`implement` ran at all.
 
 ---
 

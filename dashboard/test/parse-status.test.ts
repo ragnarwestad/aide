@@ -125,3 +125,109 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
     expect(archiveHeldBackReason(many)).toBe("the Slack webhook (Phase 4, still unchecked)");
   });
 });
+
+// --- spec 139: the one record of how far a spec has got ---------------------
+
+// Until now the dashboard GUESSED which workflow steps a spec had had,
+// from the size of 2-analysis.md, a heading in 3-solution.md and the
+// percentage in 4-status.md. All three are proxies for the question,
+// and the first of them broke on 2026-08-20: spec 138's untouched
+// analysis template is 693 bytes, so it read as analysed before any
+// analyze had run. The steps now SAY so, on one line of 4-status.md,
+// and this parses it.
+describe("spec 139: workflow steps completed", () => {
+  const withField = (value: string) =>
+    ["# 139 - Status", "", "## Tracking info", "", `- **Workflow steps completed:** ${value}`, ""].join("\n");
+
+  test("the canonical line comes back as its list (criterion 1)", () => {
+    expect(parseStatus(withField("create, analyze, review-plan")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+      "review-plan",
+    ]);
+  });
+
+  test("a freshly created spec has had exactly create (criterion 1)", () => {
+    expect(parseStatus(withField("create")).workflowSteps).toEqual(["create"]);
+  });
+
+  test("no such field means nothing is known to have completed (criterion 4)", () => {
+    expect(parseStatus("# 139 - Status\n\nProse only.\n").workflowSteps).toEqual([]);
+  });
+
+  test("an empty field is no completed step, not a blank one (criterion 4)", () => {
+    expect(parseStatus(withField("")).workflowSteps).toEqual([]);
+    expect(parseStatus(withField("none")).workflowSteps).toEqual([]);
+  });
+
+  test("unknown values are ignored (criterion 4)", () => {
+    expect(parseStatus(withField("create, resolve, merge, analyze")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+    ]);
+  });
+
+  test("duplicates collapse and the order is the workflow's, not the line's (criterion 4)", () => {
+    expect(parseStatus(withField("implement, create, analyze, create")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+      "implement",
+    ]);
+  });
+
+  test("backticks, case and stray spacing do not change the answer (criterion 4)", () => {
+    expect(parseStatus(withField("`Create`,  ANALYZE ,review-plan")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+      "review-plan",
+    ]);
+  });
+
+  test("archive is an allowed value — the archived file stays the whole record", () => {
+    expect(parseStatus(withField("create, analyze, review-plan, implement, archive")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+      "review-plan",
+      "implement",
+      "archive",
+    ]);
+  });
+
+  // Criterion 9: the field is an ADDITION to 4-status.md. Everything the
+  // parser already answered out of that file must answer the same.
+  test("progress, phase and the held-back reason are untouched by the new field (criterion 9)", () => {
+    const content = [
+      "# 139 - Status",
+      "",
+      "## Tracking info",
+      "",
+      "- **Workflow steps completed:** create, analyze",
+      "- **Total progress:** `95% (21 of 22 completed)`",
+      "",
+      "## Archive held back",
+      "",
+      "- the Slack webhook (Phase 4, still unchecked)",
+      "",
+      "## Phase 1: RED",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      "| a    | ⬜     |       |",
+      "",
+    ].join("\n");
+    const status = parseStatus(content);
+    expect(status.progress).toEqual({ percent: 95, done: 21, total: 22 });
+    expect(status.phase).toBe("Phase 1: RED");
+    expect(status.workflowSteps).toEqual(["create", "analyze"]);
+    expect(archiveHeldBackReason(content)).toBe("the Slack webhook (Phase 4, still unchecked)");
+  });
+
+  // The line the old heuristics would have read as "analyze done": a
+  // status file saying only `create`, beside an untouched 693-byte
+  // analysis template. The parser answers from the field alone.
+  test("the field is the only source — a long analysis nearby says nothing", () => {
+    expect(parseStatus(withField("create") + "\n" + "Findings, at length. ".repeat(40)).workflowSteps).toEqual([
+      "create",
+    ]);
+  });
+});

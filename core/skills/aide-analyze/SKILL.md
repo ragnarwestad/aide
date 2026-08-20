@@ -106,6 +106,16 @@ Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 
+Then record the step on the line the dashboard reads, in Tracking info:
+
+```markdown
+- **Workflow steps completed:** create, analyze
+```
+
+Add `analyze` once and keep the values already there — the line is the
+whole record of how far the spec has got, and rewriting it loses the
+steps before this one. Do not record it if the analysis did not complete: an analysis that failed, or that you stopped part-way, leaves the line as it was.
+
 ### Step 7: Confirm
 
 Show a summary with complexity, number of affected files, and the next step.

@@ -76,6 +76,16 @@ Usage:
 6. Update 4-status.md
 7. Show a summary — ready for commit
 
+Then record the step on the line the dashboard reads, in Tracking info:
+
+```markdown
+- **Workflow steps completed:** create, analyze, review-plan, implement
+```
+
+Add `implement` once and keep the values already there — the line is the
+whole record of how far the spec has got, and rewriting it loses the
+steps before this one. Do not record it until the verification in this phase has passed. A red suite, a failing build or a phase you could not finish leaves the line as it was — the percentage above it says how far the TDD phases got, and that is the field for partial work.
+
 ### Reporting the phase
 
 One Bash call at the start of each phase, with the spec's ID:

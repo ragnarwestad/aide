@@ -96,6 +96,17 @@ active list with its lesson unrecorded.
 3. Move the folder INTO `archive/` with its name unchanged:
    `git mv` if the specs root is git-tracked, plain `mv` otherwise
 
+
+Then record the step on the line the dashboard reads, in Tracking info:
+
+```markdown
+- **Workflow steps completed:** create, analyze, review-plan, implement, archive
+```
+
+Add `archive` once and keep the values already there — the line is the
+whole record of how far the spec has got, and rewriting it loses the
+steps before this one. Write it AFTER the move, into the status file at its new address under `archive/` — a record written first would claim a move that then failed. Do not record it when the archive was held back or the move did not happen.
+
 The folder keeps its `NN-slug` name — the date lives in `4-status.md`.
 Numbers are never reused: `aide_next_spec_number` (in
 `_aide-spec-lib.sh`) scans `archive/` too, and `aide-generate-pdf`/

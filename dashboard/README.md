@@ -184,6 +184,28 @@ that pair as one gated job is how a spec is actually started here. A
 phase already done is marked with a tick and left unticked; ticking it
 anyway is a rerun, and no rule stands in the way.
 
+**Which phases a spec has HAD is read off one line, and nothing else**
+(spec 139): `- **Workflow steps completed:** create, analyze` in the
+Tracking info of its `4-status.md`. Each step writes its own name there
+once it has succeeded, and `core/rules/spec-structure.md` § 4-status is
+where that contract lives.
+
+The three things this replaced were each a proxy for the question
+rather than an answer to it: `2-analysis.md` being over 400 bytes and
+free of a placeholder string meant analysed, a `## Plan review` heading
+in `3-solution.md` meant reviewed, and 100% in `4-status.md` meant
+implemented. On 2026-08-20 the first of them marked spec 138 analysed
+before any analyze had run — its untouched analysis template is 693
+bytes — so the row offered review-plan instead, and review-plan ran
+three times against an empty template. The percentage keeps its own
+job: it says how far the TDD phases INSIDE implement have got, which is
+a different question from whether implement ran.
+
+A spec whose status file predates the line has had nothing as far as
+the page is concerned. That is deliberate: a spec that reads as
+unfinished is visible and is fixed by running the step, where a silent
+guess is neither.
+
 The State column answers what a reader came to find out, and its FIRST
 line is one of two things, always (spec 132): the verb for what is
 happening — "analyzing", "implementing", "implementing queued" — or,
@@ -585,9 +607,9 @@ phase never run shows a muted "not run yet". A phase run more than once
 shows its LATEST attempt with the count beside it, because a re-run is
 ordinary: one spec needed three `archive` runs.
 
-The first line is `create` (spec 116) — history, not a control. Its
-file-truth is that the spec's folder exists, so the line always reads
-done; a spec with a create job in the queue's history additionally
+The first line is `create` (spec 116) — history, not a control. It
+reads done once `4-status.md` records it, which is what `/aide-create`
+writes into a new spec; a spec with a create job in the queue's history additionally
 shows that run (state, model, time, cost, link), and a spec made by
 hand or before spec 93 shows the line inert, the same way any phase run
 outside the queue does. It has no checkbox and no pip of its own — the

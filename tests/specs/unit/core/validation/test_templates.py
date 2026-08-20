@@ -460,3 +460,156 @@ class TestManualTestingIsANote:
             "the After-implementation step must not call the note a 'test plan' to follow"
         assert "optional" in after.lower(), \
             "the After-implementation step must say plainly that it is optional"
+
+
+@pytest.mark.validation
+class TestWorkflowStepRecord:
+    """Spec 139: one line says which workflow steps a spec has HAD.
+
+    The dashboard used to infer it — 2-analysis.md over 400 bytes meant
+    analysed, a `## Plan review` heading meant reviewed, 100% meant
+    implemented. All three are proxies, and the first marked spec 138
+    analysed before any analyze had run. The steps now record themselves
+    on one line of `4-status.md`, so this pins the two template sources,
+    the rule that defines the line, and the four skills that write it.
+    """
+
+    FIELD = "**Workflow steps completed:**"
+
+    # Each writer, the value it adds, and the words that must appear in
+    # the section where it says so: what it must NOT undo, and the case
+    # in which it must NOT write at all (criteria 5-8).
+    WRITERS = {
+        "aide-analyze": ("analyze", ("fail",)),
+        "aide-review-plan": ("review-plan", ("zero findings", "template")),
+        "aide-implement": ("implement", ("verification",)),
+        "aide-archive": ("archive", ("held back", "after")),
+    }
+
+    @staticmethod
+    def _text(workspace_root, *parts):
+        path = workspace_root.joinpath(*parts)
+        if not path.exists():
+            pytest.skip(f"{path.name} not found")
+        return path.read_text()
+
+    def _record_section(self, content, name):
+        """The `###` section in which a skill writes the record."""
+        assert self.FIELD in content, \
+            f"{name} never names the '{self.FIELD}' line the dashboard reads"
+        at = content.index(self.FIELD)
+        start = content.rfind("\n### ", 0, at)
+        assert start != -1, f"{name} states the line outside any step"
+        # From the `###` heading to the next heading of any level — the
+        # section's own body, not the one after it.
+        body_at = content.index("\n", start + 1) + 1
+        end = re.search(r"^#{1,3} ", content[body_at:], flags=re.M)
+        return content[start:body_at + end.start()] if end else content[start:]
+
+    # Criterion 1: a new spec has had exactly one step.
+    def test_status_template_starts_the_record_at_create(self, workspace_root):
+        content = self._template(workspace_root, "4-status.md.template")
+        line = next((ln for ln in content.splitlines() if self.FIELD in ln), None)
+        assert line is not None, \
+            "4-status.md.template must carry the workflow-steps line — without it a " \
+            "created spec reads as having had nothing"
+        value = line.split(self.FIELD, 1)[1].strip().strip("`")
+        assert value == "create", \
+            f"a new spec has had create and nothing else, not {value!r}"
+
+    def test_status_template_puts_the_record_in_tracking_info(self, workspace_root):
+        content = self._template(workspace_root, "4-status.md.template")
+        tracking = content.split("## Tracking info", 1)[1].split("\n---", 1)[0]
+        assert self.FIELD in tracking, \
+            "the record belongs in Tracking info, beside the task and the date"
+
+    # Criterion 1, the other template source: /aide-create follows the
+    # skill's copy, and the two disagreeing is what caused spec 138's
+    # analysis to read as done (1-description.md).
+    def test_file_templates_describe_the_record(self, workspace_root):
+        content = self._text(workspace_root, "core", "skills", "aide-create",
+                             "references", "file-templates.md")
+        status = next(chunk for chunk in content.split("\n## ")
+                      if chunk.splitlines()[0].startswith("4-status"))
+        assert "Workflow steps completed" in status, \
+            "file-templates.md must tell /aide-create to write the workflow-steps line"
+        assert "create" in status.split("Workflow steps completed", 1)[1].split("\n")[0], \
+            "file-templates.md must say a new spec's record is `create`"
+
+    @staticmethod
+    def _status_section(rule):
+        """The `### 4-status` section, fenced examples and all.
+
+        Not `split("\n## ")`: those examples CONTAIN `## ` headings —
+        `## Table of contents`, `## Phase 1` — so a plain split ends the
+        section inside the first code block.
+        """
+        lines = rule.splitlines()
+        start = next(i for i, ln in enumerate(lines) if ln.startswith("### 4-status"))
+        fenced = False
+        for i in range(start + 1, len(lines)):
+            if lines[i].startswith("```"):
+                fenced = not fenced
+            elif not fenced and lines[i].startswith("## "):
+                return "\n".join(lines[start:i])
+        return "\n".join(lines[start:])
+
+    # The contract itself, in the one rule every tool is given.
+    def test_the_rule_defines_the_line_and_its_values(self, workspace_root):
+        rule = self._rule(workspace_root)
+        assert "Workflow steps completed" in rule, \
+            "spec-structure.md must define the workflow-steps line"
+        section = self._status_section(rule)
+        for step in ("create", "analyze", "review-plan", "implement", "archive"):
+            assert step in section, \
+                f"spec-structure.md's 4-status section must name '{step}' as an allowed value"
+
+    def test_the_rule_says_the_step_writes_its_own_value(self, workspace_root):
+        lowered = self._status_section(self._rule(workspace_root)).lower()
+        assert "succeed" in lowered or "success" in lowered, \
+            "the rule must say a step records itself only once it has SUCCEEDED"
+        assert "dashboard" in lowered, \
+            "the rule must say who reads the line, so nobody edits it as decoration"
+
+    # Criteria 5-8: each writer adds its own value, keeps the earlier
+    # ones, and withholds it when its own work did not happen.
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_writer_records_its_own_step(self, workspace_root, skill):
+        step, _ = self.WRITERS[skill]
+        section = self._record_section(
+            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill)
+        assert step in section, \
+            f"{skill} must name '{step}' as the value it adds"
+
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_writer_preserves_the_values_already_there(self, workspace_root, skill):
+        section = self._record_section(
+            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill).lower()
+        assert "keep the values already there" in section, \
+            f"{skill} must say plainly that earlier values stay — a rewritten line loses them"
+
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_writer_withholds_the_value_when_the_step_did_not_happen(
+            self, workspace_root, skill):
+        _, required = self.WRITERS[skill]
+        section = self._record_section(
+            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill).lower()
+        assert "do not record" in section, \
+            f"{skill} must name the case in which it writes nothing at all"
+        for phrase in required:
+            assert phrase in section, \
+                f"{skill}'s exclusion must name '{phrase}' — the case criteria 5-8 pin"
+
+    @staticmethod
+    def _template(workspace_root, name):
+        path = workspace_root / "core" / "templates" / "todo" / name
+        if not path.exists():
+            pytest.skip(f"{name} not found")
+        return path.read_text()
+
+    @staticmethod
+    def _rule(workspace_root):
+        path = workspace_root / "core" / "rules" / "spec-structure.md"
+        if not path.exists():
+            pytest.skip("spec-structure.md not found")
+        return path.read_text()

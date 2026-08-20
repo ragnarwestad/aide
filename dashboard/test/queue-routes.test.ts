@@ -19,7 +19,7 @@ import {
   type QueuePageOptions,
   type QueueRowView,
 } from "../src/render.ts";
-import { queueHarness } from "./helpers/queue-server.ts";
+import { queueHarness, statusSaying } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
 
 const TOKEN = "s3cret-token";
@@ -441,10 +441,11 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     }
   });
 
-  // Spec 116: the folder being on disk IS create's file-truth, so every
-  // spec the page can draw has that line, and it always reads done —
-  // including the ones made by hand, long before the queue existed.
-  test("a spec on disk reads create as done, and offers no box for it (spec 116)", async () => {
+  // Spec 116 gave create a phase line of its own; spec 139 gave it the
+  // same source as every other step. `/aide-create` writes
+  // `Workflow steps completed: create` into 4-status.md, so a created
+  // spec says so — and the line is a report, never a box to tick.
+  test("a created spec reads create as done, and offers no box for it (spec 116)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
@@ -500,7 +501,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
+    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     // Said done by the phase line's own State column — the box beside
     // it carries no second mark (spec 124) — and still submittable.
@@ -695,7 +696,10 @@ describe("every row answers for itself", () => {
     // Give the spec a status file the page can summarise.
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
-      "# Queue - Status\n\n**Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
+      statusSaying(
+        ["create", "analyze", "review-plan"],
+        "- **Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
+      ),
     );
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
     // Server-rendered on the row itself: there is no selection left to
@@ -794,8 +798,7 @@ describe("the step boxes on a row follow that spec", () => {
   test("a step the spec has already had is marked done and left unticked (criterion 1)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
+    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
@@ -810,6 +813,8 @@ describe("the step boxes on a row follow that spec", () => {
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
       "# Analysis\n\n[filled in by /aide-analyze]\n",
     );
+    // Created and nothing else: the record, not the file's size, is
+    // what says so (spec 139).
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
@@ -819,11 +824,11 @@ describe("the step boxes on a row follow that spec", () => {
 
   test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    // Filled in by hand, never queued: `done` reads the files, so the
-    // pair must not tick and mark the same box at once.
+    // Analysed by hand, never queued: the analysis wrote the record
+    // too, so the pair must not tick and mark the same box at once.
     writeFileSync(
-      join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
-      "# Analysis\n\n" + "Findings, at length. ".repeat(40),
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
+      statusSaying(["create", "analyze"]),
     );
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
@@ -882,15 +887,89 @@ describe("the runner invocation", () => {
 // own record of what it ran. The two used to be unioned, so either one
 // being true was enough, which is how an archive job that finished
 // without moving anything counted as an archived spec.
+// Spec 139: one record says how far a spec has got. The dashboard used
+// to GUESS — 2-analysis.md over 400 bytes meant analysed, a "Plan
+// review" heading in 3-solution.md meant reviewed, 100% in 4-status.md
+// meant implemented. On 2026-08-20 the first of those marked spec 138
+// analysed before any analyze had run: its untouched analysis template
+// is 693 bytes and carries a placeholder the check did not know. The
+// row then offered review-plan, and review-plan ran three times against
+// an empty template.
+describe("spec 139: the steps a spec has had say so themselves", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+  const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
+
+  test("an untouched analysis template is not an analysis (criterion 2)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    // Spec 138's own file, at its own size, with the placeholder
+    // `/aide-create` actually writes — the exact shape that read as
+    // done. The record beside it says the spec has only been created.
+    writeFileSync(
+      join(specDir(dir), "2-analysis.md"),
+      "# X - Analysis\n\n## Findings\n\n[not analyzed yet]\n" + "Section placeholder. ".repeat(40),
+    );
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
+    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    expect(phaseDone(line, "analyze")).toBe(false);
+    expect(phaseDone(line, "review-plan")).toBe(false);
+    // And the box that comes pre-ticked is the one that has not run.
+    expect(line).toMatch(/value="analyze" checked/);
+  });
+
+  test("a Plan review heading with no record is not a reviewed plan (criterion 2)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "3-solution.md"), "# X - Solution\n\n## Plan review\n\n[not reviewed yet]\n");
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
+    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    expect(phaseDone(line, "review-plan")).toBe(false);
+  });
+
+  test("the recorded list is what the row marks done, and implement is next (criterion 3)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(true);
+    expect(phaseDone(line, "analyze")).toBe(true);
+    expect(phaseDone(line, "review-plan")).toBe(true);
+    expect(phaseDone(line, "implement")).toBe(false);
+    expect(line).toMatch(/value="implement" checked/);
+    expect(line).not.toMatch(/value="analyze" checked/);
+  });
+
+  // Implement's mark used to be earned from the percentage, which says
+  // how far the TDD phases inside the step have got — not whether the
+  // step ran. A spec whose plan has 22 tasks all ticked is implemented
+  // because implement SAYS so.
+  test("100% without the record does not make implement done (criterion 2)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(
+      join(specDir(dir), "4-status.md"),
+      statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `100% (22 of 22 completed)`\n"),
+    );
+    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    expect(phaseDone(line, "implement")).toBe(false);
+    expect(line).toMatch(/value="implement" checked/);
+  });
+
+  test("a spec with no status file at all has had nothing, and does not throw (criterion 4)", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    rmSync(join(specDir(dir), "4-status.md"));
+    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(false);
+    expect(line).toMatch(/value="analyze" checked/);
+  });
+});
+
 describe("the files say what has happened, not the queue's history", () => {
   test("a step the queue completed is NOT done while the files still say otherwise", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     // Analysed and reviewed already; the status says 95%, so implement
     // is what the files say is still to do.
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `95% (21 of 22 completed)`\n");
+    writeFileSync(
+      join(spec, "4-status.md"),
+      statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `95% (21 of 22 completed)`\n"),
+    );
 
     let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
@@ -934,9 +1013,13 @@ describe("the files say what has happened, not the queue's history", () => {
   test("the same step IS done once the status file says 100%", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (22 of 22 completed)`\n");
+    writeFileSync(
+      join(spec, "4-status.md"),
+      statusSaying(
+        ["create", "analyze", "review-plan", "implement"],
+        "- **Total progress:** `100% (22 of 22 completed)`\n",
+      ),
+    );
 
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
@@ -950,12 +1033,13 @@ describe("the files say what has happened, not the queue's history", () => {
   test("a spec whose archive run declined says why, on the row and in the sentence", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
     writeFileSync(
       join(spec, "4-status.md"),
-      "# Status\n\n**Total progress:** `100% (22 of 22 completed)`\n\n" +
-        "## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n",
+      statusSaying(
+        ["create", "analyze", "review-plan", "implement"],
+        "- **Total progress:** `100% (22 of 22 completed)`\n\n" +
+          "## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n",
+      ),
     );
 
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
@@ -2837,7 +2921,10 @@ describe("landing an archived spec (spec 136)", () => {
     // What the merge brings into the main checkout.
     writeFileSync(
       join(specDir, "4-status.md"),
-      "# Status\n\n## Archive held back\n\n- the implementation was reverted\n",
+      statusSaying(
+        ["create", "analyze", "review-plan", "implement"],
+        "\n## Archive held back\n\n- the implementation was reverted\n",
+      ),
     );
     const job = await runStep(base, "archive");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
@@ -2898,9 +2985,13 @@ describe("a description newer than the analysis is shown on the row", () => {
   /** A spec whose files alone would mark analyze AND review-plan done. */
   const analysedSpec = (dir: string): void => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "2-analysis.md"), "# Analysis\n\n" + "Findings, at length. ".repeat(40));
-    writeFileSync(join(spec, "3-solution.md"), "# Solution\n\n## Plan review\n\nReviewed.\n");
-    writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (4 of 4 completed)`\n");
+    writeFileSync(
+      join(spec, "4-status.md"),
+      statusSaying(
+        ["create", "analyze", "review-plan", "implement"],
+        "- **Total progress:** `100% (4 of 4 completed)`\n",
+      ),
+    );
   };
 
   /** A phase's own line, without the action stack that rides on the
@@ -2940,6 +3031,25 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(phaseDone(line, "implement")).toBe(true);
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
+  });
+
+  // Spec 139, criterion 10: the freshness check is a DISPLAY override,
+  // derived at render time. It clears the two marks the stale
+  // description casts doubt on; it never rewrites the record they came
+  // from, so a re-analysis that proves the edit cosmetic restores the
+  // marks with nothing having had to remember them.
+  test("the stale row leaves the recorded list on disk untouched (spec 139, criterion 10)", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
+    });
+    analysedSpec(dir);
+    const statusPath = join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md");
+    const before = readFileSync(statusPath, "utf-8");
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "analyze")).toBe(false);
+    expect(readFileSync(statusPath, "utf-8")).toBe(before);
+    expect(before).toContain("- **Workflow steps completed:** create, analyze, review-plan, implement");
   });
 
   test("a re-analyzed spec is current again (criterion 5)", async () => {

@@ -52,7 +52,11 @@ const healthy: ProjectView = {
       title: "Active spec",
       description: null,
       dependsOn: [],
-      status: { progress: { percent: 50, done: 1, total: 2 }, phase: "Phase 2: GREEN" },
+      status: {
+        progress: { percent: 50, done: 1, total: 2 },
+        phase: "Phase 2: GREEN",
+        workflowSteps: ["create", "analyze", "review-plan"],
+      },
     },
     {
       folder: "02-archived-spec",
@@ -61,7 +65,11 @@ const healthy: ProjectView = {
       title: "Archived spec",
       description: null,
       dependsOn: [],
-      status: { progress: { percent: 100, done: 4, total: 4 }, phase: "done" },
+      status: {
+        progress: { percent: 100, done: 4, total: 4 },
+        phase: "done",
+        workflowSteps: ["create", "analyze", "review-plan", "implement", "archive"],
+      },
     },
   ],
 };

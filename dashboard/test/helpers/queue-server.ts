@@ -22,6 +22,12 @@ export interface StartOptions {
   alsoSpecs?: string[];
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
+  /** The spec's 4-status.md (spec 139). Since the workflow steps a spec
+   *  has had are READ off one line of that file, a spec without it has
+   *  had nothing — including `create`. Every spec the harness makes is
+   *  a created one, so the default says so, and a suite that cares
+   *  about a further step names the whole line itself. */
+  status?: string;
 }
 
 export interface QueueHarness {
@@ -35,20 +41,27 @@ export function queueHarness(prefix: string): QueueHarness {
   const dirs: string[] = [];
 
   return {
-    start({ extra = {}, alsoProjects = [], alsoSpecs = [], description = "# Queue - Description\n" } = {}) {
+    start({
+      extra = {},
+      alsoProjects = [],
+      alsoSpecs = [],
+      description = "# Queue - Description\n",
+      status = statusSaying(["create"]),
+    } = {}) {
       const dir = mkdtempSync(join(tmpdir(), prefix));
       dirs.push(dir);
       // The generated site's overview, at the filename `renderSite`
       // actually writes since spec 100 — `/` belongs to the spec list.
       writeFileSync(join(dir, "projects.html"), "<p>overview</p>");
       const root = join(dir, "root");
-      project(root, "aide", "81-queue-and-runner", description);
+      project(root, "aide", "81-queue-and-runner", description, status);
       for (const folder of alsoSpecs) {
         mkdirSync(join(root, "aide", "specs", folder), { recursive: true });
         writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
+        writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
       }
       for (const name of alsoProjects) {
-        project(root, name, "01-first", "# First - Description\n");
+        project(root, name, "01-first", "# First - Description\n", status);
       }
       const server = createServer({
         siteDir: dir,
@@ -71,11 +84,21 @@ export function queueHarness(prefix: string): QueueHarness {
   };
 }
 
+/** A 4-status.md whose Tracking info says which workflow steps the spec
+ *  has HAD (spec 139), plus whatever else the suite wants in the file.
+ *  Exported because the route suites build their own: the line is the
+ *  contract every workflow step writes and the dashboard reads, and a
+ *  fixture spelling it out by hand in twenty places is a fixture that
+ *  will one day spell it differently. */
+export const statusSaying = (steps: string[], rest = ""): string =>
+  `# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n${rest}`;
+
 // One manifest and one spec: the least a project needs to be discovered.
-function project(root: string, name: string, specFolder: string, description: string): void {
+function project(root: string, name: string, specFolder: string, description: string, status: string): void {
   const dir = join(root, name);
   mkdirSync(join(dir, ".aide"), { recursive: true });
   writeFileSync(join(dir, ".aide", "project.yaml"), `name: ${name}\n`);
   mkdirSync(join(dir, "specs", specFolder), { recursive: true });
   writeFileSync(join(dir, "specs", specFolder, "1-description.md"), description);
+  writeFileSync(join(dir, "specs", specFolder, "4-status.md"), status);
 }
