@@ -3631,6 +3631,13 @@ interface StepBody {
   ok: boolean;
   project?: string;
   results: { step: string; ok: boolean; error?: string; note?: string }[];
+  /** Spec 138: whether `aide-run-spec` would START there — a separate
+   *  answer from `ok`, which only says the registration completed. */
+  readiness?: {
+    canRun: boolean;
+    note: string;
+    checks: { check: string; subject: string; ok: boolean; blocking: boolean; detail: string }[];
+  };
 }
 
 /** A git that makes the directory a real clone would have made. Every
@@ -3817,7 +3824,9 @@ describe("POST /api/queue/projects (spec 112)", () => {
       body: new URLSearchParams({ name: "on-disk", existingPath: path }),
     });
     expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")).toBe("/projects");
+    // The list, as it has been since spec 115 — carrying the readiness
+    // answer since spec 138, which is that spec's to assert.
+    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects");
   });
 
   test("a refusal reaches the log", async () => {
@@ -3835,6 +3844,155 @@ describe("POST /api/queue/projects (spec 112)", () => {
       console.error = realError;
     }
     expect(written.join("\n")).toContain("add-project refused");
+  });
+});
+
+// --- spec 138: the Add says whether a run can start ---------------------------
+//
+// Adding a project answered "added" and left the operator to press Run to
+// find out the rest. Registration and readiness are two answers now, and
+// both reach the caller: `ok` says the registration completed, `readiness`
+// says whether `aide-run-spec` would start.
+describe("POST /api/queue/projects reports readiness (spec 138)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  /** A git that answers for a checkout which is its own root, clean, on
+   *  its default branch — with `answers` layered over it. */
+  const readyGit = (answers: Record<string, { code: number; stdout?: string }> = {}) =>
+    async (at: string, args: string[]) => {
+      const joined = args.join(" ");
+      for (const [prefix, a] of Object.entries(answers)) {
+        if (joined.startsWith(prefix)) return { code: a.code, stdout: a.stdout ?? "" };
+      }
+      if (joined.startsWith("clone")) {
+        mkdirSync(join(at, args[2]!), { recursive: true });
+        return { code: 0, stdout: "" };
+      }
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
+      if (joined.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (joined.startsWith("symbolic-ref --short refs/remotes/origin/HEAD")) {
+        return { code: 0, stdout: "origin/main\n" };
+      }
+      if (joined.startsWith("show-ref --verify --quiet refs/heads/main")) return { code: 0, stdout: "" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
+      if (joined.startsWith("worktree list")) return { code: 0, stdout: "" };
+      return { code: 1, stdout: "" };
+    };
+
+  // Criterion 10: additive. A caller that reads `ok`, `project` and
+  // `results` sees exactly what it saw before.
+  test("a successful add carries readiness beside the steps it always carried", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const path = join(dir, "root", "ready-one");
+    mkdirSync(join(path, "specs"), { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "ready-one", existingPath: path }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.project).toBe("ready-one");
+    expect(body.results.map((r) => r.step)).toEqual(["name", "register", "manifest", "allowlist"]);
+    expect(body.readiness!.canRun).toBe(true);
+    expect(body.readiness!.note).toContain("ready to run");
+  });
+
+  // Criterion 10, the other half: the two answers are independent. This
+  // is Skjer — added, allowlisted, and unable to run.
+  test("registration succeeds while the run is blocked, and the answer says both", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: readyGit({ "status --porcelain": { code: 0, stdout: "?? .aide/\n" } }),
+    });
+    const path = join(dir, "root", "skjer");
+    mkdirSync(join(path, "specs"), { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "skjer", existingPath: path }),
+    });
+    // 200: the registration DID complete, and a 400 would tell an API
+    // caller to try it again against a checkout that is already there.
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(body.results.every((r) => r.ok)).toBe(true);
+    expect(body.readiness!.canRun).toBe(false);
+    expect(body.readiness!.note).toContain("cannot run yet");
+    expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(".aide/");
+    // And it is on the allowlist regardless: registration is what puts
+    // it there, and the readiness answer is about a later moment.
+    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html.slice(html.indexOf('action="/api/queue/create"'))).toContain('value="skjer"');
+  });
+
+  // Criterion 11, the no-JavaScript half: the result cannot be left in a
+  // response body the redirect throws away.
+  test("a form POST carries the whole readiness answer to the page it lands on", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: readyGit({ "status --porcelain": { code: 0, stdout: "?? .aide/\n" } }),
+    });
+    const path = join(dir, "root", "noscript");
+    mkdirSync(path, { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: new URLSearchParams({ name: "noscript", existingPath: path }),
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/projects?")).toBe(true);
+    const params = new URL(location, base).searchParams;
+    // Not a yes: the colour of the banner follows the answer, and this
+    // project cannot run.
+    expect(params.get("noticeOk")).toBeNull();
+    const notice = params.get("notice")!;
+    // Two blockers at once — the dirty tree and the missing specs root —
+    // and BOTH of them are in the answer the reader lands on.
+    expect(notice).toContain("cannot run yet");
+    expect(notice).toContain(".aide/");
+    expect(notice).toContain(join(path, "specs"));
+    // And the page renders what it was handed.
+    const page = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(page).toContain("cannot run yet");
+  });
+
+  // Criterion 7, at the route: the field is new, and an unusable value is
+  // a refusal of the add rather than a readiness note.
+  test("worktree links are written to the project's own .aide/config", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const path = join(dir, "root", "withlinks");
+    mkdirSync(join(path, "node_modules"), { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "withlinks", existingPath: path, worktreeLinks: "node_modules" }),
+    });
+    expect(res.status).toBe(200);
+    expect(readFileSync(join(path, ".aide", "config"), "utf-8")).toContain(
+      "AIDE_WORKTREE_LINKS=node_modules",
+    );
+  });
+
+  test("a worktree link that would leave the repository is refused", async () => {
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    const path = join(dir, "root", "badlinks");
+    mkdirSync(path, { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "badlinks", existingPath: path, worktreeLinks: "../escape" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(false);
+    expect(body.results.find((r) => r.step === "worktreeLinks")!.error).toContain("../escape");
+    // Nothing readable is claimed about a project that was not added.
+    expect(body.readiness).toBeUndefined();
   });
 });
 

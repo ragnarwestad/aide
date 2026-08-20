@@ -52,6 +52,16 @@ export interface ProjectsPageOptions {
    *  land on — an Add names a project that was never added — so it goes
    *  at the top, the way `/`'s spec-less refusals do. */
   error?: string;
+  /** What an Add that SUCCEEDED had to say: whether a run can start in
+   *  the project just added, and every reason it cannot (spec 138).
+   *  Carried in the query string the same way a refusal is, because a
+   *  browser with no script gets this answer by redirect and it would
+   *  otherwise die in a response body nobody sees. */
+  notice?: string;
+  /** And whether that answer was a yes. It decides the look and nothing
+   *  else: a project that CAN run must not be reported in the same
+   *  colour as one that cannot. */
+  noticeOk?: boolean;
 }
 
 export function renderProjectsPage(
@@ -64,6 +74,12 @@ export function renderProjectsPage(
   const body =
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    // And what a successful Add had to say. Never `err`: the project IS
+    // added either way, and the colour says only whether a run can
+    // start — `warn` where something still has to be done about it.
+    (opts.notice
+      ? rowMessage(opts.noticeOk ? "info" : "warn", opts.notice, { hook: "notice", tag: "p" }) + "\n"
+      : "") +
     // The Add button above the list, at the right — the same place and
     // shape as New spec on the spec list.
     `<div class="listtop"><a class="btn primary" href="${ADD_PROJECT_ROUTE}">Add</a></div>\n` +
@@ -138,6 +154,19 @@ export function renderAddProjectPage(
       "Specs root",
       `<input type="text" name="specsPath" maxlength="300" ` +
         `placeholder="optional — its own specs/ otherwise">`,
+    ) +
+    `</span>` +
+    `<span class="frow">` +
+    field(
+      // Spec 138: a run works in a `git worktree`, which carries
+      // TRACKED files only — so a project whose test command lives
+      // behind a gitignored path fails in every run for a reason that
+      // has nothing to do with its change. Nothing can derive which
+      // paths those are, so the form asks.
+      "Worktree links",
+      `<input type="text" name="worktreeLinks" maxlength="300" ` +
+        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">`,
+      { wide: true },
     ) +
     `</span>` +
     `<span class="frow">` +

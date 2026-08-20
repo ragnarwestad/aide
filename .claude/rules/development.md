@@ -88,6 +88,17 @@ they match — add a step to only one and that test catches it, but the
 two lists themselves still have to be edited by hand together (spec
 106; the gap was already flagged at spec 91).
 
+**Project readiness is a third instance of that same shape, and this one
+has no paired test at all.** `dashboard/src/project-admin.ts`'s
+`assessProjectReadiness()` mirrors, in TypeScript, the read-only
+prerequisites `core/scripts/aide-run-spec` itself enforces before a run
+starts — clean tree, resolvable default branch, worktree-link sources
+that exist. The two are kept in sync by hand; unlike `WORKFLOW_STEPS`
+and `DEPENDENCY_GATED_STEPS`, no test reads both sides and asserts they
+agree (spec 138). A change to one of the runner's prerequisites needs a
+matching change in `assessProjectReadiness()`, checked by inspection
+until a shared-source test exists.
+
 **`DEPENDENCY_GATED_STEPS` is the second list of that shape (spec 122),
 and it works the same way.** `implement`, `resolve` and `archive` are
 the steps an unmerged dependency holds back; the other steps run

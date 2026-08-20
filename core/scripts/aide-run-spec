@@ -606,6 +606,15 @@ for entry in $links_raw; do
     /*) refuse "AIDE_WORKTREE_LINKS must name repo-relative paths: $entry" ;;
     *..*) refuse "AIDE_WORKTREE_LINKS must not escape the root: $entry" ;;
   esac
+  # A named path with nothing to link is refused rather than skipped
+  # (spec 138). Skipping it is how the step got blamed for the failure:
+  # the worktree came up without the `node_modules` the project SAID its
+  # commands need, the test command failed, and nothing in the result
+  # pointed at the missing directory. The dashboard's Add reports the
+  # same entry as a reason the project cannot run — one rule, in two
+  # places that have to agree about it.
+  [ -e "$project_root/$entry" ] \
+    || refuse "AIDE_WORKTREE_LINKS names a path that is not in $project_root: $entry"
   link_paths+=("$entry")
 done
 # A `dir/` gitignore rule matches directories only, and a symlink is a

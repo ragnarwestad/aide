@@ -1696,6 +1696,39 @@ def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude,
     assert not fake_claude.calls.exists()
 
 
+# --- Spec 138: a configured link whose source is not there -------------------
+
+def test_a_link_naming_a_path_that_is_not_there_is_refused(runner, workspace, fake_claude):
+    """One rule, two places that have to agree about it: the dashboard's
+    Add reports a configured AIDE_WORKTREE_LINKS entry with no source as
+    a reason the project cannot run, and the runner refuses the same
+    entry rather than starting a step whose test command will fail for a
+    reason that has nothing to do with its change.
+
+    Silently skipping it is what made this worth a rule: the run got a
+    worktree with no `node_modules` in it, the project's own test command
+    failed, and the step was blamed for it."""
+    claude = fake_claude("exit 1")
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps node_modules\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "a link with no source")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert "node_modules" in out["error"], out
+    # The one that IS there is not what the refusal is about.
+    assert not fake_claude.calls.exists()
+
+
+def test_links_that_are_all_there_still_run(runner, workspace, fake_claude):
+    """The refusal above must not catch the ordinary case: `deps` exists
+    in the fixture, and the run goes ahead."""
+    claude, _ = probing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+
+
 # --- Criterion 15: a main checkout on the spec branch is healed --------------
 
 def test_a_main_checkout_on_the_spec_branch_is_healed_not_refused(runner, workspace, fake_claude):
