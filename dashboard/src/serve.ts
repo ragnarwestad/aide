@@ -20,7 +20,7 @@ import { DescriptionFreshnessChecker } from "./description-freshness.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { LiveEnricher } from "./live.ts";
 import {
-  buildProjectViews, configValue, discoverProjects,
+  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
   type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
@@ -31,7 +31,9 @@ import {
   QueueStore, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
 } from "./queue.ts";
-import { addProject, projectNameError, removeProject, type ProjectStep } from "./project-admin.ts";
+import {
+  addProject, addProjectTarget, projectNameError, removeProject, type ProjectStep,
+} from "./project-admin.ts";
 import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
@@ -1404,6 +1406,9 @@ export function createServer(opts: ServerOptions) {
       const html = renderAddProjectPage(nav(), new Date().toISOString(), {
         token: queueToken,
         script: queueClientScript(),
+        // Read fresh per request, the way /projects reads its own scan:
+        // a checkout that appeared on the host a minute ago is offered.
+        existingCheckouts: discoverUnclaimedDirectories(opts.projectRoot),
         error: url.searchParams.get("error") ?? undefined,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -1514,7 +1519,15 @@ export function createServer(opts: ServerOptions) {
       const asked = (raw ?? {}) as Record<string, unknown>;
       const text = (v: unknown): string | undefined =>
         typeof v === "string" && v.trim() ? v.trim() : undefined;
-      const name = typeof asked.name === "string" ? asked.name : "";
+      const rawName = typeof asked.name === "string" ? asked.name : "";
+      // The picked checkout settles the project's name when Name was
+      // left blank (spec 131), and the ALLOWLIST is what that name is
+      // for — so the rule is asked of `project-admin.ts` here rather
+      // than copied, and the answer names the project that was added.
+      const name = addProjectTarget(opts.projectRoot ?? "", {
+        name: rawName,
+        existingPath: text(asked.existingPath),
+      }).name || rawName;
       // Adding a project means putting a directory under the projects
       // root, and without `--root` there is no such root: refused in
       // those words rather than half-done somewhere arbitrary.
@@ -1528,7 +1541,7 @@ export function createServer(opts: ServerOptions) {
         );
       }
       const result = await addProject(gitRun, opts.projectRoot, {
-        name,
+        name: rawName,
         gitUrl: text(asked.gitUrl),
         existingPath: text(asked.existingPath),
         description: text(asked.description),

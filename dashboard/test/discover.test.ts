@@ -7,7 +7,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  buildProjectViews, configValue, discoverProjects, specDependsOn, specDescription,
+  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
+  specDependsOn, specDescription,
 } from "../src/discover.ts";
 
 let root: string;
@@ -268,5 +269,50 @@ describe("one key out of a project's own .aide/config", () => {
 
   test("no config file at all is no answer, never a throw", () => {
     expect(configValue(mkdtempSync(join(tmpdir(), "aide-cfg-")), "AIDE_INSTALL_CMD")).toBeNull();
+  });
+});
+
+// Spec 131: the Add-project form used to ask the reader to TYPE the path
+// of a checkout already on the host, when the only path the server would
+// accept follows from the projects root and the name. The picker it
+// became needs the inverse of `discoverProjects`: the directories under
+// the same root that carry NO manifest yet.
+describe("discoverUnclaimedDirectories", () => {
+  let unclaimed: string;
+
+  beforeAll(() => {
+    unclaimed = mkdtempSync(join(tmpdir(), "aide-unclaimed-"));
+    // A project: it has a manifest, so it is claimed already.
+    mkdirSync(join(unclaimed, "aide", ".aide"), { recursive: true });
+    writeFileSync(join(unclaimed, "aide", ".aide", "project.yaml"), "name: aide\n");
+    // Two checkouts nobody has registered.
+    mkdirSync(join(unclaimed, "atlasaurus"), { recursive: true });
+    mkdirSync(join(unclaimed, "scratch"), { recursive: true });
+    // Two names that could never BE a project name, so offering them
+    // would only produce a refusal the reader cannot act on.
+    mkdirSync(join(unclaimed, ".hidden-dir"), { recursive: true });
+    mkdirSync(join(unclaimed, "has a space"), { recursive: true });
+    // A file is not a directory, whatever it is called.
+    writeFileSync(join(unclaimed, "loose-file"), "not a checkout\n");
+  });
+
+  afterAll(() => {
+    rmSync(unclaimed, { recursive: true, force: true });
+  });
+
+  // Criterion 1.
+  test("lists the manifest-less directories, sorted, and no project", () => {
+    expect(discoverUnclaimedDirectories(unclaimed)).toEqual(["atlasaurus", "scratch"]);
+  });
+
+  // Criterion 2.
+  test("a name that could never be a project name is not offered", () => {
+    const found = discoverUnclaimedDirectories(unclaimed);
+    expect(found).not.toContain(".hidden-dir");
+    expect(found).not.toContain("has a space");
+  });
+
+  test("a root that is not there at all is an empty list, never a throw", () => {
+    expect(discoverUnclaimedDirectories(join(unclaimed, "nowhere"))).toEqual([]);
   });
 });

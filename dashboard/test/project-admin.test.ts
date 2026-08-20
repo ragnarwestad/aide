@@ -206,6 +206,49 @@ describe("adding a checkout that is already on the host", () => {
     expect(result.ok).toBe(false);
     expect(result.steps.find((s) => s.step === "register")!.ok).toBe(false);
   });
+
+  // Spec 131: the form picks a directory NAME now, not a path — so a
+  // value with no separator in it means "the checkout of that name
+  // directly under the projects root", and the name of the project
+  // follows from the pick rather than being typed a second time.
+  test("a picked directory name settles the path and the name together", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "atlasaurus");
+    mkdirSync(dir, { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "",
+      existingPath: "atlasaurus",
+      description: "picked, not typed",
+    });
+    expect(result.ok).toBe(true);
+    // The manifest is where criterion 5 actually bites: the name written
+    // there has to be the picked one, not the blank the reader left.
+    expect(parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"))).toEqual({
+      ok: true,
+      data: { name: "atlasaurus", description: "picked, not typed" },
+    });
+  });
+
+  // A typed name still wins, so a mismatch is the same refusal it was —
+  // never a silent override of what the reader wrote.
+  test("a typed name that does not match the picked directory is still refused", async () => {
+    const projectsRoot = root();
+    mkdirSync(join(projectsRoot, "atlasaurus"), { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "foo",
+      existingPath: "atlasaurus",
+    });
+    expect(result.ok).toBe(false);
+    const register = result.steps.find((s) => s.step === "register")!;
+    expect(register.error).toContain(join(projectsRoot, "foo"));
+    expect(register.error).toContain(join(projectsRoot, "atlasaurus"));
+  });
+
+  test("nothing picked and nothing typed is still refused for saying neither", async () => {
+    const result = await addProject(fakeGit({}).run, root(), { name: "", existingPath: "" });
+    expect(result.ok).toBe(false);
+    expect(result.steps[0]!.step).toBe("name");
+  });
 });
 
 describe("where the project's specs live", () => {
