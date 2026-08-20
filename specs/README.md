@@ -27,10 +27,10 @@ reports/
 
 ## 🎯 Difference between JIRA and TODO
 
-| Aspect       | JIRA issues                                      | TODO plans                         |
-|--------------|--------------------------------------------------|------------------------------------|
-| **Source**   | JIRA API (external)                              | Created manually                   |
-| **Scope**    | Specific feature/bug                             | Larger migration/improvement       |
+| Aspect       | JIRA issues                                          | TODO plans                       |
+|--------------|------------------------------------------------------|----------------------------------|
+| **Source**   | JIRA API (external)                                  | Created manually                 |
+| **Scope**    | Specific feature/bug                                 | Larger migration/improvement     |
 | **Workflow** | `/aide-create` → `/aide-analyze` → `/aide-implement` | `/aide-create` → `/aide-analyze` |
 
 ## 📚 Documentation standards

@@ -30,11 +30,11 @@ Complete step-by-step guide for setting up the AI workspace with your preferred 
 
 This workspace supports several AI tools. Choose the one that suits you best:
 
-| AI tool            | Advantages                                          | Best for                                     | Installation documentation                                               |
-|--------------------|----------------------------------------------------|----------------------------------------------|--------------------------------------------------------------------------|
-| **Claude Code**    | Slash commands, specialized agents, 200K context   | Complex JIRA analyses, cross-cutting tasks   | [claude-code/README.md](../implementations/claude-code/README.md)         |
-| **Codex (OpenAI)** | Prompt templates, manual workflow                  | JIRA/TODO analysis and implementation        | [../implementations/codex/README.md](../implementations/codex/README.md) |
-| **GitHub Copilot** | Native VS Code, Agent Mode, fast responses         | Quick edits, refactoring, single-file work   | [copilot/README.md](../implementations/copilot/README.md)                 |
+| AI tool            | Advantages                                       | Best for                                   | Installation documentation                                               |
+|--------------------|--------------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------|
+| **Claude Code**    | Slash commands, specialized agents, 200K context | Complex JIRA analyses, cross-cutting tasks | [claude-code/README.md](../implementations/claude-code/README.md)        |
+| **Codex (OpenAI)** | Prompt templates, manual workflow                | JIRA/TODO analysis and implementation      | [../implementations/codex/README.md](../implementations/codex/README.md) |
+| **GitHub Copilot** | Native VS Code, Agent Mode, fast responses       | Quick edits, refactoring, single-file work | [copilot/README.md](../implementations/copilot/README.md)                |
 
 **💡 Tip:** You can use several AI tools at the same time! Choose the best tool for each task.
 
