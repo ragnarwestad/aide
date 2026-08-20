@@ -51,8 +51,13 @@ export type Spawner = (
 
 export interface StepOutcome {
   ok: boolean;
-  costUsd: number;
+  /** Absent for a step whose tool publishes no dollar figure at all —
+   *  a Codex step, always (spec 125). Absent is not zero: zero would be
+   *  summed into the job's spend as if the step had been free. */
+  costUsd?: number;
   costMeasured: boolean;
+  /** Which CLI `aide-run-spec` actually started. */
+  tool?: "claude" | "codex";
   terminalReason: string;
   subtype?: string;
   sessionId?: string;
@@ -407,6 +412,11 @@ export class Runner {
         step,
         ok: !!outcome.ok,
         costUsd: cost,
+        // Read as defensively as everything else here, and narrowed to
+        // the two names the page knows how to route on: whatever else
+        // a result file says, it is not a tool this dashboard can
+        // render for.
+        tool: (outcome.tool === "codex" ? "codex" : "claude") as "claude" | "codex",
         tokens,
         costMeasured: outcome.costMeasured !== false,
         terminalReason: outcome.terminalReason ?? "no reason recorded",

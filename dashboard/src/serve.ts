@@ -29,7 +29,7 @@ import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import {
   QueueStore, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
-  type BranchRef, type Job, type QueueDefaults, type ProjectResolver,
+  type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
 } from "./queue.ts";
 import { addProject, projectNameError, removeProject, type ProjectStep } from "./project-admin.ts";
 import { Runner, type StepOutcome } from "./runner.ts";
@@ -449,11 +449,25 @@ export function runnerArgv(
   job: Job,
   step: string,
   resultFile: string,
-  o: { runnerBin: string; projectRoot: string; push: string },
+  o: {
+    runnerBin: string;
+    projectRoot: string;
+    push: string;
+    /** The config's own table (spec 125). What a job stores per step is
+     *  a NAME the request picked; what the CLI is handed — which tool,
+     *  which model string — is looked up here, where the grants
+     *  already live. */
+    modelChoices?: Record<string, ModelChoice>;
+  },
   sessionId?: string,
   streamFile?: string,
 ): string[] {
-  const model = job.model[step];
+  const choiceName = job.model[step];
+  const choice = choiceName ? o.modelChoices?.[choiceName] : undefined;
+  // The entry's own key stays the model unless the entry says otherwise
+  // — which is exactly what every config written before this spec did.
+  const model = choice?.model ?? choiceName;
+  const tool = choice?.tool ?? "claude";
   return [
     o.runnerBin,
     "--project-dir", join(o.projectRoot, job.project),
@@ -475,6 +489,11 @@ export function runnerArgv(
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
     ...(model ? ["--model", model] : []),
+    // Only when it says something new. `aide-run-spec` defaults to
+    // claude, so a choice that names no tool must produce byte-for-byte
+    // the argv it produced before this flag existed — the same shape
+    // `--model` itself has had all along.
+    ...(tool !== "claude" ? ["--tool", tool] : []),
     // Chosen by the runner BEFORE the spawn, so the queue can watch the
     // session while the step runs instead of learning it from a result
     // that only exists once the step is over.
@@ -675,6 +694,7 @@ export function createServer(opts: ServerOptions) {
                 runnerBin: opts.queueRunnerBin!,
                 projectRoot: opts.queueProjectRoot ?? "",
                 push: opts.queuePush ?? "branch",
+                modelChoices: queue.defaults.modelChoices,
               },
               sessionId,
               streamFile,
@@ -1281,6 +1301,10 @@ export function createServer(opts: ServerOptions) {
         modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, c]) => ({
           name,
           budgetUsd: c.budgetUsd,
+          // Carried so the option can SAY which CLI it starts: two
+          // entries that differ only in that would otherwise be two
+          // identical-looking names in the same dropdown.
+          ...(c.tool ? { tool: c.tool } : {}),
         })),
         defaultModels: queue.defaults.model,
         error: url.searchParams.get("error") ?? undefined,
@@ -1715,18 +1739,38 @@ export function createServer(opts: ServerOptions) {
     // The step running now, or failing that the last one that ran: a
     // reader opening a finished job still wants to see what it did.
     const streamFile = job.streamFile ?? job.results[job.results.length - 1]?.streamFile;
+    // Which CLI this page is about (spec 125). A running step's tool is
+    // not recorded anywhere yet — the result file that would carry it is
+    // written when the step ENDS — so it is resolved the same way the
+    // argv resolved it: from the config entry the chosen model name
+    // points at. A finished job answers from its own last result.
+    const step = job.steps[job.stepIndex];
+    const running = job.state === "running";
+    const named = running
+      ? queue.defaults.modelChoices?.[job.model[step ?? ""] ?? ""]?.tool
+      : job.results[job.results.length - 1]?.tool;
+    const tool = named ?? "claude";
     // Degrade, never throw: an unreachable claude-usage leaves the rest
-    // of the page intact and says the session is unknown.
-    const live = job.state === "running" && job.sessionId ? await enricher.lookup(job.sessionId) : null;
+    // of the page intact and says the session is unknown. Skipped
+    // outright for Codex: `claude-usage` watches Claude Code sessions
+    // and would answer "not-live" for a thread it has never heard of.
+    const live = running && job.sessionId && tool !== "codex" ? await enricher.lookup(job.sessionId) : null;
     return {
       ...(await jobRow(job)),
+      tool,
       title: target?.title,
       description: target?.description,
       finishedAt: job.finishedAt,
       sessionId: job.sessionId,
       results: job.results.map((r) => ({ ...r, tokens: r.tokens?.total })),
       live,
-      activity: streamFile ? summarizeStream(tailFile(streamFile)) : [],
+      // `named`, not `tool`: defaulting to claude here would be a claim,
+      // and a wrong one blanks the list rather than degrading it — the
+      // Claude parser finds nothing at all in a Codex transcript. With
+      // nothing recorded (a config entry since removed, a job older
+      // than the field) the parser recognises the schema itself, which
+      // is exact either way.
+      activity: streamFile ? summarizeStream(tailFile(streamFile), { tool: named }) : [],
       archiveHeldBack: target?.archiveHeldBack?.reason,
     };
   }

@@ -6,9 +6,10 @@
 // The two new routes are queue routes like every other: the token guard
 // covers them, and an id that names no job is a 404, never a blank page.
 import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ServerOptions } from "../src/serve.ts";
+import type { QueueDefaults } from "../src/queue.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
@@ -437,5 +438,111 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
     await enqueue(base);
     const html = await (await fetch(`${base}/`, auth)).text();
     expect(html).not.toContain("/merge");
+  });
+});
+
+// --- spec 125: the page has to know which CLI ran the step -------------------
+//
+// Two things on this page turn on it, and both are wrong-by-default if
+// nobody works it out: the Live panel would be built from a session
+// `claude-usage` has never heard of, and the transcript would be read in
+// the wrong schema — which does not degrade, it blanks the list.
+describe("a Codex step's job page", () => {
+  /** Seed a job the way a finished step leaves it, and hand back a
+   *  mirror a second server can read. */
+  const seed = (dir: string, id: string, mutate: (job: Record<string, unknown>) => void): string => {
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    mutate(jobs.find((j) => j.id === id)!);
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return mirror;
+  };
+
+  /** The one config difference these tests need: a pickable entry that
+   *  names Codex. Everything else is the server's own defaults. */
+  const CODEX_CHOICE: QueueDefaults = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: 1200,
+    permissionMode: { default: "acceptEdits" },
+    model: { default: "sonnet" },
+    modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },
+  };
+
+  const CODEX_STREAM = [
+    JSON.stringify({ type: "thread.started", thread_id: "0199f4c2" }),
+    JSON.stringify({
+      type: "item.completed",
+      item: { id: "i0", item_type: "command_execution", command: "bun test" },
+    }),
+  ].join("\n");
+
+  test("a finished Codex step reads its own transcript and shows no dollars", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const stream = join(dir, "codex.stream.jsonl");
+    writeFileSync(stream, CODEX_STREAM);
+    const mirror = seed(dir, id, (job) => {
+      job.state = "done";
+      job.results = [
+        {
+          step: "implement", ok: true, tool: "codex", costUsd: 0, costMeasured: false,
+          tokens: { input: 1, output: 2, cacheRead: 3, cacheCreation: 0, total: 6 },
+          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
+        },
+      ];
+    });
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const activity = await (await fetch(`${base2}/specs/${id}?tab=activity`, auth)).text();
+    expect(activity).toContain("bun test");
+    const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
+    expect(steps).not.toContain("$0.00");
+  });
+
+  test("a RUNNING Codex step is recognised from the config, before any result exists", async () => {
+    // The result file that would carry `tool` is written when the step
+    // ENDS, so a running step has to be resolved from the entry its
+    // chosen model name points at — the same lookup that built the argv.
+    const { base, dir } = start({
+      queueDefaults: CODEX_CHOICE,
+    });
+    const id = await enqueue(base, ["implement"]);
+    const mirror = seed(dir, id, (job) => {
+      job.state = "running";
+      job.sessionId = "0199f4c2-6d1a-7c31-9f0e-2b7a5c8d1e44";
+      job.model = { implement: "codex-fast" };
+    });
+
+    const { base: base2 } = start({
+      queueMirrorPath: mirror,
+      queueDefaults: CODEX_CHOICE,
+    });
+    const html = await (await fetch(`${base2}/specs/${id}`, auth)).text();
+    expect(html).not.toContain("Live right now");
+  });
+
+  test("a transcript nobody named a tool for is still read, not blanked", async () => {
+    // A config entry removed since the job started, or a job older than
+    // the field: defaulting to claude here would be a claim, and a wrong
+    // one leaves the reader an empty list that says "doing nothing".
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const stream = join(dir, "orphan.stream.jsonl");
+    writeFileSync(stream, CODEX_STREAM);
+    const mirror = seed(dir, id, (job) => {
+      job.state = "done";
+      job.results = [
+        {
+          step: "implement", ok: true, costUsd: 0, costMeasured: false,
+          terminalReason: "completed", streamFile: stream, at: "2026-08-20T10:01:00Z",
+        },
+      ];
+    });
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}/specs/${id}?tab=activity`, auth)).text();
+    expect(html).toContain("bun test");
   });
 });

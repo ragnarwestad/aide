@@ -12,6 +12,10 @@ export interface JobStepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
+  /** Which CLI ran this step (spec 125). Absent means claude — every
+   *  result written before the second tool existed says nothing here,
+   *  and claude is what ran it. */
+  tool?: "claude" | "codex";
   /** This step's token total, absent when the run did not measure one
    *  (spec 118). A number, like the list's own view: the page shows a
    *  compact total, not the stored split. */
@@ -40,6 +44,10 @@ export interface JobLiveView {
 }
 
 export interface JobDetailView extends QueueRowView {
+  /** Which CLI is running (or last ran) this job's current step. Absent
+   *  means claude. It decides one thing on this page: whether there is
+   *  anything watching the session to build a Live panel out of. */
+  tool?: "claude" | "codex";
   /** The spec's H1 and its `## Description` prose. */
   title?: string;
   description?: string;
@@ -98,8 +106,12 @@ function stepResults(results: JobStepResultView[], archiveHeldBack?: string): st
       (r) =>
         `<tr><td>${esc(r.step ? stepLabel(r.step) : "–")}</td>` +
         `<td>${outcome(r, archiveHeldBack)}</td>` +
-        `<td class="num">${usdOrTokens(r.costUsd, r.tokens)}` +
-        `${r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
+        // A Codex step has no dollar figure ANYWHERE in its output, so
+        // the money half is a dash rather than the $0.00 its stored
+        // zero would print — and there is no estimate to mark either,
+        // because nothing was estimated (spec 125).
+        `<td class="num">${usdOrTokens(r.tool === "codex" ? undefined : r.costUsd, r.tokens)}` +
+        `${r.tool === "codex" || r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
         `<td class="muted small">${esc(r.at)}</td></tr>`,
@@ -211,8 +223,14 @@ export function renderJobDetailPage(
 
   // Only while a step is actually running: a finished job has no session
   // to follow, and a panel that still showed one would read as "working".
+  //
+  // And never for Codex. The panel's whole content comes from
+  // `claude-usage`, a separate process that watches Claude Code sessions
+  // and has no Codex awareness to be given. An empty panel saying
+  // "unknown" would be a promise the machine cannot keep, so the heading
+  // goes with it (spec 125).
   const live =
-    job.state !== "running"
+    job.state !== "running" || job.tool === "codex"
       ? ""
       : `<h2>Live right now</h2>` +
         (job.live

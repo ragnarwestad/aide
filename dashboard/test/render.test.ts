@@ -4456,3 +4456,77 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(run).toContain('title="implement is running"');
   });
 });
+
+// Spec 125: a step run by Codex says two things the page has to honour.
+// There is no `claude-usage` for a Codex session, so the Live panel is
+// not "unknown" — it is absent, because nothing will ever fill it. And
+// there is no dollar figure anywhere in Codex's output, so the Cost
+// column shows the token count and a dash where the money would be.
+describe("a job run by Codex", () => {
+  test("shows no Live right now panel — nothing watches a Codex session", () => {
+    const html = renderJobDetailPage(
+      detail({ state: "running", tool: "codex", sessionId: "0199f4c2", live: null }),
+      "2026-08-20T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).not.toContain("Live right now");
+  });
+
+  test("a running Claude job still shows it — the panel is skipped by tool, not by luck", () => {
+    const html = renderJobDetailPage(
+      detail({ state: "running", sessionId: "11111111-2222-4333-8444-555555555555", live: null }),
+      "2026-08-20T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).toContain("Live right now");
+  });
+
+  test("a Codex step's Cost column is tokens and a dash, never $0.00", () => {
+    const html = renderJobDetailPage(
+      detail({
+        state: "done",
+        results: [
+          {
+            step: "implement", ok: true, tool: "codex", costUsd: 0, costMeasured: false,
+            tokens: 9_562, terminalReason: "completed", at: "2026-08-20T10:01:00Z",
+          },
+        ],
+      }),
+      "2026-08-20T10:05:00Z",
+      NAV,
+      { tab: "steps" },
+    );
+    expect(html).not.toContain("$0.00");
+    expect(html).toContain("9.6k tok");
+  });
+});
+
+// The picker is where a tool is CHOSEN, so the option has to say which
+// one it is before it is picked — two entries that differ only in which
+// CLI they start would otherwise be two identical-looking names.
+describe("the model picker names the tool", () => {
+  const codexTarget: QueueTarget = { project: "aide", specFolder: "125-codex" };
+
+  test("a codex entry is distinguishable from a claude one", () => {
+    const html = renderQueueRows(
+      [],
+      {
+        runnerAvailable: true,
+        targets: [codexTarget],
+        modelChoices: [
+          { name: "sonnet", budgetUsd: 3 },
+          { name: "codex-fast", budgetUsd: 5, tool: "codex" },
+        ],
+        filter: { open: openKeys([], [codexTarget]) },
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+    expect(html).toContain("codex-fast");
+    expect(html).toMatch(/<option value="codex-fast"[^>]*>[^<]*codex[^<]*<\/option>/);
+    // The claude entries are left exactly as they were — the default
+    // tool is not a label anyone needs.
+    expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet<\/option>/);
+  });
+});

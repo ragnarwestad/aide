@@ -61,25 +61,45 @@ function blocksOf(event: Record<string, unknown>): StreamBlock[] {
 export interface SummarizeOptions {
   /** How many entries to keep, counted from the END of the stream. */
   max?: number;
+  /** Which CLI wrote this transcript (spec 125). Omit it and the schema
+   *  is recognised from the stream itself — `/live` tails a file whose
+   *  job may predate the field entirely, and an unrecognised schema
+   *  renders as an empty activity list, which reads as "it is doing
+   *  nothing". */
+  tool?: "claude" | "codex";
+}
+
+/** Every line of the stream that parses, as an object. Shared by both
+ *  parsers, because "never throws" is a property of the reader and not
+ *  of either schema: the file is written by another process and read
+ *  while it is still being written. */
+function* events(text: string): Generator<Record<string, unknown>> {
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const parsed = JSON.parse(line) as unknown;
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+      yield parsed as Record<string, unknown>;
+    } catch {
+      continue; // a truncated or non-JSON line costs nothing
+    }
+  }
+}
+
+/** Trimming as we go, not at the end: a long run's transcript should
+ *  never be held in memory in full just to throw most of it away. */
+function trim(out: string[], max: number): void {
+  if (out.length > max * 2) out.splice(0, out.length - max);
 }
 
 /** The transcript as a bounded list of already-escaped lines: assistant
  *  text and tool calls only. System init, tool results, thinking and
  *  rate-limit chatter are the run talking to itself, not what it is
  *  doing. */
-export function summarizeStream(text: string, opts: SummarizeOptions = {}): string[] {
+export function summarizeClaudeStream(text: string, opts: SummarizeOptions = {}): string[] {
   const max = opts.max ?? 40;
   const out: string[] = [];
-  for (const line of text.split("\n")) {
-    if (!line.trim()) continue;
-    let event: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(line) as unknown;
-      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) continue;
-      event = parsed as Record<string, unknown>;
-    } catch {
-      continue; // a truncated or non-JSON line costs nothing
-    }
+  for (const event of events(text)) {
     if (event.type !== "assistant") continue;
     for (const block of blocksOf(event)) {
       if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
@@ -89,9 +109,75 @@ export function summarizeStream(text: string, opts: SummarizeOptions = {}): stri
         out.push(esc(clip(subject ? `${block.name} ${subject}` : block.name)));
       }
     }
-    // Trimming as we go, not at the end: a long run's transcript should
-    // never be held in memory in full just to throw most of it away.
-    if (out.length > max * 2) out.splice(0, out.length - max);
+    trim(out, max);
   }
   return out.slice(-max);
+}
+
+/** What a Codex item was about, in the same one-line shape a Claude tool
+ *  call gets. The item types are `codex exec --json`'s own
+ *  (`agent_message`, `command_execution`, `file_change`, `mcp_tool_call`,
+ *  `web_search`), verified against codex-cli 0.147.0.
+ *
+ *  `reasoning` is deliberately absent: it is the run talking to itself,
+ *  exactly like a Claude `thinking` block, and neither belongs on a page
+ *  answering "what is it doing". */
+function codexEntry(item: Record<string, unknown>): string {
+  const str = (k: string) => (typeof item[k] === "string" ? (item[k] as string) : "");
+  switch (item.item_type) {
+    case "agent_message":
+      return str("text");
+    case "command_execution":
+      return str("command");
+    case "file_change": {
+      const changes = Array.isArray(item.changes) ? (item.changes as Record<string, unknown>[]) : [];
+      const paths = changes.map((c) => (typeof c?.path === "string" ? c.path : "")).filter(Boolean);
+      return paths.length ? `edit ${paths.join(", ")}` : "";
+    }
+    case "mcp_tool_call": {
+      const named = [str("server"), str("tool") || str("tool_name")].filter(Boolean).join(" ");
+      return named || "";
+    }
+    case "web_search":
+      return str("query") ? `search ${str("query")}` : "";
+    default:
+      return "";
+  }
+}
+
+/** The Codex half of the same contract: same entry shape, same bound,
+ *  same escaping. Only `item.completed` is read — `item.started` carries
+ *  the same item a moment earlier, and counting both would say
+ *  everything twice. */
+export function summarizeCodexStream(text: string, opts: SummarizeOptions = {}): string[] {
+  const max = opts.max ?? 40;
+  const out: string[] = [];
+  for (const event of events(text)) {
+    if (event.type !== "item.completed") continue;
+    const item = event.item;
+    if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
+    const entry = codexEntry(item as Record<string, unknown>);
+    if (entry.trim()) out.push(esc(clip(entry)));
+    trim(out, max);
+  }
+  return out.slice(-max);
+}
+
+/** Which schema this text is in, when nobody said. Codex's events are
+ *  the only ones whose `type` is dotted, so one parsable line settles
+ *  it; a file that says neither falls to claude, which is what every
+ *  transcript written before spec 125 is. */
+function sniff(text: string): "claude" | "codex" {
+  for (const event of events(text)) {
+    if (typeof event.type !== "string") continue;
+    if (/^(thread|turn|item)\./.test(event.type)) return "codex";
+    if (event.type === "assistant" || event.type === "system" || event.type === "result") return "claude";
+  }
+  return "claude";
+}
+
+/** The transcript, whichever tool wrote it. */
+export function summarizeStream(text: string, opts: SummarizeOptions = {}): string[] {
+  const tool = opts.tool ?? sniff(text);
+  return tool === "codex" ? summarizeCodexStream(text, opts) : summarizeClaudeStream(text, opts);
 }

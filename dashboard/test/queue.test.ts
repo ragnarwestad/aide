@@ -387,6 +387,49 @@ describe("per-job model choice", () => {
   });
 });
 
+// Spec 125: a pickable choice may name a TOOL as well as a budget, and
+// a model name of its own distinct from the entry's key. Both fields are
+// optional, and both defaults reproduce exactly what a config without
+// them already did — an existing queue-config.json must keep working
+// untouched.
+describe("a model choice may name its tool", () => {
+  test("mergeQueueDefaults keeps tool and model, and still drops malformed entries", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, {
+      modelChoices: {
+        "codex-fast": { budgetUsd: 5, tool: "codex", model: "gpt-5.6" },
+        sonnet: { budgetUsd: 3 },
+        wrongTool: { budgetUsd: 3, tool: "gemini" },
+        brokenModel: { budgetUsd: 3, tool: "codex", model: 7 },
+      },
+    });
+    expect(merged.modelChoices).toEqual({
+      "codex-fast": { budgetUsd: 5, tool: "codex", model: "gpt-5.6" },
+      sonnet: { budgetUsd: 3 },
+      // A tool nobody can run is dropped from the entry, not made up:
+      // the budget still stands, and the run falls to claude.
+      wrongTool: { budgetUsd: 3 },
+      brokenModel: { budgetUsd: 3, tool: "codex" },
+    });
+  });
+
+  test("a codex choice grants its budget the same way any other does", () => {
+    const withCodex: QueueDefaults = {
+      ...DEFAULTS,
+      modelChoices: { "codex-fast": { budgetUsd: 9, tool: "codex", model: "gpt-5.6" } },
+    };
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze"], model: "codex-fast" },
+      { resolve, defaults: withCodex },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // The NAME is what is stored and posted, exactly as before — the
+    // real `--model` value is resolved where the argv is built.
+    expect(r.job.model).toEqual({ analyze: "codex-fast" });
+    expect(r.job.budgetUsd).toBe(9);
+  });
+});
+
 // Spec 123: the model is chosen ON THE PHASE LINE, so one Run press can
 // carry a DIFFERENT model for each phase it ticks. The whole-job string
 // above is kept working unchanged; this is the shape the per-phase

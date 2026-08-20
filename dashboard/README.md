@@ -10,6 +10,7 @@
   - [Making a spec from the page (spec 93)](#making-a-spec-from-the-page-spec-93)
   - [The token](#the-token)
   - [Caps](#caps)
+  - [Which AI runs a step (spec 125)](#which-ai-runs-a-step-spec-125)
   - [How many run at once](#how-many-run-at-once)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -352,6 +353,59 @@ which is what makes those take effect without a restart. The
 does not exist yet; where the file HAS a `projects` array, it wins over
 the flag. A malformed one is ignored entirely and the flag is kept, the
 same direction every other key here fails in.
+
+### Which AI runs a step (spec 125)
+
+Every step runs on Claude Code unless a `modelChoices` entry says
+otherwise. That table is what the per-phase model picker offers, and
+each entry may name a `tool` and a `model` of its own:
+
+```json
+{
+  "modelChoices": {
+    "sonnet": { "budgetUsd": 3 },
+    "opus": { "budgetUsd": 15, "jobCapUsd": 30 },
+    "codex-fast": { "budgetUsd": 5, "tool": "codex", "model": "gpt-5.6" }
+  }
+}
+```
+
+`tool` is `claude` (the default, and what an entry that says nothing
+means) or `codex`. `model` is the literal value handed to the CLI when
+it differs from the entry's own key — the key is what the picker shows
+and what a request posts, so a readable name can front a model string
+nobody wants to read. An entry naming a tool other than claude says so
+in the dropdown, so two entries are tellable apart before one is picked.
+
+The queue, the worktrees, the wall-clock timeout and all the git
+handling are one path for both tools. Three things differ, and all three
+are visible on the page rather than papered over:
+
+- **A Codex step's budget is not enforced while it runs.** Claude Code
+  takes a `--max-budget-usd` and stops itself; Codex has no equivalent
+  flag, so for a Codex entry `budgetUsd` feeds the dashboard's own
+  grant-and-tighten arithmetic before the step starts and nothing else.
+  **The wall clock (`timeoutSec`) is the only thing that stops a runaway
+  Codex step**, and it is mandatory for every step either way.
+- **A Codex step reports tokens, never dollars.** No dollar figure
+  exists anywhere in Codex's output, so the Cost column shows the token
+  count and a dash where the money would be — never `$0.00`, which would
+  add up as though the step had been free. A job mixing both tools has a
+  `spentUsd` covering its Claude steps only.
+- **A Codex step has no "Live right now" panel.** That panel's contents
+  come from `claude-usage`, which watches Claude Code sessions and knows
+  nothing of Codex threads. The Activity tab works for both: the run's
+  transcript is parsed in whichever schema wrote it.
+
+Safety modes are stored the same way for both — the queue keeps Claude's
+own names, per step, config-only. `aide-run-spec` translates them for
+Codex: `bypassPermissions` becomes
+`--dangerously-bypass-approvals-and-sandbox`, `acceptEdits` becomes
+`--sandbox workspace-write`, and `plan`/`default` become `--sandbox
+read-only`. A mode with no entry in that table refuses the run rather
+than being guessed at. (`codex exec` is non-interactive and has no
+`--ask-for-approval` flag at all — that one belongs to the interactive
+command — so the sandbox mode is the whole of what there is to say.)
 
 ### Adding and removing a project
 

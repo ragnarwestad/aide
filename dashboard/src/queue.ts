@@ -60,6 +60,10 @@ export interface StepResult {
   step: WorkflowStep;
   ok: boolean;
   costUsd: number;
+  /** Which CLI ran this step (spec 125). Absent on every result written
+   *  before the second tool existed, which is why the readers all treat
+   *  absent as claude rather than as unknown. */
+  tool?: "claude" | "codex";
   /** Absent when the run could not measure it — an old result file, or
    *  a killed step, whose cost is over-charged by rule but whose token
    *  count has nothing to assume from. The page shows a dash. */
@@ -181,6 +185,15 @@ export interface Job {
 export interface ModelChoice {
   budgetUsd: number;
   jobCapUsd?: number;
+  /** Which CLI runs a step picked on this entry (spec 125). Absent
+   *  means claude — every config written before the second tool existed
+   *  keeps meaning exactly what it meant. */
+  tool?: "claude" | "codex";
+  /** The literal `--model` value, when it differs from this entry's own
+   *  key. The key is what the picker shows and what a request posts;
+   *  this is what the CLI is actually handed, so a readable name like
+   *  `codex-fast` can front a model string nobody wants to read. */
+  model?: string;
 }
 
 export interface QueueDefaults {
@@ -619,7 +632,16 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
         typeof e.jobCapUsd === "number" && Number.isFinite(e.jobCapUsd) && e.jobCapUsd > 0
           ? e.jobCapUsd
           : undefined;
-      out[name] = cap === undefined ? { budgetUsd: e.budgetUsd } : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
+      // A malformed `tool` or `model` drops that FIELD, not the whole
+      // entry: the budget is still a real grant, and an entry that
+      // loses its tool falls back to claude — which is the default
+      // every other entry already has.
+      const choice: ModelChoice = cap === undefined
+        ? { budgetUsd: e.budgetUsd }
+        : { budgetUsd: e.budgetUsd, jobCapUsd: cap };
+      if (e.tool === "claude" || e.tool === "codex") choice.tool = e.tool;
+      if (typeof e.model === "string" && e.model) choice.model = e.model;
+      out[name] = choice;
     }
     return Object.keys(out).length > 0 ? out : undefined;
   };

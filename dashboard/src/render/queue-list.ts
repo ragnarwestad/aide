@@ -102,7 +102,7 @@ export interface QueuePageOptions {
   /** The models a job may be asked to run on, from the config. Empty or
    *  absent means the per-step configuration is the only answer and the
    *  page offers no choice at all. */
-  modelChoices?: { name: string; budgetUsd: number }[];
+  modelChoices?: { name: string; budgetUsd: number; tool?: "claude" | "codex" }[];
   /** The configured model per step (plus a "default" key), from the
    *  config's own `model` table. It is what a phase line's select is
    *  pre-filled with when the phase has not run yet — the reader sees
@@ -1325,8 +1325,14 @@ function modelPicker(
     models
       .map(
         (m) =>
+          // The tool is named only when it is not the default one:
+          // labelling every claude entry "(claude)" would be three
+          // words of noise on a page about work, but two entries that
+          // start DIFFERENT CLIs have to be tellable apart before one
+          // is picked (spec 125).
           `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step"` +
-          `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
+          `${m.name === chosen ? " selected" : ""}>${esc(m.name)}` +
+          `${m.tool && m.tool !== "claude" ? ` (${esc(m.tool)})` : ""}</option>`,
       )
       .join("") +
     `</select>`

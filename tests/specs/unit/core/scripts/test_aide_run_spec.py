@@ -14,6 +14,7 @@ the next run can start from.
 import json
 import os
 import pathlib
+import shlex
 import subprocess
 import time
 
@@ -157,8 +158,79 @@ def fake_claude(tmp_path):
     return make
 
 
-def run(runner, ws, claude=None, **kwargs):
-    """Invoke the runner; return (returncode, parsed json line, stdout)."""
+# --- spec 125: the same fixture pattern, for the second tool ------------------
+#
+# Codex's non-interactive mode (`codex exec --json`) writes JSONL to
+# stdout the way `claude -p --output-format stream-json` does, but the
+# events are a different shape: a `thread.started` carrying Codex's own
+# thread id, `item.*` events for what it did, and a closing
+# `turn.completed` carrying the usage block. Every field below was read
+# off the installed CLI (`codex-cli 0.147.0`, 2026-08-20) rather than
+# assumed — the event names and the four `usage` keys are in the
+# binary's own strings.
+CODEX_USAGE = {
+    "input_tokens": 4210,
+    "cached_input_tokens": 3900,
+    "output_tokens": 812,
+    "reasoning_output_tokens": 640,
+}
+CODEX_THREAD_ID = "0199f4c2-6d1a-7c31-9f0e-2b7a5c8d1e44"
+def emits(stream: str) -> str:
+    """A fake-binary body that consumes the prompt and prints `stream`
+    verbatim. One `printf` argument per line: a single quoted blob would
+    reach bash with its `\\n` escapes intact and print one long line,
+    which parses as nothing at all."""
+    args = " ".join(shlex.quote(l) for l in stream.split("\n"))
+    return f"cat > /dev/null; printf '%s\\n' {args}"
+
+
+CODEX_STREAM_OK = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "turn.started"},
+        {"type": "item.completed", "item": {"id": "item_0", "item_type": "agent_message", "text": "done"}},
+        {"type": "turn.completed", "usage": CODEX_USAGE},
+    ]
+)
+CODEX_STREAM_FAILED = "\n".join(
+    json.dumps(e)
+    for e in [
+        {"type": "thread.started", "thread_id": CODEX_THREAD_ID},
+        {"type": "turn.failed", "error": {"message": "the model refused the turn"}},
+    ]
+)
+
+
+@pytest.fixture
+def fake_codex(tmp_path):
+    """Factory for a stand-in `codex`, mirroring `fake_claude`. Records
+    argv, then behaves as asked."""
+    calls = tmp_path / "codex-calls.txt"
+
+    def make(body: str):
+        path = tmp_path / "fake-codex"
+        path.write_text(
+            "#!/usr/bin/env bash\n"
+            f'printf "%s\\n" "$*" >> {calls}\n'
+            f'printf "%s\\n" "$PWD" >> {tmp_path / "codex-cwd.txt"}\n'
+            f"{body}\n"
+        )
+        path.chmod(0o755)
+        return path
+
+    make.calls = calls  # type: ignore[attr-defined]
+    make.cwd_log = tmp_path / "codex-cwd.txt"  # type: ignore[attr-defined]
+    return make
+
+
+def run(runner, ws, claude=None, codex=None, **kwargs):
+    """Invoke the runner; return (returncode, parsed json line, stdout).
+
+    `codex=` is the sibling of `claude=` and exists for the same reason
+    (spec 125): the helper has no generic `env=` kwarg, so a Codex test
+    would otherwise have no way to point the runner at its fake binary.
+    """
     args = [str(kwargs.pop("runner_path", runner))]
     defaults = {
         "--project-dir": str(ws["project"]),
@@ -187,6 +259,8 @@ def run(runner, ws, claude=None, **kwargs):
     env = dict(os.environ)
     if claude:
         env["AIDE_CLAUDE_BIN"] = str(claude)
+    if codex:
+        env["AIDE_CODEX_BIN"] = str(codex)
     proc = subprocess.run(args, capture_output=True, text=True, env=env)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
     return proc.returncode, json.loads(line), proc.stdout
@@ -2566,3 +2640,192 @@ def test_the_two_copies_of_the_step_vocabulary_agree(workspace_root):
         f"only in the script {sorted(from_bash - from_ts)}, "
         f"only in the dashboard {sorted(from_ts - from_bash)}"
     )
+
+
+# --- spec 125: the second tool ----------------------------------------------
+#
+# The queue, the worktrees, the timeout and the git handling stay one
+# path. What differs per tool is the command it is started with, how it
+# is told what it may do, and what it reports when it is done — so these
+# tests are about exactly those three things, plus the promise that a
+# caller who says nothing still gets Claude and gets it unchanged.
+
+def test_a_codex_run_records_tool_and_tokens_but_no_cost(runner, workspace, fake_codex):
+    """Criterion 1. Codex reports tokens and NO dollar figure anywhere in
+    its output, so `costUsd` is absent — not zero, and not Claude's
+    over-charge-to-budget fallback, which has nothing to approximate
+    from here."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    assert out["tool"] == "codex"
+    assert out["ok"] is True
+    assert out["terminalReason"] == "completed"
+    assert "costUsd" not in out, "a Codex step has no dollar figure to report"
+    assert out["costMeasured"] is False
+    # Codex's own thread id, read back the way Claude's session id is.
+    assert out["sessionId"] == CODEX_THREAD_ID
+    tokens = out["tokens"]
+    u = CODEX_USAGE
+    assert tokens["input"] == u["input_tokens"]
+    # Codex bills reasoning tokens as output; both halves count.
+    assert tokens["output"] == u["output_tokens"] + u["reasoning_output_tokens"]
+    assert tokens["cacheRead"] == u["cached_input_tokens"]
+    # Codex exposes no separate cache-WRITE count at all.
+    assert tokens["cacheCreation"] == 0
+    assert tokens["total"] == (
+        u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
+    )
+
+
+def test_a_claude_run_still_says_which_tool_ran_it(runner, workspace, fake_claude):
+    """The field is on every result, not only Codex's: the dashboard
+    reads it to pick a transcript parser, and "absent means claude" is a
+    rule two readers would have to agree on separately."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["tool"] == "claude"
+    # And the dollar figure is exactly what it always was.
+    assert out["costUsd"] == pytest.approx(0.5357)
+
+
+def test_bypass_permissions_becomes_codex_s_one_bypass_flag(runner, workspace, fake_codex):
+    """Criterion 2. Codex's safety is TWO axes where Claude's is one
+    string, and its single all-off flag replaces both — passing
+    `--sandbox` beside it would be saying two things at once."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
+                     permission_mode="bypassPermissions")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text()
+    assert "--dangerously-bypass-approvals-and-sandbox" in argv
+    assert "--sandbox" not in argv
+
+
+def test_accept_edits_becomes_a_writable_workspace(runner, workspace, fake_codex):
+    """Criterion 3. `codex exec` is non-interactive and has no
+    `--ask-for-approval` flag at all (verified against codex-cli 0.147.0
+    — that flag is the interactive command's); the sandbox mode is the
+    whole of what it takes."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
+                     permission_mode="acceptEdits")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text().split()
+    assert "--sandbox" in argv
+    assert argv[argv.index("--sandbox") + 1] == "workspace-write"
+    assert "--ask-for-approval" not in argv
+
+
+def test_plan_mode_becomes_a_read_only_sandbox(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, permission_mode="plan")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text().split()
+    assert argv[argv.index("--sandbox") + 1] == "read-only"
+
+
+def test_an_unrecognised_permission_mode_refuses_before_codex_starts(runner, workspace, fake_codex):
+    """Criterion 4. The same "typed out or the run does not start"
+    discipline `--permission-mode` already has for Claude: a mode with no
+    entry in the table is refused rather than guessed at, because
+    guessing wrong means a step running in the wrong sandbox."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
+                     permission_mode="acceptEdit")
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "acceptEdit" in out["error"]
+    assert not fake_codex.calls.exists(), "the run must refuse before spawning anything"
+
+
+def test_an_unknown_tool_is_refused(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, tool="gemini")
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "gemini" in out["error"]
+
+
+def test_a_codex_run_past_its_deadline_is_killed_the_same_way(runner, workspace, fake_codex):
+    """Criterion 5. The timeout loop operates on a PID and a process
+    group, never on a tool — so the only thing worth proving here is that
+    a Codex step reaches it, and that a killed Codex step still reports
+    no dollar figure (Claude's over-charge rule has nothing to work
+    with)."""
+    codex = fake_codex(
+        "cat > /dev/null\n"
+        "trap '' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    started = time.time()
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
+                     timeout_sec="2", kill_grace_sec="1")
+    elapsed = time.time() - started
+    assert out["terminalReason"] == "timeout"
+    assert out["ok"] is False
+    assert out["tool"] == "codex"
+    assert "costUsd" not in out
+    assert out["costMeasured"] is False
+    assert "tokens" not in out
+    assert elapsed < 12, f"the kill took too long: {elapsed:.1f}s"
+
+
+def test_a_failed_codex_turn_is_reported_not_swallowed(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_FAILED))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert out["ok"] is False
+    assert out["terminalReason"] == "cli-error"
+    assert "refused the turn" in (out["error"] or "")
+
+
+def test_a_codex_run_gets_no_session_id_argument(runner, workspace, fake_codex):
+    """Every session id the dashboard hands down is freshly minted, so
+    passing it to Codex would be asking it to resume a thread that has
+    never existed. Codex assigns its own, and the run reads that back."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex,
+                     session_id="11111111-2222-4333-8444-555555555555")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text()
+    assert "--session-id" not in argv
+    assert "resume" not in argv
+    assert out["sessionId"] == CODEX_THREAD_ID
+
+
+def test_a_codex_run_is_told_about_every_worktree_it_may_write_in(runner, workspace, fake_codex):
+    """`--add-dir` is the same flag name on both CLIs (verified against
+    codex-cli 0.147.0), so the one loop that hands over the sibling
+    worktrees needs no branch — but nothing said so until this test."""
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text().split()
+    added = [argv[i + 1] for i, a in enumerate(argv) if a == "--add-dir"]
+    assert added, "no --add-dir at all"
+    assert any(a.endswith("/" + workspace["specs"].name) for a in added), added
+
+
+def test_a_codex_run_is_started_with_exec_and_json(runner, workspace, fake_codex):
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, model="gpt-5.6")
+    assert rc == 0, out
+    argv = fake_codex.calls.read_text().split()
+    assert argv[0] == "exec"
+    assert "--json" in argv
+    assert argv[argv.index("--model") + 1] == "gpt-5.6"
+    # Claude's own flags have no meaning here and must not leak across.
+    assert "--max-budget-usd" not in argv
+    assert "--output-format" not in argv
+    assert "--permission-mode" not in argv
+
+
+def test_the_dry_run_shows_the_codex_argv(runner, workspace, fake_codex):
+    codex = fake_codex("exit 1")  # would fail loudly if it were called
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex, dry_run=True)
+    assert rc == 0, out
+    assert out["dryRun"] is True
+    assert out["argv"][0] == str(codex)
+    assert out["argv"][1] == "exec"
+    assert not fake_codex.calls.exists()

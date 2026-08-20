@@ -94,6 +94,12 @@ DEPENDENCY_GATED_STEPS="implement resolve archive"
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
 kill_grace_sec="30"; do_pull="no"; dry_run="no"
+# Which AI actually runs the step (spec 125). Defaults to claude, so
+# every caller that predates this flag — the dashboard, a run started by
+# hand — is unaffected until it opts in. Everything around the
+# invocation stays one path: the queue, the worktrees, the timeout and
+# all the git handling never learn there is a second tool.
+tool="claude"
 # What a `create` step is FOR (spec 93). Every other step names a folder
 # that is already on disk; this one makes it, so the two things
 # /aide-create needs come in as arguments instead. Required for a create
@@ -137,6 +143,7 @@ while [ $# -gt 0 ]; do
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
     --model) model="${2:-}"; shift 2 ;;
+    --tool) tool="${2:-}"; shift 2 ;;
     --session-id) session_id="${2:-}"; shift 2 ;;
     --stream-file) stream_file="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
@@ -187,6 +194,11 @@ esac
 case "$push_mode" in
   none|branch|pr) ;;
   *) refuse "invalid --push: $push_mode (none, branch or pr)" ;;
+esac
+
+case "$tool" in
+  claude|codex) ;;
+  *) refuse "invalid --tool: $tool (claude or codex)" ;;
 esac
 
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
@@ -417,15 +429,57 @@ for root in "${roots[@]}"; do
 done
 
 # --- the invocation ----------------------------------------------------------
-claude_bin="${AIDE_CLAUDE_BIN:-}"
-if [ -z "$claude_bin" ]; then
-  if [ -x "$HOME/.local/bin/claude" ]; then
-    claude_bin="$HOME/.local/bin/claude"
+# One resolution shape, two tools. Only the CHOSEN tool has to be on the
+# machine: a host with no codex installed must still run every claude
+# step, and the reverse.
+find_bin() {
+  local override="$1" name="$2" found=""
+  if [ -n "$override" ]; then
+    found="$override"
+  elif [ -x "$HOME/.local/bin/$name" ]; then
+    found="$HOME/.local/bin/$name"
   else
-    claude_bin="$(command -v claude 2>/dev/null || true)"
+    found="$(command -v "$name" 2>/dev/null || true)"
   fi
+  printf '%s' "$found"
+}
+
+claude_bin=""; codex_bin=""
+if [ "$tool" = "codex" ]; then
+  codex_bin="$(find_bin "${AIDE_CODEX_BIN:-}" codex)"
+  [ -n "$codex_bin" ] && [ -x "$codex_bin" ] || refuse "cannot find the codex binary (set AIDE_CODEX_BIN)"
+else
+  claude_bin="$(find_bin "${AIDE_CLAUDE_BIN:-}" claude)"
+  [ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
 fi
-[ -n "$claude_bin" ] && [ -x "$claude_bin" ] || refuse "cannot find the claude binary (set AIDE_CLAUDE_BIN)"
+
+# Claude's safety is ONE string; Codex's is a sandbox mode and (in the
+# interactive command only) an approval policy. The queue stores
+# Claude's own names for the modes, so the translation lives here — the
+# one place that ever has to turn an aide-level mode name into a CLI
+# flag. Kept deliberately as a table with no fall-through: a mode with
+# no entry REFUSES rather than being guessed at, because guessing wrong
+# means a step running in the wrong sandbox and nobody finding out.
+#
+# Verified against codex-cli 0.147.0 (2026-08-20): `codex exec` accepts
+# `--sandbox read-only|workspace-write|danger-full-access` and
+# `--dangerously-bypass-approvals-and-sandbox`, and has NO
+# `--ask-for-approval` — that flag belongs to the interactive command.
+# `codex exec` never asks in the first place, so the sandbox mode is the
+# whole of what there is to say.
+#
+# It SETS $safety_flags rather than printing them: `mapfile` is bash 4,
+# and this script's shebang finds whatever bash the machine has — which
+# on a Mac is still 3.2.
+safety_flags=()
+codex_safety_flags() {
+  case "$1" in
+    bypassPermissions) safety_flags=(--dangerously-bypass-approvals-and-sandbox) ;;
+    acceptEdits)       safety_flags=(--sandbox workspace-write) ;;
+    plan|default)      safety_flags=(--sandbox read-only) ;;
+    *) return 1 ;;
+  esac
+}
 
 # The prompt SAYS the run is headless. AIDE_HEADLESS is still exported
 # (a shell step can read it), but the environment turned out to be the
@@ -464,17 +518,35 @@ Use exactly this Depends-on value in Tracking info: $depends_on"
 Use exactly this title for the spec: $title$depends_line
 $headless_note"
 fi
-# stream-json, not json: `json` prints ONE object at the very end, so a
-# 25-minute run says nothing at all until it is over. stream-json emits
-# one event per line as it happens, and its last result event is the same
-# object this script already reads. In print mode the CLI REFUSES
-# stream-json without --verbose ("When using --print,
-# --output-format=stream-json requires --verbose") — verified 2026-08-16,
-# version 2.1.233.
-argv=("$claude_bin" -p --output-format stream-json --verbose
-      --max-budget-usd "$budget_usd" --permission-mode "$permission_mode")
-[ -n "$model" ] && argv+=(--model "$model")
-[ -n "$session_id" ] && argv+=(--session-id "$session_id")
+if [ "$tool" = "codex" ]; then
+  # `codex exec --json` is the same idea one CLI over: JSONL on stdout,
+  # one event per line as it happens, the prompt read from stdin. Two
+  # things are deliberately NOT here. There is no budget flag — Codex
+  # has no native dollar cap, so the wall-clock timeout is the whole of
+  # what stops a runaway step (`dashboard/README.md` says so where a
+  # reader picking a model can see it). And there is no session
+  # argument: the id the dashboard mints is fresh every time, so passing
+  # it would ask Codex to resume a thread that has never existed. Codex
+  # names its own thread and the result parser reads that back, exactly
+  # as claude's session id is read back today.
+  codex_safety_flags "$permission_mode" \
+    || refuse "invalid --permission-mode for codex: $permission_mode"
+  argv=("$codex_bin" exec --json)
+  argv+=("${safety_flags[@]}")
+  [ -n "$model" ] && argv+=(--model "$model")
+else
+  # stream-json, not json: `json` prints ONE object at the very end, so a
+  # 25-minute run says nothing at all until it is over. stream-json emits
+  # one event per line as it happens, and its last result event is the
+  # same object this script already reads. In print mode the CLI REFUSES
+  # stream-json without --verbose ("When using --print,
+  # --output-format=stream-json requires --verbose") — verified
+  # 2026-08-16, version 2.1.233.
+  argv=("$claude_bin" -p --output-format stream-json --verbose
+        --max-budget-usd "$budget_usd" --permission-mode "$permission_mode")
+  [ -n "$model" ] && argv+=(--model "$model")
+  [ -n "$session_id" ] && argv+=(--session-id "$session_id")
+fi
 
 if [ "$dry_run" = "yes" ]; then
   # Build the argv array separately: jq's --args still parses a leading
@@ -918,6 +990,18 @@ session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason="";
 # The tokens the step actually metered, as a JSON object — or empty,
 # which is what makes the field ABSENT rather than zero (spec 118).
 tokens_json=""
+# Did the tool report an outcome of its own at all? For claude this is
+# the same question as "was a cost measured", which is why the branch
+# below used to ask that one — but a Codex step never measures a cost
+# and still finishes, so the two questions had to come apart (spec 125).
+have_result="false"
+# Is there a dollar figure to report? Claude sets one on every path,
+# including the over-charge a killed run is billed. Codex publishes no
+# dollar figure anywhere in its output and there is nothing to
+# approximate one from, so the field is left out of the result entirely
+# rather than defaulted to a number somebody would read as real.
+cost_known="true"
+[ "$tool" = "codex" ] && cost_known="false"
 
 # The stream holds one event per line, so the result must be SELECTED by
 # `type == "result"`, never taken positionally: the CLI emits shutdown
@@ -926,10 +1010,47 @@ tokens_json=""
 # `-R` + `fromjson?` reads line by line and skips anything that does not
 # parse, so a half-written final line from a killed run costs nothing
 # rather than discarding a result event that arrived intact.
+if [ "$tool" = "codex" ]; then
+  # Codex's own closing event. Selected by type for exactly the reason
+  # claude's is: `codex exec --json` keeps emitting after the turn ends,
+  # and "the last line" would report the wrong thing every run. A failed
+  # turn is a result too — it says the step ran and did not finish,
+  # which is a different answer from "the CLI never said anything".
+  result_json="$(jq -Rc 'fromjson? | select(type == "object" and (.type == "turn.completed" or .type == "turn.failed"))' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  # The thread Codex named for itself, read back the way claude's
+  # session id is. It arrives FIRST, in `thread.started`, not in the
+  # closing event — so it is picked out of its own event.
+  session_out="$(jq -Rr 'fromjson? | select(type == "object" and .type == "thread.started") | .thread_id // empty' \
+    "$transcript" 2>/dev/null | tail -n 1)"
+  if [ -n "$result_json" ]; then
+    have_result="true"
+    case "$(jq -r '.type' <<<"$result_json")" in
+      turn.completed) subtype="success" ;;
+      *) subtype="turn_failed"
+         error_msg="$(jq -r '(.error.message // .error // "the turn failed") | tostring' <<<"$result_json")" ;;
+    esac
+    # Codex's usage block, mapped into the shape spec 118 already
+    # defined. Two of the four need saying out loud: reasoning tokens
+    # are BILLED AS OUTPUT and so are added to it rather than dropped,
+    # and Codex exposes no separate cache-WRITE count at all — zero
+    # there is the measurement, not a placeholder for a missing one.
+    tokens_json="$(jq -c '
+      if (.usage | type) == "object" then
+        {input:         (.usage.input_tokens // 0),
+         output:        ((.usage.output_tokens // 0) + (.usage.reasoning_output_tokens // 0)),
+         cacheRead:     (.usage.cached_input_tokens // 0),
+         cacheCreation: 0}
+        | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
+      else empty end
+    ' <<<"$result_json" 2>/dev/null)"
+  fi
+else
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
   "$transcript" 2>/dev/null | tail -n 1)"
 
 if [ -n "$result_json" ]; then
+  have_result="true"
   session_out="$(jq -r '.session_id // empty' <<<"$result_json")"
   subtype="$(jq -r '.subtype // empty' <<<"$result_json")"
   cost="$(jq -r '.total_cost_usd // 0' <<<"$result_json")"
@@ -963,6 +1084,7 @@ if [ -n "$result_json" ]; then
     | . + {total: (.input + .output + .cacheRead + .cacheCreation)}
   ' <<<"$result_json" 2>/dev/null)"
 fi
+fi
 
 if [ -n "$stopped" ]; then
   terminal_reason="timeout"
@@ -975,17 +1097,23 @@ if [ -n "$stopped" ]; then
   # it is dropped rather than half-reported.
   tokens_json=""
   error_msg="killed after ${timeout_sec}s"
-elif [ "$cost_measured" = "true" ]; then
+# "Did the tool say how it went", not "was a cost measured" — the two
+# are the same question for claude and different for codex, which
+# finishes perfectly well without ever naming a dollar figure.
+elif [ "$have_result" = "true" ]; then
   case "$subtype" in
     success) terminal_reason="completed" ;;
     error_max_budget_usd) terminal_reason="budget"; error_msg="the step's budget was reached" ;;
-    *) terminal_reason="cli-error"; error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")" ;;
+    # The codex branch above has already put the turn's own message
+    # here; only claude's shape needs digging out at this point.
+    *) terminal_reason="cli-error"
+       [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")" ;;
   esac
 else
   terminal_reason="cli-error"
   cost="$budget_usd"; cost_measured="false"
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
-  [ -n "$error_msg" ] || error_msg="claude produced no result JSON (exit $exit_code)"
+  [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
 fi
 
 ok="false"
@@ -1151,10 +1279,20 @@ if [ "$push_mode" = "pr" ]; then
   fi
 fi
 
+# ABSENT, not zero, when there is no dollar figure at all (spec 125).
+# `tokens` has followed this rule since spec 118; `costUsd` did not,
+# because every claude path DOES produce a number — including the
+# deliberate over-charge a killed run is billed. Codex has nothing to
+# over-charge FROM, and a 0 in this field would be summed into the
+# job's spend as if the step had been free.
+cost_json="null"
+[ "$cost_known" = "true" ] && cost_json="$cost"
+
 line="$(jq -cn \
   --argjson ok "$ok" --argjson exitCode "$exit_code" \
   --arg sessionId "${session_out:-$session_id}" \
-  --argjson costUsd "$cost" --argjson costMeasured "$cost_measured" \
+  --arg tool "$tool" \
+  --argjson costUsd "$cost_json" --argjson costMeasured "$cost_measured" \
   --arg terminalReason "$terminal_reason" --arg subtype "$subtype" \
   --argjson durationSec "$duration" --argjson repos "$repos_json" \
   --arg error "$error_msg" --arg branch "$branch" --arg push "$push_mode" \
@@ -1163,7 +1301,7 @@ line="$(jq -cn \
   --arg prError "$pr_error" --arg pushError "$push_error" \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
   --argjson tokens "${tokens_json:-null}" \
-  '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, costUsd:$costUsd,
+  '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
     subtype:$subtype, durationSec:$durationSec, branch:$branch,
     push:$push,
@@ -1182,7 +1320,11 @@ line="$(jq -cn \
    # is measured or it is not there. A zero would read as "this step
    # used nothing", which is a claim, and the page shows a dash for a
    # field that is absent.
-   + (if $tokens == null then {} else {tokens:$tokens} end)')"
+   + (if $tokens == null then {} else {tokens:$tokens} end)
+   # And the same rule once more, for the dollar figure itself: a Codex
+   # step reports none, and an absent field is the only shape that
+   # cannot be added up as if it were a real zero.
+   + (if $costUsd == null then {} else {costUsd:$costUsd} end)')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

@@ -3843,3 +3843,69 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(after.jobs.find((j) => j.id === made.job.id)?.state).toBe("cancelled");
   });
 });
+
+// Spec 125: the argv is where a tool choice becomes real. Two rules, and
+// the second one is the reason this is testable at all: the flag is
+// appended ONLY when the resolved tool is not claude, so every config
+// that predates this spec produces byte-for-byte the argv it always did.
+describe("a model choice's tool reaches the runner", () => {
+  const job = (model: Record<string, string>) =>
+    ({
+      project: "aide",
+      specFolder: "81-queue-and-runner",
+      steps: ["implement"],
+      budgetUsd: 15,
+      timeoutSec: 2700,
+      permissionMode: { implement: "bypassPermissions" },
+      model,
+      extraProjects: [],
+    }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
+
+  test("a codex choice passes --tool and its own model name", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectRoot: "/home/dev",
+      push: "branch",
+      modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex", model: "gpt-5.6" } },
+    });
+    expect(argv[argv.indexOf("--tool") + 1]).toBe("codex");
+    // The real model, not the picker's display key.
+    expect(argv[argv.indexOf("--model") + 1]).toBe("gpt-5.6");
+    expect(argv).not.toContain("codex-fast");
+  });
+
+  test("a choice with no model of its own keeps using its key", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectRoot: "/home/dev",
+      push: "branch",
+      modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },
+    });
+    expect(argv[argv.indexOf("--model") + 1]).toBe("codex-fast");
+  });
+
+  test("a choice with no tool field is claude, and the argv is unchanged", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const o = { runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch" };
+    const before = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", o);
+    const after = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
+      ...o,
+      modelChoices: { opus: { budgetUsd: 15 } },
+    });
+    expect(after).not.toContain("--tool");
+    expect(after).toEqual(before);
+    expect(after[after.indexOf("--model") + 1]).toBe("opus");
+  });
+
+  test("a server with no choices configured at all still runs claude", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const argv = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectRoot: "/home/dev",
+      push: "branch",
+    });
+    expect(argv).not.toContain("--tool");
+  });
+});
