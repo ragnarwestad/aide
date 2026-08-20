@@ -614,7 +614,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   );
 
   const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="row">${states}${newSpecLink(opts)}${runsHelp()}</div>`;
+  if (names.length < 2) return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>`;
   const byState = applyFilter(groups, { state: f.state });
   const projects = chips("project", "Project", [
     { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
@@ -626,7 +626,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
       patch: { project: p },
     })),
   ]);
-  return `<div class="row">${states}${projects}${newSpecLink(opts)}${runsHelp()}</div>`;
+  return `<div class="row">${states}${projects}${runsHelp()}${newSpecLink(opts)}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -1636,7 +1636,7 @@ export function renderQueuePage(
       ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n"
       : "") +
     // The New spec link rides on the filter row now (right-hand end,
-    // before the (?)): it is a plain link since spec 121, so the
+    // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table;
   // The front page IS aide: the tab says only that — and the heading

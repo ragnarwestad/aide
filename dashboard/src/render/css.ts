@@ -507,9 +507,9 @@ dialog.about::backdrop { background: var(--backdrop); }
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
-/* The New spec button carries the auto margin, so button and question
-   mark sit together at the row's right-hand end. */
-#jobrows > .row:first-child > .btn { margin-left: auto; }
+/* The question mark carries the auto margin, so it and the New spec
+   button sit together at the row's right-hand end. */
+#jobrows > .row:first-child > details.intro { margin-left: auto; }
 .row > details.intro { position: relative; }
 .row > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;

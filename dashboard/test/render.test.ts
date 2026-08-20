@@ -2176,13 +2176,12 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
   // the filter bar and nothing else.
   const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list">'));
 
-  test("no explanation stands between the notices and the New-spec link", () => {
+  test("the popover stays inside the refreshed rows before the New-spec link", () => {
     const html = page({ createProjects: ["aide"] });
     // The only `.intro` disclosure left on this page is inside the
-    // refreshed rows container, so it comes after that container opens
-    // — and after the New-spec link, which stays outside it.
+    // refreshed rows container, immediately before the New-spec link.
     expect(html.indexOf('<details class="intro">')).toBeGreaterThan(html.indexOf('id="jobrows"'));
-    expect(html.indexOf('href="/new"')).toBeLessThan(html.indexOf('<details class="intro">'));
+    expect(html.indexOf('<details class="intro">')).toBeLessThan(html.indexOf('href="/new"'));
   });
 
   test("the runner-unavailable notice still needs no click", () => {
@@ -3523,12 +3522,37 @@ describe("the front page after the panel moved", () => {
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("New spec rides on the filter row, before the (?) at its right-hand end", () => {
+  test("help rides before New spec at the right-hand end of either filter row", () => {
+    const assertOrder = (html: string) => {
+      const filters = html.indexOf('data-filter="state"');
+      const help = html.indexOf('<details class="intro"');
+      const newSpec = html.indexOf('href="/new"');
+      const table = html.indexOf("<table");
+      expect(filters).toBeGreaterThan(html.indexOf('<div id="jobrows">'));
+      expect([filters, help, newSpec, table]).toEqual(
+        [...[filters, help, newSpec, table]].sort((a, b) => a - b),
+      );
+    };
+
+    assertOrder(page({ createProjects: ["aide"] }));
+    assertOrder(
+      renderQueuePage(
+        [row(), row({ id: "job-2", project: "atlasaurus", specFolder: "12-other" })],
+        "2026-08-18T00:00:00Z",
+        [{ label: "Projects", path: "/projects" }],
+        { runnerAvailable: true, targets: [], createProjects: ["aide"] },
+      ),
+    );
+  });
+
+  test("help owns the automatic margin that keeps both controls at the right", () => {
     const html = page({ createProjects: ["aide"] });
-    const at = html.indexOf('href="/new"');
-    expect(at).toBeGreaterThan(html.indexOf('<div id="jobrows">'));
-    expect(at).toBeLessThan(html.indexOf('<details class="intro"'));
-    expect(at).toBeLessThan(html.indexOf("<table"));
+    expect(html).toContain(
+      "#jobrows > .row:first-child > details.intro { margin-left: auto; }",
+    );
+    expect(html).not.toContain(
+      "#jobrows > .row:first-child > .btn { margin-left: auto; }",
+    );
   });
 
   test("the nav takes the reader to the page that manages them", () => {
