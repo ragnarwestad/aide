@@ -133,6 +133,13 @@ holds its own path and is unset before `claude` starts — an earlier version
 exported a bare flag, `claude` inherited it, and the next nested invocation
 deleted the installed script.
 
+**`aide-run-spec`'s shebang finds `/bin/bash` on this machine, and that
+is bash 3.2 — `mapfile` is bash 4 and is not available.** Spec 125 (the
+Codex runner) needed a table-driven translation and reached for
+`mapfile` first; it had to become a function that sets an array via
+repeated `array+=(...)` instead. Anything added to this script that
+wants an array built from multiple lines needs the same workaround.
+
 **Individual uninstallers never remove the shared scripts** — other AI tools
 and the cron job depend on them. The same goes for the skills in
 `~/.agents/skills/` (read by both Copilot and Codex, installed via
