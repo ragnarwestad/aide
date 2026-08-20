@@ -1,3 +1,16 @@
+---
+name: ai-tools-reference
+description: >-
+  Verified configuration reference for the three AI tools aide supports:
+  Claude Code, GitHub Copilot and OpenAI Codex. Covers instruction files,
+  skill discovery paths, frontmatter field support, rules, agents, hooks,
+  MCP and config formats, with a comparison matrix and source links.
+  Use when: answering which tool reads which path, changing an installer,
+  adding or moving a skill, checking frontmatter field support, updating
+  the support matrix. Do NOT use for: news about new releases (use
+  check-news), general web questions about the tools.
+---
+
 # AI tools reference
 
 Verified configuration overview for all AI tools we support.

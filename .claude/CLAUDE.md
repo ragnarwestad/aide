@@ -30,8 +30,10 @@ for Claude Code, Copilot and Codex.
 `/aide-create`, `/aide-analyze`, `/aide-implement` etc. run inside Claude Code or Copilot.
 Only `aide-generate-pdf` and `aide-generate-html` exist as CLI scripts (they run pandoc).
 
-See `.claude/rules/development.md` for directory structure, installation overview
-and how to add new functionality.
+See `.claude/rules/development.md` for the installation overview, the layout
+gotchas and how to add new functionality. The `/ai-tools-reference` skill holds
+the verified config reference for all three tools; `/ai-tools-upgrade` holds the
+daily-upgrade setup for a machine.
 
 See `docs/ROADMAP.md` for where the project came from, the architecture
 decisions, and what to work on next (phase 3: genericization, phase 4:

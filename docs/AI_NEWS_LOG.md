@@ -7,7 +7,7 @@ The log is the research feed that drives continuous improvement of aide.
 It is further distilled into two documents:
 
 - [AI_SUPPORT_MATRIX.md](./AI_SUPPORT_MATRIX.md) — distilled current state (versions, mechanisms, follow-up items)
-- [`.claude/rules/ai-tools-reference.md`](../.claude/rules/ai-tools-reference.md) — verified config reference loaded into AI context
+- [`.claude/skills/ai-tools-reference/SKILL.md`](../.claude/skills/ai-tools-reference/SKILL.md) — verified config reference, loaded on demand
 
 ## Table of contents
 

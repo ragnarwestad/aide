@@ -95,7 +95,7 @@ Format — follow the existing pattern in the file:
 The log is further distilled into two documents in the repo:
 
 - `docs/AI_SUPPORT_MATRIX.md` — distilled current state (versions, mechanisms)
-- `.claude/rules/ai-tools-reference.md` — verified config reference
+- `.claude/skills/ai-tools-reference/SKILL.md` — verified config reference
 
 For each ⭐ and ⚠️ finding in this review: assess whether it changes anything in these
 two documents (new version, new/changed config path, new mechanism, breaking change).
