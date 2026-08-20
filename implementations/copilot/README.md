@@ -172,8 +172,6 @@ Copilot CLI reads the same skills as Claude Code (from `~/.claude/skills/` and
 | `/aide-create` | Create JIRA documentation |
 | `/aide-analyze` | Analyze codebase |
 | `/aide-implement` | Implement with TDD |
-| `/aide-make-tests` | Create tests for a file |
-| `/aide-react-class-to-func` | Convert React class to functional |
 
 Type the command in a `copilot` session, just like in Claude Code.
 
