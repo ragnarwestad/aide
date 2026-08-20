@@ -211,10 +211,14 @@ function harness(
       hidden: false,
       selected: value === chosen,
     }));
-    return {
+    const self = {
       name: `model.${step}`,
       options,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      // A change lands on the select itself, and the handler walks up
+      // with `closest`. A model select is NOT the AI picker, so it
+      // answers the picker's selector with null and its own with itself.
+      closest: (sel: string): unknown => (sel.includes("data-tool-picker") ? null : self),
       get selectedOptions() {
         return options.filter((o) => o.selected);
       },
@@ -226,7 +230,17 @@ function harness(
       set value(v: string) {
         for (const o of options) o.selected = o.value === v;
       },
+      /** What the SERVER drew, to go back to when the rows are
+       *  replaced. A browser gets brand-new elements out of that swap;
+       *  a fake that kept the old ones would prove nothing. */
+      redraw: () => {
+        for (const o of options) {
+          o.selected = o.value === chosen;
+          o.hidden = false;
+        }
+      },
     };
+    return self;
   };
   const modelSelects = [
     modelSelect("create", "sonnet"),
@@ -240,8 +254,15 @@ function harness(
   const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
   const toolSelect = {
     value: "claude",
+    // No `name`: the picker posts nothing (`queue-list.ts`). It is
+    // still what the DOM reports — an empty string, not undefined —
+    // and the key a kept choice is filed under is built from it.
+    name: "",
     getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
     closest: (sel: string) => (sel.includes("data-tool-picker") ? toolSelect : null),
+    /** The server draws the picker with no `selected` at all, so a
+     *  fresh one shows its first option: Claude Code. */
+    redraw: () => void (toolSelect.value = "claude"),
   };
   const createForm = {
     action: "http://dash.test/api/queue/create",
@@ -311,8 +332,28 @@ function harness(
   const parentNode = {
     insertBefore: (node: { id: string; className: string; textContent: string }) => void inserted.push(node),
   };
+  // Replacing the rows is not a string assignment in a browser: the old
+  // selects are gone and new ones stand there, drawn from the server's
+  // answer. The fake says so — every select goes back to what the
+  // server would have rendered — because a fake that kept the reader's
+  // choice by doing nothing could not tell a fix from its absence.
+  let rowsHtml = "";
   const rows = {
-    innerHTML: "",
+    get innerHTML(): string {
+      return rowsHtml;
+    },
+    set innerHTML(html: string) {
+      rowsHtml = html;
+      toolSelect.redraw();
+      for (const m of modelSelects) m.redraw();
+      otherRowSelect.redraw();
+    },
+    querySelectorAll: (sel: string) =>
+      sel.includes("data-tool-picker")
+        ? [toolSelect]
+        : sel.includes("model.")
+          ? [...modelSelects, otherRowSelect]
+          : [],
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
@@ -439,11 +480,26 @@ function harness(
       toolSelect.value = value;
       on["change"]?.({ target: toolSelect });
     },
+    /** One phase's model, moved by hand — the other half of what a
+     *  swap must not wash away. */
+    changeModel: (index: number, value: string) => {
+      const select = modelSelects[index]!;
+      select.value = value;
+      on["change"]?.({ target: select });
+    },
     /** A change on something in the table that is NOT the AI select. */
     changeOther: () =>
       on["change"]?.({ target: { closest: () => null } }),
   };
 }
+
+/** Enough microtask turns for a released `hold` to run the rest of
+ *  `swapRows` — the fetch, the `text()`, the assignment. Counted
+ *  rather than awaited because `tick()` drops its promise on purpose
+ *  (a listener's return value is nobody's to wait on). */
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+};
 
 const OK_MERGE = { ok: true, results: [{ root: "/repos/aide", ok: true }] };
 /** Where `swapRows` asked for the rows, which is where the refusal the
@@ -1177,6 +1233,57 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
     h.changeTool("codex");
     expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
   });
+
+  // Reported 2026-08-20, from the page: pick Codex, wait, and the
+  // select is back on Claude Code. The rows are replaced wholesale
+  // every five seconds and the server draws the picker with no
+  // `selected` at all, so the first option — Claude Code — wins. The
+  // damage is not the flicker: a press after that reversion starts the
+  // step on Claude without a word, having been asked for Codex.
+  test("a chosen AI survives the five-second swap", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.changeTool("codex");
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+    expect(h.toolSelect.value).toBe("codex");
+    // And the filter it stands for is back on with it: the row's
+    // model selects still offer the codex entry alone.
+    expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "codex-fast", "codex-fast", "codex-fast", "codex-fast", "codex-fast",
+    ]);
+  });
+
+  test("a chosen MODEL survives it too, and an untouched one is the server's", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    // One phase moved by hand; the other four left exactly as drawn.
+    h.changeModel(1, "sonnet");
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "sonnet", "sonnet", "sonnet", "codex-fast", "sonnet",
+    ]);
+  });
+
+  test("a swap nobody has touched a select on is left to the server", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    // The point of restoring only what a hand moved: a phase that has
+    // RUN shows the model it ran on, and the swap is what delivers it.
+    expect(h.toolSelect.value).toBe("claude");
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
+    ]);
+    expect(hidden(h)).toEqual([[], [], [], [], []]);
+  });
 });
 
 // --- spec 129: an answer older than the press never lands on top of it -------
@@ -1199,14 +1306,6 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
   const STALE = "<tr>before the press</tr>";
   /** What it says once the press is accounted for. */
   const FRESH = "<tr>after the press</tr>";
-
-  /** Enough microtask turns for a released `hold` to run the rest of
-   *  `swapRows` — the fetch, the `text()`, the assignment. Counted
-   *  rather than awaited because `tick()` drops its promise on purpose
-   *  (a listener's return value is nobody's to wait on). */
-  const flush = async (): Promise<void> => {
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-  };
 
   test("a tick's answer arriving mid-press does not put the untouched row back", async () => {
     let releaseTick: () => void = () => {};

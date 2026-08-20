@@ -124,7 +124,12 @@ export function summarizeClaudeStream(text: string, opts: SummarizeOptions = {})
  *  answering "what is it doing". */
 function codexEntry(item: Record<string, unknown>): string {
   const str = (k: string) => (typeof item[k] === "string" ? (item[k] as string) : "");
-  switch (item.item_type) {
+  // Both names for the same field. codex-cli 0.148.0 sends `type`
+  // (measured from a real turn, 2026-08-20); `item_type` also appears
+  // in the binary's strings and is what spec 125 read. Which one a
+  // version sends is the CLI's to change, so neither is dropped.
+  const kind = str("item_type") || str("type");
+  switch (kind) {
     case "agent_message":
       return str("text");
     case "command_execution":

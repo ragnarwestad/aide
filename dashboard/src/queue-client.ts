@@ -39,6 +39,54 @@ let inFlight = 0;
  *  measured on 2026-08-20. */
 let pressGen = 0;
 
+/** Every select on the rows a PERSON has moved, keyed by the form it
+ *  names and its own name. Reported 2026-08-20: pick Codex on a row,
+ *  and five seconds later the select is back on Claude Code.
+ *
+ *  The rows are replaced wholesale on every tick, and the server draws
+ *  the AI picker with no `selected` at all — so the fresh one shows its
+ *  first option, and the phase selects show the CONFIGURED model rather
+ *  than the one just picked. Nothing about that is visible in the
+ *  moment it happens. The cost is the press afterwards: a row asked for
+ *  Codex, left alone for six seconds and then Run, started the step on
+ *  Claude without a word.
+ *
+ *  Only hand-made choices are kept. A select nobody touched belongs to
+ *  the server — that is how a phase that has run shows the model it
+ *  really ran on — so this map stays empty until somebody changes
+ *  something, and the swap behaves exactly as it did before. */
+const chosen = new Map<string, string>();
+
+const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") ?? ""}|${el.name}`;
+
+/** Put the hand-made choices back on the rows that were just drawn.
+ *
+ *  The AI pickers go FIRST and re-narrow their row's model selects,
+ *  because that filter moves a selection of its own (`syncToolFilter`):
+ *  a model restored ahead of it would be re-picked by it and the
+ *  restore would look like it had not happened. A remembered model is
+ *  only put back if the fresh markup still offers it and the filter has
+ *  not hidden it — a value no visible option carries is not a choice
+ *  the row can honour. */
+function restoreChosen(body: Element): void {
+  if (!chosen.size) return;
+  for (const el of body.querySelectorAll("select[data-tool-picker]")) {
+    const picker = el as HTMLSelectElement;
+    const want = chosen.get(selectKey(picker));
+    if (want === undefined) continue;
+    picker.value = want;
+    syncToolFilter(picker);
+  }
+  for (const el of body.querySelectorAll('select[name^="model."]')) {
+    const model = el as HTMLSelectElement;
+    const want = chosen.get(selectKey(model));
+    if (want === undefined) continue;
+    for (const option of model.options) {
+      if (option.value === want && !option.hidden) model.value = want;
+    }
+  }
+}
+
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
 // tick would quietly throw the filter away.
@@ -60,6 +108,7 @@ async function swapRows(): Promise<void> {
     // drew.
     if (pressGen !== gen) return;
     body.innerHTML = html;
+    restoreChosen(body);
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   }
@@ -469,10 +518,14 @@ document.getElementById("jobrows")?.addEventListener("submit", submitAction as E
 // wholesale on every tick, so a listener bound to the select itself
 // would last five seconds.
 document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
-  const select = (event.target as Element | null)?.closest?.("select[data-tool-picker]") as
-    | HTMLSelectElement
-    | null;
-  if (select) syncToolFilter(select);
+  const target = event.target as Element | null;
+  const picker = target?.closest?.("select[data-tool-picker]") as HTMLSelectElement | null;
+  // Every select on the rows is remembered, not only the picker: the
+  // phase selects are swapped away just as often, and a model picked
+  // for the next run is the same promise the AI picker makes.
+  const select = picker ?? (target?.closest?.("select") as HTMLSelectElement | null);
+  if (select) chosen.set(selectKey(select), select.value);
+  if (picker) syncToolFilter(picker);
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its
 // own page, with no swapped container to hang a delegated one off.
