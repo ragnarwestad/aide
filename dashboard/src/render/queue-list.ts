@@ -1552,7 +1552,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           })
         : "";
       lines.push({
-        tag: `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">`,
+        tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
