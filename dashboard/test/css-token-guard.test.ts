@@ -247,7 +247,7 @@ const STRUCTURE = [
   "row", "stack", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
-  "untried", "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
+  "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
   "branchlist", "branch",
   "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,

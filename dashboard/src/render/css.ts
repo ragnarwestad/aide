@@ -369,9 +369,6 @@ table.list tr.subrow[data-caption] .phasecell > .row > :nth-child(2) {
    thing, on the caption line after both pinned columns. */
 table.list tr.subrow[data-caption] .phasecell label {
   display: inline-flex; align-items: center; gap: var(--sp-1); }
-/* A phase nobody has run yet still holds its place — that is what makes
-   progress readable — but it must not compete with what has happened. */
-table.list tr.untried td { opacity: 0.55; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's

@@ -881,6 +881,18 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(subRow(html, "review-plan")).toContain("not run yet");
   });
 
+  test("a phase that never ran is drawn like any other, not half-lit", () => {
+    // Asked for 2026-08-20: a control is enabled or disabled, with
+    // nothing in between. A row at 55% opacity reads as a disabled
+    // control, and these boxes are not disabled — they tick, and a run
+    // starts. The State column already says "not run yet" in words,
+    // which is the same fact without the ambiguity.
+    const html = rows([job("j1", "analyze")]);
+
+    expect(subRow(html, "review-plan")).toContain("not run yet");
+    expect(html).not.toContain("untried");
+  });
+
   test("a phase run twice shows the latest attempt and the count (criterion 3)", () => {
     const html = rows([
       job("older", "analyze", { state: "failed", startedAt: "2026-08-16T09:00:00Z" }),
