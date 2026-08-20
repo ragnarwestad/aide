@@ -3,7 +3,7 @@ name: aide-to-pdf
 description: >-
   Generate PDF from JIRA or TODO documentation.
   Use when: exporting documentation to PDF, generating a print-friendly spec.
-  Do NOT use for: HTML generation (use aide-to-html), creating documentation (use aide-create)
+  Do NOT use for: creating documentation (use aide-create)
 argument-hint: "[ISSUE_ID]"
 effort: medium
 ---

@@ -7,7 +7,7 @@ description: >-
   Use when: implementing a solution with TDD, having a completed analysis and
   implementation plan, coding based on 3-solution.md.
   Do NOT use for: creation (use aide-create),
-  analysis (use aide-analyze), tests only without implementation (use aide-make-tests).
+  analysis (use aide-analyze).
 argument-hint: "[PROJ-XXXX or task number]"
 effort: high
 ---

@@ -55,7 +55,6 @@ Skills are expertise modules that Claude Code activates automatically based on c
 .claude/skills/
 ├── tdd-coach/SKILL.md               # Test-Driven Development
 ├── task-workflow-assistant/SKILL.md # JIRA/TODO analysis
-└── architecture-advisor/SKILL.md    # Architecture assessments
 ```
 
 **Example:** When you are about to implement new functionality, `tdd-coach` is activated automatically and guides Claude Code through RED → GREEN → REFACTOR.
@@ -124,8 +123,6 @@ If you have a JIRA MCP server, it can be used instead of cookie-based authentica
 | `/aide-create todo-name Description` | Create TODO plan |
 | `/aide-analyze PROJ-XXXX` | Analyze codebase |
 | `/aide-implement PROJ-XXXX` | Implement with TDD |
-| `/aide-react-class-to-func <file>` | Convert React class to functional |
-| `/aide-make-tests <file>` | Generate missing tests |
 
 ### Terminal scripts
 

@@ -277,7 +277,6 @@ $AIDE_PROJECTS_PATH/
     │   ├── my-app-expert/SKILL.md
     │   ├── my-api-expert/SKILL.md
     │   ├── task-workflow-assistant/SKILL.md
-    │   └── architecture-advisor/SKILL.md
     └── agents/                         # Specialized agents
 
 aide/
