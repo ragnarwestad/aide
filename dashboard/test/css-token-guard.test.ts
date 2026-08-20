@@ -27,6 +27,14 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
+// The EVALUATED stylesheet, not the source text: since spec 130 each
+// palette is written once, in a constant the four token blocks
+// interpolate, so the raw `.ts` file no longer has the colours where
+// the sentinels are. Every check below that reads css.ts's CONTENT
+// reads this string; the class-name checks further down still glob
+// the render files as text, which is a different question.
+import { CSS } from "../src/render/css.ts";
+
 const ROOT = join(import.meta.dir, "..");
 
 const RENDER_FILES = [...new Bun.Glob("src/render/*.ts").scanSync(ROOT)].sort();
@@ -62,22 +70,19 @@ describe("css.ts uses tokens and nothing else", () => {
     expect(RENDER_FILES).toContain("src/render/css.ts");
   });
 
-  test("no colour literal outside the token block", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    expect([...outsideTokens(css).matchAll(COLOUR)].map((m) => m[0])).toEqual([]);
+  test("no colour literal outside the token block", () => {
+    expect([...outsideTokens(CSS).matchAll(COLOUR)].map((m) => m[0])).toEqual([]);
   });
 
-  test("no font-size outside the token block that is not a scale step", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const sizes = [...outsideTokens(css).matchAll(/font-size:\s*([^;}]+)/g)].map((m) =>
+  test("no font-size outside the token block that is not a scale step", () => {
+    const sizes = [...outsideTokens(CSS).matchAll(/font-size:\s*([^;}]+)/g)].map((m) =>
       m[1]!.trim(),
     );
     expect(sizes.filter((v) => !/^var\(--fs-[a-z]+\)$/.test(v))).toEqual([]);
   });
 
-  test("no raw length inside a font shorthand outside the token block", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const fonts = [...outsideTokens(css).matchAll(/(?<![-a-z])font:\s*([^;}]+)/g)].map((m) =>
+  test("no raw length inside a font shorthand outside the token block", () => {
+    const fonts = [...outsideTokens(CSS).matchAll(/(?<![-a-z])font:\s*([^;}]+)/g)].map((m) =>
       m[1]!.trim(),
     );
     expect(fonts.filter((v) => /\d+(px|rem|em)\b/.test(v))).toEqual([]);
@@ -114,38 +119,87 @@ function tokensAfter(css: string, opening: string): Record<string, string> {
 }
 
 describe("an explicit theme is the same ramp, not a third one", () => {
-  test("the chosen Dark is exactly what the machine's dark preference gives", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    expect(tokensAfter(css, ':root[data-theme="dark"] {')).toEqual(
-      tokensAfter(css, "@media (prefers-color-scheme: dark) {"),
+  test("the chosen Dark is exactly what the machine's dark preference gives", () => {
+    expect(tokensAfter(CSS, ':root[data-theme="dark"] {')).toEqual(
+      tokensAfter(CSS, "@media (prefers-color-scheme: dark) {"),
     );
   });
 
-  test("the chosen Light is exactly the default set, colour for colour", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+  test("the chosen Light is exactly the default set, colour for colour", () => {
     // The light block only looks redundant. It is an ATTRIBUTE selector
     // and the dark preference above is a bare `:root` inside a media
     // query, so this is the one rule that keeps an explicit Light on a
     // machine set to dark. The default set is the top of the file, and
     // the size/space tokens live there and nowhere else, so compare on
     // the colours the two have in common.
-    const chosen = tokensAfter(css, ':root[data-theme="light"] {');
-    const base = tokensAfter(css, ":root {");
+    const chosen = tokensAfter(CSS, ':root[data-theme="light"] {');
+    const base = tokensAfter(CSS, ":root {");
     for (const [name, value] of Object.entries(chosen)) expect([name, base[name]]).toEqual([name, value]);
   });
 
-  test("neither block sits inside a media query, which is what would sink it", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+  test("neither block sits inside a media query, which is what would sink it", () => {
     // A `@media` block between the selector and the end of the
     // stylesheet is fine; one that OPENS before it and has not closed
     // is not — the choice would then apply only when the machine
     // already agreed with it.
     for (const selector of [':root[data-theme="dark"] {', ':root[data-theme="light"] {']) {
-      const before = css.slice(0, css.indexOf(selector));
+      const before = CSS.slice(0, CSS.indexOf(selector));
       const opened = (before.match(/@media[^{]*\{/g) ?? []).length;
       const braces = (before.match(/\{/g) ?? []).length - (before.match(/\}/g) ?? []).length;
       expect([selector, opened > 0 && braces > 0]).toEqual([selector, false]);
     }
+  });
+});
+
+// --- refused is not a shade of running (spec 130) ---------------------------
+//
+// The file's own header says danger is carried by the darkest bar of
+// the mark and NOT by a shade of the accent, so the two states never
+// rest on hue alone. Dark had both `--danger` and `--accent-strong` on
+// `#F5B7A3` all the same, and nothing here noticed. Named pair, not a
+// blanket "no two tokens share a value" rule: dark's `--bg` and
+// `--on-accent` are deliberately the same colour — dark text on the
+// peach accent is what `--on-accent` is for — and a blanket rule would
+// make that pair a failure.
+
+describe("running and refused never share a colour", () => {
+  // The two explicit blocks are enough: the equality tests above tie
+  // the machine's preference and the bare `:root` default to these.
+  for (const theme of ["dark", "light"]) {
+    test(`${theme}: --danger is not --accent-strong`, () => {
+      const tokens = tokensAfter(CSS, `:root[data-theme="${theme}"] {`);
+      expect([theme, tokens["--danger"] === tokens["--accent-strong"]]).toEqual([theme, false]);
+    });
+  }
+});
+
+// --- one width, one owner (spec 130) ---------------------------------------
+//
+// `main` carried a `max-width` of its own that the frame rule below it
+// overrode at equal specificity — a declaration that had not applied
+// since the frame was centred, and read like the answer to "how wide
+// is the page" while not being it.
+
+describe("the page's width comes from the frame rule alone", () => {
+  test("main declares no max-width of its own", () => {
+    const rule = CSS.match(/^main\s*\{([^}]*)\}/m)?.[1] ?? "";
+    // A `main` rule that vanished entirely would pass the line below
+    // without protecting anything.
+    expect(rule).toContain("padding");
+    expect(rule).not.toContain("max-width");
+    // and the frame rule, which is the one that actually decides it
+    expect(CSS).toMatch(/header, body > nav\.tabbar, main \{[^}]*max-width: \d+rem/);
+  });
+});
+
+// --- one class, one home (spec 130) ----------------------------------------
+
+describe("a class is declared in one place", () => {
+  test(".spec-name is declared once, not twice", () => {
+    // Two rules for one class is how a class starts having two homes:
+    // the next reader changes the first one and never sees the second.
+    // (`.spec-name > .label` is a different selector and does not count.)
+    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
   });
 });
 
@@ -258,24 +312,22 @@ describe("the space between two controls comes from their container", () => {
   const GAPLESS = [".mergeform", ".actionform", ".resolveform", ".extra"];
 
   for (const cls of GAPLESS) {
-    test(`${cls} declares no margin of its own`, async () => {
-      const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+    test(`${cls} declares no margin of its own`, () => {
       // A rule that is gone entirely passes: `.actionform`'s margin was
       // its only declaration, and `td form` already gives it the rest.
-      const body = css.match(new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+      const body = CSS.match(new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
       expect([cls, body.includes("margin")]).toEqual([cls, false]);
     });
   }
 
-  test("the row's own alignment rule stays scoped, and the filter bar keeps its own", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+  test("the row's own alignment rule stays scoped, and the filter bar keeps its own", () => {
     // The controls line the flex-end rule was written for is gone
     // (spec 124), and with it the selector — a guard left pointing at
     // `tr[data-controls]` would pass for ever without protecting
     // anything. `.row`'s own unscoped `center` is what the filter bar
     // still needs and must not be replaced by a row-shaped rule.
-    expect(css).not.toContain("data-controls");
-    expect(css).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
+    expect(CSS).not.toContain("data-controls");
+    expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
 });
 
@@ -291,15 +343,13 @@ describe("the space between two controls comes from their container", () => {
 // lines.)
 
 describe("the action column's width is declared, not content-driven", () => {
-  test("the stack's cell carries a fixed width", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const rule = css.match(/\.stackcell \{([^}]*)\}/)?.[1] ?? "";
+  test("the stack's cell carries a fixed width", () => {
+    const rule = CSS.match(/\.stackcell \{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toMatch(/width:\s*[\d.]+rem;/);
   });
 
-  test("the vertical stack is a container with a gap, like every other one", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const rule = css.match(/\.stack \{([^}]*)\}/)?.[1] ?? "";
+  test("the vertical stack is a container with a gap, like every other one", () => {
+    const rule = CSS.match(/\.stack \{([^}]*)\}/)?.[1] ?? "";
     expect(rule).toContain("flex-direction: column");
     expect(rule).toMatch(/gap:\s*var\(--sp-\d\)/);
     expect(rule).not.toContain("margin");
@@ -315,16 +365,14 @@ describe("the action column's width is declared, not content-driven", () => {
 // deleting either fails here with a reason.
 
 describe("the unit a reader chose is a CSS switch, not a second page", () => {
-  test("choosing tokens hides the dollar figure", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    expect(css).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
+  test("choosing tokens hides the dollar figure", () => {
+    expect(CSS).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
   });
 
-  test("with no choice made the token figure is the hidden one", async () => {
-    const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
+  test("with no choice made the token figure is the hidden one", () => {
     // `:not([data-unit="tokens"])`, not `[data-unit="usd"]`: dollars is
     // the ABSENCE of the attribute, exactly as Auto is for the theme, so
     // a page whose script never ran still reads the way it always did.
-    expect(css).toContain(':root:not([data-unit="tokens"]) .u-tok { display: none; }');
+    expect(CSS).toContain(':root:not([data-unit="tokens"]) .u-tok { display: none; }');
   });
 });

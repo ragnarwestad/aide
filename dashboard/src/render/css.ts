@@ -19,17 +19,32 @@
 // by a shade of the accent, so "running" and "refused" never rest on
 // hue alone.
 
-export const CSS = `
-:root {
-  color-scheme: light dark;
-/* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
+// Each palette is written HERE and nowhere else, and read four times
+// below. All four blocks have to exist — the reason is specificity and
+// it is spelled out at the two of them that look redundant — but the
+// VALUES had been typed out in each, so a colour change was two edits
+// and nothing caught it when only one was made (spec 130).
+const LIGHT_COLORS = `  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
   --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
   --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
   --on-accent: #FCFAF7;
   --ok: #2F7D4F; --ok-soft: #E3F0E7;
   --warn: #B7791F; --warn-soft: #F8EDD6;
-  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;`;
+
+const DARK_COLORS = `  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
+  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --on-accent: #16181C;
+  --ok: #6FC08F; --ok-soft: #22352A;
+  --warn: #E0A84A; --warn-soft: #3A2F1C;
+  --danger: #E8836B; --danger-soft: #3D211B;`;
+
+export const CSS = `
+:root {
+  color-scheme: light dark;
+/* tokens:start */
+${LIGHT_COLORS}
   --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
   --lh: 1.45;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
@@ -47,13 +62,7 @@ export const CSS = `
 @media (prefers-color-scheme: dark) {
 :root {
 /* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
-  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
-  --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #22352A;
-  --warn: #E0A84A; --warn-soft: #3A2F1C;
-  --danger: #F5B7A3; --danger-soft: #3D211B;
+${DARK_COLORS}
 /* tokens:end */
 }
 .brand .mark-l { display: none; }
@@ -69,13 +78,7 @@ export const CSS = `
    falls straight through to the two rules above, unchanged. */
 :root[data-theme="dark"] {
 /* tokens:start */
-  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
-  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
-  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
-  --on-accent: #16181C;
-  --ok: #6FC08F; --ok-soft: #22352A;
-  --warn: #E0A84A; --warn-soft: #3A2F1C;
-  --danger: #F5B7A3; --danger-soft: #3D211B;
+${DARK_COLORS}
 /* tokens:end */
   color-scheme: dark;
 }
@@ -83,13 +86,7 @@ export const CSS = `
 :root[data-theme="dark"] .brand .mark-d { display: block; }
 :root[data-theme="light"] {
 /* tokens:start */
-  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
-  --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
-  --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
-  --on-accent: #FCFAF7;
-  --ok: #2F7D4F; --ok-soft: #E3F0E7;
-  --warn: #B7791F; --warn-soft: #F8EDD6;
-  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+${LIGHT_COLORS}
 /* tokens:end */
   color-scheme: light;
 }
@@ -133,7 +130,7 @@ body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
 .tabbar .tab:hover { color: var(--text); text-decoration: none; }
 .tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
   border-bottom-color: var(--accent); }
-main { padding: var(--sp-5) var(--sp-6); max-width: 68rem; }
+main { padding: var(--sp-5) var(--sp-6); }
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
 header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
@@ -321,7 +318,8 @@ table.list thead a { color: var(--muted); }
    wrapped — a wrapped tail landed in front of the branch marks and
    read as one of them (2026-08-19). The full name is in the title. */
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
-  display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+  display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
+  max-width: 18rem; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
@@ -330,7 +328,6 @@ table.list thead a { color: var(--muted); }
    buttons and the phases (2026-08-19). */
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 18rem; }
-.spec-name { max-width: 18rem; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
