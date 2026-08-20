@@ -1787,7 +1787,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 [Testing strategy]
 
 ### Manual testing
-[What must be tested manually]
+[What is NOT covered by a test, and why — a note, not a checklist]
 
 ---
 
@@ -1807,6 +1807,9 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 - Acceptance criteria as given/when/then scenarios; the RED phase writes
   at least one failing test per criterion
 - TDD approach with RED-GREEN-REFACTOR phases
+- Manual testing is a NOTE, not a checklist: it names what no test
+  covers and why. Nothing under it is a task, and nothing under it
+  blocks archiving — 4-status has no row for it
 
 ---
 

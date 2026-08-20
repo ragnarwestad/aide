@@ -128,5 +128,7 @@ Example for a Maven/Gradle backend:
 
 ## After implementation
 
-1. Test manually (follow the test plan from 3-solution.md)
+1. Optional: read the Manual testing note in 3-solution.md. It names what no
+   test covers and why — a thing to look at when you get the chance, never a
+   step that has to be completed before the spec is done
 2. Commit the changes

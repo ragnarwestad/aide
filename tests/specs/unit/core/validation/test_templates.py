@@ -364,3 +364,99 @@ class TestRequiredPlaceholders:
             for placeholder in required_placeholders:
                 assert placeholder in content, \
                     f"1-description.md.template should contain {placeholder}"
+
+
+@pytest.mark.validation
+class TestManualTestingIsANote:
+    """Manual testing is a note about what no test covers — not a task.
+
+    A checkbox row a headless run can never tick holds a finished spec
+    open forever: /aide-archive sees the open mark and refuses. The
+    section survives (the limitation is still worth recording), but it
+    states a fact instead of scaffolding steps to execute.
+    """
+
+    @staticmethod
+    def _template(workspace_root, name):
+        path = workspace_root / "core" / "templates" / "todo" / name
+        if not path.exists():
+            pytest.skip(f"{name} not found")
+        return path.read_text()
+
+    @staticmethod
+    def _rule(workspace_root):
+        path = workspace_root / "core" / "rules" / "spec-structure.md"
+        if not path.exists():
+            pytest.skip("spec-structure.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _manual_section(content):
+        """The `### Manual testing` body, up to the next heading or rule."""
+        assert "### Manual testing" in content, \
+            "the Manual testing section must stay — the note replaces the checklist"
+        rest = content.split("### Manual testing", 1)[1]
+        return re.split(r"^(?:#{1,3} |---\s*$)", rest, maxsplit=1, flags=re.M)[0]
+
+    # Criterion 1
+    def test_status_template_has_no_manual_testing_row(self, workspace_root):
+        content = self._template(workspace_root, "4-status.md.template")
+        assert "Manual testing" not in content, \
+            "4-status.md must not scaffold a checkbox no headless run can tick"
+
+    # Criterion 2 (and 7)
+    def test_solution_template_manual_testing_is_a_note(self, workspace_root):
+        section = self._manual_section(
+            self._template(workspace_root, "3-solution.md.template"))
+        for marker in ("Steps:", "Test case", "Expected result"):
+            assert marker not in section, \
+                f"Manual testing must read as a note, not a checklist ({marker} found)"
+        assert "not covered" in section.lower(), \
+            "the note must name what is NOT covered by a test, and why"
+
+    # Criterion 3 (and 7)
+    def test_rule_solution_example_frames_manual_testing_as_a_note(self, workspace_root):
+        block = structure_block(self._rule(workspace_root), "3-solution")
+        section = self._manual_section(block)
+        assert "must be tested manually" not in section.lower(), \
+            "the golden example must not ask for a manual test plan"
+        assert "not covered" in section.lower(), \
+            "the golden example must use the same 'not covered by a test' framing"
+
+    def test_rule_key_points_say_the_note_blocks_nothing(self, workspace_root):
+        content = self._rule(workspace_root)
+        start = content.index("\n### 3-solution\n")
+        end = content.index("\n### 4-status\n", start)
+        key_points = content[content.index("**Key points:**", start):end]
+        assert "Manual testing" in key_points, \
+            "3-solution's Key points must state what the Manual testing section is"
+        assert "note" in key_points.lower() and "not a checklist" in key_points.lower(), \
+            "Key points must say plainly that Manual testing is a note, not a checklist"
+
+    # Criterion 4
+    def test_file_templates_describe_manual_testing_as_a_note(self, workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-create"
+                / "references" / "file-templates.md")
+        if not path.exists():
+            pytest.skip("file-templates.md not found")
+        solution = next(
+            chunk for chunk in path.read_text().split("\n## ")
+            if chunk.splitlines()[0].startswith("3-solution"))
+        testing = next(
+            line for line in solution.splitlines()
+            if line.startswith("- **Testing:**"))
+        assert "note" in testing.lower(), \
+            "file-templates.md must describe manual testing as a note"
+        assert "not a checklist" in testing.lower(), \
+            "file-templates.md must say the note is not a checklist item"
+
+    # Criterion 5
+    def test_implement_skill_step_is_optional_not_a_test_plan(self, workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-implement" / "SKILL.md")
+        if not path.exists():
+            pytest.skip("aide-implement/SKILL.md not found")
+        after = path.read_text().split("\n## After implementation", 1)[1]
+        assert "test plan" not in after.lower(), \
+            "the After-implementation step must not call the note a 'test plan' to follow"
+        assert "optional" in after.lower(), \
+            "the After-implementation step must say plainly that it is optional"

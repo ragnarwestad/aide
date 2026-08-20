@@ -248,27 +248,14 @@ describe('[Component/Function]', () => {
 
 ### Manual testing
 
-**What must be tested manually:**
+Not a checklist to complete — a note. Name what no automated test covers,
+and why, so the gap stays visible without holding the spec open. Nothing
+written here blocks archiving. If a test covers everything, say so in one
+line.
 
-#### Test case 1: [Happy path]
-
-**Steps:**
-1. [step 1]
-2. [step 2]
-3. [step 3]
-
-**Expected result:**
-- ✅ [expected result 1]
-- ✅ [expected result 2]
-
-#### Test case 2: [Edge case]
-
-**Steps:**
-1. [step 1]
-2. [step 2]
-
-**Expected result:**
-- ✅ [expected result]
+**Not covered by a test:**
+- [what is unverified] - [why: needs a browser, a live dashboard, a visual
+  judgment call]
 
 ---
 
