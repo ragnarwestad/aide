@@ -59,6 +59,15 @@ const chosen = new Map<string, string>();
 
 const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") ?? ""}|${el.name}`;
 
+/** The same promise for the phase boxes, reported the same day and
+ *  twice: tick implement and archive, wait six seconds, press Run — and
+ *  only what the server had ticked runs. The boxes all share the field
+ *  name `steps` and are told apart by value, so the key carries it. */
+const tickedByHand = new Map<string, boolean>();
+
+const boxKey = (el: HTMLInputElement): string =>
+  `${el.getAttribute("form") ?? ""}|${el.name}|${el.value}`;
+
 /** Put the hand-made choices back on the rows that were just drawn.
  *
  *  The AI pickers go FIRST and re-narrow their row's model selects,
@@ -69,6 +78,7 @@ const selectKey = (el: HTMLSelectElement): string => `${el.getAttribute("form") 
  *  not hidden it — a value no visible option carries is not a choice
  *  the row can honour. */
 function restoreChosen(body: Element): void {
+  restoreTicks(body);
   if (!chosen.size) return;
   for (const el of body.querySelectorAll("select[data-tool-picker]")) {
     const picker = el as HTMLSelectElement;
@@ -84,6 +94,32 @@ function restoreChosen(body: Element): void {
     for (const option of model.options) {
       if (option.value === want && !option.hidden) model.value = want;
     }
+  }
+}
+
+/** Put the hand-made ticks back, and the chip's look with them: a
+ *  ticked input inside a chip the server drew as `default` is the same
+ *  contradiction one layer down.
+ *
+ *  A DISABLED box is skipped — a busy row's boxes belong to the run,
+ *  not to the reader. So is a chip in any state but `checked`/`default`:
+ *  `busy`, `off` and `done` are the server's own precedence
+ *  (`phaseChip` in render/components.ts), and repeating that rule here
+ *  is how the two would drift apart. */
+function restoreTicks(body: Element): void {
+  if (!tickedByHand.size) return;
+  for (const el of body.querySelectorAll('input[type="checkbox"][name="steps"]')) {
+    const box = el as HTMLInputElement;
+    if (box.disabled) continue;
+    const want = tickedByHand.get(boxKey(box));
+    if (want === undefined) continue;
+    box.checked = want;
+    const chip = box.closest("label.phase") as HTMLElement | null;
+    if (!chip) continue;
+    const look = chip.classList;
+    if (!look.contains("checked") && !look.contains("default")) continue;
+    look.toggle("checked", want);
+    look.toggle("default", !want);
   }
 }
 
@@ -549,6 +585,9 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   const select = picker ?? (target?.closest?.("select") as HTMLSelectElement | null);
   if (select) chosen.set(selectKey(select), select.value);
   if (picker) syncToolFilter(picker);
+  // A phase box is the other half of the same promise.
+  const box = target?.closest?.('input[type="checkbox"][name="steps"]') as HTMLInputElement | null;
+  if (box) tickedByHand.set(boxKey(box), box.checked);
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its
 // own page, with no swapped container to hang a delegated one off.

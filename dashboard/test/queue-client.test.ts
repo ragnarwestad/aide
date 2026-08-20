@@ -85,6 +85,16 @@ function classes(el: { className: string }) {
       write(s);
     },
     contains: (c: string) => set().has(c),
+    // The DOM's own third verb. Without it here, a `toggle` in the code
+    // under test throws inside `swapRows`, whose catch is there for a
+    // dropped connection and swallows it — which is how this fake first
+    // hid a working restore (2026-08-20).
+    toggle: (c: string, on: boolean) => {
+      const s = set();
+      if (on) s.add(c);
+      else s.delete(c);
+      write(s);
+    },
   };
 }
 
@@ -252,6 +262,37 @@ function harness(
   /** A model select belonging to ANOTHER row: the filter must reach the
    *  five that share its form id and no others. */
   const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
+  // The phase boxes (spec 124): one per workflow step, all sharing the
+  // field name `steps`, told apart by value. The server ticks whatever
+  // `preTicked()` decided — here analyze and review-plan, the pair a
+  // spec with nothing done yet is offered — and a redraw puts that back,
+  // the way a browser handed fresh elements would.
+  const SERVER_TICKED = ["analyze", "review-plan"];
+  const phaseBox = (value: string) => {
+    const chip = {
+      className: `phase ${SERVER_TICKED.includes(value) ? "checked" : "default"}`,
+    } as { className: string; classList: ReturnType<typeof classes> };
+    // The chip carries its OWN classList, the way the element does: the
+    // restore reads and writes the label's classes, not the input's.
+    chip.classList = classes(chip);
+    const box = {
+      name: "steps",
+      value,
+      type: "checkbox",
+      checked: SERVER_TICKED.includes(value),
+      disabled: false,
+      chip,
+      getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      closest: (sel: string): unknown => (sel.includes("phase") ? chip : sel.includes("select") ? null : box),
+      redraw: () => {
+        box.checked = SERVER_TICKED.includes(value);
+        chip.className = `phase ${box.checked ? "checked" : "default"}`;
+      },
+    };
+    return box;
+  };
+  const phaseBoxes = ["analyze", "review-plan", "implement", "archive"].map(phaseBox);
+
   const toolSelect = {
     value: "claude",
     // No `name`: the picker posts nothing (`queue-list.ts`). It is
@@ -378,13 +419,16 @@ function harness(
       toolSelect.redraw();
       for (const m of modelSelects) m.redraw();
       otherRowSelect.redraw();
+      for (const b of phaseBoxes) b.redraw();
     },
     querySelectorAll: (sel: string) =>
       sel.includes("data-tool-picker")
         ? [toolSelect]
         : sel.includes("model.")
           ? [...modelSelects, otherRowSelect]
-          : [],
+          : sel.includes("checkbox")
+            ? phaseBoxes
+            : [],
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
@@ -509,7 +553,14 @@ function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, toolSelect,
+    modelSelects, otherRowSelect, toolSelect, phaseBoxes,
+    /** A phase box ticked or unticked by hand. */
+    tickPhase: (value: string, wanted: boolean) => {
+      const box = phaseBoxes.find((b) => b.value === value)!;
+      box.checked = wanted;
+      box.chip.className = `phase ${wanted ? "checked" : "default"}`;
+      on["change"]?.({ target: box });
+    },
     changeTool: (value: string) => {
       toolSelect.value = value;
       on["change"]?.({ target: toolSelect });
@@ -1289,6 +1340,52 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
     expect(h.modelSelects.map((s) => s.value)).toEqual([
       "codex-fast", "codex-fast", "codex-fast", "codex-fast", "codex-fast",
     ]);
+  });
+
+  // Reported 2026-08-20, twice: tick implement and archive, wait, and
+  // the ticks are gone. The selects were covered earlier that day; the
+  // phase boxes were not. The damage is the same and worse — a row
+  // asked for three phases, left alone for six seconds and then Run,
+  // starts only what the server had ticked, and says nothing.
+  test("a phase ticked by hand survives the five-second swap", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.tickPhase("implement", true);
+    h.tickPhase("archive", true);
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    const state = Object.fromEntries(h.phaseBoxes.map((b) => [b.value, b.checked]));
+    expect(state).toEqual({ analyze: true, "review-plan": true, implement: true, archive: true });
+    // The chip's look follows the box: a ticked input inside a chip
+    // still drawn as `default` is the same contradiction one layer down.
+    const chips = Object.fromEntries(h.phaseBoxes.map((b) => [b.value, b.chip.className]));
+    expect(chips.implement).toContain("checked");
+    expect(chips.archive).toContain("checked");
+  });
+
+  test("a phase UNticked by hand stays unticked across the swap", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    // The server ticked this one; the reader took it off on purpose.
+    h.tickPhase("review-plan", false);
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    expect(h.phaseBoxes.find((b) => b.value === "review-plan")!.checked).toBe(false);
+    expect(h.phaseBoxes.find((b) => b.value === "analyze")!.checked).toBe(true);
+  });
+
+  test("a box nobody touched is the server's to tick", async () => {
+    const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+
+    // What preTicked() decided, untouched — so a phase finishing while
+    // the reader watches can still move the tick to the next one.
+    const state = Object.fromEntries(h.phaseBoxes.map((b) => [b.value, b.checked]));
+    expect(state).toEqual({ analyze: true, "review-plan": true, implement: false, archive: false });
   });
 
   test("a chosen MODEL survives it too, and an untouched one is the server's", async () => {
