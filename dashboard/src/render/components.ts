@@ -59,7 +59,6 @@ export const STEP_LABELS: Record<string, string> = { "review-plan": "review" };
 export const stepLabel = (step: string): string => STEP_LABELS[step] ?? step;
 
 /** The same, for a sentence built from several steps. */
-export const stepLabels = (steps: string[]): string[] => steps.map(stepLabel);
 
 // --- button -------------------------------------------------------------------
 

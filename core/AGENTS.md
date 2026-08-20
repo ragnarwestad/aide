@@ -1278,7 +1278,7 @@ const value = useSelector(state => state.value);
 - Lists and tables
 - Metadata fields
 
-**See also:** [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) for detailed linting rules.
+**See also:** [markdown-linting.md](./markdown-linting.md) for detailed linting rules.
 
 ---
 
@@ -1354,7 +1354,7 @@ Avoid mocks for validation - use real test data.
 ## See also
 
 - [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
+- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
 
 ---
 
@@ -1503,7 +1503,7 @@ echo "Hello"
 
 **Preventive fix:**
 - The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md#code-blocks)
+- But the source should be fixed - see [documentation.md](./documentation.md#code-blocks)
 
 ---
 
@@ -1944,8 +1944,8 @@ The `/aide-analyze` command fills in the analysis, solution and status.
 
 ## See also
 
-- [DOCUMENTATION_STANDARD.md](./DOCUMENTATION_STANDARD.md) - General documentation rules
-- [MARKDOWN_LINTING.md](./MARKDOWN_LINTING.md) - Markdown linting rules
+- [documentation.md](./documentation.md) - General documentation rules
+- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
 
 ---
 
