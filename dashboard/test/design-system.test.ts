@@ -495,7 +495,10 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(html).toContain(">ready to merge the plan<");
   });
 
-  test("after a refusal the merge button says Merge again", () => {
+  // Spec 135: a refusal is the row's history, and the row says it. The
+  // button keeps its verb — pressing it a second time is not a
+  // different action from pressing it the first time.
+  test("a refusal does not change the word: the button still says Merge", () => {
     const html = rows(
       [
         row({
@@ -509,7 +512,8 @@ describe("the primary button's label per row state (the design sheet's table)", 
         errorSpec: "aide/102-design-foundation",
       },
     );
-    expect(buttons(html)).toContain("Merge again");
+    expect(buttons(html)).toContain("Merge");
+    expect(buttons(html)).not.toContain("Merge again");
   });
 });
 
@@ -520,7 +524,7 @@ describe("the primary button's label per row state (the design sheet's table)", 
 // that share the same free-text channel, so the test that matters most
 // is the one that says it is ABSENT everywhere else.
 
-describe("let aide resolve it (spec 106)", () => {
+describe("Resolve (spec 106)", () => {
   const buttons = (html: string) =>
     [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map((m) =>
       m[1]!.replace(/<[^>]*>/g, "").trim(),
@@ -543,12 +547,12 @@ describe("let aide resolve it (spec 106)", () => {
     errorReason: "conflict",
   };
 
-  test("a conflict refusal offers it, beside Merge again and never instead of it", () => {
+  test("a conflict refusal offers it, beside Merge and never instead of it", () => {
     const html = merged(CONFLICT);
     expect(html).toContain("resolveform");
-    expect(buttons(html)).toContain("let aide resolve it");
+    expect(buttons(html)).toContain("Resolve");
     // The hand route is what the reader had yesterday, and it stays.
-    expect(buttons(html)).toContain("Merge again");
+    expect(buttons(html)).toContain("Merge");
   });
 
   test("a collapsed row offers it too — the refusal is read there as well", () => {

@@ -911,7 +911,7 @@ describe("QueueStore.enqueueCreate", () => {
 
 // --- spec 106: resolve is a step like the others ------------------------------
 //
-// The "let aide resolve it" control posts an ordinary job with
+// The Resolve control posts an ordinary job with
 // `steps: ["resolve"]`. Nothing about cost, caps, concurrency or model
 // selection is new — but the step has to be IN the vocabulary, or the
 // post is refused as "invalid entry in steps" before it reaches the

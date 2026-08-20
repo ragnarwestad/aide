@@ -276,12 +276,12 @@ every row it has: an empty spec list means "we cannot tell", never
 
 A spec's row is collapsed by default: name, title, one status line, the
 four phase pips, and at most one action button (Approve if a gate is
-waiting, "let aide resolve it" after a conflict on that very row). The four phase lines and every
-control — phase checkboxes, model dropdown, gate and also-touches
-fields, Run, Cancel — sit behind the same chevron in front of the name
-(spec 103). Expanding is a link and lives in the query string
-(`?open=<project>/<folder>,…`), which is what makes it survive the
-table's own five-second refresh, what makes it work with JavaScript
+waiting, Resolve after a conflict on that very row). The four phase
+lines and every control — phase checkboxes, model dropdown, gate and
+also-touches fields, Run, Cancel — sit behind the same chevron in front
+of the name (spec 103). Expanding is a link and lives in the query
+string (`?open=<project>/<folder>,…`), which is what makes it survive
+the table's own five-second refresh, what makes it work with JavaScript
 switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
@@ -697,7 +697,8 @@ the confirmed "merge anyway", so it is a choice rather than a surprise.
 ### Letting aide resolve a conflict (spec 106)
 
 A conflict refusal carries a second choice beside "merge it by hand":
-**let aide resolve it**. Pressing it queues an ordinary job with one
+**Resolve**, drawn as the row's primary action because resolving is what
+to do next there (spec 135). Pressing it queues an ordinary job with one
 step, `resolve`, which does by machine what the by-hand routine did —
 in a worktree of the spec's branch, merge origin's default branch into
 it, resolve the conflicts, run the project's test command, and push the

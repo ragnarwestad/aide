@@ -135,8 +135,8 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     // Spec 106: the sentence above is for a person to read, and it is
     // joined with every other repo's before the page sees it. What the
     // page GATES on is this field — set at exactly one refusal, so the
-    // "let aide resolve it" control cannot be offered for a refusal
-    // resolving would not fix.
+    // Resolve control cannot be offered for a refusal resolving would
+    // not fix.
     expect(result.reason).toBe("conflict");
   });
 
@@ -392,7 +392,7 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
 
 // --- spec 106/129: the field names only the refusals a machine acts on -------
 //
-// The "let aide resolve it" control is offered on the strength of this
+// The Resolve control is offered on the strength of this
 // one field, so a refusal that a resolve step could not fix must never
 // be called a conflict. Spec 129 added the second, and only the second:
 // `"gone"`, which the merge route reads to invalidate the branch-status

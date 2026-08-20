@@ -382,7 +382,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
-  // Spec 106: exactly what the "let aide resolve it" form sends — a
+  // Spec 106: exactly what the Resolve form sends — a
   // fixed `steps=resolve` and nothing to pick. The gate boxes and the
   // model dropdown are not on that form, so this is the whole body.
   test("the resolve form's own body queues a resolve job (spec 106)", async () => {
