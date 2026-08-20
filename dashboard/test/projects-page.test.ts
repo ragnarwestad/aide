@@ -68,6 +68,49 @@ describe("the listing on /projects", () => {
   });
 });
 
+// Spec 142: code merged outside the dashboard never runs the project's
+// AIDE_INSTALL_CMD, so the serving host keeps serving the old version
+// and nothing says so. The banner is the saying-so: on the row, on
+// every load, for as long as the drift lasts.
+
+describe("the drift banner on /projects", () => {
+  test("a project behind origin says so on its own row, and says how far", () => {
+    const html = page([project("aide"), project("atlasaurus")], { driftByProject: { aide: 3 } });
+    expect(html).toContain("3 commits behind origin — deploy is a hand step");
+    // On aide's row, not floating above the list where a reader has to
+    // work out which project it is about.
+    expect(html).toMatch(/aide[\s\S]*?3 commits behind origin[\s\S]*?atlasaurus/);
+    expect(html).toContain('class="rowmsg warn"');
+  });
+
+  test("one commit behind is one commit, not 1 commits", () => {
+    expect(page([project("aide")], { driftByProject: { aide: 1 } })).toContain(
+      "1 commit behind origin — deploy is a hand step",
+    );
+  });
+
+  test("a project the drift map does not name gets no banner (criteria 1 and 3)", () => {
+    const html = page([project("aide"), project("atlasaurus")], { driftByProject: { aide: 2 } });
+    expect(html).not.toMatch(/atlasaurus[\s\S]*?behind origin/);
+  });
+
+  test("with no drift at all the page is exactly what it was", () => {
+    expect(page([project("aide")], {})).not.toContain("behind origin");
+    expect(page([project("aide")], { driftByProject: {} })).not.toContain("behind origin");
+  });
+
+  // A project whose manifest will not parse is already an error row —
+  // it is still a checkout that can fall behind, and losing the banner
+  // there would hide drift on exactly the project someone is fixing.
+  test("an unparseable manifest still gets its banner", () => {
+    const html = page([{ name: "brokenproj", manifest: { ok: false, error: "YAML parse error" }, specs: [] }], {
+      driftByProject: { brokenproj: 7 },
+    });
+    expect(html).toContain("7 commits behind origin");
+  });
+});
+
+
 // --- the Add and Remove controls (2026-08-19: pages of their own) ------------
 //
 // The panel used to be a fold at the bottom of this page, whose opener

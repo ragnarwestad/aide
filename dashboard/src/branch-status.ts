@@ -92,6 +92,10 @@ export class BranchStatusChecker {
   private readonly ttlMs: number;
   private readonly now: () => number;
   private readonly cache = new Map<string, { at: number; merged: boolean }>();
+  /** Spec 142's answer, in its own map. `cache` holds a boolean and this
+   *  one a number-or-null: widening the existing field's type would let
+   *  either question be answered with the other's answer. */
+  private readonly driftCache = new Map<string, { at: number; behind: number | null }>();
 
   constructor(opts: BranchStatusOptions) {
     this.run = opts.run;
@@ -157,6 +161,54 @@ export class BranchStatusChecker {
   private remember(key: string, at: number, merged: boolean): boolean {
     this.cache.set(key, { at, merged });
     return merged;
+  }
+
+  /** How many commits `origin/<default>` has that this checkout does
+   *  not. Spec 142: a merge made anywhere but the dashboard's own
+   *  button runs no `AIDE_INSTALL_CMD`, so the serving host goes on
+   *  serving the old code and nothing says so — this is what says so.
+   *
+   *  `0` when level or ahead. `null` where the answer cannot be
+   *  trusted: no resolvable default branch, a checkout parked on some
+   *  other branch (mid-investigation is not "behind", it is elsewhere —
+   *  the same rule `aide-pull-specs` applies), or a git that errored or
+   *  timed out. Fail-open, like `isMerged`: a banner nobody can trust
+   *  is worse than no banner.
+   *
+   *  Reads only. The `--quiet` fetch of the default branch is what
+   *  makes the count current, and is the same call `isMerged` already
+   *  makes; nothing here merges, pulls or moves the checkout, because
+   *  a page load that changed the code under a running server is the
+   *  very thing nobody asked for. */
+  async commitsBehindOrigin(projectDir: string): Promise<number | null> {
+    const at = this.now();
+    const hit = this.driftCache.get(projectDir);
+    if (hit && at - hit.at < this.ttlMs) return hit.behind;
+
+    let behind: number | null = null;
+    try {
+      const base = await this.defaultBranch(projectDir);
+      if (base) {
+        const current = await this.run(projectDir, ["rev-parse", "--abbrev-ref", "HEAD"]);
+        if (current.code === 0 && current.stdout.trim() === base) {
+          // Best effort, as it is in `isMerged`: whatever the checkout
+          // already knows beats no answer at all.
+          await this.run(projectDir, ["fetch", "--quiet", "origin", base]);
+          const count = await this.run(projectDir, [
+            "rev-list", "--count", `HEAD..refs/remotes/origin/${base}`,
+          ]);
+          if (count.code === 0) {
+            const n = Number.parseInt(count.stdout.trim(), 10);
+            if (Number.isFinite(n)) behind = n;
+          }
+        }
+      }
+    } catch {
+      behind = null;
+    }
+
+    this.driftCache.set(projectDir, { at, behind });
+    return behind;
   }
 
   /** Drop one cached answer. A merge performed by this process changes

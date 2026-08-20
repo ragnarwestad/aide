@@ -246,3 +246,125 @@ describe("BranchStatusChecker.isMerged: origin has forgotten the branch", () => 
     expect(git.calls.some((c) => c.args[0] === "merge-base")).toBe(true);
   });
 });
+
+// Spec 142: a merge made anywhere but the dashboard's own button runs
+// no install, so the serving host goes on serving the old code with
+// nothing saying so. The check that makes it visible asks a different
+// question of the same checkout — not "did this branch land" but "is
+// what is checked out here behind what origin has" — and it may never
+// answer with a guess: a banner nobody can trust is worse than none.
+describe("BranchStatusChecker.commitsBehindOrigin", () => {
+  const ON_MASTER = {
+    ...SYMREF_MASTER,
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+    fetch: { code: 0 },
+  };
+
+  test("a checkout level with origin is behind by nothing (criterion 1)", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "0\n" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
+  });
+
+  test("a checkout three commits behind says three (criterion 2)", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
+    const counted = git.calls.find((c) => c.args[0] === "rev-list")!;
+    expect(counted.args).toEqual([
+      "rev-list", "--count", "HEAD..refs/remotes/origin/master",
+    ]);
+    expect(counted.dir).toBe("/repo");
+  });
+
+  // The same rule aide-pull-specs applies to a specs checkout: a tree
+  // parked on another branch mid-investigation is not behind, it is
+  // elsewhere, and calling that drift teaches a reader to ignore the
+  // banner.
+  test("a checkout on some other branch answers null, not a number (criterion 4)", async () => {
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/142-x\n" },
+      "rev-list --count": { code: 0, stdout: "9\n" },
+    });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
+    expect(git.calls.some((c) => c.args[0] === "rev-list")).toBe(false);
+  });
+
+  test("a repo with no resolvable default branch answers null (criterion 5)", async () => {
+    const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
+  });
+
+  test("a rev-list that fails answers null — never zero (criterion 5)", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 128 } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
+  });
+
+  test("a git that throws answers null and does not escape (criterion 5)", async () => {
+    const run: GitRunner = async () => {
+      throw new Error("no such directory");
+    };
+    const checker = new BranchStatusChecker({ run });
+    expect(await checker.commitsBehindOrigin("/gone")).toBeNull();
+  });
+
+  // The fetch is what makes the answer current; without it the count is
+  // whatever this checkout last happened to hear about origin.
+  test("origin's default branch is fetched before the count, and nothing is merged", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "1\n" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    await checker.commitsBehindOrigin("/repo");
+    expect(git.calls.find((c) => c.args[0] === "fetch")!.args).toEqual([
+      "fetch", "--quiet", "origin", "master",
+    ]);
+    for (const forbidden of ["merge", "pull", "reset", "checkout"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+  });
+
+  test("a second call inside the TTL spawns no git at all", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "2\n" } });
+    let clock = 1000;
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(2);
+    const first = git.calls.length;
+    expect(first).toBeGreaterThan(0);
+    clock += 29_000;
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(2);
+    expect(git.calls.length).toBe(first);
+    clock += 2_000;
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(2);
+    expect(git.calls.length).toBeGreaterThan(first);
+  });
+
+  // isMerged's cache holds a boolean and this one a number-or-null: one
+  // map for both would answer either question with the other's answer.
+  test("the drift answer has its own cache — isMerged's is not consulted", async () => {
+    const git = fakeGit({
+      ...ON_MASTER,
+      "ls-remote": { code: 0 },
+      "merge-base": { code: 0 },
+      "rev-list --count": { code: 0, stdout: "4\n" },
+    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.isMerged("/repo", "aide/142-x")).toBe(true);
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(4);
+  });
+
+  test("the cache is per repo — one checkout's drift never stands in for another's", async () => {
+    const git = fakeGit({
+      ...ON_MASTER,
+      "rev-list --count HEAD..refs/remotes/origin/master": { code: 0, stdout: "5\n" },
+    });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.commitsBehindOrigin("/repos/aide")).toBe(5);
+    const before = git.calls.length;
+    expect(await checker.commitsBehindOrigin("/repos/atlasaurus")).toBe(5);
+    expect(git.calls.length).toBeGreaterThan(before);
+    expect(git.calls.some((c) => c.dir === "/repos/atlasaurus")).toBe(true);
+  });
+});

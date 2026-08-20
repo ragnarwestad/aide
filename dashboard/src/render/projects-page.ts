@@ -68,7 +68,19 @@ export interface ProjectsPageOptions {
    *  else: a project that CAN run must not be reported in the same
    *  colour as one that cannot. */
   noticeOk?: boolean;
+  /** How many commits each project's checkout is behind origin, for the
+   *  ones that are (spec 142). A project merged from a laptop, the
+   *  GitHub web UI or another machine ran no `AIDE_INSTALL_CMD`, so the
+   *  serving host is still serving the old code — and until this said
+   *  so, nothing did. Absent, empty, or naming a project by no key at
+   *  all all mean the same thing: no banner. */
+  driftByProject?: Record<string, number>;
 }
+
+/** What the row says. Spelled out here rather than at the call site so
+ *  the count and its wording cannot drift apart. */
+const driftNote = (behind: number): string =>
+  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin — deploy is a hand step`;
 
 export function renderProjectsPage(
   projects: ProjectView[],
@@ -93,6 +105,10 @@ export function renderProjectsPage(
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
+      note: (name) => {
+        const behind = opts.driftByProject?.[name];
+        return behind ? driftNote(behind) : undefined;
+      },
     });
   // No meta refresh: a served page a reader may leave mid-thought needs
   // no blunt reload. The tagline rides on the tab here, the way it did
