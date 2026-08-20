@@ -21,7 +21,7 @@ import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts"
 import { LiveEnricher } from "./live.ts";
 import {
   buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  type DiscoveredProject, type SpecRef,
+  gitignoreCandidates, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
@@ -1493,12 +1493,20 @@ export function createServer(opts: ServerOptions) {
       if (!opts.projectRoot) {
         return new Response(null, { status: 302, headers: { location: `/${OVERVIEW_PAGE}` } });
       }
+      // Read fresh per request, the way /projects reads its own scan:
+      // a checkout that appeared on the host a minute ago is offered.
+      const unclaimed = discoverUnclaimedDirectories(opts.projectRoot);
       const html = renderAddProjectPage(nav(), new Date().toISOString(), {
         token: queueToken,
         script: queueClientScript(),
-        // Read fresh per request, the way /projects reads its own scan:
-        // a checkout that appeared on the host a minute ago is offered.
-        existingCheckouts: discoverUnclaimedDirectories(opts.projectRoot),
+        existingCheckouts: unclaimed,
+        // And what each of them ignores, which is where the worktree
+        // links a run needs are named (spec 140). The union, deduped
+        // and sorted: nothing has been picked yet at the moment this
+        // page is drawn.
+        worktreeLinkCandidates: [
+          ...new Set(unclaimed.flatMap((d) => gitignoreCandidates(join(opts.projectRoot!, d)))),
+        ].sort(),
         error: url.searchParams.get("error") ?? undefined,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

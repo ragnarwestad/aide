@@ -13,6 +13,7 @@
   - [Which AI runs a step (spec 125)](#which-ai-runs-a-step-spec-125)
   - [Adding and removing a project](#adding-and-removing-a-project)
     - [Whether a run can start there (spec 138)](#whether-a-run-can-start-there-spec-138)
+    - [What Add finishes itself (spec 140)](#what-add-finishes-itself-spec-140)
   - [How many run at once](#how-many-run-at-once)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -515,6 +516,56 @@ again re-assesses. Without script the redirect carries the same sentence
 to `/projects` in the query string, where the page renders it. The
 sentence is built once, on the server, so the two modes cannot drift
 apart.
+
+#### What Add finishes itself (spec 140)
+
+Skjer again, the same afternoon: Add reported success and a run still
+could not start, and making one possible took three hand steps — `mkdir`
+of the specs root and its `archive/`, `AIDE_SPECS_PATH` written into
+`.aide/config`, and `.aide/` appended to `.git/info/exclude`. Two of
+those were things the form knew and did not do, and one was a remedy
+named nowhere at all.
+
+**The name is the directory's, not the typed one.** A project is
+discovered as a directory under the projects root, and
+`discoverProjects` reads its name off that entry and out of no manifest
+— so a project registered under a name that differs could never be
+found again. Picking `skjer` and typing `Skjer` beside it used to be
+refused, in a message naming `<root>/Skjer`, a path that does not exist
+either. The pick wins now, and the Name field says what it is actually
+for: naming the directory a **clone** creates. A full path typed by
+hand is not the picker and is unchanged, mismatch refusal and all.
+
+**A specs root that is not there is made.** The form used to write the
+path into `.aide/config` and then report the project as unable to run
+because there is no such directory — a refusal over a path known the
+moment it was written. Add creates it, with the `archive/` beside it
+that a run walks. A creation that fails is not a refusal of the add:
+the step says what happened, and the `specsRoot` check below reads the
+real state either way.
+
+**The dirt Add itself made says what to do about it.** The `clean`
+check still refuses a dirty tree, because the tree genuinely is dirty
+and a run refuses one — but when every dirty path is one this Add just
+wrote, the sentence names both ways out: commit it, or name it in
+`.git/info/exclude` to leave it untracked. Neither is done here. A
+manifest belongs in git in a project of one's own and out of it in an
+employer's checkout, and nothing in an Add says which; `.git/info/exclude`
+was simply written down nowhere. A dirty file that is NOT Add's own
+keeps the plain wording — it must not be described as something Add
+wrote, and must not be hidden either — and so does a file git already
+TRACKS, since excluding one does nothing: the offer is made for
+untracked paths alone.
+
+**Worktree links are suggested from the checkout's own `.gitignore`.**
+Nothing can derive which gitignored paths a project's commands need,
+which is why the field exists — but the checkouts on offer name the
+candidates in a file the reader had to go and open. The field carries a
+`<datalist>` of the literal, top-level entries from every offered
+checkout's `.gitignore`, deduped: a suggestion the reader may ignore,
+needing no script, like every other control on this page. Globs,
+negations, comments and nested paths are left out — they are not values
+`AIDE_WORKTREE_LINKS` can take.
 
 Remove takes the project off the allowlist and off this dashboard, and
 that is all it does: the checkout and the specs root stay on disk,

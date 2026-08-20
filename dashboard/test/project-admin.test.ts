@@ -8,11 +8,12 @@
 // The other half — the allowlist, and persisting it — is the server's
 // (`queue-routes.test.ts`) and the config's (`queue.test.ts`).
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   addProject,
+  addProjectTarget,
   projectNameError,
   removeProject,
   type AddProjectRequest,
@@ -240,19 +241,55 @@ describe("adding a checkout that is already on the host", () => {
     });
   });
 
-  // A typed name still wins, so a mismatch is the same refusal it was —
-  // never a silent override of what the reader wrote.
-  test("a typed name that does not match the picked directory is still refused", async () => {
+  // Spec 140, criterion 1: a project's name IS its directory name —
+  // `discoverProjects` reads it off the entry under the projects root
+  // and nowhere else, so a project registered under a typed name that
+  // differs could never be found again. The pick therefore wins over
+  // the typed Name, where before the mismatch was refused with a
+  // message naming a path that does not exist.
+  test("a typed name that does not match the picked directory loses to the pick", async () => {
     const projectsRoot = root();
-    mkdirSync(join(projectsRoot, "atlasaurus"), { recursive: true });
+    const dir = join(projectsRoot, "skjer");
+    mkdirSync(dir, { recursive: true });
     const result = await addProject(fakeGit({}).run, projectsRoot, {
-      name: "foo",
-      existingPath: "atlasaurus",
+      name: "Skjer",
+      existingPath: "skjer",
+      description: "picked as skjer, typed as Skjer",
     });
-    expect(result.ok).toBe(false);
-    const register = result.steps.find((s) => s.step === "register")!;
-    expect(register.error).toContain(join(projectsRoot, "foo"));
-    expect(register.error).toContain(join(projectsRoot, "atlasaurus"));
+    expect(result.ok).toBe(true);
+    // The directory's own name is what the manifest — and so the
+    // allowlist, and `discoverProjects` — ends up carrying.
+    expect(parseManifest(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8"))).toEqual({
+      ok: true,
+      data: { name: "skjer", description: "picked as skjer, typed as Skjer" },
+    });
+    // The entry under the projects root is what `discoverProjects`
+    // reads a project's name off, and there is exactly one of it —
+    // asked by listing, because a case-insensitive filesystem answers
+    // `existsSync(<root>/Skjer)` with a yes it does not mean.
+    expect(readdirSync(projectsRoot)).toEqual(["skjer"]);
+  });
+
+  // The rule itself, at the level the route asks it too: the same
+  // question `serve.ts` puts to `addProjectTarget` for the allowlist.
+  test("a bare existingPath settles the name, and a typed Name only names a clone", () => {
+    const projectsRoot = root();
+    expect(addProjectTarget(projectsRoot, { name: "Skjer", existingPath: "skjer" })).toEqual({
+      name: "skjer",
+      existingPath: join(projectsRoot, "skjer"),
+    });
+    // Nothing picked: the typed Name is all there is, and it is what
+    // the clone's destination directory gets called.
+    expect(addProjectTarget(projectsRoot, { name: "fresh" })).toEqual({
+      name: "fresh",
+      existingPath: undefined,
+    });
+    // A full path is not the picker, so the typed Name still names it —
+    // and the mismatch below is still refused, as it always was.
+    expect(addProjectTarget(projectsRoot, { name: "typed", existingPath: "/elsewhere/typed" })).toEqual({
+      name: "typed",
+      existingPath: "/elsewhere/typed",
+    });
   });
 
   test("nothing picked and nothing typed is still refused for saying neither", async () => {
@@ -300,6 +337,46 @@ describe("where the project's specs live", () => {
     // whose meaning depends on which reader you ask.
     const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
     expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
+  });
+
+  // Spec 140, criterion 2: the form accepted a path that did not exist,
+  // wrote it into .aide/config, and then reported the project as not
+  // ready BECAUSE it does not exist — a refusal loop over a path that
+  // was known the moment it was written. Add makes it instead, with the
+  // `archive/` a run walks beside it.
+  test("a specs root that is not there yet is created, archive and all", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "makesspecs");
+    mkdirSync(dir, { recursive: true });
+    const specs = join(root(), "aide-specs", "makesspecs");
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "makesspecs",
+      existingPath: dir,
+      specsPath: specs,
+    });
+    expect(result.ok).toBe(true);
+    expect(existsSync(specs)).toBe(true);
+    expect(existsSync(join(specs, "archive"))).toBe(true);
+    // And the readiness taken right afterwards reads it as there —
+    // which is the whole point: no hand `mkdir` between Add and Run.
+    const specsRoot = result.readiness!.checks.find((c) => c.check === "specsRoot")!;
+    expect(specsRoot.ok).toBe(true);
+    expect(specsRoot.blocking).toBe(false);
+  });
+
+  test("a specs root that already exists is left exactly as it is", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "hasspecs");
+    mkdirSync(dir, { recursive: true });
+    const specs = join(root(), "already-there");
+    mkdirSync(join(specs, "07-something"), { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "hasspecs",
+      existingPath: dir,
+      specsPath: specs,
+    });
+    expect(result.ok).toBe(true);
+    expect(existsSync(join(specs, "07-something"))).toBe(true);
   });
 
   test("no specs path means no config is written at all", async () => {
@@ -442,6 +519,74 @@ describe("whether a run could start there (spec 138)", () => {
     const dirty = check(result, "clean").find((c) => c.blocking)!;
     expect(dirty.detail).toContain(".aide/");
     expect(dirty.detail).toContain("README.md");
+  });
+
+  // Spec 140, criterion 3: when the dirt is nothing BUT what this Add
+  // just wrote, the message says what to do about it. Both ways, and
+  // neither is done here: a manifest belongs in git in a project of
+  // one's own, and belongs in `.git/info/exclude` in an employer's
+  // checkout — nothing in the request says which, so the reader is
+  // told rather than decided for.
+  //
+  // The stub is the collapsed form git really prints: a wholly new,
+  // untracked directory is ONE line for the directory, never one per
+  // file inside it.
+  test("dirt that is only what Add just wrote names both ways out of it", async () => {
+    const { projectsRoot, dir } = checkout("justwritten");
+    const result = await assess(dir, projectsRoot, {
+      "status --porcelain": { code: 0, stdout: "?? .aide/\n" },
+    });
+    expect(result.ok).toBe(true);
+    // Still blocking, and still honest about it: the tree IS dirty, and
+    // a run refuses a dirty tree.
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).toContain(".aide/");
+    expect(dirty.detail).toContain("commit");
+    expect(dirty.detail).toContain(".git/info/exclude");
+  });
+
+  // Criterion 4: and never when something else is dirty too. A file
+  // that was already there is not something Add wrote, and telling the
+  // reader to commit or exclude it would be a lie about their tree.
+  test("an unrelated dirty file keeps the plain wording", async () => {
+    const { projectsRoot, dir } = checkout("alsodirty");
+    const result = await assess(dir, projectsRoot, {
+      "status --porcelain": { code: 0, stdout: "?? .aide/\n M README.md\n" },
+    });
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).toContain("README.md");
+    expect(dirty.detail).not.toContain(".git/info/exclude");
+  });
+
+  // And only for dirt that is UNTRACKED. `.git/info/exclude` does
+  // nothing for a file git already tracks, so a project that commits
+  // its `.aide/config` — Add rewrites that file, so it is Add's own
+  // doing — is told the plain thing rather than half a remedy.
+  test("a tracked file Add modified is not offered .git/info/exclude", async () => {
+    const { projectsRoot, dir } = checkout("trackedconfig");
+    const result = await assess(
+      dir,
+      projectsRoot,
+      { "status --porcelain": { code: 0, stdout: " M .aide/config\n" } },
+      { specsPath: join(dir, "specs") },
+    );
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).toContain(".aide/config");
+    expect(dirty.detail).not.toContain(".git/info/exclude");
+  });
+
+  // The manifest Add KEPT is not one it wrote, so a tree dirtied by
+  // somebody else's untracked `.aide/` gets no such offer either.
+  test("a manifest that was already there is not claimed as Add's own doing", async () => {
+    const { projectsRoot, dir } = checkout("hadmanifest");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: hadmanifest\n");
+    const result = await assess(dir, projectsRoot, {
+      "status --porcelain": { code: 0, stdout: "?? .aide/\n" },
+    });
+    expect(result.steps.find((s) => s.step === "manifest")!.note).toMatch(/kept/);
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).not.toContain(".git/info/exclude");
   });
 
   // The sentence this becomes travels in a redirect's `Location` header

@@ -181,6 +181,34 @@ export function discoverUnclaimedDirectories(root: string): string[] {
   return found.sort((a, b) => a.localeCompare(b));
 }
 
+/** The gitignored paths of a checkout that could plausibly be worktree
+ *  links — read off its own `.gitignore`, which is the one place on the
+ *  host that names them (spec 140).
+ *
+ *  Nothing can DERIVE which of them a project's test command actually
+ *  needs, which is why the Add form asks; this only stops the reader
+ *  having to go and open the file. So it offers exactly what
+ *  `AIDE_WORKTREE_LINKS` can take and no more: literal, top-level
+ *  entries. A glob names no one path, a negation is not an ignore, a
+ *  comment is not an entry, and a nested path is a link `aide-run-spec`
+ *  would have to make a directory for. A trailing slash is dropped —
+ *  `.venv/` and `.venv` ignore the same directory, and the config
+ *  writes it without one. */
+export function gitignoreCandidates(dir: string): string[] {
+  const file = join(dir, ".gitignore");
+  try {
+    if (!existsSync(file)) return [];
+    return readFileSync(file, "utf-8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#") && !line.startsWith("!") && !/[*?[\]]/.test(line))
+      .map((line) => line.replace(/\/+$/, ""))
+      .filter((line) => line && !line.includes("/"));
+  } catch {
+    return []; // unreadable is not a crash — it is nothing to suggest
+  }
+}
+
 /** Everything a page shows about a projects root: the manifest scan
  *  above, plus each project's parsed manifest and each spec's parsed
  *  status. The generator and the served `/projects` page (spec 115) both

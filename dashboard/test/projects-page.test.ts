@@ -259,3 +259,38 @@ describe("the Add page says what a run will need (spec 138)", () => {
     expect(page([project("aide")], { createProjects: ["aide"] })).not.toContain("notice rowmsg");
   });
 });
+
+// --- spec 140: the help the form had, and the help it did not ----------------
+describe("the Add page helps with what it cannot decide (spec 140)", () => {
+  const add = (opts: Partial<ProjectsPageOptions> = {}) => renderAddProjectPage(NAV, AT, opts);
+
+  // Criterion 6. The candidates are read from the offered checkouts'
+  // own `.gitignore` files by the server — a suggestion list on the
+  // field, working with no script at all, because every control on this
+  // page does.
+  test("gitignored paths from the host's checkouts are offered on the Worktree links field", () => {
+    const html = add({
+      existingCheckouts: ["skjer"],
+      worktreeLinkCandidates: ["node_modules", ".venv"],
+    });
+    expect(html).toContain("<datalist");
+    expect(html).toContain('<option value="node_modules">');
+    expect(html).toContain('<option value=".venv">');
+    // Wired to the input, or the list is a list of nothing.
+    const list = html.match(/<datalist id="([^"]+)"/)![1]!;
+    expect(html).toContain(`name="worktreeLinks"`);
+    expect(html).toMatch(new RegExp(`name="worktreeLinks"[^>]*list="${list}"`));
+  });
+
+  test("no candidates means no empty datalist hanging off the field", () => {
+    expect(add({ existingCheckouts: ["skjer"] })).not.toContain("<datalist");
+  });
+
+  // Criterion 7. A project's name IS its directory name, so the field
+  // carries a real choice only when the directory is about to be made
+  // — the clone. Saying so is what stops a reader typing a name that
+  // differs from the checkout they picked.
+  test("the Name field says it only settles anything for a clone", () => {
+    expect(add()).toContain("only when cloning from a Git URL");
+  });
+});

@@ -47,6 +47,12 @@ export interface ProjectsPageOptions {
    *  names: the pick settles the project's name as well as where it is,
    *  and the server resolves it against the same root. */
   existingCheckouts?: string[];
+  /** Gitignored paths read off those checkouts' own `.gitignore` files
+   *  (spec 140) — what the Worktree links field suggests. The union
+   *  across every offered checkout, deduped: the field is filled in
+   *  before anything is picked, so scoping the list to one of them
+   *  would mean knowing which, and that is what script would be for. */
+  worktreeLinkCandidates?: string[];
   /** Why the last attempt was refused, carried back in the query string
    *  after a no-JS form POST. Nothing on this page has a row for it to
    *  land on — an Add names a project that was never added — so it goes
@@ -130,7 +136,13 @@ export function renderAddProjectPage(
       // nothing was picked either.
       `<input type="text" name="name" maxlength="64" ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" ` +
-        `placeholder="the directory it gets under the projects root">`,
+        // Spec 140: a project's name IS its directory name, so a Name
+        // typed beside a picked checkout settles nothing — the pick
+        // wins. The field carries a real choice on the clone path
+        // alone, where it names the directory about to be made, and it
+        // says so rather than letting a reader type a name that gets
+        // quietly replaced.
+        `placeholder="only when cloning from a Git URL — a picked checkout names itself">`,
     ) +
     field(
       "Git URL",
@@ -165,7 +177,20 @@ export function renderAddProjectPage(
       // paths those are, so the form asks.
       "Worktree links",
       `<input type="text" name="worktreeLinks" maxlength="300" ` +
-        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">`,
+        // Spec 140: nothing can derive WHICH gitignored paths a project's
+        // commands need — but the checkout's own `.gitignore` names the
+        // candidates, and the reader had to go and open it. A
+        // `<datalist>` is a suggestion the browser offers and the reader
+        // may ignore, and it needs no script, which every control on
+        // this page manages without. Absent when there is nothing to
+        // suggest: an empty list is a control that opens onto nothing.
+        (opts.worktreeLinkCandidates?.length ? `list="wtlinks" ` : "") +
+        `placeholder="optional — gitignored paths a run must link in: node_modules .venv">` +
+        (opts.worktreeLinkCandidates?.length
+          ? `<datalist id="wtlinks">` +
+            opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("") +
+            `</datalist>`
+          : ""),
       { wide: true },
     ) +
     `</span>` +

@@ -7,7 +7,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
+  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories, gitignoreCandidates,
   specDependsOn, specDescription,
 } from "../src/discover.ts";
 
@@ -314,5 +314,49 @@ describe("discoverUnclaimedDirectories", () => {
 
   test("a root that is not there at all is an empty list, never a throw", () => {
     expect(discoverUnclaimedDirectories(join(unclaimed, "nowhere"))).toEqual([]);
+  });
+});
+
+// Spec 140: nothing can DERIVE which gitignored paths a project's own
+// test command needs — which is why the Add form asks — but the
+// checkout's own `.gitignore` names the candidates, and the form read
+// no such file. This is the reader of it: suggestions for a field, not
+// an answer, so only the entries `AIDE_WORKTREE_LINKS` could actually
+// take are offered.
+describe("gitignoreCandidates", () => {
+  let checkouts: string;
+
+  const withIgnore = (name: string, text: string): string => {
+    const dir = join(checkouts, name);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, ".gitignore"), text);
+    return dir;
+  };
+
+  beforeAll(() => {
+    checkouts = mkdtempSync(join(tmpdir(), "aide-gitignore-"));
+  });
+
+  afterAll(() => {
+    rmSync(checkouts, { recursive: true, force: true });
+  });
+
+  // Criterion 5.
+  test("plain top-level entries are offered, and nothing else is", () => {
+    const dir = withIgnore(
+      "mixed",
+      "# note\nnode_modules\n.venv/\n*.log\n!keep.txt\nbuild/tmp\n\n",
+    );
+    expect(gitignoreCandidates(dir)).toEqual(["node_modules", ".venv"]);
+  });
+
+  test("a checkout with no .gitignore offers nothing, and does not throw", () => {
+    const dir = join(checkouts, "bare");
+    mkdirSync(dir, { recursive: true });
+    expect(gitignoreCandidates(dir)).toEqual([]);
+  });
+
+  test("a directory that is not there at all is an empty list too", () => {
+    expect(gitignoreCandidates(join(checkouts, "nowhere"))).toEqual([]);
   });
 });
