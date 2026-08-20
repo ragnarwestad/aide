@@ -203,6 +203,26 @@ describe("summarizeCodexStream", () => {
     expect(summarizeStream(stream, { max: 10, tool: "codex" })).toHaveLength(2);
   });
 
+  test("an item naming its kind as `type` reads the same as `item_type`", () => {
+    // Measured against codex-cli 0.148.0 on 2026-08-20, from a real
+    // `codex exec --json` turn: the completed item carries
+    // `{"id":"item_0","type":"agent_message","text":"ok"}` — `type`,
+    // not `item_type`. Spec 125 wrote the parser from the binary's
+    // strings, where both names appear, and picked the one this
+    // version does not send, so every Activity line came out empty.
+    // Both are read, because the field name is the CLI's to change and
+    // an old transcript still has to render.
+    const asType = codexLine({ type: "item.completed", item: { id: "item_0", type: "agent_message", text: "ok" } });
+    const asCommand = codexLine({
+      type: "item.completed",
+      item: { id: "item_1", type: "command_execution", command: "bun test" },
+    });
+
+    expect(summarizeStream(asType, { max: 10, tool: "codex" })[0]).toContain("ok");
+    expect(summarizeStream(asCommand, { max: 10, tool: "codex" })[0]).toContain("bun test");
+    expect(summarizeStream(codexAgentMessage("older"), { max: 10, tool: "codex" })[0]).toContain("older");
+  });
+
   test("with no tool named, the schema is recognised from the stream itself", () => {
     // /live tails a transcript without always knowing which tool wrote
     // it — an old job has no `tool` recorded at all. Sniffing beats
