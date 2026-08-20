@@ -53,7 +53,7 @@ const CONTROLS: Record<
   { label: string; pending: string; action: string; formClass: string; variant: string }
 > = {
   mergeform: {
-    label: "Merge the code", pending: "merging…", formClass: "mergeform", variant: "primary",
+    label: "Merge", pending: "merging…", formClass: "mergeform", variant: "primary",
     action: "http://dash.test/api/queue/job-1/merge",
   },
   rowrun: {
@@ -492,7 +492,7 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
 
   // The five-second tick swaps `#jobrows` from the server. While a press
   // is in flight the server still shows the OLD state, so a swap in that
-  // window put back an untouched "Merge the plan" over the "merging…"
+  // window put back an untouched "Merge" over the "merging…"
   // the press had just shown — seen on 2026-08-19: no feedback, then a
   // jump. The tick waits while anything is in flight.
   test("the tick does not swap the rows while a press is in flight", async () => {
@@ -561,7 +561,7 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     await h.submit({ defaultPrevented: true });
     expect(h.requests).toHaveLength(0);
     expect(h.button.disabled).toBe(false);
-    expect(h.button.textContent).toBe("Merge the code");
+    expect(h.button.textContent).toBe("Merge");
   });
 });
 

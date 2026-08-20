@@ -494,7 +494,9 @@ describe("the unmerged badge (criteria 1-4)", () => {
         { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
       ],
     });
-    expect(html.match(/ready to merge/g)).toHaveLength(1);
+    // The State line says "ready to merge the plan"/"the code" too since
+    // spec 132; this test is about the per-repo badge, whose wording is bare.
+    expect(html.match(/>ready to merge</g)).toHaveLength(1);
     expect(html).toContain("https://example.test/aide-specs");
     expect(html).toContain("aide-specs");
   });
@@ -908,7 +910,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("j2", "implement", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain('class="badge b-done"');
+    // Spec 132: a resting `done` badge reads the resting state and what
+    // is next, so it wears `b-ready` here. What it must not read is the
+    // OLDER job's outcome, which would still be the bare word "failed".
+    expect(head).toContain('class="badge b-ready"');
+    expect(head).toContain("ready for analyze");
     expect(head).not.toContain('class="badge b-refused"');
   });
 
@@ -932,7 +938,9 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
         branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
       }),
     ]);
-    expect(html.match(/ready to merge/g)).toHaveLength(1);
+    // The State line says "ready to merge the plan"/"the code" too since
+    // spec 132; this test is about the per-repo badge, whose wording is bare.
+    expect(html.match(/>ready to merge</g)).toHaveLength(1);
     // The link comes from the most recently active job, not an older one.
     expect(html).toContain("https://example.test/compare");
     expect(html).not.toContain("https://example.test/old");
@@ -1822,8 +1830,10 @@ describe("every action form carries the current view (criterion 7)", () => {
       state: "done",
       branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
     });
-    const line = head(rows([done], [target("99-x")], { filter: { state: "all" } }), "99-x");
-    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/merge"[^>]*>.*?<\/form>/)![0];
+    // Spec 132: the form lives in the panel, so the row is opened to
+    // reach it. What it carries is unchanged.
+    const html = rows([done], [target("99-x")], { filter: { state: "all", open: "aide/99-x" } });
+    const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
     expect(form).toContain('<input type="hidden" name="view.state" value="all">');
   });
 });
@@ -2202,6 +2212,14 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     const state = head.split("<td")[3] ?? "";
     return state.match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
   };
+  /** Spec 132: the FIRST line — the badge itself. Once nothing is
+   *  running it carries the whole sentence, and `hint` above is empty.
+   *  The dot comes off first: it is the badge's live mark, not a word. */
+  const chip = (html: string) => {
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = (head.split("<td")[3] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
+  };
 
   test("a spec nothing has run says what the next click is", () => {
     const text = hint(rows([], [target("101-never-run")]));
@@ -2250,20 +2268,21 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     }
   });
 
-  test("a finished spec with a branch still out says the branch is the next thing", () => {
-    const text = hint(
-      rows(
-        [
-          row({
-            specFolder: "101-a",
-            state: "done",
-            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
-          }),
-        ],
-        [target("101-a")],
-      ),
+  // Spec 132: the sentence moved up into the badge, and it names WHICH
+  // repo — the distinction spec 96 put on the button, kept on the row.
+  test("a finished spec with a branch still out says so in the badge, and names it", () => {
+    const html = rows(
+      [
+        row({
+          specFolder: "101-a",
+          state: "done",
+          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+        }),
+      ],
+      [target("101-a")],
     );
-    expect(text.toLowerCase()).toContain("merge");
+    expect(chip(html)).toBe("ready to merge the code");
+    expect(hint(html)).toBe("");
   });
 
   // Spec 111: the fixture had no `done` at all, which under spec 111's
@@ -2272,14 +2291,13 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // read the files. Every phase is named here, so "nothing left out"
   // is what the fixture actually says.
   test("a finished spec with nothing left out does not ask for a merge", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", state: "done" })],
-        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", state: "done" })],
+      [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(text).toContain("done");
-    expect(text.toLowerCase()).not.toContain("merge");
+    expect(chip(html)).toBe("done — nothing waiting on you");
+    expect(chip(html).toLowerCase()).not.toContain("merge");
+    expect(hint(html)).toBe("");
   });
 
   // --- spec 111: the sentence names the next phase, not "nothing waiting" ---
@@ -2289,85 +2307,77 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // claim about the SPEC, and the spec's own files already knew better.
   // Same rule as spec 108: the files say what has happened.
   test("a spec whose plan is done but not implemented is ready for implement", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["review-plan"], state: "done" })],
-        [target("101-a", { done: ["analyze", "review-plan"] })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["review-plan"], state: "done" })],
+      [target("101-a", { done: ["analyze", "review-plan"] })],
     );
-    expect(text).toBe("ready for implement");
+    expect(chip(html)).toBe("ready for implement");
+    expect(chip(html)).not.toBe("done");
+    expect(hint(html)).toBe("");
   });
 
   test("the next phase is named the way a reader sees it, not by its step name", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
-        [target("101-a", { done: ["analyze"] })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
+      [target("101-a", { done: ["analyze"] })],
     );
-    expect(text).toBe("ready for review");
-    expect(text).not.toContain("review-plan");
+    expect(chip(html)).toBe("ready for review");
+    expect(chip(html)).not.toContain("review-plan");
   });
 
   test("a spec with only archive left says so", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
-        [target("101-a", { done: ["analyze", "review-plan", "implement"] })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
+      [target("101-a", { done: ["analyze", "review-plan", "implement"] })],
     );
-    expect(text).toBe("ready for archive");
+    expect(chip(html)).toBe("ready for archive");
   });
 
   // Precedence is the whole of the risk here: merging first still
   // outranks starting the next phase, exactly as before.
   test("an unmerged branch still outranks the phase that is ready", () => {
-    const text = hint(
-      rows(
-        [
-          row({
-            specFolder: "101-a",
-            steps: ["review-plan"],
-            state: "done",
-            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
-          }),
-        ],
-        [target("101-a", { done: ["analyze", "review-plan"] })],
-      ),
+    const html = rows(
+      [
+        row({
+          specFolder: "101-a",
+          steps: ["review-plan"],
+          state: "done",
+          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+        }),
+      ],
+      [target("101-a", { done: ["analyze", "review-plan"] })],
     );
-    expect(text).toBe("done — the branch is waiting to be merged");
-    expect(text).not.toContain("ready for");
+    expect(chip(html)).toBe("ready to merge the code");
+    expect(chip(html)).not.toContain("ready for");
+    expect(hint(html)).toBe("");
   });
 
   test("a spec with every phase behind it still says nothing is waiting", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
-        [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
+      [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(text).toBe("done — nothing waiting on you");
+    expect(chip(html)).toBe("done — nothing waiting on you");
+    expect(hint(html)).toBe("");
   });
 
   // The bug as reported, on spec 108, 2026-08-19: the plan run finished,
   // its branch was merged, and the row said nothing waited on a reader
   // while implement had never been started.
   test("a merged plan branch with implement still to run says implement is ready", () => {
-    const text = hint(
-      rows(
-        [
-          row({
-            specFolder: "101-a",
-            steps: ["review-plan"],
-            state: "done",
-            branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
-          }),
-        ],
-        [target("101-a", { done: ["analyze", "review-plan"] })],
-      ),
+    const html = rows(
+      [
+        row({
+          specFolder: "101-a",
+          steps: ["review-plan"],
+          state: "done",
+          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
+        }),
+      ],
+      [target("101-a", { done: ["analyze", "review-plan"] })],
     );
-    expect(text).toBe("ready for implement");
-    expect(text).not.toContain("nothing waiting on you");
+    expect(chip(html)).toBe("ready for implement");
+    expect(chip(html)).not.toContain("nothing waiting on you");
   });
 
   // A run that stopped short has better wording of its own — it says
@@ -2387,14 +2397,29 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // Spec 108: archive is the one phase whose "done" the job's own exit
   // status cannot answer, so the sentence reads the file instead.
   test("a spec whose archive run declined says so instead of 'done'", () => {
-    const text = hint(
-      rows(
-        [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
-        [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
-      ),
+    const html = rows(
+      [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
+      [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
     );
-    expect(text).toContain("archive held back — the Slack webhook");
-    expect(text).not.toContain("nothing waiting on you");
+    expect(chip(html)).toBe("archive held back — the Slack webhook");
+    expect(chip(html)).not.toContain("nothing waiting on you");
+    // Once, not twice: the badge says it, so the line below has nothing
+    // left to add (spec 132).
+    expect(hint(html)).toBe("");
+    expect(html.match(/the Slack webhook/g)).toHaveLength(1);
+  });
+
+  // Spec 132, criterion 11: `archiveHeldBack` was never a `done`-only
+  // case. A run that stopped short still says the file's reason on the
+  // line below its badge — only `done` moved that sentence up.
+  test("a run that stopped short still says the held-back reason on the line below", () => {
+    for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
+      const html = rows(
+        [row({ specFolder: "101-a", steps: ["archive"], state })],
+        [target("101-a", { archiveHeldBack: { reason: "the Slack webhook" } })],
+      );
+      expect(hint(html)).toBe("archive held back — the Slack webhook");
+    }
   });
 
   test("a run in flight outranks a stale held-back note from an earlier one", () => {
@@ -2416,6 +2441,119 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     );
     // The hint closes the state cell on every row.
     expect([...html.matchAll(/<\/span><div class="muted small">[^<]*<\/div><\/td>/g)]).toHaveLength(2);
+  });
+});
+
+
+// --- spec 132: the first line says what is happening, or what is next --------
+//
+// One rule for the badge, whatever the row is doing: a verb while
+// something runs, and the resting state plus the next move when nothing
+// does. `done` and `queued` were the two words that carried neither —
+// `done` because the sentence disambiguating it sat one line lower, and
+// `queued` because nothing said WHICH step was waiting.
+
+describe("spec 132: the State line says what is happening, or what is next", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], opts: Partial<QueuePageOptions> = {}) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+  const chip = (html: string) => {
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const state = (head.split("<td")[3] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
+  };
+  const actionCell = (html: string) => {
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[cells.length - 1] ?? "";
+  };
+  const at = (label: string) => ({ label, url: `https://example.test/${label}`, merged: false });
+  const done = (branchUrls: { label: string; url: string; merged: boolean }[]) =>
+    row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done", branchUrls });
+
+  // Criteria 3, 4: what spec 96 put on the button — WHICH of the two
+  // repos a press would land — said as a resting state instead. Losing
+  // the distinction would rebuild the problem 96 fixed.
+  test("only the project's own branch open reads: ready to merge the code", () => {
+    expect(chip(rows([done([at("aide")])], [target("132-a")]))).toBe("ready to merge the code");
+  });
+
+  test("only the specs repo's branch open reads: ready to merge the plan", () => {
+    expect(chip(rows([done([at("aide-specs")])], [target("132-a")]))).toBe("ready to merge the plan");
+  });
+
+  test("both open reads: ready to merge plan and code", () => {
+    const html = rows([done([at("aide"), at("aide-specs")])], [target("132-a")]);
+    expect(chip(html)).toBe("ready to merge plan and code");
+  });
+
+  // Criterion 10: the per-repo badge in the Affected-repos line is a
+  // different piece of markup with the same three words in it. The two
+  // must not be conflated — this reads the branch line, not the State
+  // cell.
+  test("the per-repo badge in the branch line keeps its own bare wording", () => {
+    const html = rows([done([at("aide")])], [target("132-a")]);
+    const branchLine = html.match(/<span class="branchlist">[\s\S]*?<\/span><\/span>/)?.[0] ?? "";
+    expect(branchLine).toContain(">ready to merge<");
+    expect(branchLine).not.toContain("ready to merge the code");
+  });
+
+  // Criteria 8, 9: a queued row said one word and nothing else, while
+  // the step it was waiting to run was known all along.
+  test("a queued job names the step it is waiting to run", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "132-a", steps: ["implement"], stepIndex: 0, state: "queued" })],
+      [target("132-a")],
+    );
+    expect(chip(html)).toBe("implementing queued");
+  });
+
+  test("a queued review-plan gerunds from the reader's word, as the running one does", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "132-a", steps: ["analyze", "review-plan"], stepIndex: 1, state: "queued" })],
+      [target("132-a")],
+    );
+    expect(chip(html)).toBe("reviewing queued");
+    expect(html).not.toContain("review-planing");
+  });
+
+  // Criterion 1: the one action that used to live outside the panel.
+  test("a row whose only offer was Merge now has an empty action cell", () => {
+    const cell = actionCell(rows([done([at("aide")])], [target("132-a")]));
+    expect(cell).not.toContain("<form");
+    expect(cell).not.toContain("/merge");
+    expect(cell).not.toContain("<button");
+  });
+
+  // Criterion 2: whatever is open, the button in the panel is one word.
+  // What it will land is on the row, in the badge, with no button on it.
+  test("the panel's Merge button is one word, whatever it would land", () => {
+    for (const branches of [[at("aide")], [at("aide-specs")], [at("aide"), at("aide-specs")]]) {
+      const html = rows([done(branches)], [target("132-a")], { filter: { open: "aide/132-a" } });
+      const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
+      expect(form).toContain(">Merge</button>");
+      expect(form).not.toContain("Merge the");
+    }
+  });
+
+  // The one label branch this spec keeps: a merge that was refused is
+  // the same decision again, not a new one.
+  test("a refused merge still says Merge again", () => {
+    const html = rows([done([at("aide")])], [target("132-a")], {
+      filter: { open: "aide/132-a" },
+      error: "cannot merge — conflict",
+      errorSpec: "aide/132-a",
+    });
+    const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
+    expect(form).toContain(">Merge again</button>");
   });
 });
 
@@ -2497,7 +2635,10 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain("103-idle");
     expect(line).toContain("Status only");
     expect(line).toContain("75% done");
-    expect(line).toContain('class="badge b-done"');
+    // Spec 132: the badge says the resting state and what is next, so a
+    // spec whose files say nothing has run reads "ready for analyze".
+    expect(line).toContain('class="badge b-ready"');
+    expect(line).toContain("ready for analyze");
     expect(line).toContain('class="pips"');
     expect(line).toContain("$1.50");
   });
@@ -2515,7 +2656,10 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(cell.match(/<form/g)).toHaveLength(1);
   });
 
-  test("a collapsed row with an unmerged branch offers Merge, and only Merge (criterion 3)", () => {
+  // Spec 132 took Merge back out of the row: the State column already
+  // says "ready to merge the code", and acting means opening the panel,
+  // the same as every other action a collapsed row does not draw.
+  test("a collapsed row with an unmerged branch offers no Merge at all (spec 132)", () => {
     const cell = actionCell(
       controlsLine(
         rows(
@@ -2526,9 +2670,9 @@ describe("spec 103: a collapsed row shows status only", () => {
         "103-merge",
       ),
     );
-    expect(cell).toContain('action="/api/queue/j1/merge"');
-    expect(cell.match(/<form/g)).toHaveLength(1);
-    expect(cell).not.toContain('name="steps"');
+    expect(cell).not.toContain("/merge");
+    expect(cell).not.toContain("<form");
+    expect(cell).not.toContain("<button");
   });
 
   test("a running collapsed row offers nothing — Cancel is one click away (criterion 4)", () => {
@@ -3109,11 +3253,17 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(1);
   });
 
-  test("Merge is offered exactly once, in the header, open or shut (criterion 5)", () => {
+  // Spec 132 took Merge out of the SHUT row — the State column says
+  // "ready to merge the code" there instead, with no button on it. What
+  // spec 109 guards is unchanged where the button is still drawn: once
+  // per row, in the stack, and never on a phase line of its own.
+  test("Merge is offered exactly once, in the open row's stack (criterion 5)", () => {
     const list = [row({ id: "j1", specFolder: "109-merge", state: "done", branchUrls: branch })];
     const shutHtml = rows(list, [target("109-merge")]);
     const openHtml = rows(list, [target("109-merge")], open("109-merge"));
-    for (const html of [shutHtml, openHtml]) {
+    expect(shutHtml).not.toContain("/merge");
+    expect(shutHtml).toContain(">ready to merge the code<");
+    for (const html of [openHtml]) {
       expect(html.match(/action="\/api\/queue\/j1\/merge"/g)).toHaveLength(1);
       expect(actionCell(controlsLine(html, "109-merge"))).toContain('action="/api/queue/j1/merge"');
     }
@@ -3533,6 +3683,59 @@ describe("an archived spec's create job is not a row", () => {
   });
 });
 
+// Being archived is the proof the phases ran, so an archived spec's row
+// has nothing left to argue about — including when the job that made it
+// is not a `create`. The check above lived on the create branch alone,
+// and a project with no OTHER live target reached the group through the
+// "we are not entitled to judge this project" branch instead: every
+// phase read "not run yet" under a job reporting done, which the row
+// then worded as "the files disagree". Seen on 129 the day it was
+// archived (2026-08-20).
+describe("an archived spec's non-create job is not a row either", () => {
+  const analyzeJob = (folder: string): QueueRowView => ({
+    id: "a1",
+    project: "aide",
+    specFolder: folder,
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-19T10:00:00Z",
+  });
+  // Opened, because the qualifier the bug produces only renders on the
+  // phase lines behind the fold — a shut row shows the pips and nothing
+  // else, so a closed-row assertion on that sentence would pass either
+  // way and prove nothing.
+  const opened = (folder: string, archived: string[]) =>
+    renderQueueRows(
+      [analyzeJob(folder)],
+      {
+        runnerAvailable: true,
+        targets: [],
+        archived,
+        filter: { open: `aide/${folder}` },
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+
+  test("even when its project has no other live target", () => {
+    const html = opened("129-x", ["aide/129-x"]);
+    expect(html).not.toContain('data-folder="129-x"');
+    expect(html).not.toContain("last run reported done, but the files disagree");
+  });
+
+  // The other half of the same fixture: without the archive fact, the
+  // row is still there AND still says the files disagree. That is what
+  // the assertions above are pinned against — remove the archive entry
+  // and both of them fire.
+  test("the same spec unarchived keeps its row, contradiction and all", () => {
+    const html = opened("129-x", []);
+    expect(html).toContain('data-folder="129-x"');
+    expect(html).toContain("last run reported done, but the files disagree");
+  });
+});
+
 // A spec made from the New-spec form starts life as a `create` job — a
 // claude run that costs money and can fail — and that run used to be
 // findable only by knowing the job id, or appended after `archive` as a
@@ -3673,12 +3876,14 @@ describe("spec 116: create is the first phase line", () => {
     const analyzed = row({ id: "a1", specFolder: "116-status", steps: ["analyze"], state: "done" });
     const withCreate = rows([analyzed], [target("116-status", { done: ["create", "analyze"] })]);
     const withoutCreate = rows([analyzed], [target("116-status", { done: ["analyze"] })]);
-    // One `muted small` div on a header row since the run count went
-    // (2026-08-19): the sentence.
-    const hint = (html: string) =>
-      [...head(html).matchAll(/<div class="muted small">([^<]*)</g)].map((m) => m[1])[0] ?? "";
-    expect(hint(withCreate)).toBe(hint(withoutCreate));
-    expect(hint(withCreate)).toBe("ready for review");
+    // Spec 132: the sentence is the badge itself once the job is at
+    // rest. The dot comes off first — it is the badge's live mark.
+    const said = (html: string) =>
+      head(html)
+        .replace(/<span class="dot"[^>]*><\/span>/g, "")
+        .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
+    expect(said(withCreate)).toBe(said(withoutCreate));
+    expect(said(withCreate)).toBe("ready for review");
     expect(runLine(withCreate)).toContain(">Run</button>");
     expect(runLine(withoutCreate)).toContain(">Run</button>");
     // And with everything built the button still just reads Run — the
@@ -4373,7 +4578,10 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
       ),
     ).match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
     expect(live).not.toContain("disabled");
-    expect(live).toContain("Merge the code");
+    // Spec 132: what it will land is on the State line now; the button
+    // itself is one word. The names stay in the title.
+    expect(live).toContain(">Merge</button>");
+    expect(live).toContain('title="aide"');
   });
 
   test("a busy spec's Merge is there and disabled, saying why (criterion 9)", () => {

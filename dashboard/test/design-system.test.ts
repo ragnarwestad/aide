@@ -478,7 +478,9 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(run).not.toContain("busy");
   });
 
-  test("the merge button still says what it merges", () => {
+  // Spec 132: the button is one word, and the row's State line is what
+  // says which repo a press would land.
+  test("the merge button says Merge; the State line says what it merges", () => {
     const html = rows(
       [
         row({
@@ -488,7 +490,9 @@ describe("the primary button's label per row state (the design sheet's table)", 
       ],
       { targets: [target()] },
     );
-    expect(buttons(html)).toContain("Merge the plan");
+    expect(buttons(html)).toContain("Merge");
+    expect(buttons(html)).not.toContain("Merge the plan");
+    expect(html).toContain(">ready to merge the plan<");
   });
 
   test("after a refusal the merge button says Merge again", () => {
@@ -608,11 +612,13 @@ describe("let aide resolve it (spec 106)", () => {
     const stack = cell(merged(CONFLICT)).match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
     expect(stack).toContain("mergeform");
     expect(stack).toContain("resolveform");
-    // Shut: the same two, in the container a collapsed row has always
-    // put them in.
-    const shut = cell(merged({ ...CONFLICT, filter: {} })).match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
-    expect(shut).toContain("mergeform");
+    // Shut: since spec 132 there is only ONE control left out here —
+    // Merge moved into the panel — so there is no pair to space, and no
+    // container around a single form either.
+    const shut = cell(merged({ ...CONFLICT, filter: {} }));
+    expect(shut).not.toContain("mergeform");
     expect(shut).toContain("resolveform");
+    expect(shut).not.toContain('<span class="row">');
   });
 });
 

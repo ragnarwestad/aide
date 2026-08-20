@@ -256,7 +256,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
       expect(html).toContain(SPECS_URL);
       // Each repo is named, so a reader knows WHICH branch is which.
       expect(html).toContain("aide-specs");
-      expect(count(html, "ready to merge")).toBe(2);
+      expect(count(html, ">ready to merge<")).toBe(2);
     }
   });
 
@@ -272,7 +272,7 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
     for (const page of [`/`, `/specs/${id}`]) {
       const html = await (await fetch(`${base}${page}`, auth)).text();
-      expect(count(html, "ready to merge")).toBe(1);
+      expect(count(html, ">ready to merge<")).toBe(1);
       // The caveat belongs to the specs repo, and to it alone.
       const specsPart = html.slice(html.indexOf(SPECS_URL));
       expect(specsPart.slice(0, 300)).toContain("ready to merge");
@@ -368,24 +368,27 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
     { root: SPECS_REPO, url: "https://example.test/aide-specs" },
   ];
 
-  test("both repos unmerged reads \"Merge the plan and the code\", names still in the title (criterion 5)", async () => {
+  // Spec 132 moved the sentence off the button and onto the State
+  // line — the row states which repos are open, and the press itself
+  // lives in the panel. What 96 was for is unchanged: a reader is still
+  // told WHETHER the plan or the code is what would land.
+  test("both repos unmerged reads \"ready to merge plan and code\" (criterion 5)", async () => {
     const html = await listWith(await seededWith(BOTH));
-    expect(html).toContain("/merge");
-    expect(html).toContain("Merge the plan and the code");
-    expect(html).toContain('title="aide, aide-specs"');
+    expect(html).toContain(">ready to merge plan and code<");
+    expect(html).not.toContain("/merge");
   });
 
-  test("only the specs repo left reads \"Merge the plan\" (criterion 3)", async () => {
+  test("only the specs repo left reads \"ready to merge the plan\" (criterion 3)", async () => {
     const html = await listWith(await seededWith(BOTH), [PROJECT_REPO]);
-    expect(html).toContain("Merge the plan");
-    expect(html).not.toContain("Merge the plan and the code");
-    expect(html).not.toContain("Merge the code");
+    expect(html).toContain(">ready to merge the plan<");
+    expect(html).not.toContain("ready to merge plan and code");
+    expect(html).not.toContain("ready to merge the code");
   });
 
-  test("only the project repo left reads \"Merge the code\" (criterion 4)", async () => {
+  test("only the project repo left reads \"ready to merge the code\" (criterion 4)", async () => {
     const html = await listWith(await seededWith(BOTH), [SPECS_REPO]);
-    expect(html).toContain("Merge the code");
-    expect(html).not.toContain("Merge the plan");
+    expect(html).toContain(">ready to merge the code<");
+    expect(html).not.toContain("ready to merge the plan");
   });
 
   // `paceup` and `atlasaurus` keep their specs INSIDE the project repo,
@@ -394,8 +397,8 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
   // backwards on the two projects with the most runs.
   test("a spec whose only repo is the project itself merges code, never a plan (criterion 6)", async () => {
     const html = await listWith(await seededWith([{ root: PROJECT_REPO, url: "https://example.test/aide" }]));
-    expect(html).toContain("Merge the code");
-    expect(html).not.toContain("Merge the plan");
+    expect(html).toContain(">ready to merge the code<");
+    expect(html).not.toContain("ready to merge the plan");
   });
 
   // The description's own read-off-the-page: a `Merge (1)` button,
@@ -407,7 +410,7 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
     const html = await listWith(await seededWith(BOTH, "running"));
     expect(html).not.toContain('class="mergeform"');
     expect(html).not.toContain("/merge");
-    expect(html).not.toContain("Merge the plan and the code");
+    expect(html).not.toContain("ready to merge");
   });
 
   // Gone since 2026-08-19: the small "merge anyway" behind a confirm was
@@ -420,12 +423,15 @@ describe("the Merge button says what it will merge (criteria 1-8)", () => {
     expect(html).not.toContain("confirm(");
   });
 
-  test("a finished job's button is enabled, with no override beside it", async () => {
+  // Since spec 132 a finished job's ROW carries no button at all — the
+  // press is in the panel, where every other action already lived. That
+  // the panel's own Merge is enabled for exactly this case is proved in
+  // `render.test.ts`, "Merge is disabled, never absent…".
+  test("a finished job's row offers no button, and no override beside it", async () => {
     const html = await listWith(await seededWith(BOTH));
     expect(html).not.toContain('class="mergeoverride"');
     expect(html).not.toContain("merge anyway");
-    const form = html.slice(html.indexOf('class="mergeform"'));
-    expect(form.slice(0, 400)).not.toContain("disabled");
+    expect(html).not.toContain('class="mergeform"');
   });
 
   test("everything already merged leaves no button at all (criterion 7)", async () => {

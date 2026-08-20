@@ -41,6 +41,7 @@ import {
   currentStep,
   inFlight,
   nextActionHint,
+  type RestingState,
   notStartedChip,
   specStateChip,
   stateLabel,
@@ -412,18 +413,23 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: st
   const judgeable = new Set(targets.map((t) => t.project));
   const archivedSet = new Set(archived ?? []);
   const fromJobs = [...byKey.entries()]
-    // A create job's spec is not a known target BY CONSTRUCTION: the
-    // folder is what the job is making, and until it lands there is
-    // nothing on disk to match. Without this it would be filtered out
-    // in exactly the projects that already have specs — so the job the
-    // reader just started would render nothing at all.
+    // Archived beats every other reason to keep a group visible. An
+    // unreadable specs root and an in-flight create job both argue for
+    // showing something anyway; a folder already in archive/ answers
+    // "did this spec finish" with certainty, so none of the other
+    // branches get a vote. The check used to sit on the create branch
+    // alone, and a project with no other live target still slipped an
+    // archived spec's row through `judgeable` — every phase reading
+    // "not run yet" under a job reporting done (spec 134).
     .filter(
       ([key, all]) =>
-        known.has(key) ||
-        !judgeable.has(all[0]!.project) ||
-        // The create exception ends where the archive begins: a spec
-        // that has been archived is no longer "not landed yet".
-        (all.some(isCreate) && !archivedSet.has(key)),
+        !archivedSet.has(key) &&
+        // A create job's spec is not a known target BY CONSTRUCTION: the
+        // folder is what the job is making, and until it lands there is
+        // nothing on disk to match. Without this it would be filtered out
+        // in exactly the projects that already have specs — so the job the
+        // reader just started would render nothing at all.
+        (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
     )
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
@@ -734,7 +740,7 @@ function actionForm(
 // buttons to find and press in turn is not what "sørger for å gjøre det
 // rett" asked for.
 //
-// The names are on the button BEFORE it is pressed, so merging an
+// What would land is said BEFORE it is pressed, so merging an
 // unfinished spec is a choice rather than a surprise.
 //
 // The COUNT is not, any more. `Merge (1)` said how many repos and
@@ -742,6 +748,14 @@ function actionForm(
 // specs repo, that the specs repo is the plan, and that the step still
 // running was about to rewrite it. Two of those three facts are the
 // page's to state.
+//
+// Spec 132 moved that sentence off the button and onto the State line,
+// where the rest of the row's state lives. The reason it was on the
+// button was that the button was where a reader was looking; the reason
+// it is not any more is that there is no choice AT the button —
+// whatever it says, pressing it merges whatever is open, and the label
+// was a sentence long for a control with one outcome. The button says
+// `Merge`. Which repos remains visible, on the row, in the badge.
 
 /** A branch's label is a directory basename (`serve.ts`, `repoLabel`)
  *  and a project's checkout is named after the project by construction
@@ -754,14 +768,19 @@ function isCodeRepo(label: string, g: SpecGroup, opts: QueuePageOptions): boolea
   return label === g.project || (opts.projects ?? []).includes(label);
 }
 
-/** What pressing the button will actually land. `paceup` and
- *  `atlasaurus` keep their specs inside the project repo, so their one
- *  branch is code — the common shape, and the one calling it "the plan"
- *  would get backwards. */
-function mergeLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): string {
+/** What a merge would actually land, worded as the row's resting state
+ *  rather than as an instruction — it is read on the State line now, not
+ *  pressed. `paceup` and `atlasaurus` keep their specs inside the
+ *  project repo, so their one branch is code — the common shape, and
+ *  the one calling it "the plan" would get backwards. */
+function mergeReadyLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): string {
   const code = open.some((b) => isCodeRepo(b.label, g, opts));
   const plan = open.some((b) => !isCodeRepo(b.label, g, opts));
-  return code && plan ? "Merge the plan and the code" : code ? "Merge the code" : "Merge the plan";
+  return code && plan
+    ? "ready to merge plan and code"
+    : code
+      ? "ready to merge the code"
+      : "ready to merge the plan";
 }
 
 function mergeForm(
@@ -786,9 +805,9 @@ function mergeForm(
   // A merge that was just refused is not a new decision to make — it is
   // the same one, again. The button says so, and stops being the
   // primary action on a row that has just told the reader why it could
-  // not be done. With no branch at all there is nothing to name yet,
-  // so the label falls back to the bare verb.
-  const label = refused ? "Merge again" : open.length ? mergeLabel(open, g, opts) : "Merge";
+  // not be done. Otherwise it is the bare verb: what it would land is
+  // on the State line (spec 132), and the repo names are in the title.
+  const label = refused ? "Merge again" : "Merge";
   const why = open.length === 0 ? "no branch is open yet" : busyReason(g);
   const hidden = tokenField(opts.token) + filterFields(opts.filter);
   const action = `/api/queue/${esc(g.lead.id)}/merge`;
@@ -834,10 +853,16 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 }
 
 // What a COLLAPSED row may ask of the reader: the one thing the spec
-// needs right now, or nothing at all. Approve while a gate waits, Merge
-// while a branch waits — the two the description names as reachable
-// without expanding. Everything else (Run, Cancel, the model, the
-// other repos) belongs to the row you have opened.
+// needs right now, or nothing at all. Approve while a gate waits, and
+// the way out of a conflict where the refusal is — everything else
+// (Run, Cancel, Merge, the model, the other repos) belongs to
+// the row you have opened.
+//
+// Merge was the third of them until spec 132. It was the one action on
+// this page living outside the panel actions live in, and what it was
+// out here FOR — saying which repos a press would land, where a reader
+// was looking — is now said by the State column instead, on the same
+// row, with no button attached.
 //
 // Spec 109 made it what the header cell drew whether the row was open
 // or shut; spec 124 gave the OPEN row that cell for its whole stack
@@ -849,12 +874,7 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 // A selector, never a second copy of the markup: both branches call the
 // same component the expanded row calls, so a change to either form
 // reaches both places at once.
-function collapsedAction(
-  g: SpecGroup,
-  opts: QueuePageOptions,
-  refused: boolean,
-  conflict: boolean,
-): string {
+function collapsedAction(g: SpecGroup, opts: QueuePageOptions, conflict: boolean): string {
   if (g.lead && g.lead.state === "awaiting-approval") {
     return actionForm(g.lead, opts.token, opts.filter, { approveOnly: true });
   }
@@ -863,15 +883,10 @@ function collapsedAction(
   // and the merge would be refused. Nothing at all, then — Cancel stays
   // one click away, by opening the row.
   if (specBusy(g)) return "";
-  // Both, in the order the reader decides between them: the merge they
-  // just tried, and the other way to get it. The space between them is
-  // the container's gap (spec 120) — each form used to carry its own
-  // margin, which every later layout the form was put in inherited
-  // whether it wanted it or not.
-  return (
-    `<span class="row">${mergeForm(g, opts, refused)}` +
-    `${conflict ? resolveForm(g, opts) : ""}</span>`
-  );
+  // One control, so no container to space it in: the pair spec 120 gave
+  // a gap to was Merge and resolve, and Merge went into the panel
+  // (spec 132). The two still stand side by side there, in the stack.
+  return conflict ? resolveForm(g, opts) : "";
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
@@ -904,8 +919,8 @@ function branchList(branches: BranchView[], activity?: string): string {
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
 // altitudes, and they must never be worded differently.
-const stateCell = (r: QueueRowView): string =>
-  specStateChip(r) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
+const stateCell = (r: QueueRowView, resting: RestingState = {}): string =>
+  specStateChip(r, resting) + (r.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
 // The same two-part shape, for a PHASE — whose state is the file's
 // answer (`wordPhase`), not the last job's. No badge at all means the
 // phase has neither happened nor been attempted. The attempt's own
@@ -1229,6 +1244,10 @@ function specHeadRow(
   // "review".
   const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
+  // The other two the State column is built from: whatever this spec
+  // pushed and left behind, and the archive that declined to move.
+  const unmerged = g.branches.filter((b) => !b.merged);
+  const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -1249,18 +1268,25 @@ function specHeadRow(
     // do (it counted phase-runs, not jobs, and the phase lines already
     // say "N attempts" on a re-run). Removed 2026-08-19.
     `<td>${progress}</td>` +
-    // The badge says the state; the sentence beside it says what is
-    // going on and what the next click is. The pips, the badge and the
-    // branch marks each answer a narrower question, and a reader had to
-    // assemble this from all of them.
-    `<td>${g.lead ? stateCell(g.lead) : notStartedChip()}` +
+    // The badge says what is happening, or — once nothing is — the
+    // resting state and what can happen next (spec 132). The line
+    // beneath it is for the states whose badge cannot carry the whole
+    // answer. The pips, the badge and the branch marks each answer a
+    // narrower question, and a reader had to assemble this from all of
+    // them.
+    `<td>${
+      g.lead
+        ? stateCell(g.lead, {
+            archiveHeldBack: heldBack,
+            // Only what is still open, and only worded here: which repo
+            // is code is the queue page's question, not the badge's.
+            mergeReady: unmerged.length ? mergeReadyLabel(unmerged, g, opts) : undefined,
+            readyPhase,
+          })
+        : notStartedChip()
+    }` +
     `<div class="muted small">${esc(
-      nextActionHint(
-        g.lead,
-        g.branches.some((b) => !b.merged),
-        g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
-        readyPhase,
-      ),
+      nextActionHint(g.lead, heldBack),
     )}${dependencyBadges(g, all)}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
@@ -1271,7 +1297,7 @@ function specHeadRow(
     `<td>${
       opened.has(groupKey(g.project, g.specFolder))
         ? ""
-        : collapsedAction(g, opts, !!refusal, conflict)
+        : collapsedAction(g, opts, conflict)
     }</td></tr>`
   );
 }
