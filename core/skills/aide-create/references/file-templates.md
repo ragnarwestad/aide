@@ -59,7 +59,7 @@ Structure - follow the spec structure § 3-solution:
 - **Acceptance criteria:** Testable given/when/then scenarios; the RED phase writes one failing test per criterion
 - **Risk analysis:** Placeholder for risks with consequence/probability/mitigation
 - **Implementation plan:** TDD Red-Green-Refactor with 4 phases and checkbox lists
-- **Testing:** Sections for unit, integration, e2e, manual testing
+- **Testing:** Sections for unit, integration and e2e tests, plus a Manual testing note (what no test covers and why — a note, not a checklist)
 
 ## 4-status.md (placeholder - filled in by /aide-analyze)
 

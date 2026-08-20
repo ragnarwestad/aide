@@ -148,6 +148,26 @@ class TestBuildAgentsMd:
             assert heading not in analysis, \
                 f"AGENTS.md still puts '{heading}' in 2-analysis — regenerate it"
 
+    def test_output_frames_manual_testing_as_a_note(self, workspace_root, tmp_path):
+        """Codex and Copilot read AGENTS.md, so the note framing must reach it.
+
+        Checked twice: the freshly built output (the rule source is right)
+        and the committed core/AGENTS.md (it was actually regenerated).
+        """
+        rebuilt = structure_block(self._build(workspace_root, tmp_path), "3-solution")
+        committed = structure_block(
+            (workspace_root / "core" / "AGENTS.md").read_text(), "3-solution")
+
+        for name, block in (("the rebuilt output", rebuilt),
+                            ("core/AGENTS.md", committed)):
+            assert "### Manual testing" in block, \
+                f"{name} dropped the Manual testing section — it is reframed, not removed"
+            section = block.split("### Manual testing", 1)[1]
+            assert "must be tested manually" not in section.lower(), \
+                f"{name} still asks for a manual test plan — regenerate it"
+            assert "not covered" in section.lower(), \
+                f"{name} lacks the 'not covered by a test' framing — regenerate it"
+
     @staticmethod
     def _build(workspace_root, tmp_path):
         core = tmp_path / "core"
