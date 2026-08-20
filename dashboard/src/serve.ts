@@ -726,13 +726,20 @@ export function createServer(opts: ServerOptions) {
           }
         },
         notify: (event) => notifier.notify(event),
-        // A created spec is invisible to this page until its branch is
-        // on the default branch of the checkout the page reads, so the
-        // one step that MAKES a spec lands its own work. The returned
-        // promise holds the queue for as long as that takes; see
-        // `Runner.tick()`.
-        onStepDone: (job, step, outcome) =>
-          step === "create" && outcome.ok ? landNewSpec(job, outcome) : undefined,
+        // A step's work is invisible to this page until its branch is on
+        // the default branch of the checkout the page reads. For the two
+        // steps that BRACKET a spec's life — the one that makes it and
+        // the one that ends it — that is the whole of the step, so those
+        // two land their own work. Every other step pushes a branch and
+        // stops: its diff reaches the serving host and is worth a
+        // person's eye first. The returned promise holds the queue for as
+        // long as the landing takes; see `Runner.tick()`.
+        onStepDone: (job, step, outcome) => {
+          if (!outcome.ok) return undefined;
+          if (step === "create") return landNewSpec(job, outcome);
+          if (step === "archive") return landArchivedSpec(job, outcome);
+          return undefined;
+        },
         clearResult: (path) => {
           try {
             rmSync(path, { force: true });
@@ -1071,35 +1078,47 @@ export function createServer(opts: ServerOptions) {
     return results;
   }
 
-  /** Put a newly created spec where the page can see it (spec 93).
+  /** What a landing does that is not the merge itself: what to write on
+   *  the job when it worked, and what to say when it did not. Everything
+   *  else — which repos, the retries, the per-repo report — is the same
+   *  for every step, and is `landBranch`'s. */
+  interface Landing {
+    /** Beyond the standard `branchUrl`/`branchUrls`/`error` reset. A
+     *  create step renames the job off its provisional key; an archive
+     *  step has nothing to add. */
+    landed?: Partial<Job>;
+    /** What to say when the run pushed no branch at all. For `create`
+     *  that IS the failure — the spec exists only on a branch that was
+     *  never reported. For `archive` a HEAD that never moved is an
+     *  ordinary outcome, so it says nothing and leaves no error. */
+    nothingToLand?: string;
+    /** The catch-all message, which has to name the step: "landing it
+     *  failed" alone leaves a reader guessing what "it" was. */
+    failedNote: (why: string) => string;
+  }
+
+  /** Merge a step's own branch into the default branch of every repo it
+   *  pushed to, and report per repo — the landing both self-landing
+   *  steps share (specs 93 and 136).
    *
-   *  This is the one merge on the dashboard that no one pressed a button
-   *  for, and it is not a convenience: the spec list shows what is on
-   *  disk in the main checkout, which every run is careful never to
-   *  leave its default branch, so a created spec that is only pushed to
-   *  a branch appears nowhere at all. A job parked in `awaiting-approval` until
-   *  somebody notices would not be the feature with one extra click — it
-   *  would be the feature not working.
+   *  The branch and the repos come from the RESULT, never from
+   *  `specBranch(...)` or `queue.branchesFor(...)`. Two reasons, one per
+   *  caller: a create step's folder did not exist when its branch was
+   *  named, and `onStepDone` runs SYNCHRONOUSLY inside `complete()`,
+   *  before the runner has written this step's own `branchUrls` into the
+   *  store — so a spec whose first-ever queue job is the one landing
+   *  would find that history empty. The outcome in hand has neither
+   *  problem.
    *
-   *  The branch comes from the RESULT, never from `specBranch(...)`: the
-   *  folder this spec ended up with did not exist when its branch was
-   *  named. Everything else is `mergeBranchIntoDefault` unchanged — the
-   *  same function, the same three decisions, the same per-repo report
-   *  the Merge button already gets.
-   *
-   *  No install is run afterwards, unlike the manual route: a create step
-   *  writes four templated markdown files and no code, so there is
-   *  nothing to deploy. */
-  async function landNewSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+   *  No install is run afterwards, unlike the manual Merge route: both
+   *  steps that land themselves write markdown and no code, so there is
+   *  nothing on this machine to deploy. */
+  async function landBranch(job: Job, outcome: Partial<StepOutcome>, what: Landing): Promise<void> {
     try {
       const branch = outcome.branch;
       const repos = outcome.branchUrls ?? [];
       if (!branch || repos.length === 0) {
-        queue.update(job.id, {
-          error:
-            "the spec was created, but the run reported no pushed branch to land it from — " +
-            "merge it by hand, or check the queue's push mode",
-        });
+        if (what.nothingToLand) queue.update(job.id, { error: what.nothingToLand });
         return;
       }
       const failures: string[] = [];
@@ -1125,9 +1144,13 @@ export function createServer(opts: ServerOptions) {
         else failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
       }
       if (failures.length > 0) {
-        // The provisional key stays: the job is still the only handle on
-        // a branch that has not landed, and renaming it to a folder the
-        // page cannot see would hide the work rather than report it.
+        // Whatever the success path would have written is NOT written: a
+        // create job keeps its provisional key, because the job is still
+        // the only handle on a branch that has not landed, and renaming
+        // it to a folder the page cannot see would hide the work rather
+        // than report it. The branch stays on the row either way, so the
+        // Merge button — and, on a conflict, the resolve step — is still
+        // there to press.
         queue.update(job.id, { error: failures.join("; ") });
         return;
       }
@@ -1136,22 +1159,72 @@ export function createServer(opts: ServerOptions) {
       // nothing, and the row would otherwise offer to merge a name it can
       // no longer derive (`specBranch` reads the RENAMED folder).
       queue.update(job.id, {
-        specFolder: outcome.specFolder ?? job.specFolder,
+        ...what.landed,
         branchUrl: undefined,
         branchUrls: [],
         error: undefined,
       });
       // The page caches its scan for five seconds. Without this the very
-      // request that follows a landing would still not show the spec.
+      // request that follows a landing would still not show the spec —
+      // nor, for an archive, that it has left the list.
       scan = null;
     } catch (err) {
       // Never rethrown: the `landing` flag holds the WHOLE queue, and
       // the runner clears it when this promise settles — which it must
       // do, however this went.
       queue.update(job.id, {
-        error: `the spec was created, but landing it failed: ${err instanceof Error ? err.message : String(err)}`,
+        error: what.failedNote(err instanceof Error ? err.message : String(err)),
       });
     }
+  }
+
+  /** Put a newly created spec where the page can see it (spec 93).
+   *
+   *  This was the first merge on the dashboard that no one pressed a
+   *  button for, and it is not a convenience: the spec list shows what is
+   *  on disk in the main checkout, which every run is careful never to
+   *  leave its default branch, so a created spec that is only pushed to
+   *  a branch appears nowhere at all. A job parked in `awaiting-approval` until
+   *  somebody notices would not be the feature with one extra click — it
+   *  would be the feature not working. */
+  async function landNewSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+    return landBranch(job, outcome, {
+      landed: { specFolder: outcome.specFolder ?? job.specFolder },
+      nothingToLand:
+        "the spec was created, but the run reported no pushed branch to land it from — " +
+        "merge it by hand, or check the queue's push mode",
+      failedNote: (why) => `the spec was created, but landing it failed: ${why}`,
+    });
+  }
+
+  /** Take an archived spec out of the list it has just left (spec 136).
+   *
+   *  The same argument as `landNewSpec`, at the other end of a spec's
+   *  life: the list reads the main checkout, so a folder moved into
+   *  `archive/` on a branch is still in the ACTIVE list here, and the row
+   *  asks to be merged. That made the closing step end by handing back a
+   *  task — 133 was archived twice on 2026-08-20 because the first run
+   *  looked like it had failed.
+   *
+   *  Safe to do unpressed for a reason `implement` cannot claim: a
+   *  headless archive writes two markdown changes in the specs repo and
+   *  nothing else (`core/skills/aide-archive/SKILL.md` forbids it to
+   *  touch the project's docs or to ask), so there is no diff for a
+   *  person to weigh and nothing that reaches the serving host. The
+   *  judgment happened before the run — someone pressed Archive, and the
+   *  skill refuses to move anything a `4-status.md` does not show as
+   *  finished.
+   *
+   *  A merge that genuinely cannot be made still refuses by name, keeps
+   *  the branch on the row and leaves the spec in the list: the old
+   *  behaviour is the fallback, not the thing being removed. */
+  async function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
+    return landBranch(job, outcome, {
+      // A run that pushed nothing archived nothing new — a re-run of a
+      // spec already held back for the same reason writes no commit, and
+      // an error there would report a problem that is not one.
+      failedNote: (why) => `the spec was archived, but landing it failed: ${why}`,
+    });
   }
 
   /** Spec 97: what the files say a spec has had, corrected by what git
