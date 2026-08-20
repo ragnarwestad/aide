@@ -1330,7 +1330,12 @@ function modelPicker(
           // words of noise on a page about work, but two entries that
           // start DIFFERENT CLIs have to be tellable apart before one
           // is picked (spec 125).
-          `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step"` +
+          // `data-tool` says the same thing the suffix does, to the
+          // row's AI select rather than to a reader (spec 127): the
+          // filter has to know which tool an option starts without
+          // reading its label back.
+          `<option value="${esc(m.name)}" data-tool="${esc(m.tool ?? "claude")}"` +
+          ` title="$${m.budgetUsd} per step"` +
           `${m.name === chosen ? " selected" : ""}>${esc(m.name)}` +
           `${m.tool && m.tool !== "claude" ? ` (${esc(m.tool)})` : ""}</option>`,
       )
@@ -1349,12 +1354,48 @@ function modelPicker(
 // sub-row itself, so the stack cell can lead whichever row comes first.
 // The empty span holds the checkbox column's place, so "Phase" stands
 // over the phase NAMES and not over their boxes.
-function phaseCaptionCells(): string {
+function phaseCaptionCells(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
   return (
     `<td class="phasecell"><span class="row">` +
     `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
+    `${toolPicker(g, opts, busy)}` +
     `</span></td><td></td><td></td><td class="num"></td><td></td>`
+  );
+}
+
+/** What each CLI is called on the page. The config's own word is the
+ *  short one the runner uses; this is the one a reader picks by. */
+const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
+
+// The row's AI, once, on the caption line (spec 127): running a whole
+// row on Codex meant changing five model selects one at a time and
+// remembering which entries were Codex.
+//
+// It POSTS NOTHING — no `name`, so the request is still the same five
+// `model.<step>` fields it always was. What it does is narrow what the
+// row's selects offer, in the browser, on change. The `form` attribute
+// is how it finds them: they are written outside the form's own tags
+// and tied to it by that id alone.
+//
+// Drawn only when there is a choice to make. One tool configured is
+// nothing to filter, and the same restraint as the option labels'
+// own: the default tool is not a word anyone needs.
+//
+// It stands AFTER "Phase" and "Model", which are pinned to the phase
+// lines' checkbox and name widths (`css.ts`); a control in front of
+// either takes a pinned width and drags the caption out of line.
+function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+  const tools = [...new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"))];
+  if (tools.length < 2) return "";
+  const why = busy ? busyReason(g) : "";
+  return (
+    `<label class="muted small">AI ` +
+    `<select data-tool-picker form="${esc(runFormId(g))}"` +
+    (busy ? ` disabled title="${esc(why)}"` : "") +
+    `>` +
+    tools.map((t) => `<option value="${esc(t)}">${esc(TOOL_NAMES[t] ?? t)}</option>`).join("") +
+    `</select></label>`
   );
 }
 
@@ -1391,7 +1432,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   // under is where "left of the phases" actually is.
   const lines: { tag: string; cells: string }[] = [];
   if ((opts.modelChoices ?? []).length) {
-    lines.push({ tag: `<tr class="subrow" data-caption="1">`, cells: phaseCaptionCells() });
+    lines.push({
+      tag: `<tr class="subrow" data-caption="1">`,
+      cells: phaseCaptionCells(g, opts, busy),
+    });
   }
   g.phases
     .forEach((p) => {

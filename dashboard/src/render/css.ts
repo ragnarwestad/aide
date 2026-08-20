@@ -368,6 +368,10 @@ table.list tr.subrow[data-caption] .phasecell > .row > :first-child {
 table.list tr.subrow[data-step] .phasecell > .row > :nth-child(2),
 table.list tr.subrow[data-caption] .phasecell > .row > :nth-child(2) {
   flex: 0 0 6rem; }
+/* The row's AI select (spec 127): the word and the control read as one
+   thing, on the caption line after both pinned columns. */
+table.list tr.subrow[data-caption] .phasecell label {
+  display: inline-flex; align-items: center; gap: var(--sp-1); }
 /* A phase nobody has run yet still holds its place — that is what makes
    progress readable — but it must not compete with what has happened. */
 table.list tr.untried td { opacity: 0.55; }

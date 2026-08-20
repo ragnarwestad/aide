@@ -328,6 +328,35 @@ function syncDependsOn(): void {
   }
 }
 
+// The row's AI select (spec 127): one control instead of five. Picking
+// a tool narrows every model select on that row to the models that
+// tool actually runs, and moves any phase whose pick just went out of
+// sight onto one still on offer — a select left pointing at a hidden
+// option is a choice the reader can no longer see they are making,
+// the same rule the Depends-on chips are held to above.
+//
+// Scoped by FORM ID, not by walking the row: the model selects are
+// written outside their form's own tags and tied to it by that
+// attribute alone, so the row is not a container that holds them.
+//
+// It runs on change and never on load. Every phase select is already
+// pre-filled by the server with what that phase last ran on — a row
+// whose phases ran on different tools is a real history, and filtering
+// it on sight would re-pick for phases nobody touched.
+function syncToolFilter(select: HTMLSelectElement): void {
+  const form = select.getAttribute("form");
+  if (!form) return;
+  for (const el of document.querySelectorAll(`select[name^="model."][form="${form}"]`)) {
+    const model = el as HTMLSelectElement;
+    let firstVisible: HTMLOptionElement | undefined;
+    for (const option of model.options) {
+      option.hidden = option.dataset.tool !== select.value;
+      if (!option.hidden && !firstVisible) firstVisible = option;
+    }
+    if (firstVisible && model.selectedOptions[0]?.hidden) model.value = firstVisible.value;
+  }
+}
+
 // The one control in this file that deliberately NAVIGATES on success,
 // against the rule at the top — because this form is a page (spec 121),
 // not a panel on one. There is nothing here to put back into a clean
@@ -413,6 +442,15 @@ function tick(): void {
 // would last five seconds.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
+// And the row's AI select, for the same reason: the rows are replaced
+// wholesale on every tick, so a listener bound to the select itself
+// would last five seconds.
+document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
+  const select = (event.target as Element | null)?.closest?.("select[data-tool-picker]") as
+    | HTMLSelectElement
+    | null;
+  if (select) syncToolFilter(select);
+}) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its
 // own page, with no swapped container to hang a delegated one off.
 // The handler's promise is returned rather than dropped — a listener's

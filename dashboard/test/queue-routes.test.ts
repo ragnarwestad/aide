@@ -1048,7 +1048,7 @@ describe("picking a model for a job", () => {
       defaultModels: { default: "fable" },
     });
     expect(html).not.toContain('<option value=""');
-    expect(html).toMatch(/<option value="fable" title="[^"]*\$12[^"]*"[^>]*>/);
+    expect(html).toMatch(/<option value="fable"[^>]*title="[^"]*\$12[^"]*"[^>]*>/);
     expect(html).not.toMatch(/<option[^>]*>[^<]*\$/);
   });
 

@@ -188,6 +188,57 @@ function harness(
     };
   };
   const chips = [chip("aide"), chip("aide-dashboard")];
+
+  // Spec 127: the row's own AI select, and the five phase model selects
+  // it narrows. `<option>` collections are new scaffolding here — the
+  // chips above are checkbox/wrapper pairs and model nothing a select
+  // needs (a value that IS one of its options, and a selection that
+  // moves when the one it points at is hidden).
+  const ROW_FORM = "rowrun-aide/127-one-ai";
+  const MODELS: [string, string][] = [
+    ["sonnet", "claude"],
+    ["fable", "claude"],
+    ["codex-fast", "codex"],
+  ];
+  const modelSelect = (step: string, chosen: string) => {
+    const options = MODELS.map(([value, tool]) => ({
+      value,
+      dataset: { tool },
+      hidden: false,
+      selected: value === chosen,
+    }));
+    return {
+      name: `model.${step}`,
+      options,
+      getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      get selectedOptions() {
+        return options.filter((o) => o.selected);
+      },
+      // A real select's value IS its selected option: writing one moves
+      // the other, which is the whole of what the reselection does.
+      get value() {
+        return options.find((o) => o.selected)?.value ?? "";
+      },
+      set value(v: string) {
+        for (const o of options) o.selected = o.value === v;
+      },
+    };
+  };
+  const modelSelects = [
+    modelSelect("create", "sonnet"),
+    modelSelect("analyze", "fable"),
+    modelSelect("review-plan", "sonnet"),
+    modelSelect("implement", "codex-fast"),
+    modelSelect("archive", "sonnet"),
+  ];
+  /** A model select belonging to ANOTHER row: the filter must reach the
+   *  five that share its form id and no others. */
+  const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
+  const toolSelect = {
+    value: "claude",
+    getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+    closest: (sel: string) => (sel.includes("data-tool-picker") ? toolSelect : null),
+  };
   const createForm = {
     action: "http://dash.test/api/queue/create",
     fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
@@ -288,8 +339,15 @@ function harness(
       sel.includes("newspecform") ? createForm : sel.includes("phases") ? otherPhases : null,
     // Spec 112 binds its panel's forms as a SET, the same way it is
     // rendered: one Add form and one Remove per allowlisted project.
+    // A form-scoped selector answers only the selects that name that
+    // form — the DOM's own answer, and the one thing a fake that
+    // handed back every select on the page could not tell apart.
     querySelectorAll: (sel: string) =>
-      sel.includes("removeform") ? [removeForm] : [],
+      sel.includes("removeform")
+        ? [removeForm]
+        : sel.includes("model.")
+          ? [...modelSelects, otherRowSelect].filter((s) => sel.includes(`form="${s.getAttribute("form")}"`))
+          : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
     addEventListener: () => {},
     visibilityState: "hidden",
@@ -372,6 +430,14 @@ function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
+    modelSelects, otherRowSelect, toolSelect,
+    changeTool: (value: string) => {
+      toolSelect.value = value;
+      on["change"]?.({ target: toolSelect });
+    },
+    /** A change on something in the table that is NOT the AI select. */
+    changeOther: () =>
+      on["change"]?.({ target: { closest: () => null } }),
   };
 }
 
@@ -1020,5 +1086,91 @@ describe("on /projects, where there is no New-spec form", () => {
       },
     );
     expect(bound).toEqual(["submit"]);
+  });
+});
+
+// --- spec 127: the row's AI select narrows its model selects ----------------
+
+// One control for the row instead of five: picking the AI hides the
+// other tool's models everywhere on that row at once. The row's own
+// consequence, accepted when it was asked for — a row can no longer be
+// half Claude Code and half Codex through the UI.
+//
+// It runs on CHANGE and never on load: the server has already pre-filled
+// every phase select with what that phase last ran on, and a filter that
+// ran by itself would re-pick for phases nobody touched.
+describe("the row's AI select filters its model selects (spec 127)", () => {
+  const hidden = (h: ReturnType<typeof harness>) =>
+    h.modelSelects.map((s) => s.options.filter((o) => o.hidden).map((o) => o.value));
+
+  test("nothing is filtered until the reader changes it", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    expect(hidden(h)).toEqual([[], [], [], [], []]);
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
+    ]);
+  });
+
+  test("choosing Codex hides every claude option, on all five selects", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeTool("codex");
+    for (const select of h.modelSelects) {
+      for (const option of select.options) {
+        expect([option.value, option.hidden]).toEqual([option.value, option.dataset.tool !== "codex"]);
+      }
+    }
+  });
+
+  test("a selection the change hides moves to one still on offer", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeTool("codex");
+    // Every phase now shows the codex entry — including the four that
+    // were showing a claude model a moment ago.
+    expect(h.modelSelects.map((s) => s.value)).toEqual([
+      "codex-fast", "codex-fast", "codex-fast", "codex-fast", "codex-fast",
+    ]);
+    // And no select is left pointing at something out of sight.
+    for (const select of h.modelSelects) {
+      expect([select.name, select.selectedOptions[0]?.hidden]).toEqual([select.name, false]);
+    }
+  });
+
+  test("changing back offers the claude models again", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeTool("codex");
+    h.changeTool("claude");
+    expect(hidden(h)).toEqual([
+      ["codex-fast"], ["codex-fast"], ["codex-fast"], ["codex-fast"], ["codex-fast"],
+    ]);
+    // The one phase that was on codex takes the first claude option; the
+    // four that were reassigned keep whatever they were left holding.
+    for (const select of h.modelSelects) {
+      expect([select.name, select.value]).toEqual([select.name, "sonnet"]);
+    }
+  });
+
+  // The selects are tied to their form by ATTRIBUTE, not by nesting
+  // (they are written outside its tags), so the lookup is form-scoped
+  // rather than a walk of the row.
+  test("another row's model select is left alone", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeTool("codex");
+    expect(h.otherRowSelect.options.some((o) => o.hidden)).toBe(false);
+    expect(h.otherRowSelect.value).toBe("fable");
+  });
+
+  // Delegated on #jobrows, like every other control on the table: the
+  // rows are replaced wholesale every five seconds, and a listener bound
+  // to the select itself would last exactly one tick.
+  test("it answers a change on the container, and ignores every other one", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    // A change on something that is not the AI select — a phase's own
+    // model select, say — reaches the same delegated listener and must
+    // pass straight through it.
+    h.changeOther();
+    expect(hidden(h)).toEqual([[], [], [], [], []]);
+    // The listener the container recorded IS the one that filters.
+    h.changeTool("codex");
+    expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
   });
 });

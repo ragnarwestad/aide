@@ -4530,3 +4530,161 @@ describe("the model picker names the tool", () => {
     expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet<\/option>/);
   });
 });
+
+// --- spec 127: one AI dropdown for the row ----------------------------------
+//
+// Running a whole row on Codex used to mean changing five model
+// dropdowns one at a time and remembering which entries were Codex.
+// The row gets ONE control that says which CLI it is about, and the
+// five per-phase selects narrow to that tool's models — the per-phase
+// pickers spec 123 argued for are untouched, only what each one offers
+// answers the new control.
+//
+// Everything below is about the MARKUP. The filtering itself is
+// browser behaviour and is tested where the browser code is
+// (`queue-client.test.ts`).
+describe("spec 127: the row names its AI once", () => {
+  const target = (specFolder = "127-one-ai"): QueueTarget => ({ project: "aide", specFolder });
+
+  const BOTH = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12 },
+    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+  ];
+
+  const rows = (
+    list: QueueRowView[] = [],
+    opts: Partial<QueuePageOptions> = {},
+    targets: QueueTarget[] = [target()],
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        modelChoices: BOTH,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+
+  /** The caption line, read past the stack cell that rides on it. */
+  const caption = (html: string) =>
+    (html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+
+  const pickers = (html: string) => [...html.matchAll(/<select[^>]*data-tool-picker[^>]*>/g)];
+
+  // --- criterion 1 -----------------------------------------------------------
+
+  test("a two-tool config gives the row one AI select, not one per phase", () => {
+    const html = rows();
+    expect(pickers(html)).toHaveLength(1);
+    // And it is on the caption line, above the phases — not inside one.
+    expect(caption(html)).toContain("data-tool-picker");
+    // Both tools are offered, under names a reader recognises.
+    const picker = html.match(/<select[^>]*data-tool-picker[\s\S]*?<\/select>/)![0];
+    expect(picker).toContain('value="claude"');
+    expect(picker).toContain('value="codex"');
+    expect(picker).toContain("Claude Code");
+    expect(picker).toContain("Codex");
+  });
+
+  // It posts NOTHING: the five `model.<step>` fields are still the whole
+  // of what a press sends, so the request shape is untouched.
+  test("the AI select carries no name, and rides the row's own run form", () => {
+    const html = rows();
+    const picker = html.match(/<select[^>]*data-tool-picker[^>]*>/)![0];
+    expect(picker).not.toContain("name=");
+    const id = html.match(/<form id="([^"]+)"/)![1];
+    expect(picker).toContain(`form="${id}"`);
+  });
+
+  // --- criterion 2 -----------------------------------------------------------
+
+  test("one tool is nothing to choose between, so no AI select is drawn", () => {
+    const html = rows([], { modelChoices: [{ name: "sonnet", budgetUsd: 3 }] });
+    // The phase pickers are still there — it is the row control that goes.
+    expect(html).toContain('<select name="model.analyze"');
+    expect(pickers(html)).toHaveLength(0);
+  });
+
+  test("no model configured at all draws no AI select either", () => {
+    expect(pickers(rows([], { modelChoices: undefined }))).toHaveLength(0);
+  });
+
+  // --- the marker the browser filters on -------------------------------------
+
+  test("every model option says which tool it starts", () => {
+    const html = rows();
+    expect(html).toMatch(/<option value="sonnet"[^>]*data-tool="claude"/);
+    expect(html).toMatch(/<option value="fable"[^>]*data-tool="claude"/);
+    expect(html).toMatch(/<option value="codex-fast"[^>]*data-tool="codex"/);
+    // Every option on the page carries one — a missing marker is an
+    // option the filter would hide whatever the reader picks.
+    for (const option of html.matchAll(/<option value="(sonnet|fable|codex-fast)"[^>]*>/g)) {
+      expect([option[1], option[0].includes("data-tool=")]).toEqual([option[1], true]);
+    }
+  });
+
+  // --- criterion 5 -----------------------------------------------------------
+
+  test("a busy row locks its AI select for the same reason as its models", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "127-one-ai", steps: ["implement"], stepIndex: 0, state: "running" })],
+      {},
+      [target()],
+    );
+    const picker = html.match(/<select[^>]*data-tool-picker[^>]*>/)![0];
+    expect(picker).toContain("disabled");
+    expect(picker).toContain('title="implement is running"');
+  });
+
+  test("a settled row's AI select is live again", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "127-one-ai", steps: ["implement"], stepIndex: 0, state: "done" })],
+    );
+    expect(html.match(/<select[^>]*data-tool-picker[^>]*>/)![0]).not.toContain("disabled");
+  });
+
+  // --- criterion 6: nothing is filtered before a script runs -----------------
+
+  test("every phase select still offers every configured model, server-side", () => {
+    const html = rows();
+    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
+      const select = html.match(
+        new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`),
+      )![0];
+      for (const m of BOTH) expect([step, select.includes(`value="${m.name}"`)]).toEqual([step, true]);
+      expect([step, select.includes("hidden")]).toEqual([step, false]);
+    }
+  });
+
+  // The row's phases may have run on DIFFERENT tools before this control
+  // existed. Nothing about drawing the new select may quietly re-pick
+  // for them: what each phase last ran on is what its select still says.
+  test("a mixed-tool history keeps every phase's own pre-filled model", () => {
+    const html = rows([
+      row({ id: "j1", specFolder: "127-one-ai", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+      row({ id: "j2", specFolder: "127-one-ai", steps: ["implement"], stepIndex: 0, state: "done", model: "codex-fast" }),
+    ]);
+    expect(html.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)![0])
+      .toMatch(/<option value="fable"[^>]*selected/);
+    expect(html.match(/<select name="model\.implement"[\s\S]*?<\/select>/)![0])
+      .toMatch(/<option value="codex-fast"[^>]*selected/);
+  });
+
+  // --- the Medium risk in the plan: the caption's pinned columns -------------
+
+  // The caption's first two children are pinned to the checkbox and
+  // name widths (`css.ts`), so every phase line's select starts under
+  // the word "Model". A control inserted before either of them takes a
+  // pinned width and drags the whole caption out of line.
+  test("the AI select sits after both pinned caption columns", () => {
+    const cap = caption(rows());
+    const at = cap.indexOf("data-tool-picker");
+    expect(at).toBeGreaterThan(cap.indexOf(">Phase<"));
+    expect(at).toBeGreaterThan(cap.indexOf(">Model<"));
+  });
+});
