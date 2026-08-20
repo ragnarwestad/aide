@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { withoutStack } from "./helpers/row-html.ts";
 import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
 import {
   renderNewSpecPage,
@@ -2575,12 +2576,13 @@ describe("a description newer than the analysis is shown on the row", () => {
     writeFileSync(join(spec, "4-status.md"), "# Status\n\n**Total progress:** `100% (4 of 4 completed)`\n");
   };
 
-  /** A phase's own line, without the action stack that rides on the
-   *  first sub-row (it spans them all and belongs to the spec, not to
-   *  the phase). */
+  /** A phase's own line, without the action stack that rides inside
+   *  the first sub-row's cell (spec 126) — the stack belongs to the
+   *  spec, not to the phase whose line it happens to lead. */
   const subRow = (html: string, phase: string): string =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    withoutStack(
+      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
+    );
 
   /** The badge sits on the analyze phase line and the marks on the step
    *  boxes, and a collapsed row draws neither — so every fetch here

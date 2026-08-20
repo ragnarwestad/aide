@@ -1346,15 +1346,18 @@ function modelPicker(
 // the same trick `collapsedAction` uses to sit two controls together
 // whatever the table's auto-sized widths turn out to be.
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
-// sub-row itself, so the stack cell can lead whichever row comes first.
+// sub-row itself, so the stack can lead whichever row comes first.
 // The empty span holds the checkbox column's place, so "Phase" stands
 // over the phase NAMES and not over their boxes.
+// The second cell is the Progress column, blank on every phase line:
+// pips are the only thing that column ever draws, and only on the
+// spec's own row above (spec 126).
 function phaseCaptionCells(): string {
   return (
     `<td class="phasecell"><span class="row">` +
     `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
-    `</span></td><td></td><td></td><td class="num"></td><td></td>`
+    `</span></td><td></td><td></td><td></td><td class="num"></td><td></td>`
   );
 }
 
@@ -1373,8 +1376,8 @@ function phaseCaptionCells(): string {
 // second time, in a second alphabet. It stays tickable — rerunning a
 // finished phase is the same submission it always was.
 //
-// The leading cell is the action column's, reserved and never filled:
-// the stack lives once, on the header row above.
+// The buttons are on the FIRST of these lines, in that line's own
+// cell, and every line after it holds its phase alone (spec 126).
 function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
   // Row-level, all four: which phases a press would run, why the row
@@ -1384,11 +1387,11 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   const ticked = preTicked(g);
   const why = busy ? busyReason(g) : "";
   const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
-  // Every sub-row's tag and its cells, kept apart so the stack cell can
-  // lead whichever row comes first and span the rest (2026-08-19). A
-  // COLUMN of its own put the buttons in the page's left gutter and
-  // pushed the whole table sideways; the spec column they already sit
-  // under is where "left of the phases" actually is.
+  // Every sub-row's tag and its cells, kept apart so the stack can be
+  // spliced into whichever row comes first (2026-08-19). A COLUMN of
+  // its own put the buttons in the page's left gutter and pushed the
+  // whole table sideways; the spec column they already sit under is
+  // where "left of the phases" actually is.
   const lines: { tag: string; cells: string }[] = [];
   if ((opts.modelChoices ?? []).length) {
     lines.push({ tag: `<tr class="subrow" data-caption="1">`, cells: phaseCaptionCells() });
@@ -1449,20 +1452,27 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         cells:
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
+          `<td></td>` +
           `<td>${phaseWordCell(word, latest)}</td>` +
           `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
           `<td></td>`,
       });
     });
-  // The stack, once, in the spec column and spanning every line beside
-  // it: one cell, so nothing about a row's buttons can change what any
-  // other row is shaped like.
-  const stack =
-    `<td class="stackcell" rowspan="${lines.length}">${openActionsCell(g, opts)}</td>`;
-  return lines
-    .map((l, i) => `${l.tag}${i === 0 ? stack : ""}${l.cells}</tr>`)
-    .join("");
+  // The stack, once, INSIDE the leading line's own cell rather than in
+  // a cell of its own spanning them all (spec 126). A spanning cell is
+  // still a cell, and the column it opened was sized by the widest
+  // thing in it — the spec name and its summary, two rows up — so the
+  // phase lines began a hand's width to the right of the buttons they
+  // belong under. Sharing the cell, "directly under the stack" is
+  // literally the next line down, in the same column.
+  if (lines.length) {
+    lines[0]!.cells = lines[0]!.cells.replace(
+      '<td class="phasecell">',
+      `<td class="phasecell">${openActionsCell(g, opts)}`,
+    );
+  }
+  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
 
 // A collapsed row OMITS its phase lines and its "more" line rather than
