@@ -3681,6 +3681,59 @@ describe("an archived spec's create job is not a row", () => {
   });
 });
 
+// Being archived is the proof the phases ran, so an archived spec's row
+// has nothing left to argue about — including when the job that made it
+// is not a `create`. The check above lived on the create branch alone,
+// and a project with no OTHER live target reached the group through the
+// "we are not entitled to judge this project" branch instead: every
+// phase read "not run yet" under a job reporting done, which the row
+// then worded as "the files disagree". Seen on 129 the day it was
+// archived (2026-08-20).
+describe("an archived spec's non-create job is not a row either", () => {
+  const analyzeJob = (folder: string): QueueRowView => ({
+    id: "a1",
+    project: "aide",
+    specFolder: folder,
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-19T10:00:00Z",
+  });
+  // Opened, because the qualifier the bug produces only renders on the
+  // phase lines behind the fold — a shut row shows the pips and nothing
+  // else, so a closed-row assertion on that sentence would pass either
+  // way and prove nothing.
+  const opened = (folder: string, archived: string[]) =>
+    renderQueueRows(
+      [analyzeJob(folder)],
+      {
+        runnerAvailable: true,
+        targets: [],
+        archived,
+        filter: { open: `aide/${folder}` },
+      },
+      Date.parse("2026-08-20T12:00:00Z"),
+    );
+
+  test("even when its project has no other live target", () => {
+    const html = opened("129-x", ["aide/129-x"]);
+    expect(html).not.toContain('data-folder="129-x"');
+    expect(html).not.toContain("last run reported done, but the files disagree");
+  });
+
+  // The other half of the same fixture: without the archive fact, the
+  // row is still there AND still says the files disagree. That is what
+  // the assertions above are pinned against — remove the archive entry
+  // and both of them fire.
+  test("the same spec unarchived keeps its row, contradiction and all", () => {
+    const html = opened("129-x", []);
+    expect(html).toContain('data-folder="129-x"');
+    expect(html).toContain("last run reported done, but the files disagree");
+  });
+});
+
 // A spec made from the New-spec form starts life as a `create` job — a
 // claude run that costs money and can fail — and that run used to be
 // findable only by knowing the job id, or appended after `archive` as a

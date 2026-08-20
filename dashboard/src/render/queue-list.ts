@@ -413,18 +413,23 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: st
   const judgeable = new Set(targets.map((t) => t.project));
   const archivedSet = new Set(archived ?? []);
   const fromJobs = [...byKey.entries()]
-    // A create job's spec is not a known target BY CONSTRUCTION: the
-    // folder is what the job is making, and until it lands there is
-    // nothing on disk to match. Without this it would be filtered out
-    // in exactly the projects that already have specs — so the job the
-    // reader just started would render nothing at all.
+    // Archived beats every other reason to keep a group visible. An
+    // unreadable specs root and an in-flight create job both argue for
+    // showing something anyway; a folder already in archive/ answers
+    // "did this spec finish" with certainty, so none of the other
+    // branches get a vote. The check used to sit on the create branch
+    // alone, and a project with no other live target still slipped an
+    // archived spec's row through `judgeable` — every phase reading
+    // "not run yet" under a job reporting done (spec 134).
     .filter(
       ([key, all]) =>
-        known.has(key) ||
-        !judgeable.has(all[0]!.project) ||
-        // The create exception ends where the archive begins: a spec
-        // that has been archived is no longer "not landed yet".
-        (all.some(isCreate) && !archivedSet.has(key)),
+        !archivedSet.has(key) &&
+        // A create job's spec is not a known target BY CONSTRUCTION: the
+        // folder is what the job is making, and until it lands there is
+        // nothing on disk to match. Without this it would be filtered out
+        // in exactly the projects that already have specs — so the job the
+        // reader just started would render nothing at all.
+        (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
     )
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
