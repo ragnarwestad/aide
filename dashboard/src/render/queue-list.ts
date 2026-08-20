@@ -1166,44 +1166,6 @@ function specSummary(g: SpecGroup): string {
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
 }
 
-// A dependency identifier — "106", or the whole folder name — resolved
-// the same narrow way `aide-run-spec`'s own `resolve_dependency_folder`
-// does: exact folder, or an `<id>-` prefix, and nothing fuzzier. Scoped
-// to the dependent spec's own project, so a spec numbered the same
-// somewhere else is never what a row is waiting on.
-function resolveDependency(from: SpecGroup, id: string, all: SpecGroup[]): SpecGroup | undefined {
-  return all.find(
-    (g) => g.project === from.project && (g.specFolder === id || g.specFolder.startsWith(`${id}-`)),
-  );
-}
-
-// "after 106" — one per dependency that is still in the way, by the same
-// rule `aide-run-spec` refuses a run on: that spec's own branch is still
-// unmerged. `dep.branches` already answers it for every spec on the
-// page, the identical expression the row reads about its OWN branches
-// one line below. No git is asked anything here.
-//
-// The RESOLVED folder's leading digits, not the identifier as written: a
-// `Depends on:` line naming the full slug would otherwise print it whole
-// on every row waiting on it. Every `specFolder` starts with digits by
-// construction — `discover.ts` only reads folders that do.
-function dependencyBadges(g: SpecGroup, all: SpecGroup[]): string {
-  return g.dependsOn
-    .map((id) => resolveDependency(g, id, all))
-    .filter((dep): dep is SpecGroup => !!dep && dep.branches.some((b) => !b.merged))
-    .map(
-      (dep) =>
-        ` <a href="#${esc(rowAnchorId(dep))}">` +
-        badge(
-          "waiting",
-          `after ${dep.specFolder.split("-", 1)[0]}`,
-          `${dep.specFolder} is not merged yet`,
-        ) +
-        `</a>`,
-    )
-    .join("");
-}
-
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and — in the cell it opens with — what can be done
 // about it. A SHUT row's first cell holds at most the one action the
@@ -1215,7 +1177,6 @@ function specHeadRow(
   opts: QueuePageOptions,
   now: number,
   opened: Set<string>,
-  all: SpecGroup[],
 ): string {
   // Three answers, not two — and named `run-*` rather than
   // `active`/`archived`, which `site.ts` uses for the unrelated
@@ -1314,7 +1275,7 @@ function specHeadRow(
     }` +
     `<div class="muted small">${esc(
       nextActionHint(g.lead),
-    )}${dependencyBadges(g, all)}</div></td>` +
+    )}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
     // The action cell, LAST as before spec 124 — but only for a SHUT
@@ -1613,13 +1574,12 @@ function groupRows(
   opts: QueuePageOptions,
   now: number,
   opened: Set<string>,
-  all: SpecGroup[],
 ): string {
   return groups
     .map((g) => {
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head = specHeadRow(g, opts, now, opened, all) + specNoticeRow(g);
+      const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g);
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;
@@ -1648,7 +1608,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
   const body = matched.length
     ? // `groups`, not `matched`: a dependency the filter or the 25-row
       // cap has hidden is still in the way of the row that names it.
-      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f), groups)
+      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at

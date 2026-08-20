@@ -3607,14 +3607,13 @@ describe("the front page after the panel moved", () => {
 
 // --- spec 114: a spec with an unmerged dependency says so on the row ---------
 
-// `Depends on:` has been on the row since spec 110, as part of the
-// title line's summary — it says what a spec BUILDS on, always. What it
-// never said is whether that dependency is still in the way, and a
-// reader found that out only when Run refused. The badge answers the
-// second question and only while the answer is yes: the dependency's own
-// branch is still unmerged, by the same `branches` the dependency's own
-// row already reads for itself.
-describe("spec 114: a spec with an unmerged dependency says so on the row", () => {
+// Spec 114 put a badge here — "after 106", one per dependency whose
+// branch was still unmerged — so the row said what it was waiting on.
+// Taken out again 2026-08-20: the title line already says "depends on
+// <folder>" (spec 110) one cell to the left, and the two stood side by
+// side saying nearly the same words about the same fact. The state cell
+// is the sentence and nothing else again.
+describe("a dependency is named once, on the title line, and not in the state cell", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -3622,17 +3621,11 @@ describe("spec 114: a spec with an unmerged dependency says so on the row", () =
   });
   const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
     renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-19T12:00:00Z"));
-  // One row, by folder — the same `data-folder` anchor every other block
-  // in this file matches a row with.
   const rowHtml = (html: string, folder: string) =>
     html.match(
       new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?</tr>`),
     )?.[0] ?? "";
-  // The state cell's sentence, badge markup and all — the same cell the
-  // spec 101 block reads, but not escaped down to text, because the
-  // badge IS markup and its `href` is half of what is under test.
   const hintCell = (html: string, folder: string) =>
-    // The third cell: name, progress, state.
     (rowHtml(html, folder).split("<td")[3] ?? "").match(
       /<div class="muted small">([\s\S]*?)<\/div><\/td>/,
     )?.[1] ?? "";
@@ -3642,113 +3635,19 @@ describe("spec 114: a spec with an unmerged dependency says so on the row", () =
       state: "done",
       branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
     });
-  const merged = (specFolder: string) =>
-    row({
-      specFolder,
-      state: "done",
-      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
-    });
 
-  test("an unmerged dependency shows a badge linking to its own row", () => {
+  test("an unmerged dependency puts nothing in the state cell", () => {
     const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
-    const id = rowHtml(html, "106-x").match(/ id="([^"]+)"/)?.[1];
-    expect(id).toBeTruthy();
-    const cell = hintCell(html, "114-b");
-    expect(cell).toContain("after 106");
-    expect(cell).toContain(`href="#${id}"`);
-  });
 
-  test("the badge names the dependency's number, not the identifier as written", () => {
-    const html = rows(
-      [unmerged("106-let-aide-resolve-a-merge-conflict")],
-      [
-        target("106-let-aide-resolve-a-merge-conflict"),
-        target("114-b", { dependsOn: ["106-let-aide-resolve-a-merge-conflict"] }),
-      ],
-    );
-    const cell = hintCell(html, "114-b");
-    expect(cell).toContain("after 106");
-    expect(cell).not.toContain("after 106-let-aide-resolve-a-merge-conflict");
-  });
-
-  test("a merged dependency shows no badge", () => {
-    const html = rows([merged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
-    expect(hintCell(html, "114-b")).not.toContain("after 106");
-  });
-
-  test("a dependency nothing has ever run shows no badge", () => {
-    const html = rows([], [target("107-y"), target("114-b", { dependsOn: ["107"] })]);
-    expect(hintCell(html, "114-b")).not.toContain("after 107");
-  });
-
-  test("two dependencies, one open, give exactly one badge", () => {
-    const html = rows(
-      [unmerged("106-x"), merged("107-y")],
-      [target("106-x"), target("107-y"), target("114-b", { dependsOn: ["106", "107"] })],
-    );
-    const cell = hintCell(html, "114-b");
-    expect([...cell.matchAll(/after \d+/g)].map((m) => m[0])).toEqual(["after 106"]);
-  });
-
-  test("two open dependencies give two badges", () => {
-    const html = rows(
-      [unmerged("106-x"), unmerged("107-y")],
-      [target("106-x"), target("107-y"), target("114-b", { dependsOn: ["106", "107"] })],
-    );
-    expect([...hintCell(html, "114-b").matchAll(/after \d+/g)].map((m) => m[0])).toEqual([
-      "after 106",
-      "after 107",
-    ]);
-  });
-
-  test("an identifier nothing on the page resolves shows no badge and does not throw", () => {
-    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["999"] })]);
     expect(hintCell(html, "114-b")).not.toContain("after");
-  });
-
-  test("a spec with no dependency leaves the sentence cell exactly as it was", () => {
-    const html = rows([], [target("114-b")]);
-    // The whole cell is the sentence, and nothing else — the same shape
-    // the spec 101 block asserts across every row on the page.
+    // The whole cell is the sentence, and nothing else.
     expect(hintCell(html, "114-b")).toMatch(/^[^<]*$/);
   });
 
-  test("the dependency is resolved inside its own project only", () => {
-    // The other project's 106 comes FIRST, so a resolver that forgot to
-    // scope by project would find it and answer for the wrong spec.
-    const targets = [
-      { project: "other", specFolder: "106-elsewhere" },
-      target("106-x"),
-      target("114-b", { dependsOn: ["106"] }),
-    ];
-    const elsewhere = (merged: boolean) =>
-      row({
-        project: "other",
-        specFolder: "106-elsewhere",
-        state: "done",
-        branchUrls: [{ label: "other", url: "https://example.test/other", merged }],
-      });
-    // Only the OTHER project's 106 is unmerged: nothing is in aide's way.
-    const away = rows([elsewhere(false), merged("106-x")], targets);
-    expect(hintCell(away, "114-b")).not.toContain("after 106");
-    // The same page with aide's own 106 unmerged: the badge is back.
-    const home = rows([elsewhere(true), unmerged("106-x")], targets);
-    expect(hintCell(home, "114-b")).toContain("after 106");
-  });
+  test("the title line still says what the spec builds on", () => {
+    const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
 
-  test("the badge is found even when the dependency's own row is off the page", () => {
-    // The filter hides the dependency's row; the dependency is still in
-    // the way, and the row that waits on it still says so.
-    const html = renderQueueRows(
-      [unmerged("106-x")],
-      {
-        runnerAvailable: true,
-        targets: [target("106-x"), target("114-b", { dependsOn: ["106"] })],
-        filter: { state: "not-started" },
-      },
-      Date.parse("2026-08-19T12:00:00Z"),
-    );
-    expect(hintCell(html, "114-b")).toContain("after 106");
+    expect(rowHtml(html, "114-b")).toContain("depends on 106");
   });
 });
 
