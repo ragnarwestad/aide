@@ -1715,6 +1715,29 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     }
   });
 
+  // Where the mark sits, not just that it is there. Beside the model
+  // picker it had no width of its own, so two lines of free text
+  // stretched the name column and took the table sideways with it
+  // (2026-08-20). The name cell holds the checkbox, the name and the
+  // picker; state goes in the state cell.
+  test("the stale mark sits in the state cell, not beside the model picker", () => {
+    const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
+    const line = subRow(html, "analyze");
+    const nameCell = line.match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
+    expect(nameCell).not.toContain("description changed since");
+    expect(line).toContain("description changed since");
+  });
+
+  test("the attempt count sits in the state cell too", () => {
+    const html = rows(
+      [job("j1", "analyze"), job("j2", "analyze")],
+      [target("97-tries", {})],
+    );
+    const line = subRow(html, "analyze");
+    const nameCell = line.match(/<td class="phasecell">[\s\S]*?<\/td>/)?.[0] ?? "";
+    if (line.includes("attempts")) expect(nameCell).not.toContain("attempts");
+  });
+
   test("a spec nothing has run carries it too (criterion 1)", () => {
     const html = rows([], [target("97-never-run", { analyzeStale: true })]);
     expect(subRow(html, "analyze")).toContain("description changed since");

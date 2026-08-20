@@ -926,8 +926,21 @@ const stateCell = (r: QueueRowView, resting: RestingState = {}): string =>
 // phase has neither happened nor been attempted. The attempt's own
 // error text still rides along beneath it: a reader is told no less
 // than before, only in the file's order.
-const phaseWordCell = (w: PhaseWord, r: QueueRowView | undefined): string =>
+const phaseWordCell = (
+  w: PhaseWord,
+  r: QueueRowView | undefined,
+  /** Marks that belong to the phase's STATE but used to be written on
+   *  its name cell, beside the model picker: the stale-description
+   *  badge and the attempt count. Out there they had no width of their
+   *  own, so two lines of free text stretched the name column and took
+   *  the whole table sideways with it (seen 2026-08-20). Here they sit
+   *  under the badge, which is where every other qualifier already
+   *  goes. Whether the State cell is their long-term home is still
+   *  open; not stretching the table is not. */
+  aside = "",
+): string =>
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
+  (aside ? `<div class="muted small">${aside}</div>` : "") +
   (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "") +
   (r?.error ? `<div class="muted small">${esc(r.error)}</div>` : "");
 // `blank` because a header with nothing spent still owes the reader a
@@ -1509,8 +1522,8 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         tag: `<tr class="subrow${latest ? "" : " untried"}" data-step="${esc(p.step)}">`,
         cells:
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
-          `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}${stale}${tries}</span></td>` +
-          `<td>${phaseWordCell(word, latest)}</td>` +
+          `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
+          `<td>${phaseWordCell(word, latest, `${stale}${tries}`)}</td>` +
           `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
           `<td></td>`,
