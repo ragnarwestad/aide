@@ -6,6 +6,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest } from "./parse-manifest.ts";
+import { projectNameError } from "./project-admin.ts";
 import { parseStatus } from "./parse-status.ts";
 import type { ProjectView } from "./render/site.ts";
 
@@ -149,6 +150,35 @@ export function discoverProjects(root: string): DiscoveredProject[] {
     projects.push({ name: entry, dir, manifestPath, specsRoot, specs });
   }
   return projects.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** The inverse of `discoverProjects`: the directories under the same
+ *  root that carry NO manifest — checkouts on this host that are not
+ *  projects yet (spec 131). The Add-project form offers these to be
+ *  PICKED, because the one path its own check accepts follows from the
+ *  projects root and the name, and asking a reader to type it was
+ *  asking for something only the server knew.
+ *
+ *  Bare directory names, not paths: the picked value is the project's
+ *  name as well as its location, and `addProject` resolves it against
+ *  the same root. A name that could never be a project name is left out
+ *  — offering it would only produce a refusal nobody could act on. The
+ *  try/catch is `discoverProjects`' own: a dangling symlink is not a
+ *  checkout, and it is not a crash either. */
+export function discoverUnclaimedDirectories(root: string): string[] {
+  const found: string[] = [];
+  if (!existsSync(root)) return found;
+  for (const entry of readdirSync(root)) {
+    if (projectNameError(entry) !== null) continue;
+    const dir = join(root, entry);
+    try {
+      if (!statSync(dir).isDirectory() || existsSync(join(dir, ".aide", "project.yaml"))) continue;
+    } catch {
+      continue; // dangling symlink or unreadable entry — nothing to offer
+    }
+    found.push(entry);
+  }
+  return found.sort((a, b) => a.localeCompare(b));
 }
 
 /** Everything a page shows about a projects root: the manifest scan

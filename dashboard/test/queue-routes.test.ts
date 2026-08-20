@@ -3466,6 +3466,25 @@ describe("POST /api/queue/projects (spec 112)", () => {
     expect(body.results.find((r) => r.step === "manifest")!.note).toMatch(/aide-manifest/);
   });
 
+  // Spec 131: the form picks a checkout by its bare directory name and
+  // leaves Name blank — so the name the ALLOWLIST gets has to be the one
+  // derived from the pick. Posting the raw blank would add "" and the
+  // project the manifest was just written for would never be runnable.
+  test("a picked checkout with no Name is allowlisted under the picked name", async () => {
+    const file = ownConfig({ concurrency: 2 });
+    const { base, dir } = start({ queueToken: TOKEN, queueConfigFile: file });
+    mkdirSync(join(dir, "root", "picked"), { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ name: "", existingPath: "picked" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(projectsIn(file).sort()).toEqual(["aide", "picked"]);
+  });
+
   // Criterion 9: the change survives a restart, because it is written to
   // the file the server reads on the way up.
   test("the new allowlist is persisted to the queue config", async () => {

@@ -42,6 +42,11 @@ export interface ProjectsPageOptions {
    *  server: the typed-confirmation gate and the inline refusals. Every
    *  control works without it, one page load at a time. */
   script?: string;
+  /** The directories under the projects root that carry no manifest yet
+   *  — what "…or a path on this host" picks from (spec 131). Bare
+   *  names: the pick settles the project's name as well as where it is,
+   *  and the server resolves it against the same root. */
+  existingCheckouts?: string[];
   /** Why the last attempt was refused, carried back in the query string
    *  after a no-JS form POST. Nothing on this page has a row for it to
    *  land on — an Add names a project that was never added — so it goes
@@ -101,7 +106,13 @@ export function renderAddProjectPage(
     `<span class="frow">` +
     field(
       "Name",
-      `<input type="text" name="name" required maxlength="64" ` +
+      // Not `required`: picking a checkout with Name left blank is a
+      // whole submission on its own, and a browser with no script would
+      // refuse to send it. `pattern` does not gate an empty value on
+      // its own, so nothing the pattern rejected is admitted here —
+      // only the empty string, which the server still refuses when
+      // nothing was picked either.
+      `<input type="text" name="name" maxlength="64" ` +
         `pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" ` +
         `placeholder="the directory it gets under the projects root">`,
     ) +
@@ -112,9 +123,16 @@ export function renderAddProjectPage(
     `</span>` +
     `<span class="frow">` +
     field(
+      // Picked, never typed (spec 131): the server accepts exactly one
+      // path for a given name, and it is the one it worked out itself.
+      // A real `<select>`, because this page works with no script.
       "…or a path on this host",
-      `<input type="text" name="existingPath" maxlength="300" ` +
-        `placeholder="a checkout that is already there">`,
+      opts.existingCheckouts?.length
+        ? `<select name="existingPath"><option value=""></option>` +
+          opts.existingCheckouts.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("") +
+          `</select>`
+        : `<select name="existingPath" disabled>` +
+          `<option value="">no checkouts found under the projects root</option></select>`,
     ) +
     field(
       "Specs root",

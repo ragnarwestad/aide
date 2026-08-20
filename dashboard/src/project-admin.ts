@@ -55,7 +55,10 @@ export interface AddProjectRequest {
   name: string;
   /** Clone it from here. Mutually exclusive with `existingPath`. */
   gitUrl?: string;
-  /** It is already on this machine, at this path. */
+  /** It is already on this machine: an absolute path, or — what the
+   *  Add form's picker sends — the bare name of a directory directly
+   *  under the projects root, which names the project too when `name`
+   *  is left blank. Mutually exclusive with `gitUrl`. */
   existingPath?: string;
   description?: string;
   /** `AIDE_SPECS_PATH` for the project's own `.aide/config`. Omitted
@@ -85,6 +88,33 @@ export function projectNameError(name: unknown): string | null {
     );
   }
   return null;
+}
+
+/** What an add is actually AIMED at, once the Add form's picker is
+ *  allowed to settle it (spec 131): the project's name, and the path of
+ *  the checkout to register.
+ *
+ *  A bare `existingPath` — no separator — is what the picker sends:
+ *  shorthand for the checkout of that name directly under the projects
+ *  root, and the project's name too when Name was left blank. A typed
+ *  Name always wins, so a mismatch stays the refusal it always was. A
+ *  full path, typed by hand or posted straight at the route, is used
+ *  exactly as before.
+ *
+ *  Exported for the same reason `projectNameError` is: the route needs
+ *  the DERIVED name — it is what goes on the allowlist — and a second
+ *  copy of this rule in `serve.ts` would eventually disagree with this
+ *  one. */
+export function addProjectTarget(
+  projectsRoot: string,
+  req: Pick<AddProjectRequest, "name" | "existingPath">,
+): { name: string; existingPath?: string } {
+  const raw = req.existingPath?.trim();
+  const bare = raw && !raw.includes("/") ? raw : undefined;
+  return {
+    name: req.name?.trim() || bare || "",
+    existingPath: raw ? (bare ? join(projectsRoot, bare) : raw) : undefined,
+  };
 }
 
 /** The manifest the Add flow writes when a checkout has none: `name`
@@ -139,10 +169,10 @@ export async function addProject(
   projectsRoot: string,
   req: AddProjectRequest,
 ): Promise<ProjectAdminResult> {
-  const nameError = projectNameError(req.name);
-  if (nameError) return fail("name", nameError);
   const gitUrl = req.gitUrl?.trim();
-  const existingPath = req.existingPath?.trim();
+  const { name, existingPath } = addProjectTarget(projectsRoot, req);
+  const nameError = projectNameError(name);
+  if (nameError) return fail("name", nameError);
   if (!gitUrl && !existingPath) {
     return fail("name", "say where the project comes from: a git URL, or a path already on this host");
   }
@@ -151,7 +181,7 @@ export async function addProject(
   }
 
   const steps: ProjectStep[] = [{ step: "name", ok: true }];
-  const dir = join(projectsRoot, req.name);
+  const dir = join(projectsRoot, name);
   const done = (): ProjectAdminResult => ({ ok: steps.every((s) => s.ok), steps });
   const stop = (step: ProjectStepName, error: string): ProjectAdminResult => {
     steps.push({ step, ok: false, error });
@@ -163,9 +193,9 @@ export async function addProject(
     // destination anyway, but not in words anybody wants to read, and
     // an empty one it would happily fill.
     if (existsSync(dir)) {
-      return stop("clone", `"${req.name}" is already a directory under the projects root`);
+      return stop("clone", `"${name}" is already a directory under the projects root`);
     }
-    const cloned = await run(projectsRoot, ["clone", gitUrl, req.name]);
+    const cloned = await run(projectsRoot, ["clone", gitUrl, name]);
     if (cloned.code !== 0) {
       const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
       return stop("clone", `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`);
@@ -179,7 +209,7 @@ export async function addProject(
     if (resolve(existingPath!) !== resolve(dir)) {
       return stop(
         "register",
-        `a project is found as a directory under ${projectsRoot}, so "${req.name}" has to be ` +
+        `a project is found as a directory under ${projectsRoot}, so "${name}" has to be ` +
           `${dir} — not ${existingPath}`,
       );
     }
@@ -197,7 +227,7 @@ export async function addProject(
       steps.push({ step: "manifest", ok: true, note: "kept the .aide/project.yaml already there" });
     } else {
       mkdirSync(join(dir, ".aide"), { recursive: true });
-      writeFileSync(manifest, minimalManifest(req.name, req.description));
+      writeFileSync(manifest, minimalManifest(name, req.description));
       steps.push({
         step: "manifest",
         ok: true,

@@ -138,6 +138,37 @@ describe("the Add page", () => {
   test("a refusal carried back in the query string is shown here", () => {
     expect(add({ error: "the name is already taken" })).toContain("the name is already taken");
   });
+
+  // Spec 131: "…or a path on this host" asked for a path the reader had
+  // no way to know — the server accepts exactly one, and it follows from
+  // the projects root and the name. It picks from the host's own
+  // manifest-less directories now, and it is still a real form control,
+  // because this page works with no script at all.
+  // Criterion 3.
+  test("the checkouts already on the host are picked, not typed", () => {
+    const html = add({ existingCheckouts: ["atlasaurus", "scratch"] });
+    expect(html).toContain('<select name="existingPath">');
+    expect(html).toContain('<option value="atlasaurus">atlasaurus</option>');
+    expect(html).toContain('<option value="scratch">scratch</option>');
+    expect(html).not.toContain('name="existingPath" maxlength');
+    // Nothing picked stays representable, the way an empty box was.
+    expect(html).toContain('<option value=""></option>');
+  });
+
+  // Criterion 4.
+  test("no checkouts to offer is said in words, on a control that is still there", () => {
+    const html = add({ existingCheckouts: [] });
+    expect(html).toContain('name="existingPath"');
+    expect(html).toContain("<select");
+    expect(html).toContain("disabled");
+    expect(html).toContain("no checkouts found under the projects root");
+  });
+
+  // Picking a checkout with Name left blank is a whole submission on its
+  // own — a `required` Name would let no browser send it.
+  test("Name is not required, because a pick settles it", () => {
+    expect(add()).not.toContain('name="name" required');
+  });
 });
 
 describe("the Remove page", () => {
