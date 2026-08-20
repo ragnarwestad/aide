@@ -8,7 +8,6 @@
 // a badge, and that the row's rarely-set controls lie flat on the
 // controls line rather than behind a disclosure.
 import { describe, expect, test } from "bun:test";
-import { stackOf } from "./helpers/row-html.ts";
 import {
   navEntries,
   renderJobDetailPage,
@@ -232,14 +231,12 @@ describe("the action stack rides in the spec column, not in one of its own", () 
     expect(thead).not.toMatch(/^<thead><tr><th><\/th>/);
   });
 
-  // Spec 126: not a spanning cell any more, but the leading phase
-  // line's own — the buttons and the phases share one column, so the
-  // phases start where the buttons do rather than a column later.
-  test("an open row's stack leads the first phase line, in its cell", () => {
+  test("an open row's stack is one spanning cell, beside its phase lines", () => {
     const html = rows([], { targets: [target()] });
-    expect(html).not.toContain("stackcell");
-    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td class="phasecell"><span class="stack">/);
-    expect(stackOf(html)).toContain(">Run</button>");
+    const stack = html.match(/<td class="stackcell" rowspan="(\d+)">([\s\S]*?)<\/td>/);
+    expect(stack).not.toBeNull();
+    expect(Number(stack![1])).toBeGreaterThan(1);
+    expect(stack![2]).toContain(">Run</button>");
   });
 });
 
@@ -358,12 +355,12 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
       modelChoices: [{ name: "opus", budgetUsd: 15 }],
     });
 
-  /** The spec's action cell: an open row's whole stack, inside the
-   *  cell of the phase line it leads (spec 126); a shut row's one
+  /** The spec's action cell: an open row's whole stack, in the cell
+   *  that leads its phase lines and spans them; a shut row's one
    *  action, in the header's last cell. */
   const controls = (h: string) => {
-    const stack = stackOf(h);
-    if (stack) return stack;
+    const stack = h.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const head =
       h.match(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
@@ -594,12 +591,11 @@ describe("let aide resolve it (spec 106)", () => {
   // a margin each form carried with it. A margin travels into the next
   // layout the form is used in; a container's gap does not.
   test("Merge and resolve are one group, spaced by the container (spec 120)", () => {
-    // An open row's stack leads its phase lines, from inside the first
-    // one's cell (spec 126); a shut row's one action is the header's
-    // last cell (2026-08-19).
+    // An open row's stack leads its phase lines; a shut row's one
+    // action is the header's last cell (2026-08-19).
     const cell = (html: string) => {
-      const stack = stackOf(html);
-      if (stack) return stack;
+      const stack = html.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+      if (stack !== undefined) return stack;
       const head = html.match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
       const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
       return cells[cells.length - 1] ?? "";

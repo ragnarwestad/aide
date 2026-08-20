@@ -340,15 +340,21 @@ table.list tbody tr.spechead:first-child td { border-top: none; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
+/* The first column is the row's ACTIONS (spec 124), and it is the one
+   column whose content comes and goes with the spec's state: a branch
+   becoming mergeable used to widen it for every row on the page at
+   once. Declared here, so what a row happens to offer cannot decide
+   how wide the column is. Scoped to the spec list's own header rows —
+   "table.list" is the specs page's table too, and it has no actions. */
+/* The stack's cell: the spec column, beside the phase lines it acts
+   on, capped so a long button label cannot widen the column the whole
+   table is aligned on. Top-aligned — buttons belong at the top of the
+   lines they command, not floating in the middle of them. */
+.stackcell { width: 14rem; vertical-align: top; }
 /* The phase lines claim the width they need rather than wrapping: a
    box, a name and a select on one line, or the column squeezes them
-   into three (2026-08-19).
-   Top-aligned since spec 126: the leading line's cell carries the
-   button stack ABOVE its phase, which makes that cell taller than the
-   State/Started/Cost cells beside it. The table's own middle default
-   would then float the buttons in the middle of the row they lead. */
-table.list tr.subrow .phasecell { padding-left: var(--sp-5); white-space: nowrap;
-  vertical-align: top; }
+   into three (2026-08-19). */
+table.list tr.subrow .phasecell { padding-left: var(--sp-5); white-space: nowrap; }
 table.list tr.subrow .phasecell > .row { flex-wrap: nowrap; }
 /* The phase lines are COLUMNS, not a ragged flex: the box gets a fixed
    width and so does the name, so every select starts at the same x,
@@ -402,27 +408,19 @@ td form { margin: 0; display: inline-block; }
    It just has nothing to show, and a stack that gave it a gap would
    open a hole between two buttons. */
 .rowrun { display: none; }
-/* The vertical one: a row's buttons, one under the next, sharing the
-   cell of the phase line they lead (specs 124, 126). Named by the
-   archived design sheet and never ported until now. Flex-start because
-   the buttons are different widths and a stack of centred ones has no
-   edge to read down; the gap is the container's, as everywhere else.
-
-   Two declarations come from sharing that cell (spec 126). The cap is
-   14rem because the longest label a row can draw — the Merge button
-   naming two repos at once — fits in it, and it is on the stack rather
-   than on the cell because the cell holds the phase lines too. And
-   white-space is put back to normal because that cell sets nowrap for
-   the phase lines' sake: inherited, it would make "stop for approval
-   between steps" one unbreakable line, and a column is at least as
-   wide as its widest unbreakable content — widening the very column
-   the stack was moved into to narrow. */
+/* The vertical one: a row's buttons, one under the next, in the cell
+   the list opens with (spec 124). Named by the archived design sheet
+   and never ported until now. Flex-start because the buttons are
+   different widths and a stack of centred ones has no edge to read
+   down; the gap is the container's, as everywhere else. */
 .stack { display: flex; flex-direction: column; align-items: flex-start;
-  gap: var(--sp-2); max-width: 14rem; white-space: normal; }
-/* The two rules below are the backstop for the day a label does not
-   fit: a button clips rather than demanding a wider column, since a
-   column that grows to fit one row's button moves every other row on
-   the page, which is what the cap was declared to stop. */
+  gap: var(--sp-2); }
+/* The column above is 14rem because the longest label a row can draw —
+   the Merge button naming two repos at once — fits in it. The two
+   rules below are the backstop for the day one does not: a button
+   clips rather than demanding a wider column, since a column that
+   grows to fit one row's button moves every other row on the page,
+   which is what the width was declared to stop. */
 .stack > * { max-width: 100%; }
 .stack .btn { overflow: hidden; }
 /* No margin on any of the three below, nor on "extra": the space

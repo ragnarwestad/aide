@@ -182,7 +182,7 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "tabbar", "tab",
-  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
+  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop", "stackcell",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
@@ -288,14 +288,13 @@ describe("the space between two controls comes from their container", () => {
 // 124 declared it on a COLUMN of its own at the front of the table,
 // which pushed every other column sideways — 2026-08-19 moved the
 // stack into the spec column it already sat under, spanning the phase
-// lines. Spec 126 dropped the spanning cell too: the stack shares the
-// leading phase line's cell, so the cap is on the stack itself.)
+// lines.)
 
 describe("the action column's width is declared, not content-driven", () => {
-  test("the stack carries a fixed width of its own", async () => {
+  test("the stack's cell carries a fixed width", async () => {
     const css = await Bun.file(join(ROOT, "src/render/css.ts")).text();
-    const rule = css.match(/\.stack \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/max-width:\s*[\d.]+rem;/);
+    const rule = css.match(/\.stackcell \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/width:\s*[\d.]+rem;/);
   });
 
   test("the vertical stack is a container with a gap, like every other one", async () => {

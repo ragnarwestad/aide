@@ -6,7 +6,6 @@
 // tables; project pages carry the full manifest block and spec
 // table; every page is self-contained.
 import { describe, expect, test } from "bun:test";
-import { stackOf, withoutStack } from "./helpers/row-html.ts";
 import {
   renderJobDetailPage,
   renderNewSpecPage,
@@ -858,13 +857,12 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
 
   const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
   // The cell for one phase, from its name to the end of the row.
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
 
   test("two jobs for one spec make one header row, not two (criterion 1)", () => {
     const html = rows([
@@ -999,13 +997,12 @@ describe("a multi-step job is shown on every step it ran", () => {
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
   const analysed: QueueTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
 
   const twoStep = (extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({
@@ -1149,13 +1146,12 @@ describe("a spec's row runs its own phases", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   /** One phase's checkbox and its label, from the row it sits on. */
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
@@ -1431,13 +1427,12 @@ describe("every spec is a row (criteria 1-10)", () => {
   // whole header line and nothing else.
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   /** The line the run control opens onto, under the header (spec 109). */
   const runLine = (html: string, folder: string) =>
     html.match(
@@ -1690,13 +1685,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
 
   // The path every example in the ticket takes: 93, 94 and 96 had all
   // actually run an analyze, so a badge wired only into `emptyGroup`
@@ -2462,15 +2456,14 @@ describe("spec 103: a collapsed row shows status only", () => {
       ),
     )?.[0] ?? "";
   /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (inside that line's own cell since
-   *  spec 126); a
+   *  that leads its phase lines (`stackcell`, spanning them all); a
    *  SHUT row offers its one action in the header's LAST cell. Takes
    *  the whole row group, since the two live on different lines
    *  (2026-08-19 — spec 124's leading COLUMN pushed the table
    *  sideways and was taken back out). */
   const actionCell = (chunk: string) => {
-    const stack = stackOf(chunk);
-    if (stack) return stack;
+    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
@@ -2760,15 +2753,14 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       ),
     )?.[0] ?? "";
   /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (inside that line's own cell since
-   *  spec 126); a
+   *  that leads its phase lines (`stackcell`, spanning them all); a
    *  SHUT row offers its one action in the header's LAST cell. Takes
    *  the whole row group, since the two live on different lines
    *  (2026-08-19 — spec 124's leading COLUMN pushed the table
    *  sideways and was taken back out). */
   const actionCell = (chunk: string) => {
-    const stack = stackOf(chunk);
-    if (stack) return stack;
+    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
@@ -2983,15 +2975,14 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       ),
     )?.[0] ?? "";
   /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (inside that line's own cell since
-   *  spec 126); a
+   *  that leads its phase lines (`stackcell`, spanning them all); a
    *  SHUT row offers its one action in the header's LAST cell. Takes
    *  the whole row group, since the two live on different lines
    *  (2026-08-19 — spec 124's leading COLUMN pushed the table
    *  sideways and was taken back out). */
   const actionCell = (chunk: string) => {
-    const stack = stackOf(chunk);
-    if (stack) return stack;
+    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
@@ -3125,10 +3116,10 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       expect(actionCell(controlsLine(html, "109-merge"))).toContain('action="/api/queue/j1/merge"');
     }
     // Once per row, wherever it sits: on a shut row the header's last
-    // cell, on an open row the stack above the phase lines — and no
+    // cell, on an open row the stack beside the phase lines — and no
     // phase LINE carries an action of its own.
     const openGroup = controlsLine(openHtml, "109-merge");
-    expect(withoutStack(openGroup)).not.toContain("/merge");
+    expect(openGroup.replace(/<td class="stackcell"[\s\S]*?<\/td>/, "")).not.toContain("/merge");
   });
 
   // --- criterion 6: the order of the lines an open row grows ----------------
@@ -3165,17 +3156,15 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   });
 
   // The line those fields lived on is gone (spec 124): they sit in the
-  // stack now, under the buttons. What still has to hold is that the
-  // stack has a width of its own, so the row cannot be shoved sideways
-  // by what it offers. Declared on the stack itself since spec 126 —
-  // the cell it used to have all to itself is gone, shared with the
-  // phase line it leads.
-  test("the stack they moved into has a declared width", async () => {
+  // header row's own action cell now, under the buttons. What still
+  // has to hold is that the cell they moved into has a width of its
+  // own, so the row cannot be shoved sideways by what it offers.
+  test("the action cell they moved into has a declared width", async () => {
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).not.toContain("data-more");
     expect(CSS).not.toContain("data-controls");
-    const rule = CSS.match(/\.stack \{[^}]*\}/)![0];
-    expect(rule).toMatch(/max-width:\s*[\d.]+rem;/);
+    const rule = CSS.match(/\.stackcell \{[^}]*\}/)![0];
+    expect(rule).toMatch(/width:\s*[\d.]+rem;/);
   });
 
   // `.row` on its own is block-level `flex`, which would put the
@@ -3219,13 +3208,12 @@ describe("spec 108: one rule per phase", () => {
    *  the phase lines under it — where the boxes live since spec 124. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   // The pips carry the phase's own reader-facing name as their title,
   // which is how one is told from the next three.
   const pipFor = (html: string, label: string) =>
@@ -3575,13 +3563,12 @@ describe("spec 116: create is the first phase line", () => {
    *  the phase lines under it — where the boxes live since spec 124. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   const order = (html: string) => [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
   const pipFor = (html: string, label: string) =>
     head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
@@ -3955,13 +3942,12 @@ describe("spec 123: each phase line picks its own model", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   /** The caption line: a subrow with no phase of its own, above them
    *  all. Marked by a data attribute rather than a class — it needs no
    *  rule of its own, and the render vocabulary is a closed set
@@ -4026,11 +4012,12 @@ describe("spec 123: each phase line picks its own model", () => {
 
   // --- criterion 3 -----------------------------------------------------------
 
-  /** The caption line above the phase lines. It leads its group, so
-   *  since spec 126 the stack sits inside its own cell — what is
-   *  asserted about the caption itself is read past the stack. */
+  /** The caption line above the phase lines. It leads with the stack
+   *  cell, which spans them all, so what is asserted about the caption
+   *  itself is read past that cell. */
   const caption = (html: string) =>
-    withoutStack(html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "");
+    (html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
 
   test("a Phase/Model caption sits directly above the phase lines", () => {
     const html = rows([]);
@@ -4135,13 +4122,7 @@ describe("spec 123: each phase line picks its own model", () => {
 // column for the FIRST one, stacked, always in the markup — state
 // decides which are enabled, so a Merge that becomes available cannot
 // widen a column and shove every row on the page sideways.
-//
-// Spec 126 finishes the walk-back the column removal started: the stack
-// stops being a cell of its own that spans the phase lines, and joins
-// the LEADING phase line inside that line's own cell. The buttons and
-// the phase lines then share one column — the spec column — instead of
-// the phase lines starting where a column sized for the spec name ends.
-describe("specs 124 and 126: one phase list, with the actions above it in the same column", () => {
+describe("spec 124: one phase list, and the actions in a stack of their own", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -4167,13 +4148,12 @@ describe("specs 124 and 126: one phase list, with the actions above it in the sa
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** A phase's own line. The stack rides INSIDE whichever sub-row
-   *  comes first (spec 126), and it is not part of the phase line —
-   *  so it is taken off here. */
+  /** A phase's own line. The stack cell rides on whichever sub-row
+   *  comes first (it spans them all), and it is not part of the phase
+   *  line — so it is taken off here. */
   const subRow = (html: string, phase: string) =>
-    withoutStack(
-      html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "",
-    );
+    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
+      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
@@ -4206,8 +4186,8 @@ describe("specs 124 and 126: one phase list, with the actions above it in the sa
    *  page's left gutter and pushed the whole table sideways — taken
    *  back out 2026-08-19, the stack itself kept.) */
   const actionCell = (chunk: string): string => {
-    const stack = stackOf(chunk);
-    if (stack) return stack;
+    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
+    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const c = cells(headRow);
     return c[c.length - 1] ?? "";
@@ -4237,119 +4217,23 @@ describe("specs 124 and 126: one phase list, with the actions above it in the sa
     );
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
     const spechead = head(html, "124-stack");
+    // The full first sub-row, stack cell included — `subRow` takes that
+    // cell off, and this test is about the columns it fills.
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect([thead, spechead, firstSub, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Six on EVERY row, with no cell spanning and no row short (spec
-    // 126 took the spanning stack cell out): the header, the spec
-    // line, the caption and each phase line all fill their own six.
-    for (const tr of [thead, spechead, firstSub, subRow(html, "analyze")]) {
+    // Six on every row that starts its own: the header, the spec line,
+    // and the first sub-row, whose stack cell spans the rest.
+    for (const tr of [thead, spechead, firstSub]) {
       expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
     }
+    // Five on the lines the spanning cell covers — six columns all the
+    // same, one of them filled from the row above.
+    expect(columnUnits(subRow(html, "analyze"))).toBe(5);
     // The spare cell is at the END: the header's own blank `<th>`, and
     // the cell a shut row's one action goes in.
     expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
-    // And the stack leads the phase lines from inside the first one's
-    // own cell, rather than from a cell that spans them.
-    expect(firstSub).not.toContain("rowspan");
-    expect(firstSub).toMatch(/<td class="phasecell"><span class="stack">/);
-  });
-
-  // --- spec 126: the stack and the phase lines share one column -------------
-
-  /** Every sub-row of an open group, caption first, in document order. */
-  const subRows = (html: string): string[] =>
-    [...html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
-
-  test("the stack sits inside the leading phase line's own cell (criterion 1)", () => {
-    for (const opts of [{}, { modelChoices: CHOICES }]) {
-      const leading = subRows(rows([], [target("124-stack")], opts))[0]!;
-      const cell = leading.match(/<td class="phasecell">([\s\S]*?)<\/td>/)![1]!;
-      // Stack first, then the line's own box/name/model — the buttons
-      // are ABOVE the phases they command, not beside them.
-      expect(cell).toMatch(/^<span class="stack">/);
-      expect(withoutStack(cell)).toMatch(/^<span class="row">/);
-    }
-  });
-
-  test("only the leading line's cell carries the stack (criterion 2)", () => {
-    /** One line's own column-1 cell — where the stack now lives, and
-     *  where every other line holds its box, name and model alone. */
-    const phaseCell = (line: string) =>
-      line.match(/<td class="phasecell">([\s\S]*?)<\/td>/)![1]!;
-    for (const opts of [{}, { modelChoices: CHOICES }]) {
-      const lines = subRows(rows([], [target("124-stack")], opts));
-      expect(lines.length).toBeGreaterThan(1);
-      expect(phaseCell(lines[0]!)).toContain('<span class="stack">');
-      for (const line of lines.slice(1)) {
-        expect([line.slice(0, 48), stackOf(line)]).toEqual([line.slice(0, 48), ""]);
-      }
-    }
-  });
-
-  test("the Progress column is empty on every phase line (criterion 3)", () => {
-    const html = rows([], [target("124-stack")], { modelChoices: CHOICES });
-    for (const line of subRows(html)) {
-      expect([line.slice(0, 48), cells(line)[1]]).toEqual([line.slice(0, 48), ""]);
-    }
-  });
-
-  test("no phase line has a cell of its own for the stack (criterion 4)", () => {
-    const html = rows([], [target("124-stack")], { modelChoices: CHOICES });
-    for (const line of subRows(html)) {
-      expect(line).not.toContain("stackcell");
-      expect(line).not.toContain("rowspan");
-    }
-  });
-
-  test("every phase line still declares six columns, State/Started/Cost in place (criterion 5)", () => {
-    const html = rows(
-      [
-        row({
-          id: "j1",
-          specFolder: "124-stack",
-          state: "done",
-          branchUrls: branch,
-          startedAt: "2026-08-19T09:00:00Z",
-          spentUsd: 4.5,
-        }),
-      ],
-      [target("124-stack", { done: ["analyze"] })],
-      { modelChoices: CHOICES },
-    );
-    const lines = subRows(html);
-    expect(lines.length).toBeGreaterThan(1);
-    for (const line of lines) {
-      expect([line.slice(0, 48), columnUnits(line)]).toEqual([line.slice(0, 48), 6]);
-    }
-    // Columns 3-5 are the ones the header row names, unchanged: the
-    // state word, the elapsed time and the cost, in that order — and
-    // the sixth is the spare the header keeps blank.
-    const analyze = cells(subRow(html, "analyze"));
-    expect(analyze[2]).toContain('<span class="badge b-done">done</span>');
-    expect(analyze[3]).toContain("3 h ago");
-    expect(analyze[4]).toContain("$4.50");
-    expect(analyze[5]).toBe("");
-  });
-
-  test("the width cap is declared on the stack itself, not on a cell (criterion 6)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).not.toContain("stackcell");
-    expect(CSS.match(/\.stack \{[^}]*\}/)![0]).toMatch(/max-width:\s*[\d.]+rem;/);
-  });
-
-  // The cell the stack moved into sets `white-space: nowrap`, for the
-  // phase lines' sake: a box, a name and a select belong on one line.
-  // Inherited by the stack, it would make the longest thing the stack
-  // draws — "stop for approval between steps" — one unbreakable line,
-  // and a table column is at least as wide as its widest unbreakable
-  // content. That would widen the spec column, which is the exact
-  // thing this spec moved the stack in order to narrow.
-  test("the stack does not inherit the phase lines' nowrap", async () => {
-    const { CSS } = await import("../src/render/css.ts");
-    expect(CSS.match(/table\.list tr\.subrow \.phasecell \{[^}]*\}/)![0]).toContain(
-      "white-space: nowrap",
-    );
-    expect(CSS.match(/\.stack \{[^}]*\}/)![0]).toContain("white-space: normal");
+    // And the stack leads the phase lines, spanning every one of them.
+    expect(firstSub).toContain('<td class="stackcell" rowspan="6">');
   });
 
   // --- criteria 1, 3, 4, 5, 15: the checkbox lives on the phase line ---------
