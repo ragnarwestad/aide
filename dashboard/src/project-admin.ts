@@ -56,16 +56,15 @@ export type ReadinessCheckName =
   | "gitRoot"
   | "specsRoot"
   | "specsRepo"
-  | "clean"
   | "defaultBranch"
   | "worktreeLinks";
 
 export interface ReadinessCheck {
   check: ReadinessCheckName;
-  /** Which path this answer is about. `clean` and `defaultBranch` are
-   *  asked of EVERY participating repository — the project's and, when
-   *  the specs live elsewhere, the specs repo's — so the name alone
-   *  would not say which repo answered. */
+  /** Which path this answer is about. `defaultBranch` is asked of
+   *  EVERY participating repository — the project's and, when the specs
+   *  live elsewhere, the specs repo's — so the name alone would not say
+   *  which repo answered. */
   subject: string;
   /** Whether the check passed. */
   ok: boolean;
@@ -238,30 +237,24 @@ export function worktreeLinksError(value: string): string | null {
 
 // --- whether a run could start there (spec 138) -------------------------------
 //
-// Adding a project said "added" and nothing more, and the four things
-// that decide whether `aide-run-spec` will START were invisible until
-// Run was pressed and the run refused. Skjer, 2026-08-20: on the
-// allowlist, checkout where the form said, minimal manifest written —
-// and refused, because the `.aide/` the Add itself had just made was
-// untracked, the checkout stood on a feature branch whose upstream was
+// Adding a project said "added" and nothing more, and the things that
+// decide whether `aide-run-spec` will START were invisible until Run was
+// pressed and the run refused. Skjer, 2026-08-20: on the allowlist,
+// checkout where the form said, minimal manifest written — and refused,
+// because the checkout stood on a feature branch whose upstream was
 // gone, no specs root had been named, and no worktree links were set.
+// (Its untracked `.aide/` refused it a fourth time that day. Spec 144
+// took that refusal out of the runner, so this file no longer asks
+// about it either — see the `ReadinessCheckName` union.)
 //
 // So the same prerequisites are read HERE, and only those: every check
 // below mirrors a refusal in `core/scripts/aide-run-spec`, in its order
 // and by its rule. Nothing here mutates anything — no branch is
 // switched, no directory made, no file committed — which is also why
-// the answer can go stale: a tree clean at Add is a tree someone can
-// dirty before Run. That is true of any preflight check and is said in
-// the README rather than defended against here.
-
-/** A list said in full where it is short enough to read, and truncated
- *  where it is not — with the count, so nobody is left thinking the
- *  tenth path was the last one. */
-function named(paths: string[], limit = 10): string {
-  return paths.length <= limit
-    ? paths.join(", ")
-    : `${paths.slice(0, limit).join(", ")} and ${paths.length - limit} more`;
-}
+// the answer can go stale: a repository resolvable at Add is one
+// someone can leave mid-rebase before Run. That is true of any
+// preflight check and is said in the README rather than defended
+// against here.
 
 /** `git -C dir <args>`, trimmed, or `null` when git refused. */
 async function gitSays(run: GitRunner, dir: string, args: string[]): Promise<string | null> {
@@ -300,72 +293,14 @@ async function branchHeldElsewhere(
   return null;
 }
 
-/** Whether a `git status --porcelain` entry is one of the paths just
- *  written. Not plain equality: git collapses a wholly NEW, untracked
- *  directory into one line for the directory itself (`?? .aide/`), not
- *  one line per file inside it — which is exactly what a fresh
- *  `.aide/project.yaml` produces. So a dirty entry naming a directory
- *  covers everything written under it (spec 140). */
-function underWritten(entry: string, written: string[]): boolean {
-  return written.includes(entry) || (entry.endsWith("/") && written.some((w) => w.startsWith(entry)));
-}
-
-/** The two questions asked of EVERY participating repository, because
- *  the runner asks them of every root it touches: is the tree clean,
- *  and can it be put on its default branch.
- *
- *  `justWritten` names the repo-relative paths the caller wrote into
- *  this root a moment ago, if any — see the `clean` check below. */
-async function repoChecks(
-  run: GitRunner,
-  root: string,
-  label: string,
-  justWritten: string[] = [],
-): Promise<ReadinessCheck[]> {
+/** The question asked of EVERY participating repository, because the
+ *  runner asks it of every root it touches: can the checkout be put on
+ *  its default branch. Whether the tree is CLEAN was the second such
+ *  question until spec 144, and is asked nowhere now — a run reads
+ *  origin's default branch into a worktree of its own, so what sits
+ *  uncommitted here decides nothing. */
+async function repoChecks(run: GitRunner, root: string, label: string): Promise<ReadinessCheck[]> {
   const checks: ReadinessCheck[] = [];
-  const status = await run(root, ["status", "--porcelain"]);
-  // The status CODE is kept beside the path, not thrown away: `??` —
-  // untracked — is the half of the answer `.git/info/exclude` applies
-  // to, and it does nothing at all for a file git already tracks.
-  const entries = (status.stdout ?? "")
-    .split("\n")
-    .map((l) => ({ code: l.slice(0, 2), path: l.slice(3).trim() }))
-    .filter((e) => e.path);
-  const dirty = entries.map((e) => e.path);
-  checks.push(
-    status.code !== 0
-      ? { check: "clean", subject: root, ok: false, blocking: true, detail: `git could not read the state of the ${label} tree at ${root}` }
-      : dirty.length
-        ? {
-            check: "clean",
-            subject: root,
-            ok: false,
-            blocking: true,
-            // Named, not counted: "3 files" leaves the operator to go
-            // and look, and the usual answer here is the `.aide` the
-            // Add wrote a second ago. Bounded all the same — this
-            // sentence travels in a redirect's `Location` header, and a
-            // checkout with a thousand untracked files would make one
-            // no proxy is obliged to carry.
-            //
-            // And when the dirt is nothing BUT what the Add just wrote,
-            // both ways out of it are named (spec 140). Neither is
-            // taken here: a manifest belongs in git in a project of
-            // one's own and out of it in an employer's checkout, and
-            // nothing in an Add says which — but `.git/info/exclude`
-            // was written down nowhere at all, so the reader was left
-            // to find it. A dirty file that is NOT Add's own keeps the
-            // plain wording: it must not be described as something Add
-            // wrote, and must not be hidden either.
-            detail:
-              `the ${label} tree at ${root} has uncommitted or untracked files, and a run refuses a dirty tree: ${named(dirty)}` +
-              (entries.every((e) => e.code === "??" && underWritten(e.path, justWritten))
-                ? " — this is what the Add just wrote: commit it, or name it in .git/info/exclude to leave it untracked"
-                : ""),
-          }
-        : { check: "clean", subject: root, ok: true, blocking: false, detail: `the ${label} tree at ${root} is clean` },
-  );
-
   const base = await defaultBranchOf(run, root);
   const current = (await gitSays(run, root, ["rev-parse", "--abbrev-ref", "HEAD"])) ?? "";
   if (!base) {
@@ -448,14 +383,13 @@ function readinessNote(project: string, canRun: boolean, checks: ReadinessCheck[
  *  file injects it: a test spawns no subprocess, and a failure is a
  *  value rather than an exception to be guessed at.
  *
- *  `justWritten` is what the caller wrote into `projectDir` immediately
- *  before asking — repo-relative paths — so the dirty-tree answer can
- *  say what to do about dirt the Add itself made (spec 140). A caller
- *  with no opinion passes nothing and gets the answer it always got. */
+ *  It took a `justWritten` list until spec 144 — the paths the caller
+ *  had written a moment earlier, so the dirty-tree answer could say
+ *  what to do about dirt the Add itself made. Nothing here asks about a
+ *  dirty tree any more, so nothing here needs to know. */
 export async function assessProjectReadiness(
   run: GitRunner,
   projectDir: string,
-  justWritten: string[] = [],
 ): Promise<ProjectReadiness> {
   const checks: ReadinessCheck[] = [];
 
@@ -518,17 +452,13 @@ export async function assessProjectReadiness(
     }
   }
 
-  // 4-5. Clean tree and a reachable default branch, for every repository
-  //      the run would touch. What the Add wrote is offered to the
-  //      project's own repository and to no other: the paths are
-  //      relative to `projectDir`, so they mean nothing in the specs
-  //      repo — or in an outer repository this directory merely sits
-  //      inside, which is a blocking answer of its own anyway.
+  // 4. A reachable default branch, for every repository the run would
+  //    touch.
   for (const { root, label } of roots) {
-    checks.push(...(await repoChecks(run, root, label, label === "project" && isRoot ? justWritten : [])));
+    checks.push(...(await repoChecks(run, root, label)));
   }
 
-  // 6. And the gitignored paths the project says its own commands need.
+  // 5. And the gitignored paths the project says its own commands need.
   //    A worktree carries tracked files only, so a configured entry with
   //    no source is a test command that will fail for a reason that has
   //    nothing to do with the change — the runner refuses it, and so
@@ -644,13 +574,6 @@ export async function addProject(
     steps.push({ step: "register", ok: true });
   }
 
-  // What THIS call wrote into the project, repo-relative — read by the
-  // readiness check below, whose dirty-tree refusal is otherwise a
-  // report of a mess this very function made a second earlier (spec
-  // 140). Built from the same conditionals that gate each write, never
-  // inferred: a manifest that was KEPT is not one Add wrote.
-  const justWritten: string[] = [];
-
   // Never clobbered: an operator may well be registering a checkout
   // that already has a full manifest from `/aide-manifest`.
   const manifest = join(dir, ".aide", "project.yaml");
@@ -660,7 +583,6 @@ export async function addProject(
     } else {
       mkdirSync(join(dir, ".aide"), { recursive: true });
       writeFileSync(manifest, minimalManifest(name, req.description));
-      justWritten.push(".aide/project.yaml");
       steps.push({
         step: "manifest",
         ok: true,
@@ -706,7 +628,6 @@ export async function addProject(
         ...(req.specsPath ? { AIDE_SPECS_PATH: req.specsPath } : {}),
         ...(links ? { AIDE_WORKTREE_LINKS: links } : {}),
       });
-      justWritten.push(".aide/config");
       if (req.specsPath) steps.push({ step: "specsConfig", ok: true, ...(specsNote ? { note: specsNote } : {}) });
       if (links) steps.push({ step: "worktreeLinks", ok: true });
     } catch (err) {
@@ -718,10 +639,11 @@ export async function addProject(
   }
 
   // Last, and only once every file this add writes is on disk: the
-  // `.aide` written a moment ago is part of what a run would see, and
-  // an assessment taken before it would have missed the very thing that
-  // refused Skjer.
-  return { ...done(), readiness: await assessProjectReadiness(run, dir, justWritten) };
+  // `.aide/config` written a moment ago names the specs root the
+  // assessment goes looking for, and an assessment taken before it
+  // would report a project unable to run over a path this very call
+  // had just configured.
+  return { ...done(), readiness: await assessProjectReadiness(run, dir) };
 }
 
 /** Take a project off the allowlist, and do nothing else at all.

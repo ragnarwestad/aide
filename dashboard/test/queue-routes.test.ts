@@ -2007,31 +2007,31 @@ describe("POST /api/queue/<id>/merge", () => {
     expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
   });
 
-  // Criterion 5: and no other refusal touches the cache. A dirty tree
-  // says nothing about whether the branch is still there to merge, so
-  // clearing the answer on it would throw away a true one and spend
-  // three git calls re-deriving it on the next page load.
+  // Criterion 5: and no other refusal touches the cache. A push that
+  // failed says nothing about whether the branch is still there to
+  // merge, so clearing the answer on it would throw away a true one and
+  // spend three git calls re-deriving it on the next page load.
   test("a refusal that proves nothing leaves the cached answer alone", async () => {
     const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    let dirty = false;
+    let pushFails = false;
     const calls: string[] = [];
     const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       calls.push(a);
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: dirty ? " M src/serve.ts\n" : "" };
+      if (a.startsWith("push") && pushFails) return { code: 1, stdout: "" };
       if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
     const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
     const auth = { headers: { "x-aide-token": TOKEN } };
     expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    dirty = true;
+    pushFails = true;
     const body = (await (
       await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
     ).json()) as { ok: boolean; results: { error?: string }[] };
     expect(body.ok).toBe(false);
-    expect(body.results[0]!.error).toContain("dirty");
+    expect(body.results[0]!.error).toContain("push");
     // Still offered, and answered from the cache: no second ls-remote
     // was needed to say so.
     const before = calls.filter((a) => a.startsWith("ls-remote")).length;
@@ -3375,21 +3375,16 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
 
   test("a merge refusal carries the spec in the redirect, and is logged (criterion 8)", async () => {
     const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const dirtyTree = gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
-      "merge-base": { code: 1 },
-    });
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
     const { result: res, lines } = await capturingLog(() =>
       fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM }),
     );
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
     expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
-    expect(decodeURIComponent(location)).toContain("dirty");
+    expect(decodeURIComponent(location)).toContain("push");
     expect(lines.join("\n")).toContain(SPEC);
-    expect(lines.join("\n")).toContain("dirty");
+    expect(lines.join("\n")).toContain("push");
   });
 
   // --- spec 106: a conflict says so in the redirect, and nothing else does ---
@@ -3398,6 +3393,23 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
   // control, and a gap at any hop breaks the chain silently — the
   // control simply never appears, and nothing errors. This starts at the
   // POST and reads the query string, so every hop is in it.
+
+  /** A git that merges cleanly and then cannot push. The refusal these
+   *  three tests need is one that is real, names the repo, and carries
+   *  no machine-readable `reason` — which was the dirty tree's job until
+   *  spec 144 stopped a dirty tree from refusing anything. */
+  const pushFailsGit = () =>
+    gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      "merge -q --ff-only": { code: 0 },
+      "merge-base": { code: 1 },
+      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
+      push: { code: 1 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+    });
 
   /** A git whose real merge conflicts: ff-only fails, the merge fails,
    *  and the abort goes through. */
@@ -3427,14 +3439,9 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(decodeURIComponent(location)).toContain("conflict");
   });
 
-  test("a dirty-tree refusal carries no reason at all (spec 106)", async () => {
+  test("a failed push carries no reason at all (spec 106)", async () => {
     const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const dirtyTree = gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
-      "merge-base": { code: 1 },
-    });
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
     const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
     expect(res.headers.get("location")!).not.toContain("errorReason");
   });
@@ -3470,17 +3477,12 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
 
   test("the page shows the reason on that spec's row (criterion 8)", async () => {
     const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const dirtyTree = gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "status --porcelain": { code: 0, stdout: " M 3-solution.md\n" },
-      "merge-base": { code: 1 },
-    });
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: dirtyTree.run });
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
     const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
     const page = await (
       await fetch(`${base}${res.headers.get("location")!}`, { headers: { "x-aide-token": TOKEN } })
     ).text();
-    expect(specHead(page, "81-queue-and-runner")).toContain("dirty");
+    expect(specHead(page, "81-queue-and-runner")).toContain("push");
     // Not twice: the row is where it belongs, so the page-top banner
     // stands down.
     expect(page).not.toContain('<p class="refusal">');
@@ -4012,12 +4014,12 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 10, the other half: the two answers are independent. This
   // is Skjer — added, allowlisted, and unable to run.
   test("registration succeeds while the run is blocked, and the answer says both", async () => {
-    const { base, dir } = start({
-      queueToken: TOKEN,
-      gitRun: readyGit({ "status --porcelain": { code: 0, stdout: "?? .aide/\n" } }),
-    });
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
+    // No specs root, and none named on the form — one of the four
+    // things that refused the real Skjer, and the one still left of
+    // them that a bare Add cannot put right itself.
     const path = join(dir, "root", "skjer");
-    mkdirSync(join(path, "specs"), { recursive: true });
+    mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
       method: "POST",
       headers: AUTH,
@@ -4031,7 +4033,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     expect(body.results.every((r) => r.ok)).toBe(true);
     expect(body.readiness!.canRun).toBe(false);
     expect(body.readiness!.note).toContain("cannot run yet");
-    expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(".aide/");
+    expect(body.readiness!.checks.find((c) => c.blocking)!.detail).toContain(join(path, "specs"));
     // And it is on the allowlist regardless: registration is what puts
     // it there, and the readiness answer is about a later moment.
     const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
@@ -4041,10 +4043,7 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
   // Criterion 11, the no-JavaScript half: the result cannot be left in a
   // response body the redirect throws away.
   test("a form POST carries the whole readiness answer to the page it lands on", async () => {
-    const { base, dir } = start({
-      queueToken: TOKEN,
-      gitRun: readyGit({ "status --porcelain": { code: 0, stdout: "?? .aide/\n" } }),
-    });
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
     const path = join(dir, "root", "noscript");
     mkdirSync(path, { recursive: true });
     const res = await fetch(`${base}/api/queue/projects`, {
@@ -4061,11 +4060,12 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
     // project cannot run.
     expect(params.get("noticeOk")).toBeNull();
     const notice = params.get("notice")!;
-    // Two blockers at once — the dirty tree and the missing specs root —
-    // and BOTH of them are in the answer the reader lands on.
+    // Two things to say at once — the missing specs root, which blocks,
+    // and the unconfigured worktree links, which do not — and BOTH of
+    // them are in the answer the reader lands on.
     expect(notice).toContain("cannot run yet");
-    expect(notice).toContain(".aide/");
     expect(notice).toContain(join(path, "specs"));
+    expect(notice).toContain("worktree links");
     // And the page renders what it was handed.
     const page = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(page).toContain("cannot run yet");

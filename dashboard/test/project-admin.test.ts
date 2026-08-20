@@ -424,11 +424,12 @@ describe("removing a project is a typed confirmation and nothing else", () => {
 // Adding a project answered "added" and nothing else. Skjer was added on
 // 2026-08-20 and looked added: it was on the allowlist, its checkout was
 // where the form said, and a minimal manifest had been written for it.
-// A run there refused before it started — the tree was dirty (the `.aide`
-// the Add itself had just written was untracked), the checkout stood on a
+// A run there refused before it started — the checkout stood on a
 // feature branch whose upstream was gone, no specs root had been named,
 // and no worktree links were configured, so the project's own test command
 // would have failed for a reason that had nothing to do with the change.
+// (Its untracked `.aide/` was a fourth refusal then; spec 144 removed
+// that one from the runner, and this preflight with it.)
 //
 // None of that was visible until Run was pressed. So the answer now says
 // both things: registration completed, AND whether `aide-run-spec` would
@@ -504,106 +505,6 @@ describe("whether a run could start there (spec 138)", () => {
     expect(result.readiness!.canRun).toBe(true);
   });
 
-  // Criterion 2: the Add's OWN files are in the answer. This is Skjer
-  // exactly — `.aide/project.yaml` was written by the Add a moment
-  // earlier and is untracked, so the runner's dirty-tree refusal applies
-  // to it. Registration still succeeded, and says so.
-  test("files the Add itself wrote make the tree dirty, and registration still succeeded", async () => {
-    const { projectsRoot, dir } = checkout("dirty");
-    const result = await assess(dir, projectsRoot, {
-      "status --porcelain": { code: 0, stdout: "?? .aide/\n M README.md\n" },
-    });
-    expect(result.ok).toBe(true);
-    expect(result.steps.every((s) => s.ok)).toBe(true);
-    expect(result.readiness!.canRun).toBe(false);
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).toContain(".aide/");
-    expect(dirty.detail).toContain("README.md");
-  });
-
-  // Spec 140, criterion 3: when the dirt is nothing BUT what this Add
-  // just wrote, the message says what to do about it. Both ways, and
-  // neither is done here: a manifest belongs in git in a project of
-  // one's own, and belongs in `.git/info/exclude` in an employer's
-  // checkout — nothing in the request says which, so the reader is
-  // told rather than decided for.
-  //
-  // The stub is the collapsed form git really prints: a wholly new,
-  // untracked directory is ONE line for the directory, never one per
-  // file inside it.
-  test("dirt that is only what Add just wrote names both ways out of it", async () => {
-    const { projectsRoot, dir } = checkout("justwritten");
-    const result = await assess(dir, projectsRoot, {
-      "status --porcelain": { code: 0, stdout: "?? .aide/\n" },
-    });
-    expect(result.ok).toBe(true);
-    // Still blocking, and still honest about it: the tree IS dirty, and
-    // a run refuses a dirty tree.
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).toContain(".aide/");
-    expect(dirty.detail).toContain("commit");
-    expect(dirty.detail).toContain(".git/info/exclude");
-  });
-
-  // Criterion 4: and never when something else is dirty too. A file
-  // that was already there is not something Add wrote, and telling the
-  // reader to commit or exclude it would be a lie about their tree.
-  test("an unrelated dirty file keeps the plain wording", async () => {
-    const { projectsRoot, dir } = checkout("alsodirty");
-    const result = await assess(dir, projectsRoot, {
-      "status --porcelain": { code: 0, stdout: "?? .aide/\n M README.md\n" },
-    });
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).toContain("README.md");
-    expect(dirty.detail).not.toContain(".git/info/exclude");
-  });
-
-  // And only for dirt that is UNTRACKED. `.git/info/exclude` does
-  // nothing for a file git already tracks, so a project that commits
-  // its `.aide/config` — Add rewrites that file, so it is Add's own
-  // doing — is told the plain thing rather than half a remedy.
-  test("a tracked file Add modified is not offered .git/info/exclude", async () => {
-    const { projectsRoot, dir } = checkout("trackedconfig");
-    const result = await assess(
-      dir,
-      projectsRoot,
-      { "status --porcelain": { code: 0, stdout: " M .aide/config\n" } },
-      { specsPath: join(dir, "specs") },
-    );
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).toContain(".aide/config");
-    expect(dirty.detail).not.toContain(".git/info/exclude");
-  });
-
-  // The manifest Add KEPT is not one it wrote, so a tree dirtied by
-  // somebody else's untracked `.aide/` gets no such offer either.
-  test("a manifest that was already there is not claimed as Add's own doing", async () => {
-    const { projectsRoot, dir } = checkout("hadmanifest");
-    mkdirSync(join(dir, ".aide"), { recursive: true });
-    writeFileSync(join(dir, ".aide", "project.yaml"), "name: hadmanifest\n");
-    const result = await assess(dir, projectsRoot, {
-      "status --porcelain": { code: 0, stdout: "?? .aide/\n" },
-    });
-    expect(result.steps.find((s) => s.step === "manifest")!.note).toMatch(/kept/);
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).not.toContain(".git/info/exclude");
-  });
-
-  // The sentence this becomes travels in a redirect's `Location` header
-  // for a browser with no script, so a checkout with a thousand
-  // untracked files must not build one no proxy is obliged to carry.
-  test("a very long dirty list is cut short, and says how much it cut", async () => {
-    const { projectsRoot, dir } = checkout("verydirty");
-    const files = Array.from({ length: 40 }, (_, i) => `?? file-${i}.txt`).join("\n");
-    const result = await assess(dir, projectsRoot, {
-      "status --porcelain": { code: 0, stdout: `${files}\n` },
-    });
-    const dirty = check(result, "clean").find((c) => c.blocking)!;
-    expect(dirty.detail).toContain("file-0.txt");
-    expect(dirty.detail).toContain("and 30 more");
-    expect(dirty.detail).not.toContain("file-39.txt");
-  });
-
   // Criterion 3: the fallback is named, not assumed. A blank Specs root
   // field selects `<project>/specs`, and the runner refuses when that
   // directory is not there.
@@ -632,35 +533,43 @@ describe("whether a run could start there (spec 138)", () => {
     );
     expect(result.readiness!.canRun).toBe(true);
     // Both roots were asked, and the answer says which is which.
-    const cleanliness = check(result, "clean");
-    expect(cleanliness.map((c) => c.subject).sort()).toEqual([dir, specs].sort());
     expect(check(result, "defaultBranch").map((c) => c.subject).sort()).toEqual([dir, specs].sort());
   });
 
-  test("a dirty specs repository blocks the run, and is named as the specs root", async () => {
-    const { projectsRoot, dir } = checkout("dirtyspecs", { specs: false });
-    const specs = root();
-    const run: GitRunner = async (at, args) => {
-      const joined = args.join(" ");
-      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
-      if (joined.startsWith("status --porcelain")) {
-        return { code: 0, stdout: at === specs ? "?? 138-new/\n" : "" };
-      }
-      for (const [prefix, answer] of Object.entries(READY)) {
-        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
-      }
-      return { code: 1, stdout: "" };
-    };
-    const result = await addProject(run, projectsRoot, {
-      name: "dirtyspecs",
-      existingPath: dir,
-      specsPath: specs,
+  // Spec 144: the runner stopped caring whether a checkout is dirty —
+  // it works in a worktree cut from origin's default branch, so nothing
+  // uncommitted in the main checkout reaches it. A preflight that still
+  // predicted that refusal would be warning about something that no
+  // longer happens, which is the exact drift the union above is written
+  // to prevent ("a check the runner does not make would refuse a
+  // project that runs perfectly well").
+  //
+  // Two scenarios, asserted independently rather than once at the end:
+  // the removal is unconditional, and a shared assertion would under-
+  // test whichever case ran first if the two ever came apart.
+  test("a dirty tree decides nothing, whether it is Add's own doing or not", async () => {
+    // Add's own output — the `.aide/` written a second earlier, which
+    // is what refused Skjer.
+    const add = checkout("addsowndirt");
+    const own = await assess(add.dir, add.projectsRoot, {
+      "status --porcelain": { code: 0, stdout: "?? .aide/\n" },
     });
-    expect(result.ok).toBe(true);
-    expect(result.readiness!.canRun).toBe(false);
-    const dirty = result.readiness!.checks.find((c) => c.blocking)!;
-    expect(dirty.subject).toBe(specs);
-    expect(dirty.detail).toContain("138-new/");
+    // Cast: `"clean"` is not in the union any more, which is half of
+    // what this asserts — the other half is that no check answers to
+    // that name at runtime either.
+    expect(own.readiness!.checks.map((c) => c.check as string)).not.toContain("clean");
+    expect(own.readiness!.canRun).toBe(true);
+    expect(own.readiness!.note).not.toContain("dirty");
+
+    // And dirt that has nothing to do with the Add: somebody else's
+    // work-in-progress, and a stray backup file in an unrelated folder.
+    const else_ = checkout("someoneelsesdirt");
+    const other = await assess(else_.dir, else_.projectsRoot, {
+      "status --porcelain": { code: 0, stdout: " M README.md\n?? 141-old/4-status.md.bak\n" },
+    });
+    expect(other.readiness!.checks.map((c) => c.check as string)).not.toContain("clean");
+    expect(other.readiness!.canRun).toBe(true);
+    expect(other.readiness!.note).not.toContain("dirty");
   });
 
   // Criterion 5. The runner MOVES a clean checkout onto its default

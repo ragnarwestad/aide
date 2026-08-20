@@ -4,9 +4,10 @@
 //
 // Every git call is injected, so the suite spawns no subprocess. What it
 // proves is the DECISION: which commands run, in which order, and which
-// ones are never reached — a dirty tree refused before anything could
-// touch history, a conflict aborted rather than left half-merged, a
-// push failure reported rather than rolled back.
+// ones are never reached — a conflict aborted rather than left
+// half-merged, a push failure reported rather than rolled back, and
+// (spec 144) an unrelated dirty file in the checkout deciding nothing
+// at all.
 //
 // What it cannot prove is that a real working tree ends up clean after
 // `merge --abort`: no git process runs here. That half rests on
@@ -84,6 +85,31 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
     expect(argv(git.calls).some((a) => a === `merge -q --ff-only ${BRANCH}`)).toBe(false);
   });
 
+  // Spec 144: whoever left work uncommitted in this checkout owns that
+  // problem; it is no reason to stop a merge for everyone else. The
+  // three commands that follow only write files that differ between the
+  // commits, so an unrelated dirty file is untouched either way — and a
+  // dirty file that DOES collide raises git's own error rather than a
+  // guess made in advance.
+  test("an unrelated dirty file does not stop the merge, and is not even asked about", async () => {
+    const git = fakeGit({
+      ...CLEAN_MASTER,
+      "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" },
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(argv(git.calls)).toContain("push -q origin master");
+    // The question is not asked at all — a status nobody acts on is a
+    // git process per repo per press, for nothing.
+    expect(ran(git.calls, "status")).toBe(false);
+  });
+
   test("a repo with no upstream on its default branch skips the pull and still merges", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
@@ -100,20 +126,6 @@ describe("mergeBranchIntoDefault: the happy paths", () => {
 });
 
 describe("mergeBranchIntoDefault: the refusals", () => {
-  test("a dirty tree is refused by name, before any command that could touch history", async () => {
-    const git = fakeGit({
-      ...CLEAN_MASTER,
-      "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" },
-    });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(false);
-    expect(result.root).toBe(ROOT);
-    expect(result.error).toContain(ROOT);
-    expect(result.error).toContain("dirty");
-    // Nothing beyond the question was asked.
-    expect(argv(git.calls)).toEqual(["status --porcelain"]);
-  });
-
   test("a conflict aborts the merge and names the repo — no half-merged tree is left", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
@@ -401,13 +413,6 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
 // them — they carry nothing.
 
 describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => {
-  test("a dirty tree carries no reason", async () => {
-    const git = fakeGit({ ...CLEAN_MASTER, "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" } });
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
-    expect(result.ok).toBe(false);
-    expect(result.reason).toBeUndefined();
-  });
-
   test("a branch that is not on origin is called gone, and never a conflict", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");

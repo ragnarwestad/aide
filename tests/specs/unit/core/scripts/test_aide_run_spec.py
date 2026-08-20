@@ -313,26 +313,35 @@ def test_the_prompt_itself_says_nobody_can_answer(runner, workspace, fake_claude
 
 # --- Criterion 2: the refusals -----------------------------------------------
 
-def test_refuses_a_dirty_project_tree(runner, workspace, fake_claude):
-    claude = fake_claude("exit 1")
+def test_a_dirty_project_tree_does_not_stop_the_run(runner, workspace, fake_claude):
+    """Spec 144. The run works in a worktree cut from origin's default
+    branch, so nothing in the main checkout reaches it — dirty or not.
+    A stray file used to refuse every job touching the repo, however
+    unrelated it was to the spec being run."""
     (workspace["project"] / "scratch.txt").write_text("uncommitted\n")
+    claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
-    assert rc == 2
-    assert out["ok"] is False
-    assert "dirty" in out["error"]
-    assert not fake_claude.calls.exists()
+    assert rc == 0, out
+    assert not out.get("error"), out["error"]
+    # And the stray file is left exactly as it was: never staged,
+    # committed, or removed.
+    assert (workspace["project"] / "scratch.txt").read_text() == "uncommitted\n"
+    assert git(workspace["project"], "status", "--porcelain") == "?? scratch.txt"
+    branch = "aide/81-queue-and-runner"
+    assert "scratch.txt" not in git(workspace["project"], "show", "--name-only", "--pretty=", branch)
 
 
-def test_refuses_a_dirty_specs_root(runner, workspace, fake_claude):
-    """The specs repo is where /aide-analyze actually writes — a check
-    that only looks at the project misses the repo that matters."""
-    claude = fake_claude("exit 1")
+def test_a_dirty_specs_root_does_not_stop_the_run(runner, workspace, fake_claude):
+    """The specs repo is where /aide-analyze actually writes, so it was
+    the root the old refusal guarded hardest. Its worktree is cut from
+    origin's default branch too (spec 144)."""
     (workspace["specs"] / "stray.md").write_text("uncommitted\n")
+    claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
-    assert rc == 2
-    assert "dirty" in out["error"]
-    assert "specs" in out["error"].lower() or str(workspace["specs"]) in out["error"]
-    assert not fake_claude.calls.exists()
+    assert rc == 0, out
+    assert not out.get("error"), out["error"]
+    assert (workspace["specs"] / "stray.md").read_text() == "uncommitted\n"
+    assert git(workspace["specs"], "status", "--porcelain") == "?? stray.md"
 
 
 @pytest.mark.parametrize(
@@ -602,8 +611,9 @@ def test_work_is_committed_on_a_branch_in_both_roots(runner, workspace, fake_cla
     # analysis lives on the branch, not on main.
     assert "analyze" in git(workspace["specs"], "log", "-1", "--pretty=%s", branch)
     assert "analyze" not in git(workspace["specs"], "log", "-1", "--pretty=%s", "main")
-    # Both roots clean afterwards: an uncommitted leftover would block
-    # every later run through the dirty-tree refusal.
+    # Both roots clean afterwards: a run commits its own work on the
+    # branch and leaves nothing behind in the main checkouts, so a later
+    # reader of either tree sees only what was there before.
     assert git(workspace["project"], "status", "--porcelain") == ""
     assert git(workspace["specs"], "status", "--porcelain") == ""
     roots = {r["root"]: r for r in out["repos"]}
@@ -1090,17 +1100,30 @@ def test_a_passenger_repo_is_committed_on_the_branch_and_handed_back_clean(
     assert roots[str(passenger)]["changedFiles"] == 1
 
 
-def test_a_dirty_passenger_repo_refuses_before_anything_is_spent(
+def test_a_dirty_passenger_repo_does_not_stop_the_run(
     runner, workspace, fake_claude, passenger
 ):
+    """A passenger is branched into a worktree like every other root, so
+    someone else's work-in-progress in its main checkout is theirs to
+    deal with and nobody else's problem (spec 144)."""
     (passenger / "someone-elses-wip.txt").write_text("in progress\n")
-    marker = passenger / "claude-ran.txt"
-    claude = fake_claude(f'touch "{marker}"\n' "cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    claude = fake_claude(
+        PASSENGER_FROM_PROMPT
+        + READ_SPECS
+        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
+        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
     rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert str(passenger) in out["error"]
-    assert not marker.exists(), "the step must not start"
+    assert rc == 0, out
+    assert not out.get("error"), out["error"]
+    branch = "aide/81-queue-and-runner"
+    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", branch)
+    # The stray file stays untracked in the main checkout, and off the branch.
+    assert git(passenger, "status", "--porcelain") == "?? someone-elses-wip.txt"
+    assert "someone-elses-wip.txt" not in git(
+        passenger, "show", "--name-only", "--pretty=", branch
+    )
 
 
 def test_a_passenger_that_is_not_a_git_repo_refuses(runner, workspace, fake_claude, tmp_path):
