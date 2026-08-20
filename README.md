@@ -13,6 +13,7 @@ A structured workspace for AI-assisted development. Supports Claude Code, GitHub
   - [AIDE_SPECS_PATH](#aide_specs_path-optional-per-project)
 - [AI-assisted workflow](#ai-assisted-workflow)
 - [Running a workflow step headless (opt-in)](#running-a-workflow-step-headless-opt-in)
+- [Keeping a serving host's specs current (opt-in)](#keeping-a-serving-hosts-specs-current-opt-in)
 - [Resources](#resources)
 
 ---
@@ -186,6 +187,39 @@ is set. Besides the `UserPromptSubmit` hook it has a phase mode
 (`aide-emit-run --phase red|green|refactor --spec N`) that the
 `/aide-implement` skill calls at each TDD boundary, so a headless run
 can be followed while it works.
+
+---
+
+## Keeping a serving host's specs current (opt-in)
+
+A dashboard lists specs by reading the spec folders off the serving
+host's working copy, and nothing pulls that copy. A spec written and
+pushed from another machine is simply not there — and a spec that is not
+listed cannot be queued.
+
+`aide-pull-specs` is the unattended pull for exactly that case:
+
+```bash
+aide-pull-specs ~/develop/aide-specs [~/develop/other-specs ...]
+```
+
+Each repo is pulled only when it is safe to do so with nobody watching:
+a git working tree, nothing uncommitted, sitting on its own default
+branch, and a fast-forward. Anything else is skipped with a reason, and
+the repos beside it are still pulled. Nothing is ever committed, merged
+or reset. A repo already up to date prints nothing, so a cron entry
+mails only when something happened.
+
+On an always-on host, every two minutes:
+
+```cron
+*/2 * * * * $HOME/.local/bin/aide-pull-specs $HOME/develop/aide-specs
+```
+
+**Point it at specs, not at code.** Merging code and installing it
+belong together (`AIDE_INSTALL_CMD`), and a background pull would move
+the code under a server that goes on running the old version — merged,
+but not deployed, and reported as deployed.
 
 ---
 
