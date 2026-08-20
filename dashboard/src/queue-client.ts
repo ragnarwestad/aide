@@ -24,6 +24,20 @@ const REFRESH_MS = 5000;
 const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform)";
 /** Presses whose request has not answered yet. The tick waits for zero. */
 let inFlight = 0;
+/** Bumped the instant a press BEGINS. `swapRows` reads it before its own
+ *  fetch and again after, and drops the answer if it moved.
+ *
+ *  `inFlight` is only half the guard: it stops a NEW swap from starting
+ *  mid-press, and says nothing about one that was already in the air
+ *  when the press began. That one carries the server's answer from
+ *  BEFORE the press, and used to write it into #jobrows over the busy
+ *  button — or over the refusal banner — whenever it finally resolved.
+ *  A `/?rows=1` answer waits on `isMerged` for every branch of every
+ *  listed job, and a cache miss there costs up to three git calls at
+ *  four seconds each, so the window is ten seconds wide and more: it is
+ *  the 10-15 seconds of a Merge button sitting unchanged that was
+ *  measured on 2026-08-20. */
+let pressGen = 0;
 
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
@@ -31,13 +45,21 @@ let inFlight = 0;
 async function swapRows(): Promise<void> {
   const body = document.getElementById("jobrows");
   if (!body) return;
+  const gen = pressGen;
   const params = new URLSearchParams(location.search);
   params.delete("token");
   params.set("rows", "1");
   try {
     const res = await fetch(`/?${params}`, { headers: { accept: "text/html" } });
     if (!res.ok) return; // a blip is not worth a broken page
-    body.innerHTML = await res.text();
+    const html = await res.text();
+    // A press began while this was in the air, so this answer predates
+    // it and is not the page's current one. The press's own follow-up
+    // swap, or the next tick, supplies that within five seconds; what
+    // must not happen is this one landing on top of what the press just
+    // drew.
+    if (pressGen !== gen) return;
+    body.innerHTML = html;
   } catch {
     // offline, server restarting, tailnet hiccup: try again next tick
   }
@@ -154,6 +176,7 @@ async function postForm(
   const variant = VARIANTS.find((v) => primary?.classList.contains(v));
   for (const b of buttons) b.disabled = true;
   inFlight += 1;
+  pressGen += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
   // these buttons takes seconds, and a button that looks untouched for
   // that long reads as a button that did not register the click.

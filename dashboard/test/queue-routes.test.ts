@@ -1911,6 +1911,71 @@ describe("POST /api/queue/<id>/merge", () => {
     expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
   });
 
+  // Spec 129, criterion 4. The other direction of the same cache: 54 of
+  // the 75 refusals in the log, across 23 specs, were "there is nothing
+  // left to merge" — a row that offered a button for a branch that was
+  // not on origin any more. The refusal PROVES the cached "not merged"
+  // wrong, so the row has no business offering the same press again for
+  // the rest of the 30 s TTL. The clock does not move in this test:
+  // only the invalidation can account for the change.
+  test("a branch that turned out to be gone stops being offered at once", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    // The branch is on origin and unmerged to start with, and is taken
+    // off origin — by a hand merge, another tab, another machine —
+    // before the press lands.
+    let gone = false;
+    const run = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("ls-remote")) return { code: gone ? 2 : 0, stdout: "" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
+    const auth = { headers: { "x-aide-token": TOKEN } };
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
+    gone = true;
+    const body = (await (
+      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
+    ).json()) as { ok: boolean; results: { error?: string }[] };
+    expect(body.ok).toBe(false);
+    expect(body.results[0]!.error).toContain("nothing left to merge");
+    expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
+  });
+
+  // Criterion 5: and no other refusal touches the cache. A dirty tree
+  // says nothing about whether the branch is still there to merge, so
+  // clearing the answer on it would throw away a true one and spend
+  // three git calls re-deriving it on the next page load.
+  test("a refusal that proves nothing leaves the cached answer alone", async () => {
+    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
+    let dirty = false;
+    const calls: string[] = [];
+    const run = async (_dir: string, args: string[]) => {
+      const a = args.join(" ");
+      calls.push(a);
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: dirty ? " M src/serve.ts\n" : "" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
+    const auth = { headers: { "x-aide-token": TOKEN } };
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
+    dirty = true;
+    const body = (await (
+      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
+    ).json()) as { ok: boolean; results: { error?: string }[] };
+    expect(body.ok).toBe(false);
+    expect(body.results[0]!.error).toContain("dirty");
+    // Still offered, and answered from the cache: no second ls-remote
+    // was needed to say so.
+    const before = calls.filter((a) => a.startsWith("ls-remote")).length;
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
+    expect(calls.filter((a) => a.startsWith("ls-remote"))).toHaveLength(before);
+  });
+
   test("GET is not a way to merge anything", async () => {
     const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
     const git = gitFor();

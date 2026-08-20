@@ -41,19 +41,29 @@ export interface RepoMergeResult {
    *  reads, so a failed one has to be visible — and the merge it
    *  follows is never turned back into a failure by it. */
   branchDeleteError?: string;
-  /** WHY it was refused, when the answer is one a machine acts on
-   *  (spec 106). Set at exactly ONE refusal — the real merge that
-   *  conflicted — because that is the only one a `resolve` step could
-   *  finish. Every other refusal here (a dirty tree, a branch gone from
-   *  origin, a base that will not fast-forward, a failed push) leaves it
-   *  unset, and so does a merge that went through.
+  /** WHY it was refused, when the answer is one a machine acts on. Two
+   *  refusals carry it and no others.
+   *
+   *  `"conflict"` (spec 106) is the one a `resolve` step could finish,
+   *  and the row offers that step on the strength of this field.
+   *
+   *  `"gone"` (spec 129) is the one whose cached "not merged" answer the
+   *  refusal itself just disproved: `mergeSpecBranches` invalidates
+   *  `BranchStatusChecker` for exactly that branch rather than leaving
+   *  the row offering the same doomed press for the rest of the 30 s
+   *  TTL. 54 of the 75 refusals in the log were this one.
+   *
+   *  Every other refusal here (a dirty tree, a base that will not
+   *  fast-forward, a failed push) leaves it unset, and so does a merge
+   *  that went through — nothing can be done about any of them but by
+   *  hand.
    *
    *  `error` stays the sentence a person reads, and the page keeps
-   *  showing that. This field exists so the page can OFFER something on
-   *  the strength of the reason without matching against that sentence:
-   *  the text is joined with every other repo's before the page sees it,
-   *  and a rewording would silently take the offer away. */
-  reason?: "conflict";
+   *  showing that. This field exists so the page or the server can act
+   *  on the strength of the reason without matching against that
+   *  sentence: the text is joined with every other repo's before the
+   *  page sees it, and a rewording would silently take the action away. */
+  reason?: "conflict" | "gone";
 }
 
 const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
@@ -112,7 +122,10 @@ export async function mergeBranchIntoDefault(
     //    failure and must fall through to the sequence below.
     const onOrigin = await run(root, lsRemoteBranch(branch));
     if (onOrigin.code === LS_REMOTE_NO_MATCH) {
-      return refuse(root, `${branch} is not on origin in ${root} — there is nothing left to merge`);
+      return {
+        ...refuse(root, `${branch} is not on origin in ${root} — there is nothing left to merge`),
+        reason: "gone",
+      };
     }
 
     // 3. Best effort, exactly as `isMerged()` does it: whatever the

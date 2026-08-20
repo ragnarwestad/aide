@@ -353,6 +353,18 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
     expect(result.error).not.toContain("conflict");
   });
 
+  // Spec 129: 54 of the 75 refusals in the log were this one, across 23
+  // specs — a row offering a button for a branch that was not on origin
+  // any more. The sentence alone cannot fix that: `isMerged()` caches
+  // for 30 seconds, so the row goes on offering the same doomed press
+  // until the TTL runs out. This field is what lets the merge route
+  // correct the cache it just proved wrong.
+  test("it says GONE, so the caller can correct the cache it just disproved (criterion 4)", async () => {
+    const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.reason).toBe("gone");
+  });
+
   test("nothing beyond the two questions is run (criterion 5)", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
@@ -378,14 +390,17 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
   });
 });
 
-// --- spec 106: only a real conflict is called one -----------------------------
+// --- spec 106/129: the field names only the refusals a machine acts on -------
 //
 // The "let aide resolve it" control is offered on the strength of this
 // one field, so a refusal that a resolve step could not fix must never
-// carry it. Each of these is a refusal the merge route already knows how
-// to produce; none of them is a conflict.
+// be called a conflict. Spec 129 added the second, and only the second:
+// `"gone"`, which the merge route reads to invalidate the branch-status
+// cache. Each of the others below is a refusal the merge route already
+// knows how to produce, and no machine has anything to do about any of
+// them — they carry nothing.
 
-describe("mergeBranchIntoDefault: reason is set at exactly one refusal", () => {
+describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => {
   test("a dirty tree carries no reason", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "status --porcelain": { code: 0, stdout: " M src/serve.ts\n" } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
@@ -393,14 +408,21 @@ describe("mergeBranchIntoDefault: reason is set at exactly one refusal", () => {
     expect(result.reason).toBeUndefined();
   });
 
-  test("a branch that is not on origin carries no reason", async () => {
+  test("a branch that is not on origin is called gone, and never a conflict", async () => {
     const git = fakeGit({ ...CLEAN_MASTER, "ls-remote": { code: 2 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
-    expect(result.reason).toBeUndefined();
+    expect(result.reason).toBe("gone");
   });
 
-  test("a base that cannot be fast-forwarded carries no reason", async () => {
+  // Spec 129: the other 21 refusals in the log, across 7 specs. Every
+  // one of them had to be finished by hand, and nobody ever saw why —
+  // the reason went to the log and nowhere else. Nothing here needs a
+  // code path of its own: this sentence is what the row shows, once the
+  // client stops letting a stale swap wipe it. So the sentence itself
+  // is pinned, and the field stays empty — no machine can finish this
+  // one, and offering a resolve step for it would be a lie.
+  test("a base that cannot be fast-forwarded says so in full, and carries no reason", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
       "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
@@ -410,6 +432,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly one refusal", () => {
     });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
+    expect(result.error).toBe(`cannot fast-forward master in ${ROOT} — merge it by hand`);
     expect(result.reason).toBeUndefined();
   });
 

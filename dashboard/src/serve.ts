@@ -1050,8 +1050,14 @@ export function createServer(opts: ServerOptions) {
       // root while asking it would serialize page loads too.
       const result = await mergeLock.run(b.root, () => mergeBranchIntoDefault(gitRun, b.root, branch, base));
       // The check caches for 30 s. Without this, the page that triggered
-      // the merge would show its own result as "not merged".
-      if (result.ok) branchStatus.invalidate(b.root, branch);
+      // the merge would show its own result as "not merged" — and, since
+      // spec 129, a "gone" refusal disproves the same cached answer from
+      // the other side: the branch is not on origin, so the row must
+      // stop offering a press for it now rather than in half a minute.
+      // No other refusal is told anything about the branch's existence,
+      // and clearing the answer on one of those would throw away a true
+      // answer and spend three git calls re-deriving it.
+      if (result.ok || result.reason === "gone") branchStatus.invalidate(b.root, branch);
       // Merged is not deployed. For a tool that lives in `~/.local/bin`,
       // the code landing on the default branch changes nothing on the
       // machine until it is installed — which is why spec 92's merged

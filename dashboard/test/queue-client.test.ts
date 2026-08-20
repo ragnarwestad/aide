@@ -32,6 +32,10 @@ interface Reply {
   /** Hold the request open until this settles — for what happens
    *  WHILE a press is in flight. */
   hold?: Promise<void>;
+  /** What a row-refresh answers with. Named per reply because spec 129
+   *  is about WHICH of two answers reaches `#jobrows`, so the two have
+   *  to be told apart once they are both in the air. */
+  text?: string;
 }
 
 /** What each control is called before and during its request, and which
@@ -361,7 +365,7 @@ function harness(
     return {
       ok: r.ok,
       json: async () => r.body,
-      text: async () => "<tr></tr>",
+      text: async () => r.text ?? "<tr></tr>",
     };
   };
   // The form serializer the browser owns. Injected rather than reached
@@ -1172,5 +1176,104 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
     // The listener the container recorded IS the one that filters.
     h.changeTool("codex");
     expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
+  });
+});
+
+// --- spec 129: an answer older than the press never lands on top of it -------
+//
+// `inFlight` stops a NEW swap from STARTING while a press runs. It says
+// nothing about one that was already in the air when the press began:
+// that request carries the server's answer from BEFORE the press, and
+// on resolving wrote it straight into `#jobrows` — over the busy button
+// the press had just drawn, or over the refusal banner it had just
+// asked for.
+//
+// The window is wide, not theoretical. Every `/?rows=1` answer waits on
+// `isMerged()` for every branch of every listed job, and a cache miss
+// there costs up to three sequential git calls at four seconds each —
+// which is the 10-15 seconds of a Merge button sitting unchanged that
+// was measured on 2026-08-20.
+describe("a swap older than the press is discarded, not applied (spec 129)", () => {
+  /** What the server said BEFORE the press, and what must never reach
+   *  the page after it. */
+  const STALE = "<tr>before the press</tr>";
+  /** What it says once the press is accounted for. */
+  const FRESH = "<tr>after the press</tr>";
+
+  /** Enough microtask turns for a released `hold` to run the rest of
+   *  `swapRows` — the fetch, the `text()`, the assignment. Counted
+   *  rather than awaited because `tick()` drops its promise on purpose
+   *  (a listener's return value is nobody's to wait on). */
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+  };
+
+  test("a tick's answer arriving mid-press does not put the untouched row back", async () => {
+    let releaseTick: () => void = () => {};
+    const tickHeld = new Promise<void>((r) => (releaseTick = r));
+    let releaseMerge: () => void = () => {};
+    const mergeHeld = new Promise<void>((r) => (releaseMerge = r));
+    const h = harness((url) =>
+      url.includes("/merge")
+        ? { ok: true, body: OK_MERGE, hold: mergeHeld }
+        : { ok: true, text: STALE, hold: tickHeld },
+    );
+    h.document.visibilityState = "visible";
+    // The tick goes first and its answer is held open — nothing about
+    // this request will ever know a press happened.
+    h.tick();
+    await Promise.resolve();
+    expect(h.requests.filter((r) => r.url.includes("rows=1"))).toHaveLength(1);
+    // Then the press, while that request is still in the air.
+    const pressed = h.submit();
+    await Promise.resolve();
+    expect(h.button.classList.contains("busy")).toBe(true);
+    // Now the tick answers, with the row exactly as it was before.
+    releaseTick();
+    await flush();
+    // Writing that into #jobrows is what replaced the busy button with
+    // the untouched one the server still believed in.
+    expect(h.rows.innerHTML).toBe("");
+    expect(h.button.classList.contains("busy")).toBe(true);
+    releaseMerge();
+    await pressed;
+  });
+
+  test("a tick's answer arriving after a refusal does not wipe the reason", async () => {
+    let releaseTick: () => void = () => {};
+    const tickHeld = new Promise<void>((r) => (releaseTick = r));
+    const REFUSED = {
+      ok: false,
+      spec: "aide/129-the-merge-button-answers-the-press",
+      results: [{ root: "/repos/aide", error: "cannot fast-forward main in /repos/aide — merge it by hand" }],
+    };
+    const h = harness((url) => {
+      if (url.includes("/merge")) return { ok: true, body: REFUSED };
+      // The refusal's OWN swap asks with the reason in the query
+      // string (`showRefusal` put it there): that answer is the current
+      // one, and it is the one that must survive.
+      if (url.includes("errorSpec")) return { ok: true, text: FRESH };
+      return { ok: true, text: STALE, hold: tickHeld };
+    });
+    h.document.visibilityState = "visible";
+    h.tick();
+    await Promise.resolve();
+    await h.submit();
+    expect(h.rows.innerHTML).toBe(FRESH);
+    // The tick finally answers — from before the press was even made.
+    releaseTick();
+    await flush();
+    expect(h.rows.innerHTML).toBe(FRESH);
+  });
+
+  // The guard must discard a STALE answer and nothing else: a tick that
+  // raced nobody still has to redraw the table, which is the whole
+  // reason the tick exists.
+  test("with no press racing it, the tick's answer lands as it always did", async () => {
+    const h = harness(() => ({ ok: true, text: STALE }));
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+    expect(h.rows.innerHTML).toBe(STALE);
   });
 });
