@@ -72,6 +72,33 @@ for skill in "${SKILLS[@]}"; do
   fi
 done
 
+# And whatever the last install actually put there (spec 142). The list
+# above is a snapshot of what is shipped TODAY, and a name leaves it in
+# the same commit that stops shipping the skill — which is exactly when
+# removing the installed copy starts to matter. The manifest is the
+# record that snapshot cannot be, and it lives on THIS machine, so it
+# names what this machine actually has.
+#
+# Spelled out rather than sourced from core/scripts/_install-skills.sh:
+# this script sources nothing, and pinning the two spellings to each
+# other is what test_core_skills.py does.
+MANIFEST="$HOME/.claude/skills/.aide-installed-manifest"
+if [ -f "$MANIFEST" ]; then
+  while IFS= read -r skill; do
+    # A skill name is a directory name and nothing else: this is an
+    # `rm -rf` driven by a file.
+    case "$skill" in
+      "" | .* | */*) continue ;;
+    esac
+    if [ -d "$HOME/.claude/skills/$skill" ]; then
+      rm -rf "$HOME/.claude/skills/$skill"
+      echo "   ✅ Removed: ~/.claude/skills/$skill"
+    fi
+  done < "$MANIFEST"
+  rm -f "$MANIFEST"
+  echo "   ✅ Removed: ~/.claude/skills/.aide-installed-manifest"
+fi
+
 echo ""
 
 # 5. Remove old commands from ~/.claude/commands/ (migrated to skills)

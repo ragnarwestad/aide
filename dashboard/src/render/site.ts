@@ -6,6 +6,7 @@
 import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
 import type { ManifestData, ManifestResult } from "../parse-manifest.ts";
+import { rowMessage } from "./components.ts";
 import { esc, linkOrText } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
@@ -172,12 +173,17 @@ function aboutBody(generatedAt: string): string {
 // `removeHref` only on the served page: a generated file has no token
 // behind it, so its rows carry no control (asked for 2026-08-19 —
 // Remove lives ON the row, at the right of the description).
-function overviewRow(p: ProjectView, path: string, removeHref?: string): string {
+function overviewRow(p: ProjectView, path: string, removeHref?: string, note?: string): string {
   const remove = removeHref ? `<a class="btn small" href="${esc(removeHref)}">Remove</a>` : "";
+  // Spec 142: on the row, not floating above the list — a reader should
+  // not have to work out which project a warning is about. An error row
+  // gets it too: a checkout whose manifest will not parse is still a
+  // checkout that can fall behind, and it is the one being worked on.
+  const drift = note ? rowMessage("warn", note, { tag: "p" }) : "";
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p></div>${remove}</div>`
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -189,6 +195,7 @@ function overviewRow(p: ProjectView, path: string, removeHref?: string): string 
     `<div class="proj-row"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
     `<span class="counts">${active} active · ${archived} archived</span>` +
     desc +
+    drift +
     `</div>${remove}</div>`
   );
 }
@@ -207,7 +214,14 @@ function projectBody(p: ProjectView): string {
  *  construction rather than by convention. */
 export function projectListBody(
   projects: ProjectView[],
-  opts: { removeHref?: (name: string) => string | undefined } = {},
+  opts: {
+    removeHref?: (name: string) => string | undefined;
+    /** Spec 142: what to say on a project's row about its checkout, if
+     *  anything. A callback like `removeHref`, and for the same reason:
+     *  `ProjectView` is a pure disk scan the static generator shares,
+     *  and a live git answer does not belong on it. */
+    note?: (name: string) => string | undefined;
+  } = {},
 ): string {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
@@ -229,7 +243,7 @@ export function projectListBody(
     intro +
     `\n<h2>Projects</h2>\n` +
     ordered
-      .map((p) => overviewRow(p, `${slugs.get(p)!}.html`, opts.removeHref?.(p.name)))
+      .map((p) => overviewRow(p, `${slugs.get(p)!}.html`, opts.removeHref?.(p.name), opts.note?.(p.name)))
       .join("\n")
   );
 }

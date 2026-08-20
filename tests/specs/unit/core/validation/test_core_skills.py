@@ -6,6 +6,7 @@ test covers the distributable skills — including that the effort field,
 when set, has a valid value.
 """
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -107,6 +108,100 @@ class TestUninstallListsEverySkill:
         ]
         assert not missing, (
             f"Skills missing from uninstall.sh's SKILLS list: {missing}"
+        )
+
+
+
+@pytest.mark.validation
+class TestUninstallReadsTheManifest:
+    """Spec 142: the static SKILLS list is a snapshot of what is shipped
+    TODAY, and a name is taken out of it by the very commit that stops
+    shipping the skill — which is the moment removal starts to matter.
+    That is what happened on 2026-08-20: four skills left core/skills/
+    and their installed copies could no longer be removed by the
+    uninstaller at all.
+
+    The manifest each install writes on the target machine is the record
+    the list cannot be. uninstall.sh reads it IN ADDITION to the static
+    list, so a machine with an orphaned copy is cleaned up without
+    waiting for another install first.
+    """
+
+    def uninstall(self, workspace_root, home):
+        return subprocess.run(
+            [str(workspace_root / "implementations" / "claude-code" / "uninstall.sh")],
+            input="y\n",
+            capture_output=True,
+            text=True,
+            env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        )
+
+    def test_a_retired_skill_named_only_by_the_manifest_is_removed(self, workspace_root, tmp_path):
+        """Criterion 9: 'aide-to-html' is in no SKILLS array anymore."""
+        home = tmp_path / "home"
+        skills = home / ".claude" / "skills"
+        (skills / "aide-to-html").mkdir(parents=True)
+        (skills / "aide-to-html" / "SKILL.md").write_text("# retired\n")
+        (skills / ".aide-installed-manifest").write_text("aide-to-html\n")
+
+        result = self.uninstall(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        assert not (skills / "aide-to-html").exists()
+        assert not (skills / ".aide-installed-manifest").exists()
+
+    def test_a_skill_no_manifest_names_is_left_alone(self, workspace_root, tmp_path):
+        """~/.claude/skills/ is allowed to hold skills aide never put
+        there — the same guarantee install.sh's rsync gives by refusing
+        --delete."""
+        home = tmp_path / "home"
+        skills = home / ".claude" / "skills"
+        (skills / "dataviz").mkdir(parents=True)
+        (skills / ".aide-installed-manifest").write_text("aide-create\n")
+
+        result = self.uninstall(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        assert (skills / "dataviz").exists()
+
+    def test_a_machine_with_no_manifest_uninstalls_exactly_as_before(self, workspace_root, tmp_path):
+        """The manifest is new; a machine that installed before it
+        existed has none, and the static list is all there is."""
+        home = tmp_path / "home"
+        skills = home / ".claude" / "skills"
+        (skills / "aide-create").mkdir(parents=True)
+
+        result = self.uninstall(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        assert not (skills / "aide-create").exists()
+
+    def test_the_installer_and_the_uninstaller_name_the_same_file(self, workspace_root):
+        """The name is written down twice — once as
+        AIDE_SKILL_MANIFEST_NAME in the shared installer, once as a
+        literal in uninstall.sh, which sources nothing. Two spellings
+        would mean an install that writes a file no uninstall ever
+        reads, which is the failure this whole mechanism exists to
+        prevent, one level up.
+
+        The same shape .claude/rules/development.md pins for
+        WORKFLOW_STEPS and DEPENDENCY_GATED_STEPS: edited by hand
+        together, held together by a test that reads both sides.
+        """
+        core = workspace_root / "core" / "scripts" / "_install-skills.sh"
+        written = re.search(
+            r'^AIDE_SKILL_MANIFEST_NAME="([^"]+)"', core.read_text(), re.MULTILINE
+        )
+        assert written, "_install-skills.sh must define AIDE_SKILL_MANIFEST_NAME"
+
+        uninstall = (
+            workspace_root / "implementations" / "claude-code" / "uninstall.sh"
+        ).read_text()
+        read = re.search(r'^MANIFEST="\$HOME/\.claude/skills/([^"]+)"', uninstall, re.MULTILINE)
+        assert read, "uninstall.sh must read the manifest out of ~/.claude/skills/"
+        assert read.group(1) == written.group(1), (
+            f"uninstall.sh reads {read.group(1)!r} but the installers write "
+            f"{written.group(1)!r}"
         )
 
 

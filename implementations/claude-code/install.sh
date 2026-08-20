@@ -32,6 +32,10 @@ IMPL_DIR="$SCRIPT_DIR"
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
+# Claude Code has its own skills location and its own copy step below,
+# but the pruning half is shared with the other two installers — one
+# implementation, three call sites.
+source "$WORKSPACE_ROOT/core/scripts/_install-skills.sh"
 
 echo ""
 
@@ -44,6 +48,13 @@ mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/agents" "$GLOBAL_CLAUDE/rules"
 # Skills (copy without --delete to avoid deleting other tools' skills)
 if [ -d "$WORKSPACE_ROOT/core/skills" ]; then
   rsync -a "$WORKSPACE_ROOT/core/skills/" "$GLOBAL_CLAUDE/skills/"
+  # ...and the half that subtracts (spec 142). The rsync above may not
+  # use --delete — ~/.claude/skills/ is allowed to hold skills aide
+  # never put there — so a skill dropped from core/skills/ would sit
+  # here for good. The manifest names what the LAST install shipped, so
+  # what left the source since is known and can go.
+  prune_retired_skills "$WORKSPACE_ROOT/core/skills" "$GLOBAL_CLAUDE/skills" \
+    "$GLOBAL_CLAUDE/skills/$AIDE_SKILL_MANIFEST_NAME"
   echo "   ✅ Skills installed: ~/.claude/skills/"
 fi
 

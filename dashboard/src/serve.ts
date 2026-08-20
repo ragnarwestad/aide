@@ -1544,11 +1544,33 @@ export function createServer(opts: ServerOptions) {
       // Read fresh, uncached: unlike `/` nothing polls this page, so a
       // scan per request is the same cost `make generate` already treats
       // as cheap — and no invalidation to get wrong.
+      const projects = buildProjectViews(opts.projectRoot);
+      // Spec 142: a merge made anywhere but the Merge button below ran
+      // no `AIDE_INSTALL_CMD`, so the serving host is still serving the
+      // old code and, until this asked, nothing said so. Asked only of
+      // the projects that expect an install to have happened —
+      // deploying is a known hand step where none is configured, and a
+      // banner there would be noise on every row forever.
+      //
+      // Kept out of `buildProjectViews`, which stays a pure disk scan
+      // the static generator shares. Concurrent, and bounded by the
+      // checker's own 4 s timeout and 30 s cache, so a page load inside
+      // the window spawns no git at all.
+      const driftByProject: Record<string, number> = {};
+      await Promise.all(
+        projects.map(async (p) => {
+          const root = projectDir(p.name);
+          if (!configValue(root, "AIDE_INSTALL_CMD")) return;
+          const behind = await branchStatus.commitsBehindOrigin(root);
+          if (behind && behind > 0) driftByProject[p.name] = behind;
+        }),
+      );
       const html = renderProjectsPage(
-        buildProjectViews(opts.projectRoot),
+        projects,
         new Date().toISOString(),
         nav(),
         {
+          driftByProject,
           token: queueToken,
           // The RAW allowlist, like the New-spec dropdown: a project
           // with no spec yet is exactly what this page is for.
