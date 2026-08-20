@@ -214,3 +214,48 @@ describe("the Remove page", () => {
     expect(page([project("aide")], { createProjects: ["aide"] })).not.toContain('class="refusal rowmsg err"');
   });
 });
+
+// --- spec 138: the field that was missing, and the answer that was ------------
+// discarded
+describe("the Add page says what a run will need (spec 138)", () => {
+  const add = (opts: Partial<ProjectsPageOptions> = {}) => renderAddProjectPage(NAV, AT, opts);
+
+  // A worktree carries TRACKED files only, so a project whose test
+  // command lives behind a gitignored path — pytest in `.venv`, a suite
+  // needing `node_modules` — fails in every run for a reason that has
+  // nothing to do with its change. The form had no field for it at all.
+  test("worktree links can be given when the project is added", () => {
+    const html = add();
+    expect(html).toContain('name="worktreeLinks"');
+    expect(html).toContain("Worktree links");
+  });
+
+  test("a readiness result carried back after Save is shown on the list", () => {
+    const html = page([project("skjer")], {
+      createProjects: ["skjer"],
+      notice: "skjer added — cannot run yet: the project tree is dirty (.aide/)",
+    });
+    expect(html).toContain("cannot run yet");
+    expect(html).toContain(".aide/");
+  });
+
+  // Never in the colour of a refusal, and never in the same colour for
+  // both answers: the project IS added either way.
+  test("a project that can run is not drawn as a warning", () => {
+    const yes = page([project("skjer")], {
+      createProjects: ["skjer"],
+      notice: "skjer added — ready to run",
+      noticeOk: true,
+    });
+    expect(yes).toContain('class="notice rowmsg info"');
+    const no = page([project("skjer")], {
+      createProjects: ["skjer"],
+      notice: "skjer added — cannot run yet: the tree is dirty",
+    });
+    expect(no).toContain('class="notice rowmsg warn"');
+  });
+
+  test("no notice, no banner", () => {
+    expect(page([project("aide")], { createProjects: ["aide"] })).not.toContain("notice rowmsg");
+  });
+});

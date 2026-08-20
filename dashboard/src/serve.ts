@@ -32,7 +32,12 @@ import {
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
 } from "./queue.ts";
 import {
-  addProject, addProjectTarget, projectNameError, removeProject, type ProjectStep,
+  addProject,
+  addProjectTarget,
+  projectNameError,
+  removeProject,
+  type ProjectReadiness,
+  type ProjectStep,
 } from "./project-admin.ts";
 import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
@@ -218,6 +223,11 @@ function specsRedirect(
   // 121, and a reader refused on either must not be dropped onto the
   // spec list to read the answer.
   target: string = "/",
+  /** Something that went RIGHT and the reader still has to read — the
+   *  readiness of a project that was just added (spec 138). It rides
+   *  where a refusal rides, for the same reason: a redirect is the only
+   *  thing a no-script form POST gets back. */
+  notice?: { note: string; ok: boolean },
 ): Response {
   const sent = (body ?? {}) as Record<string, unknown>;
   const parts: string[] = [];
@@ -236,6 +246,12 @@ function specsRedirect(
     // finish, so it is the one the row may offer that step for. Absent
     // for every other refusal, which is what keeps the offer narrow.
     if (refusal.reason) parts.push(`errorReason=${encodeURIComponent(refusal.reason)}`);
+  }
+  if (notice) {
+    parts.push(`notice=${encodeURIComponent(notice.note)}`);
+    // The colour, not the answer: the sentence says which it is, and
+    // the page must not have to read the sentence to draw it.
+    if (notice.ok) parts.push("noticeOk=1");
   }
   const query = parts.join("&");
   return new Response(null, { status: 303, headers: { location: query ? `${target}?${query}` : target } });
@@ -1332,18 +1348,35 @@ export function createServer(opts: ServerOptions) {
     steps: ProjectStep[],
     sent: unknown,
     wantsJson: boolean,
+    /** What an Add that SUCCEEDED found out about the project it just
+     *  registered (spec 138). It travels beside `results` and never
+     *  inside it: `ok` says the registration completed, `canRun` says
+     *  whether a run would start, and folding the second into the first
+     *  would report a checkout that IS on disk as an add to retry. */
+    readiness?: ProjectReadiness,
   ): Response {
     const ok = steps.every((s) => s.ok);
     for (const s of steps) if (s.error) logRefusal(action, project, s.error);
-    if (wantsJson) return json({ ok, project, results: steps }, ok ? 200 : 400);
+    if (wantsJson) {
+      return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
+    }
     const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
     // A refusal goes back to the page the FORM is on — the Add page or
     // the row's own Remove page (2026-08-19) — a success to the list.
     const formPage =
       action === "add-project" ? ADD_PROJECT_ROUTE : `/projects/${encodeURIComponent(project)}/remove`;
-    return summary
-      ? specsRedirect(sent, { error: summary }, formPage)
-      : specsRedirect(sent, undefined, PROJECTS_ROUTE);
+    if (summary) return specsRedirect(sent, { error: summary }, formPage);
+    // A browser with no script gets the readiness answer the only way a
+    // redirect can carry one: in the query string of the page it lands
+    // on. Without this the whole of it dies in a response body nobody
+    // ever sees — which is how Skjer came to look added and be unable
+    // to run.
+    return specsRedirect(
+      sent,
+      undefined,
+      PROJECTS_ROUTE,
+      readiness && { note: readiness.note, ok: readiness.canRun },
+    );
   }
 
   async function handleQueue(req: Request, url: URL, path: string): Promise<Response> {
@@ -1536,6 +1569,11 @@ export function createServer(opts: ServerOptions) {
           createProjects: [...allowed].sort(),
           script: queueClientScript(),
           error: url.searchParams.get("error") ?? undefined,
+          // What the Add that landed the reader here found out (spec
+          // 138). Straight from the query string, like the refusal
+          // beside it, and rendered as text and nothing else.
+          notice: url.searchParams.get("notice") ?? undefined,
+          noticeOk: url.searchParams.get("noticeOk") === "1",
         },
       );
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
@@ -1625,6 +1663,7 @@ export function createServer(opts: ServerOptions) {
         existingPath: text(asked.existingPath),
         description: text(asked.description),
         specsPath: text(asked.specsPath),
+        worktreeLinks: text(asked.worktreeLinks),
       });
       const steps = [...result.steps];
       if (result.ok) {
@@ -1635,7 +1674,11 @@ export function createServer(opts: ServerOptions) {
         scan = null;
         steps.push(persistAllowlist("added to the allowlist"));
       }
-      return answerProjectChange("add-project", name, steps, raw, wantsJson);
+      // Only for an add that got as far as writing its files: there is
+      // nothing to assess in a clone that never happened, and a
+      // readiness answer about a project that was not added would be an
+      // answer about somebody else's directory.
+      return answerProjectChange("add-project", name, steps, raw, wantsJson, result.readiness);
     }
 
     const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);

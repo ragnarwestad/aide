@@ -184,6 +184,11 @@ interface ActionResult {
   spec?: string;
   error?: string;
   results?: { error?: string; reason?: string; installError?: string; branchDeleteError?: string }[];
+  /** An Add that SUCCEEDED and still has something to say: whether a
+   *  run can start in the project it just registered (spec 138). The
+   *  server writes the sentence — the same one its own redirect carries
+   *  for a browser with no script — so there is one wording, not two. */
+  readiness?: { canRun?: boolean; note?: string };
 }
 
 /** Why the server said no, whichever shape it said it in: merge answers
@@ -462,11 +467,29 @@ async function submitProjectChange(form: HTMLFormElement, event: Event): Promise
   event.preventDefault();
   await postForm(
     form,
-    async () => {
+    async (body) => {
+      // Spec 138: an Add that succeeded has something to SAY — whether
+      // a run can start in the project just registered, and every
+      // reason it cannot. Navigating would throw that away, which is
+      // exactly what hid Skjer's dirty tree and missing specs root
+      // until someone pressed Run. So it stays here: on the page Save
+      // was pressed, whose Specs root and Worktree links fields are
+      // usually what fixes it, and where saving again re-assesses.
+      const note = body?.readiness?.note;
+      if (note) {
+        // In the form's own message slot, which the server renders as a
+        // refusal — so the look follows the answer: a project that CAN
+        // run must not be reported in the colour of one that cannot.
+        const slot = form.querySelector(".refused") as HTMLElement | null;
+        if (slot) slot.className = `refused rowmsg ${body?.readiness?.canRun ? "info" : "warn"}`;
+        formNote(form, note);
+        return;
+      }
       formNote(form, "");
-      // The forms live on pages of their own now (2026-08-19): a
-      // successful Save or Remove returns to the list they changed,
-      // with the reader's own query string (the token rides there).
+      // A Remove has no such answer, and does what it always did: the
+      // forms live on pages of their own (2026-08-19), so it returns to
+      // the list it changed, with the reader's own query string (the
+      // token rides there).
       location.href = "/projects" + location.search;
     },
     (why) => formNote(form, why),

@@ -308,6 +308,37 @@ function harness(
     querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
   };
   const removeSlot = { textContent: "" };
+  // Spec 138: the Add form, which is the one whose SUCCESS has something
+  // to say — the readiness answer the server worked out for the project
+  // that was just added. A Remove has no such answer, and still leaves.
+  const addButton = {
+    textContent: "Save",
+    title: "",
+    disabled: false,
+    dataset: { pending: "saving…" },
+    className: "btn primary",
+    isConnected: true,
+    insertAdjacentHTML: () => {},
+  } as unknown as typeof createButton & { disabled: boolean };
+  addButton.classList = classes(addButton);
+  // `className` too: the slot the server renders is the REFUSAL slot,
+  // and a success written into it must not stay the colour of one.
+  const addSlot = { textContent: "", className: "refused rowmsg err" };
+  const addForm = {
+    action: "http://dash.test/api/queue/projects",
+    fields: [["name", "skjer"], ["existingPath", "skjer"]] as [string, string][],
+    querySelectorAll: () => [addButton],
+    querySelector: (sel: string) =>
+      sel.includes("data-confirm")
+        ? null
+        : sel.includes("token")
+          ? tokenInput
+          : sel.includes("refused")
+            ? addSlot
+            : null,
+    closest: () => null,
+    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`add:${type}`] = fn),
+  };
   const removeForm = {
     action: "http://dash.test/api/queue/projects/atlasaurus/remove",
     fields: [["confirm", "atlasaurus"]] as [string, string][],
@@ -389,7 +420,7 @@ function harness(
     // handed back every select on the page could not tell apart.
     querySelectorAll: (sel: string) =>
       sel.includes("removeform")
-        ? [removeForm]
+        ? [addForm, removeForm]
         : sel.includes("model.")
           ? [...modelSelects, otherRowSelect].filter((s) => sel.includes(`form="${s.getAttribute("form")}"`))
           : [],
@@ -464,8 +495,11 @@ function harness(
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick: () => tick(),
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
+    addButton, addSlot,
     submitRemove: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
       fire("remove:submit", removeButton, extra),
+    submitAdd: (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
+      fire("add:submit", addButton, extra),
     /** What the reader typing in the confirmation field does. */
     type: (value: string) => {
       confirmInput.value = value;
@@ -1374,5 +1408,69 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
     h.tick();
     await flush();
     expect(h.rows.innerHTML).toBe(STALE);
+  });
+});
+
+// --- spec 138: a successful Add has something to say -------------------------
+//
+// The Add form used to navigate on success, exactly like Remove, and the
+// answer went with it: the server had worked out whether a run could
+// start in the project just added, and the browser threw that away in
+// `location.href = "/projects"`. Skjer was added on 2026-08-20 and looked
+// added; the reasons it could not run were in a response body nobody ever
+// saw.
+describe("the Add form keeps the readiness answer on screen", () => {
+  const READY = {
+    ok: true,
+    project: "skjer",
+    results: [{ step: "name", ok: true }],
+    readiness: { canRun: true, note: "skjer added — ready to run", checks: [] },
+  };
+  const BLOCKED = {
+    ok: true,
+    project: "skjer",
+    results: [{ step: "name", ok: true }],
+    readiness: {
+      canRun: false,
+      note:
+        "skjer added — cannot run yet: the tree at /repos/skjer is dirty (.aide/); " +
+        "no specs root at /repos/skjer/specs",
+      checks: [],
+    },
+  };
+
+  // Criterion 11, the JavaScript half: every blocker in the answer, on
+  // the page the reader pressed Save on — which is also the page whose
+  // Specs root and Worktree links fields are what usually fix it.
+  test("every blocker in the answer is written beside the form, and the page stays put", async () => {
+    const h = harness(() => ({ ok: true, body: BLOCKED }));
+    await h.submitAdd();
+    expect(h.addSlot.textContent).toContain("cannot run yet");
+    expect(h.addSlot.textContent).toContain(".aide/");
+    expect(h.addSlot.textContent).toContain("/repos/skjer/specs");
+    expect(h.addSlot.className).toBe("refused rowmsg warn");
+    expect(h.location.href).toBe("http://dash.test/");
+  });
+
+  test("a project that CAN run says so, in the same place", async () => {
+    const h = harness(() => ({ ok: true, body: READY }));
+    await h.submitAdd();
+    expect(h.addSlot.textContent).toContain("ready to run");
+    // Not the colour of a refusal: the project can run.
+    expect(h.addSlot.className).toBe("refused rowmsg info");
+    expect(h.location.href).toBe("http://dash.test/");
+  });
+
+  // A Remove carries no readiness — there is nothing to be ready — so it
+  // still returns to the list it changed.
+  test("a removal still returns to the list, because it has no such answer", async () => {
+    const h = harness(
+      () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
+      "mergeform",
+      "",
+      { pathname: "/projects" },
+    );
+    await h.submitRemove();
+    expect(h.location.href).toBe("/projects");
   });
 });

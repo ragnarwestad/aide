@@ -11,7 +11,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { addProject, projectNameError, removeProject } from "../src/project-admin.ts";
+import {
+  addProject,
+  projectNameError,
+  removeProject,
+  type AddProjectRequest,
+  type ProjectAdminResult,
+} from "../src/project-admin.ts";
+import type { GitRunner } from "../src/branch-status.ts";
 import { parseManifest } from "../src/parse-manifest.ts";
 import { configValue } from "../src/discover.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
@@ -105,8 +112,10 @@ describe("adding a project by cloning it", () => {
     expect(result.steps.every((s) => s.ok)).toBe(true);
     // `cwd` is the projects root, not the destination: the destination
     // does not exist yet, which is what makes this call different from
-    // every other git call in the codebase.
-    expect(git.calls).toEqual([
+    // every other git call in the codebase. The CLONE calls alone —
+    // since spec 138 the same runner is asked the readiness questions
+    // too, and those are that spec's to assert.
+    expect(git.calls.filter((c) => c.args[0] === "clone")).toEqual([
       { dir: projectsRoot, args: ["clone", "https://example.com/newproj.git", "newproj"] },
     ]);
     const manifest = join(projectsRoot, "newproj", ".aide", "project.yaml");
@@ -159,7 +168,9 @@ describe("adding a checkout that is already on the host", () => {
       description: "ignored, because there is a manifest already",
     });
     expect(result.ok).toBe(true);
-    expect(git.calls).toEqual([]);
+    // Nothing was CLONED: the checkout was already there. (Readiness
+    // asks the same runner its own read-only questions afterwards.)
+    expect(git.calls.filter((c) => c.args[0] === "clone")).toEqual([]);
     expect(readFileSync(manifest, "utf-8")).toContain("api: Go");
     expect(readFileSync(manifest, "utf-8")).not.toContain("ignored");
   });
@@ -328,5 +339,382 @@ describe("removing a project is a typed confirmation and nothing else", () => {
     const result = removeProject(allowed, { name: "never-added", confirm: "never-added" });
     expect(result.ok).toBe(false);
     expect(result.steps.find((s) => s.step === "allowlist")!.error).toContain("never-added");
+  });
+});
+
+// --- spec 138: whether a run can actually start there -------------------------
+//
+// Adding a project answered "added" and nothing else. Skjer was added on
+// 2026-08-20 and looked added: it was on the allowlist, its checkout was
+// where the form said, and a minimal manifest had been written for it.
+// A run there refused before it started — the tree was dirty (the `.aide`
+// the Add itself had just written was untracked), the checkout stood on a
+// feature branch whose upstream was gone, no specs root had been named,
+// and no worktree links were configured, so the project's own test command
+// would have failed for a reason that had nothing to do with the change.
+//
+// None of that was visible until Run was pressed. So the answer now says
+// both things: registration completed, AND whether `aide-run-spec` would
+// start. The rules mirrored here are the runner's own, read-only: nothing
+// below switches a branch, commits a file or creates a directory.
+describe("whether a run could start there (spec 138)", () => {
+  /** A git that answers the readiness questions the way a clean checkout
+   *  on its default branch would. Keyed by argv prefix like `fakeGit`,
+   *  and overridable one answer at a time — every test below is "this
+   *  one thing is wrong, and everything else is fine". */
+  const READY: Record<string, { code: number; stdout?: string; stderr?: string }> = {
+    "rev-parse --show-toplevel": { code: 0, stdout: "" }, // filled in per test
+    "status --porcelain": { code: 0, stdout: "" },
+    "symbolic-ref --short refs/remotes/origin/HEAD": { code: 0, stdout: "origin/main\n" },
+    "show-ref --verify --quiet refs/heads/main": { code: 0, stdout: "" },
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+    "worktree list --porcelain": { code: 0, stdout: "" },
+  };
+
+  /** The readiness of a project that was just added, with `answers`
+   *  layered over a ready checkout. `--show-toplevel` answers with the
+   *  directory it was asked in, which is what a real git says for a
+   *  checkout that IS its own root. */
+  async function assess(
+    dir: string,
+    projectsRoot: string,
+    answers: Record<string, { code: number; stdout?: string; stderr?: string }> = {},
+    req: Partial<AddProjectRequest> = {},
+  ) {
+    const table = { ...READY, ...answers };
+    const run: GitRunner = async (at, args) => {
+      const joined = args.join(" ");
+      for (const [prefix, answer] of Object.entries(answers)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+      }
+      // Every root answers `--show-toplevel` with ITSELF unless a test
+      // says otherwise: that is what a checkout of its own is.
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
+      for (const [prefix, answer] of Object.entries(table)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "", stderr: answer.stderr };
+      }
+      return { code: 1, stdout: "" };
+    };
+    const result = await addProject(run, projectsRoot, {
+      name: dir.split("/").pop()!,
+      existingPath: dir,
+      ...req,
+    });
+    return result;
+  }
+
+  /** A checkout under a projects root, with a specs directory beside it
+   *  so the fallback specs root exists. */
+  function checkout(name: string, opts: { specs?: boolean } = {}): { projectsRoot: string; dir: string } {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, name);
+    mkdirSync(dir, { recursive: true });
+    if (opts.specs !== false) mkdirSync(join(dir, "specs"), { recursive: true });
+    return { projectsRoot, dir };
+  }
+
+  const check = (r: ProjectAdminResult, name: string) =>
+    r.readiness!.checks.filter((c) => c.check === name);
+  const blockers = (r: ProjectAdminResult) =>
+    r.readiness!.checks.filter((c) => c.blocking).map((c) => c.detail).join(" | ");
+
+  // Criterion 1.
+  test("a clean checkout on its default branch, with a specs root, can run", async () => {
+    const { projectsRoot, dir } = checkout("ready");
+    const result = await assess(dir, projectsRoot);
+    expect(result.ok).toBe(true);
+    expect(blockers(result)).toBe("");
+    expect(result.readiness!.canRun).toBe(true);
+  });
+
+  // Criterion 2: the Add's OWN files are in the answer. This is Skjer
+  // exactly — `.aide/project.yaml` was written by the Add a moment
+  // earlier and is untracked, so the runner's dirty-tree refusal applies
+  // to it. Registration still succeeded, and says so.
+  test("files the Add itself wrote make the tree dirty, and registration still succeeded", async () => {
+    const { projectsRoot, dir } = checkout("dirty");
+    const result = await assess(dir, projectsRoot, {
+      "status --porcelain": { code: 0, stdout: "?? .aide/\n M README.md\n" },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.steps.every((s) => s.ok)).toBe(true);
+    expect(result.readiness!.canRun).toBe(false);
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).toContain(".aide/");
+    expect(dirty.detail).toContain("README.md");
+  });
+
+  // The sentence this becomes travels in a redirect's `Location` header
+  // for a browser with no script, so a checkout with a thousand
+  // untracked files must not build one no proxy is obliged to carry.
+  test("a very long dirty list is cut short, and says how much it cut", async () => {
+    const { projectsRoot, dir } = checkout("verydirty");
+    const files = Array.from({ length: 40 }, (_, i) => `?? file-${i}.txt`).join("\n");
+    const result = await assess(dir, projectsRoot, {
+      "status --porcelain": { code: 0, stdout: `${files}\n` },
+    });
+    const dirty = check(result, "clean").find((c) => c.blocking)!;
+    expect(dirty.detail).toContain("file-0.txt");
+    expect(dirty.detail).toContain("and 30 more");
+    expect(dirty.detail).not.toContain("file-39.txt");
+  });
+
+  // Criterion 3: the fallback is named, not assumed. A blank Specs root
+  // field selects `<project>/specs`, and the runner refuses when that
+  // directory is not there.
+  test("no specs path and no specs/ directory blocks, naming the path it looked for", async () => {
+    const { projectsRoot, dir } = checkout("nospecs", { specs: false });
+    const result = await assess(dir, projectsRoot);
+    expect(result.ok).toBe(true);
+    expect(result.readiness!.canRun).toBe(false);
+    expect(blockers(result)).toContain(join(dir, "specs"));
+  });
+
+  // Criterion 4: the specs repo is a participating repository — it is
+  // where analyze and review-plan actually write — so it is checked for
+  // the same two things the project is.
+  test("a configured specs root brings its own repository under the same checks", async () => {
+    const { projectsRoot, dir } = checkout("external", { specs: false });
+    const specs = root();
+    const result = await assess(
+      dir,
+      projectsRoot,
+      {
+        // Dirty in the SPECS repo alone: the project answers clean.
+        [`status --porcelain`]: { code: 0, stdout: "" },
+      },
+      { specsPath: specs },
+    );
+    expect(result.readiness!.canRun).toBe(true);
+    // Both roots were asked, and the answer says which is which.
+    const cleanliness = check(result, "clean");
+    expect(cleanliness.map((c) => c.subject).sort()).toEqual([dir, specs].sort());
+    expect(check(result, "defaultBranch").map((c) => c.subject).sort()).toEqual([dir, specs].sort());
+  });
+
+  test("a dirty specs repository blocks the run, and is named as the specs root", async () => {
+    const { projectsRoot, dir } = checkout("dirtyspecs", { specs: false });
+    const specs = root();
+    const run: GitRunner = async (at, args) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
+      if (joined.startsWith("status --porcelain")) {
+        return { code: 0, stdout: at === specs ? "?? 138-new/\n" : "" };
+      }
+      for (const [prefix, answer] of Object.entries(READY)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+    const result = await addProject(run, projectsRoot, {
+      name: "dirtyspecs",
+      existingPath: dir,
+      specsPath: specs,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.readiness!.canRun).toBe(false);
+    const dirty = result.readiness!.checks.find((c) => c.blocking)!;
+    expect(dirty.subject).toBe(specs);
+    expect(dirty.detail).toContain("138-new/");
+  });
+
+  // Criterion 5. The runner MOVES a clean checkout onto its default
+  // branch, so standing on a feature branch is not a refusal — it is
+  // worth saying and nothing more. Skjer stood on `feature/248-meta-tagger`.
+  test("a feature branch is reported and does not block, because the run switches it", async () => {
+    const { projectsRoot, dir } = checkout("onfeature");
+    const result = await assess(dir, projectsRoot, {
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature/248-meta-tagger\n" },
+    });
+    expect(result.readiness!.canRun).toBe(true);
+    const branch = check(result, "defaultBranch")[0]!;
+    expect(branch.blocking).toBe(false);
+    expect(branch.detail).toContain("feature/248-meta-tagger");
+    expect(branch.detail).toContain("main");
+  });
+
+  test("a default branch that is nowhere — no local ref and no remote one — blocks", async () => {
+    const { projectsRoot, dir } = checkout("nobase");
+    const result = await assess(dir, projectsRoot, {
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature/248-meta-tagger\n" },
+      "show-ref --verify --quiet refs/heads/main": { code: 1 },
+      "show-ref --verify --quiet refs/remotes/origin/main": { code: 1 },
+    });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(blockers(result)).toContain("main");
+  });
+
+  test("a default branch another worktree already has checked out blocks", async () => {
+    const { projectsRoot, dir } = checkout("taken");
+    const result = await assess(dir, projectsRoot, {
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/99-old\n" },
+      "worktree list --porcelain": {
+        code: 0,
+        stdout: `worktree ${join(projectsRoot, "taken")}\nbranch refs/heads/aide/99-old\n\nworktree /elsewhere/wt\nbranch refs/heads/main\n`,
+      },
+    });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(blockers(result)).toContain("/elsewhere/wt");
+  });
+
+  // Criterion 6.
+  test("a directory inside a bigger repository is not its own git root, and blocks", async () => {
+    const { projectsRoot, dir } = checkout("inner");
+    const result = await assess(dir, projectsRoot, {
+      "rev-parse --show-toplevel": { code: 0, stdout: "/repos/monorepo\n" },
+    });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(blockers(result)).toContain("/repos/monorepo");
+  });
+
+  test("a directory that is no git repository at all blocks", async () => {
+    const { projectsRoot, dir } = checkout("norepo");
+    const result = await assess(dir, projectsRoot, {
+      "rev-parse --show-toplevel": { code: 128, stdout: "" },
+    });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(check(result, "gitRoot")[0]!.blocking).toBe(true);
+  });
+
+  test("a specs root outside any git repository blocks, because nothing would commit the spec", async () => {
+    const { projectsRoot, dir } = checkout("looserspecs", { specs: false });
+    const specs = root();
+    const run: GitRunner = async (at, args) => {
+      const joined = args.join(" ");
+      // The specs root answers the way a directory outside any
+      // repository does: git refuses the question.
+      if (joined.startsWith("rev-parse --show-toplevel")) {
+        return at === specs ? { code: 128, stdout: "" } : { code: 0, stdout: `${at}\n` };
+      }
+      for (const [prefix, answer] of Object.entries(READY)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+    const result = await addProject(run, projectsRoot, {
+      name: "looserspecs",
+      existingPath: dir,
+      specsPath: specs,
+    });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(check(result, "specsRepo")[0]!.blocking).toBe(true);
+  });
+
+  // Criterion 7, the dashboard half. The runner half is in
+  // tests/specs/unit/core/scripts/test_aide_run_spec.py — one rule, two
+  // places that have to agree about it.
+  test.each([["/etc"], ["../escape"], ["deps/../../escape"]])(
+    "a worktree link that escapes the root (%p) blocks and is named",
+    async (entry) => {
+      const { projectsRoot, dir } = checkout("badlink");
+      // Hand-written into the config, not posted at the form: the form's
+      // own value is refused before it is ever written (below). This is
+      // the file as `aide-run-spec` would find it.
+      mkdirSync(join(dir, ".aide"), { recursive: true });
+      writeFileSync(join(dir, ".aide", "config"), `AIDE_WORKTREE_LINKS=${entry}\n`);
+      const result = await assess(dir, projectsRoot);
+      expect(result.readiness!.canRun).toBe(false);
+      expect(blockers(result)).toContain(entry);
+    },
+  );
+
+  test("a worktree link whose source is not there blocks, and is named", async () => {
+    const { projectsRoot, dir } = checkout("missinglink");
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules .venv" });
+    expect(result.readiness!.canRun).toBe(false);
+    expect(blockers(result)).toContain("node_modules");
+    expect(blockers(result)).toContain(".venv");
+  });
+
+  test("worktree links that are all there do not block", async () => {
+    const { projectsRoot, dir } = checkout("goodlinks");
+    mkdirSync(join(dir, "node_modules"), { recursive: true });
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules" });
+    expect(result.readiness!.canRun).toBe(true);
+    expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
+  });
+
+  // Criterion 8: the dashboard cannot know which gitignored paths a
+  // project's own test command needs, so it never invents one — but it
+  // says the field is empty, because that is what made Skjer's suite
+  // fail for a reason that had nothing to do with the change.
+  test("no worktree links at all is said in words, and blocks nothing", async () => {
+    const { projectsRoot, dir } = checkout("nolinks");
+    const result = await assess(dir, projectsRoot);
+    expect(result.readiness!.canRun).toBe(true);
+    const links = check(result, "worktreeLinks")[0]!;
+    expect(links.blocking).toBe(false);
+    expect(links.detail.toLowerCase()).toContain("worktree");
+  });
+});
+
+// Criterion 9: both fields land in the same personal file, and neither
+// may take the other — or a hand-written key, or a comment — with it.
+describe("writing .aide/config (spec 138)", () => {
+  test("worktree links are written in the format the runner reads them in", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "links");
+    mkdirSync(dir, { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "links",
+      existingPath: dir,
+      worktreeLinks: ".venv dashboard/node_modules",
+    });
+    expect(result.ok).toBe(true);
+    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe(".venv dashboard/node_modules");
+  });
+
+  test("both keys at once, over a config that already has comments and other keys", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "both");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(
+      join(dir, ".aide", "config"),
+      "# personal — kept out of git\nAIDE_INSTALL_CMD=./install.sh\nAIDE_WORKTREE_LINKS=old\n",
+    );
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "both",
+      existingPath: dir,
+      specsPath: "/repos/aide-specs/both",
+      worktreeLinks: ".venv",
+    });
+    expect(result.ok).toBe(true);
+    const text = readFileSync(join(dir, ".aide", "config"), "utf-8");
+    expect(text).toContain("# personal — kept out of git");
+    expect(configValue(dir, "AIDE_INSTALL_CMD")).toBe("./install.sh");
+    expect(configValue(dir, "AIDE_SPECS_PATH")).toBe("/repos/aide-specs/both");
+    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBe(".venv");
+    // Once each: two lines for one key is a file whose meaning depends
+    // on which reader you ask.
+    expect(text.match(/^AIDE_WORKTREE_LINKS=/gm)!.length).toBe(1);
+    expect(text.match(/^AIDE_SPECS_PATH=/gm)!.length).toBe(1);
+  });
+
+  test("an unusable worktree-links value is refused before it is written", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "refused");
+    mkdirSync(dir, { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "refused",
+      existingPath: dir,
+      worktreeLinks: "/etc",
+    });
+    expect(result.ok).toBe(false);
+    const step = result.steps.find((s) => s.step === "worktreeLinks")!;
+    expect(step.ok).toBe(false);
+    expect(step.error).toContain("/etc");
+    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
+  });
+
+  test("no worktree links means no key is written for them", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "quiet");
+    mkdirSync(dir, { recursive: true });
+    await addProject(fakeGit({}).run, projectsRoot, {
+      name: "quiet",
+      existingPath: dir,
+      specsPath: "/somewhere",
+    });
+    expect(configValue(dir, "AIDE_WORKTREE_LINKS")).toBeNull();
   });
 });

@@ -11,6 +11,8 @@
   - [The token](#the-token)
   - [Caps](#caps)
   - [Which AI runs a step (spec 125)](#which-ai-runs-a-step-spec-125)
+  - [Adding and removing a project](#adding-and-removing-a-project)
+    - [Whether a run can start there (spec 138)](#whether-a-run-can-start-there-spec-138)
   - [How many run at once](#how-many-run-at-once)
   - [Gates and notifications](#gates-and-notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
@@ -433,6 +435,64 @@ optionally a specs root and a one-line description. It writes a minimal
 manifest — the name and that description, nothing else — only when the
 checkout has none; filling in the rest is `/aide-manifest`'s job
 afterwards, and the form says so.
+
+#### Whether a run can start there (spec 138)
+
+Add answered "added" and nothing else, and the things that decide
+whether `aide-run-spec` will START were invisible until Run was pressed
+and the run refused. Skjer, added 2026-08-20, is the case: on the
+allowlist, checkout where the form said, minimal manifest written — and
+unable to run, because the `.aide/` the Add itself had just made was
+untracked, the checkout stood on a feature branch whose upstream was
+gone, no specs root had been named, and no worktree links were set.
+
+So the answer says two things now, and keeps them apart. `ok` means the
+registration completed. `readiness.canRun` means a run would start. Both
+were asked of Skjer's add and only the first was true — and folding them
+into one would have reported a checkout that IS on disk as an add to try
+again.
+
+The form asks for one thing more than it used to: **Worktree links**,
+the space-separated repo-relative paths a run has to symlink into its
+worktree because git does not carry them (`node_modules`, `.venv`). A
+run works in a `git worktree`, which checks out TRACKED files only, so a
+project whose test command lives behind a gitignored path fails in every
+run for a reason that has nothing to do with its change. Nothing can
+derive which paths those are, so the form asks; leaving it empty is
+normal and is reported as a note rather than a fault.
+
+The checks are `aide-run-spec`'s own prerequisites, read-only, taken
+after the Add has written its files — the `.aide` written a second
+earlier is part of what the runner will see:
+
+| Check | Blocks a run when |
+|-------|-------------------|
+| `gitRoot` | the project directory is no repository, or is inside a bigger one — a run would branch and push that one |
+| `specsRoot` | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory |
+| `specsRepo` | that specs root is in no git repository, so nothing would commit the spec a run writes |
+| `clean` | a participating repository has uncommitted or untracked files; the paths are named |
+| `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out |
+| `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there |
+
+`clean` and `defaultBranch` are asked of **every** repository a run
+touches — the project's, and the specs repo when the specs live
+elsewhere — because the runner refuses on either of them. A checkout on
+a feature branch is reported and does not block: the runner puts a clean
+checkout on its default branch itself.
+
+Nothing in the assessment mutates anything: no branch is switched, no
+directory made, no file committed. That is also why the answer can go
+stale. A tree clean when the project was added is a tree somebody can
+dirty a minute later, and Run says so at the time — this is a preflight
+check, not a promise.
+
+The result is shown where Save was pressed. With script it goes into the
+form's own slot and the page stays put, because the Specs root and
+Worktree links fields on that page are usually what fixes it and saving
+again re-assesses. Without script the redirect carries the same sentence
+to `/projects` in the query string, where the page renders it. The
+sentence is built once, on the server, so the two modes cannot drift
+apart.
 
 Remove takes the project off the allowlist and off this dashboard, and
 that is all it does: the checkout and the specs root stay on disk,
