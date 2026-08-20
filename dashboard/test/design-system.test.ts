@@ -571,9 +571,10 @@ describe("Resolve (spec 106)", () => {
 
   test("a refusal that resolving would not fix does not offer it", () => {
     // The three the merge route can produce beside a conflict. None of
-    // them is a merge a step could sit down and finish.
+    // them is a merge a step could sit down and finish. (A dirty tree
+    // was a fourth until spec 144 stopped it from refusing anything.)
     for (const error of [
-      "the tree is dirty in /repos/aide — commit or stash it first",
+      "cannot fast-forward main in /repos/aide — merge it by hand",
       "aide/102 is not on origin in /repos/aide — there is nothing left to merge",
       "merged locally in /repos/aide, but the push of main failed",
     ]) {

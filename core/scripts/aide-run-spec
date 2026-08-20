@@ -385,15 +385,6 @@ case " $DEPENDENCY_GATED_STEPS " in
     ;;
 esac
 
-for root in "${roots[@]}"; do
-  if [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ]; then
-    label="project"
-    [ "$root" = "$specs_repo" ] && label="specs"
-    [ "$root" != "$project_root" ] && [ "$root" != "$specs_repo" ] && label="extra project"
-    refuse "the $label tree is dirty: $root"
-  fi
-done
-
 # The main checkout is put back ON its default branch and never taken off
 # it again. The switch is NOT a courtesy: a checkout left on `aide/<spec>`
 # by an older run — a cancel, or any refusal after the branch block —

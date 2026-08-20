@@ -498,8 +498,8 @@ async function submitProjectChange(form: HTMLFormElement, event: Event): Promise
       // Spec 138: an Add that succeeded has something to SAY — whether
       // a run can start in the project just registered, and every
       // reason it cannot. Navigating would throw that away, which is
-      // exactly what hid Skjer's dirty tree and missing specs root
-      // until someone pressed Run. So it stays here: on the page Save
+      // exactly what hid Skjer's missing specs root and dangling
+      // default branch until someone pressed Run. So it stays here: on the page Save
       // was pressed, whose Specs root and Worktree links fields are
       // usually what fixes it, and where saving again re-assesses.
       const note = body?.readiness?.note;

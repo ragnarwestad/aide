@@ -92,12 +92,15 @@ two lists themselves still have to be edited by hand together (spec
 has no paired test at all.** `dashboard/src/project-admin.ts`'s
 `assessProjectReadiness()` mirrors, in TypeScript, the read-only
 prerequisites `core/scripts/aide-run-spec` itself enforces before a run
-starts — clean tree, resolvable default branch, worktree-link sources
-that exist. The two are kept in sync by hand; unlike `WORKFLOW_STEPS`
-and `DEPENDENCY_GATED_STEPS`, no test reads both sides and asserts they
+starts — resolvable default branch, worktree-link sources that exist.
+The two are kept in sync by hand; unlike `WORKFLOW_STEPS` and
+`DEPENDENCY_GATED_STEPS`, no test reads both sides and asserts they
 agree (spec 138). A change to one of the runner's prerequisites needs a
 matching change in `assessProjectReadiness()`, checked by inspection
-until a shared-source test exists.
+until a shared-source test exists. Spec 144 is what that costs when it
+is forgotten in the other direction: a clean tree was on both lists,
+the runner stopped requiring one, and a readiness check left behind
+would have gone on warning about a refusal that no longer happens.
 
 **`DEPENDENCY_GATED_STEPS` is the second list of that shape (spec 122),
 and it works the same way.** `implement`, `resolve` and `archive` are
@@ -130,9 +133,8 @@ touches"). The run only watches, commits and pushes the roots it knows
 about: spec 81's own implement step wrote to a third repository nobody
 had told it about, and that half was left uncommitted on the machine
 while the result reported success. A named repo gets exactly the same
-treatment as the others — checked for a clean tree first, branched,
-committed, pushed — and a name that is already a root is ignored rather
-than watched twice (spec 83). Since spec 91 the run also **names each
+treatment as the others — branched, committed, pushed — and a name that
+is already a root is ignored rather than watched twice (spec 83). Since spec 91 the run also **names each
 passenger's worktree in the prompt**: a passenger is addressed by
 absolute path and nothing else, so a step that was not told would write
 into the main checkout and the commit loop would commit nothing.

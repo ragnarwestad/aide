@@ -500,21 +500,26 @@ earlier is part of what the runner will see:
 | `gitRoot` | the project directory is no repository, or is inside a bigger one — a run would branch and push that one |
 | `specsRoot` | the configured `AIDE_SPECS_PATH`, or `<project>/specs` when none was given, is not a directory |
 | `specsRepo` | that specs root is in no git repository, so nothing would commit the spec a run writes |
-| `clean` | a participating repository has uncommitted or untracked files; the paths are named |
 | `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out |
 | `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there |
 
-`clean` and `defaultBranch` are asked of **every** repository a run
-touches — the project's, and the specs repo when the specs live
-elsewhere — because the runner refuses on either of them. A checkout on
-a feature branch is reported and does not block: the runner puts a clean
-checkout on its default branch itself.
+`defaultBranch` is asked of **every** repository a run touches — the
+project's, and the specs repo when the specs live elsewhere — because
+the runner refuses on it in any of them. A checkout on a feature branch
+is reported and does not block: the runner puts the checkout on its
+default branch itself.
+
+There was a `clean` check beside it until spec 144, refusing a
+repository with uncommitted or untracked files. The runner stopped
+refusing over that, so this stopped asking: a run reads origin's default
+branch into a worktree of its own, and what somebody left uncommitted in
+the main checkout reaches nothing.
 
 Nothing in the assessment mutates anything: no branch is switched, no
 directory made, no file committed. That is also why the answer can go
-stale. A tree clean when the project was added is a tree somebody can
-dirty a minute later, and Run says so at the time — this is a preflight
-check, not a promise.
+stale. A default branch resolvable when the project was added is one
+somebody can delete or park a second worktree on a minute later, and Run
+says so at the time — this is a preflight check, not a promise.
 
 The result is shown where Save was pressed. With script it goes into the
 form's own slot and the page stays put, because the Specs root and
@@ -551,18 +556,16 @@ that a run walks. A creation that fails is not a refusal of the add:
 the step says what happened, and the `specsRoot` check below reads the
 real state either way.
 
-**The dirt Add itself made says what to do about it.** The `clean`
-check still refuses a dirty tree, because the tree genuinely is dirty
-and a run refuses one — but when every dirty path is one this Add just
-wrote, the sentence names both ways out: commit it, or name it in
-`.git/info/exclude` to leave it untracked. Neither is done here. A
-manifest belongs in git in a project of one's own and out of it in an
-employer's checkout, and nothing in an Add says which; `.git/info/exclude`
-was simply written down nowhere. A dirty file that is NOT Add's own
-keeps the plain wording — it must not be described as something Add
-wrote, and must not be hidden either — and so does a file git already
-TRACKS, since excluding one does nothing: the offer is made for
-untracked paths alone.
+**The third hand step is gone rather than automated.** Appending
+`.aide/` to `.git/info/exclude` was needed because the untracked
+manifest Add had just written made the tree dirty, and a dirty tree
+refused the run. Spec 140 answered that by naming both ways out of it
+in the message — commit it, or exclude it — and spec 144 removed the
+refusal itself, so there is nothing left to get out of. Where a manifest
+belongs is still a question with two answers (in git in a project of
+one's own, out of it in an employer's checkout) and still nothing an
+Add can decide; it is now a question nobody is forced to answer before
+running anything.
 
 **Worktree links are suggested from the checkout's own `.gitignore`.**
 Nothing can derive which gitignored paths a project's commands need,
@@ -790,13 +793,17 @@ and pushes, one repo at a time:
   aborted, so no half-merged tree is left behind — the same shape
   `aide-run-spec` already uses when it brings a reused branch up to
   date.
-- **A dirty tree refuses before anything touches history.** A lock
-  against a concurrent run is still unnecessary, though not for the
-  reason it once was: a run no longer dirties the main tree at all,
-  since it works in a worktree of its own and only ever fast-forwards
-  this one. What the two can collide over is git's `index.lock`, and
-  there the run yields — its pull is a courtesy, recorded and never
-  fatal.
+- **A dirty tree decides nothing (spec 144).** It used to refuse
+  before anything touched history, back when whichever side got to the
+  checkout first left it dirty. A run no longer dirties the main tree
+  at all — it works in a worktree of its own and only ever
+  fast-forwards this one — so the refusal only ever stopped merges over
+  somebody's unrelated uncommitted file. The `switch`, `pull` and
+  `merge` write nothing but what differs between the commits, and a
+  file that genuinely collides raises git's own error instead of a
+  guess made in advance. What the two sides can still collide over is
+  git's `index.lock`, and there the run yields — its pull is a
+  courtesy, recorded and never fatal.
 - **`index.lock` is not a conflict.** A merge that loses that race used
   to be refused with "cannot fast-forward main — merge it by hand",
   which is the same sentence a genuinely diverged base gets. The pull
@@ -847,9 +854,9 @@ Merge, so the resolution is a diff they look at first. The default
 branch is never touched by the step.
 
 - **It is offered for a conflict and nothing else.** Every other
-  refusal here — a dirty tree, a branch gone from origin, a base that
-  will not fast-forward, a failed push — is one a resolve step could
-  not finish, and the control is absent for all of them. The gate is a
+  refusal here — a branch gone from origin, a base that will not
+  fast-forward, a failed push — is one a resolve step could not finish,
+  and the control is absent for all of them. The gate is a
   structured `reason` field on the merge result, carried to the page as
   `errorReason=conflict`, never a match against the refusal sentence:
   that text is joined across repos before the page sees it, and a

@@ -53,10 +53,9 @@ export interface RepoMergeResult {
    *  the row offering the same doomed press for the rest of the 30 s
    *  TTL. 54 of the 75 refusals in the log were this one.
    *
-   *  Every other refusal here (a dirty tree, a base that will not
-   *  fast-forward, a failed push) leaves it unset, and so does a merge
-   *  that went through — nothing can be done about any of them but by
-   *  hand.
+   *  Every other refusal here (a base that will not fast-forward, a
+   *  failed push) leaves it unset, and so does a merge that went
+   *  through — nothing can be done about any of them but by hand.
    *
    *  `error` stays the sentence a person reads, and the page keeps
    *  showing that. This field exists so the page or the server can act
@@ -97,22 +96,21 @@ export async function mergeBranchIntoDefault(
   base: string,
 ): Promise<RepoMergeResult> {
   try {
-    // 1. A dirty tree is refused BEFORE anything that could touch
-    //    history. No lock is needed between this and a headless run,
-    //    but the reason changed with spec 91 and the old one is worth
-    //    not believing: it used to be that whichever side got there
-    //    first left the tree dirty, so the other refused. A run no
-    //    longer dirties the main tree at all — it works in a worktree of
-    //    its own and only ever fast-forwards this one. What the two can
-    //    still collide over is `index.lock`, and there the run is the
-    //    side that yields: its pull is a courtesy, recorded as
-    //    `pullError` and never fatal, while a merge that loses the race
-    //    is a named refusal the reader sees.
-    const status = await run(root, ["status", "--porcelain"]);
-    if (status.code !== 0) return refuse(root, `cannot read the working tree in ${root}`);
-    if (status.stdout.trim()) return refuse(root, `the tree is dirty in ${root} — commit or stash it first`);
+    // The state of the working tree is not asked about at all (spec
+    // 144). It was, and refused: whoever got to the checkout first left
+    // it dirty and the other side backed off. Spec 91 ended that — a
+    // run works in a worktree of its own and only ever fast-forwards
+    // this one — and an unrelated uncommitted file then stopped merges
+    // for no reason anybody could act on. The three commands below
+    // write only what differs between the commits, so a file that has
+    // nothing to do with the merge is untouched, and one that DOES
+    // collide raises git's own error rather than a guess made in
+    // advance. What the two sides can still collide over is
+    // `index.lock`, and there the run is the side that yields: its pull
+    // is a courtesy, recorded as `pullError` and never fatal, while a
+    // merge that loses the race is a named refusal the reader sees.
 
-    // 2. Is there anything to merge at all? Since step 7 deletes the
+    // 1. Is there anything to merge at all? Since step 6 deletes the
     //    branch, this button will be pressed on a branch that is
     //    already gone — a second click, or someone who removed it by
     //    hand. Merging an unresolvable ref failed and was reported as a
@@ -128,11 +126,11 @@ export async function mergeBranchIntoDefault(
       };
     }
 
-    // 3. Best effort, exactly as `isMerged()` does it: whatever the
+    // 2. Best effort, exactly as `isMerged()` does it: whatever the
     //    checkout already knows beats no answer at all.
     await run(root, ["fetch", "--quiet", "origin", base, branch]);
 
-    // 4. Stand on the default branch, and bring it up to origin's. A
+    // 3. Stand on the default branch, and bring it up to origin's. A
     //    push from a base that is behind would be rejected anyway, and
     //    a merge onto a stale base is a merge nobody reviewed.
     const switched = await run(root, ["switch", "-q", base]);
@@ -150,7 +148,7 @@ export async function mergeBranchIntoDefault(
       if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
     }
 
-    // 5-6. `refs/remotes/origin/<branch>`, never a local `<branch>`.
+    // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
     //      This host is not the machine `aide-run-spec` ran on, so a
     //      local ref of that name may be absent, or left over from an
     //      older run of the same spec. The remote-tracking ref is the
@@ -168,7 +166,7 @@ export async function mergeBranchIntoDefault(
       }
     }
 
-    // 7. `isMerged()` only trusts what reached origin, so a merge this
+    // 6. `isMerged()` only trusts what reached origin, so a merge this
     //    action does not push would show as "not merged" on the very
     //    page that triggered it. A push that fails is REPORTED and
     //    never rolled back — `aide-run-spec`'s own precedent is that a
@@ -178,7 +176,7 @@ export async function mergeBranchIntoDefault(
       return refuse(root, `merged locally in ${root}, but the push of ${base} failed`);
     }
 
-    // 8. A merged branch left on origin is what made spec 92's
+    // 7. A merged branch left on origin is what made spec 92's
     //    dependency guard refuse a fully-merged spec three times
     //    (2026-08-18): that guard asks origin directly, and a branch
     //    still there reads as "not merged yet". AFTER the push, never

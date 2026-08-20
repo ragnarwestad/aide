@@ -148,9 +148,11 @@ aide-run-spec --project-dir ~/develop/myproject --command analyze --spec 81 \
               [--worktree-base ~/aide-worktrees]
 ```
 
-It refuses to start when either git root is dirty, when the spec folder
-does not exist, or when a required value is missing; `--permission-mode`
-is never defaulted, because the most dangerous knob has to be typed out
+It refuses to start when the spec folder does not exist or when a
+required value is missing — but not over a dirty checkout: the work
+happens in a worktree cut from origin's default branch, so what somebody
+left uncommitted in the main checkout is their business and stops
+nobody. `--permission-mode` is never defaulted, because the most dangerous knob has to be typed out
 by whoever starts the run. It enforces its own wall clock (SIGTERM to
 the process group, then SIGKILL), commits whatever the step managed to
 write in BOTH roots — the project and the specs repo — and writes one
