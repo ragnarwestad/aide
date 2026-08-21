@@ -458,13 +458,21 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // same source as every other step. `/aide-create` writes
   // `Workflow steps completed: create` into 4-status.md, so a created
   // spec says so — and the line is a report, never a box to tick.
-  test("a created spec reads create as done, and offers no box for it (spec 116)", async () => {
+  // Its box is ticked and disabled since 2026-08-21 — the hole where
+  // the other four have one made the line read as a different kind of
+  // thing. What must still hold is that no press can post it.
+  test("a created spec reads create as done, and its box cannot be posted (spec 116)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     ran(dir, ["create"]);
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
     expect(create).toContain("b-done");
-    expect(specControls(html, "81-queue-and-runner")).not.toContain('value="create"');
+    const controls = specControls(html, "81-queue-and-runner");
+    expect(controls).toContain('data-phase="create"');
+    // Ticked, disabled, and carrying no field name — three reasons a
+    // press can never send `steps=create`.
+    expect(controls).toMatch(/<input type="checkbox" value="create" checked disabled/);
+    expect(controls).not.toContain('name="steps" value="create"');
   });
 
   test("ticking two phases queues ONE job with both, in workflow order (criterion 3)", async () => {

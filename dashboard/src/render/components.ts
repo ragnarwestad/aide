@@ -128,7 +128,11 @@ export function phaseChip(o: {
   /** What the reader sees. */
   label: string;
   /** The checkbox's field name: `steps` for a phase, `extraProjects`
-   *  for a repo the job should also watch. */
+   *  for a repo the job should also watch. EMPTY for a box that must
+   *  never be posted at all — the `create` line's, which is ticked and
+   *  disabled because the spec exists and cannot be created again. The
+   *  attribute is then left out rather than written empty: a field with
+   *  no name is not submitted, whatever a browser does with `disabled`. */
   name: string;
   /** `data-phase` for a phase, `data-project` for a repo. */
   dataAttr: string;
@@ -169,7 +173,7 @@ export function phaseChip(o: {
     // `checked` directly after `value`, before the two attributes that
     // are about plumbing rather than state: what a box SAYS is read
     // together, in markup as on the page.
-    `<input type="checkbox" name="${o.name}" value="${esc(o.value)}"` +
+    `<input type="checkbox"${o.name ? ` name="${esc(o.name)}"` : ""} value="${esc(o.value)}"` +
     `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}` +
     `${o.form ? ` form="${esc(o.form)}"` : ""}` +
     `${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>` +
