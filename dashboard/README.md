@@ -1240,6 +1240,36 @@ empty spec list) stop filling the viewport. It now sits on `body`.
 
 ## Deploying
 
+### HTTPS, and why it is half-done
+
+The serving host answers on **two** addresses as of 2026-08-21, and only
+one of them works:
+
+- `http://100.115.106.17:8788` — what the launchd job binds
+  (`--bind`), the address everything names today, plain HTTP.
+- `https://rw-macmini-m2.tail97789a.ts.net/` — a `tailscale serve`
+  proxy set up by hand the same day. TLS terminates correctly with a
+  certificate Tailscale renews itself, and the address answers **502**.
+
+The 502 is the whole of what is left. `tailscale serve` was pointed
+first at `127.0.0.1:8788`, which the server does not listen on, and
+then at the tailnet address, which tailscaled will not proxy to
+itself — 75 seconds and a 502. The server has to bind localhost for
+the proxy to reach it, and that means giving up the tailnet address as
+a way in, which is a decision with a migration behind it: bookmarks,
+the per-origin token cookie, `AIDE_RUN_URL`, and every page that
+names `:8788`.
+
+**Spec 172 is that work.** Until it runs, the proxy is a door that
+leads nowhere and harms nothing — leave it or take it down with
+`tailscale serve --https=443 off`. Two tailnet settings had to be
+enabled for it at all, both in the admin console: **Serve**, and
+**HTTPS Certificates** under DNS.
+
+Why it matters beyond a nicer URL: a service worker needs a secure
+context, so the dashboard cannot be installed as an app on a phone or
+a desktop until this lands.
+
 ### On a second host
 
 `MINI=<host> make install-serve` clones or pulls the repo there (the
