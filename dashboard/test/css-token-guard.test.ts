@@ -221,7 +221,7 @@ const COMPONENTS = [
  *  Cancel, Merge or the refusal display in a browser, with no type
  *  error to catch it. */
 const JS_HOOKS = [
-  "rowrun", "actionform", "mergeform", "resolveform",
+  "rowrun", "actionform", "mergeform",
   "refused", "refusal", "newspec", "newspecform", "frow", "factions",
   // spec 112: the Projects panel — the Add form and one Remove per
   // allowlisted project.
@@ -329,7 +329,7 @@ describe("render files use the component vocabulary and nothing else", () => {
 // suite would notice one creeping back.
 
 describe("the space between two controls comes from their container", () => {
-  const GAPLESS = [".mergeform", ".actionform", ".resolveform", ".extra"];
+  const GAPLESS = [".mergeform", ".actionform", ".extra"];
 
   for (const cls of GAPLESS) {
     test(`${cls} declares no margin of its own`, () => {

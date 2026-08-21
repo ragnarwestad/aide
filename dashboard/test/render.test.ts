@@ -549,7 +549,6 @@ describe("the unmerged badge (criteria 1-4)", () => {
     ["analyze", "analyzing", "queued to analyze"],
     ["review-plan", "reviewing", "queued to review"],
     ["implement", "implementing", "queued to implement"],
-    ["resolve", "resolving", "queued to resolve"],
     ["archive", "archiving", "queued to archive"],
   ])("a %s job's branch badge reads %s (spec 161)", (step, running, queued) => {
     const run = queueRows({ branchUrls: at(false), state: "running", steps: [step], stepIndex: 0 });
@@ -4730,59 +4729,39 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     }
   });
 
-  // Criterion 7. The Resolve control used to need a query string the
-  // Merge button's own 303 wrote. A landing that nobody pressed has no
-  // browser to redirect, so the reason is stored on the job and read off
-  // the row — on this request and on every later one.
-  test("Resolve is drawn from the job's own stored errorReason (spec 149)", () => {
-    const conflicted = [
-      row({
-        id: "j1",
-        specFolder: "124-stack",
-        state: "done",
-        branchUrls: branch,
-        error: "cannot merge — conflict",
-        errorReason: "conflict",
-      }),
-    ];
-    // No `error`/`errorSpec` in the page options at all.
-    const cell = actionCell(group(rows(conflicted, [target("124-stack")]), "124-stack"));
-    expect(cell).toContain(">Resolve</button>");
-    // And it is the row's primary action, the role Merge used to vacate
-    // for it (spec 135) — the one control on the page still drawn that
-    // way, now that every row has a button of its own (spec 157).
-    expect(cell.match(/<form[^>]*class="resolveform"[\s\S]*?<\/form>/)![0]).toContain('class="btn primary"');
-    // It stands INSTEAD of Run, not beside it: a Run here would be
-    // refused for the same conflict.
-    expect(cell).not.toMatch(/<button[^>]*form="rowrun/);
-    // A job with no stored reason offers the ordinary next phase.
+  test("a job with no stored reason offers the ordinary next phase", () => {
     const clean = [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })];
     const cleanCell = actionCell(group(rows(clean, [target("124-stack")]), "124-stack"));
-    expect(cleanCell).not.toContain(">Resolve</button>");
     // One phase, not the fresh spec's pair: this spec HAS a job.
     expect(cleanCell).toContain(">Analyze</button>");
   });
 
-  // Spec 153. The other place a conflict is found: not a landing, but
-  // the runner refusing a step at start because the spec's branch will
-  // not merge with the base. That job is `failed`, not `done`, and
-  // until 153 it carried no reason at all — the row read "press Run to
-  // try archive again", which would fail the same way. Nothing in the
-  // rendering changed for this; the field simply reaches the job now.
-  test("a step refused for a conflict offers Resolve too (spec 153)", () => {
-    const refused = [
-      row({
-        id: "j1",
-        specFolder: "124-stack",
-        state: "failed",
-        branchUrls: branch,
-        error: "cannot bring aide/124-stack up to date with origin/main in /repos/aide (conflict — merge it by hand)",
-        errorReason: "conflict",
-      }),
-    ];
-    const cell = actionCell(group(rows(refused, [target("124-stack")]), "124-stack"));
-    expect(cell).toContain(">Resolve</button>");
-    expect(cell).toContain('value="resolve"');
+  // Spec 171. The sixth phase is gone: a merge that fails is the
+  // merging step's problem, not a step of its own. A conflict archive
+  // could not resolve still SHOWS — the failure text names the branch —
+  // but the row offers what every other failed step offers, an ordinary
+  // re-run, and nothing on the page queues a `resolve` any more.
+  test("no Resolve control is drawn for any errorReason (spec 171)", () => {
+    for (const state of ["done", "failed"] as const) {
+      const conflicted = [
+        row({
+          id: "j1",
+          specFolder: "124-stack",
+          state,
+          branchUrls: branch,
+          error: "cannot bring aide/124-stack up to date with origin/main in /repos/aide (conflict — merge it by hand)",
+          errorReason: "conflict",
+        }),
+      ];
+      const html = rows(conflicted, [target("124-stack")]);
+      const cell = actionCell(group(html, "124-stack"));
+      expect(`${state}: ${cell.includes(">Resolve</button>")}`).toBe(`${state}: false`);
+      expect(`${state}: ${cell.includes("resolveform")}`).toBe(`${state}: false`);
+      expect(`${state}: ${cell.includes('value="resolve"')}`).toBe(`${state}: false`);
+      // And the ordinary way back in is there instead: the same Run
+      // control every other failed step's row carries.
+      expect(`${state}: ${/<button[^>]*form="rowrun/.test(cell)}`).toBe(`${state}: true`);
+    }
   });
 
   test("the rarely-set fields end the State cell, on no line of their own (criterion 11)", () => {
@@ -4806,10 +4785,15 @@ describe("spec 124: one phase list, and one action beside the state", () => {
       row({ id: "j1", specFolder: "124-stack", state: "done", errorReason: "conflict" }),
     ];
     const shut = actionCell(group(rows(conflicted, [target("124-stack")], { filter: {} }), "124-stack"));
-    expect(shut).toContain(">Resolve</button>");
+    // Since spec 171 a conflict draws no control of its own: the shut
+    // row offers the same ordinary re-run the open one does.
+    expect(shut).not.toContain(">Resolve</button>");
+    expect(shut).toMatch(/<button[^>]*form="rowrun/);
     expect(shut).not.toContain("/cancel");
-    expect(shut).not.toContain('class="rowrun"');
     // The choosing stays behind the fold: no boxes, no "also touches".
+    // The run form itself is there as the button's carrier — a shut row
+    // posts its phases as hidden fields, which is what the carrier is
+    // for; the boxes a reader would tick are what stays behind the fold.
     expect(shut).not.toContain('type="checkbox"');
     expect(shut).not.toContain('name="extraProjects"');
     // A spec with every phase behind it still offers Archive: a row
@@ -5526,7 +5510,8 @@ describe("an unmeasured cost is marked where it is totalled", () => {
 // buttons a column of their own, which pushed the whole table sideways;
 // 2026-08-19 moved the stack into the spec column, leading one phase
 // line and spanning the rest. Spec 149 then took Merge and Approve
-// away, and what is left — Run, Cancel, Resolve — is never two things
+// away, and spec 171 took Resolve; what is left — Run and Cancel — is
+// never two things
 // at once. So the row draws ONE control, in the State column, right
 // after the sentence it completes ("archive held back · Implement"),
 // and the phase lines take the left edge the stack vacated.
@@ -5564,7 +5549,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
    *  143 pinned it and where the action now joins the badge. */
   const state = (html: string) => cells(headRow(html))[2] ?? "";
   /** What the row's one control SAYS. `<button>` for Run, and the
-   *  component-built ones for Cancel and Resolve, whose label sits
+   *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
   const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
   const BUILT = ["analyze", "review-plan"];
@@ -5641,21 +5626,6 @@ describe("spec 157: the row's one action sits in the State column", () => {
     );
     expect(labels(state(html))).toEqual(["Cancel"]);
   });
-
-  // --- criteria 6, 7: Resolve replaces Run where a Run would only fail ------
-
-  for (const open of [true, false]) {
-    test(`a conflicted spec offers Resolve alone (${open ? "open" : "shut"}, criteria 6, 7)`, () => {
-      const html = rows(
-        [lead({ errorReason: "conflict", error: "cannot merge — conflict" })],
-        [target("157-one-action", { done: BUILT })],
-        { open },
-      );
-      expect(labels(state(html))).toEqual(["Resolve"]);
-      expect(state(html)).not.toContain("/cancel");
-      expect(state(html)).not.toMatch(/<button[^>]*form="rowrun/);
-    });
-  }
 
   // --- criterion 8: a shut row's Run carries its phases as hidden fields ----
 
@@ -5782,7 +5752,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
 // nothing for the colour to tell apart — it only has to say the action
 // is here. Cancel came along for the same reason plus one more: in dark
 // mode `--danger` (#E8836B) and `--accent` (#F0663F) sit close enough in
-// hue that an outlined Cancel and a filled Resolve said nothing
+// hue that an outlined Cancel and a filled button beside it said nothing
 // different to the eye (looked at live, 2026-08-21).
 describe("spec 161: the row's one action is primary", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
@@ -5816,12 +5786,15 @@ describe("spec 161: the row's one action is primary", () => {
     expect(html).not.toContain("danger");
   });
 
-  test("Resolve was already primary and stays so (criterion 7)", () => {
+  // Resolve was the third variant here until spec 171 retired it. A
+  // conflicted row now draws the ordinary Run, and it is filled like
+  // every other row's one action.
+  test("a conflicted row's Run is filled like any other (criterion 7)", () => {
     const html = rows(
       [lead({ errorReason: "conflict", error: "cannot merge — conflict" })],
       [target("161-one-variant", { done: ["analyze", "review-plan"] })],
     );
-    expect(html).toContain(">Resolve</button>");
+    expect(html).not.toContain(">Resolve</button>");
     expect(classes(html)).toEqual(["btn primary"]);
   });
 });
@@ -5937,7 +5910,7 @@ describe("spec 165: the phase lines read left to right", () => {
 
   test("a step outside the usual five widens the span with it (criterion 3)", () => {
     const html = rows([
-      row({ id: "j1", specFolder: "165-left-to-right", steps: ["resolve"], stepIndex: 0, state: "done" }),
+      row({ id: "j1", specFolder: "165-left-to-right", steps: ["manifest"], stepIndex: 0, state: "done" }),
     ]);
     expect(subRows(html)).toHaveLength(6);
     expect(subRow(html, "create")).toContain('<td class="toolcell" rowspan="6">');

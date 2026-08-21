@@ -107,7 +107,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
 - The line holds back only the steps that BUILD on merged code —
-  `implement`, `resolve`, `archive` (spec 122). `analyze`, `review-plan`
+  `implement`, `archive` (spec 122). `analyze`, `review-plan`
   and `create` write only the spec's own folder in the specs repo, so a
   whole chain of dependent specs can be analysed in parallel the moment
   it is queued. The trade-off is stated rather than hidden: a plan

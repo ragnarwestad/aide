@@ -51,10 +51,6 @@ const CONTROLS: Record<
   string,
   { label: string; pending: string; action: string; formClass: string; variant: string }
 > = {
-  resolveform: {
-    label: "Resolve", pending: "queueing…", formClass: "resolveform", variant: "primary",
-    action: "http://dash.test/api/queue",
-  },
   rowrun: {
     label: "Run", pending: "starting…", formClass: "rowrun", variant: "primary",
     action: "http://dash.test/api/queue",
@@ -1085,7 +1081,7 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
 describe("a pressed row button holds its size (spec 104)", () => {
   const OK = { ok: true, job: { id: "job-1" } };
 
-  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
+  for (const control of ["rowrun", "actionform"] as const) {
     test(`${control} swaps to the busy look without changing its label`, async () => {
       const { label, variant } = CONTROLS[control]!;
       let seen = { label: "", busy: false, variant: true, spinner: "" };
@@ -1135,7 +1131,7 @@ describe("a pressed row button holds its size (spec 104)", () => {
   // are on the phase LINES, and every button on the row is on the
   // header. So the spinner goes where it always went on a collapsed
   // row: inside the button that was pressed, for every control alike.
-  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
+  for (const control of ["rowrun", "actionform"] as const) {
     test(`${control} carries its own spinner, and asks no row for boxes`, async () => {
       let seen = { busy: false, spinner: "" };
       const h = harness((url) => {
@@ -1351,7 +1347,7 @@ describe("a press locks every control on its row (spec 151)", () => {
     const h = harness((url) => {
       if (url.includes("/api/queue")) seen = rowState(h);
       return { ok: true, body: OK };
-    }, "resolveform");
+    }, "actionform");
     await h.submit();
     expect(seen).toEqual({
       run: true, cancel: true, box: true, model: true, setAll: true, otherRow: false,
@@ -1376,7 +1372,7 @@ describe("a press locks every control on its row (spec 151)", () => {
         }
         return { ok: true, body: OK };
       },
-      "resolveform",
+      "actionform",
       "",
       { offRow: true },
     );
@@ -1393,7 +1389,7 @@ describe("a press locks every control on its row (spec 151)", () => {
   // acts only on `closest("a[data-nav]")`, which a `<button>` does not
   // match. Asserted rather than assumed, since nothing in the markup
   // says so.
-  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
+  for (const control of ["rowrun", "actionform"] as const) {
     test(`a press on ${control} does not fold the row open or shut`, () => {
       const h = harness(() => ({ ok: true, body: OK }), control);
       h.click();

@@ -21,7 +21,7 @@
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [Branches, and merging them](#branches-and-merging-them)
-    - [Letting aide resolve a conflict (spec 106)](#letting-aide-resolve-a-conflict-spec-106)
+    - [Archive resolves the conflict itself (spec 171)](#archive-resolves-the-conflict-itself-spec-171)
 - [How it looks (spec 102)](#how-it-looks-spec-102)
   - [Tokens](#tokens)
   - [Components](#components)
@@ -45,10 +45,12 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 `.aide/project.yaml` manifests, resolves each project's specs root,
 parses spec progress/phase from `4-status.md` files, and renders a
 small static site — an overview page plus one page per project, all
-sharing a left-column nav. Generated where the repos live and served on
-port 8788 by a small Bun server that also receives live aide-run
-events. Generator and server can run on the same machine or on two —
-no host is named anywhere in this repo.
+sharing a left-column nav. Generated where the repos live and served by
+a small Bun server that also receives live aide-run events; that server
+listens on localhost, and a `tailscale serve` proxy puts HTTPS in front
+of it (see [HTTPS, and the one address](#https-and-the-one-address)).
+Generator and server can run on the same machine or on two — no host is
+named anywhere in this repo.
 
 ## URL scheme
 
@@ -204,10 +206,16 @@ in `~/.claude/settings.json` as:
 {
   "hooks": {
     "UserPromptSubmit": [{ "hooks": [{ "type": "command",
-      "command": "AIDE_RUN_URL=\"http://<serving-host>:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
+      "command": "AIDE_RUN_URL=\"https://<serving-host>.<tailnet>.ts.net/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
   }
 }
 ```
+
+The address in that block changed with spec 172: it is the HTTPS one
+now, and the old `:8788` address answers on the serving host itself and
+nowhere else. A bookmark carrying `?token=` still works on the new
+address; a browser that was already signed in signs in once more,
+because the token cookie belongs to the origin it was set on.
 
 The job page (and `/api/aide-runs`) merge the stored runs with claude-usage's `/api/live` (same
 host — but if claude-usage there binds one address only, pass it
@@ -372,10 +380,9 @@ every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
 A spec's row is collapsed by default: name, title, one status line, the
-five phase pips, and at most one action button (Resolve, after a landing
-on that row was refused for a conflict). The four phase lines and every
-control — phase checkboxes, model dropdown, the also-touches field, Run,
-Cancel — sit behind the same chevron in front
+five phase pips, and at most one action button. The four phase lines
+and every control — phase checkboxes, model dropdown, the also-touches
+field, Run, Cancel — sit behind the same chevron in front
 of the name (spec 103). Expanding is a link and lives in the query
 string (`?open=<project>/<folder>,…`), which is what makes it survive
 the table's own five-second refresh, what makes it work with JavaScript
@@ -383,8 +390,8 @@ switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
 Every control here is a plain form first: ticking phases and pressing
-Run works with JavaScript switched off, and so do Cancel, Resolve,
-Create and expanding a row — each posts its form and follows a
+Run works with JavaScript switched off, and so do Cancel, Create and
+expanding a row — each posts its form and follows a
 303 back to the list. `queue-client.ts` is a layer ABOVE that floor,
 never the mechanism (see
 [what the script adds](#what-the-script-adds-specs-96-and-101)). It
@@ -444,7 +451,7 @@ afterwards is a report, not a cap. They live in the queue config
     "implement": "bypassPermissions",
     "default": "acceptEdits"
   },
-  "model": { "implement": "opus", "resolve": "sonnet", "default": "sonnet" },
+  "model": { "implement": "opus", "default": "sonnet" },
   "push": "branch",
   "concurrency": 2,
   "projects": ["aide", "aide-dashboard"],
@@ -770,8 +777,8 @@ question it exists for, "was this merge reviewed?", about any of our
 work. So the dashboard says what it did.
 
 `mergeEventUrl` in the queue config is where it says it. Every repo a
-step successfully lands — `create`, `analyze`, `review-plan`, `resolve`
-and `archive`, code roots and specs repos alike — sends one POST with a
+step successfully lands — `create`, `analyze`, `review-plan` and
+`archive`, code roots and specs repos alike — sends one POST with a
 flat JSON body:
 
 ```json
@@ -870,8 +877,8 @@ only offered once the row is expanded.
 ### What the script adds (specs 96 and 101)
 
 The page's own browser code does one thing to the controls: it keeps
-the reader where they are. Every one of them — Run, Cancel, Resolve,
-Create — is a real `<form>` that works on its own, and the script only
+the reader where they are. Every one of them — Run, Cancel, Create —
+is a real `<form>` that works on its own, and the script only
 intercepts.
 
 - **A press changes the button at once, without changing its width**
@@ -934,8 +941,8 @@ open and why — the one window that still exists being the code after
 `implement` and before `archive`.
 
 **Nothing here is merged by hand (spec 149).** Every step lands its own
-work the moment it finishes: `create`, `analyze`, `review-plan` and
-`resolve` merge the branch they pushed into that repo's default branch
+work the moment it finishes: `create`, `analyze` and `review-plan`
+merge the branch they pushed into that repo's default branch
 and delete it on origin; `implement` lands nothing, so the code stays
 on the branch for anyone who wants to read or test it first; `archive`
 merges every repo the spec's branch still exists in — the specs repo
@@ -943,9 +950,11 @@ first, the code last, so the code is the last word — runs
 `AIDE_INSTALL_CMD` after a code root exactly as the old Merge route did,
 and then archives. Leaving `archive` unticked IS the inspection
 point. A landing that cannot be made (a conflict with the default
-branch) is refused by name, the branch stays where it was, and the row
-offers Resolve. A branch whose label is a known project name is that
-project's code; a label that is not any project on this machine is the
+branch) is refused by name and the branch stays where it was — but
+`archive` settles most of those itself before it gets that far, see
+[Archive resolves the conflict itself](#archive-resolves-the-conflict-itself-spec-171).
+A branch whose label is a known project name is that project's code; a
+label that is not any project on this machine is the
 specs repo, which is a closed set rather than a guess
 (`.claude/rules/development.md`: "the run only watches ... the roots it
 knows about").
@@ -1025,43 +1034,59 @@ An unfinished spec may be merged — every step makes branches, and
 merging after `analyze` is a legitimate thing to want. It goes through
 the confirmed "merge anyway", so it is a choice rather than a surprise.
 
-### Letting aide resolve a conflict (spec 106)
+### Archive resolves the conflict itself (spec 171)
 
-A conflict refusal carries a second choice beside "merge it by hand":
-**Resolve**, drawn as the row's primary action because resolving is what
-to do next there (spec 135). Pressing it queues an ordinary job with one
-step, `resolve`, which does by machine what the by-hand routine did —
-in a worktree of the spec's branch, merge origin's default branch into
-it, resolve the conflicts, run the project's test command, and push the
-BRANCH — and the dashboard lands it, the way it lands any other step's
-work (spec 149). The default branch is never touched by the step
-itself.
+A spec's branch is brought up to date with the default branch before a
+step's own work starts, and every step but one treats a conflict there
+as a person's problem: the merge is aborted and the run refuses on the
+spot with `errorReason: "conflict"`. `archive` is the exception, because
+`archive` is the step that LANDS the branch — a merge that fails is the
+merging step's problem, not a phase of its own.
 
-- **It is offered for a conflict and nothing else.** Every other
-  refusal here — a branch gone from origin, a base that will not
-  fast-forward, a failed push — is one a resolve step could not finish,
-  and the control is absent for all of them. The gate is a
-  structured `reason` field on the merge result, carried to the page as
-  `errorReason=conflict`, never a match against the refusal sentence:
-  that text is joined across repos before the page sees it, and a
-  rewording would silently take the offer away.
-- **It is a queue step like the others.** Visible on the row and the
-  job page, costed, cancellable, under the same caps and concurrency
-  limit, on the model the config names for it (`sonnet` — a merge is
-  not an implement). The two guards that already exist hold for it
-  unchanged: no two jobs for one spec run at once, and a second
-  unfinished job covering the same step is refused.
+So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the
+worktree exactly as git left it: `MERGE_HEAD` set, the markers in the
+files. `/aide-archive`'s Step 1 checks for that and, when it finds it,
+follows `core/skills/aide-archive/references/resolve-conflict.md` before
+anything else — read the conflict, resolve it or decide not to, finish
+the merge with `git commit --no-edit`, run the project's own test
+command — and only then goes on to archive the spec. The default branch
+is never touched by the step itself; the dashboard lands the resolved
+branch afterwards, the way it lands any other step's work (spec 149).
+
+There was a sixth step for this until spec 171, `resolve`, with a
+Resolve button on the row that queued it. Both are gone: `resolve` is
+not in `WORKFLOW_STEPS`, so a post that names it is refused as an
+invalid entry in `steps`, and no control on the page draws off
+`errorReason` any more.
+
+- **The condition is the literal string `archive`, never a denylist.**
+  A step this got backwards would carry conflict markers into a commit,
+  which is worse than the refusal it replaced.
 - **It either finishes or puts the branch back.** Tests red, or a
-  conflict `/aide-resolve` will not decide, and the merge is undone to
-  the commit the branch started on. `aide-run-spec` pushes a repo only
-  when its `HEAD` moved, so a branch put back reaches origin at all —
-  no new rollback machinery, the gate that already exists. A step
+  conflict the skill will not decide, and the merge is undone to the
+  commit the branch started on. `aide-run-spec` pushes a repo only
+  when its `HEAD` moved, so a branch put back never reaches origin —
+  no new rollback machinery, the gate that already exists. A run
   interrupted mid-merge is aborted by the script before the commit
-  loop, so conflict markers are never committed.
+  loop, so conflict markers are never committed either way.
+- **The test command is the gate the design rests on.** A machine
+  resolving a conflict unattended and then landing it is defensible
+  because a resolution that does not pass the project's own tests does
+  not land.
+- **A conflict that still reaches a reader is one no machine could
+  settle.** The row shows it as the failure's own text — which names the
+  branch — beside the ordinary re-run control every other failed step
+  offers. Understanding it is a person's job, with the diff in front of
+  them.
+- **Archive's cost and duration are variable now.** It was a short,
+  cheap step; a run that meets a conflict is as big a piece of work as a
+  resolution ever was. No timeout change was needed — `resolve` used the
+  same `timeoutSec.default` (1200s) and the same model archive already
+  falls to.
 
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside
-the four (`explore`, `create`, `manifest`, `resolve` — valid steps the
+the four (`explore`, `create`, `manifest` — valid steps the
 form does not offer) is appended after them rather than dropped, so a
 run is never invisible (spec 86).
 
@@ -1146,7 +1171,7 @@ A gap between two interactive controls comes from the flex `gap` on
 the row that holds them, never from a `margin` on one of the
 components. Spec 102 fixed colours, sizes and radii the same way — one
 token, used everywhere — but left spacing per spot: `.mergeform`,
-`.actionform`, `.resolveform` and `.extra` each carried their own
+`.actionform` and `.extra` each carried their own
 `margin-left`, so a component that looked right beside one sibling
 carried the wrong (or doubled) gap into the next place it was used.
 `test/css-token-guard.test.ts` now asserts these classes declare no
@@ -1166,9 +1191,8 @@ earlier per-step lookup let a row show a step as tickable, and Run as
 clickable, while a job was already running on the spec — the queue
 would refuse the request, so the row promised something it could not
 keep. Every control that can act on a busy row — the phase boxes, the
-Run button, the model and "also touches" fields, and Resolve in the
-opened row's stack — reads the same flag, so a new control cannot
-forget to check it.
+Run button, and the model and "also touches" fields — reads the same
+flag, so a new control cannot forget to check it.
 
 Spec 160 narrowed that, and only that: the boxes for phases a RUNNING
 job has not reached yet stay live, so a reader who knows more at minute
@@ -1248,35 +1272,43 @@ empty spec list) stop filling the viewport. It now sits on `body`.
 
 ## Deploying
 
-### HTTPS, and why it is half-done
+### HTTPS, and the one address
 
-The serving host answers on **two** addresses as of 2026-08-21, and only
-one of them works:
+The dashboard is reached at `https://<serving-host>.<tailnet>.ts.net/`,
+and only there. The Bun server binds `127.0.0.1` and a `tailscale serve`
+proxy terminates TLS in front of it, with a certificate Tailscale issues
+and renews itself. Nothing in the server does any of this — no
+certificate handling, no scheme awareness, no host check anywhere in
+`serve.ts`.
 
-- `http://<tailnet-ip>:8788` — what the launchd job binds
-  (`--bind`), the address everything names today, plain HTTP.
-- `https://<host>.<tailnet>.ts.net/` — a `tailscale serve`
-  proxy set up by hand the same day. TLS terminates correctly with a
-  certificate Tailscale renews itself, and the address answers **502**.
+`make install-serve` sets the proxy up, so it is not a step anybody has
+to remember:
 
-The 502 is the whole of what is left. `tailscale serve` was pointed
-first at `127.0.0.1:8788`, which the server does not listen on, and
-then at the tailnet address, which tailscaled will not proxy to
-itself — 75 seconds and a 502. The server has to bind localhost for
-the proxy to reach it, and that means giving up the tailnet address as
-a way in, which is a decision with a migration behind it: bookmarks,
-the per-origin token cookie, `AIDE_RUN_URL`, and every page that
-names `:8788`.
+```bash
+tailscale serve --bg --https 443 http://127.0.0.1:8788
+```
 
-**Spec 172 is that work.** Until it runs, the proxy is a door that
-leads nowhere and harms nothing — leave it or take it down with
-`tailscale serve --https=443 off`. Two tailnet settings had to be
-enabled for it at all, both in the admin console: **Serve**, and
-**HTTPS Certificates** under DNS.
+`--bg` persists the rule in tailscaled's own state, which is why this
+needs no launchd job of its own and is safe to re-run — the deploy
+issues it again on every install.
+
+**`BIND` has to be `127.0.0.1`, and `install-serve` refuses anything
+else** when the serving host has tailscale on it. This is the one thing
+here with a measurement behind it (2026-08-21): tailscaled will not
+proxy to the host's own tailnet address — pointed there it hangs for 75
+seconds and answers 502. `0.0.0.0` would work for the proxy but would
+also open the dashboard on the house network, a door that does not exist
+today. Localhost closes the question. A host with no tailscale at all
+gets the plain deploy it always had, with a note saying so; only the
+wrong `BIND` is fatal, because that one fails silently.
+
+Two tailnet settings had to be enabled once, both in the admin console:
+**Serve**, and **HTTPS Certificates** under DNS. `TS_PORT` moves the
+proxy off 443 if the serving host needs that port for something else.
 
 Why it matters beyond a nicer URL: a service worker needs a secure
-context, so the dashboard cannot be installed as an app on a phone or
-a desktop until this lands.
+context, so the dashboard could not be installed as an app on a phone or
+a desktop until this landed.
 
 ### Installing it as an app (spec 173)
 
@@ -1331,14 +1363,15 @@ All paths are relative to the serving host's own `$HOME`.
 | Variable         | Default                       | What it is                              |
 |------------------|-------------------------------|-----------------------------------------|
 | `MINI`           | — required                    | the ssh target                          |
-| `PORT`           | `8788`                        | port to serve on                        |
+| `PORT`           | `8788`                        | port to serve on, behind the proxy      |
+| `TS_PORT`        | `443`                         | port tailscale serve terminates TLS on  |
 | `MINI_SRC`       | `develop/aide-dashboard`      | the checkout                            |
 | `REMOTE_STATE`   | `aide-dashboard`              | site, mirrors, queue state              |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun` | bun on that host                        |
 | `LABEL`          | `com.aide-dashboard.serve`    | launchd job label                       |
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`         | the allowlist's first-boot seed         |
 | `ROOT`           | unset                         | project root there (omitted when unset) |
-| `BIND`           | unset                         | address to bind (omitted when unset)    |
+| `BIND`           | unset                         | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 | `CLAUDE_USAGE`   | unset                         | claude-usage URL (omitted when unset)   |
 
 Publishing the generated site to that host is separate:

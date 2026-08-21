@@ -34,8 +34,7 @@ Available skills:
 - `/aide-review-plan` - Review the plan before implementation (feasibility, scope, coherence)
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD
-- `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
-- `/aide-resolve` - Finish a merge the dashboard refused for a conflict, and run the tests
+- `/aide-archive` - Resolve any merge conflict on the branch, then archive the spec and feed durable knowledge back into the docs
 - `/aide-to-pdf` - Render the specs to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 

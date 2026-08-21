@@ -239,7 +239,7 @@ THERE, not here (we eat our own dog food):
 - [x] Stage 1 — project manifest → spec 78 (done August 2026: `/aide-manifest` + `.aide/project.yaml`)
 - [x] Stage 2 — read-only dashboard → spec 79 (done August 2026: the
       `aide-dashboard` repo — static generator on the laptop reading
-      the manifests and specs roots, served on the mac mini, port 8788)
+      the manifests and specs roots, served on the serving host)
 - [x] Stage 3 — live process events → spec 80 (done August 2026:
       `aide-emit-run` hook + the aide-dashboard server's `/live`, enriched
       read-only from claude-usage's `/api/live`)
@@ -249,6 +249,11 @@ THERE, not here (we eat our own dog food):
       notifications and `push = none | branch | pr` drive it from the
       mac mini. `aide-emit-run --phase` reports the TDD boundaries from
       inside a run)
+- [x] Stage 5 — HTTPS and one address → spec 172 (done August 2026: the
+      server binds `127.0.0.1` and a `tailscale serve` proxy set up by
+      `make install-serve` puts TLS in front of it, so the dashboard has
+      one address and it is a secure context — which is what an
+      installable app needs)
 
 The wish list and the grounding are in spec 76 (archived).
 

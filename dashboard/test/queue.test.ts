@@ -1031,35 +1031,27 @@ describe("QueueStore.enqueueCreate", () => {
   });
 });
 
-// --- spec 106: resolve is a step like the others ------------------------------
+// --- spec 171: resolve is not a step at all -----------------------------------
 //
-// The Resolve control posts an ordinary job with
-// `steps: ["resolve"]`. Nothing about cost, caps, concurrency or model
-// selection is new — but the step has to be IN the vocabulary, or the
-// post is refused as "invalid entry in steps" before it reaches the
-// runner.
+// It was one until spec 171 folded the routine into `archive`. The
+// vocabulary is what enforces that: a post that still names it — an old
+// bookmark, a stale queue-config, a hand-written request — is refused as
+// an invalid entry in `steps`, before anything reaches the runner.
 
-describe("the resolve step (spec 106)", () => {
-  test("a job may be queued for it", () => {
+describe("the retired resolve step (spec 171)", () => {
+  test("a job may no longer be queued for it", () => {
     const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.steps).toEqual(["resolve"]);
+    expect(r.ok).toBe(false);
   });
 
-  test("it runs on the config's default model — a merge is not an implement", () => {
-    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: DEFAULTS });
+  test("archive is still queueable, and runs on the config's default model", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["archive"] }, { resolve, defaults: DEFAULTS });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.job.model.resolve).toBe("sonnet");
-  });
-
-  test("a config that names it explicitly is still honoured", () => {
-    const named = { ...DEFAULTS, model: { ...DEFAULTS.model, resolve: "sonnet" } };
-    const r = parseJobRequest({ ...REQ, steps: ["resolve"] }, { resolve, defaults: named });
-    expect(r.ok).toBe(true);
-    if (!r.ok) return;
-    expect(r.job.model.resolve).toBe("sonnet");
+    expect(r.job.steps).toEqual(["archive"]);
+    // A merge is not an implement: archive keeps the default model even
+    // now that it may have a resolution to do.
+    expect(r.job.model.archive).toBe("sonnet");
   });
 });
 

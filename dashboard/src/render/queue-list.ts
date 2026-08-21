@@ -493,7 +493,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   const lead = recent.find(inFlight) ?? recent[0]!;
   // The five, always, in order — a phase nobody has run yet still holds
   // its place, which is what makes progress readable at a glance. A
-  // step outside them (explore, manifest, resolve) is appended rather
+  // step outside them (explore, manifest) is appended rather
   // than dropped: a job that ran is never invisible. `create` is one of
   // the five since spec 116, so a create job lands on its own line at
   // the front rather than being appended after archive.
@@ -767,8 +767,9 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
     // Primary, like every row's one action (spec 161): `danger` was
     // supposed to set it apart, but in dark mode `--danger` and
     // `--accent` sit close enough in hue that an outlined Cancel and a
-    // filled Resolve said nothing different to the eye. And a cancelled
-    // run can be started again, so it was never what `danger` is for.
+    // filled button beside it said nothing different to the eye. And a
+    // cancelled run can be started again, so it was never what `danger`
+    // is for.
     btn({ label: "Cancel", pending: "cancelling…", variant: "primary" }) +
     `</form>`
   );
@@ -781,41 +782,6 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
 // `mergeForm`, `mergeReadyLabel` and `isCodeRepo` went with it —
 // `isCodeRepo` existed only so the button's own sentence could say
 // whether it would land the plan or the code.
-
-// The way out of the one refusal that HAS one (spec 106): a landing
-// that could not be made because the branch genuinely conflicts.
-//
-// It appears from the job's own stored `errorReason` since spec 149 — it
-// used to need a query string the Merge button's 303 wrote, which meant
-// one page load, in one browser, belonging to whoever pressed it. A
-// landing nobody pressed has no browser to redirect, so a conflict from
-// a headless run was invisible and unrecoverable from the page.
-//
-// It queues a job: a POST to /api/queue with the steps fixed, since this
-// control never lets a person pick them. Everything that follows — the
-// cost, the cancel, the caps, the model — is what any other step gets,
-// because it IS any other step.
-function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
-  const hidden =
-    tokenField(opts.token) +
-    filterFields(opts.filter) +
-    `<input type="hidden" name="project" value="${esc(g.project)}">` +
-    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    `<input type="hidden" name="steps" value="resolve">`;
-  return (
-    `<form method="post" action="/api/queue" class="resolveform">${hidden}` +
-    btn({
-      label: "Resolve",
-      pending: "queueing…",
-      title: "merge the default branch into the spec's branch, resolve, and run the tests",
-      // Primary, and only ever here: the form is drawn on one kind of
-      // row only — a landing refused for a conflict — and resolving is
-      // what to do next there (spec 135).
-      variant: "primary",
-    }) +
-    `</form>`
-  );
-}
 
 // Every repo the spec pushed to, each with its own compare link and its
 // own merge state. Never one link standing in for two: the two branches
@@ -1069,10 +1035,11 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 }
 
 // The one thing the row asks of the reader, beside the sentence that
-// says why (spec 157). Run, Cancel or Resolve — never two of them, and
-// nothing at all when there is nothing to run: no two of the three are
-// ever the right press at the same time, so a second one in the markup
-// could only ever be a greyed-out invitation.
+// says why (spec 157). Run or Cancel — never both, and nothing at all
+// when there is nothing to run: the two are never the right press at the
+// same time, so a second one in the markup could only ever be a
+// greyed-out invitation. There was a third, Resolve, until spec 171
+// folded resolving into `archive`.
 //
 // It sits in the State column now, after the badge, because the badge
 // already answers what is happening or what can happen next (spec 132)
@@ -1085,8 +1052,8 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 // several of them.
 //
 // The same function draws it open or shut. A collapsed row used to have
-// a narrower path of its own that offered Resolve and nothing else;
-// what the two differ in now is one branch, not two call sites.
+// a narrower path of its own; what the two differ in now is one branch,
+// not two call sites.
 //
 // The Run form is a carrier and nothing else: it holds the hidden
 // fields, and the button that submits it and the boxes that fill it are
@@ -1094,24 +1061,17 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 // 123 introduced for the model select.
 function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): string {
   const busy = specBusy(g);
-  // The one refusal with a way out — read off the row's own job since
-  // spec 149, not off the query string. A landing happens with nobody's
-  // browser attached, so the redirect that used to carry this reason
-  // never happens; and reading it from the job also settles by
-  // construction the thing the query string needed two halves to get
-  // right, that the reason belongs to THIS spec and no other.
+  // A conflict used to draw a Resolve control of its own here, off the
+  // job's stored `errorReason`. Spec 171 took it away: `archive`
+  // resolves a conflict with the default branch itself, so a conflict
+  // that survives to this row is one no machine could settle and there
+  // is no press that would settle it either. It shows as the failure's
+  // own text — which names the branch — and the row offers what every
+  // other failed step's row offers, an ordinary re-run.
   //
-  // A branch an earlier job left behind does not make a busy row
-  // resolvable: the step still running is writing to that very branch,
-  // and a resolve queued against it would collide with the run. So
-  // busy outranks a conflict, and Cancel is what a conflicted running
-  // row offers.
-  const conflict = g.lead?.errorReason === "conflict";
   // What a press would run, and therefore what the button says. There
-  // is none while a job is in flight (Cancel is the row's control
-  // then) and none where a Run would only be refused for the conflict
-  // the last landing was (Resolve stands in its place, spec 135).
-  const label = busy || conflict ? undefined : actionLabel(g);
+  // is none while a job is in flight: Cancel is the row's control then.
+  const label = busy ? undefined : actionLabel(g);
   // The form is a CARRIER: hidden fields only, hidden by CSS, with the
   // button and the phase boxes written outside its tags and reaching
   // it by `form="…"`. So it is drawn wherever something names it — an
@@ -1127,8 +1087,7 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
         `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
         // A SHUT row draws no phase boxes, so the phases a press would
         // run have nothing to be read off at submit time: they travel
-        // as hidden fields instead, exactly as `resolveForm` carries
-        // its one fixed step. An open row must NOT have them — its
+        // as hidden fields instead. An open row must NOT have them — its
         // boxes are the reader's own, and a hidden field beside them
         // would outvote a phase just unticked.
         (open || !label
@@ -1138,7 +1097,6 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
       : "";
   const primary = (() => {
     if (busy) return actionForm(g.lead!, opts.token, opts.filter);
-    if (conflict) return resolveForm(g, opts);
     if (!label) return "";
     // Primary, like every row's one action (spec 161). It was
     // secondary until then, on the argument that a column of primary

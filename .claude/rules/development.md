@@ -103,8 +103,8 @@ the runner stopped requiring one, and a readiness check left behind
 would have gone on warning about a refusal that no longer happens.
 
 **`DEPENDENCY_GATED_STEPS` is the second list of that shape (spec 122),
-and it works the same way.** `implement`, `resolve` and `archive` are
-the steps an unmerged dependency holds back; the other steps run
+and it works the same way.** `implement` and `archive` are the steps
+an unmerged dependency holds back; the other steps run
 regardless. Since spec 149 "merged" means ARCHIVED: the dependency's
 code lands when its `archive` step runs, so that is when a dependent
 spec's held-back steps are released. The bash string in `core/scripts/aide-run-spec` and the
@@ -116,30 +116,49 @@ reason on its row until the dependency merges); the script's copy is
 what decides whether a run started by hand is REFUSED.
 
 **No step's work is merged by hand (spec 149).** The dashboard lands
-each step's branch when the step reports success — `create`, `analyze`,
-`review-plan` and `resolve` merge into the repo's default branch and
-delete the branch on origin; `implement` lands nothing, so code waits
+each step's branch when the step reports success — `create`, `analyze`
+and `review-plan` merge into the repo's default branch and delete the
+branch on origin; `implement` lands nothing, so code waits
 on its branch until `archive`, which merges every repo the spec's
 branch still exists in (specs first, code last), runs `AIDE_INSTALL_CMD`
 after a code root, and then archives. There is no Merge or Approve button, no `gateAfter` and
 no `awaiting-approval` state; a landing refused for a conflict leaves
-the branch, records `errorReason: "conflict"` on the job, and offers
-`resolve` on the row. `landBranch` in `dashboard/src/serve.ts` is the
-one place all of this happens, under `mergeLock` per repo root.
+the branch and records `errorReason: "conflict"` on the job.
+`landBranch` in `dashboard/src/serve.ts` is the one place all of this
+happens, under `mergeLock` per repo root.
 
-**One step, `resolve`, can touch the worktree and fail to finish — the
-generic commit loop needed a guard for that.** Every other step either
-succeeds or refuses before touching the tree. `resolve` merges origin's
-default branch into the spec's branch inside the worktree and can be
-interrupted (crash, cancellation, a budget stop) after the merge opens
+**A merge that fails is the merging step's problem, not a phase of its
+own (spec 171).** There was a sixth step, `resolve`, that a conflicted
+row offered a button for; it is gone from `WORKFLOW_STEPS`,
+`DEPENDENCY_GATED_STEPS`, the row's controls and the skills. `archive`
+does the work instead: `update_branch_to_base()` in
+`core/scripts/aide-run-spec` hands `archive` — and only `archive` — the
+worktree with the merge OPEN (MERGE_HEAD set, the markers in the files)
+where every other step aborts and refuses on the spot, and
+`core/skills/aide-archive/SKILL.md`'s Step 1 follows
+`references/resolve-conflict.md` before it does anything else. **The
+condition is the literal string `archive`, never a denylist of the
+others** — a step this got backwards would carry conflict markers into a
+commit, which is worse than the refusal it replaced. The gate that makes
+a machine resolving a conflict unattended defensible is the project's
+own test command: a resolution that does not pass it puts the branch
+back where it was found, and nothing lands.
+
+**`archive` is therefore the one step that can touch the worktree and
+fail to finish — the generic commit loop needed a guard for that.**
+Every other step either succeeds or refuses before touching the tree.
+`archive` is handed an open merge and can be interrupted (crash,
+cancellation, a budget stop) after the merge opens
 but before the skill commits or aborts it. Left alone, the script's
 generic `git add -A` + commit loop would stage the conflict markers and
-commit them as the resolution. `core/scripts/aide-run-spec` now aborts
-an unfinished merge before that loop runs, but only when
-`command_name` is `resolve` — every other step is unaffected. The
+commit them as the resolution. `core/scripts/aide-run-spec` aborts an
+unfinished merge before that loop runs, but only when
+`command_name` is `archive` — every other step is unaffected. The
 "leaves the branch as it found it" contract for a failed resolution
 therefore holds structurally (the script's own abort), not only because
-the skill behaves well.
+the skill behaves well. One consequence to keep in mind: `archive` used
+to be a short, cheap step, and a run that meets a conflict is now as big
+a piece of work as a resolution ever was.
 
 **A repo beyond the project and its specs root has to be NAMED**, with
 `--extra-project-dir` (repeatable; the queue's form calls it "Also

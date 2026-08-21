@@ -1130,8 +1130,8 @@ def test_a_branch_that_has_diverged_from_origin_refuses_by_name(
     assert out["terminalReason"] == "refused"
     assert "diverged" in out["error"], out["error"]
     assert branch in out["error"]
-    # The refusal is not a conflict: no `resolve` step would finish it,
-    # so the row must not offer one.
+    # The refusal is not a conflict: no in-worktree resolution would
+    # finish it, so the row must not be told one could.
     assert "errorReason" not in out
     # And nothing local was thrown away.
     assert git(project, "rev-parse", branch) == ours
@@ -2093,8 +2093,8 @@ def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
 # the money is.
 #
 # Since spec 122 the guard runs only for the steps that BUILD on merged
-# code — implement, resolve, archive. Every test below therefore names
-# its command explicitly: the default `analyze` no longer reaches the
+# code — implement and archive. Every test below therefore names its
+# command explicitly: the default `analyze` no longer reaches the
 # guard at all, and a test left on the default would pass for the wrong
 # reason. The steps that write only the spec's own folder in the specs
 # repo (analyze, review-plan, create) have their own tests further down.
@@ -2404,13 +2404,12 @@ def test_review_plan_and_create_proceed_despite_an_unknown_or_self_dependency(
     assert out["terminalReason"] == "completed"
 
 
-@pytest.mark.parametrize("command", ["resolve", "archive"])
+@pytest.mark.parametrize("command", ["archive"])
 def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
     runner, workspace, fake_claude, local_origins, command
 ):
-    """Criterion 3: implement is not the only gated step. resolve merges
-    the default branch in, and archive moves the folder — both build on
-    what has landed."""
+    """Criterion 3: implement is not the only gated step. archive moves
+    the folder and lands the code — it builds on what has landed."""
     add_spec(workspace, "80-dependency")
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
@@ -2606,13 +2605,14 @@ def test_create_reports_no_folder_when_none_appeared(runner, workspace, fake_cla
     assert "specFolder" not in out, out
 
 
-# --- Spec 106: the resolve step ---------------------------------------------
+# --- Spec 171: archive meets the conflict ------------------------------------
 # Every other step treats a conflict between its branch and the default
-# branch as a human's problem and refuses. `resolve` is the step that
-# exists to BE that human: it is handed the conflicted worktree exactly
-# as git left it, and the skill inside it decides. The fork is narrow on
-# purpose — one command name, matched literally — because the routine it
-# forks is the one every other step depends on.
+# branch as a human's problem and refuses. `archive` is the step that
+# exists to BE that human (spec 171 folded the standalone `resolve` step
+# into it): it is handed the conflicted worktree exactly as git left it,
+# and the skill inside it decides. The fork is narrow on purpose — one
+# command name, matched literally — because the routine it forks is the
+# one every other step depends on.
 
 RESULT_ERROR = {
     "type": "result", "subtype": "error_during_execution", "is_error": True,
@@ -2645,13 +2645,13 @@ def conflicting_branch(workspace, published=False):
     return branch
 
 
-def test_resolve_is_handed_the_open_conflict_and_its_result_is_pushed(
+def test_archive_is_handed_the_open_conflict_and_its_result_is_pushed(
     runner, workspace, fake_claude, origin
 ):
-    """Criterion 5. The step lands in a worktree that is mid-merge, with
-    MERGE_HEAD set and the conflict markers still in the file — that is
-    the whole point of the step, and refusing before it starts is what
-    every other step does instead."""
+    """Criterion 1 (spec 171). Archive lands in a worktree that is
+    mid-merge, with MERGE_HEAD set and the conflict markers still in the
+    file — the resolution is archive's own first piece of work, and
+    refusing before it starts is what every other step does instead."""
     project = workspace["project"]
     branch = conflicting_branch(workspace, published=True)
     claude = fake_claude(
@@ -2666,7 +2666,7 @@ def test_resolve_is_handed_the_open_conflict_and_its_result_is_pushed(
         "git commit -q --no-edit\n"
         f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="resolve", push="branch")
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
     assert rc == 0, out
     assert out["ok"] is True, out
     merge_head = (workspace["project"].parent / "merge-head.txt")
@@ -2680,10 +2680,13 @@ def test_resolve_is_handed_the_open_conflict_and_its_result_is_pushed(
     assert is_ancestor(project, "main", branch), "main must now be contained in the branch"
 
 
-def test_after_a_resolve_the_default_branch_fast_forwards(runner, workspace, fake_claude, origin):
-    """Criterion 8. The point of pushing the branch is that the next
-    press of Merge finds a fast-forward — the same routine that refused
-    before now succeeds, because the branch changed, not the routine."""
+def test_after_an_archive_resolution_the_default_branch_fast_forwards(
+    runner, workspace, fake_claude, origin
+):
+    """Criterion 3 (spec 171). The point of pushing the branch is that
+    the landing that follows finds a fast-forward — the same routine that
+    refused before now succeeds, because the branch changed, not the
+    routine."""
     project = workspace["project"]
     branch = conflicting_branch(workspace, published=True)
     claude = fake_claude(
@@ -2693,7 +2696,7 @@ def test_after_a_resolve_the_default_branch_fast_forwards(runner, workspace, fak
         "git commit -q --no-edit\n"
         f"echo '{json.dumps(RESULT_OK)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="resolve", push="branch")
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
     assert rc == 0, out
     ff = subprocess.run(
         ["git", "-C", str(project), "merge", "-q", "--ff-only", branch],
@@ -2702,11 +2705,11 @@ def test_after_a_resolve_the_default_branch_fast_forwards(runner, workspace, fak
     assert ff.returncode == 0, ff.stderr
 
 
-def test_a_resolve_that_gives_up_leaves_the_branch_exactly_where_it_was(
+def test_an_archive_that_gives_up_leaves_the_branch_exactly_where_it_was(
     runner, workspace, fake_claude, origin
 ):
-    """Criteria 6 and 7. Tests red, or a conflict the skill will not
-    decide: the merge is undone, HEAD never moves, and the HEAD-moved
+    """Criterion 4 (spec 171). Tests red, or a conflict the skill will
+    not decide: the merge is undone, HEAD never moves, and the HEAD-moved
     push gate therefore publishes nothing. No new rollback machinery —
     the gate that already exists is the one that holds."""
     project = workspace["project"]
@@ -2717,7 +2720,7 @@ def test_a_resolve_that_gives_up_leaves_the_branch_exactly_where_it_was(
         "git merge --abort\n"
         f"echo '{json.dumps(RESULT_ERROR)}'"
     )
-    rc, out, _ = run(runner, workspace, claude, command="resolve", push="branch")
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
     assert out["ok"] is False, out
     # It gave up, which is not the same as never having started: the
     # step must have been handed the conflict before it decided.
@@ -2725,22 +2728,22 @@ def test_a_resolve_that_gives_up_leaves_the_branch_exactly_where_it_was(
     assert fake_claude.calls.exists(), "the step must have been invoked at all"
     assert git(project, "rev-parse", branch) == before, "the branch must be left exactly as it was found"
     assert git(origin["project"], "branch", "--list", branch) == "", \
-        "nothing may reach origin from a resolve that gave up"
+        "nothing may reach origin from a resolution that gave up"
 
 
-def test_a_resolve_that_walks_away_mid_merge_publishes_no_conflict_markers(
+def test_an_archive_that_walks_away_mid_merge_publishes_no_conflict_markers(
     runner, workspace, fake_claude, origin
 ):
-    """The step can die between opening the conflict and deciding — a
-    crash, a cancellation, a budget stop. The generic commit loop would
-    otherwise `git add -A` the conflict markers and commit them as the
-    merge, which is the half-merged tree the whole codebase refuses to
-    leave anywhere."""
+    """Criterion 5 (spec 171). Archive can die between opening the
+    conflict and deciding — a crash, a cancellation, a budget stop. The
+    generic commit loop would otherwise `git add -A` the conflict markers
+    and commit them as the merge, which is the half-merged tree the whole
+    codebase refuses to leave anywhere."""
     project = workspace["project"]
     branch = conflicting_branch(workspace, published=True)
     before = git(project, "rev-parse", branch)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_ERROR)}'")
-    rc, out, _ = run(runner, workspace, claude, command="resolve", push="branch")
+    rc, out, _ = run(runner, workspace, claude, command="archive", push="branch")
     assert out["terminalReason"] != "refused", out
     assert fake_claude.calls.exists(), "the step must have been invoked at all"
     assert git(project, "rev-parse", branch) == before, "an undecided merge must not be committed"
@@ -2748,11 +2751,12 @@ def test_a_resolve_that_walks_away_mid_merge_publishes_no_conflict_markers(
     assert git(origin["project"], "branch", "--list", branch) == ""
 
 
-@pytest.mark.parametrize("step", ["analyze", "implement", "archive"])
+@pytest.mark.parametrize("step", ["create", "analyze", "review-plan", "implement"])
 def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claude, step):
-    """Criterion 9. The fork is on the literal string `resolve` and
-    nothing else, so every step that refused yesterday refuses today —
-    a step let past a conflict would commit the markers."""
+    """Criterion 2 (spec 171). The fork is on the literal string
+    `archive` and nothing else, so every step that refused yesterday
+    refuses today — a step let past a conflict would commit the markers.
+    All four are named, not the two that happened to be here before."""
     project = workspace["project"]
     conflicting_branch(workspace)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
@@ -2763,10 +2767,10 @@ def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claud
     assert git(project, "status", "--porcelain") == ""
 
 
-def test_resolve_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
+def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     runner, workspace, fake_claude
 ):
-    """The fork must only bite on a real conflict. A `resolve` run on a
+    """The fork must only bite on a real conflict. An `archive` run on a
     branch that merges cleanly is an ordinary step."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
@@ -2776,9 +2780,23 @@ def test_resolve_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "later work on main")
     claude = specs_only_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="resolve")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert is_ancestor(project, "main", branch)
+
+
+def test_resolve_is_no_longer_a_command_this_script_will_run(runner, workspace, fake_claude):
+    """Criterion 8 (spec 171). The step is gone, not hidden: a caller
+    that still asks for it — an old dashboard, a shell history entry, a
+    queue-config left over from before — is refused by the same
+    --command check every other unknown word meets, before any money is
+    spent."""
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="resolve")
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "invalid --command" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
 # --- the step vocabulary lives in two files (spec 91's open flaw) ------------
