@@ -932,6 +932,15 @@ const busyReason = (g: SpecGroup): string =>
 // rule is read once per row and consulted per phase.
 function preTicked(g: SpecGroup): Set<string> {
   const done = new Set(g.done);
+  // A phase that was HELD BACK is not done, whatever the history says.
+  // The history is the record of steps that RAN (spec 154), and an
+  // archive that ran and declined to move the folder leaves a commit
+  // behind exactly like one that moved it. Counted as done, it left
+  // spec 159 with every phase ticked off, no next phase to suggest and
+  // therefore no button at all — beside a badge reading "archive held
+  // back", which is the one thing on the row that needed a press
+  // (2026-08-21).
+  for (const p of g.phases) if (p.heldBack) done.delete(p.step);
   const next = QUEUE_STEPS.find((s) => !done.has(s));
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];

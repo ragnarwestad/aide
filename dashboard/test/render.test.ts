@@ -5699,4 +5699,38 @@ describe("spec 157: the row's one action sits in the State column", () => {
       expect([c.length, c[c.length - 1]]).toEqual([6, ""]);
     }
   });
+
+  // Spec 159 landed with every phase in its git history — analyze,
+  // review-plan, implement AND archive — because the archive step DID
+  // run: it made its commit and then declined to move the folder. The
+  // row therefore had nothing left to suggest and drew no button at
+  // all, beside a badge reading "archive held back". The one thing on
+  // that row that needed a press was the one it did not offer.
+  test("a held-back archive is offered again, however the history reads", () => {
+    const html = rows(
+      [],
+      [
+        target("159-ci", {
+          done: ["analyze", "review-plan", "implement", "archive"],
+          archiveHeldBack: { reason: "the first real Actions run is unwatched" },
+        }),
+      ],
+    );
+    expect(labels(state(html))).toEqual(["Archive"]);
+    const posted = [...state(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
+      (m) => m[1],
+    );
+    expect(posted).toEqual(["archive"]);
+  });
+
+  // ...and a spec whose archive really did finish still offers nothing:
+  // the held-back note is what makes the difference, not the history.
+  test("an archive that finished leaves the row with nothing to press", () => {
+    const html = rows(
+      [],
+      [target("159-done", { done: ["analyze", "review-plan", "implement", "archive"] })],
+    );
+    expect(labels(state(html))).toEqual([]);
+  });
+
 });
