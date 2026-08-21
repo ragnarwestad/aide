@@ -361,6 +361,10 @@ def test_refuses_bad_arguments(runner, workspace, fake_claude, kwargs, fragment)
     assert rc == 2, out
     assert out["ok"] is False
     assert fragment in out["error"].lower()
+    # Spec 153: a refusal with nothing a machine can act on says nothing
+    # — the key is absent, not null and not empty. Same rule as
+    # `specFolder` and `tokens`.
+    assert "errorReason" not in out
     assert not fake_claude.calls.exists()
 
 
@@ -1033,6 +1037,97 @@ def test_a_reused_branch_keeps_its_own_work(runner, workspace, fake_claude):
     assert is_ancestor(project, "main", branch), "and main must be in there too"
 
 
+# --- spec 153: origin's copy of the branch, not this machine's ---------------
+# The `origin` fixture below points the FETCH url at a real GitHub
+# address (that is where the compare link comes from), so no test using
+# it can fetch. These need a remote that answers both ways.
+
+
+@pytest.fixture
+def fetchable_origin(workspace, tmp_path):
+    """A bare project origin reachable for fetch as well as push."""
+    bare = tmp_path / "fetchable-origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
+    git(workspace["project"], "remote", "add", "origin", str(bare))
+    git(workspace["project"], "push", "-q", "origin", "main")
+    return bare
+
+
+def test_a_reused_branch_is_taken_from_origin_not_from_this_checkout(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The branch is a shared thing; this machine's ref is one copy of it.
+    A resolve done anywhere else leaves the serving host at the old tip,
+    and reusing that ref re-runs the step against the code the conflict
+    was already resolved away from. Seen on spec 150 (2026-08-21): two
+    Runs refused for a conflict fixed and pushed an hour earlier."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "first.txt").write_text("the tip this machine knows\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "branch side")
+    behind = git(project, "rev-parse", "HEAD")
+    (project / "resolved-elsewhere.txt").write_text("pushed from another machine\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "work done elsewhere")
+    ahead = git(project, "rev-parse", "HEAD")
+    git(project, "push", "-q", "origin", branch)
+    # Rewind this checkout to where it would be if the newer commit had
+    # been made anywhere but here — remote-tracking ref included, so the
+    # run has to ask origin rather than read a local answer.
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-f", branch, behind)
+    git(project, "update-ref", "-d", f"refs/remotes/origin/{branch}")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, ahead, branch), \
+        "the step must run on origin's copy of the branch, not this machine's"
+
+
+def test_a_branch_that_has_diverged_from_origin_refuses_by_name(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """Fast-forward only. A local ref carrying commits origin has not got
+    is work this machine has not pushed, and overwriting it would throw
+    that away — so the run says which branch and why instead."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "shared.txt").write_text("common\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "common ancestor")
+    common = git(project, "rev-parse", "HEAD")
+    (project / "theirs.txt").write_text("pushed elsewhere\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "their side")
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-f", branch, common)
+    git(project, "update-ref", "-d", f"refs/remotes/origin/{branch}")
+    git(project, "switch", "-q", branch)
+    (project / "ours.txt").write_text("made here, never pushed\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "our side")
+    ours = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "diverged" in out["error"], out["error"]
+    assert branch in out["error"]
+    # The refusal is not a conflict: no `resolve` step would finish it,
+    # so the row must not offer one.
+    assert "errorReason" not in out
+    # And nothing local was thrown away.
+    assert git(project, "rev-parse", branch) == ours
+    assert not fake_claude.calls.exists()
+
+
 def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, workspace, fake_claude):
     """A conflict between the branch and main is a human's problem. Running
     the step anyway would spend money producing work on a tree nobody can
@@ -1053,6 +1148,11 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
     assert "up to date" in out["error"] or "conflict" in out["error"]
+    # Spec 153: and it says WHY in a field, not only in the sentence. The
+    # row draws its Resolve button off this, and the way out of a
+    # conflict found here is the same step as the way out of one found
+    # by a landing.
+    assert out["errorReason"] == "conflict"
     # And the tree is left clean, not mid-merge.
     assert git(project, "status", "--porcelain") == ""
 
