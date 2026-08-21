@@ -684,7 +684,6 @@ export function createServer(opts: ServerOptions) {
             // refusal uses.
             dependsOn: s.dependsOn,
             phase: status?.phase ?? undefined,
-            percent: status?.progress?.percent,
             // The FILES, and nothing else (spec 108). It used to be
             // unioned with the queue's own record of what it ran, so
             // either one being true was enough — which is how an
@@ -697,9 +696,11 @@ export function createServer(opts: ServerOptions) {
             // (spec 139): each step writes its own name into
             // `4-status.md` once it has succeeded. The three heuristics
             // this replaces — the size of 2-analysis.md, a heading in
-            // 3-solution.md, the percentage here — each answered a
+            // 3-solution.md, and 4-status.md's own progress percentage,
+            // which used to be read on this line — each answered a
             // question next to the one being asked, and the first of
             // them marked spec 138 analysed before any analyze had run.
+            // The percentage left the row entirely in spec 167.
             //
             // Since spec 154 the line is no longer the ANSWER, only a
             // claim: a model has to reach its last instruction to write

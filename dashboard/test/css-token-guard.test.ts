@@ -345,6 +345,27 @@ describe("the space between two controls comes from their container", () => {
     expect(CSS).not.toContain("data-controls");
     expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
   });
+
+  // Spec 167. `.actionslot` has reserved a fixed width since spec 157,
+  // but the badge in FRONT of it has none — "not started", "analyzing",
+  // "archive held back", "done — nothing waiting on you" — so the
+  // buttons started at different x positions down the column and moved
+  // as a state changed. `space-between` puts the action against the
+  // column's right edge whatever the badge says, and costs no reserved
+  // space at all.
+  //
+  // Static rule, not a rendered comparison: whether two badges of
+  // different lengths anchor their buttons to the same pixel needs a
+  // browser. What this proves is that the rule exists, and that it is
+  // scoped to the State cell's row rather than added to the shared
+  // `.row {}` the phase lines and the filter bar also use.
+  test("the State cell's action is pushed to the column's right edge, scoped", () => {
+    expect(CSS).toMatch(
+      /table\.list tr\.spechead > td > \.row \{[^}]*justify-content:\s*space-between[^}]*\}/,
+    );
+    // The shared rule keeps its own alignment and gains nothing.
+    expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("justify-content");
+  });
 });
 
 // --- the row's action cannot widen a column (spec 124, spec 157) -----------

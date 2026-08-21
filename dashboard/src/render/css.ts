@@ -438,7 +438,20 @@ table.list tr.specnotice td { border-bottom: none; border-top: none;
 table.list tr.specnotice .rowmsg { margin: 0; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
-table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
+/* Air under an OPEN spec's last phase line, so it does not sit hard
+   against the next spec's name. The rule read :last-child alone until
+   spec 167, and :last-child means the last row in the TABLE — so it
+   fired only when the open spec happened to be the bottom one, and any
+   spec below it left the last phase line on its ordinary 2px. A
+   collapsed row looks right because its air comes from ABOVE: the head
+   row has its own border-top and padding-top.
+   :has() reads FORWARD from the subrow to the head row that follows it,
+   which is the only direction a flat, unwrapped tbody allows without a
+   wrapper element per spec. A browser without :has() keeps the 2px —
+   the rule does nothing rather than erroring, which is an acceptable
+   way for a spacing detail to degrade. */
+table.list tr.subrow:last-child td,
+table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
 /* The phase lines are REAL COLUMNS since spec 165 — the name, the row's
    AI, then the model with the phase's box beside it. They were three
    flex children of one cell until then, each pinned to a fixed width
@@ -510,6 +523,21 @@ table.list tr.subrow .modelcell > .row > :first-child { min-width: 10rem; }
    opening a row — is the exception, and it is not this. */
 .actionslot { display: inline-flex; justify-content: flex-start;
   min-width: 6.5rem; }
+/* And the slot itself stands at the column's RIGHT EDGE, whatever the
+   badge in front of it says (spec 167). The slot has reserved a fixed
+   width since spec 157, but the badge has none — its wording runs from
+   two syllables to most of a sentence — so the buttons began at
+   different x positions down the column and moved as a state changed.
+   space-between costs no reserved space at all, and it is scoped to the
+   State cell's own row: the shared .row above is the phase lines' and
+   the filter bar's too.
+   No badge is QUOTED here on purpose: a comment in this file is served
+   as page content, so a state's wording written out below would be
+   found by every test that asks whether the page says it.
+   One residue, left open: a table column is as wide as its widest cell,
+   so the COLUMN still moves if the longest badge on the page changes.
+   Closing that needs a declared width, which no spec owns yet. */
+table.list tr.spechead > td > .row { justify-content: space-between; }
 .fact { margin: var(--sp-1) 0; }
 .fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }
