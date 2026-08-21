@@ -32,6 +32,26 @@ strip_frontmatter() {
   awk 'NR==1 && $0=="---" {skip=1; next} skip && $0=="---" {skip=0; next} !skip' "$1"
 }
 
+# A rule linking to a sibling rule is, in AGENTS.md, linking to a section
+# of AGENTS.md itself — every rule is concatenated into this one file, one
+# directory up from core/rules/. Left alone, `./spec-structure.md` points
+# at core/spec-structure.md, which exists neither here nor in ~/.codex/
+# nor in ~/.copilot/. Rewritten to the anchor of that rule's own title,
+# the link travels with the file wherever it is installed.
+anchor_of() {
+  strip_frontmatter "$1" | grep -m1 '^# ' | sed 's/^# //' \
+    | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9 -]//g' -e 's/ /-/g'
+}
+
+SED_ARGS=()
+for rule in $RULE_FILES; do
+  [ -f "$RULES_DIR/$rule.md" ] || continue
+  # A link that already carries its own fragment keeps it; the file half
+  # is simply dropped, because the target section is in this same file.
+  SED_ARGS+=(-e "s|](\./$rule\.md#|](#|g")
+  SED_ARGS+=(-e "s|](\./$rule\.md)|](#$(anchor_of "$RULES_DIR/$rule.md"))|g")
+done
+
 # Build AGENTS.md
 cat "$INTRO" > "$OUTPUT"
 
@@ -40,7 +60,7 @@ for rule in $RULE_FILES; do
     echo "" >> "$OUTPUT"
     echo "---" >> "$OUTPUT"
     echo "" >> "$OUTPUT"
-    strip_frontmatter "$RULES_DIR/$rule.md" >> "$OUTPUT"
+    strip_frontmatter "$RULES_DIR/$rule.md" | sed "${SED_ARGS[@]}" >> "$OUTPUT"
   fi
 done
 

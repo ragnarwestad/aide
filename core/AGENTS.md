@@ -587,7 +587,7 @@ Based on [Anthropic's official guide](https://www.anthropic.com/engineering/clau
 
 ## See also
 
-- [spec-structure.md](./spec-structure.md) - 4-file structure for specs
+- [spec-structure.md](#spec-structure-for-jira-and-todo) - 4-file structure for specs
 
 ---
 
@@ -1278,7 +1278,7 @@ const value = useSelector(state => state.value);
 - Lists and tables
 - Metadata fields
 
-**See also:** [markdown-linting.md](./markdown-linting.md) for detailed linting rules.
+**See also:** [markdown-linting.md](#markdown-linting) for detailed linting rules.
 
 ---
 
@@ -1353,8 +1353,8 @@ Avoid mocks for validation - use real test data.
 
 ## See also
 
-- [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
-- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
+- [spec-structure.md](#spec-structure-for-jira-and-todo) - 4-file structure for JIRA/TODO reports
+- [markdown-linting.md](#markdown-linting) - Markdown linting rules
 
 ---
 
@@ -1503,7 +1503,7 @@ echo "Hello"
 
 **Preventive fix:**
 - The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see [documentation.md](./documentation.md#code-blocks)
+- But the source should be fixed - see [documentation.md](#code-blocks)
 
 ---
 
@@ -1944,8 +1944,8 @@ The `/aide-analyze` command fills in the analysis, solution and status.
 
 ## See also
 
-- [documentation.md](./documentation.md) - General documentation rules
-- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
+- [documentation.md](#documentation-standard) - General documentation rules
+- [markdown-linting.md](#markdown-linting) - Markdown linting rules
 
 ---
 

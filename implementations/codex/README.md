@@ -436,7 +436,7 @@ codex "Review PR #123 and check whether it follows the project coding standard"
 2. ✅ Authenticate with your OpenAI API key
 3. ✅ Copy the custom instructions
 4. ✅ Test with a simple JIRA issue
-5. ✅ Read [docs/AI_ASSISTERT_UTVIKLING.md](../../docs/AI_ASSISTERT_UTVIKLING.md) for the full documentation
+5. ✅ Read [docs/AI_DEVELOPMENT_GUIDE.md](../../docs/AI_DEVELOPMENT_GUIDE.md) for the full documentation
 
 ---
 

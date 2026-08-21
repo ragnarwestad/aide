@@ -35,7 +35,7 @@ reports/
 
 ## 📚 Documentation standards
 
-See [../core/docs/DOCUMENTATION_STANDARD.md](../core/docs/DOCUMENTATION_STANDARD.md) for the complete documentation standard.
+See [../core/rules/documentation.md](../core/rules/documentation.md) for the complete documentation standard.
 
 **Both follow the same 5-file structure:**
 1. `README.md` - Entry point (links to the files in the right reading order)
