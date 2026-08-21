@@ -1259,7 +1259,11 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
-  test("with every phase done, nothing is pre-ticked", () => {
+  // A row that EXISTS is a spec that is not archived (2026-08-21), so
+  // `archive` is never counted as done however the history reads —
+  // which leaves it as the one phase still pre-ticked here. The three
+  // that really did run are not.
+  test("with every phase run, only archive is pre-ticked", () => {
     const line = runLine(
       rows(
         [job("j1", "archive")],
@@ -1267,9 +1271,10 @@ describe("a spec's row runs its own phases", () => {
       ),
       "94-row-runs-it",
     );
-    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+    for (const step of ["analyze", "review-plan", "implement"]) {
       expect(box(line, step)).not.toContain("checked");
     }
+    expect(box(line, "archive")).toContain("checked");
   });
 
   test("a spec nothing has ever run pre-ticks analyze AND review-plan (criterion 1a)", () => {
@@ -2863,13 +2868,17 @@ describe("spec 103: a collapsed row shows status only", () => {
   });
 
   // "Nothing pending" is not the same question since spec 157: a spec
-  // with a phase still ahead of it always has a press to offer. The
-  // empty cell is the spec that has run everything.
-  test("a collapsed row with every phase done has no button at all (criterion 4)", () => {
+  // with a phase still ahead of it always has a press to offer. And
+  // since 2026-08-21 there is always one: a row that exists is a spec
+  // that is not archived, so `archive` is what a spec that has run
+  // everything else is still waiting for. Criterion 4's empty cell
+  // describes a state the list cannot hold — a spec whose archive
+  // really finished has no row.
+  test("a collapsed row that has run everything still offers Archive (criterion 4)", () => {
     const done = ["analyze", "review-plan", "implement", "archive"];
     const cell = actionCell(controlsLine(rows([], [target("103-idle", { done })]), "103-idle"));
-    expect(cell).not.toContain("<form");
-    expect(cell).not.toContain("<button");
+    expect(cell).toContain(">Archive</button>");
+    expect(cell).not.toContain('type="checkbox"');
   });
 
   test("with no open parameter at all, no row draws a phase line (criterion 7)", () => {
@@ -4691,13 +4700,16 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     // The choosing stays behind the fold: no boxes, no "also touches".
     expect(shut).not.toContain('type="checkbox"');
     expect(shut).not.toContain('name="extraProjects"');
-    // A spec with every phase behind it is the empty cell now.
+    // A spec with every phase behind it still offers Archive: a row
+    // that exists is a spec that is not archived (2026-08-21). What
+    // criterion 12 is about is that the SHUT row and the OPEN one draw
+    // the same one control, and that holds.
     const done = ["analyze", "review-plan", "implement", "archive"];
     const idle = actionCell(
       group(rows([], [target("124-stack", { done })], { filter: {} }), "124-stack"),
     );
-    expect(idle).not.toContain("<form");
-    expect(idle).not.toContain("<button");
+    expect(idle).toContain(">Archive</button>");
+    expect(idle).not.toContain('type="checkbox"');
   });
 
   // The run form itself is a carrier now: the button that submits it
@@ -5684,10 +5696,15 @@ describe("spec 157: the row's one action sits in the State column", () => {
     expect(labels(state(html))).toEqual(["Analyze"]);
   });
 
-  test("nothing ticked draws no button at all (criterion 3)", () => {
+  // Criterion 3 said a spec with nothing ticked draws no button. Since
+  // 2026-08-21 a listed spec always has `archive` ticked — the row
+  // exists, so the spec is not archived — and the no-button branch is
+  // reachable only where the row is busy or conflicted, both of which
+  // draw a control of their own. What survives of the criterion is the
+  // rule beneath it: the button names what a press would run.
+  test("a spec that has run everything is offered Archive (criterion 3)", () => {
     const html = rows([lead()], [target("157-one-action", { done: ALL })]);
-    expect(state(html)).not.toContain("<button");
-    expect(state(html)).not.toContain("<form");
+    expect(labels(state(html))).toEqual(["Archive"]);
   });
 
   // The label is the reader's own tick, not the state's suggestion, so
@@ -5841,14 +5858,18 @@ describe("spec 157: the row's one action sits in the State column", () => {
     expect(posted).toEqual(["archive"]);
   });
 
-  // ...and a spec whose archive really did finish still offers nothing:
-  // the held-back note is what makes the difference, not the history.
-  test("an archive that finished leaves the row with nothing to press", () => {
+  // ...and so is a spec whose archive left NO held-back note. Spec 161
+  // reached exactly that state hours later: the note was cleared by
+  // hand, the history still said archive had run, and the row went to
+  // "done — nothing waiting on you" about a spec sitting unarchived in
+  // the list. A row that exists is a spec that is not archived — the
+  // note is a reason, never the evidence.
+  test("a listed spec offers Archive even with no held-back note", () => {
     const html = rows(
       [],
-      [target("159-done", { done: ["analyze", "review-plan", "implement", "archive"] })],
+      [target("161-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(labels(state(html))).toEqual([]);
+    expect(labels(state(html))).toEqual(["Archive"]);
   });
 
 });

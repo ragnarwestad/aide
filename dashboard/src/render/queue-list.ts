@@ -941,15 +941,23 @@ const busyReason = (g: SpecGroup): string =>
 // rule is read once per row and consulted per phase.
 function preTicked(g: SpecGroup): Set<string> {
   const done = new Set(g.done);
-  // A phase that was HELD BACK is not done, whatever the history says.
-  // The history is the record of steps that RAN (spec 154), and an
+  // ARCHIVE IS NEVER DONE ON A ROW THAT EXISTS. Archived-ness is a
+  // directory (`discover.ts`): a spec the list shows is a spec still in
+  // the active root, so whatever the git history says about an archive
+  // step having RUN, it did not finish the one thing archiving is.
+  //
+  // The history is the record of steps that ran (spec 154), and an
   // archive that ran and declined to move the folder leaves a commit
-  // behind exactly like one that moved it. Counted as done, it left
-  // spec 159 with every phase ticked off, no next phase to suggest and
-  // therefore no button at all — beside a badge reading "archive held
-  // back", which is the one thing on the row that needed a press
-  // (2026-08-21).
-  for (const p of g.phases) if (p.heldBack) done.delete(p.step);
+  // behind exactly like one that moved it. Counted as done it left spec
+  // 159 with every phase ticked, no next phase to suggest and no button
+  // at all — beside a badge reading "archive held back", which was the
+  // one thing on that row needing a press. The first fix read the
+  // held-back note and dropped that phase; too narrow, and spec 161
+  // showed why hours later — with the note cleared the row went to
+  // "done — nothing waiting on you" while the spec sat unarchived in
+  // the list. The note is a REASON archiving did not happen, not the
+  // only evidence that it did not (2026-08-21).
+  done.delete("archive");
   const next = QUEUE_STEPS.find((s) => !done.has(s));
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
