@@ -16,6 +16,7 @@
     - [What Add finishes itself (spec 140)](#what-add-finishes-itself-spec-140)
   - [How many run at once](#how-many-run-at-once)
   - [Notifications](#notifications)
+  - [Telling claude-usage a branch landed](#telling-claude-usage-a-branch-landed)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
@@ -377,7 +378,8 @@ afterwards is a report, not a cap. They live in the queue config
   "push": "branch",
   "concurrency": 2,
   "projects": ["aide", "aide-dashboard"],
-  "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"]
+  "notifyCommand": ["/Users/<you>/aide-dashboard/notify-slack.sh"],
+  "mergeEventUrl": "http://localhost:8787/api/merge-event"
 }
 ```
 
@@ -656,6 +658,45 @@ The line reads, for example:
 ```text
 aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
 ```
+
+### Telling claude-usage a branch landed
+
+claude-usage builds its shipping-pipeline ledger out of transcripts: a
+merge reaches it as a `gh pr merge` inside a Bash tool call, and a review
+as the prompt `/aide-review-plan` writes. The reviews already arrive with
+nothing configured. The merges never do — since spec 149 the dashboard
+merges in its own Bun process, so no session writes a transcript to read
+one out of, and a merge made by hand from a terminal is `git merge`
+rather than `gh pr merge`. The ledger therefore cannot answer the
+question it exists for, "was this merge reviewed?", about any of our
+work. So the dashboard says what it did.
+
+`mergeEventUrl` in the queue config is where it says it. Every repo a
+step successfully lands — `create`, `analyze`, `review-plan`, `resolve`
+and `archive`, code roots and specs repos alike — sends one POST with a
+flat JSON body:
+
+```json
+{
+  "project": "aide",
+  "specFolder": "158-a-merge-is-an-event-claude-usage-can-see",
+  "branch": "aide/158-a-merge-is-an-event-claude-usage-can-see",
+  "repoRoot": "/Users/<you>/projects/aide-specs",
+  "step": "archive",
+  "jobId": "1f2e3d4c",
+  "timestamp": "2026-08-21T10:00:00.000Z"
+}
+```
+
+**Absent unless configured**, like `notifyCommand`: with no
+`mergeEventUrl` the dashboard makes no request at all, which is what
+every instance does today. **And never fatal** — the merge already
+happened, so a sink that refuses or times out is written to the log
+beside it and nothing else. One request, bounded at 1.5 s, no retries.
+
+The receiving end is claude-usage's to settle: `pipeline_event` is keyed
+on a transcript uuid and a session id, and a merge reported by a machine
+has neither. Leave `mergeEventUrl` unset until that endpoint exists.
 
 ### What a finished step publishes
 

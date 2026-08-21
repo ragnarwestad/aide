@@ -29,6 +29,7 @@ import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
+import { MergeEventReporter } from "./merge-event.ts";
 import {
   QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
@@ -145,6 +146,14 @@ export interface ServerOptions {
   /** argv for the gate notifier — claude-usage's contract, run with no
    *  shell. Absent means no notifications are sent. */
   queueNotifyCommand?: string[];
+  /** Where to report a landed branch, so claude-usage's ledger can see a
+   *  merge no transcript records (spec 158). From the queue config's
+   *  `mergeEventUrl`. Absent means nothing is ever sent — and absent it
+   *  must stay absent, unlike `claudeUsageUrl`, which `createServer`
+   *  always resolves to a default and so can never be off. */
+  mergeEventUrl?: string;
+  /** How that report is sent. A test seam, like `gitRun`. */
+  mergeEventFetch?: typeof fetch;
   /** How the merge check runs git. A test seam: the real one spawns a
    *  subprocess, which no test should. */
   gitRun?: GitRunner;
@@ -695,6 +704,10 @@ export function createServer(opts: ServerOptions) {
   // run — and the group is what SIGTERM must reach, since claude spawns
   // children of its own.
   const notifier = new Notifier({ command: opts.queueNotifyCommand });
+  // What tells claude-usage a branch landed (spec 158). Inert without a
+  // URL, and never given a default one: a dashboard nobody has pointed
+  // at a claude-usage makes no request at all.
+  const mergeEvents = new MergeEventReporter({ url: opts.mergeEventUrl, fetch: opts.mergeEventFetch });
   // One resolution, two users: the runner runs a spec in this directory,
   // and the merge check asks git about the branch it pushed from there.
   const projectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
@@ -1100,6 +1113,12 @@ export function createServer(opts: ServerOptions) {
      *  is right for every landing but archive's — see
      *  `landArchivedSpec` for why that one has to look further. */
     repos?: BranchRef[];
+    /** Which step's landing this is. Only the merge event reads it
+     *  (spec 158), and it is taken from the call site rather than
+     *  derived: `landStepBranch` already HAS the step as a parameter,
+     *  and a second value worked out from the outcome would be a second
+     *  thing that could be wrong. */
+    step: WorkflowStep;
   }
 
   /** Merge a step's own branch into the default branch of every repo it
@@ -1170,6 +1189,26 @@ export function createServer(opts: ServerOptions) {
         }
         if (result.ok) {
           branchStatus.invalidate(repo.root, branch);
+          // Say what just happened, to whoever is listening (spec 158).
+          // Once per repo whose merge SUCCEEDED — not once per landing,
+          // and not only for code roots: a spec-markdown merge is
+          // exactly the kind claude-usage cannot see today, so it is
+          // reported the same as any other. `report` never throws and
+          // never retries; a sink that is down costs this path one short
+          // timeout and nothing else.
+          //
+          // `specFolder` is read from the landing rather than the job:
+          // a create step's job still carries its provisional key here,
+          // and is only renamed once every repo is through the loop.
+          await mergeEvents.report({
+            project: job.project,
+            specFolder: what.landed?.specFolder ?? job.specFolder,
+            branch,
+            repoRoot: repo.root,
+            step: what.step,
+            jobId: job.id,
+            timestamp: new Date().toISOString(),
+          });
           // Merged is not deployed. For a tool that lives in
           // `~/.local/bin`, the code landing on the default branch
           // changes nothing on the machine until it is installed —
@@ -1260,6 +1299,7 @@ export function createServer(opts: ServerOptions) {
    *  with one extra click — it would be the feature not working. */
   async function landNewSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
     return landBranch(job, outcome, {
+      step: "create",
       landed: { specFolder: outcome.specFolder ?? job.specFolder },
       nothingToLand:
         "the spec was created, but the run reported no pushed branch to land it from — " +
@@ -1298,6 +1338,7 @@ export function createServer(opts: ServerOptions) {
     outcome: Partial<StepOutcome>,
   ): Promise<void> {
     return landBranch(job, outcome, {
+      step,
       failedNote: (why) => `the ${step} step finished, but landing it failed: ${why}`,
     });
   }
@@ -1325,6 +1366,7 @@ export function createServer(opts: ServerOptions) {
    *  behaviour is the fallback, not the thing being removed. */
   async function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
     return landBranch(job, outcome, {
+      step: "archive",
       // The ONE landing that reads past its own outcome (spec 149).
       // `implement` deliberately never lands, so the project's code
       // branch sits open for however many steps follow — and whether an
@@ -2167,6 +2209,10 @@ export function parseArgs(argv: string[]): ServerOptions {
       if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
         opts.queueNotifyCommand = raw.notifyCommand as string[];
       }
+      // Where a landed branch is reported (spec 158). Off unless the
+      // file names a URL — the same direction every other key here
+      // fails in, and the reason this one has no built-in default.
+      if (typeof raw.mergeEventUrl === "string" && raw.mergeEventUrl) opts.mergeEventUrl = raw.mergeEventUrl;
       if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
       opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
       // The allowlist WINS over `--queue-projects` when the file has

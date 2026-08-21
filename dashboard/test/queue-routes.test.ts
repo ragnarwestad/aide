@@ -39,6 +39,18 @@ afterEach(() => {
 
 const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"] };
 
+/** A claude-usage that records the merges the dashboard reports to it
+ *  (spec 158). The URL is never reached: what is under test is what the
+ *  server decides to send, and to whom. */
+function mergeEventSink(answer: () => Response | Promise<Response> = () => new Response("{}")) {
+  const posted: Record<string, unknown>[] = [];
+  const mergeEventFetch = (async (_url: unknown, init: unknown) => {
+    posted.push(JSON.parse((init as RequestInit).body as string) as Record<string, unknown>);
+    return answer();
+  }) as unknown as typeof fetch;
+  return { posted, mergeEventFetch, mergeEventUrl: "http://claude-usage.test/api/merge-event" };
+}
+
 /** One spec's header row, which since spec 94 is where its Run control
  *  lives — and the only line of the spec a collapsed row leaves in the
  *  page. */
@@ -2110,7 +2122,10 @@ describe("landing a created spec (spec 93)", () => {
 
   /** A server whose runner spawns `/bin/true` and reads its results from a
    *  directory this suite owns — so a test can put the JSON there itself. */
-  function serverWithRunner(git: { run: (dir: string, args: string[]) => Promise<unknown> }) {
+  function serverWithRunner(
+    git: { run: (dir: string, args: string[]) => Promise<unknown> },
+    extra: Partial<ServerOptions> = {},
+  ) {
     const results = mkdtempSync(join(tmpdir(), "aide-create-results-"));
     ownDirs.push(results);
     const { base, dir } = start({
@@ -2118,6 +2133,7 @@ describe("landing a created spec (spec 93)", () => {
       gitRun: git.run as never,
       queueRunnerBin: "/usr/bin/true",
       queueResultDir: results,
+      ...extra,
     });
     return { base, dir, results };
   }
@@ -2236,6 +2252,31 @@ describe("landing a created spec (spec 93)", () => {
     expect(group).not.toContain("/merge");
     expect(group).not.toContain(">Merge</button>");
     expect(group).not.toContain("ready to merge");
+  });
+
+  // Spec 158, criterion 6. A create job's key is provisional until the
+  // run reports the folder it actually made, and the job record is only
+  // renamed AFTER every repo has been landed — so an event built from
+  // `job.specFolder` would name a spec nobody can look up. It reads the
+  // outcome the landing itself is about to write.
+  test("the merge event for a create landing names the renamed folder, not the provisional key", async () => {
+    const git = gitFor();
+    const sink = mergeEventSink();
+    const { base, results } = serverWithRunner(git, sink);
+    const job = await createJob(base);
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
+    await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
+
+    expect(sink.posted.length).toBe(1);
+    expect(sink.posted[0]).toMatchObject({
+      project: "aide",
+      specFolder: "94-a-new-spec",
+      branch: BRANCH,
+      repoRoot: SPECS_REPO,
+      step: "create",
+      jobId: job.id,
+    });
+    expect(sink.posted[0].specFolder).not.toBe(job.specFolder);
   });
 
   test("a create job that has not landed yet is still a row on the page", async () => {
@@ -3004,6 +3045,153 @@ describe("every step lands its own work (spec 149)", () => {
     expect(body.job.state).not.toBe("awaiting-approval");
   });
 
+  // --- spec 158: a merge is an event claude-usage can see ---------------
+  //
+  // The dashboard merges in its own Bun process, so nothing writes a
+  // transcript for claude-usage to read a merge out of. It has to say
+  // what it did — for EVERY repo it lands, not only the code roots
+  // `installAfterMerge` cares about, because the spec-markdown merges
+  // an `analyze` or `review-plan` makes are exactly the ones the ledger
+  // is missing today.
+
+  // Criterion 1. Every other test in this file is the other half of this
+  // proof: none of them configures a URL, and none of them would issue a
+  // request even with a live fetch in the harness.
+  test("no url configured means no request, whatever lands", async () => {
+    const dir = own("aide-158-inert-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const sink = mergeEventSink();
+    const { base } = serverWith(dir, paths, git, { mergeEventFetch: sink.mergeEventFetch });
+
+    const landed = await stepWithResult(base, dir, "analyze", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(sink.posted).toEqual([]);
+  });
+
+  // Criteria 2, 5 and 7 at once. The step name is threaded through from
+  // the call site rather than stubbed — `resolve` says "resolve" — and
+  // the specs repo is not a code root, so an event for it proves the
+  // report is not gated the way the install is.
+  test.each(["analyze", "review-plan", "resolve", "archive"])(
+    "a landed %s step reports the merge of a specs-only repo",
+    async (step) => {
+      const dir = own(`aide-158-${step}-`);
+      const paths = repos(dir);
+      const git = gitFor();
+      const sink = mergeEventSink();
+      const { base } = serverWith(dir, paths, git, sink);
+      // A code root that is never landed here: an event for it would
+      // mean the report followed the install's gate after all.
+      installs(paths.project);
+
+      const landed = await stepWithResult(base, dir, step, {
+        branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+      });
+
+      expect(landed.error).toBeFalsy();
+      expect(sink.posted.length).toBe(1);
+      expect(sink.posted[0]).toEqual({
+        project: "aide",
+        specFolder: SPEC,
+        branch: BRANCH,
+        repoRoot: paths.specs,
+        step,
+        jobId: landed.id,
+        timestamp: expect.any(String),
+      });
+      const stamp = sink.posted[0].timestamp as string;
+      expect(new Date(stamp).toISOString()).toBe(stamp);
+    },
+  );
+
+  // Criterion 4. One run, two repos, two events — each naming its own
+  // root. A single event per landing would leave the code merge, the
+  // one that matters most, unreported whenever a specs merge preceded it.
+  test("a landing that merges two repos reports both, each by its own root", async () => {
+    const dir = own("aide-158-two-repos-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const sink = mergeEventSink();
+    const { base } = serverWith(dir, paths, git, sink);
+
+    const landed = await stepWithResult(base, dir, "resolve", {
+      branchUrls: [
+        { root: paths.project, url: "https://example.test/aide" },
+        { root: paths.specs, url: "https://example.test/aide-specs" },
+      ],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(sink.posted.map((e) => e.repoRoot).sort()).toEqual([paths.project, paths.specs].sort());
+    expect(sink.posted.every((e) => e.step === "resolve" && e.branch === BRANCH)).toBe(true);
+  });
+
+  // Criterion 3. The same rule `installAfterMerge` already keeps: the
+  // merge happened, so a report that cannot be delivered is noted beside
+  // it and never turns a completed merge into a failed one.
+  test("a report that throws leaves the landing successful", async () => {
+    const dir = own("aide-158-report-fails-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const thrower = (async () => {
+      throw new Error("claude-usage is down");
+    }) as unknown as typeof fetch;
+    const { base } = serverWith(dir, paths, git, {
+      mergeEventUrl: "http://claude-usage.test/api/merge-event",
+      mergeEventFetch: thrower,
+    });
+
+    const landed = await stepWithResult(base, dir, "analyze", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(landed.errorReason).toBeFalsy();
+    expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
+    expect(landed.branchUrls).toEqual([]);
+  });
+
+  // And the same for a sink that answers but refuses.
+  test("a report the sink refuses leaves the landing successful", async () => {
+    const dir = own("aide-158-report-refused-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const sink = mergeEventSink(() => new Response("no", { status: 500 }));
+    const { base } = serverWith(dir, paths, git, sink);
+
+    const landed = await stepWithResult(base, dir, "analyze", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(sink.posted.length).toBe(1);
+  });
+
+  // A merge that never happened is not an event. The ledger's whole
+  // question is "was this merge reviewed?" — a refused merge reported as
+  // one would be an answer about work that is not on the default branch.
+  test("a landing that conflicts reports nothing for the repo it could not merge", async () => {
+    const dir = own("aide-158-conflict-");
+    const paths = repos(dir);
+    const git = gitFor({ conflicting: [paths.specs] });
+    const sink = mergeEventSink();
+    const { base } = serverWith(dir, paths, git, sink);
+
+    const failed = await stepWithResult(
+      base,
+      dir,
+      "analyze",
+      { branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] },
+      (j) => !!j.error,
+    );
+
+    expect(String(failed.error)).toContain(paths.specs);
+    expect(sink.posted).toEqual([]);
+  }, 20000);
 });
 
 // Spec 154: the runner owns the record of what has run.
