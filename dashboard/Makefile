@@ -27,6 +27,11 @@ publish: generate
 	deploy/rsync-publish.sh
 
 PORT ?= 8788
+# Where `tailscale serve` terminates TLS in front of that port. 443 gives
+# an address with no port at all; a host already using 443 for something
+# else sets this instead. A variable rather than a literal because every
+# other network value in install-serve is one.
+TS_PORT ?= 443
 
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.
 # ROOT is optional — serve.ts only needs it to build the project nav,
@@ -114,6 +119,33 @@ install-serve: require-host
 			exit 1; \
 		fi; \
 		launchctl bootstrap gui/$$(id -u) Library/LaunchAgents/$(LABEL).plist'
+	@# Put TLS in front of the server (spec 172). `--bg` persists the rule
+	@# in tailscaled's own state, so this is a re-run-per-change step, not
+	@# a job of its own — which is why it belongs here rather than in
+	@# someone's memory. A host without tailscale keeps the plain deploy
+	@# it has always had; only a host WITH tailscale and the wrong BIND is
+	@# a failure, because that one is silently broken rather than absent.
+	@#
+	@# The BIND test is a make-level conditional, not a shell one: `make
+	@# -n` expands variables but never runs a shell, so a shell `if` would
+	@# leave both branches in the dry run and the guard would be untestable.
+ifeq ($(BIND),127.0.0.1)
+	@if ssh $(MINI) 'command -v tailscale >/dev/null 2>&1'; then \
+		ssh $(MINI) 'tailscale serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT)'; \
+	else \
+		echo "tailscale not found on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
+	fi
+else
+	@if ssh $(MINI) 'command -v tailscale >/dev/null 2>&1'; then \
+		echo "tailscale is on $(MINI), but BIND is '$(BIND)', not 127.0.0.1 —" >&2; \
+		echo "tailscaled will not proxy to the host's own tailnet address" >&2; \
+		echo "(measured 2026-08-21: a 75s hang, then a 502)." >&2; \
+		echo "Set BIND=127.0.0.1 in .env.deploy and run this again." >&2; \
+		exit 1; \
+	else \
+		echo "tailscale not found on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
+	fi
+endif
 
 # Update an already-installed server: pull, deps, restart.
 deploy-serve: install-serve

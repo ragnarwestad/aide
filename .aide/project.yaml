@@ -17,7 +17,7 @@ dependencies:
 deployment:
   host: local machines — installed globally to ~/.claude, ~/.codex, ~/.copilot, ~/.agents/skills and ~/.local/bin. The dashboard is served from a host of the operator's choice — no host is named in the repo; MINI=<host> selects one, or make serve-local runs everything on one machine
   command: ./install-all.sh (or per-tool implementations/<ai>/install.sh). Dashboard — MINI=<host> make -C dashboard install-serve (one-time); AIDE_DASH_HOST=<host> make -C dashboard publish (generate + rsync); make -C dashboard serve-local (single machine)
-  url: dashboard — http://<serving-host>:8788/ (PORT= to change)
+  url: dashboard — https://<serving-host>.<tailnet>.ts.net/ (tailscale serve terminates TLS in front of the server, which binds 127.0.0.1:8788; PORT= and TS_PORT= to change either)
 logging:
   where: dashboard — ~/Library/Logs/aide-dashboard/serve.log on the serving host (launchd job com.aide-dashboard.serve)
 docs:

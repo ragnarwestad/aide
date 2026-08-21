@@ -44,10 +44,12 @@ Dashboard for aide projects (specs in aide-specs): scans a root for
 `.aide/project.yaml` manifests, resolves each project's specs root,
 parses spec progress/phase from `4-status.md` files, and renders a
 small static site — an overview page plus one page per project, all
-sharing a left-column nav. Generated where the repos live and served on
-port 8788 by a small Bun server that also receives live aide-run
-events. Generator and server can run on the same machine or on two —
-no host is named anywhere in this repo.
+sharing a left-column nav. Generated where the repos live and served by
+a small Bun server that also receives live aide-run events; that server
+listens on localhost, and a `tailscale serve` proxy puts HTTPS in front
+of it (see [HTTPS, and the one address](#https-and-the-one-address)).
+Generator and server can run on the same machine or on two — no host is
+named anywhere in this repo.
 
 ## URL scheme
 
@@ -196,10 +198,16 @@ in `~/.claude/settings.json` as:
 {
   "hooks": {
     "UserPromptSubmit": [{ "hooks": [{ "type": "command",
-      "command": "AIDE_RUN_URL=\"http://<serving-host>:8788/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
+      "command": "AIDE_RUN_URL=\"https://<serving-host>.<tailnet>.ts.net/api/aide-run\" '/Users/<you>/.local/bin/aide-emit-run'" }] }]
   }
 }
 ```
+
+The address in that block changed with spec 172: it is the HTTPS one
+now, and the old `:8788` address answers on the serving host itself and
+nowhere else. A bookmark carrying `?token=` still works on the new
+address; a browser that was already signed in signs in once more,
+because the token cookie belongs to the origin it was set on.
 
 The job page (and `/api/aide-runs`) merge the stored runs with claude-usage's `/api/live` (same
 host — but if claude-usage there binds one address only, pass it
@@ -1256,35 +1264,43 @@ empty spec list) stop filling the viewport. It now sits on `body`.
 
 ## Deploying
 
-### HTTPS, and why it is half-done
+### HTTPS, and the one address
 
-The serving host answers on **two** addresses as of 2026-08-21, and only
-one of them works:
+The dashboard is reached at `https://<serving-host>.<tailnet>.ts.net/`,
+and only there. The Bun server binds `127.0.0.1` and a `tailscale serve`
+proxy terminates TLS in front of it, with a certificate Tailscale issues
+and renews itself. Nothing in the server does any of this — no
+certificate handling, no scheme awareness, no host check anywhere in
+`serve.ts`.
 
-- `http://100.115.106.17:8788` — what the launchd job binds
-  (`--bind`), the address everything names today, plain HTTP.
-- `https://rw-macmini-m2.tail97789a.ts.net/` — a `tailscale serve`
-  proxy set up by hand the same day. TLS terminates correctly with a
-  certificate Tailscale renews itself, and the address answers **502**.
+`make install-serve` sets the proxy up, so it is not a step anybody has
+to remember:
 
-The 502 is the whole of what is left. `tailscale serve` was pointed
-first at `127.0.0.1:8788`, which the server does not listen on, and
-then at the tailnet address, which tailscaled will not proxy to
-itself — 75 seconds and a 502. The server has to bind localhost for
-the proxy to reach it, and that means giving up the tailnet address as
-a way in, which is a decision with a migration behind it: bookmarks,
-the per-origin token cookie, `AIDE_RUN_URL`, and every page that
-names `:8788`.
+```bash
+tailscale serve --bg --https 443 http://127.0.0.1:8788
+```
 
-**Spec 172 is that work.** Until it runs, the proxy is a door that
-leads nowhere and harms nothing — leave it or take it down with
-`tailscale serve --https=443 off`. Two tailnet settings had to be
-enabled for it at all, both in the admin console: **Serve**, and
-**HTTPS Certificates** under DNS.
+`--bg` persists the rule in tailscaled's own state, which is why this
+needs no launchd job of its own and is safe to re-run — the deploy
+issues it again on every install.
+
+**`BIND` has to be `127.0.0.1`, and `install-serve` refuses anything
+else** when the serving host has tailscale on it. This is the one thing
+here with a measurement behind it (2026-08-21): tailscaled will not
+proxy to the host's own tailnet address — pointed there it hangs for 75
+seconds and answers 502. `0.0.0.0` would work for the proxy but would
+also open the dashboard on the house network, a door that does not exist
+today. Localhost closes the question. A host with no tailscale at all
+gets the plain deploy it always had, with a note saying so; only the
+wrong `BIND` is fatal, because that one fails silently.
+
+Two tailnet settings had to be enabled once, both in the admin console:
+**Serve**, and **HTTPS Certificates** under DNS. `TS_PORT` moves the
+proxy off 443 if the serving host needs that port for something else.
 
 Why it matters beyond a nicer URL: a service worker needs a secure
-context, so the dashboard cannot be installed as an app on a phone or
-a desktop until this lands.
+context, so the dashboard could not be installed as an app on a phone or
+a desktop until this landed.
 
 ### On a second host
 
@@ -1302,14 +1318,15 @@ All paths are relative to the serving host's own `$HOME`.
 | Variable         | Default                       | What it is                              |
 |------------------|-------------------------------|-----------------------------------------|
 | `MINI`           | — required                    | the ssh target                          |
-| `PORT`           | `8788`                        | port to serve on                        |
+| `PORT`           | `8788`                        | port to serve on, behind the proxy      |
+| `TS_PORT`        | `443`                         | port tailscale serve terminates TLS on  |
 | `MINI_SRC`       | `develop/aide-dashboard`      | the checkout                            |
 | `REMOTE_STATE`   | `aide-dashboard`              | site, mirrors, queue state              |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun` | bun on that host                        |
 | `LABEL`          | `com.aide-dashboard.serve`    | launchd job label                       |
 | `QUEUE_PROJECTS` | `aide,aide-dashboard`         | the allowlist's first-boot seed         |
 | `ROOT`           | unset                         | project root there (omitted when unset) |
-| `BIND`           | unset                         | address to bind (omitted when unset)    |
+| `BIND`           | unset                         | address to bind; `127.0.0.1`, or the tailscale serve step refuses |
 | `CLAUDE_USAGE`   | unset                         | claude-usage URL (omitted when unset)   |
 
 Publishing the generated site to that host is separate:
