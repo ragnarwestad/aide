@@ -236,12 +236,19 @@ describe("the row's one action rides beside the state, not in a column of its ow
     expect(thead).not.toMatch(/^<thead><tr><th><\/th>/);
   });
 
-  test("the button is in the head row's State cell, and nothing spans a row", () => {
+  test("the button is in the head row's State cell, and spans no rows", () => {
     const html = rows([], { targets: [target()] });
-    expect(html).not.toContain("rowspan");
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     expect(cells[2]).toContain("</button>");
+    // The guard is about THIS button, not about the string: spec 165
+    // gave the row's AI select a legitimate spanning cell of its own,
+    // so a blanket ban would now fail for the wrong reason. What must
+    // not come back is the action in a cell spanning the phase lines.
+    expect(head).not.toContain("rowspan");
+    for (const cell of html.matchAll(/<td[^>]*rowspan[^>]*>([\s\S]*?)<\/td>/g)) {
+      expect(cell[1]).not.toContain("</button>");
+    }
     // And the phase lines lead with their own cell, hard left.
     expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td class="phasecell">/);
   });
@@ -261,11 +268,17 @@ describe("the spec column is capped, so the phases sit close", () => {
   });
 });
 
+// The three things a phase line offers used to be flex children of one
+// cell, pinned to fixed widths so every select started at the same x.
+// Since spec 165 each is a real table column — the name, the row's AI,
+// then the model with the phase's box beside it — and a real column
+// lines up on every row without a flex basis to keep it honest.
 describe("the phase lines line up in columns", () => {
-  test("the stylesheet gives the phase name a fixed flex basis", async () => {
+  test("the stylesheet declares the columns, not pinned flex children", async () => {
     const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).toContain('table.list tr.subrow[data-step] .phasecell > .row > :first-child');
-    expect(CSS).toContain('table.list tr.subrow[data-caption] .phasecell > .row > :first-child');
+    expect(CSS).not.toContain(".phasecell > .row");
+    expect(CSS).toContain("table.list tr.subrow td.toolcell {");
+    expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
   });
 });
 
@@ -768,12 +781,12 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target()],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(panel).toContain('<td colspan="6">');
+    expect(panel).toContain('<td colspan="7">');
     expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
     const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
-    expect(empty).toContain('colspan="6"');
+    expect(empty).toContain('colspan="7"');
   });
 
   test("a held-back note is amber, like the badge that announces it", async () => {

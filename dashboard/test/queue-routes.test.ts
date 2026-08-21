@@ -1434,7 +1434,12 @@ describe("the job list sorts and filters", () => {
       row("109", { startedAt: "2026-08-16T09:00:00Z" }),
     ]);
     expect(html.indexOf("109-spec")).toBeLessThan(html.indexOf("104-spec"));
-    expect(html).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*>Spec<svg/);
+    // The Spec heading spans two columns since spec 165 — the phase
+    // name's and the row's AI — which is why the attribute is not
+    // pinned to sitting straight after the class.
+    expect(html).toMatch(
+      /<th class="[^"]*" colspan="2" aria-sort="descending"><a class="sortlink on"[^>]*>Spec<svg/,
+    );
   });
 
   test("sorting by started puts the most recent activity first", () => {

@@ -728,7 +728,14 @@ function sortableHead(f: QueueFilter): string {
     // sits in, and a heading over a control would be a word about the
     // reader rather than the spec. (Spec 124 put it first, for a
     // button COLUMN that pushed the whole table sideways — 2026-08-19.)
-    `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
+    // "Spec" spans TWO columns since spec 165, which gave the row's AI
+    // select a column of its own between the phase name and the model.
+    // Spanning rather than a blank heading beside it: this row has
+    // nothing to put in that column, and a column of its own here
+    // would take its width from the spec NAME — leaving the phase
+    // names, which are short, floating in a cell as wide as a folder
+    // name. Spanning lets the phase names size their own column.
+    `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}<th>Progress</th>${th("state", "State")}` +
     `${th("started", "Started", "", undefined, ' data-col="started"')}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
     `<th></th></tr></thead>`
@@ -1280,7 +1287,10 @@ function specHeadRow(
     // end in the same "a-spec" that half the fixtures use as a folder,
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
-    `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}</div>` +
+    // Two columns wide, like its heading: the second is the AI
+    // column the phase lines below open up (spec 165), and this row
+    // has nothing to say in it.
+    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}</div>` +
     `<div class="spec-title">${specSummary(g)}</div>` +
     // The repo marks on a line of their own: beside the name they took
     // the width the name needed, and clamping it to "124-…" told the
@@ -1424,24 +1434,32 @@ function modelPicker(
   );
 }
 
-// The phase names used to stand alone in a cell sized for a spec name,
-// with the model they ran on in the NEXT cell — sized for the progress
-// pips. Two short words with a hand's width of nothing between them.
-// Merging the two cells and putting the flex-gap container inside is
-// the same trick the State cell uses to sit the badge and the row's one
-// button together whatever the table's auto-sized widths turn out to
-// be.
+// What the phase columns under this line are. Three of them mattered
+// enough to name, and the three were flex children of ONE cell until
+// spec 165 — pinned to fixed widths so every select started at the same
+// x, which is bookkeeping a real table column does for free. They are
+// real columns now: the phase's name, the row's AI, and the model with
+// the phase's box beside it.
+//
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
-// sub-row itself, so the stack cell can lead whichever row comes first.
-// The empty span holds the checkbox column's place, so "Phase" stands
-// over the phase NAMES and not over their boxes.
-function phaseCaptionCells(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+// sub-row itself, so the caption can lead whichever row comes first.
+//
+// The AI column is the one it leaves EMPTY. The picker is one control
+// for the whole group and hangs in a spanning cell that starts on the
+// first phase line, so it sits at the height of the phases rather than
+// up on a heading — and this line still writes the cell, because a row
+// short of one shifts every column after it.
+//
+// Which is why it takes no arguments any more: the picker it used to
+// build has gone to the phase lines, and the captions are the same
+// three words for every spec.
+function phaseCaptionCells(): string {
   return (
-    `<td class="phasecell"><span class="row">` +
-    `<span class="row"></span>` +
-    `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
-    `${toolPicker(g, opts, busy)}` +
-    `</span></td><td></td><td></td><td data-col="started"></td>` +
+    `<td class="phasecell"><span class="muted small">Phase</span></td>` +
+    `<td class="toolcell"></td>` +
+    `<td class="modelcell"><span class="row">` +
+    `<span class="muted small">Model</span><span class="muted small">Select</span>` +
+    `</span></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
   );
 }
@@ -1450,7 +1468,7 @@ function phaseCaptionCells(g: SpecGroup, opts: QueuePageOptions, busy: boolean):
  *  short one the runner uses; this is the one a reader picks by. */
 const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
 
-// The row's AI, once, on the caption line (spec 127): running a whole
+// The row's AI, once for the whole group (spec 127): running a whole
 // row on Codex meant changing five model selects one at a time and
 // remembering which entries were Codex.
 //
@@ -1464,9 +1482,11 @@ const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Code
 // nothing to filter, and the same restraint as the option labels'
 // own: the default tool is not a word anyone needs.
 //
-// It stands AFTER "Phase" and "Model", which are pinned to the phase
-// lines' checkbox and name widths (`css.ts`); a control in front of
-// either takes a pinned width and drags the caption out of line.
+// It stands in a column of its own between the phase name and the
+// model, in a cell spanning every phase line (spec 165). It sat at the
+// far end of the caption line until then, pressed against the word
+// "Model", where it read as part of the model choice — and it is the
+// choice that decides which models there ARE, so it comes first.
 function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
   const tools = [...new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"))];
   if (tools.length < 2) return "";
@@ -1502,18 +1522,19 @@ function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
 // it says what is still ahead without anyone counting rows.
 //
 // The line is where a phase is TICKED since spec 124 — the box the
-// header's strip of chips used to carry, on the phase's own line, with
-// the picker for the next run of it beside the name. What it does NOT
-// carry is a Run button: one press runs whatever is ticked, from the
-// stack in the row's first cell.
+// header's strip of chips used to carry, on the phase's own line,
+// beside the picker for the next run of it. What it does NOT carry is
+// a Run button: one press runs whatever is ticked, from the row's one
+// action beside the state.
 //
-// The box is built without `done`: the phase's own State column two
-// cells along already says "done", and a checkmark here said it a
+// The box is built without `done`: the phase's own State column, the
+// next cell along, already says "done", and a checkmark here said it a
 // second time, in a second alphabet. It stays tickable — rerunning a
 // finished phase is the same submission it always was.
 //
-// The leading cell is the action column's, reserved and never filled:
-// the stack lives once, on the header row above.
+// The leading cell is the phase's NAME, hard left and alone (spec
+// 165). It was the action column's, reserved and never filled, until
+// spec 157 moved the row's one button beside the state.
 function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
   // Row-level, all four: which phases a press would run, why the row
@@ -1539,11 +1560,11 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
-      cells: phaseCaptionCells(g, opts, busy),
+      cells: phaseCaptionCells(),
     });
   }
   g.phases
-    .forEach((p) => {
+    .forEach((p, index) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
       const name = latest
@@ -1571,9 +1592,9 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // not reached, which the reader may add to it or drop from it as
       // the run goes.
       const live = editable.has(p.step);
-      // The picker directly after the name, so the two line up in the
-      // caption's columns; what the last run used is not spelled out in
-      // text any more — it IS the select's pre-filled value.
+      // What the last run used is not spelled out in text any more —
+      // it IS the picker's pre-filled value, in the column the caption
+      // calls "Model".
       // `create` gets a box that is ticked and cannot be untucked: the
       // folder being on disk IS its answer, and a spec that exists
       // cannot be created again. It had no box at all until
@@ -1589,9 +1610,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // that enumerates boxes from finding the lines too.
             dataAttr: "data-phase",
             value: p.step,
-            // No visible label — the phase's own name is the next
-            // thing on the line. The accessible one is given outright,
-            // since a wrapper with no text has no name to offer.
+            // No visible label — the phase's own name leads the line
+            // and the caption calls this column "Select". The
+            // accessible one is given outright, since a wrapper with
+            // no text has no name to offer.
             label: "",
             ariaLabel: stepLabel(p.step),
             // An editable box is never posted with the Run form: while
@@ -1637,17 +1659,34 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // there is to say.
             plain: true,
           });
+      // The row's AI, in a column of its own between the name and the
+      // model, drawn ONCE and spanning every phase line (spec 165).
+      // `g.phases.length`, never a literal five: a spec whose past
+      // jobs touched a step outside the usual set has that step
+      // appended as a line of its own (`jobGroup`), and a span short
+      // of the rows beneath it leaves a hole in the column.
+      // The cell is written whether the picker draws anything or not —
+      // one configured tool is nothing to choose between, and a column
+      // that came and went would move every column after it.
+      const toolCell =
+        index === 0
+          ? `<td class="toolcell" rowspan="${g.phases.length}">${toolPicker(g, opts, busy)}</td>`
+          : "";
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
-          `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
-          `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
+          // The name alone, hard left: it is what the eye lands on
+          // first, and it started 2.5rem in behind the box until spec
+          // 165 moved the box to the model's column.
+          `<td class="phasecell">${name}</td>` +
+          toolCell +
           // The Progress column is the head row's pips, and a phase
-          // line has nothing to say there: its own progress IS the
-          // word in the next cell. Blank rather than absent, so the
-          // word lands under the State header the spec's badge is in —
-          // the same question asked at two altitudes, in one column.
-          `<td></td>` +
+          // line had nothing to say there — a hand's width of nothing
+          // between the model select and the state word. The model
+          // select and the phase's box live in it now, so the line has
+          // real content all the way across.
+          `<td class="modelcell"><span class="row">` +
+          `${modelPicker(g, opts, p.step, busy, latest?.model)}${box}</span></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
@@ -1660,7 +1699,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
-const LIST_COLUMNS = 6;
+const LIST_COLUMNS = 7;
 
 // The panel a row's long messages go into (spec 143): a row of its own,
 // spanning the table, wrapping rather than overflowing. Everything the

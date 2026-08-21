@@ -98,25 +98,37 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(CSS).not.toContain("stackcell");
   });
 
-  test("the phase cell lets its line wrap", () => {
-    expect(NARROW).toContain("table.list tr.subrow .phasecell { white-space: normal; }");
-    expect(NARROW).toContain("table.list tr.subrow .phasecell > .row { flex-wrap: wrap; }");
+  // Since spec 165 a phase line is real table columns, so only ONE
+  // pair can run out of room at this width: the model select and the
+  // phase's box, which share a cell. The name is a word in a column of
+  // its own and the AI picker's spanning cell is centred in whatever
+  // height the wrapped rows end up — neither needs an override.
+  test("the model and its box wrap inside their own cell", () => {
+    expect(NARROW).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
   });
 
-  test("the pinned checkbox and name columns become flexible", () => {
-    expect(NARROW).toContain("table.list tr.subrow[data-step] .phasecell > .row > :first-child");
-    expect(NARROW).toContain("table.list tr.subrow[data-step] .phasecell > .row > :nth-child(2)");
-    expect(NARROW).toMatch(/flex:\s*1 1 auto/);
+  // 8rem for the AI column and 10rem inside the model's is 18rem of
+  // floor, in a screen that is 23rem wide. Held here, the table would
+  // scroll — which is the whole of what this block exists to prevent.
+  test("the widths the phase lines reserve on a desktop are given back", () => {
+    expect(NARROW).toContain("table.list tr.subrow td.toolcell { min-width: 0; }");
+    expect(NARROW).toContain(
+      "table.list tr.subrow .modelcell > .row > :first-child { min-width: 0; }",
+    );
   });
 
-  // The desktop rules must survive verbatim: the override wins by
-  // coming later in the cascade, not by replacing them, and
-  // design-system.test.ts asserts on the originals.
-  test("the desktop rules are still declared outside the media query", () => {
+  test("no pinned flex children survive at any width", () => {
+    expect(CSS).not.toContain(".phasecell > .row");
+    expect(CSS).not.toMatch(/flex:\s*0 0 2\.5rem/);
+    expect(CSS).not.toMatch(/flex:\s*0 0 6rem/);
+  });
+
+  // The desktop rule must survive verbatim: the override wins by
+  // coming later in the cascade, not by replacing it, and
+  // design-system.test.ts asserts on the original.
+  test("the desktop rule is still declared outside the media query", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toContain("table.list tr.subrow .phasecell > .row { flex-wrap: nowrap; }");
-    expect(desktop).toMatch(/flex:\s*0 0 2\.5rem/);
-    expect(desktop).toMatch(/flex:\s*0 0 6rem/);
+    expect(desktop).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }");
   });
 });
 
