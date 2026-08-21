@@ -722,40 +722,29 @@ function sortableHead(f: QueueFilter): string {
 // beside it until spec 149, for a job parked between two steps — there
 // is no stop between steps any more, so there is nothing to release and
 // nothing to approve.
-function actionForm(
-  r: QueueRowView,
-  token: string | undefined,
-  filter: QueueFilter | undefined,
-  o: { always?: boolean } = {},
-): string {
-  const canCancel = r.state === "queued" || r.state === "running";
-  if (!o.always && !canCancel) return "";
+//
+// It names the step it would stop — "Cancel implement" — so it reads
+// like the Run button beside it never is (spec 157): both say which
+// phase the press is about, and the State column they now share says
+// what is happening to it.
+//
+// Drawn only when there IS something to cancel. It used to be in the
+// markup whatever the state, greyed out, so the width of the action
+// column could not change from row to row (spec 124); that column is
+// gone, and a row draws exactly one control now — an inert Cancel
+// beside a live Run is the "two controls" this spec removes.
+//
+// `actionform` is what the page's own code selects on, and
+// `data-pending` is what the button says while the request is out —
+// written here, beside the label it replaces, rather than as a verb
+// table in the script.
+function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFilter | undefined): string {
   const hidden = tokenField(token) + filterFields(filter);
-  // `actionform` is what the page's own code selects on, and
-  // `data-pending` is what the button says while the request is out —
-  // written here, beside the label it replaces, rather than as a verb
-  // table in the script.
-  const one = (
-    verb: "cancel",
-    label: string,
-    pending: string,
-    variant: "ok" | "danger",
-    disabled = false,
-    why = "",
-  ) =>
-    `<form method="post" action="/api/queue/${esc(r.id)}/${verb}" class="actionform">${hidden}` +
-    btn({ label, pending, variant: disabled ? "" : variant, disabled, title: disabled ? why : undefined }) +
-    `</form>`;
-  // The OPEN row's stack (spec 124): the button is in the markup
-  // whatever the state, and only `disabled` moves. A button that comes
-  // and goes changes the width of the column every row on the page
-  // shares — which is the shove this was written to stop. Reached only
-  // once the spec HAS a job: with none, there is nothing to cancel,
-  // ever, and a permanently disabled button would say otherwise.
-  if (o.always) {
-    return one("cancel", "Cancel", "cancelling…", "danger", !canCancel, "nothing is running to cancel");
-  }
-  return one("cancel", "Cancel", "cancelling…", "danger");
+  return (
+    `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
+    btn({ label: `Cancel ${stepLabel(currentStep(r))}`, pending: "cancelling…", variant: "danger" }) +
+    `</form>`
+  );
 }
 
 // Merging was a button here until spec 149, with a long comment about
@@ -799,29 +788,6 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
     }) +
     `</form>`
   );
-}
-
-// What a COLLAPSED row may ask of the reader: the one thing the spec
-// needs right now, or nothing at all. That is the way out of a
-// conflict, where the refusal is — everything else (Run, Cancel, the
-// model, the other repos) belongs to the row you have opened.
-//
-// Approve stood here too until spec 149, for a job parked at a gate;
-// Merge until spec 132, which moved it into the panel before spec 149
-// removed it outright. What is left answers what it always did, for the
-// same reason: a collapsed row is about what the spec IS, plus at most
-// the one thing it is waiting on.
-//
-// A selector, never a second copy of the markup: it calls the same
-// component the expanded row calls, so a change to the form reaches
-// both places at once.
-function collapsedAction(g: SpecGroup, opts: QueuePageOptions, conflict: boolean): string {
-  // A branch an earlier job left behind does not make a busy row
-  // actionable: the step still running is writing to that very branch,
-  // and a resolve queued against it would collide with the run. Nothing
-  // at all, then — Cancel stays one click away, by opening the row.
-  if (specBusy(g)) return "";
-  return conflict ? resolveForm(g, opts) : "";
 }
 
 // Every repo the spec pushed to, each with its own compare link and its
@@ -958,6 +924,33 @@ function preTicked(g: SpecGroup): Set<string> {
   return new Set(g.lead || pair.length === 0 ? single : pair);
 }
 
+// What the row's one button SAYS, built from the same set the boxes are
+// ticked from (spec 157). Two things follow from naming it after the
+// ticked phases rather than after the state's own suggestion:
+//
+// A reader can see the two disagree before pressing. The State column
+// says what the spec's files make of it — "ready for analyze" — and the
+// button says what a press would actually run. Where those differ the
+// row reads "ready for analyze · Implement", and the disagreement is in
+// the line rather than in the result.
+//
+// And a press on a SHUT row is legible: its phase boxes are not drawn,
+// so the button's own word is the only thing that says what it would
+// do.
+//
+// Several ticked phases name the first and count the rest — "Analyze +
+// 1", which is what a fresh spec's `analyze`+`review-plan` pair reads
+// as. Naming only the first would hide half of what a press does.
+// Nothing ticked names nothing: no button is drawn at all, because a
+// disabled one invites a press that cannot do anything.
+function actionLabel(g: SpecGroup): string | undefined {
+  const ticked = [...preTicked(g)];
+  if (ticked.length === 0) return undefined;
+  const first = stepLabel(ticked[0]!);
+  const rest = ticked.length - 1;
+  return `${first[0]!.toUpperCase()}${first.slice(1)}${rest > 0 ? ` + ${rest}` : ""}`;
+}
+
 // The run form's own id. It exists for the rarely-set fields' sake
 // alone: they are written after the form's closing tag, on the same
 // line, and `form="<id>"` is what makes the browser post them with it
@@ -983,7 +976,7 @@ const refusalFor = (g: SpecGroup, opts: QueuePageOptions): string | undefined =>
 const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
 // The one thing nobody sets every time — the other repos the job will
-// touch. Built here rather than inline in `openActionsCell` so the
+// touch. Built here rather than inline in `stateAction` so the
 // `form` attribute it needs is written once, beside the id it has to
 // match.
 //
@@ -1028,63 +1021,92 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
     : "";
 }
 
-// Everything an OPEN row offers, in the cell the table opens with.
+// The one thing the row asks of the reader, beside the sentence that
+// says why (spec 157). Run, Cancel or Resolve — never two of them, and
+// nothing at all when there is nothing to run: no two of the three are
+// ever the right press at the same time, so a second one in the markup
+// could only ever be a greyed-out invitation.
 //
-// It used to be a `<tr>` of its own under the header (spec 109), which
-// was itself a fix for piling the same controls into the header's LAST
-// cell (a cell nothing sets a width on, so it wrapped and moved the
-// line the reader was scanning). Spec 124 moves them to the FIRST
-// cell instead, stacked, with a width declared in CSS: the column
-// cannot be widened by what a row happens to offer, so nothing on the
-// page moves when a branch becomes mergeable.
+// It sits in the State column now, after the badge, because the badge
+// already answers what is happening or what can happen next (spec 132)
+// and the button completes that sentence: "archive held back ·
+// Implement", "implementing · Cancel implement". It used to be a stack
+// of buttons in a cell of its own — a COLUMN at the front of the table
+// in spec 124, which pushed every other column sideways, then the spec
+// column's own cell spanning the phase lines (2026-08-19). Both were
+// answers to "where do a row's buttons go" while there were still
+// several of them.
 //
-// Every button stands here whatever the state — only `disabled`
-// changes — for that same reason. The two exceptions are honest ones:
-// a spec with NO job at all draws no Approve, Cancel or Merge, because
-// there is nothing to ever approve, cancel or merge, and Resolve
-// appears only after a merge was refused for a conflict.
+// The same function draws it open or shut. A collapsed row used to have
+// a narrower path of its own that offered Resolve and nothing else;
+// what the two differ in now is one branch, not two call sites.
 //
 // The Run form is a carrier and nothing else: it holds the hidden
-// fields, and the button that submits it and the boxes that fill it
-// are written outside its tags, reaching it by `form="…"` — the trick
-// spec 123 introduced for the model select, used twice more here.
-function openActionsCell(g: SpecGroup, opts: QueuePageOptions): string {
+// fields, and the button that submits it and the boxes that fill it are
+// written outside its tags, reaching it by `form="…"` — the trick spec
+// 123 introduced for the model select.
+function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): string {
   const busy = specBusy(g);
-  // Always "Run" — never "Run again". The again-variant tried to say
-  // whether anything was left to run for the first time, guessed wrong
-  // at the edges (archive ticked but not run still said "again"), and
-  // the ticked boxes already say exactly what a press will do. Asked
-  // for 2026-08-19: "om det er 'igjen' eller ei klarer vi ikke holde
-  // orden på". While a job is in flight the control is disabled and
-  // says why: it used to be readable-as-busy only, with a title
-  // inviting the reader to tick a phase the job did not hold — the
-  // exact press the queue then refused.
+  // The one refusal with a way out — read off the row's own job since
+  // spec 149, not off the query string. A landing happens with nobody's
+  // browser attached, so the redirect that used to carry this reason
+  // never happens; and reading it from the job also settles by
+  // construction the thing the query string needed two halves to get
+  // right, that the reason belongs to THIS spec and no other.
   //
-  // Built by hand rather than through `btn()`: it needs `form="…"`,
-  // an attribute that helper's signature does not carry — the same
-  // reason `modelPicker` builds its own `<select>`.
-  const run =
-    `<button type="submit" form="${esc(runFormId(g))}" class="btn${busy ? "" : " primary"}"` +
-    ` data-pending="starting…"${busy ? ` disabled title="${esc(busyReason(g))}"` : ""}>Run</button>`;
-  return (
-    `<span class="stack">` +
-    // Hidden fields only, and hidden by CSS: the boxes are on the
-    // phase lines and the button is directly above. Still a real form
-    // with the class the page's own code selects on, so a press is
-    // intercepted and the row redrawn rather than the page reloaded.
-    `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
-    `${tokenField(opts.token)}${filterFields(opts.filter)}` +
-    `<input type="hidden" name="project" value="${esc(g.project)}">` +
-    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
-    `</form>` +
-    run +
-    (g.lead ? actionForm(g.lead, opts.token, opts.filter, { always: true }) : "") +
-    (g.lead?.errorReason === "conflict" ? resolveForm(g, opts) : "") +
-    // The two nobody sets every time, quiet and small-text at the end
-    // of the stack (spec 117's shape, one turn to the right).
-    `<span class="row extra">${extraFields(g, opts, busy)}</span>` +
-    `</span>`
-  );
+  // A branch an earlier job left behind does not make a busy row
+  // resolvable: the step still running is writing to that very branch,
+  // and a resolve queued against it would collide with the run. So
+  // busy outranks a conflict, and Cancel is what a conflicted running
+  // row offers.
+  const conflict = g.lead?.errorReason === "conflict";
+  // What a press would run, and therefore what the button says. There
+  // is none while a job is in flight (Cancel is the row's control
+  // then) and none where a Run would only be refused for the conflict
+  // the last landing was (Resolve stands in its place, spec 135).
+  const label = busy || conflict ? undefined : actionLabel(g);
+  // The form is a CARRIER: hidden fields only, hidden by CSS, with the
+  // button and the phase boxes written outside its tags and reaching
+  // it by `form="…"`. So it is drawn wherever something names it — an
+  // open row's boxes and model selects always do, and a shut row's
+  // button does when there is one. Without it on a busy open row, the
+  // page's own script would lose the thread from a press back to the
+  // boxes it has to lock with it (`rowControls`, spec 151).
+  const runForm =
+    open || label
+      ? `<form id="${esc(runFormId(g))}" method="post" action="/api/queue" class="rowrun">` +
+        `${tokenField(opts.token)}${filterFields(opts.filter)}` +
+        `<input type="hidden" name="project" value="${esc(g.project)}">` +
+        `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+        // A SHUT row draws no phase boxes, so the phases a press would
+        // run have nothing to be read off at submit time: they travel
+        // as hidden fields instead, exactly as `resolveForm` carries
+        // its one fixed step. An open row must NOT have them — its
+        // boxes are the reader's own, and a hidden field beside them
+        // would outvote a phase just unticked.
+        (open || !label
+          ? ""
+          : [...preTicked(g)].map((s) => `<input type="hidden" name="steps" value="${esc(s)}">`).join("")) +
+        `</form>`
+      : "";
+  const primary = (() => {
+    if (busy) return actionForm(g.lead!, opts.token, opts.filter);
+    if (conflict) return resolveForm(g, opts);
+    if (!label) return "";
+    // Secondary, not primary: every row on the page draws one of
+    // these now, and a column of primary buttons says nothing about
+    // which row to look at. Resolve keeps primary because it is drawn
+    // on one kind of row only.
+    //
+    // Built by hand rather than through `btn()`: it needs `form="…"`,
+    // an attribute that helper's signature does not carry — the same
+    // reason `modelPicker` builds its own `<select>`.
+    return `<button type="submit" form="${esc(runFormId(g))}" class="btn" data-pending="starting…">${esc(label)}</button>`;
+  })();
+  // The one nobody sets every time, quiet and small-text after the
+  // button (spec 117's shape). Open rows only, as it has always been:
+  // a shut row is about what the spec IS, plus the one press it wants.
+  return runForm + primary + (open ? `<span class="row extra">${extraFields(g, opts, busy)}</span>` : "");
 }
 
 // The one control on this page that is NOT about a spec that exists:
@@ -1118,11 +1140,10 @@ function specSummary(g: SpecGroup): string {
 }
 
 // The header line for one spec: what it is, how far it has got, what it
-// has cost in total, and — in the cell it opens with — what can be done
-// about it. A SHUT row's first cell holds at most the one action the
-// spec is waiting on; an OPEN row's holds the whole stack
-// (`openActionsCell`). Which phases a press would run is said on the
-// phase lines beneath (`phaseSubRows`), one box per line.
+// has cost in total, and — beside the state that says why — the one
+// thing that can be done about it (`stateAction`, spec 157). Which
+// phases a press would run is said on the phase lines beneath
+// (`phaseSubRows`), one box per line, and on the button's own label.
 function specHeadRow(
   g: SpecGroup,
   opts: QueuePageOptions,
@@ -1177,13 +1198,6 @@ function specHeadRow(
       title: stepLabel(p.step),
     })),
   );
-  // The one refusal with a way out — read off the row's own job since
-  // spec 149, not off the query string. A landing happens with nobody's
-  // browser attached, so the redirect that used to carry this reason
-  // never happens; and reading it from the job also settles by
-  // construction the thing the query string needed two halves to get
-  // right, that the reason belongs to THIS spec and no other.
-  const conflict = g.lead?.errorReason === "conflict";
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, asked once more for the
   // sentence. Worded for a reader here, so `review-plan` reaches it as
@@ -1215,28 +1229,32 @@ function specHeadRow(
     // answer. The pips, the badge and the branch marks each answer a
     // narrower question, and a reader had to assemble this from all of
     // them.
-    `<td>${
+    //
+    // The row's one button stands beside the badge since spec 157,
+    // completing the sentence it starts: "archive held back ·
+    // Implement". They share the page's own `row` container, so the
+    // gap between them is declared once and the button drops to a line
+    // of its own when the column runs out of width, rather than
+    // widening the table (`.tablewrap` would scroll instead).
+    `<td><span class="row">${
       g.lead
         ? stateCell(g.lead, {
             archiveHeldBack: heldBack,
             readyPhase,
           })
         : notStartedChip()
-    }` +
+    }${stateAction(g, opts, opened.has(groupKey(g.project, g.specFolder)))}</span>` +
     `<div class="muted small">${esc(
       nextActionHint(g.lead),
     )}</div></td>` +
     `<td data-col="started">${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
-    // The action cell, LAST as before spec 124 — but only for a SHUT
-    // row: an open row's actions live in the stack beside its phase
-    // lines (the 14rem first column put every button in the page's
-    // left gutter and pushed the whole table right; seen 2026-08-19).
-    `<td>${
-      opened.has(groupKey(g.project, g.specFolder))
-        ? ""
-        : collapsedAction(g, opts, conflict)
-    }</td></tr>`
+    // The spare cell, blank on every row since spec 157: the one
+    // action a shut row used to offer here is beside the state now,
+    // where the words explaining it already are. Kept rather than
+    // removed, because the header declares six columns and a row short
+    // of one shifts every column after it.
+    `<td></td></tr>`
   );
 }
 
@@ -1314,8 +1332,9 @@ function modelPicker(
 // with the model they ran on in the NEXT cell — sized for the progress
 // pips. Two short words with a hand's width of nothing between them.
 // Merging the two cells and putting the flex-gap container inside is
-// the same trick `collapsedAction` uses to sit two controls together
-// whatever the table's auto-sized widths turn out to be.
+// the same trick the State cell uses to sit the badge and the row's one
+// button together whatever the table's auto-sized widths turn out to
+// be.
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
 // sub-row itself, so the stack cell can lead whichever row comes first.
 // The empty span holds the checkbox column's place, so "Phase" stands
@@ -1326,7 +1345,7 @@ function phaseCaptionCells(g: SpecGroup, opts: QueuePageOptions, busy: boolean):
     `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
     `${toolPicker(g, opts, busy)}` +
-    `</span></td><td></td><td data-col="started"></td>` +
+    `</span></td><td></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
   );
 }
@@ -1405,11 +1424,11 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   const ticked = preTicked(g);
   const why = busy ? busyReason(g) : "";
   const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
-  // Every sub-row's tag and its cells, kept apart so the stack cell can
-  // lead whichever row comes first and span the rest (2026-08-19). A
-  // COLUMN of its own put the buttons in the page's left gutter and
-  // pushed the whole table sideways; the spec column they already sit
-  // under is where "left of the phases" actually is.
+  // Every sub-row's tag and its cells, kept apart because the tag
+  // carries the step and the cells carry the line. There is no cell
+  // spanning them any more: the row's one action moved beside the
+  // state (spec 157), and the phase lines took the left edge it left
+  // — which is where "left of the phases" always meant.
   const lines: { tag: string; cells: string }[] = [];
   if ((opts.modelChoices ?? []).length) {
     lines.push({
@@ -1480,20 +1499,19 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         cells:
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
+          // The Progress column is the head row's pips, and a phase
+          // line has nothing to say there: its own progress IS the
+          // word in the next cell. Blank rather than absent, so the
+          // word lands under the State header the spec's badge is in —
+          // the same question asked at two altitudes, in one column.
+          `<td></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
           `<td></td>`,
       });
     });
-  // The stack, once, in the spec column and spanning every line beside
-  // it: one cell, so nothing about a row's buttons can change what any
-  // other row is shaped like.
-  const stack =
-    `<td class="stackcell" rowspan="${lines.length}">${openActionsCell(g, opts)}</td>`;
-  return lines
-    .map((l, i) => `${l.tag}${i === 0 ? stack : ""}${l.cells}</tr>`)
-    .join("");
+  return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
 }
 
 /** How many columns the list has. Two rows span the whole table — the

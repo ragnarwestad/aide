@@ -565,11 +565,14 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html).toContain('<form id="rowrun-aide/81-queue-and-runner" method="post"');
     expect(html).toContain('<a class="brand" href="/">');
     // Every control says what it is: an unlabelled checkbox next to some
-    // buttons tells the reader nothing. The steps, Run and what is left
-    // of the fields nobody sets every time are all on the one line an
-    // open row grows (spec 117) — nothing waits behind a second click.
+    // buttons tells the reader nothing. The steps, the row's one button
+    // and what is left of the fields nobody sets every time are all on
+    // the one line an open row grows (spec 117) — nothing waits behind
+    // a second click. 81a ships no runner, so the job posted above is
+    // sitting in "queued": the row's one control is the way to stop it,
+    // named for the step it would stop (spec 157).
     const line = specControls(html, "81-queue-and-runner");
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Cancel analyze</button>");
     for (const step of ["analyze", "implement", "archive"]) {
       expect(line).toContain(`name="steps" value="${step}"`);
       expect(line).toContain(`aria-label="${step}"`);
@@ -625,13 +628,15 @@ describe("GET / (the spec list, HTML)", () => {
     expect(rows).toContain("<tr");
     expect(rows).toContain("81-queue-and-runner");
     expect(rows).not.toContain("<html");
-    // The Run control belongs to a ROW, so unlike the retired top form
-    // it must survive the swap: without it, every five seconds the
-    // page would lose the only way to start a spec (criterion 8).
+    // The row's own control belongs to a ROW, so unlike the retired top
+    // form it must survive the swap: without it, every five seconds the
+    // page would lose the only way to act on a spec (criterion 8). The
+    // job posted above is queued with no runner to take it, so that
+    // control is Cancel.
     const line = specControls(rows, "81-queue-and-runner");
     expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Cancel analyze</button>");
   });
 
   // A generated page is a FILE, and the list it points at is served.
@@ -1035,10 +1040,10 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
     expect(html).toMatch(/value="archive" checked/);
-    // The button says Run whatever has already run — the again-variant
-    // went 2026-08-19.
+    // The button is named for the phase a press would run (spec 157) —
+    // the bare word "Run" went with the again-variant that preceded it.
     expect(html).not.toContain("Run again");
-    expect(html).toContain(">Run</button>");
+    expect(html).toContain(">Archive</button>");
   });
 
   test("a spec whose archive run declined says why, on the row and in the sentence", async () => {
@@ -3147,12 +3152,10 @@ describe("a description newer than the analysis is shown on the row", () => {
     );
   };
 
-  /** A phase's own line, without the action stack that rides on the
-   *  first sub-row (it spans them all and belongs to the spec, not to
-   *  the phase). */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string): string =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   /** The badge sits on the analyze phase line and the marks on the step
    *  boxes, and a collapsed row draws neither — so every fetch here

@@ -435,17 +435,6 @@ table.list tr.specnotice .rowmsg { margin: 0; }
 table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
   font-size: var(--fs-s); }
 table.list tr.subrow:last-child td { padding-bottom: var(--sp-3); }
-/* The first column is the row's ACTIONS (spec 124), and it is the one
-   column whose content comes and goes with the spec's state: a branch
-   becoming mergeable used to widen it for every row on the page at
-   once. Declared here, so what a row happens to offer cannot decide
-   how wide the column is. Scoped to the spec list's own header rows —
-   "table.list" is the specs page's table too, and it has no actions. */
-/* The stack's cell: the spec column, beside the phase lines it acts
-   on, capped so a long button label cannot widen the column the whole
-   table is aligned on. Top-aligned — buttons belong at the top of the
-   lines they command, not floating in the middle of them. */
-.stackcell { width: 14rem; vertical-align: top; }
 /* The phase lines claim the width they need rather than wrapping: a
    box, a name and a select on one line, or the column squeezes them
    into three (2026-08-19). */
@@ -497,38 +486,30 @@ table.list tr.subrow[data-caption] .phasecell label {
 .fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields since spec 124: the boxes it posts are on
-   the phase lines and the button that submits it is in the stack
-   above, both reaching it by the "form" attribute alone. It is still a
-   real form — the page works with script off — and still carries the
-   class queue-client.ts selects on, so a press is still intercepted.
-   It just has nothing to show, and a stack that gave it a gap would
-   open a hole between two buttons. */
+   the phase lines and the button that submits it stands beside the
+   state badge (spec 157), both reaching it by the "form" attribute
+   alone. It is still a real form — the page works with script off —
+   and still carries the class queue-client.ts selects on, so a press
+   is still intercepted. It just has nothing to show, and a container
+   that gave it a gap would open a hole beside the badge. */
 .rowrun { display: none; }
-/* The vertical one: a row's buttons, one under the next, in the cell
-   the list opens with (spec 124). Named by the archived design sheet
-   and never ported until now. Flex-start because the buttons are
-   different widths and a stack of centred ones has no edge to read
-   down; the gap is the container's, as everywhere else. */
-.stack { display: flex; flex-direction: column; align-items: flex-start;
-  gap: var(--sp-2); }
-/* The column above is 14rem because the longest label a row can draw
-   fits in it. The two
-   rules below are the backstop for the day one does not: a button
-   clips rather than demanding a wider column, since a column that
-   grows to fit one row's button moves every other row on the page,
-   which is what the width was declared to stop. */
-.stack > * { max-width: 100%; }
-.stack .btn { overflow: hidden; }
+/* The stack of a row's buttons stood here until spec 157, with a 14rem
+   cell of its own above it: a row draws ONE button now, beside the
+   state badge, and the two share the page's ordinary "row" container.
+   That container wraps, which is the whole width rule the pairing
+   needs — the badge and the button drop to two lines rather than
+   widening a column the whole table is aligned on. */
 /* No margin on the rule below, nor on "extra": the space between two
    controls is declared once, by the "row" that holds them (spec 120). A
    margin here would travel into every layout the form is put in next,
    and a container gap does not absorb it. "actionform" has no rule left
    at all — "td form" above gives it everything it had. */
 .resolveform { display: inline-block; }
-/* The end of the action stack: "also touches" (the model left for the
-   phase lines in spec 123). Small and bottom-aligned, so
-   a labelled field and a bare checkbox share one line, and quiet
-   enough that the buttons above them still read first. */
+/* The last thing in the State cell of an open row: "also touches" (the
+   model left for the phase lines in spec 123). Small and
+   bottom-aligned, so a labelled field and a bare checkbox share one
+   line, and quiet enough that the badge and the button beside them
+   still read first. */
 .extra { display: inline-flex; vertical-align: bottom;
   font-size: var(--fs-s); align-items: flex-end; }
 /* A disclosure holding a form that is not about an existing spec. The
@@ -670,7 +651,6 @@ tr.spec-archived td { color: var(--muted); }
   /* The open row's phase lines are pinned columns on a desktop, so a
      box, a name and a select always start at the same x. At this width
      there is no room for three columns and the line wraps instead. */
-  .stackcell { width: auto; }
   table.list tr.subrow .phasecell { white-space: normal; }
   table.list tr.subrow .phasecell > .row { flex-wrap: wrap; }
   table.list tr.subrow[data-step] .phasecell > .row > :first-child,

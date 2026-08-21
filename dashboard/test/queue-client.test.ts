@@ -91,7 +91,7 @@ function harness(
   reply: (url: string) => Reply,
   control_ = "actionform",
   search = "",
-  o: { collapsed?: boolean; pathname?: string } = {},
+  o: { offRow?: boolean; pathname?: string } = {},
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
@@ -106,7 +106,7 @@ function harness(
    *
    *  `form` is the attribute, and it is the whole point for Run: that
    *  button is written OUTSIDE `<form class="rowrun">` and reaches it
-   *  by name alone (`queue-list.ts`, `openActionsCell`). */
+   *  by name alone (`queue-list.ts`, `stateAction`). */
   const makeButton = (label: string, pending: string, variant: string, form?: string) => {
     const b = {
       textContent: label,
@@ -158,19 +158,25 @@ function harness(
     },
   };
   const tokenInput = { value: "s3cret" };
-  // Spec 151: the OTHER controls in the same `<td class="stackcell">`.
-  // A press locks the whole row, so a fake with one button on it could
-  // not tell a row-wide lock from the single-button one it replaced.
+  // Spec 151: the OTHER controls on the same row. A press locks the
+  // whole row, so a fake with one button on it could not tell a
+  // row-wide lock from the single-button one it replaced.
+  //
+  // They sat in a `<td class="stackcell">` until spec 157 moved the
+  // row's one control into the State cell of the head row and deleted
+  // that cell. The scope is `tr.spechead` now, which is the same
+  // element open or shut — a collapsed row had no stack cell at all,
+  // and this fake had to model that as "no scope".
   const runButton = formClass === "rowrun" ? button : makeButton("Run", "starting…", "primary", ROW_FORM);
   const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
-  const stackControls = [...new Set([runButton, cancelButton, button])];
-  /** The run form as the stack cell holds it: hidden fields only, and
+  const headControls = [...new Set([runButton, cancelButton, button])];
+  /** The run form as the State cell holds it: hidden fields only, and
    *  an id every control outside its tags names. */
   const runFormEl = { id: ROW_FORM, className: "rowrun" };
-  /** The cell `openActionsCell` fills — one per row, spanning its
-   *  phase lines. It is what a press scopes itself to. */
-  const stack = {
-    querySelectorAll: () => stackControls,
+  /** The `<tr class="spechead">` the row's one control is drawn in.
+   *  It is what a press scopes itself to. */
+  const spechead = {
+    querySelectorAll: () => headControls,
     querySelector: (sel: string) => (sel.includes("rowrun") ? runFormEl : null),
   };
   const form = {
@@ -202,10 +208,12 @@ function harness(
     closest: (sel: string) =>
       sel === "tr"
         ? row
-        : sel.includes("stackcell")
-          ? // A COLLAPSED row has no stack cell: it draws its one
-            // control in the last column instead.
-            (o.collapsed ? null : stack)
+        : sel.includes("spechead")
+          ? // A form that is not on a spec's row at all — the New-spec
+            // page, the Projects panel. `collapsed` no longer names a
+            // row without a scope: since spec 157 a shut row draws its
+            // control in the same `<tr>` an open one does.
+            (o.offRow ? null : spechead)
           : sel.includes(`.${formClass}`)
             ? form
             : null,
@@ -581,6 +589,11 @@ function harness(
     let prevented = extra.defaultPrevented ?? false;
     const event = {
       target,
+      // A plain primary-button click. `navigate` reads this and bails
+      // on anything else (middle click, a modifier held), so an event
+      // without it would let every fold test pass for the wrong
+      // reason.
+      button: 0,
       get defaultPrevented() {
         return prevented;
       },
@@ -598,9 +611,25 @@ function harness(
   };
   const submitCreate = (extra: Partial<{ defaultPrevented: boolean }> = {}) =>
     fire("create:submit", createButton, extra);
+  /** A plain CLICK on the row's own button, through the delegated
+   *  listener `#jobrows` carries. The fold's chevron is on that same
+   *  listener, which is why a button that now sits on the head row
+   *  (spec 157) has to be shown not to reach it. */
+  const click = () => {
+    (button as unknown as { closest: (s: string) => unknown }).closest = form.closest;
+    return fire("click", button);
+  };
+  /** The fold's own chevron, on the same delegated listener: the
+   *  control that DOES navigate. Without it the button-click tests
+   *  would pass against a listener that had stopped working. */
+  const foldLink = {
+    getAttribute: (n: string) => (n === "href" ? "/?open=aide%2F127-one-ai" : null),
+    closest: (sel: string) => (sel.includes("data-nav") ? foldLink : null),
+  };
+  const clickFold = () => fire("click", foldLink);
 
   return {
-    submit, submitCreate, button, createButton, requests, location, rows, inserted,
+    submit, submitCreate, click, clickFold, button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick: () => tick(),
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
@@ -1242,10 +1271,30 @@ describe("a press locks every control on its row (spec 151)", () => {
     expect(h.stepBoxes[1]!.disabled).toBe(true);
   });
 
-  // A COLLAPSED row has no stack cell: it draws at most one control,
-  // in the last column, and that control's own button is inside its
-  // own form. Nothing widens, and nothing may break.
-  test("a collapsed row's single control behaves exactly as it did", async () => {
+  // A SHUT row used to be the case with no scope at all: it drew its
+  // one control in the header's last cell, that control's button was
+  // inside its own form, and `td.stackcell` — an open row's cell —
+  // found nothing. Spec 157 draws every row's control in the head row,
+  // open or shut, so a shut row's press locks exactly what an open
+  // one's does. Nothing is left that has a row and no scope.
+  test("a shut row's control locks the whole row too (spec 157)", async () => {
+    let seen = {} as ReturnType<typeof rowState>;
+    const h = harness((url) => {
+      if (url.includes("/api/queue")) seen = rowState(h);
+      return { ok: true, body: OK };
+    }, "resolveform");
+    await h.submit();
+    expect(seen).toEqual({
+      run: true, cancel: true, box: true, model: true, tool: true, otherRow: false,
+    });
+    expect(h.button.disabled).toBe(false);
+    expect(h.button.classList.contains("busy")).toBe(false);
+  });
+
+  // What the fallback describes now: a form on no spec row at all —
+  // the New-spec page, the Projects panel. Its own button is inside
+  // it, and there is nothing to widen the scope to.
+  test("a form on no spec row locks its own button and nothing else", async () => {
     let seen = { busy: false, disabled: false, run: false };
     const h = harness(
       (url) => {
@@ -1260,12 +1309,39 @@ describe("a press locks every control on its row (spec 151)", () => {
       },
       "resolveform",
       "",
-      { collapsed: true },
+      { offRow: true },
     );
     await h.submit();
     expect(seen).toEqual({ busy: true, disabled: true, run: false });
     expect(h.button.disabled).toBe(false);
     expect(h.button.classList.contains("busy")).toBe(false);
+  });
+
+  // Spec 157, criteria 9 and 11. The row's one button sits inside
+  // `tr.spechead` now, and the fold's chevron is a `<a data-nav>` on
+  // the same delegated listener. A press must RUN, never open the row
+  // underneath the request — and it cannot, structurally: `navigate`
+  // acts only on `closest("a[data-nav]")`, which a `<button>` does not
+  // match. Asserted rather than assumed, since nothing in the markup
+  // says so.
+  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
+    test(`a press on ${control} does not fold the row open or shut`, () => {
+      const h = harness(() => ({ ok: true, body: OK }), control);
+      h.click();
+      // No history rewrite, so no `?open=` was added or taken away —
+      // and no row swap was asked for on the click's own account.
+      expect(h.replaced).toEqual([]);
+      expect(h.requests).toEqual([]);
+    });
+  }
+
+  // The control case: the chevron on the SAME listener still folds.
+  // Without this the three above would pass just as happily against a
+  // listener that had stopped answering clicks at all.
+  test("the fold's own chevron still navigates", () => {
+    const h = harness(() => ({ ok: true, body: OK }), "rowrun");
+    h.clickFold();
+    expect(h.replaced).toEqual(["/?open=aide%2F127-one-ai"]);
   });
 });
 

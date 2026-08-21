@@ -90,8 +90,12 @@ describe("Started and Cost fold away at phone width", () => {
 // --- criterion 3: the open row's phase lines stack --------------------------
 
 describe("the phase lines stop being pinned columns at phone width", () => {
-  test("the stack's cell gives up its fixed width", () => {
-    expect(NARROW).toMatch(/\.stackcell \{[^}]*width:\s*auto/);
+  // The stack's cell gave up a fixed 14rem width here until spec 157
+  // deleted the cell outright: a row draws one button now, in the
+  // State column, and the phase lines lead their own rows. There is no
+  // width left to release at this breakpoint.
+  test("no stack cell is declared at any width", () => {
+    expect(CSS).not.toContain("stackcell");
   });
 
   test("the phase cell lets its line wrap", () => {
@@ -110,7 +114,6 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   // design-system.test.ts asserts on the originals.
   test("the desktop rules are still declared outside the media query", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-    expect(desktop).toContain(".stackcell { width: 14rem; vertical-align: top; }");
     expect(desktop).toContain("table.list tr.subrow .phasecell > .row { flex-wrap: nowrap; }");
     expect(desktop).toMatch(/flex:\s*0 0 2\.5rem/);
     expect(desktop).toMatch(/flex:\s*0 0 6rem/);

@@ -219,11 +219,13 @@ describe("the header and the two tabs (spec 119)", () => {
 // The phase lines are columns (asked for 2026-08-19, "få det nå
 // alignet"): the name has a fixed width so every model select starts at
 // the same x, sharing it with the caption row's own first span.
-// The action stack lives in the spec column, spanning the phase lines
-// it commands — spec 124 gave it a COLUMN of its own at the front of
-// the table, which put every button in the page's left gutter and
-// pushed every other column sideways (2026-08-19).
-describe("the action stack rides in the spec column, not in one of its own", () => {
+// The row's one action lives in the State column, after the badge whose
+// sentence it finishes (spec 157). It had a COLUMN of its own at the
+// front of the table in spec 124, which put every button in the page's
+// left gutter and pushed every other column sideways; then a cell in
+// the spec column spanning the phase lines (2026-08-19). The left edge
+// belongs to the phase lines now.
+describe("the row's one action rides beside the state, not in a column of its own", () => {
   test("the header declares its blank cell last, and no row leads with one", async () => {
     const html = rows([], { targets: [target()] });
     const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
@@ -231,12 +233,14 @@ describe("the action stack rides in the spec column, not in one of its own", () 
     expect(thead).not.toMatch(/^<thead><tr><th><\/th>/);
   });
 
-  test("an open row's stack is one spanning cell, beside its phase lines", () => {
+  test("the button is in the head row's State cell, and nothing spans a row", () => {
     const html = rows([], { targets: [target()] });
-    const stack = html.match(/<td class="stackcell" rowspan="(\d+)">([\s\S]*?)<\/td>/);
-    expect(stack).not.toBeNull();
-    expect(Number(stack![1])).toBeGreaterThan(1);
-    expect(stack![2]).toContain(">Run</button>");
+    expect(html).not.toContain("rowspan");
+    const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    expect(cells[2]).toContain("</button>");
+    // And the phase lines lead with their own cell, hard left.
+    expect(html).toMatch(/<tr class="subrow[^"]*"[^>]*><td class="phasecell">/);
   });
 });
 
@@ -350,7 +354,7 @@ describe("refused and running are told apart by more than the word", () => {
 
 // --- nothing is left behind a second click ------------------------------------
 
-describe("the row's rarely-set controls sit in the action stack (item 4)", () => {
+describe("the row's rarely-set controls sit beside the row's action (item 4)", () => {
   const html = () =>
     rows([], {
       targets: [target()],
@@ -358,16 +362,13 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
       modelChoices: [{ name: "opus", budgetUsd: 15 }],
     });
 
-  /** The spec's action cell: an open row's whole stack, in the cell
-   *  that leads its phase lines and spans them; a shut row's one
-   *  action, in the header's last cell. */
+  /** The spec's action cell: the State column — the head row's third
+   *  — open or shut alike since spec 157. */
   const controls = (h: string) => {
-    const stack = h.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-    if (stack !== undefined) return stack;
     const head =
       h.match(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[cells.length - 1] ?? "";
+    return cells[2] ?? "";
   };
   /** The list itself. The "?" popover above it is a `<details>` too
    *  (spec 113) and has nothing to do with a row. */
@@ -397,21 +398,23 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
     expect(h).not.toContain('name="gate"');
   });
 
-  test("it comes after the buttons, quietly", () => {
+  test("it comes after the button, quietly", () => {
     const cell = controls(html());
-    expect(cell.indexOf('name="extraProjects"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
+    expect(cell.indexOf('name="extraProjects"')).toBeGreaterThan(cell.indexOf("</button>"));
     expect(cell).toContain('<span class="row extra">');
   });
 
   // Spec 120: presence in the cell is not the same as SHARING it. Each
   // form is its own block, so siblings glued straight into the `<td>`
   // decide their own spacing — only a container around them declares
-  // it once. Spec 124 turns that container on its side: the buttons
-  // are one under the next now, and the gap is still the container's.
-  /** The cell's own `<span class="stack">`, with everything it holds. */
-  const group = (h: string) => h.match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
+  // it once. Spec 124 turned that container on its side; spec 157
+  // turns it back, and the badge joins it: the state and the one
+  // button read as one line, with the gap still the container's.
+  /** The State cell's own `<span class="row">`, with everything it
+   *  holds. */
+  const group = (h: string) => h.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
 
-  test("Run, the action forms and the extra fields are one stack (spec 120)", () => {
+  test("the badge, the action form and the extra fields are one row (spec 120)", () => {
     const cell = controls(
       rows([row()], {
         targets: [target()],
@@ -420,17 +423,24 @@ describe("the row's rarely-set controls sit in the action stack (item 4)", () =>
       }),
     );
     const outer = group(cell);
-    expect(outer).toContain('id="rowrun-');
-    expect(outer).toContain(">Run</button>");
-    expect(outer).toContain('<span class="row extra">');
+    expect(outer).toContain('class="badge');
+    // The fixture's job is RUNNING, so the row's one control is Cancel
+    // — no run form beside it, which is the point of "one control".
     expect(outer).toContain('class="actionform"');
+    expect(outer).toContain(">Cancel analyze</button>");
+    expect(outer).toContain('<span class="row extra">');
+    // The run form is still there — it is the carrier the phase boxes
+    // name — but nothing submits it while a job is in flight.
+    expect(outer).not.toMatch(/<button[^>]*form="rowrun/);
   });
 
-  test("the stack is there with no job to cancel either (spec 120)", () => {
-    // The same cell with nothing ever run: Approve and Cancel are not
-    // drawn at all (there is no job to act on), and what remains still
-    // shares the container rather than gaining one when a job arrives.
+  test("the container is there with no job to cancel either (spec 120)", () => {
+    // The same cell with nothing ever run: there is nothing to cancel,
+    // so the row offers the phases a press would run instead — and
+    // what remains still shares the container rather than gaining one
+    // when a job arrives.
     const outer = group(controls(html()));
+    expect(outer).toContain('class="badge');
     expect(outer).toContain('id="rowrun-');
     expect(outer).toContain('<span class="row extra">');
     expect(outer).not.toContain('class="actionform"');
@@ -445,31 +455,41 @@ describe("the primary button's label per row state (the design sheet's table)", 
       m[1]!.replace(/<[^>]*>/g, "").trim(),
     );
 
-  test("a spec nothing has ever run offers Run", () => {
-    expect(buttons(rows([], { targets: [target()] }))).toContain("Run");
+  test("a spec nothing has ever run is offered its first two phases", () => {
+    expect(buttons(rows([], { targets: [target()] }))).toContain("Analyze + 1");
   });
 
-  // Always "Run", never "Run again" (asked for 2026-08-19): the
-  // again-variant guessed at history and guessed wrong at the edges —
-  // the ticked boxes already say what a press will do.
-  test("the button says Run whatever has already run", () => {
-    for (const done of [[], ["analyze", "review-plan"], ["analyze", "review-plan", "implement"]]) {
-      const t = target({ done });
+  // The bare word "Run" went in spec 157, and "Run again" before it
+  // (2026-08-19): the again-variant guessed at history and guessed
+  // wrong at the edges. The button names the phase a press would run,
+  // which is the thing both wordings were groping for.
+  test("the button names the phase a press would run, whatever has already run", () => {
+    for (const [done, label] of [
+      [[], "Analyze"],
+      [["analyze", "review-plan"], "Implement"],
+      [["analyze", "review-plan", "implement"], "Archive"],
+    ] as const) {
+      const t = target({ done: [...done] });
       const b = buttons(rows([row({ state: "done" })], { targets: [t] }));
-      expect(b).toContain("Run");
+      expect(b).toContain(label);
       expect(b).not.toContain("Run again");
+      expect(b).not.toContain("Run");
     }
   });
 
-  test("a running job offers Cancel; Run is disabled without a spinner of its own", () => {
+  test("a running job offers Cancel and nothing else", () => {
     const html = rows([row({ state: "running" })], { targets: [target()] });
-    expect(buttons(html)).toContain("Cancel");
-    // The busy VARIANT carries a spinner, and the running phase chip
-    // already has the row's one — two spinners read as two jobs
-    // (2026-08-19). Disabled, with the reason in the title, is enough.
-    const run = html.match(/<button[^>]*>Run(?: again)?<\/button>/)?.[0] ?? "";
-    expect(run).toContain("disabled");
-    expect(run).not.toContain("busy");
+    // Named for the step it would stop, so it reads like the Run
+    // button it replaces (spec 157).
+    expect(buttons(html)).toContain("Cancel analyze");
+    // No Run at all — a greyed-out one beside a live Cancel is the
+    // second control this spec removes. The busy VARIANT carries a
+    // spinner, and the running phase chip already has the row's one;
+    // two spinners read as two jobs (2026-08-19).
+    expect(html).not.toMatch(/<button[^>]*form="rowrun/);
+    expect(html).not.toContain(">Run<");
+    const cancel = html.match(/<button[^>]*>Cancel analyze<\/button>/)?.[0] ?? "";
+    expect(cancel).not.toContain("busy");
   });
 
   // Spec 149: there is no Merge button at all any more, and the State
@@ -616,25 +636,22 @@ describe("Resolve (spec 106)", () => {
   // what is left to hold is that resolving carries no margin of its own
   // into whichever layout it lands in.
   test("resolve is spaced by its container, never by a margin of its own (spec 120)", () => {
-    // An open row's stack leads its phase lines; a shut row's one
-    // action is the header's last cell (2026-08-19).
+    // The State cell, open or shut alike since spec 157.
     const cell = (html: string) => {
-      const stack = html.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-      if (stack !== undefined) return stack;
       const head = html.match(/<tr class="spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
       const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-      return cells[cells.length - 1] ?? "";
+      return cells[2] ?? "";
     };
-    // Open: it stands in the row's own stack, with every other button
-    // the row offers, and the gap is the stack's.
-    const stack = cell(conflicted()).match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
-    expect(stack).toContain("resolveform");
-    expect(stack).not.toContain("mergeform");
-    // Shut: one control out here, so there is no pair to space and no
-    // container around a single form either.
+    // Open: it stands in the State cell's own container, beside the
+    // badge and before "also touches", and the gap is the container's.
+    const group = cell(conflicted()).match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
+    expect(group).toContain("resolveform");
+    expect(group).not.toContain("mergeform");
+    // Shut: the same container, with the badge and the one form in it
+    // — nothing else to space, and no margin carried in either way.
     const shut = cell(conflicted({ filter: {} }));
     expect(shut).toContain("resolveform");
-    expect(shut).not.toContain('<span class="row">');
+    expect(shut).not.toContain('class="row extra"');
   });
 });
 

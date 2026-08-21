@@ -236,7 +236,7 @@ const STRUCTURE = [
   // header and the box it opens (spec 119, which removed "layout").
   "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
   "tabbar", "tab",
-  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop", "stackcell",
+  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
@@ -245,11 +245,13 @@ const STRUCTURE = [
   // four of them and a phase's job page one
   "specfile",
   "u-usd", "u-tok",
-  // containers — "stack" is the vertical one (spec 124): the row's
-  // action buttons, one under the next, in the list's first column;
-  // "tablewrap" is the box a table too wide for the window scrolls
-  // inside, so the PAGE never does (spec 155).
-  "row", "stack", "fact", "intro", "tabpanel", "activity", "facts", "extra",
+  // containers — "stack" was the vertical one (spec 124): the row's
+  // action buttons, one under the next, in the list's first column. It
+  // went with them in spec 157, which draws ONE button per row, beside
+  // the state, in the page's ordinary "row" container. "tablewrap" is
+  // the box a table too wide for the window scrolls inside, so the
+  // PAGE never does (spec 155).
+  "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   "tablewrap",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
@@ -341,26 +343,30 @@ describe("the space between two controls comes from their container", () => {
   });
 });
 
-// --- the stack's cell holds still (spec 124) --------------------------------
+// --- the row's action cannot widen a column (spec 124, spec 157) -----------
 //
-// The buttons a row offers come and go with its state, and the cell
-// they sit in must not be sized by whichever one is longest: a Merge
-// naming two repos would widen the column the whole table is aligned
-// on. The width is declared, so the content cannot decide it. (Spec
-// 124 declared it on a COLUMN of its own at the front of the table,
-// which pushed every other column sideways — 2026-08-19 moved the
-// stack into the spec column it already sat under, spanning the phase
-// lines.)
+// The button a row offers comes and goes with its state, and the cell
+// it sits in must not be sized by whichever label is longest: a column
+// that grows to fit one row's button moves every other row on the page.
+// Spec 124 answered that with a declared width on a cell of the
+// buttons' own — a COLUMN at the front of the table first, which
+// pushed every other column sideways, then the spec column's own cell
+// spanning the phase lines (2026-08-19).
+//
+// Spec 157 answers it by wrapping instead. One button per row, in the
+// State column, sharing the page's ordinary `row` container with the
+// badge — and that container wraps, so a long pairing becomes two
+// lines rather than a wider column.
 
-describe("the action column's width is declared, not content-driven", () => {
-  test("the stack's cell carries a fixed width", () => {
-    const rule = CSS.match(/\.stackcell \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toMatch(/width:\s*[\d.]+rem;/);
+describe("the row's action wraps rather than widening a column", () => {
+  test("no cell of the buttons' own is left to declare a width on", () => {
+    expect(CSS).not.toContain("stackcell");
+    expect(CSS).not.toMatch(/\.stack \{/);
   });
 
-  test("the vertical stack is a container with a gap, like every other one", () => {
-    const rule = CSS.match(/\.stack \{([^}]*)\}/)?.[1] ?? "";
-    expect(rule).toContain("flex-direction: column");
+  test("the container the badge and button share wraps, with the gap it always had", () => {
+    const rule = CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("flex-wrap: wrap");
     expect(rule).toMatch(/gap:\s*var\(--sp-\d\)/);
     expect(rule).not.toContain("margin");
   });
