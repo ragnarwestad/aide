@@ -238,25 +238,29 @@ type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
  *  so a second press could land on a different control of the same
  *  row.
  *
- *  The stack cell is the row's own container — one `<td>` per row,
- *  spanning its phase lines — and the form-attribute lookup reaches
- *  what sits outside it on those lines. The ids carry the spec's own
- *  key, so this reaches one row and never a neighbour. */
+ *  The HEAD row is the row's own container — the one `<tr>` every spec
+ *  has, open or shut — and the form-attribute lookup reaches what sits
+ *  outside it on the phase lines. It was the stack cell until spec 157
+ *  moved the row's one button into the State column and deleted that
+ *  cell; the head row is where a control lives now whether the row is
+ *  open or shut, which the stack cell never was (a shut row had none).
+ *  The ids carry the spec's own key, so this reaches one row and never
+ *  a neighbour. */
 function rowControls(form: HTMLFormElement): Control[] {
-  const stack = form.closest("td.stackcell");
-  // A COLLAPSED row has no stack: it draws at most one control, in the
-  // last column, and that control's button is inside its own form.
-  // There is nothing to widen the scope to and nothing that needs it.
-  if (!stack) return Array.from(form.querySelectorAll("button"));
-  const runForm = stack.querySelector("form.rowrun") as HTMLFormElement | null;
+  const head = form.closest("tr.spechead");
+  // A form that is not on a spec's row at all — the New-spec page, the
+  // Projects panel. Its own button is inside it, and there is nothing
+  // to widen the scope to.
+  if (!head) return Array.from(form.querySelectorAll("button"));
+  const runForm = head.querySelector("form.rowrun") as HTMLFormElement | null;
   // Hidden fields are left out: they are not controls anybody can
   // press, and the row's whole point is what a person can still do to
   // it.
-  const inStack = Array.from(stack.querySelectorAll("button, select, input:not([type=hidden])"));
-  // The Run button answers both lookups — it is in the stack AND names
-  // the run form — so the two are deduplicated rather than left to
-  // disable it twice.
-  return [...new Set([...inStack, ...namesForm(runForm?.id ?? "")])] as Control[];
+  const inHead = Array.from(head.querySelectorAll("button, select, input:not([type=hidden])"));
+  // The Run button answers both lookups — it is in the head row AND
+  // names the run form — so the two are deduplicated rather than left
+  // to disable it twice.
+  return [...new Set([...inHead, ...namesForm(runForm?.id ?? "")])] as Control[];
 }
 
 /** Post a form as JSON-wanting XHR and hand the answer on. The button

@@ -868,12 +868,10 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
 
   const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
   // The cell for one phase, from its name to the end of the row.
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   test("two jobs for one spec make one header row, not two (criterion 1)", () => {
     const html = rows([
@@ -1025,12 +1023,10 @@ describe("a multi-step job is shown on every step it ran", () => {
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
   const analysed: QueueTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   const twoStep = (extra: Partial<QueueRowView> = {}): QueueRowView =>
     row({
@@ -1183,12 +1179,10 @@ describe("a spec's row runs its own phases", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** One phase's checkbox and its label, from the row it sits on. */
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
@@ -1301,7 +1295,10 @@ describe("a spec's row runs its own phases", () => {
       (m) => m[1],
     );
     expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
-    expect(line).toContain(">Run</button>");
+    // The button is named for what a press would run since spec 157 —
+    // here the two phases a fresh spec pre-ticks, the first of them
+    // named and the rest counted.
+    expect(line).toContain(">Analyze + 1</button>");
   });
 
   test("a phase already done can be ticked again — a rerun is the same submission (criterion 4)", () => {
@@ -1382,22 +1379,32 @@ describe("a spec's row runs its own phases", () => {
   // line, and the row a reader is about to act on is the one they open.
   // Since spec 109 the control opens on a line of its own beneath the
   // header, so a shut row has no such line at all.
-  test("the run control belongs to the open row, and folding takes it away", () => {
+  // Spec 103 made folding what the run control was BEHIND. Spec 157
+  // takes that half back and keeps the other: the PRESS is on the head
+  // row whether the row is open or shut — a reader should never have to
+  // open a row to start the thing its own state line just named — and
+  // what folding still hides is the CHOOSING, the phase boxes and the
+  // model pickers on the lines beneath.
+  test("folding hides the phase boxes, never the press itself", () => {
     const shut = rows([], [target("94-never-run")], { filter: {} });
     expect(shut).not.toContain('<tr class="subrow');
-    expect(head(shut, "94-never-run")).not.toContain('action="/api/queue"');
-    expect(head(shut, "94-never-run")).not.toContain('name="steps"');
+    expect(shut).not.toContain('type="checkbox" name="steps"');
+    // The phases a press would run travel as hidden fields instead, so
+    // a shut row's button posts exactly what its label says.
+    expect(head(shut, "94-never-run")).toContain('method="post" action="/api/queue"');
+    expect(head(shut, "94-never-run")).toContain('<input type="hidden" name="steps" value="analyze">');
+    expect(head(shut, "94-never-run")).toContain(">Analyze + 1</button>");
 
     const open = rows([], [target("94-never-run")], { filter: { open: "aide/94-never-run" } });
     const line = runLine(open, "94-never-run");
     expect(line).toContain('method="post" action="/api/queue"');
-    expect(line).toContain('name="steps" value="analyze"');
-    // The button and the form it posts stand in the stack beside the
-    // phase lines (2026-08-19) — never in the header row, which is why
-    // folding takes the whole thing away.
-    expect(head(open, "94-never-run")).not.toContain('action="/api/queue"');
-    expect(head(open, "94-never-run")).not.toContain(">Run</button>");
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain('type="checkbox" name="steps" value="analyze"');
+    // The button is in the header row's State cell either way, beside
+    // the badge whose sentence it finishes (spec 157).
+    expect(head(open, "94-never-run")).toContain(">Analyze + 1</button>");
+    // And an OPEN row's form carries no phases of its own: the boxes
+    // are the reader's, and a hidden field would outvote them.
+    expect(head(open, "94-never-run")).not.toContain('type="hidden" name="steps"');
   });
 
   test("a row's title, phase and progress come from its OWN target (criterion 9)", () => {
@@ -1480,12 +1487,10 @@ describe("every spec is a row (criteria 1-10)", () => {
   // whole header line and nothing else.
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** The line the run control opens onto, under the header (spec 109). */
   const runLine = (html: string, folder: string) =>
     html.match(
@@ -1513,7 +1518,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(line).toContain('name="project" value="aide"');
     expect(line).toContain('name="specFolder" value="90-never-run"');
     expect(line).toContain('name="steps" value="analyze"');
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Analyze + 1</button>");
     expect(line).not.toContain("disabled");
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
@@ -1739,12 +1744,10 @@ describe("the description-changed badge (criteria 1, 3)", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
 
   // The path every example in the ticket takes: 93, 94 and 96 had all
   // actually run an analyze, so a badge wired only into `emptyGroup`
@@ -2606,30 +2609,31 @@ describe("spec 103: a collapsed row shows status only", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (`stackcell`, spanning them all); a
-   *  SHUT row offers its one action in the header's LAST cell. Takes
-   *  the whole row group, since the two live on different lines
-   *  (2026-08-19 — spec 124's leading COLUMN pushed the table
-   *  sideways and was taken back out). */
+  /** Where a row's one button is: the State cell — the head row's
+   *  THIRD — since spec 157, open or shut alike. It was the header's
+   *  last cell for a shut row and a spanning `stackcell` for an open
+   *  one, which is why this used to need the whole row group. */
   const actionCell = (chunk: string) => {
-    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[cells.length - 1] ?? "";
+    return cells[2] ?? "";
   };
 
   const open = (folder: string) => ({ filter: { open: `aide/${folder}` } });
 
-  test("a collapsed row carries no run control at all (criterion 1)", () => {
+  // Spec 157 gave the press itself back to the collapsed row — a
+  // reader should not have to open a row to start what its state line
+  // just named. What folding still takes away is everything that is
+  // about CHOOSING: the phase boxes, the model pickers, the other
+  // repos. One button, named for what it would run, and nothing else.
+  test("a collapsed row carries the press and none of the choosing (criterion 1)", () => {
     const line = head(rows([], [target("103-idle")]), "103-idle");
     expect(line).not.toBe("");
-    expect(line).not.toContain('action="/api/queue"');
-    expect(line).not.toContain('name="steps"');
+    expect(line).toContain(">Analyze + 1</button>");
+    expect(line).not.toContain('type="checkbox"');
     expect(line).not.toContain('name="model"');
+    expect(line).not.toContain('name="extraProjects"');
     expect(line).not.toContain('class="more"');
-    expect(line).not.toContain(">Run<");
   });
 
   test("a collapsed row keeps its name, status, pips, started and cost (criterion 1)", () => {
@@ -2666,17 +2670,24 @@ describe("spec 103: a collapsed row shows status only", () => {
         "103-merge",
       ),
     );
+    // The row still offers its own next phase (spec 157) — what it
+    // does not offer, in any state, is a way to land the branch.
     expect(cell).not.toContain("/merge");
-    expect(cell).not.toContain("<form");
-    expect(cell).not.toContain("<button");
+    expect(cell).not.toContain("Merge");
   });
 
-  test("a running collapsed row offers nothing — Cancel is one click away (criterion 4)", () => {
+  // Spec 103 sent a reader to the open row to cancel; spec 157 brings
+  // the press back, because the State cell says "implementing" and the
+  // one thing to do about that is stop it.
+  test("a running collapsed row cancels the step it names (criterion 4)", () => {
     const cell = actionCell(
       controlsLine(rows([row({ id: "j1", specFolder: "103-busy", state: "running" })], [target("103-busy")]),
            "103-busy"),
     );
-    expect(cell).not.toContain("<form");
+    expect(cell).toContain('action="/api/queue/j1/cancel"');
+    expect(cell).toContain(">Cancel analyze</button>");
+    // And nothing else: one control, never two.
+    expect(cell.match(/<button/g)).toHaveLength(1);
   });
 
   // Spec 105, criterion 1b: the branch a previous job left behind does
@@ -2696,19 +2707,25 @@ describe("spec 103: a collapsed row shows status only", () => {
           "103-busy-branch",
         ),
       );
-      expect(cell).not.toContain("<form");
       expect(cell).not.toContain("mergeform");
       expect(cell).not.toContain("/merge");
+      // Cancel and only Cancel, as on the open row.
+      expect(cell.match(/<button/g)).toHaveLength(1);
+      expect(cell).toContain("/cancel");
     }
   });
 
-  test("a collapsed row with nothing pending has an empty action cell (criterion 4)", () => {
-    const cell = actionCell(controlsLine(rows([], [target("103-idle")]), "103-idle"));
+  // "Nothing pending" is not the same question since spec 157: a spec
+  // with a phase still ahead of it always has a press to offer. The
+  // empty cell is the spec that has run everything.
+  test("a collapsed row with every phase done has no button at all (criterion 4)", () => {
+    const done = ["analyze", "review-plan", "implement", "archive"];
+    const cell = actionCell(controlsLine(rows([], [target("103-idle", { done })]), "103-idle"));
     expect(cell).not.toContain("<form");
     expect(cell).not.toContain("<button");
   });
 
-  test("with no open parameter at all, no row shows a run form (criterion 7)", () => {
+  test("with no open parameter at all, no row draws a phase line (criterion 7)", () => {
     const html = rows(
       [
         row({ id: "j1", specFolder: "103-a", state: "done" }),
@@ -2716,9 +2733,11 @@ describe("spec 103: a collapsed row shows status only", () => {
       ],
       [target("103-a"), target("103-b"), target("103-c")],
     );
-    expect(html).not.toContain('action="/api/queue"');
-    expect(html).not.toContain('name="steps"');
+    // Every row still offers its own one press (spec 157) — what none
+    // of them offers is a box to tick or a model to pick.
     expect(html).not.toContain('<tr class="subrow');
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain('name="model.');
   });
 
   test("expanding a row reveals every control the page has always had (criterion 5)", () => {
@@ -2730,11 +2749,11 @@ describe("spec 103: a collapsed row shows status only", () => {
     const line = controlsLine(html, "103-idle");
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
-    expect(line).toContain(">Run</button>");
+    expect(line).toContain(">Analyze + 1</button>");
     expect(line).toContain('name="extraProjects" value="paceup"');
-    // Run and the rarely-set field are in the header's own action
-    // cell since spec 124; the boxes are on the phase lines below it.
-    expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Run</button>");
+    // The button and the rarely-set field are in the header's State
+    // cell since spec 157; the boxes are on the phase lines below it.
+    expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Analyze + 1</button>");
     expect(
       html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0],
     ).toContain('name="steps" value="analyze"');
@@ -2771,12 +2790,14 @@ describe("spec 103: a collapsed row shows status only", () => {
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
     });
     expect(head(html, "103-idle")).not.toContain('class="more"');
-    // Spec 124: the line they shared is gone. They sit at the end of
-    // the header cell's own stack, still one click from nowhere.
+    // Spec 124: the line they shared is gone. Spec 157: what is left
+    // of the stack is the State cell's own `row` container, and they
+    // sit at the end of it, after the button, still one click from
+    // nowhere.
     const cell = actionCell(controlsLine(html, "103-idle"));
-    expect(cell).toContain('<span class="stack">');
+    expect(cell).toContain('<span class="row">');
     expect(cell).toContain('<span class="row extra">');
-    expect(cell.indexOf('class="row extra"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
+    expect(cell.indexOf('class="row extra"')).toBeGreaterThan(cell.indexOf("</button>"));
     expect(html).not.toContain("data-controls");
   });
 
@@ -2877,18 +2898,14 @@ describe("spec 105: a busy row offers only what its state allows", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (`stackcell`, spanning them all); a
-   *  SHUT row offers its one action in the header's LAST cell. Takes
-   *  the whole row group, since the two live on different lines
-   *  (2026-08-19 — spec 124's leading COLUMN pushed the table
-   *  sideways and was taken back out). */
+  /** Where a row's one button is: the State cell — the head row's
+   *  THIRD — since spec 157, open or shut alike. It was the header's
+   *  last cell for a shut row and a spanning `stackcell` for an open
+   *  one, which is why this used to need the whole row group. */
   const actionCell = (chunk: string) => {
-    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[cells.length - 1] ?? "";
+    return cells[2] ?? "";
   };
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
@@ -2998,13 +3015,20 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   // --- criterion 3: Run, the model and the "more" fields lock too ------------
 
-  test("the Run button is disabled while the spec is busy, and says why (criterion 3)", () => {
-    const run = runBtn(openControls(spec("running")));
-    expect(run).toContain("disabled");
-    expect(run).toContain('title="implement is running"');
+  // Run used to stand here greyed out, with the reason in its title —
+  // the shape spec 124 needed so a column of buttons could not change
+  // width from row to row. Spec 157 draws ONE control per row, and
+  // while a job is in flight that control is Cancel: an inert Run
+  // beside a live Cancel is exactly the second control this removes.
+  test("no Run is drawn at all while the spec is busy (criterion 3)", () => {
+    const line = openControls(spec("running"));
+    expect(runBtn(line)).toBe("");
+    expect(line).not.toMatch(/<button[^>]*form="rowrun/);
     // The old title told the reader to do the exact thing this rule
     // removes; it must not survive anywhere on the row.
-    expect(run).not.toContain("tick a phase it does not hold");
+    expect(line).not.toContain("tick a phase it does not hold");
+    // What the row offers instead names the step it would stop.
+    expect(line).toContain(">Cancel implement</button>");
   });
 
   test("the model select and 'also touches' both lock (criterion 3)", () => {
@@ -3108,18 +3132,14 @@ describe("spec 109: an expanded row reveals its controls below the header line",
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines (`stackcell`, spanning them all); a
-   *  SHUT row offers its one action in the header's LAST cell. Takes
-   *  the whole row group, since the two live on different lines
-   *  (2026-08-19 — spec 124's leading COLUMN pushed the table
-   *  sideways and was taken back out). */
+  /** Where a row's one button is: the State cell — the head row's
+   *  THIRD — since spec 157, open or shut alike. It was the header's
+   *  last cell for a shut row and a spanning `stackcell` for an open
+   *  one, which is why this used to need the whole row group. */
   const actionCell = (chunk: string) => {
-    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[cells.length - 1] ?? "";
+    return cells[2] ?? "";
   };
 
   const branch = [{ label: "aide", url: "https://example.test/c", merged: false }];
@@ -3182,15 +3202,15 @@ describe("spec 109: an expanded row reveals its controls below the header line",
 
   // --- criterion 2: what opening actually reveals ---------------------------
 
-  test("an opened idle row reveals its phase lines, and the stack in its own cell (criterion 2)", () => {
+  test("an opened idle row reveals its phase lines, and the button beside its state (criterion 2)", () => {
     const html = rows([], [target("109-idle")], open("109-idle"));
     const line = controlsLine(html, "109-idle");
     expect(line).toContain('name="steps" value="analyze"');
-    // Spec 124: Run and the form it posts are in the header's action
-    // cell; the boxes it posts are on the phase lines under it.
+    // Spec 157: the button and the form it posts are in the header's
+    // STATE cell; the boxes it posts are on the phase lines under it.
     const cell = actionCell(controlsLine(html, "109-idle"));
     expect(cell).toContain('<form id="rowrun-aide/109-idle" method="post" action="/api/queue"');
-    expect(cell).toContain(">Run</button>");
+    expect(cell).toContain(">Analyze + 1</button>");
     expect(cell).not.toContain('name="steps"');
     expect(line.replace(head(html, "109-idle"), "")).toContain('name="steps" value="analyze"');
   });
@@ -3202,7 +3222,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // --- criteria 3-5: which control lands on which line ----------------------
 
   for (const state of ["queued", "running"] as const) {
-    test(`a ${state} spec offers Cancel in the header's action stack (criterion 3)`, () => {
+    test(`a ${state} spec offers Cancel beside its state (criterion 3)`, () => {
       const html = rows(
         [row({ id: "j1", specFolder: "109-busy", state, branchUrls: branch })],
         [target("109-busy")],
@@ -3210,8 +3230,8 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       );
       const cell = actionCell(controlsLine(html, "109-busy"));
       expect(cell).toContain('action="/api/queue/j1/cancel"');
-      // Exactly once on the page: the stack is the one place a row's
-      // actions are drawn now (spec 124).
+      // Exactly once on the page: the State cell is the one place a
+      // row's action is drawn now (spec 157).
       expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(1);
     });
   }
@@ -3249,16 +3269,18 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     }
   });
 
-  // The line those fields lived on is gone (spec 124): they sit in the
-  // header row's own action cell now, under the buttons. What still
-  // has to hold is that the cell they moved into has a width of its
-  // own, so the row cannot be shoved sideways by what it offers.
-  test("the action cell they moved into has a declared width", async () => {
+  // The line those fields lived on is gone (spec 124), and so is the
+  // fixed-width cell that replaced it (spec 157). What still has to
+  // hold is the thing the width was FOR: nothing a row happens to
+  // offer may shove the table sideways. The State cell's badge and
+  // button share the page's own `row` container, which wraps — so a
+  // long pairing becomes two lines instead of a wider column.
+  test("the pairing they moved into wraps rather than widening the table", async () => {
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).not.toContain("data-more");
     expect(CSS).not.toContain("data-controls");
-    const rule = CSS.match(/\.stackcell \{[^}]*\}/)![0];
-    expect(rule).toMatch(/width:\s*[\d.]+rem;/);
+    expect(CSS).not.toContain("stackcell");
+    expect(CSS.match(/\n\.row \{[^}]*\}/)![0]).toContain("flex-wrap: wrap");
   });
 
   // `.row` on its own is block-level `flex`, which would put the
@@ -3302,12 +3324,10 @@ describe("spec 108: one rule per phase", () => {
    *  the phase lines under it — where the boxes live since spec 124. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   // The pips carry the phase's own reader-facing name as their title,
   // which is how one is told from the next three.
   const pipFor = (html: string, label: string) =>
@@ -3336,14 +3356,16 @@ describe("spec 108: one rule per phase", () => {
     expect(analyze).toContain("last re-run cancelled");
   });
 
-  // Criterion 3's "Run again" wording was retired 2026-08-19: the
-  // button says Run whatever has already run.
-  test("with every phase but archive done the button still just reads Run", () => {
+  // Criterion 3's "Run again" wording was retired 2026-08-19, and the
+  // bare word "Run" with it (spec 157): the button is named for the
+  // phase a press would run, which says what "again" was groping for
+  // and cannot be wrong at the edges.
+  test("with every phase but archive done the button is named for archive", () => {
     const html = rows([], [target("108-ready", { done: BUILT })]);
     expect(pipFor(html, "archive")).toBe("todo");
     expect(subRow(html, "archive")).toContain("not run yet");
     expect(runLine(html)).not.toContain("Run again");
-    expect(runLine(html)).toContain(">Run</button>");
+    expect(runLine(html)).toContain(">Archive</button>");
   });
 
   test("an archive run that declined reads held back, not done (criterion 4)", () => {
@@ -3639,12 +3661,10 @@ describe("spec 116: create is the first phase line", () => {
    *  the phase lines under it — where the boxes live since spec 124. */
   const runLine = (html: string) =>
     html.match(/<tr class="[^"]*spechead[\s\S]*?(?=<tr class="[^"]*spechead|<\/tbody>|$)/)?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const order = (html: string) => [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
   const pipFor = (html: string, label: string) =>
     head(html).match(new RegExp(`<span class="pip ([a-z]+)" title="${label}"`))?.[1] ?? "";
@@ -3758,13 +3778,15 @@ describe("spec 116: create is the first phase line", () => {
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
     expect(said(withCreate)).toBe("ready for review");
-    expect(runLine(withCreate)).toContain(">Run</button>");
-    expect(runLine(withoutCreate)).toContain(">Run</button>");
-    // And with everything built the button still just reads Run — the
-    // again-variant went 2026-08-19.
+    // The button is named for the phase a press would run (spec 157),
+    // and `create` is not one of them whether it is done or not.
+    expect(runLine(withCreate)).toContain(">Review</button>");
+    expect(runLine(withoutCreate)).toContain(">Review</button>");
+    // And with everything built it names archive — never "create", and
+    // never the again-variant that went 2026-08-19.
     const allBuilt = rows([analyzed], [target("116-status", { done: ["analyze", "review-plan", "implement"] })]);
     expect(runLine(allBuilt)).not.toContain("Run again");
-    expect(runLine(allBuilt)).toContain(">Run</button>");
+    expect(runLine(allBuilt)).toContain(">Archive</button>");
   });
 
   // --- criterion 8: once, at the front, never twice --------------------------
@@ -4017,12 +4039,10 @@ describe("spec 123: each phase line picks its own model", () => {
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   /** The caption line: a subrow with no phase of its own, above them
    *  all. Marked by a data attribute rather than a class — it needs no
    *  rule of its own, and the render vocabulary is a closed set
@@ -4087,12 +4107,9 @@ describe("spec 123: each phase line picks its own model", () => {
 
   // --- criterion 3 -----------------------------------------------------------
 
-  /** The caption line above the phase lines. It leads with the stack
-   *  cell, which spans them all, so what is asserted about the caption
-   *  itself is read past that cell. */
+  /** The caption line above the phase lines. */
   const caption = (html: string) =>
-    (html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
   test("a Phase/Model caption sits directly above the phase lines", () => {
     const html = rows([]);
@@ -4193,11 +4210,13 @@ describe("spec 123: each phase line picks its own model", () => {
 // marks.
 //
 // The checkbox moves onto the phase's own line and drops the check;
-// the controls line goes with it. The action buttons leave the last
-// column for the FIRST one, stacked, always in the markup — state
-// decides which are enabled, so a Merge that becomes available cannot
-// widen a column and shove every row on the page sideways.
-describe("spec 124: one phase list, and the actions in a stack of their own", () => {
+// the controls line goes with it. The action buttons left the last
+// column for a stack of their own — and left that too in spec 157,
+// which draws ONE control per row, in the State column, and gives the
+// phase lines the left edge. What this block still guards is the half
+// that did not move: one phase list, one box per line, and the six
+// columns every row kind has to agree on.
+describe("spec 124: one phase list, and one action beside the state", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
     specFolder,
@@ -4223,12 +4242,10 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
 
   const head = (html: string, folder: string) =>
     html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
-  /** A phase's own line. The stack cell rides on whichever sub-row
-   *  comes first (it spans them all), and it is not part of the phase
-   *  line — so it is taken off here. */
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
 
@@ -4254,18 +4271,15 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
           `(?=<tr class="[^"]*spechead|</tbody>|$)`,
       ),
     )?.[0] ?? "";
-  /** Where a row's buttons are. An OPEN row stacks them in the cell
-   *  that leads its phase lines and spans them all; a SHUT row offers
-   *  its one action in the header's LAST cell. (Spec 124 gave them a
-   *  column of their own at the front, which put every button in the
-   *  page's left gutter and pushed the whole table sideways — taken
-   *  back out 2026-08-19, the stack itself kept.) */
+  /** Where a row's one button is: the State cell, the head row's
+   *  THIRD, open or shut alike (spec 157). It was a column of its own
+   *  at the front of the table in spec 124, which put every button in
+   *  the page's left gutter and pushed the whole table sideways; then
+   *  the spec column's own spanning cell (2026-08-19); and the
+   *  header's LAST cell for a shut row all along. */
   const actionCell = (chunk: string): string => {
-    const stack = chunk.match(/<td class="stackcell"[^>]*>([\s\S]*?)<\/td>/)?.[1];
-    if (stack !== undefined) return stack;
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    const c = cells(headRow);
-    return c[c.length - 1] ?? "";
+    return cells(headRow)[2] ?? "";
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
@@ -4292,23 +4306,19 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     );
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
     const spechead = head(html, "124-stack");
-    // The full first sub-row, stack cell included — `subRow` takes that
-    // cell off, and this test is about the columns it fills.
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect([thead, spechead, firstSub, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Six on every row that starts its own: the header, the spec line,
-    // and the first sub-row, whose stack cell spans the rest.
-    for (const tr of [thead, spechead, firstSub]) {
+    // Six on EVERY row alike since spec 157: nothing spans any more,
+    // so a phase line declares the same six the header does.
+    for (const tr of [thead, spechead, firstSub, subRow(html, "analyze")]) {
       expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
     }
-    // Five on the lines the spanning cell covers — six columns all the
-    // same, one of them filled from the row above.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(5);
-    // The spare cell is at the END: the header's own blank `<th>`, and
-    // the cell a shut row's one action goes in.
+    // The spare cell is at the END, and blank on every row now: the
+    // one action a shut row drew there moved beside the state.
     expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
-    // And the stack leads the phase lines, spanning every one of them.
-    expect(firstSub).toContain('<td class="stackcell" rowspan="6">');
+    expect(spechead).toMatch(/<td><\/td><\/tr>$/);
+    // And the phase lines lead with their own cell, hard left.
+    expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell">/);
   });
 
   // --- criteria 1, 3, 4, 5, 15: the checkbox lives on the phase line ---------
@@ -4395,22 +4405,22 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(html).not.toContain('value="analyze" checked');
   });
 
-  // --- criteria 6-12: the action stack ---------------------------------------
+  // --- criteria 6-12: the row's one action ----------------------------------
 
-  test("the stack leads the phase lines; the header keeps its own cells (criterion 6)", () => {
+  test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
-    expect(actionCell(group(html, "124-stack"))).toContain(">Run</button>");
+    expect(actionCell(group(html, "124-stack"))).toContain(">Analyze + 1</button>");
     // The header row is the six cells it always was, cost second to
-    // last and the shut row's action cell after it (empty while open).
+    // last and the now-always-blank spare cell after it.
     expect(cells(head(html, "124-stack"))).toHaveLength(6);
     expect(head(html, "124-stack")).toMatch(
       /<td class="num" data-col="cost">[^<]*<\/td><td><\/td><\/tr>$/,
     );
   });
 
-  test("a spec no job has ever touched offers Run alone (criterion 8)", () => {
+  test("a spec no job has ever touched offers its next phases alone (criterion 8)", () => {
     const cell = actionCell(group(rows([]), "124-stack"));
-    expect(cell).toContain(">Run</button>");
+    expect(cell).toContain(">Analyze + 1</button>");
     expect(cell).not.toContain("/approve");
     expect(cell).not.toContain("/cancel");
     expect(cell).not.toContain("/merge");
@@ -4459,11 +4469,18 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     const cell = actionCell(group(rows(conflicted, [target("124-stack")]), "124-stack"));
     expect(cell).toContain(">Resolve</button>");
     // And it is the row's primary action, the role Merge used to vacate
-    // for it (spec 135).
+    // for it (spec 135) — the one control on the page still drawn that
+    // way, now that every row has a button of its own (spec 157).
     expect(cell.match(/<form[^>]*class="resolveform"[\s\S]*?<\/form>/)![0]).toContain('class="btn primary"');
-    // A job with no stored reason offers nothing.
+    // It stands INSTEAD of Run, not beside it: a Run here would be
+    // refused for the same conflict.
+    expect(cell).not.toMatch(/<button[^>]*form="rowrun/);
+    // A job with no stored reason offers the ordinary next phase.
     const clean = [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })];
-    expect(actionCell(group(rows(clean, [target("124-stack")]), "124-stack"))).not.toContain(">Resolve</button>");
+    const cleanCell = actionCell(group(rows(clean, [target("124-stack")]), "124-stack"));
+    expect(cleanCell).not.toContain(">Resolve</button>");
+    // One phase, not the fresh spec's pair: this spec HAS a job.
+    expect(cleanCell).toContain(">Analyze</button>");
   });
 
   // Spec 153. The other place a conflict is found: not a landing, but
@@ -4488,34 +4505,38 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(cell).toContain('value="resolve"');
   });
 
-  test("the rarely-set fields end the stack, on no line of their own (criterion 11)", () => {
+  test("the rarely-set fields end the State cell, on no line of their own (criterion 11)", () => {
     const html = rows([], [target("124-stack")], { projects: ["aide", "paceup"] });
     const cell = actionCell(group(html, "124-stack"));
-    expect(cell).toContain('<span class="stack">');
+    expect(cell).toContain('<span class="row">');
     expect(cell).toContain('<span class="row extra">');
     expect(cell).toContain('name="extraProjects" value="paceup"');
     expect(cell).not.toContain('name="extraProjects" value="aide"');
-    // After the buttons, quietly — never before them.
-    expect(cell.indexOf('class="row extra"')).toBeGreaterThan(cell.indexOf(">Run</button>"));
+    // After the button, quietly — never before it.
+    expect(cell.indexOf('class="row extra"')).toBeGreaterThan(cell.indexOf("</button>"));
     // And nowhere else on the page.
     expect(html.replace(cell, "")).not.toContain('name="extraProjects"');
   });
 
-  test("a shut row's action cell is what a collapsed row has always offered (criterion 12)", () => {
-    // Since spec 149 the one thing a collapsed row can still offer is
-    // the way out of a conflict; Approve was the other, and it went
-    // with the stop between steps.
+  test("a shut row offers the same one control an open one does (criterion 12)", () => {
+    // Until spec 157 a collapsed row offered the way out of a conflict
+    // and nothing else. It offers whatever the open row offers now —
+    // the same function draws both — minus the choosing.
     const conflicted = [
       row({ id: "j1", specFolder: "124-stack", state: "done", errorReason: "conflict" }),
     ];
     const shut = actionCell(group(rows(conflicted, [target("124-stack")], { filter: {} }), "124-stack"));
     expect(shut).toContain(">Resolve</button>");
     expect(shut).not.toContain("/cancel");
-    expect(shut).not.toContain(">Run<");
-    expect(shut).not.toContain('class="stack"');
-    // Nothing pending at all is an empty cell — the container the
-    // shut row has always drawn, and nothing in it.
-    const idle = actionCell(group(rows([], [target("124-stack")], { filter: {} }), "124-stack"));
+    expect(shut).not.toContain('class="rowrun"');
+    // The choosing stays behind the fold: no boxes, no "also touches".
+    expect(shut).not.toContain('type="checkbox"');
+    expect(shut).not.toContain('name="extraProjects"');
+    // A spec with every phase behind it is the empty cell now.
+    const done = ["analyze", "review-plan", "implement", "archive"];
+    const idle = actionCell(
+      group(rows([], [target("124-stack", { done })], { filter: {} }), "124-stack"),
+    );
     expect(idle).not.toContain("<form");
     expect(idle).not.toContain("<button");
   });
@@ -4529,11 +4550,17 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(cell).toContain('name="project" value="aide"');
     expect(cell).toContain('name="specFolder" value="124-stack"');
     expect(cell).toContain('name="token" value="s3cret"');
-    expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Run<\/button>/);
+    expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Analyze \+ 1<\/button>/);
+    // Open, so the boxes on the phase lines are the only source of
+    // `steps` — the form carries none of its own.
     expect(cell).not.toContain('name="steps"');
   });
 
-  test("Run locks while the spec is busy, with the row's own reason", () => {
+  // A greyed-out Run with the reason in its title was how a busy row
+  // read until spec 157. One control per row now, and while a job is
+  // in flight that control is Cancel — the reason is the badge beside
+  // it, which says "implementing" in the same breath.
+  test("no Run at all while the spec is busy — Cancel stands in its place", () => {
     const cell = actionCell(
       group(
         rows(
@@ -4543,9 +4570,9 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
         "124-stack",
       ),
     );
-    const run = cell.match(/<button[^>]*>Run<\/button>/)![0];
-    expect(run).toContain("disabled");
-    expect(run).toContain('title="implement is running"');
+    expect(cell).not.toMatch(/<button[^>]*form="rowrun/);
+    expect(cell.match(/<button/g)).toHaveLength(1);
+    expect(cell).toContain(">Cancel implement</button>");
   });
 });
 
@@ -4655,10 +4682,9 @@ describe("spec 127: the row names its AI once", () => {
       Date.parse("2026-08-20T12:00:00Z"),
     );
 
-  /** The caption line, read past the stack cell that rides on it. */
+  /** The caption line above the phase lines. */
   const caption = (html: string) =>
-    (html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
 
   const pickers = (html: string) => [...html.matchAll(/<select[^>]*data-tool-picker[^>]*>/g)];
 
@@ -4910,8 +4936,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
-    (html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "")
-      .replace(/<td class="stackcell"[\s\S]*?<\/td>/, "");
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
   const BUILT = ["analyze", "review-plan", "implement"];
   const REASON =
     'the manual browser check (Phase 4, still "Not started"): fresh load shows ' +
@@ -5429,5 +5454,208 @@ describe("an unmeasured cost is marked where it is totalled", () => {
     expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).toContain(marker);
     expect(analyzeLine).toContain("$6.13");
     expect(analyzeLine).not.toContain(marker);
+  });
+});
+
+// --- spec 157: one action beside the state, and the phases hard left ---------
+//
+// The first column of a row has never settled. Spec 124 gave the
+// buttons a column of their own, which pushed the whole table sideways;
+// 2026-08-19 moved the stack into the spec column, leading one phase
+// line and spanning the rest. Spec 149 then took Merge and Approve
+// away, and what is left — Run, Cancel, Resolve — is never two things
+// at once. So the row draws ONE control, in the State column, right
+// after the sentence it completes ("archive held back · Implement"),
+// and the phase lines take the left edge the stack vacated.
+//
+// The button is named for the first TICKED phase, not for the state's
+// own suggestion, so a reader can see the two disagree before pressing.
+describe("spec 157: the row's one action sits in the State column", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [target("157-one-action")],
+    o: { open?: boolean } & Partial<QueuePageOptions> = {},
+  ) => {
+    const { open = false, ...opts } = o;
+    return renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        projects: ["aide"],
+        ...(open ? { filter: { open: openKeys(list, targets) } } : {}),
+        ...opts,
+      },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+  };
+  const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const cells = (tr: string): string[] =>
+    [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+  /** The State column: the head row's third cell, which is where spec
+   *  143 pinned it and where the action now joins the badge. */
+  const state = (html: string) => cells(headRow(html))[2] ?? "";
+  /** What the row's one control SAYS. `<button>` for Run, and the
+   *  component-built ones for Cancel and Resolve, whose label sits
+   *  after a `<span class="lbl">`-free plain text node. */
+  const labels = (cell: string) => [...cell.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
+  const BUILT = ["analyze", "review-plan"];
+  const ALL = ["analyze", "review-plan", "implement", "archive"];
+  const lead = (extra: Partial<QueueRowView> = {}) =>
+    row({ id: "j1", specFolder: "157-one-action", steps: ["analyze"], state: "done", ...extra });
+
+  // --- criteria 1, 2, 3: the button is named for what is ticked -------------
+
+  for (const open of [true, false]) {
+    test(`the next unstarted phase names the button (${open ? "open" : "shut"}, criterion 1)`, () => {
+      const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open });
+      expect(state(html)).toContain("ready for implement");
+      expect(labels(state(html))).toEqual(["Implement"]);
+    });
+  }
+
+  test("two pre-ticked phases name the first and count the rest (criterion 2)", () => {
+    const html = rows([]);
+    expect(state(html)).toContain("not started");
+    expect(labels(state(html))).toEqual(["Analyze + 1"]);
+  });
+
+  test("nothing ticked draws no button at all (criterion 3)", () => {
+    const html = rows([lead()], [target("157-one-action", { done: ALL })]);
+    expect(state(html)).not.toContain("<button");
+    expect(state(html)).not.toContain("<form");
+  });
+
+  // The label is the reader's own tick, not the state's suggestion, so
+  // a mismatch is visible in the same line rather than after a press.
+  test("a phase ticked ahead of the state's suggestion names the button", () => {
+    // `done` is empty and a lead job exists, so `preTicked` is the
+    // single next phase — the state and the label agree here. The
+    // disagreement this spec makes visible is the other direction: a
+    // spec whose files say analyze is next but whose archive was held
+    // back reads "archive held back · Analyze".
+    const html = rows(
+      [lead({ steps: ["archive"] })],
+      [target("157-one-action", { done: BUILT, archiveHeldBack: { reason: "the tree is dirty" } })],
+    );
+    expect(state(html)).toContain("archive held back");
+    expect(labels(state(html))).toEqual(["Implement"]);
+  });
+
+  // --- criteria 4, 5: Cancel names the step it would stop -------------------
+
+  for (const open of [true, false]) {
+    test(`a running spec offers Cancel by name (${open ? "open" : "shut"}, criteria 4, 5)`, () => {
+      const html = rows(
+        [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
+        [target("157-one-action", { done: BUILT })],
+        { open },
+      );
+      expect(labels(state(html))).toEqual(["Cancel implement"]);
+      expect(state(html)).toContain('action="/api/queue/j1/cancel"');
+      expect(state(html)).not.toContain(">Resolve<");
+      // No Run button. The run FORM may still be there on an open row
+      // — it is the carrier the phase boxes name — but nothing submits
+      // it while a job is in flight.
+      expect(state(html)).not.toMatch(/<button[^>]*form="rowrun/);
+    });
+  }
+
+  test("a queued review-plan cancels by the reader's own word", () => {
+    const html = rows(
+      [lead({ steps: ["analyze", "review-plan"], stepIndex: 1, state: "queued" })],
+      [target("157-one-action", { done: [] })],
+    );
+    expect(labels(state(html))).toEqual(["Cancel review"]);
+  });
+
+  // --- criteria 6, 7: Resolve replaces Run where a Run would only fail ------
+
+  for (const open of [true, false]) {
+    test(`a conflicted spec offers Resolve alone (${open ? "open" : "shut"}, criteria 6, 7)`, () => {
+      const html = rows(
+        [lead({ errorReason: "conflict", error: "cannot merge — conflict" })],
+        [target("157-one-action", { done: BUILT })],
+        { open },
+      );
+      expect(labels(state(html))).toEqual(["Resolve"]);
+      expect(state(html)).not.toContain("/cancel");
+      expect(state(html)).not.toMatch(/<button[^>]*form="rowrun/);
+    });
+  }
+
+  // --- criterion 8: a shut row's Run carries its phases as hidden fields ----
+
+  test("a shut row's run form carries the ticked phases as hidden inputs (criterion 8)", () => {
+    const html = rows([]);
+    const posted = [...state(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
+      (m) => m[1],
+    );
+    expect(posted).toEqual(["analyze", "review-plan"]);
+  });
+
+  // An OPEN row has real checkboxes, and they are the only source of
+  // `steps`: a hidden field beside them would post every phase twice
+  // and outvote a reader who unticked one (criterion 12).
+  test("an open row's run form carries no steps of its own (criterion 12)", () => {
+    const html = rows([], [target("157-one-action")], { open: true });
+    expect(state(html)).not.toContain('name="steps"');
+    expect(html).toContain('<input type="checkbox" name="steps" value="analyze"');
+  });
+
+  // --- criterion 14: the phase lines take the left edge ---------------------
+
+  test("no stack cell survives anywhere, open or shut (criterion 14)", () => {
+    for (const open of [true, false]) {
+      expect(rows([], [target("157-one-action")], { open })).not.toContain("stackcell");
+    }
+  });
+
+  test("the phase line leads with its own cell, and still fills six columns (criterion 14)", () => {
+    const html = rows([], [target("157-one-action")], {
+      open: true,
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
+    });
+    for (const sub of html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)) {
+      expect([sub[0].slice(0, 60), sub[0].indexOf('<td class="phasecell">')]).toEqual([
+        sub[0].slice(0, 60),
+        sub[0].indexOf("<td"),
+      ]);
+      expect([sub[0].slice(0, 60), cells(sub[0]).length]).toEqual([sub[0].slice(0, 60), 6]);
+    }
+  });
+
+  // The phase's own state word stays under the State header, where the
+  // spec's badge is: the same question at two altitudes, in one column.
+  test("the phase's state word stays in the State column", () => {
+    const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: true });
+    const analyze = html.match(/<tr class="subrow[^"]*" data-step="analyze">[\s\S]*?<\/tr>/)![0];
+    expect(cells(analyze)[2]).toContain('class="badge b-done"');
+    expect(cells(analyze)[1]).toBe("");
+  });
+
+  // --- criterion 15: "also touches" moves with the control it belongs to ----
+
+  test("also touches rides in the State cell of an open row, and nowhere on a shut one (criterion 15)", () => {
+    const open = rows([], [target("157-one-action")], { open: true, projects: ["aide", "paceup"] });
+    expect(state(open)).toContain('name="extraProjects" value="paceup"');
+    expect(state(open).indexOf('class="row extra"')).toBeGreaterThan(state(open).indexOf("</button>"));
+    expect(open.replace(state(open), "")).not.toContain('name="extraProjects"');
+    const shut = rows([], [target("157-one-action")], { projects: ["aide", "paceup"] });
+    expect(shut).not.toContain('name="extraProjects"');
+  });
+
+  // The last column is blank on every row now — a shut row's action
+  // left it for the State column, and nothing took its place.
+  test("the head row's last cell is empty whatever the state", () => {
+    for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
+      const c = cells(headRow(rows(r as QueueRowView[])));
+      expect([c.length, c[c.length - 1]]).toEqual([6, ""]);
+    }
   });
 });
