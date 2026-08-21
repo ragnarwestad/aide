@@ -59,6 +59,13 @@ ${LIGHT_COLORS}
    light foreground, which is why --danger is a pale peach here and the
    darkest bar tone in light. Not a typo — the same inversion every
    other pair makes. */
+/* The dark mark is hidden by default and shown by the theme blocks
+   below. This rule has to come BEFORE them: it has the same specificity
+   as the media query's "display: block", and the later rule wins — with
+   it written after the blocks (as it was until 2026-08-21) a machine set
+   to dark, with no explicit choice, hid both marks and showed the word
+   alone. */
+.brand .mark-d { display: none; }
 @media (prefers-color-scheme: dark) {
 :root {
 /* tokens:start */
@@ -156,7 +163,6 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .brand:hover { text-decoration: none; color: var(--text); }
 .brand i { font-style: normal; color: var(--accent); }
 .brand .mark, .brand .mark svg { display: block; width: 40px; height: 40px; }
-.brand .mark-d { display: none; }
 
 /* --- text roles ----------------------------------------------------- */
 

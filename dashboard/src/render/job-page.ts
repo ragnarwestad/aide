@@ -193,7 +193,7 @@ export function tabBar(
  *  are written once — the panels themselves already are. */
 export function tabbedBody(banner: string, tabs: string, panel: string): string {
   return (
-    `<p class="intro"><a href="/">← all jobs</a></p>\n` +
+    `<p class="intro"><a href="/">← all specs</a></p>\n` +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>`
