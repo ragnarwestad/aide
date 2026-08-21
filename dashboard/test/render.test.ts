@@ -1893,8 +1893,17 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
+  /** The row's head AND the message panel under it. Spec 151 moved the
+   *  refusal out of the name cell and into that panel, so a matcher
+   *  that stopped at the first `</tr>` would no longer see the text
+   *  this block is about. */
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
 
   test("the named spec's row carries the reason, and no other row does (criterion 8)", () => {
     const html = rows([target("99-x"), target("99-y")], {
@@ -4842,13 +4851,19 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     specFolder,
     ...extra,
   });
-  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], open = true) =>
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    open = true,
+    extra: Partial<QueuePageOptions> = {},
+  ) =>
     renderQueueRows(
       list,
       {
         runnerAvailable: true,
         targets,
         ...(open ? { filter: { open: openKeys(list, targets) } } : {}),
+        ...extra,
       },
       Date.parse("2026-08-20T12:00:00Z"),
     );
@@ -4861,6 +4876,10 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   /** The State column: third cell of the head row. */
   const stateCell = (html: string) =>
     [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[2] ?? "";
+  /** The Spec column: first cell of the head row, and the one the
+   *  queue's refusal used to be written into (spec 151). */
+  const nameCell = (html: string) =>
+    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[0] ?? "";
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
@@ -4974,6 +4993,54 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       expect(wholeRow(html)).not.toContain("hand ticks survive");
       expect(wholeRow(html)).not.toContain("the specs tree is dirty");
     }
+  });
+
+  // --- spec 151: the third producer ------------------------------------------
+  //
+  // The queue's own refusal of a press ("analyze on 150-… is already
+  // running (job 03238f57) — cancel that one first"). It is returned at
+  // enqueue time, before any job exists to carry it, so it reaches the
+  // page on the query string instead — and spec 143 left it behind in
+  // the name cell, where it pushed the branch marks and the title
+  // around.
+  const REFUSAL =
+    "analyze on 150-one-page-shows-the-whole-spec is already running (job 03238f57) — " +
+    "cancel that one first if you want to start over";
+
+  test("the queue's refusal of a press is written in the panel, not the name cell", () => {
+    const html = rows([], [target("150-one-page")], true, {
+      error: REFUSAL,
+      errorSpec: "aide/150-one-page",
+    });
+    expect(panel(html)).toContain("is already running (job 03238f57)");
+    expect(nameCell(html)).not.toContain("is already running");
+    // Once for the whole row, like every other message since spec 143.
+    expect([...wholeRow(html).matchAll(/is already running/g)]).toHaveLength(1);
+  });
+
+  // The refusal answers the press just made, so it outranks a standing
+  // note about an archive that declined earlier.
+  test("the refusal outranks the spec's own held-back note", () => {
+    const html = rows([], [target("150-one-page", { done: BUILT, archiveHeldBack: { reason: REASON } })], true, {
+      error: REFUSAL,
+      errorSpec: "aide/150-one-page",
+    });
+    expect(panel(html)).toContain("is already running (job 03238f57)");
+    expect(panel(html)).not.toContain("hand ticks survive");
+  });
+
+  // A refused press on a row whose job is RUNNING is the whole of the
+  // incident: the panel is otherwise blank while something is in
+  // flight, and blanking this would put the reader back where they
+  // started — a press that said nothing.
+  test("a running job does not swallow the refusal", () => {
+    const html = rows(
+      [row({ id: "live", specFolder: "150-one-page", steps: ["analyze"], state: "running" })],
+      [target("150-one-page")],
+      true,
+      { error: REFUSAL, errorSpec: "aide/150-one-page" },
+    );
+    expect(panel(html)).toContain("is already running (job 03238f57)");
   });
 
   // A spec nothing has ever run has no message and no panel: an empty

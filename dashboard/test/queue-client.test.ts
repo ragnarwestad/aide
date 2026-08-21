@@ -95,22 +95,45 @@ function harness(
 ) {
   const control = CONTROLS[control_]!;
   const formClass = control.formClass;
-  const button = {
-    textContent: control.label,
-    // What the server drew it as. A fake with no starting class could
-    // not prove the variant is REMOVED when the busy look goes on.
-    className: `btn ${control.variant}`,
-    classList: {} as ReturnType<typeof classes>,
-    innerHTML: "",
-    title: "",
-    disabled: false,
-    isConnected: true,
-    dataset: { pending: control.pending },
-    insertAdjacentHTML: (where: string, html: string) => {
-      button.innerHTML = where === "afterbegin" ? html + button.innerHTML : button.innerHTML + html;
-    },
+  /** The run form's id. Every control on the row that is written
+   *  outside its tags names it — the Run button, the phase boxes, the
+   *  five model selects and the AI picker — and it is what a press has
+   *  to follow to reach them. */
+  const ROW_FORM = "rowrun-aide/127-one-ai";
+  /** One button as the DOM reports it. Two of them are needed since
+   *  spec 151: the one pressed, and the siblings on the same row that
+   *  must lock with it.
+   *
+   *  `form` is the attribute, and it is the whole point for Run: that
+   *  button is written OUTSIDE `<form class="rowrun">` and reaches it
+   *  by name alone (`queue-list.ts`, `openActionsCell`). */
+  const makeButton = (label: string, pending: string, variant: string, form?: string) => {
+    const b = {
+      textContent: label,
+      // What the server drew it as. A fake with no starting class could
+      // not prove the variant is REMOVED when the busy look goes on.
+      className: `btn ${variant}`,
+      classList: {} as ReturnType<typeof classes>,
+      innerHTML: "",
+      title: "",
+      disabled: false,
+      isConnected: true,
+      tagName: "BUTTON",
+      dataset: { pending },
+      getAttribute: (n: string) => (n === "form" ? form ?? null : null),
+      insertAdjacentHTML: (where: string, html: string) => {
+        b.innerHTML = where === "afterbegin" ? html + b.innerHTML : b.innerHTML + html;
+      },
+    };
+    b.classList = classes(b);
+    return b;
   };
-  button.classList = classes(button);
+  const button = makeButton(
+    control.label,
+    control.pending,
+    control.variant,
+    formClass === "rowrun" ? ROW_FORM : undefined,
+  );
   // The row's phase boxes — the space this spec's spinner takes over
   // while the press is out. A COLLAPSED row (spec 103) has none: it
   // renders Approve or Merge alone, with no run form and no boxes.
@@ -135,21 +158,57 @@ function harness(
     },
   };
   const tokenInput = { value: "s3cret" };
+  // Spec 151: the OTHER controls in the same `<td class="stackcell">`.
+  // A press locks the whole row, so a fake with one button on it could
+  // not tell a row-wide lock from the single-button one it replaced.
+  const runButton = formClass === "rowrun" ? button : makeButton("Run", "starting…", "primary", ROW_FORM);
+  const cancelButton = formClass === "actionform" ? button : makeButton("Cancel", "cancelling…", "danger");
+  const stackControls = [...new Set([runButton, cancelButton, button])];
+  /** The run form as the stack cell holds it: hidden fields only, and
+   *  an id every control outside its tags names. */
+  const runFormEl = { id: ROW_FORM, className: "rowrun" };
+  /** The cell `openActionsCell` fills — one per row, spanning its
+   *  phase lines. It is what a press scopes itself to. */
+  const stack = {
+    querySelectorAll: () => stackControls,
+    querySelector: (sel: string) => (sel.includes("rowrun") ? runFormEl : null),
+  };
   const form = {
     action: control.action,
     className: formClass,
+    // The run form is the only one with an id, because it is the only
+    // one whose controls are written outside it.
+    id: formClass === "rowrun" ? ROW_FORM : "",
     // The phase boxes ARE the Run form's fields — a real `FormData`
     // reads the checkboxes that are in the form at that moment. So the
     // fake reads them out of the same element the press overwrites: a
     // spinner put there before the form was serialised would post a job
     // with no phases at all, and a fixed list could not tell.
+    //
+    // And a DISABLED control posts nothing — the browser's own rule,
+    // and the reason the row is locked only after the form has been
+    // serialised (spec 151). A fake that ignored `disabled` could not
+    // tell the two orders apart.
     get fields(): [string, string][] {
-      const ticked: [string, string][] = phases.innerHTML.includes("phase") ? [["steps", "analyze"]] : [];
+      const live = phases.innerHTML.includes("phase") && !stepBoxes.some((b) => b.disabled);
+      const ticked: [string, string][] = live ? [["steps", "analyze"]] : [];
       return [...ticked, ["view.state", "active"]];
     },
-    querySelectorAll: () => [button],
+    // Empty for the run form, and that is the markup: its button is
+    // written after its closing tag and reaches it by `form="…"`, so
+    // `querySelectorAll` — descendants only — finds nothing at all.
+    querySelectorAll: () => (formClass === "rowrun" ? [] : [button]),
     querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
-    closest: (sel: string) => (sel === "tr" ? row : sel.includes(`.${formClass}`) ? form : null),
+    closest: (sel: string) =>
+      sel === "tr"
+        ? row
+        : sel.includes("stackcell")
+          ? // A COLLAPSED row has no stack cell: it draws its one
+            // control in the last column instead.
+            (o.collapsed ? null : stack)
+          : sel.includes(`.${formClass}`)
+            ? form
+            : null,
   };
 
   // The New-spec form is the whole of `/new` since spec 121 — no
@@ -193,7 +252,6 @@ function harness(
   // chips above are checkbox/wrapper pairs and model nothing a select
   // needs (a value that IS one of its options, and a selection that
   // moves when the one it points at is hidden).
-  const ROW_FORM = "rowrun-aide/127-one-ai";
   const MODELS: [string, string][] = [
     ["sonnet", "claude"],
     ["fable", "claude"],
@@ -209,6 +267,12 @@ function harness(
     const self = {
       name: `model.${step}`,
       options,
+      tagName: "SELECT",
+      // Spec 151: a press locks the row, and a select is a control on
+      // it. `isConnected` is what tells "the swap replaced me" from
+      // "the swap never came".
+      disabled: false,
+      isConnected: true,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
       // A change lands on the select itself, and the handler walks up
       // with `closest`. A model select is NOT the AI picker and not a
@@ -251,6 +315,9 @@ function harness(
   const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
   const toolSelect = {
     value: "claude",
+    tagName: "SELECT",
+    disabled: false,
+    isConnected: true,
     // No `name`: the picker posts nothing (`queue-list.ts`). It is
     // still what the DOM reports — an empty string, not undefined —
     // and the key a kept choice is filed under is built from it.
@@ -271,6 +338,9 @@ function harness(
       name: "steps",
       value,
       checked: served,
+      tagName: "INPUT",
+      disabled: false,
+      isConnected: true,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
       // A tick lands on the input itself. It is not a select of any
       // kind, so it answers both select selectors with null and its
@@ -452,7 +522,17 @@ function harness(
         ? [addForm, removeForm]
         : sel.includes("model.")
           ? [...modelSelects, otherRowSelect].filter((s) => sel.includes(`form="${s.getAttribute("form")}"`))
-          : [],
+          : // Spec 151: everything written OUTSIDE a form and tied to
+            // it by name — the Run button, the four phase boxes, the
+            // five model selects and the AI picker. Another row's
+            // select names another form and is not answered here,
+            // which is what "the press reaches its own row and no
+            // other" is proved against.
+            sel.startsWith("[form=")
+            ? [runButton, ...stepBoxes, ...modelSelects, toolSelect, otherRowSelect].filter((el) =>
+                sel.includes(`"${el.getAttribute("form")}"`),
+              )
+            : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
     addEventListener: () => {},
     visibilityState: "hidden",
@@ -539,6 +619,7 @@ function harness(
       on["select:change"]?.({ target: projectSelect });
     },
     modelSelects, otherRowSelect, toolSelect, stepBoxes,
+    runButton, cancelButton,
     changeTool: (value: string) => {
       toolSelect.value = value;
       on["change"]?.({ target: toolSelect });
@@ -1033,6 +1114,158 @@ describe("a pressed row button holds its size (spec 104)", () => {
   // apart — one file cannot even name the other.
   test("the spinner it writes is the one components.ts renders", () => {
     expect(RAW).toContain(SPINNER);
+  });
+});
+
+// --- spec 151: a press locks the row -----------------------------------------
+//
+// Seen 2026-08-21: Run was pressed, nothing on the row changed, so it
+// was pressed again — and the second press was refused because the
+// first had already started the job. The first press worked; the row
+// never said so.
+//
+// Two things were wrong, and the second is why the first went
+// unnoticed for so long. The Run button is written OUTSIDE its form
+// and tied to it by `form="…"`, so `form.querySelectorAll("button")`
+// — descendants only — found nothing to lock or to make busy. And the
+// harness above used to hard-code `() => [button]` for every form,
+// asserting by construction the very thing the markup breaks.
+//
+// The requirement is wider than the bug: a press locks EVERY control
+// on that row at once — its own button, the other buttons in the
+// stack, the phase boxes and the model/AI selects on the phase lines
+// — and nothing is unlocked until the row has been redrawn from the
+// server.
+describe("a press locks every control on its row (spec 151)", () => {
+  const OK = { ok: true, job: { id: "job-1" } };
+  /** Every control the row has, as the press must leave them. */
+  const rowState = (h: ReturnType<typeof harness>) => ({
+    run: h.runButton.disabled,
+    cancel: h.cancelButton.disabled,
+    box: h.stepBoxes[0]!.disabled,
+    model: h.modelSelects[0]!.disabled,
+    tool: h.toolSelect.disabled,
+    otherRow: h.otherRowSelect.disabled,
+  });
+
+  for (const control of ["rowrun", "actionform"] as const) {
+    test(`${control} locks the whole row, and only its own row`, async () => {
+      let seen = {} as ReturnType<typeof rowState>;
+      const h = harness((url) => {
+        if (url.includes("/api/queue")) seen = rowState(h);
+        return { ok: true, body: OK };
+      }, control);
+      await h.submit();
+      expect(seen).toEqual({
+        run: true, cancel: true, box: true, model: true, tool: true,
+        // The other row's select names another form. A press that
+        // reached it would grey out a spec nobody touched.
+        otherRow: false,
+      });
+    });
+  }
+
+  // The bug itself, stated as its own case: Run's button is not a
+  // descendant of the form it submits, so the old descendants-only
+  // lookup could neither disable it nor make it busy.
+  test("Run is locked and busy although its button sits outside its form", async () => {
+    let seen = { disabled: false, busy: false, title: "" };
+    const h = harness((url) => {
+      if (url.includes("/api/queue")) {
+        seen = {
+          disabled: h.runButton.disabled,
+          busy: h.runButton.classList.contains("busy"),
+          title: h.runButton.title,
+        };
+      }
+      return { ok: true, body: OK };
+    }, "rowrun");
+    await h.submit();
+    expect(seen).toEqual({ disabled: true, busy: true, title: "starting…" });
+  });
+
+  // The busy LOOK belongs to the button that was pressed. The stack is
+  // locked whole, but Run is first in it — so a spinner taken from the
+  // stack instead of from the submitted form would land on Run for
+  // every press that was not Run's.
+  test("the busy look stays on the pressed button, and Run is only greyed", async () => {
+    let seen = { cancel: false, run: false, spinner: "" };
+    const h = harness((url) => {
+      if (url.includes("/api/queue")) {
+        seen = {
+          cancel: h.button.classList.contains("busy"),
+          run: h.runButton.classList.contains("busy"),
+          spinner: h.runButton.innerHTML,
+        };
+      }
+      return { ok: true, body: OK };
+    }, "actionform");
+    await h.submit();
+    expect(seen).toEqual({ cancel: true, run: false, spinner: "" });
+  });
+
+  // Not "until the answer arrives" — until the row that reflects it is
+  // on the screen. The redraw is asked for while everything is still
+  // locked.
+  test("the row is still locked when the redraw is asked for", async () => {
+    let seen = {} as ReturnType<typeof rowState>;
+    const h = harness((url) => {
+      if (url.includes("rows=1")) seen = rowState(h);
+      return { ok: true, body: OK };
+    }, "rowrun");
+    await h.submit();
+    expect(seen.run).toBe(true);
+    expect(seen.box).toBe(true);
+  });
+
+  // The lock comes AFTER the form has been serialised. A disabled
+  // control posts nothing, so locking the boxes first would queue a
+  // job with no phases at all — the row's own fields, thrown away by
+  // the thing meant to protect them.
+  test("the phases still go with the press, although the boxes lock", async () => {
+    const h = harness(() => ({ ok: true, body: OK }), "rowrun");
+    await h.submit();
+    expect(String(h.requests[0]!.init.body)).toContain("steps=analyze");
+  });
+
+  // Every control goes back to the state it was FOUND in, not to
+  // "enabled": the server draws a row's boxes disabled while a job
+  // holds them, and a press that put them back live would offer a
+  // choice the server has already refused.
+  test("a press that could not be sent puts back exactly what it locked", async () => {
+    const h = harness(() => ({ ok: false, throws: true }), "actionform");
+    h.stepBoxes[1]!.disabled = true;
+    await h.submit();
+    expect(rowState(h)).toEqual({
+      run: false, cancel: false, box: false, model: false, tool: false, otherRow: false,
+    });
+    expect(h.stepBoxes[1]!.disabled).toBe(true);
+  });
+
+  // A COLLAPSED row has no stack cell: it draws at most one control,
+  // in the last column, and that control's own button is inside its
+  // own form. Nothing widens, and nothing may break.
+  test("a collapsed row's single control behaves exactly as it did", async () => {
+    let seen = { busy: false, disabled: false, run: false };
+    const h = harness(
+      (url) => {
+        if (url.includes("/api/queue")) {
+          seen = {
+            busy: h.button.classList.contains("busy"),
+            disabled: h.button.disabled,
+            run: h.runButton.disabled,
+          };
+        }
+        return { ok: true, body: OK };
+      },
+      "resolveform",
+      "",
+      { collapsed: true },
+    );
+    await h.submit();
+    expect(seen).toEqual({ busy: true, disabled: true, run: false });
+    expect(h.button.disabled).toBe(false);
+    expect(h.button.classList.contains("busy")).toBe(false);
   });
 });
 

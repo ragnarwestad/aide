@@ -205,6 +205,60 @@ function refusalText(body: ActionResult | null): string {
   return perStep || body?.error || "the request failed";
 }
 
+/** A value quoted inside an attribute selector. The ids it is used on
+ *  are `rowrun-<project>/<specFolder>`, which needs no escaping at all
+ *  — but a quote in a folder name would end the selector early, and
+ *  that is a page that throws rather than a lookup that misses. */
+const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
+
+/** Everything written OUTSIDE a form and tied to it by name alone. On
+ *  a spec's row that is the Run button, the four phase boxes, the five
+ *  model selects and the AI picker: the trick spec 123 introduced so
+ *  the button could sit above the phase lines and the boxes on them,
+ *  while the form itself carries nothing but hidden fields. */
+const namesForm = (id: string): Element[] =>
+  id ? Array.from(document.querySelectorAll(`[form="${attrValue(id)}"]`)) : [];
+
+type Control = HTMLButtonElement | HTMLInputElement | HTMLSelectElement;
+
+/** Every control a press has to lock — which is every control on the
+ *  ROW, not the submitted form's own.
+ *
+ *  Both halves of that are the fix for what was seen on 2026-08-21:
+ *  Run was pressed, nothing changed, so it was pressed again, and the
+ *  second press was refused because the first had already started the
+ *  job.
+ *
+ *  `form.querySelectorAll("button")` is scoped to DESCENDANTS, and the
+ *  Run button is not one: it is written after its form's closing tag
+ *  and reaches it by `form="…"`. So for the run form that lookup found
+ *  nothing — no spinner, no busy look, and the button never disabled.
+ *  And even where it did find the pressed button (Cancel, Resolve),
+ *  everything else on the row stayed live for the whole round-trip,
+ *  so a second press could land on a different control of the same
+ *  row.
+ *
+ *  The stack cell is the row's own container — one `<td>` per row,
+ *  spanning its phase lines — and the form-attribute lookup reaches
+ *  what sits outside it on those lines. The ids carry the spec's own
+ *  key, so this reaches one row and never a neighbour. */
+function rowControls(form: HTMLFormElement): Control[] {
+  const stack = form.closest("td.stackcell");
+  // A COLLAPSED row has no stack: it draws at most one control, in the
+  // last column, and that control's button is inside its own form.
+  // There is nothing to widen the scope to and nothing that needs it.
+  if (!stack) return Array.from(form.querySelectorAll("button"));
+  const runForm = stack.querySelector("form.rowrun") as HTMLFormElement | null;
+  // Hidden fields are left out: they are not controls anybody can
+  // press, and the row's whole point is what a person can still do to
+  // it.
+  const inStack = Array.from(stack.querySelectorAll("button, select, input:not([type=hidden])"));
+  // The Run button answers both lookups — it is in the stack AND names
+  // the run form — so the two are deduplicated rather than left to
+  // disable it twice.
+  return [...new Set([...inStack, ...namesForm(runForm?.id ?? "")])] as Control[];
+}
+
 /** Post a form as JSON-wanting XHR and hand the answer on. The button
  *  work is the same for every control, and is the whole point: a press
  *  has to change something the instant it happens.
@@ -218,8 +272,15 @@ async function postForm(
   onOk: (body: ActionResult | null) => Promise<void> | void,
   onRefused: (why: string, spec: string | undefined) => Promise<void> | void,
 ): Promise<void> {
-  const buttons = Array.from(form.querySelectorAll("button"));
-  const primary = buttons[0];
+  const controls = rowControls(form);
+  // The busy LOOK belongs to the button that was pressed, so it is read
+  // off the submitted form alone and never off the row: Run is first in
+  // the stack, and a button taken from there would wear the spinner for
+  // every press that was not Run's. The run form's own button is the
+  // one outside its tags that names it.
+  const own = Array.from(form.querySelectorAll("button"));
+  const primary =
+    own[0] ?? (namesForm(form.id).find((el) => el.tagName === "BUTTON") as HTMLButtonElement | undefined);
   const label = primary?.textContent ?? "";
   const titleBefore = primary?.title ?? "";
   // A form on a spec's row, or the New-spec form above the table: the
@@ -227,7 +288,12 @@ async function postForm(
   // question asked about where the form is.
   const row = form.closest("tr");
   const variant = VARIANTS.find((v) => primary?.classList.contains(v));
-  for (const b of buttons) b.disabled = true;
+  /** What each control was BEFORE the press, so it can be put back to
+   *  that and not to "live". A row's controls are not uniformly live:
+   *  the server draws Cancel and the phase boxes disabled while a job
+   *  holds them, and re-enabling those would offer a choice the server
+   *  has already refused. */
+  const before = controls.map((el) => [el, el.disabled] as const);
   inFlight += 1;
   pressGen += 1;
   // SOMETHING has to change the moment it is pressed. The work behind
@@ -249,6 +315,13 @@ async function postForm(
   // the row's spinner to take. One rule now, for every control alike:
   // the button that was pressed carries it.
   const pressed = (): void => {
+    // The lock is the whole row's, and it happens HERE rather than
+    // before the fetch is prepared: a disabled control posts nothing,
+    // so locking the phase boxes ahead of `new FormData(form)` would
+    // queue a job with none of the phases that were ticked. Nothing is
+    // painted between the two, so the row is locked in the same beat
+    // the click lands in either way.
+    for (const el of controls) el.disabled = true;
     if (!primary) return;
     if (!row) {
       // The New-spec form: no row to shove, no boxes to lend. It keeps
@@ -307,7 +380,11 @@ async function postForm(
       primary.classList.remove("busy");
       if (variant) primary.classList.add(variant);
     }
-    for (const b of buttons) if (b.isConnected) b.disabled = false;
+    // Only what is still standing. A successful swap has replaced the
+    // whole row with the server's own answer, and that markup already
+    // says which of these are live — putting the old elements back
+    // would be answering for a row that is gone.
+    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
   }
 }
 
