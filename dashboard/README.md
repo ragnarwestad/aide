@@ -481,27 +481,39 @@ nobody wants to read. An entry naming a tool other than claude used to say
 so in the dropdown, as a `(codex)` suffix, so two entries were tellable
 apart before one was picked; spec 167 took that off. The entries are
 called `codex-sol` and `codex-luna`, so the name already says it, and
-since spec 164 the list is filtered to the AI selected beside it, which
-says it a third time. A model name that does NOT say which tool it
-starts is a name to fix here, not something to patch in the label.
+since spec 169 each option sits under a group named after its tool,
+which says it a second time while the list is open. A model name that
+does NOT say which tool it starts is a name to fix here, not something
+to patch in the label.
 
-That baseline is where the row's own AI select rests when there is
-nothing else to go on. What it actually opens on is the tool of the
-model the row's lead job ran on — Claude Code for a spec nothing has
-ever run, never whichever entry `modelChoices` happens to list first.
+**The tool is a choice per PHASE, not per row (spec 169).** Every
+phase's dropdown lists every configured model, grouped in an
+`<optgroup>` per CLI — `Claude Code` first, then `Codex`, and a tool
+with nothing configured draws no group at all. Nothing is hidden and
+nothing is filtered, so a row can run analyze on one CLI and implement
+on another; the runner has always allowed exactly that, reading
+`job.model[step]` for each step on its own and deriving both `--model`
+and `--tool` from that one entry (`runnerArgv`, `src/serve.ts`). The
+row carried an AI select until spec 169 that posted nothing and hid the
+other tool's models from all five phase selects, which is what stopped
+anyone discovering it. The caption over the column reads `AI - Model`
+when two tools are configured, and `Model` when there is only one.
+
+**One action still sets the whole row.** Beside the phase lines, in the
+column the AI select used to stand in, is a `Set all…` control: pick a
+model in it and every phase that has NOT run yet is set to that model.
+A phase that HAS run is left alone — its select is showing the model it
+really ran on, which is history rather than a suggestion. The control
+posts nothing, carries no resting value of its own, and goes back to
+its placeholder as soon as it has written. Writing five selects is a
+script's job, so with scripting off the control is hidden outright
+(`<noscript>`) and the five selects underneath stay exactly as usable
+as they are with one.
+
 The pre-filled model for a phase with no run behind it and no `model`
-default of its own follows that same resting tool. A phase that HAS
-run still shows the model it ran on, and a per-step `model` default
+default of its own is the first entry `modelChoices` lists. A phase
+that HAS run shows the model it ran on, and a per-step `model` default
 still wins over both.
-
-**The model list is narrowed by the server, not only by the script.**
-Each phase's dropdown hides the entries whose tool cannot start the
-model that select has chosen, in the HTML itself — so the first render,
-and a reader with scripting off, sees a list that matches the AI beside
-it instead of a mixture of both CLIs. Changing the AI select re-runs the
-same filter in the browser, as it always did. Because the filter follows
-the SELECTED model rather than the row's AI, a phase that last ran on
-the other tool keeps its own model visible and selected.
 
 The queue, the worktrees, the wall-clock timeout and all the git
 handling are one path for both tools. Three things differ, and all three

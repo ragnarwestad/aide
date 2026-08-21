@@ -306,15 +306,16 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 .field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
 .field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
-/* The two pickers on a spec row are named here alongside the fields
+/* The two selects on a spec row are named here alongside the fields
    because neither one is inside a field: modelPicker renders into a
-   span.row and toolPicker into a label.muted.small (queue-list.ts), so
-   the .field selector reached neither, and both carried no height,
-   border, background or colour from the design system at all.
-   Attribute selectors rather than a wrapper — both attributes are
-   already in the markup, so this stays a stylesheet change. */
+   span.row and setAllControl straight into the AI column's own cell
+   (queue-list.ts), so the .field selector reached neither, and both
+   carried no height, border, background or colour from the design
+   system at all. Attribute selectors rather than a wrapper — both
+   attributes are already in the markup, so this stays a stylesheet
+   change. */
 .field input, .field select, .field textarea,
-select[name^="model."], select[data-tool-picker] {
+select[name^="model."], select[data-set-all] {
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
@@ -326,7 +327,7 @@ select[name^="model."], select[data-tool-picker] {
    claude-sonnet-4-6, instead of over the end of it. The background is
    set piece by piece: the shorthand would drop the var(--surface)
    ground the rule above gives it. */
-.field select, select[name^="model."], select[data-tool-picker] {
+.field select, select[name^="model."], select[data-set-all] {
   appearance: none; -webkit-appearance: none;
   padding-right: 26px;
   background-image: var(--chevron);
@@ -341,10 +342,10 @@ select[name^="model."], select[data-tool-picker] {
    background-color rather than the shorthand, for the same reason as
    above. */
 .field input:disabled, .field select:disabled, .field textarea:disabled,
-select[name^="model."]:disabled, select[data-tool-picker]:disabled {
+select[name^="model."]:disabled, select[data-set-all]:disabled {
   background-color: var(--surface-2); color: var(--muted);
   border-color: var(--line); cursor: default; }
-.field select:disabled, select[name^="model."]:disabled, select[data-tool-picker]:disabled {
+.field select:disabled, select[name^="model."]:disabled, select[data-set-all]:disabled {
   background-image: none; }
 /* A model name is a value, like a spec id, a duration or a branch name,
    and its version digits are what a reader is actually comparing. The
@@ -352,7 +353,7 @@ select[name^="model."]:disabled, select[data-tool-picker]:disabled {
    stay in the sans face. --fs-s because mono runs wider at the same
    nominal size, and these sit in a table column whose width is argued
    over in the comments around .phasecell. */
-select[name^="model."], select[data-tool-picker] {
+select[name^="model."], select[data-set-all] {
   font-family: var(--mono); font-size: var(--fs-s); }
 /* border-box, or width:100% means "100% plus padding and border" and
    the box sticks 18px out of its own field — which is exactly the gap
@@ -461,21 +462,18 @@ table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
    The name stands hard left with nothing in front of it: it is what
    the eye lands on first, and it began 2.5rem in, behind the box. */
 table.list tr.subrow .phasecell { white-space: nowrap; }
-/* The row's AI select (spec 127), in the column to the LEFT of the
-   model (spec 165): it decides which models there are, so it is read
-   first. One cell for the whole group, spanning
+/* The row's set-all control (spec 169), in the column to the LEFT of
+   the model (spec 165), where the AI select it replaced stood. One
+   cell for the whole group, spanning
    every phase line, so vertical-align: middle sits it at the height of
    the phases in the middle rather than up on the first one — every
    other cell on the page is top-aligned.
    The min-width is the same promise .actionslot makes: the column
-   is as wide with one configured tool, where the control draws
+   is as wide with one configured model, where the control draws
    nothing, as with several. Nothing here may move because something
    else was pressed. */
 table.list tr.subrow td.toolcell {
   vertical-align: middle; min-width: 8rem; }
-/* The word and the control read as one thing. */
-table.list tr.subrow[data-step] td.toolcell label {
-  display: inline-flex; align-items: center; gap: var(--sp-1); }
 /* The model select and the phase's box, in the column the head row's
    pips leave empty on a phase line: they claim the width they need
    rather than wrapping, or the column squeezes them into two. */

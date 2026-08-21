@@ -1146,8 +1146,14 @@ describe("picking a model for a job", () => {
     // since spec 123, not read out on every label.
     expect(html).toContain('title="$12 per step"');
     // No "default" entry any more (2026-08-19): the select is pre-filled
-    // with a real name, and only real names are offered.
-    expect(html).not.toContain('<option value=""');
+    // with a real name, and only real names are offered. Asked of the
+    // PHASE selects: the row's set-all control (spec 169) opens on an
+    // empty placeholder by design, because it is an action rather than
+    // a statement about the row.
+    for (const step of ["analyze", "implement"]) {
+      const select = html.match(new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`))![0];
+      expect([step, select.includes('<option value=""')]).toEqual([step, false]);
+    }
   });
 
   // The "default" option is gone (asked for 2026-08-19): the select is
