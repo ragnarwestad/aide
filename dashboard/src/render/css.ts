@@ -486,6 +486,15 @@ table.list tr.subrow[data-caption] .phasecell label {
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* The row's one action keeps its place whatever it currently is. The
+   label changes with the state — Analyze, Implement, Cancel, Resolve —
+   and a box that grew with it moved the columns to its right on every
+   press. The width is the widest label ("Implement") plus the button's
+   own padding; the slot is drawn empty rather than removed on a row
+   with nothing to press, for the same reason. Deliberate movement —
+   opening a row — is the exception, and it is not this. */
+.actionslot { display: inline-flex; justify-content: flex-start;
+  min-width: 6.5rem; }
 .fact { margin: var(--sp-1) 0; }
 .fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }

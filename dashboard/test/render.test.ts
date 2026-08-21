@@ -407,7 +407,13 @@ describe("the queue row links to the spec (criterion 12)", () => {
 
   test("the spec cell links to the spec page", () => {
     const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
-    expect(html).toContain(`<a class="label" href="${SPEC_HREF}" title="81-queue-and-runner">81-queue-and-runner</a>`);
+    // The project leads the name since 2026-08-21: a folder number is
+    // only unique within its project, and the line under the name — where
+    // the project used to sit — now carries what nothing else says.
+    expect(html).toContain(
+      `<a class="label" href="${SPEC_HREF}" title="aide:81-queue-and-runner">`+
+        `<span class="muted">aide:</span>81-queue-and-runner</a>`,
+    );
   });
 
   // "A spec that has never run has no job page to point at, so the name
@@ -451,7 +457,10 @@ describe("the queue row links to the spec (criterion 12)", () => {
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).toContain('<a class="label" href="/specs/aide/81-queue-and-runner" title="81-queue-and-runner">81-queue-and-runner</a>');
+    expect(html).toContain(
+      '<a class="label" href="/specs/aide/81-queue-and-runner" title="aide:81-queue-and-runner">' +
+        '<span class="muted">aide:</span>81-queue-and-runner</a>',
+    );
     expect(html).toContain('href="https://example.test/compare"');
   });
 });
@@ -1298,7 +1307,7 @@ describe("a spec's row runs its own phases", () => {
     // The button is named for what a press would run since spec 157 —
     // here the two phases a fresh spec pre-ticks, the first of them
     // named and the rest counted.
-    expect(line).toContain(">Analyze + 1</button>");
+    expect(line).toContain(">Analyze</button>");
   });
 
   test("a phase already done can be ticked again — a rerun is the same submission (criterion 4)", () => {
@@ -1393,7 +1402,7 @@ describe("a spec's row runs its own phases", () => {
     // a shut row's button posts exactly what its label says.
     expect(head(shut, "94-never-run")).toContain('method="post" action="/api/queue"');
     expect(head(shut, "94-never-run")).toContain('<input type="hidden" name="steps" value="analyze">');
-    expect(head(shut, "94-never-run")).toContain(">Analyze + 1</button>");
+    expect(head(shut, "94-never-run")).toContain(">Analyze</button>");
 
     const open = rows([], [target("94-never-run")], { filter: { open: "aide/94-never-run" } });
     const line = runLine(open, "94-never-run");
@@ -1401,13 +1410,19 @@ describe("a spec's row runs its own phases", () => {
     expect(line).toContain('type="checkbox" name="steps" value="analyze"');
     // The button is in the header row's State cell either way, beside
     // the badge whose sentence it finishes (spec 157).
-    expect(head(open, "94-never-run")).toContain(">Analyze + 1</button>");
+    expect(head(open, "94-never-run")).toContain(">Analyze</button>");
     // And an OPEN row's form carries no phases of its own: the boxes
     // are the reader's, and a hidden field would outvote them.
     expect(head(open, "94-never-run")).not.toContain('type="hidden" name="steps"');
   });
 
-  test("a row's title, phase and progress come from its OWN target (criterion 9)", () => {
+  // The title and the phase came off the row on 2026-08-21: the folder
+  // name above IS the title in slug form and said it twice, and the
+  // phase is what the pips and the State column already answer. What
+  // stays is the progress, which neither of them carries — and it still
+  // has to come from this row's OWN target, which is what this test was
+  // written for and still proves.
+  test("a row's progress comes from its OWN target (criterion 9)", () => {
     const html = rows(
       [job("j1", "analyze")],
       [
@@ -1416,9 +1431,11 @@ describe("a spec's row runs its own phases", () => {
       ],
     );
     const line = head(html, "94-row-runs-it");
-    expect(line).toContain("Row runs it");
-    expect(line).toContain("Phase 2: GREEN");
     expect(line).toContain("64% done");
+    expect(line).not.toContain("10% done");
+    // Neither spec's title or phase is on the row at all any more.
+    expect(line).not.toContain("Row runs it");
+    expect(line).not.toContain("Phase 2: GREEN");
     expect(line).not.toContain("Another spec");
     expect(line).not.toContain("Phase 1: RED");
   });
@@ -1518,7 +1535,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(line).toContain('name="project" value="aide"');
     expect(line).toContain('name="specFolder" value="90-never-run"');
     expect(line).toContain('name="steps" value="analyze"');
-    expect(line).toContain(">Analyze + 1</button>");
+    expect(line).toContain(">Analyze</button>");
     expect(line).not.toContain("disabled");
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
@@ -2629,7 +2646,7 @@ describe("spec 103: a collapsed row shows status only", () => {
   test("a collapsed row carries the press and none of the choosing (criterion 1)", () => {
     const line = head(rows([], [target("103-idle")]), "103-idle");
     expect(line).not.toBe("");
-    expect(line).toContain(">Analyze + 1</button>");
+    expect(line).toContain(">Analyze</button>");
     expect(line).not.toContain('type="checkbox"');
     expect(line).not.toContain('name="model"');
     expect(line).not.toContain('name="extraProjects"');
@@ -2646,7 +2663,10 @@ describe("spec 103: a collapsed row shows status only", () => {
       "103-idle",
     );
     expect(line).toContain("103-idle");
-    expect(line).toContain("Status only");
+    // The title left the row on 2026-08-21 — the folder name is it, in
+    // slug form. What the row keeps of the spec's own status is the
+    // progress.
+    expect(line).not.toContain("Status only");
     expect(line).toContain("75% done");
     // Spec 132: the badge says the resting state and what is next, so a
     // spec whose files say nothing has run reads "ready for analyze".
@@ -2685,7 +2705,7 @@ describe("spec 103: a collapsed row shows status only", () => {
            "103-busy"),
     );
     expect(cell).toContain('action="/api/queue/j1/cancel"');
-    expect(cell).toContain(">Cancel analyze</button>");
+    expect(cell).toContain(">Cancel</button>");
     // And nothing else: one control, never two.
     expect(cell.match(/<button/g)).toHaveLength(1);
   });
@@ -2749,11 +2769,11 @@ describe("spec 103: a collapsed row shows status only", () => {
     const line = controlsLine(html, "103-idle");
     expect(line).toContain('<form id="rowrun-aide/103-idle" method="post" action="/api/queue"');
     expect(line).toContain('name="steps" value="analyze"');
-    expect(line).toContain(">Analyze + 1</button>");
+    expect(line).toContain(">Analyze</button>");
     expect(line).toContain('name="extraProjects" value="paceup"');
     // The button and the rarely-set field are in the header's State
     // cell since spec 157; the boxes are on the phase lines below it.
-    expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Analyze + 1</button>");
+    expect(actionCell(controlsLine(html, "103-idle"))).toContain(">Analyze</button>");
     expect(
       html.match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0],
     ).toContain('name="steps" value="analyze"');
@@ -3028,7 +3048,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     // removes; it must not survive anywhere on the row.
     expect(line).not.toContain("tick a phase it does not hold");
     // What the row offers instead names the step it would stop.
-    expect(line).toContain(">Cancel implement</button>");
+    expect(line).toContain(">Cancel</button>");
   });
 
   test("the model select and 'also touches' both lock (criterion 3)", () => {
@@ -3210,7 +3230,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     // STATE cell; the boxes it posts are on the phase lines under it.
     const cell = actionCell(controlsLine(html, "109-idle"));
     expect(cell).toContain('<form id="rowrun-aide/109-idle" method="post" action="/api/queue"');
-    expect(cell).toContain(">Analyze + 1</button>");
+    expect(cell).toContain(">Analyze</button>");
     expect(cell).not.toContain('name="steps"');
     expect(line.replace(head(html, "109-idle"), "")).toContain('name="steps" value="analyze"');
   });
@@ -3547,7 +3567,7 @@ describe("a dependency is named once, on the title line, and not in the state ce
   test("the title line still says what the spec builds on", () => {
     const html = rows([unmerged("106-x")], [target("106-x"), target("114-b", { dependsOn: ["106"] })]);
 
-    expect(rowHtml(html, "114-b")).toContain("depends on 106");
+    expect(rowHtml(html, "114-b")).toContain("depends on: 106");
   });
 });
 
@@ -4409,7 +4429,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
 
   test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
-    expect(actionCell(group(html, "124-stack"))).toContain(">Analyze + 1</button>");
+    expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
     // The header row is the six cells it always was, cost second to
     // last and the now-always-blank spare cell after it.
     expect(cells(head(html, "124-stack"))).toHaveLength(6);
@@ -4420,7 +4440,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
 
   test("a spec no job has ever touched offers its next phases alone (criterion 8)", () => {
     const cell = actionCell(group(rows([]), "124-stack"));
-    expect(cell).toContain(">Analyze + 1</button>");
+    expect(cell).toContain(">Analyze</button>");
     expect(cell).not.toContain("/approve");
     expect(cell).not.toContain("/cancel");
     expect(cell).not.toContain("/merge");
@@ -4550,7 +4570,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(cell).toContain('name="project" value="aide"');
     expect(cell).toContain('name="specFolder" value="124-stack"');
     expect(cell).toContain('name="token" value="s3cret"');
-    expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Analyze \+ 1<\/button>/);
+    expect(cell).toMatch(/<button[^>]*form="rowrun-aide\/124-stack"[^>]*>Analyze<\/button>/);
     // Open, so the boxes on the phase lines are the only source of
     // `steps` — the form carries none of its own.
     expect(cell).not.toContain('name="steps"');
@@ -4572,7 +4592,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     );
     expect(cell).not.toMatch(/<button[^>]*form="rowrun/);
     expect(cell.match(/<button/g)).toHaveLength(1);
-    expect(cell).toContain(">Cancel implement</button>");
+    expect(cell).toContain(">Cancel</button>");
   });
 });
 
@@ -5522,7 +5542,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   test("two pre-ticked phases name the first and count the rest (criterion 2)", () => {
     const html = rows([]);
     expect(state(html)).toContain("not started");
-    expect(labels(state(html))).toEqual(["Analyze + 1"]);
+    expect(labels(state(html))).toEqual(["Analyze"]);
   });
 
   test("nothing ticked draws no button at all (criterion 3)", () => {
@@ -5556,7 +5576,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
         [target("157-one-action", { done: BUILT })],
         { open },
       );
-      expect(labels(state(html))).toEqual(["Cancel implement"]);
+      expect(labels(state(html))).toEqual(["Cancel"]);
       expect(state(html)).toContain('action="/api/queue/j1/cancel"');
       expect(state(html)).not.toContain(">Resolve<");
       // No Run button. The run FORM may still be there on an open row
@@ -5571,7 +5591,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [lead({ steps: ["analyze", "review-plan"], stepIndex: 1, state: "queued" })],
       [target("157-one-action", { done: [] })],
     );
-    expect(labels(state(html))).toEqual(["Cancel review"]);
+    expect(labels(state(html))).toEqual(["Cancel"]);
   });
 
   // --- criteria 6, 7: Resolve replaces Run where a Run would only fail ------

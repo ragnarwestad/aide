@@ -313,6 +313,11 @@ interface Phase {
 interface SpecGroup {
   project: string;
   specFolder: string;
+  /** Whether `specFolder` is a real folder or a create job's provisional
+   *  key. The key says nothing to anyone, which is why the row keeps the
+   *  title while it stands (`specSummary`, 2026-08-21) and drops it once
+   *  the spec has landed and the folder name IS the title. */
+  named: boolean;
   /** The job the header speaks for: whatever is in flight, or failing
    *  that the most recently active one. Absent for a spec nothing has
    *  ever run — there is no job page to link to, and no honest answer
@@ -382,6 +387,8 @@ function emptyGroup(t: QueueTarget): SpecGroup {
   return {
     project: t.project,
     specFolder: t.specFolder,
+    // It came from a target, so the folder is on disk by construction.
+    named: true,
     state: "not-started",
     spentUsd: 0,
     costUnmeasured: false,
@@ -521,6 +528,12 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     // 1-description.md is the better answer, and the one every other
     // row already uses.
     title: spec.title ?? all.find((r) => r.createTitle)?.createTitle,
+    // Whether the name above the line is a real folder or a placeholder.
+    // A target IS the folder on disk, so a group without one is a create
+    // job whose spec has not landed and whose name is a provisional key
+    // that says nothing to anyone — the one case where the title has to
+    // stay on the row (see `specSummary`).
+    named: !!target,
   };
 }
 
@@ -723,10 +736,11 @@ function sortableHead(f: QueueFilter): string {
 // is no stop between steps any more, so there is nothing to release and
 // nothing to approve.
 //
-// It names the step it would stop — "Cancel implement" — so it reads
-// like the Run button beside it never is (spec 157): both say which
-// phase the press is about, and the State column they now share says
-// what is happening to it.
+// It says "Cancel" and nothing else. It named the step it would stop
+// until 2026-08-21 — "Cancel implement" — on the argument that it
+// should read like the Run button beside it; but a row has only ever
+// one thing to cancel, the State column beside it already says which
+// step is running, and the name added a word without adding an answer.
 //
 // Drawn only when there IS something to cancel. It used to be in the
 // markup whatever the state, greyed out, so the width of the action
@@ -742,7 +756,7 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
   const hidden = tokenField(token) + filterFields(filter);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
-    btn({ label: `Cancel ${stepLabel(currentStep(r))}`, pending: "cancelling…", variant: "danger" }) +
+    btn({ label: "Cancel", pending: "cancelling…", variant: "danger" }) +
     `</form>`
   );
 }
@@ -946,9 +960,12 @@ function preTicked(g: SpecGroup): Set<string> {
 function actionLabel(g: SpecGroup): string | undefined {
   const ticked = [...preTicked(g)];
   if (ticked.length === 0) return undefined;
+  // The FIRST ticked phase, and nothing after it. A "+ 1" suffix said
+  // how many more a press would run and was taken out on 2026-08-21:
+  // a button label is a name, not a summary, and the phases themselves
+  // are one click away on the row the press acts on.
   const first = stepLabel(ticked[0]!);
-  const rest = ticked.length - 1;
-  return `${first[0]!.toUpperCase()}${first.slice(1)}${rest > 0 ? ` + ${rest}` : ""}`;
+  return `${first[0]!.toUpperCase()}${first.slice(1)}`;
 }
 
 // The run form's own id. It exists for the rarely-set fields' sake
@@ -1030,7 +1047,7 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 // It sits in the State column now, after the badge, because the badge
 // already answers what is happening or what can happen next (spec 132)
 // and the button completes that sentence: "archive held back ·
-// Implement", "implementing · Cancel implement". It used to be a stack
+// Implement", "implementing · Cancel". It used to be a stack
 // of buttons in a cell of its own — a COLUMN at the front of the table
 // in spec 124, which pushed every other column sideways, then the spec
 // column's own cell spanning the phase lines (2026-08-19). Both were
@@ -1129,14 +1146,32 @@ function newSpecLink(opts: QueuePageOptions): string {
 // blank on half the rows reads as a page that failed to load.
 function specSummary(g: SpecGroup): string {
   const bits: string[] = [];
-  if (g.title) bits.push(esc(g.title));
-  if (g.phase) bits.push(esc(g.phase));
+  // NOT the title, and NOT the phase (2026-08-21). The folder name
+  // above IS the title in slug form and said it twice; the phase is
+  // what the pips and the State column are for. What is left is what
+  // neither of those carries.
+  //
+  // ONE exception, and it is the reason `named` exists: a create job's
+  // spec has no folder yet, so the name above is a provisional key that
+  // says nothing to anyone. There the title is the only readable thing
+  // the row has, and it stays until the spec lands.
+  if (!g.named && g.title) bits.push(esc(g.title));
   if (typeof g.percent === "number") bits.push(`${g.percent}% done`);
-  // The same words `aide-run-spec`'s dependency guard refuses in — by
-  // folder, one per dependency — so the row and the refusal say the same
-  // thing about the same fact.
-  if (g.dependsOn.length) bits.push(`depends on ${g.dependsOn.map(esc).join(", ")}`);
+  // By NUMBER since 2026-08-21, not by folder. This line used to match
+  // `aide-run-spec`'s dependency refusal word for word, which names the
+  // whole folder; the number is what a reader recognises, it is
+  // unambiguous because a number is never reused, and the folder name
+  // made the line longer than the row it sits in.
+  if (g.dependsOn.length) bits.push(`depends on: ${g.dependsOn.map((d) => esc(specNumber(d))).join(", ")}`);
   return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
+}
+
+/** The leading number of a spec folder — `92-a-spec-can-depend` is 92.
+ *  A value that does not open with one is shown whole: a dependency may
+ *  be written as a bare number already, and anything else is better
+ *  said in full than silently truncated. */
+function specNumber(folder: string): string {
+  return /^\d+(?=-|$)/.exec(folder)?.[0] ?? folder;
 }
 
 // The header line for one spec: what it is, how far it has got, what it
@@ -1168,9 +1203,14 @@ function specHeadRow(
   // (asked for 2026-08-19): a long folder name used to wrap, and its
   // tail landed in front of the branch marks — "refusing, aide-specs,
   // aide" read as a list of three marks.
+  // `<project>:<folder>` since 2026-08-21. The project used to open the
+  // line under the name, beside the title; it belongs to the NAME — a
+  // folder number is only unique within its project — and the line
+  // under it now carries what nothing else says.
   const spec =
     `<a class="label" href="${esc(specPagePath(g.project, g.specFolder))}" ` +
-    `title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`;
+    `title="${esc(g.project)}:${esc(g.specFolder)}">` +
+    `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`;
   // The badge is about the branch AND the job that is still writing to
   // it, so the row's lead job comes down with the list.
   const diff = g.branches.length
@@ -1213,7 +1253,7 @@ function specHeadRow(
     // and a test looking for a spec by name would find the markup.
     `<tr class="spechead ${rowClass}" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
     `<td><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}</div>` +
-    `<div class="spec-title">${esc(g.project)} · ${specSummary(g)}</div>` +
+    `<div class="spec-title">${specSummary(g)}</div>` +
     // The repo marks on a line of their own: beside the name they took
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
@@ -1243,7 +1283,11 @@ function specHeadRow(
             readyPhase,
           })
         : notStartedChip()
-    }${stateAction(g, opts, opened.has(groupKey(g.project, g.specFolder)))}</span>` +
+    }<span class="actionslot">${stateAction(
+      g,
+      opts,
+      opened.has(groupKey(g.project, g.specFolder)),
+    )}</span></span>` +
     `<div class="muted small">${esc(
       nextActionHint(g.lead),
     )}</div></td>` +
@@ -1632,11 +1676,11 @@ export function renderQueuePage(
     // after the (?)): it is a plain link since spec 121, so the
     // five-second swap of `#jobrows` holds no half-typed state to lose.
     table;
-  // The front page IS aide: the tab says only that — and the heading
-  // said it a second time right under the Specs tab, so it is gone
-  // (2026-08-19). The title still names the page for the shell.
+  // The front page IS the board: the tab says only that — and the
+  // heading said it a second time right under the Specs tab, so it is
+  // gone (2026-08-19). The title still names the page for the shell.
   return pageShell("Specs", entries, "/", body, generatedAt, 10, {
-    docTitle: "aide",
+    docTitle: "aide -board",
     hideHeading: true,
     refreshInNoscript: !!opts.script,
     script: opts.script,

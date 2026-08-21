@@ -297,7 +297,7 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
   test("the renamed page says Specs in its nav, heading and title (criterion 9)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, auth)).text();
-    expect(html).toContain("<title>aide</title>");
+    expect(html).toContain("<title>aide -board</title>");
     // No heading: the Specs tab right above it already says it
     // (2026-08-19). The tab bar is the page's name.
     expect(html).not.toContain("<h1>Specs</h1>");
@@ -572,7 +572,7 @@ describe("GET / (the spec list, HTML)", () => {
     // sitting in "queued": the row's one control is the way to stop it,
     // named for the step it would stop (spec 157).
     const line = specControls(html, "81-queue-and-runner");
-    expect(line).toContain(">Cancel analyze</button>");
+    expect(line).toContain(">Cancel</button>");
     for (const step of ["analyze", "implement", "archive"]) {
       expect(line).toContain(`name="steps" value="${step}"`);
       expect(line).toContain(`aria-label="${step}"`);
@@ -636,7 +636,7 @@ describe("GET / (the spec list, HTML)", () => {
     const line = specControls(rows, "81-queue-and-runner");
     expect(line).toContain('method="post" action="/api/queue"');
     expect(line).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(line).toContain(">Cancel analyze</button>");
+    expect(line).toContain(">Cancel</button>");
   });
 
   // A generated page is a FILE, and the list it points at is served.
@@ -698,7 +698,12 @@ describe("renderQueuePage state labels", () => {
 });
 
 describe("every row answers for itself", () => {
-  test("a spec's title, phase and progress are on its own row (criterion 9)", async () => {
+  // The title and the phase left the row on 2026-08-21 — the folder name
+  // says the one and the pips say the other. The progress is what is
+  // left, and the point of the test is unchanged: the row answers for
+  // itself, server-rendered, with no selection and no data block for a
+  // script to read.
+  test("a spec's progress is on its own row (criterion 9)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     // Give the spec a status file the page can summarise.
     writeFileSync(
@@ -713,7 +718,7 @@ describe("every row answers for itself", () => {
     // answer, and no data block for a script to answer it from.
     const line = specHead(html, "81-queue-and-runner");
     expect(line).toContain("64% done");
-    expect(line).toContain("Phase 2: GREEN");
+    expect(line).not.toContain("Phase 2: GREEN");
     expect(html).not.toContain('id="targetdata"');
     expect(html).not.toContain('<select name="target"');
   });
@@ -1796,11 +1801,18 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
       "109-expanded-row",
     );
 
-  test("named the way the run's own refusal names it — by folder", () => {
-    expect(row(["105-busy-row"])).toContain("depends on 105-busy-row");
-    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain(
-      "depends on 105-busy-row, 92-a-spec-can-depend",
-    );
+  // By NUMBER since 2026-08-21. It used to name the whole folder, to
+  // match `aide-run-spec`'s dependency refusal word for word; the folder
+  // name made the line longer than the row it sits in, and a number is
+  // what a reader recognises and is unambiguous — a spec number is never
+  // reused. A dependency written as a bare number already reads the same.
+  test("named by number, however the dependency itself was written", () => {
+    expect(row(["105-busy-row"])).toContain("depends on: 105");
+    expect(row(["105-busy-row", "92-a-spec-can-depend"])).toContain("depends on: 105, 92");
+    expect(row(["105"])).toContain("depends on: 105");
+    // Anything that does not open with a number is shown whole rather
+    // than silently truncated.
+    expect(row(["a-named-thing"])).toContain("depends on: a-named-thing");
   });
 
   test("a spec that names none reads exactly as it does today", () => {
