@@ -3678,7 +3678,10 @@ describe("spec 116: create is the first phase line", () => {
       '<td class="phasecell"><span class="row"><span class="row"></span>' +
         '<span class="muted">create</span></span></td>',
     );
-    expect(line).toContain('<td><span class="badge b-done">done</span></td><td></td><td class="num"></td>');
+    expect(line).toContain(
+      '<td><span class="badge b-done">done</span></td>' +
+        '<td data-col="started"></td><td class="num" data-col="cost"></td>',
+    );
   });
 
   // --- criteria 3-4: a real create job, before and after it lands ------------
@@ -3893,11 +3896,11 @@ describe("spec 118: every consumption figure carries both units", () => {
     const html = rows({ state: "queued", steps: ["analyze"], spentUsd: 0 });
     // The spec row's own Cost cell: a dash, because a header with
     // nothing spent still owes the reader an answer.
-    expect(html).toContain('<td class="num">–</td>');
+    expect(html).toContain('<td class="num" data-col="cost">–</td>');
     // The analyze line's, which is EMPTY rather than dashed — two
     // different blanks, and the one formatter must keep both.
     const line = html.match(/data-step="analyze"[\s\S]*?<\/tr>/)![0];
-    expect(line).toContain('<td class="num"></td>');
+    expect(line).toContain('<td class="num" data-col="cost"></td>');
     expect(line).not.toContain("–");
   });
 });
@@ -4400,7 +4403,9 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     // The header row is the six cells it always was, cost second to
     // last and the shut row's action cell after it (empty while open).
     expect(cells(head(html, "124-stack"))).toHaveLength(6);
-    expect(head(html, "124-stack")).toMatch(/<td class="num">[^<]*<\/td><td><\/td><\/tr>$/);
+    expect(head(html, "124-stack")).toMatch(
+      /<td class="num" data-col="cost">[^<]*<\/td><td><\/td><\/tr>$/,
+    );
   });
 
   test("a spec no job has ever touched offers Run alone (criterion 8)", () => {

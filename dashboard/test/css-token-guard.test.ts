@@ -246,8 +246,11 @@ const STRUCTURE = [
   "specfile",
   "u-usd", "u-tok",
   // containers — "stack" is the vertical one (spec 124): the row's
-  // action buttons, one under the next, in the list's first column.
+  // action buttons, one under the next, in the list's first column;
+  // "tablewrap" is the box a table too wide for the window scrolls
+  // inside, so the PAGE never does (spec 155).
   "row", "stack", "fact", "intro", "tabpanel", "activity", "facts", "extra",
+  "tablewrap",
   // the spec list
   "list", "spechead", "subrow", "phasecell", "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so

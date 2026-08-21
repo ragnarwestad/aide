@@ -89,9 +89,11 @@ function specTable(specs: SpecView[]): string {
       `<td>${esc(phase)}</td><td>${esc(progress)}</td><td>${state}</td></tr>`
     );
   });
+  // Five columns, one of them a whole title: the box scrolls rather
+  // than the page (spec 155).
   return (
-    `<table class="list"><thead><tr><th>Spec</th><th>Title</th><th>Phase</th>` +
-    `<th>Progress</th><th>State</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+    `<div class="tablewrap"><table class="list"><thead><tr><th>Spec</th><th>Title</th><th>Phase</th>` +
+    `<th>Progress</th><th>State</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`
   );
 }
 

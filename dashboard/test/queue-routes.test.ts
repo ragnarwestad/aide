@@ -1452,7 +1452,9 @@ describe("the job list sorts and filters", () => {
   // class, and the header link is a control with a hover flat.
   test("the sort direction is a chevron, not a glyph", () => {
     const desc = page([row("a")], { sort: "cost" });
-    expect(desc).toMatch(/<th class="[^"]*" aria-sort="descending"><a class="sortlink on"[^>]*><span class="u-usd">Cost<\/span>/);
+    expect(desc).toMatch(
+      /<th class="[^"]*" data-col="cost" aria-sort="descending"><a class="sortlink on"[^>]*><span class="u-usd">Cost<\/span>/,
+    );
     expect(desc).not.toContain("▾");
     const asc = page([row("a")], { sort: "cost", dir: "asc" });
     expect(asc).toMatch(/<a class="sortlink on asc"[^>]*><span class="u-usd">Cost<\/span>/);

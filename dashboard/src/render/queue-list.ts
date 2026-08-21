@@ -638,7 +638,11 @@ function sortableHead(f: QueueFilter): string {
   // `labelHtml` for the one column whose heading is a consumption label
   // and not a noun: "Cost" is the wrong word above a column of token
   // counts, so it carries the same two spans its cells do (spec 118).
-  const th = (key: string, label: string, cls = "", labelHtml?: string) => {
+  // `attrs` is the fold hook (spec 155): the two columns a phone drops
+  // are named on the cell rather than counted by position, because the
+  // column ORDER has already changed once (see below) and an
+  // `nth-child` rule would have broken silently when it did.
+  const th = (key: string, label: string, cls = "", labelHtml?: string, attrs = "") => {
     const on = key === sort;
     // Clicking the column you are already sorted by turns it round.
     const next = on ? (dir === "asc" ? "desc" : "asc") : SORT_DEFAULT_DIR[key]!;
@@ -653,7 +657,7 @@ function sortableHead(f: QueueFilter): string {
       : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
     const aria = on ? ` aria-sort="${dir === "asc" ? "ascending" : "descending"}"` : "";
     return (
-      `<th class="${cls}"${aria}>` +
+      `<th class="${cls}"${attrs}${aria}>` +
       `<a class="${linkCls}" data-nav href="${queueHref(f, { sort: key, dir: next === SORT_DEFAULT_DIR[key] ? "" : next })}">` +
       `${labelHtml ?? esc(label)}${mark}</a></th>`
     );
@@ -668,8 +672,8 @@ function sortableHead(f: QueueFilter): string {
     // reader rather than the spec. (Spec 124 put it first, for a
     // button COLUMN that pushed the whole table sideways — 2026-08-19.)
     `<thead><tr>${th("spec", "Spec")}<th>Progress</th>${th("state", "State")}` +
-    `${th("started", "Started")}` +
-    `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>')}` +
+    `${th("started", "Started", "", undefined, ' data-col="started"')}` +
+    `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
     `<th></th></tr></thead>`
   );
 }
@@ -1173,8 +1177,8 @@ function specHeadRow(
     `<div class="muted small">${esc(
       nextActionHint(g.lead),
     )}</div></td>` +
-    `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
-    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
+    `<td data-col="started">${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
+    `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     // The action cell, LAST as before spec 124 — but only for a SHUT
     // row: an open row's actions live in the stack beside its phase
     // lines (the 14rem first column put every button in the page's
@@ -1273,7 +1277,8 @@ function phaseCaptionCells(g: SpecGroup, opts: QueuePageOptions, busy: boolean):
     `<span class="row"></span>` +
     `<span class="muted small">Phase</span><span class="muted small">Model</span>` +
     `${toolPicker(g, opts, busy)}` +
-    `</span></td><td></td><td></td><td class="num"></td><td></td>`
+    `</span></td><td></td><td data-col="started"></td>` +
+    `<td class="num" data-col="cost"></td><td></td>`
   );
 }
 
@@ -1427,8 +1432,8 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           `<td class="phasecell"><span class="row"><span class="row">${box}</span>` +
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
-          `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
-          `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
+          `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
+          `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
           `<td></td>`,
       });
     });
@@ -1528,7 +1533,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
       `</td></tr>`;
   return (
     filterBar(groups, f, opts) +
-    `<table class="list">${sortableHead(f)}<tbody>${body}</tbody></table>` +
+    `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${body}</tbody></table></div>` +
     (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
   );
 }

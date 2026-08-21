@@ -135,10 +135,13 @@ export function stepResults(results: JobStepResultView[], archiveHeldBack?: stri
         `<td class="muted small">${esc(r.at)}</td></tr>`,
     )
     .join("");
+  // Six columns of names, figures and timestamps: wider than a phone
+  // whatever it is told, so the box scrolls rather than the page
+  // (spec 155). The spec page's Steps tab is this same table.
   return (
-    `<table><thead><tr><th>Step</th><th>Outcome</th>` +
+    `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
     `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
-    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}</tbody></table>`
+    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}</tbody></table></div>`
   );
 }
 

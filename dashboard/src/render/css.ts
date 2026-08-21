@@ -309,6 +309,14 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 /* --- the list ---------------------------------------------------------- */
 
+/* A table has a width of its own and no way to give it up: six columns
+   of dates and figures are wider than a phone whatever the CSS says.
+   The box scrolls instead of the page, the same self-contained answer
+   .specfile already gives for a preformatted file too wide to wrap
+   (spec 155). Unconditional, not phone-only — a narrow WINDOW on a
+   desktop has the same problem. */
+.tablewrap { overflow-x: auto; }
+
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
@@ -571,9 +579,39 @@ ul.activity li { padding: 2px 0; border-bottom: 1px solid var(--line);
    "active" and "archived" and mean different things. */
 tr.spec-archived td { color: var(--muted); }
 
+/* --- narrow: one screen, one place (spec 155) ------------------------- */
+/* Every rule the phone layout needs is in this one block, and each one
+   repeats the selector of the desktop rule it overrides rather than
+   writing a shorter one — the override wins by coming later, and a
+   selector with one class more or fewer would change the specificity
+   and quietly stop applying. */
+
 @media (max-width: 40rem) {
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
+
+  /* Started and Cost are not what a phone is for: the reader is
+     checking whether a run finished and pressing Run or Cancel, and
+     neither figure is needed to do either. Dropped rather than
+     squeezed — six columns in 390px is six unreadable ones. Hidden in
+     all three places the cells are written, or the ones left standing
+     hold two empty columns nothing lines up under. */
+  table.list [data-col="started"], table.list [data-col="cost"] { display: none; }
+
+  /* The open row's phase lines are pinned columns on a desktop, so a
+     box, a name and a select always start at the same x. At this width
+     there is no room for three columns and the line wraps instead. */
+  .stackcell { width: auto; }
+  table.list tr.subrow .phasecell { white-space: normal; }
+  table.list tr.subrow .phasecell > .row { flex-wrap: wrap; }
+  table.list tr.subrow[data-step] .phasecell > .row > :first-child,
+  table.list tr.subrow[data-caption] .phasecell > .row > :first-child,
+  table.list tr.subrow[data-step] .phasecell > .row > :nth-child(2),
+  table.list tr.subrow[data-caption] .phasecell > .row > :nth-child(2) {
+    flex: 1 1 auto; }
+
+  /* Two fields side by side become two lines. */
+  .newspecform .frow { flex-wrap: wrap; }
 }
 `;
