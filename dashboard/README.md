@@ -458,12 +458,23 @@ and what a request posts, so a readable name can front a model string
 nobody wants to read. An entry naming a tool other than claude says so
 in the dropdown, so two entries are tellable apart before one is picked.
 
-That baseline is what the row's own AI select rests on: it opens on
-Claude Code whatever order `modelChoices` is written in, and a phase
-with no run behind it and no `model` default of its own is pre-filled
-with a Claude entry rather than with whichever entry the table happens
-to list first. A phase that HAS run still shows the model it ran on,
-and a per-step `model` default still wins over both.
+That baseline is where the row's own AI select rests when there is
+nothing else to go on. What it actually opens on is the tool of the
+model the row's lead job ran on — Claude Code for a spec nothing has
+ever run, never whichever entry `modelChoices` happens to list first.
+The pre-filled model for a phase with no run behind it and no `model`
+default of its own follows that same resting tool. A phase that HAS
+run still shows the model it ran on, and a per-step `model` default
+still wins over both.
+
+**The model list is narrowed by the server, not only by the script.**
+Each phase's dropdown hides the entries whose tool cannot start the
+model that select has chosen, in the HTML itself — so the first render,
+and a reader with scripting off, sees a list that matches the AI beside
+it instead of a mixture of both CLIs. Changing the AI select re-runs the
+same filter in the browser, as it always did. Because the filter follows
+the SELECTED model rather than the row's AI, a phase that last ran on
+the other tool keeps its own model visible and selected.
 
 The queue, the worktrees, the wall-clock timeout and all the git
 handling are one path for both tools. Three things differ, and all three

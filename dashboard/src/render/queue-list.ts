@@ -1330,6 +1330,18 @@ function specHeadRow(
   );
 }
 
+/** The AI the row RESTS on: the tool of the model its lead job is on,
+ *  or Claude Code when nothing has run (spec 164). `g.lead` is the job
+ *  the row already speaks for everywhere else — its state, its cost,
+ *  its button — so the AI select says the same thing the rest of the
+ *  row does instead of a literal that nothing about the run obeyed. A
+ *  model that has since left `modelChoices` falls back the same way an
+ *  absent job does. */
+function rowTool(g: SpecGroup, opts: QueuePageOptions): string {
+  const models = opts.modelChoices ?? [];
+  return models.find((m) => m.name === g.lead?.model)?.tool ?? "claude";
+}
+
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase
 // since spec 123: the model is a choice about the PHASE, and a single
@@ -1362,18 +1374,23 @@ function modelPicker(
   const why = busy ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
-  // The last resort is the first CLAUDE model, not the first model:
-  // `modelChoices` is a configuration list in configuration order, and
-  // taking its head meant a step nobody had configured could be
-  // pre-filled with a Codex model under a picker resting on Claude Code
-  // (spec 141). Claude is this page's stated baseline everywhere else
-  // — `m.tool ?? "claude"`, README "every step runs on Claude Code
-  // unless a `modelChoices` entry says otherwise" — so it is the one
-  // here too. Only this branch moves: a phase that HAS run still shows
-  // what it ran on, and an admin's configured default still outranks
-  // any of it.
-  const claudeFirst = models.find((m) => (m.tool ?? "claude") === "claude") ?? models[0]!;
-  const chosen = has(used) ? used : has(configured) ? configured : claudeFirst.name;
+  // The last resort is the first model of the ROW'S OWN AI, not the
+  // first model: `modelChoices` is a configuration list in configuration
+  // order, and taking its head meant a step nobody had configured could
+  // be pre-filled with a Codex model under a picker resting on Claude
+  // Code (spec 141). Spec 141 read that resting tool off a literal
+  // `"claude"`; spec 164 reads it off the row's lead job, so a row that
+  // rests on Codex falls back to a Codex model too. Only this branch
+  // moves: a phase that HAS run still shows what it ran on, and an
+  // admin's configured default still outranks any of it.
+  const toolFirst = models.find((m) => (m.tool ?? "claude") === rowTool(g, opts)) ?? models[0]!;
+  const chosen = has(used) ? used : has(configured) ? configured : toolFirst.name;
+  // What the list is filtered BY is the option that ends up selected,
+  // not the row's resting AI (spec 164). Deriving it this way is what
+  // makes "the selected option is never the hidden one" true by
+  // construction: a phase that last ran on the other tool keeps its own
+  // model visible, whatever the row rests on.
+  const chosenTool = models.find((m) => m.name === chosen)?.tool ?? "claude";
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     (busy ? ` disabled title="${esc(why)}"` : "") +
@@ -1390,8 +1407,15 @@ function modelPicker(
           // row's AI select rather than to a reader (spec 127): the
           // filter has to know which tool an option starts without
           // reading its label back.
+          // `hidden`, from the FIRST byte: `syncToolFilter` sets it in
+          // the browser, but only when a reader changes the AI select,
+          // so before spec 164 a fresh page — and every page with
+          // scripting off — offered models the row's AI cannot start.
+          // Hidden, not dropped: the script's own re-pick needs the
+          // other tool's options to still be there.
           `<option value="${esc(m.name)}" data-tool="${esc(m.tool ?? "claude")}"` +
           ` title="$${m.budgetUsd} per step"` +
+          `${(m.tool ?? "claude") !== chosenTool ? " hidden" : ""}` +
           `${m.name === chosen ? " selected" : ""}>${esc(m.name)}` +
           `${m.tool && m.tool !== "claude" ? ` (${esc(m.tool)})` : ""}</option>`,
       )
@@ -1447,6 +1471,7 @@ function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
   const tools = [...new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"))];
   if (tools.length < 2) return "";
   const why = busy ? busyReason(g) : "";
+  const resting = rowTool(g, opts);
   return (
     `<label class="muted small">AI ` +
     `<select data-tool-picker form="${esc(runFormId(g))}"` +
@@ -1456,13 +1481,15 @@ function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
     // With no `selected` anywhere a select shows its first option, so
     // the row's AI was whatever `modelChoices` happened to list first —
     // a value nothing on the page had chosen and nothing about the run
-    // obeyed. Claude Code is the baseline the rest of this file already
-    // assumes (`m.tool ?? "claude"`), so it is the one the control
-    // rests on.
+    // obeyed. Spec 141 stated it as the literal `"claude"`, which put
+    // the same disagreement back one level down: a row whose only job
+    // ran on Codex opened saying Claude Code with a Codex model
+    // selected beside it. It is the row's own lead job that says it
+    // now, and Claude Code only when there is no job to ask.
     tools
       .map(
         (t) =>
-          `<option value="${esc(t)}"${t === "claude" ? " selected" : ""}>` +
+          `<option value="${esc(t)}"${t === resting ? " selected" : ""}>` +
           `${esc(TOOL_NAMES[t] ?? t)}</option>`,
       )
       .join("") +

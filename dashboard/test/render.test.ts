@@ -4931,17 +4931,64 @@ describe("spec 127: the row names its AI once", () => {
     expect(html.match(/<select[^>]*data-tool-picker[^>]*>/)![0]).not.toContain("disabled");
   });
 
-  // --- criterion 6: nothing is filtered before a script runs -----------------
+  // --- criterion 6: the first render already matches the row's own AI -------
 
-  test("every phase select still offers every configured model, server-side", () => {
+  /** Spec 164's invariant, stated once for a whole page: hiding is
+   *  derived from what IS selected, so the option carrying `selected` is
+   *  never the one carrying `hidden` — whatever a phase's history, an
+   *  admin's default or the row's resting AI made it. */
+  const noSelectedOptionIsHidden = (html: string) => {
+    const selects = [...html.matchAll(/<select name="model\.([^"]+)"[\s\S]*?<\/select>/g)];
+    expect(selects.length).toBeGreaterThan(0);
+    for (const [markup, step] of selects) {
+      for (const option of markup.matchAll(/<option [^>]*selected[^>]*>/g)) {
+        expect([step, option[0].includes("hidden")]).toEqual([step, false]);
+      }
+    }
+  };
+
+  // Until spec 164 the server sent every option visible and left the
+  // narrowing to `syncToolFilter`, which runs only when a reader CHANGES
+  // the AI select. Nothing called it on the first render, so the page
+  // opened offering models the row's own AI cannot start — and a reader
+  // with scripting off never got past that state. The filter is the
+  // server's now; the script still does its half on change.
+  test("every phase select hides the models the row's AI cannot run", () => {
     const html = rows();
     for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
       const select = html.match(
         new RegExp(`<select name="model\\.${step}"[\\s\\S]*?</select>`),
       )![0];
+      // Every model is still an OPTION: hidden is not dropped, so the
+      // browser's own re-pick has something to show when the AI changes.
       for (const m of BOTH) expect([step, select.includes(`value="${m.name}"`)]).toEqual([step, true]);
-      expect([step, select.includes("hidden")]).toEqual([step, false]);
+      // Nothing has run, so the row rests on Claude Code.
+      expect([step, /<option value="codex-fast"[^>]*hidden/.test(select)]).toEqual([step, true]);
+      expect([step, /<option value="sonnet"[^>]*hidden/.test(select)]).toEqual([step, false]);
+      expect([step, /<option value="fable"[^>]*hidden/.test(select)]).toEqual([step, false]);
     }
+    noSelectedOptionIsHidden(html);
+  });
+
+  // The row's AI is not what filters a phase's list — the phase's OWN
+  // selected model is. That is what keeps the model a phase last ran on
+  // out of reach of the filter, whatever the row rests on (spec 164).
+  test("a phase that ran on Codex is offered Codex models, not Claude ones", () => {
+    const html = rows([
+      row({
+        id: "j1",
+        specFolder: "127-one-ai",
+        steps: ["implement"],
+        stepIndex: 0,
+        state: "done",
+        model: "codex-fast",
+      }),
+    ]);
+    const line = html.match(/<select name="model\.implement"[\s\S]*?<\/select>/)![0];
+    expect(line).toMatch(/<option value="codex-fast"[^>]*selected/);
+    expect(line).not.toMatch(/<option value="codex-fast"[^>]*hidden/);
+    expect(line).toMatch(/<option value="sonnet"[^>]*hidden/);
+    expect(line).toMatch(/<option value="fable"[^>]*hidden/);
   });
 
   // The row's phases may have run on DIFFERENT tools before this control
@@ -4956,6 +5003,38 @@ describe("spec 127: the row names its AI once", () => {
       .toMatch(/<option value="fable"[^>]*selected/);
     expect(html.match(/<select name="model\.implement"[\s\S]*?<\/select>/)![0])
       .toMatch(/<option value="codex-fast"[^>]*selected/);
+  });
+
+  // And each phase's LIST follows that same own model, not the row's
+  // resting AI: the other phase's tool is hidden in it, its own is not
+  // (spec 164). A filter run against one row-wide tool would hide the
+  // very option the test above insists stays selected.
+  test("a mixed-tool history filters each phase's list by its own model", () => {
+    const html = rows([
+      row({ id: "j1", specFolder: "127-one-ai", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+      row({ id: "j2", specFolder: "127-one-ai", steps: ["implement"], stepIndex: 0, state: "done", model: "codex-fast" }),
+    ]);
+    const analyze = html.match(/<select name="model\.analyze"[\s\S]*?<\/select>/)![0];
+    const implement = html.match(/<select name="model\.implement"[\s\S]*?<\/select>/)![0];
+    expect(analyze).not.toMatch(/<option value="fable"[^>]*hidden/);
+    expect(analyze).toMatch(/<option value="codex-fast"[^>]*hidden/);
+    expect(implement).not.toMatch(/<option value="codex-fast"[^>]*hidden/);
+    expect(implement).toMatch(/<option value="sonnet"[^>]*hidden/);
+    expect(implement).toMatch(/<option value="fable"[^>]*hidden/);
+    noSelectedOptionIsHidden(html);
+  });
+
+  // The invariant on its own, across the three histories that decide a
+  // selection: none, mixed, and an admin's configured default.
+  test("no phase select ever renders its selected option hidden", () => {
+    noSelectedOptionIsHidden(rows());
+    noSelectedOptionIsHidden(
+      rows([
+        row({ id: "j1", specFolder: "127-one-ai", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+        row({ id: "j2", specFolder: "127-one-ai", steps: ["implement"], stepIndex: 0, state: "done", model: "codex-fast" }),
+      ]),
+    );
+    noSelectedOptionIsHidden(rows([], { defaultModels: { default: "codex-fast" } }));
   });
 
   // --- the Medium risk in the plan: the caption's pinned columns -------------
@@ -5037,6 +5116,11 @@ describe("spec 141: the AI select's resting value is a stated default", () => {
   test("a configured default still wins over the tool-scoped fallback", () => {
     const line = select(rows([], { defaultModels: { default: "codex-fast" } }), "analyze");
     expect(line).toMatch(/<option value="codex-fast"[^>]*selected/);
+    // And is VISIBLE: the row rests on Claude Code with nothing run, but
+    // the list is filtered by what is selected, not by the row's AI, so
+    // an admin's cross-tool default is never hidden behind its own
+    // selection (spec 164).
+    expect(line).not.toMatch(/<option value="codex-fast"[^>]*hidden/);
   });
 
   // --- criterion 3: the fallback is reached only when there is no history ----
@@ -5053,9 +5137,35 @@ describe("spec 141: the AI select's resting value is a stated default", () => {
       }),
     ]);
     expect(select(html, "implement")).toMatch(/<option value="codex-fast"[^>]*selected/);
-    // And the picker beside it is still resting on its stated default —
-    // history is read out by the phase's own select, not by this one.
-    expect(picker(html)).toMatch(/<option value="claude"[^>]*selected/);
+    // And the picker beside it now says CODEX. Spec 164 reverses spec
+    // 141 here on purpose: the stated default was a literal "claude",
+    // so a row whose only job ran on Codex opened claiming an AI that
+    // could not start the model selected beside it. The resting value
+    // is still stated — it is derived from the row's lead job now
+    // instead of hardcoded.
+    expect(picker(html)).toMatch(/<option value="codex"[^>]*selected/);
+    expect(picker(html)).not.toMatch(/<option value="claude"[^>]*selected/);
+  });
+
+  // The other half of that: the fallback is scoped to the resting tool,
+  // and the resting tool now follows the lead job. A row on Codex hands
+  // an untouched phase a Codex model, not a Claude one (spec 164).
+  test("a row whose lead job ran on Codex falls an untouched phase back to Codex", () => {
+    const html = rows([
+      row({
+        id: "j1",
+        specFolder: "141-says-what",
+        steps: ["implement"],
+        stepIndex: 0,
+        state: "done",
+        model: "codex-fast",
+      }),
+    ]);
+    const line = select(html, "analyze");
+    expect(line).toMatch(/<option value="codex-fast"[^>]*selected/);
+    expect(line).not.toMatch(/<option value="codex-fast"[^>]*hidden/);
+    expect(line).toMatch(/<option value="sonnet"[^>]*hidden/);
+    expect(line).toMatch(/<option value="fable"[^>]*hidden/);
   });
 });
 
