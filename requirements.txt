@@ -1,0 +1,6 @@
+# What CI installs to run the root gate, `.venv/bin/pytest`. Pinned to the
+# version the developer's own .venv holds, so CI and a hand-run are the
+# same gate. There is nothing else here: aide is a configuration repo, not
+# a Python application, and the test suite imports only the standard
+# library.
+pytest==8.4.2

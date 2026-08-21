@@ -1,0 +1,74 @@
+name: CI
+
+# The two gates .claude/CLAUDE.md names, plus the markdown check, run here
+# instead of only when someone remembers them. The commands are the ones
+# that file documents, character for character — a workflow that ran
+# something subtly different would go green about a gate nobody has.
+on: [push, pull_request]
+
+# Three pushes to a branch in a minute cost one completed run, not three.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every job runs on macOS, and not for uniformity's sake. core/scripts
+# is written for what macOS ships: aide-generate-html uses BSD `sed -i ''`,
+# which GNU sed reads as its script and rejects, and aide-run-spec is
+# written for bash 3.2 (no mapfile, no associative arrays) because that is
+# what /bin/bash is here. A Linux runner has bash 5 and GNU sed, so it
+# would not be a cheaper version of this job — it would be a green one
+# that never exercised the code these scripts actually run as.
+# dashboard/src reaches the same /bin/bash and sed surface, so it stays on
+# macOS too. macos-latest is deliberately not pinned to a point release:
+# bash 3.2 and BSD sed are an Apple-wide default that does not move
+# between them.
+
+jobs:
+  pytest:
+    name: pytest
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # The interpreter the repo's own .venv was built from. On a macOS
+          # arm64 runner this resolves to the newest 3.9 published for that
+          # platform.
+          python-version: '3.9'
+      # The venv exists so the next line is the exact string CLAUDE.md
+      # documents, rather than a bare `pytest` that runs the same tests
+      # under a different name.
+      - run: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+      # No -m and no --override-ini: pytest.ini already deselects e2e and
+      # evaluation, which call AI APIs and are billed for it.
+      - run: .venv/bin/pytest
+
+  dashboard:
+    name: dashboard (tsc + bun test)
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Kept equal to the version dashboard/bun.lock resolves; a test
+          # in tests/specs/unit/core/validation/test_ci_workflow.py fails
+          # when the two drift apart.
+          bun-version: 1.3.14
+      - run: cd dashboard && bun install
+      # make test, not bun test: bun test transpiles without type-checking,
+      # so it alone says nothing about types. The Makefile runs
+      # `bunx tsc --noEmit` first.
+      - run: cd dashboard && make test
+
+  markdownlint:
+    name: markdownlint
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # From the repo root, where .markdownlint-cli2.jsonc lives — the
+      # config is read relative to the working directory. Unpinned, the
+      # same exposure a person running this by hand already has.
+      - run: npx markdownlint-cli2 '**/*.md'
