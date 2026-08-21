@@ -2,17 +2,20 @@
 name: aide-archive
 description: >-
   Archive a finished spec and feed its durable knowledge back into the
-  project's living documentation.
+  project's living documentation — resolving the branch's merge conflict
+  with the default branch first, if there is one.
   Use when: a JIRA issue or TODO plan is done, closing out a spec,
-  cleaning up the specs root.
+  cleaning up the specs root, a spec's branch conflicts with the default
+  branch.
   Do NOT use for: creating specs (use aide-create), unfinished work,
   deleting specs.
 argument-hint: "[<JIRA-KEY> or task number]"
 effort: medium
 ---
 
-Archive a finished spec: stamp it, move it to `archive/`, and merge what
-should outlive it into the project's living documentation.
+Archive a finished spec: settle any merge conflict on its branch, stamp
+it, move it to `archive/`, and merge what should outlive it into the
+project's living documentation.
 
 **Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID)
 
@@ -23,9 +26,40 @@ decisions stay buried in the spec folder. Archiving closes the loop —
 the folder moves out of the active list, and the durable knowledge moves
 into documentation that future work actually reads.
 
+Archive is also the step that LANDS the spec's branch, which is why a
+merge that fails is its problem and not a phase of its own (spec 171).
+
 ## Workflow
 
-### Step 1: Resolve the spec
+### Step 1: Finish the merge, if one is open
+
+Before anything else, in the project's working directory:
+
+```bash
+git rev-parse -q --verify MERGE_HEAD
+```
+
+**It answers nothing:** there is no conflict. Go straight to Step 2 —
+this is the ordinary case and costs one command. (Step 2 resolves the
+ARGUMENT to a folder; it has nothing to do with the merge.)
+
+**It answers a sha:** the branch would not merge cleanly with the
+default branch, and `aide-run-spec` handed you the worktree exactly as
+git left it — MERGE_HEAD set, the markers in the files. Follow
+[references/resolve-conflict.md](./references/resolve-conflict.md) in
+full: read the conflict, resolve it or decide not to, finish the merge,
+and run the project's test command.
+
+Continue to Step 2 **only** when the merge is committed and the tests
+are green. A resolution abandoned, or one the tests went red on, puts
+the branch back where it was found and stops archive here — the spec is
+not archived, nothing lands, and the report says which files conflicted,
+what stopped you, and which branch the diff is on.
+
+Do this in every repo the run named, not only the project: the specs
+repo has a branch of its own and can conflict the same way.
+
+### Step 2: Find the spec's folder
 
 - Specs root: `AIDE_SPECS_PATH` from `.aide/config` in the project
   root if set, otherwise `specs/` in the project root (helper:
@@ -35,7 +69,7 @@ into documentation that future work actually reads.
 - If the folder is already under `archive/`: say so and stop
 - If nothing is found: list the active folders and stop
 
-### Step 2: Check that the work is done
+### Step 3: Check that the work is done
 
 Read `4-status.md`. If it does not clearly show finished work (open
 checkboxes, no conclusion):
@@ -47,7 +81,7 @@ checkboxes, no conclusion):
   a `## Archive held back` section in `4-status.md` holding ONE bullet
   that names what is still open, e.g.
   `- the Slack webhook (Phase 4, still unchecked)`. Then report the
-  hold-back plainly and stop: do not continue to Step 3 or Step 4.
+  hold-back plainly and stop: do not continue to Step 4 or Step 5.
 
   One section, one bullet, replaced in place — a spec declined twice
   carries its CURRENT reason, not a growing list of stale ones. The
@@ -57,7 +91,7 @@ checkboxes, no conclusion):
   claude session's, and a run that declined exits just as successfully
   as one that moved the folder.
 
-### Step 3: Close the loop
+### Step 4: Close the loop
 
 Read all four spec files and identify what should OUTLIVE the spec:
 
@@ -83,13 +117,13 @@ to ask a question no one could hear.
 - **Nobody is there (headless):** do NOT ask. Append the
   proposal to `4-status.md` under a new `## Deferred documentation
   feedback` heading, one item per entry: the destination file and the
-  exact text proposed. Then continue straight to Step 4.
+  exact text proposed. Then continue straight to Step 5.
 
 The question must never block the move: a headless run that stops here
 archives nothing, reports success anyway, and leaves the spec in the
 active list with its lesson unrecorded.
 
-### Step 4: Stamp and move
+### Step 5: Stamp and move
 
 1. Append to `4-status.md`: `**Archived:** <today's date, YYYY-MM-DD>`
 2. Create `<specs-root>/archive/` if missing
@@ -118,7 +152,7 @@ Numbers are never reused: `aide_next_spec_number` (in
 `_aide-spec-lib.sh`) scans `archive/` too, and `aide-generate-pdf`/
 `aide-generate-html` still find archived specs.
 
-### Step 5: Confirm
+### Step 6: Confirm
 
 ```text
 Archived: 17-clean-up-console-log

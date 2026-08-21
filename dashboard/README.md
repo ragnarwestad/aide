@@ -21,7 +21,7 @@
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [Branches, and merging them](#branches-and-merging-them)
-    - [Letting aide resolve a conflict (spec 106)](#letting-aide-resolve-a-conflict-spec-106)
+    - [Archive resolves the conflict itself (spec 171)](#archive-resolves-the-conflict-itself-spec-171)
 - [How it looks (spec 102)](#how-it-looks-spec-102)
   - [Tokens](#tokens)
   - [Components](#components)
@@ -364,10 +364,9 @@ every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
 A spec's row is collapsed by default: name, title, one status line, the
-five phase pips, and at most one action button (Resolve, after a landing
-on that row was refused for a conflict). The four phase lines and every
-control — phase checkboxes, model dropdown, the also-touches field, Run,
-Cancel — sit behind the same chevron in front
+five phase pips, and at most one action button. The four phase lines
+and every control — phase checkboxes, model dropdown, the also-touches
+field, Run, Cancel — sit behind the same chevron in front
 of the name (spec 103). Expanding is a link and lives in the query
 string (`?open=<project>/<folder>,…`), which is what makes it survive
 the table's own five-second refresh, what makes it work with JavaScript
@@ -375,8 +374,8 @@ switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
 Every control here is a plain form first: ticking phases and pressing
-Run works with JavaScript switched off, and so do Cancel, Resolve,
-Create and expanding a row — each posts its form and follows a
+Run works with JavaScript switched off, and so do Cancel, Create and
+expanding a row — each posts its form and follows a
 303 back to the list. `queue-client.ts` is a layer ABOVE that floor,
 never the mechanism (see
 [what the script adds](#what-the-script-adds-specs-96-and-101)). It
@@ -436,7 +435,7 @@ afterwards is a report, not a cap. They live in the queue config
     "implement": "bypassPermissions",
     "default": "acceptEdits"
   },
-  "model": { "implement": "opus", "resolve": "sonnet", "default": "sonnet" },
+  "model": { "implement": "opus", "default": "sonnet" },
   "push": "branch",
   "concurrency": 2,
   "projects": ["aide", "aide-dashboard"],
@@ -762,8 +761,8 @@ question it exists for, "was this merge reviewed?", about any of our
 work. So the dashboard says what it did.
 
 `mergeEventUrl` in the queue config is where it says it. Every repo a
-step successfully lands — `create`, `analyze`, `review-plan`, `resolve`
-and `archive`, code roots and specs repos alike — sends one POST with a
+step successfully lands — `create`, `analyze`, `review-plan` and
+`archive`, code roots and specs repos alike — sends one POST with a
 flat JSON body:
 
 ```json
@@ -862,8 +861,8 @@ only offered once the row is expanded.
 ### What the script adds (specs 96 and 101)
 
 The page's own browser code does one thing to the controls: it keeps
-the reader where they are. Every one of them — Run, Cancel, Resolve,
-Create — is a real `<form>` that works on its own, and the script only
+the reader where they are. Every one of them — Run, Cancel, Create —
+is a real `<form>` that works on its own, and the script only
 intercepts.
 
 - **A press changes the button at once, without changing its width**
@@ -926,8 +925,8 @@ open and why — the one window that still exists being the code after
 `implement` and before `archive`.
 
 **Nothing here is merged by hand (spec 149).** Every step lands its own
-work the moment it finishes: `create`, `analyze`, `review-plan` and
-`resolve` merge the branch they pushed into that repo's default branch
+work the moment it finishes: `create`, `analyze` and `review-plan`
+merge the branch they pushed into that repo's default branch
 and delete it on origin; `implement` lands nothing, so the code stays
 on the branch for anyone who wants to read or test it first; `archive`
 merges every repo the spec's branch still exists in — the specs repo
@@ -935,9 +934,11 @@ first, the code last, so the code is the last word — runs
 `AIDE_INSTALL_CMD` after a code root exactly as the old Merge route did,
 and then archives. Leaving `archive` unticked IS the inspection
 point. A landing that cannot be made (a conflict with the default
-branch) is refused by name, the branch stays where it was, and the row
-offers Resolve. A branch whose label is a known project name is that
-project's code; a label that is not any project on this machine is the
+branch) is refused by name and the branch stays where it was — but
+`archive` settles most of those itself before it gets that far, see
+[Archive resolves the conflict itself](#archive-resolves-the-conflict-itself-spec-171).
+A branch whose label is a known project name is that project's code; a
+label that is not any project on this machine is the
 specs repo, which is a closed set rather than a guess
 (`.claude/rules/development.md`: "the run only watches ... the roots it
 knows about").
@@ -1017,43 +1018,59 @@ An unfinished spec may be merged — every step makes branches, and
 merging after `analyze` is a legitimate thing to want. It goes through
 the confirmed "merge anyway", so it is a choice rather than a surprise.
 
-### Letting aide resolve a conflict (spec 106)
+### Archive resolves the conflict itself (spec 171)
 
-A conflict refusal carries a second choice beside "merge it by hand":
-**Resolve**, drawn as the row's primary action because resolving is what
-to do next there (spec 135). Pressing it queues an ordinary job with one
-step, `resolve`, which does by machine what the by-hand routine did —
-in a worktree of the spec's branch, merge origin's default branch into
-it, resolve the conflicts, run the project's test command, and push the
-BRANCH — and the dashboard lands it, the way it lands any other step's
-work (spec 149). The default branch is never touched by the step
-itself.
+A spec's branch is brought up to date with the default branch before a
+step's own work starts, and every step but one treats a conflict there
+as a person's problem: the merge is aborted and the run refuses on the
+spot with `errorReason: "conflict"`. `archive` is the exception, because
+`archive` is the step that LANDS the branch — a merge that fails is the
+merging step's problem, not a phase of its own.
 
-- **It is offered for a conflict and nothing else.** Every other
-  refusal here — a branch gone from origin, a base that will not
-  fast-forward, a failed push — is one a resolve step could not finish,
-  and the control is absent for all of them. The gate is a
-  structured `reason` field on the merge result, carried to the page as
-  `errorReason=conflict`, never a match against the refusal sentence:
-  that text is joined across repos before the page sees it, and a
-  rewording would silently take the offer away.
-- **It is a queue step like the others.** Visible on the row and the
-  job page, costed, cancellable, under the same caps and concurrency
-  limit, on the model the config names for it (`sonnet` — a merge is
-  not an implement). The two guards that already exist hold for it
-  unchanged: no two jobs for one spec run at once, and a second
-  unfinished job covering the same step is refused.
+So `core/scripts/aide-run-spec` hands `archive`, and only `archive`, the
+worktree exactly as git left it: `MERGE_HEAD` set, the markers in the
+files. `/aide-archive`'s Step 1 checks for that and, when it finds it,
+follows `core/skills/aide-archive/references/resolve-conflict.md` before
+anything else — read the conflict, resolve it or decide not to, finish
+the merge with `git commit --no-edit`, run the project's own test
+command — and only then goes on to archive the spec. The default branch
+is never touched by the step itself; the dashboard lands the resolved
+branch afterwards, the way it lands any other step's work (spec 149).
+
+There was a sixth step for this until spec 171, `resolve`, with a
+Resolve button on the row that queued it. Both are gone: `resolve` is
+not in `WORKFLOW_STEPS`, so a post that names it is refused as an
+invalid entry in `steps`, and no control on the page draws off
+`errorReason` any more.
+
+- **The condition is the literal string `archive`, never a denylist.**
+  A step this got backwards would carry conflict markers into a commit,
+  which is worse than the refusal it replaced.
 - **It either finishes or puts the branch back.** Tests red, or a
-  conflict `/aide-resolve` will not decide, and the merge is undone to
-  the commit the branch started on. `aide-run-spec` pushes a repo only
-  when its `HEAD` moved, so a branch put back reaches origin at all —
-  no new rollback machinery, the gate that already exists. A step
+  conflict the skill will not decide, and the merge is undone to the
+  commit the branch started on. `aide-run-spec` pushes a repo only
+  when its `HEAD` moved, so a branch put back never reaches origin —
+  no new rollback machinery, the gate that already exists. A run
   interrupted mid-merge is aborted by the script before the commit
-  loop, so conflict markers are never committed.
+  loop, so conflict markers are never committed either way.
+- **The test command is the gate the design rests on.** A machine
+  resolving a conflict unattended and then landing it is defensible
+  because a resolution that does not pass the project's own tests does
+  not land.
+- **A conflict that still reaches a reader is one no machine could
+  settle.** The row shows it as the failure's own text — which names the
+  branch — beside the ordinary re-run control every other failed step
+  offers. Understanding it is a person's job, with the diff in front of
+  them.
+- **Archive's cost and duration are variable now.** It was a short,
+  cheap step; a run that meets a conflict is as big a piece of work as a
+  resolution ever was. No timeout change was needed — `resolve` used the
+  same `timeoutSec.default` (1200s) and the same model archive already
+  falls to.
 
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside
-the four (`explore`, `create`, `manifest`, `resolve` — valid steps the
+the four (`explore`, `create`, `manifest` — valid steps the
 form does not offer) is appended after them rather than dropped, so a
 run is never invisible (spec 86).
 
@@ -1138,7 +1155,7 @@ A gap between two interactive controls comes from the flex `gap` on
 the row that holds them, never from a `margin` on one of the
 components. Spec 102 fixed colours, sizes and radii the same way — one
 token, used everywhere — but left spacing per spot: `.mergeform`,
-`.actionform`, `.resolveform` and `.extra` each carried their own
+`.actionform` and `.extra` each carried their own
 `margin-left`, so a component that looked right beside one sibling
 carried the wrong (or doubled) gap into the next place it was used.
 `test/css-token-guard.test.ts` now asserts these classes declare no
@@ -1158,9 +1175,8 @@ earlier per-step lookup let a row show a step as tickable, and Run as
 clickable, while a job was already running on the spec — the queue
 would refuse the request, so the row promised something it could not
 keep. Every control that can act on a busy row — the phase boxes, the
-Run button, the model and "also touches" fields, and Resolve in the
-opened row's stack — reads the same flag, so a new control cannot
-forget to check it.
+Run button, and the model and "also touches" fields — reads the same
+flag, so a new control cannot forget to check it.
 
 Spec 160 narrowed that, and only that: the boxes for phases a RUNNING
 job has not reached yet stay live, so a reader who knows more at minute

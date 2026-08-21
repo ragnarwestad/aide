@@ -145,10 +145,10 @@ describe("mergeBranchIntoDefault: the refusals", () => {
     // Nothing is published from a merge that did not happen.
     expect(ran(git.calls, "push")).toBe(false);
     // Spec 106: the sentence above is for a person to read, and it is
-    // joined with every other repo's before the page sees it. What the
-    // page GATES on is this field — set at exactly one refusal, so the
-    // Resolve control cannot be offered for a refusal resolving would
-    // not fix.
+    // joined with every other repo's before the page sees it. What a
+    // machine reads is this field — set at exactly one refusal, so a
+    // refusal that is not a genuine disagreement between the branch and
+    // the default branch is never called one.
     expect(result.reason).toBe("conflict");
   });
 
@@ -400,11 +400,13 @@ describe("mergeBranchIntoDefault: the branch is not on origin", () => {
   });
 });
 
-// --- spec 106/129: the field names only the refusals a machine acts on -------
+// --- spec 106/129/171: the field names only the refusals a machine acts on ---
 //
-// The Resolve control is offered on the strength of this
-// one field, so a refusal that a resolve step could not fix must never
-// be called a conflict. Spec 129 added the second, and only the second:
+// `"conflict"` is what tells a reader the branch and the default branch
+// genuinely disagree, so a refusal that is NOT that must never be called
+// one. It carried a Resolve control until spec 171 folded resolving into
+// `archive`; the field's meaning is unchanged, the control is gone.
+// Spec 129 added the second, and only the second:
 // `"gone"`, which the merge route reads to invalidate the branch-status
 // cache. Each of the others below is a refusal the merge route already
 // knows how to produce, and no machine has anything to do about any of
@@ -424,7 +426,7 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
   // code path of its own: this sentence is what the row shows, once the
   // client stops letting a stale swap wipe it. So the sentence itself
   // is pinned, and the field stays empty — no machine can finish this
-  // one, and offering a resolve step for it would be a lie.
+  // one, and calling it a conflict would be a lie.
   test("a base that cannot be fast-forwarded says so in full, and carries no reason", async () => {
     const git = fakeGit({
       ...CLEAN_MASTER,
