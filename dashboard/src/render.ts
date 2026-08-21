@@ -65,7 +65,7 @@ export type { SpecPageView } from "./render/spec-page.ts";
 // pages it links to are the spec page's; what was missing was the way
 // in.
 export { renderArchivePage } from "./render/archive-page.ts";
-export type { ArchivePageView, ArchiveProjectView, ArchivedSpecView } from "./render/archive-page.ts";
+export type { ArchiveFilter, ArchivePageView, ArchivedSpecView } from "./render/archive-page.ts";
 
 // `/specs/<project>/<specFolder>/edit` — the one of the four files a
 // person owns, in a textarea (spec 162).

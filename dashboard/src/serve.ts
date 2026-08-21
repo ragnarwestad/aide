@@ -70,6 +70,7 @@ import {
   specEditPath,
   specPagePath,
   EDITABLE_SPEC_FILE,
+  type ArchiveFilter,
   type ArchivePageView,
   type ArchivedSpecView,
   type JobDetailView,
@@ -2106,14 +2107,24 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
     }
 
-    // The archive (spec 163): every archived spec, grouped by project,
-    // each linking to the page that has worked since spec 150 and that
-    // nothing pointed at. Read fresh per request, like `/projects` —
-    // nothing polls it, and a record nobody is writing has no cache to
-    // invalidate.
+    // The archive (specs 163, 170): every archived spec in one sortable,
+    // searchable table, each row linking to the page that has worked
+    // since spec 150 and that nothing pointed at. Read fresh per
+    // request, like `/projects` — nothing polls it, and a record nobody
+    // is writing has no cache to invalidate.
+    //
+    // The three query values are passed on exactly as they arrived:
+    // what is usable and what a stale bookmark should fall back to is
+    // the render layer's rule, in one place, and this route has no
+    // second opinion about it.
     if (path === ARCHIVE_ROUTE) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const html = renderArchivePage(await archivePageView(), new Date().toISOString(), nav());
+      const view = await archivePageView({
+        q: url.searchParams.get("q") ?? undefined,
+        sort: url.searchParams.get("sort") ?? undefined,
+        dir: url.searchParams.get("dir") ?? undefined,
+      });
+      const html = renderArchivePage(view, new Date().toISOString(), nav());
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
@@ -2370,36 +2381,35 @@ export function createServer(opts: ServerOptions) {
 
   /** The archive listing, built off the same walk and the same
    *  allowlist as everything else on the dashboard: a project the queue
-   *  may not run is not a project this dashboard shows. */
-  async function archivePageView(): Promise<ArchivePageView> {
-    if (!opts.projectRoot) return { projects: [] };
-    const projects = await Promise.all(
+   *  may not run is not a project this dashboard shows.
+   *
+   *  Every project's archived specs in ONE flat list, unordered (spec
+   *  170). The ordering and the search are the render layer's — the
+   *  table interleaves the projects, so there is no per-project sort
+   *  left to do here, and the rules that decide what a reader sees
+   *  belong beside the headings that offer them. `description` comes
+   *  straight off the walk, whole: the search reads all of it. */
+  async function archivePageView(filter: ArchiveFilter = {}): Promise<ArchivePageView> {
+    if (!opts.projectRoot) return { rows: [], filter };
+    const perProject = await Promise.all(
       discoverProjects(opts.projectRoot)
         .filter((p) => allowed.has(p.name))
-        .map(async (p) => {
-          const specs: ArchivedSpecView[] = await Promise.all(
+        .map(async (p): Promise<ArchivedSpecView[]> =>
+          Promise.all(
             p.specs
               .filter((s) => s.archived)
               .map(async (s) => ({
+                project: p.name,
                 folder: s.folder,
                 title: s.title ?? undefined,
+                description: s.description ?? undefined,
                 archivedAt: await archivedAt(s.dir),
                 href: specPagePath(p.name, s.folder),
               })),
-          );
-          // Newest first, and a spec no date could be found for last:
-          // the listing only grows, and what someone came to look up is
-          // far more often recent than old.
-          specs.sort((a, b) => {
-            if (a.archivedAt === b.archivedAt) return b.folder.localeCompare(a.folder, "en", { numeric: true });
-            if (!a.archivedAt) return 1;
-            if (!b.archivedAt) return -1;
-            return b.archivedAt.localeCompare(a.archivedAt);
-          });
-          return { name: p.name, specs };
-        }),
+          ),
+        ),
     );
-    return { projects };
+    return { rows: perProject.flat(), filter };
   }
 
   async function specPageView(project: string, specFolder: string): Promise<SpecPageView | null> {

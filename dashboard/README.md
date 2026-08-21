@@ -68,18 +68,32 @@ no host is named anywhere in this repo.
   nav, labelled "Projects". Token required, like `/`: the panel is a
   mutating control, and a page carrying one needs a server to check the
   token per request.
-- `/archive` — every ARCHIVED spec, grouped by project: number, title
-  and the date it was archived, each linking to its own
-  `/specs/<project>/<spec>` page (spec 163). One page with a heading per
-  project rather than a tab each — three of the four allowlisted
-  projects have a handful of archived specs and a tab would cost them a
-  click for nothing, and the one that is long gets the jump-links at the
-  top. The date is the `**Archived:**` stamp in `4-status.md`, or, for
-  the older half of the archive that predates the stamp, the commit that
-  last touched the folder; a spec neither can date reads "date unknown"
-  rather than leaving the column blank. Reached from the nav, labelled
-  "Archive". Token required, like every other `/specs` route it links
-  into.
+- `/archive` — every ARCHIVED spec in ONE table: Project, Title,
+  Description and Date, each folder linking to its own
+  `/specs/<project>/<spec>` page (specs 163, 170). It was a heading per
+  project until spec 170; the project became a CELL because the question
+  a long archive actually asks — what was archived recently, whichever
+  project it came from — is the one sections make unanswerable.
+  Project, Title and Date sort, both ways, through `?sort=` and `?dir=`
+  in the query string, exactly as the spec list's headings do; clicking
+  the sorted heading turns it round. Description does not sort: prose
+  sorts to nothing anyone came for. `?q=` filters, through a GET form,
+  over the folder, the title and the WHOLE description — including the
+  part the column's two-line clamp does not show, which the note under
+  the field says out loud. Both controls are plain links and a plain
+  form, so both work with script off and survive a reload; each carries
+  the other's state. No paging: at 79 rows it would add page state and
+  boundary rules to solve nothing, and every row being present is what
+  keeps the browser's own find useful. Sorting by title reads the human
+  title and falls back to the folder; an equal date breaks by folder
+  NUMBER and then by project, and a spec no date could be found for
+  stays at the bottom whichever way the column is turned. The date is
+  the `**Archived:**` stamp in `4-status.md`, or, for the older half of
+  the archive that predates the stamp, the commit that last touched the
+  folder; a spec neither can date reads "date unknown" rather than
+  leaving the column blank, and a spec with no `## Description` section
+  reads as a dash. Reached from the nav, labelled "Archive". Token
+  required, like every other `/specs` route it links into.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address
   carried; no token needed, like every other generated page. The file

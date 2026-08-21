@@ -274,6 +274,10 @@ const STRUCTURE = [
   "spec-open", "spec-archived",
   // the project overview
   "proj-row", "error-text", "error",
+  // the archive's Description column (spec 170): the one cell on the
+  // site holding several paragraphs of prose, bounded to two lines so
+  // one spec's description cannot take the row.
+  "archive-desc",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

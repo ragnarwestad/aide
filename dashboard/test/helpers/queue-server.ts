@@ -20,11 +20,14 @@ export interface StartOptions {
   alsoProjects?: string[];
   /** Further spec folders in `aide`, for jobs that run side by side. */
   alsoSpecs?: string[];
-  /** Archived spec folders in `aide` — written under
-   *  `specs/archive/<folder>`, which is where `discoverProjects` looks
-   *  for them (spec 163). Keyed by folder, so one suite can give a
-   *  spec an `Archived:` stamp in its `4-status.md` and another none. */
-  archivedSpecs?: Record<string, { description?: string; status?: string }>;
+  /** Archived spec folders — written under `specs/archive/<folder>`,
+   *  which is where `discoverProjects` looks for them (spec 163). Keyed
+   *  by folder, so one suite can give a spec an `Archived:` stamp in its
+   *  `4-status.md` and another none. `project` puts one in a project
+   *  other than `aide`, which the archive's own suite needs to prove
+   *  that its table interleaves projects by date (spec 170); that
+   *  project has to exist, so name it in `alsoProjects` too. */
+  archivedSpecs?: Record<string, { description?: string; status?: string; project?: string }>;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
@@ -66,14 +69,14 @@ export function queueHarness(prefix: string): QueueHarness {
         writeFileSync(join(root, "aide", "specs", folder, "1-description.md"), `# ${folder}\n`);
         writeFileSync(join(root, "aide", "specs", folder, "4-status.md"), status);
       }
+      for (const name of alsoProjects) {
+        project(root, name, "01-first", "# First - Description\n", status);
+      }
       for (const [folder, spec] of Object.entries(archivedSpecs)) {
-        const archived = join(root, "aide", "specs", "archive", folder);
+        const archived = join(root, spec.project ?? "aide", "specs", "archive", folder);
         mkdirSync(archived, { recursive: true });
         writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
         writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
-      }
-      for (const name of alsoProjects) {
-        project(root, name, "01-first", "# First - Description\n", status);
       }
       const server = createServer({
         siteDir: dir,

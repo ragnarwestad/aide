@@ -424,6 +424,17 @@ table.list thead a { color: var(--muted); }
    buttons and the phases (2026-08-19). */
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 18rem; }
+/* The archive's Description column (spec 170). A spec's Description
+   section runs to several paragraphs — the whole of it is in the cell, because
+   the search reads the whole of it — so the cell is bounded here rather
+   than left to the browser: two lines, and a measure that stops one
+   paragraph from taking the width the other three columns need. Clamped
+   rather than cut on the server, so nothing the reader can search for is
+   missing from the markup. -webkit- prefixed as well as plain: the
+   prefixed trio is what every browser actually implements today. */
+.archive-desc { color: var(--muted); font-size: var(--fs-s); max-width: 34rem;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
