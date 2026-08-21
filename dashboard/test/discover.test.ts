@@ -9,7 +9,7 @@ import { join } from "node:path";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
   gitignoreCandidates, markdownSection, specDependsOn, specDescription, specFileText,
-  specPhaseFile,
+  specArchivedDate, specPhaseFile, stripDependsOnLine, withDependsOnLine,
 } from "../src/discover.ts";
 
 let root: string;
@@ -232,6 +232,68 @@ describe("specDependsOn", () => {
   test("discoverProjects carries it alongside the title and the description", () => {
     const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
     expect(a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn).toEqual([]);
+  });
+
+  // Spec 166: the same line gets a WRITER, so a dependency can be named
+  // after the spec exists. Pure string surgery, in the module that
+  // already owns the line's shape — the Edit page's Save is what calls
+  // it, and the runtime gate reads the result unchanged.
+  //
+  // Its own fixture rather than `TRACKING`: that one leaves a blank
+  // line where the dependency line would be, which is fine for a reader
+  // asserting a parsed list but would make every exact-text assertion
+  // here about the blank line instead of the write.
+  const DESC = (line = "") =>
+    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
+    (line ? `${line}\n` : "") +
+    `\n---\n\n## Description\n\nprose\n`;
+
+  describe("stripDependsOnLine", () => {
+    test("takes the line out and leaves everything else where it was", () => {
+      expect(stripDependsOnLine(DESC("- **Depends on:** `105`"))).toBe(DESC());
+    });
+
+    test("a text with no line at all comes back as it went in", () => {
+      expect(stripDependsOnLine(DESC())).toBe(DESC());
+    });
+
+    // A textarea posts CRLF whatever the file had, and `asFileText`
+    // normalises the same way — the two passes have to agree, or a
+    // strip that missed the line would leave the write keeping it.
+    test("CRLF is normalised to LF, and the line goes either way", () => {
+      expect(stripDependsOnLine(DESC("- **Depends on:** `105`").replace(/\n/g, "\r\n"))).toBe(DESC());
+    });
+  });
+
+  describe("withDependsOnLine", () => {
+    test("inserts right after Created when there is no existing line", () => {
+      expect(withDependsOnLine(DESC(), ["164"])).toBe(DESC("- **Depends on:** `164`"));
+    });
+
+    test("replaces an existing line rather than writing a second one", () => {
+      const out = withDependsOnLine(DESC("- **Depends on:** `105`"), ["164", "92-a-spec"]);
+      expect(out).toBe(DESC("- **Depends on:** `164`, `92-a-spec`"));
+      expect(out!.match(/Depends on/g)).toHaveLength(1);
+    });
+
+    test("an empty list removes the line", () => {
+      expect(withDependsOnLine(DESC("- **Depends on:** `105`"), [])).toBe(DESC());
+    });
+
+    // Nowhere to put it is a refusal for the caller to make, not a
+    // guess about where Tracking info would have been.
+    test("no Created line to anchor on is a null, not a guess", () => {
+      expect(withDependsOnLine("# X\n\nprose\n", ["164"])).toBeNull();
+    });
+
+    test("but removing needs no anchor — an empty list is never a null", () => {
+      expect(withDependsOnLine("# X\n\nprose\n", [])).toBe("# X\n\nprose\n");
+    });
+
+    test("what it writes is what specDependsOn reads back", () => {
+      const d = spec("05-roundtrip", withDependsOnLine(DESC(), ["164", "165"])!);
+      expect(specDependsOn(d)).toEqual(["164", "165"]);
+    });
   });
 });
 
@@ -556,5 +618,53 @@ describe("specPhaseFile", () => {
     test("an archive that has run neither way says nothing was written", () => {
       expect(specPhaseFile(dir, "archive")).toEqual({ label: "4-status.md", text: null });
     });
+  });
+});
+
+// Spec 163: the archive listing needs a DATE per row, and `4-status.md`
+// carries one for every spec the archive step stamped. A second reader
+// of the same line as `specPhaseFile`'s, deliberately: that one returns
+// the whole line for a phase panel to show, this one returns the value
+// for a listing to sort on, and neither shape serves the other's
+// caller.
+describe("specArchivedDate", () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "aide-archived-date-"));
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  const withStatus = (name: string, text: string): string => {
+    const d = join(dir, name);
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, "4-status.md"), text);
+    return d;
+  };
+
+  test("reads the stamp the archive step wrote", () => {
+    const d = withStatus("plain", "# Status\n\n**Archived:** 2026-08-20\n");
+    expect(specArchivedDate(d)).toBe("2026-08-20");
+  });
+
+  // Both shapes are on disk in aide's own archive today: the newer
+  // template writes it as a Tracking-info bullet, in backticks.
+  test("reads it as a Tracking info bullet, backticks and all", () => {
+    const d = withStatus("bullet", "# Status\n\n## Tracking info\n\n- **Archived:** `2026-08-21`\n");
+    expect(specArchivedDate(d)).toBe("2026-08-21");
+  });
+
+  test("a status file with no stamp answers null, not a blank string", () => {
+    const d = withStatus("nostamp", "# Status\n\n## Tracking info\n\n- **Created:** 2026-08-01\n");
+    expect(specArchivedDate(d)).toBeNull();
+  });
+
+  test("a stamp with nothing after it is no stamp", () => {
+    const d = withStatus("empty", "# Status\n\n**Archived:**\n");
+    expect(specArchivedDate(d)).toBeNull();
+  });
+
+  test("no 4-status.md at all answers null", () => {
+    expect(specArchivedDate(join(dir, "nothing-here"))).toBeNull();
   });
 });
