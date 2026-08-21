@@ -802,6 +802,29 @@ and would show grey. Create gets the LINE's rule instead, and it has
 only two states — a spec that exists was created, so the pip is past
 unless a create job is running right now.
 
+**The running phase's own pip carries the motion (spec 168).** Since
+spec 157 the closed row is the whole interface for the ordinary case,
+so the one thing that used to say "this is running" — a spinner on the
+phase checkbox, `phaseChip`'s `busy` option — lived on a line that only
+exists once a row is expanded, and a reader watching the collapsed list
+saw no motion at all. The signal moved to `.pip.now`, the running
+phase's marker: it already says WHICH phase without a word (drawn in
+`--accent`), so a lighter band skimming across it left to right, in the
+direction the four pips already run, adds "and it is alive" in the same
+mark instead of a second element. A pulse was rejected — on a 14×4 bar
+it reads as an alert, not as work in progress. Every running row
+animates on one shared timing rather than each starting when its row
+was drawn, so several at once move together instead of shimmering at
+random. `phaseChip`'s `busy` option is gone along with `.phase.busy` in
+`css.ts` — `SPINNER` itself stays, still used by `btn()`'s busy variant
+and by `queue-client.ts`'s in-flight-press spinner, a different fact
+with a different lifetime (spec 104, above).
+
+This is also where `prefers-reduced-motion` enters `css.ts` for the
+first time: `.pip.now` drops the animation and holds `--accent` still,
+so a machine set to reduce motion still tells a running phase from a
+waiting one, just without the movement.
+
 The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per
 repo the spec pushed to, and the state that matters most right now —
@@ -1041,7 +1064,7 @@ it carries a `.rowmsg.err` with a warning mark beside the reason.
 |-----------------|--------------------------------------------------------------------------|
 | `btn()`         | bare (secondary), `primary`, `ok`, `danger`, `busy`, disabled, `small`   |
 | `badge()`       | `b-idle`, `b-running`, `b-waiting`, `b-ready`, `b-refused`, `b-done`     |
-| `phaseChip()`   | `default`, `checked`, `done`, `busy`, `off` (with the reason in `title`) |
+| `phaseChip()`   | `default`, `checked`, `done`, `off` (with the reason in `title`)        |
 | `rowMessage()`  | `err`, `warn`, `info`                                                    |
 | `field()`       | label above any control, one height and one radius                       |
 | `filterPills()` | "Label · count", the chosen one marked with `aria-current`               |
