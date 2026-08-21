@@ -4822,3 +4822,163 @@ describe("an over-charged cost survives the row mapping", () => {
     expect(head).not.toContain(MARKER);
   });
 });
+
+// --- spec 160: a later phase can be added while the job runs ------------------
+
+// Not a second job for the same spec — the clash check refuses that,
+// and rightly. This is an edit to the job that exists, so it has a
+// route of its own, and every decision it makes is against the job as
+// it stands at that instant rather than against whatever the page
+// believed when the box was ticked.
+describe("POST /api/queue/:id/steps (spec 160)", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  /** One job in the mirror, RUNNING the step at `stepIndex`, served by
+   *  a second server started on that mirror. No runner is configured,
+   *  so nothing reconciles the seeded state out from under the test —
+   *  the same trick the view-carrying suite above uses for Cancel. */
+  async function running(
+    steps: string[],
+    stepIndex = 0,
+    opts: { description?: string; alsoSpecs?: string[] } = {},
+  ): Promise<{ base: string; id: string }> {
+    const first = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${first.base}/api/queue`, {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ ...JOB, steps }),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(first.dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "running";
+    job.stepIndex = stepIndex;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    const second = harness.start({
+      extra: { queueToken: TOKEN, queueMirrorPath: mirror },
+      ...(opts.description ? { description: opts.description } : {}),
+      ...(opts.alsoSpecs ? { alsoSpecs: opts.alsoSpecs } : {}),
+    });
+    return { base: second.base, id: made.job.id };
+  }
+
+  const edit = (base: string, id: string, step: string, checked: boolean, body?: BodyInit) =>
+    fetch(`${base}/api/queue/${id}/steps`, {
+      method: "POST",
+      headers: body
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        : JSON_HEADERS,
+      body: body ?? JSON.stringify({ step, checked }),
+    });
+
+  const stepsOf = async (base: string, id: string): Promise<string[]> => {
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })).json()) as {
+      jobs: { id: string; steps: string[] }[];
+    };
+    return listed.jobs.find((j) => j.id === id)!.steps;
+  };
+
+  test("a later step is added, in workflow order (criterion 1)", async () => {
+    const { base, id } = await running(["analyze"]);
+    const res = await edit(base, id, "archive", true);
+    expect(res.status).toBe(200);
+    const answer = (await res.json()) as { ok: boolean; job: { steps: string[] } };
+    expect(answer.ok).toBe(true);
+    expect(answer.job.steps).toEqual(["analyze", "archive"]);
+    expect((await edit(base, id, "implement", true)).status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "implement", "archive"]);
+  });
+
+  test("a not-yet-started step is removed (criterion 2)", async () => {
+    const { base, id } = await running(["analyze", "review-plan", "implement"]);
+    expect((await edit(base, id, "review-plan", false)).status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "implement"]);
+  });
+
+  test("the form encoding the page posts is understood too", async () => {
+    const { base, id } = await running(["analyze"]);
+    const res = await edit(base, id, "", false, new URLSearchParams({ step: "archive", checked: "1" }));
+    expect(res.status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
+    const off = await edit(base, id, "", false, new URLSearchParams({ step: "archive", checked: "0" }));
+    expect(off.status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze"]);
+  });
+
+  test("the running step is refused, by name (criterion 3)", async () => {
+    const { base, id } = await running(["analyze", "review-plan"], 1);
+    const res = await edit(base, id, "review-plan", false);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("review-plan");
+    expect(await stepsOf(base, id)).toEqual(["analyze", "review-plan"]);
+  });
+
+  // The page drew `implement` as a live box; by the time the tick
+  // arrived the runner had walked onto it. The server answers about the
+  // job it has, not about the one the page remembers.
+  test("a step the runner has walked past since the page drew it is refused (criterion 4)", async () => {
+    const { base, id } = await running(["analyze", "implement"], 1);
+    const res = await edit(base, id, "implement", false);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("implement");
+    expect(await stepsOf(base, id)).toEqual(["analyze", "implement"]);
+  });
+
+  test("a job that is not running is refused (criterion 6)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const res = await edit(base, made.job.id, "implement", true);
+    expect(res.status).toBe(400);
+    expect(await stepsOf(base, made.job.id)).toEqual(["analyze"]);
+  });
+
+  test("a step earlier than the one running is refused (criterion 9)", async () => {
+    const { base, id } = await running(["review-plan", "archive"]);
+    const res = await edit(base, id, "analyze", true);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("analyze");
+    expect(await stepsOf(base, id)).toEqual(["review-plan", "archive"]);
+  });
+
+  test("an unknown job is a 404, and GET is not a way in", async () => {
+    const { base, id } = await running(["analyze"]);
+    expect((await edit(base, "nope", "archive", true)).status).toBe(404);
+    expect(
+      (await fetch(`${base}/api/queue/${id}/steps`, { headers: JSON_HEADERS })).status,
+    ).toBe(405);
+  });
+
+  // Criterion 5. The gate is not the route's question: a gated step
+  // added to a tail is accepted the same way one named at job creation
+  // is, and is held back only once it becomes the job's current step —
+  // which is what `runner.test.ts` pins from the other side.
+  test("a gated step is accepted even though the spec's dependency has not landed", async () => {
+    const { base, id } = await running(["analyze"], 0, {
+      description: "# Queue - Description\n\n## Tracking info\n\n- **Depends on:** `80-dependency`\n",
+      alsoSpecs: ["80-dependency"],
+    });
+    const res = await edit(base, id, "archive", true);
+    expect(res.status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
+  });
+
+  // The other half of the wiring: the row the reader is looking at has
+  // to draw those boxes live, and point them at this route.
+  test("the row draws the live boxes and points them here", async () => {
+    const { base, id } = await running(["analyze"]);
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    const group = specControls(html, "81-queue-and-runner");
+    expect(group).toContain(`data-post-to="/api/queue/${id}/steps"`);
+    const live = (step: string) =>
+      (group.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "");
+    expect(live("archive")).toContain("data-post-to");
+    expect(live("archive")).not.toContain("disabled");
+    expect(live("analyze")).toContain("disabled");
+  });
+});

@@ -7,9 +7,14 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  JOB_STATES, QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
-  persistQueueProjects, type QueueDefaults,
+  JOB_STATES, PHASE_STEPS, QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
+  persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
 } from "../src/queue.ts";
+// The list of boxes the row DRAWS, read from the render side itself:
+// the two are hand-paired, the way `WORKFLOW_STEPS` is paired with the
+// bash copy in `aide-run-spec`, and a test that reads both is what
+// keeps them from drifting.
+import { QUEUE_STEPS } from "../src/render/queue-list.ts";
 import { parseArgs } from "../src/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -1162,5 +1167,153 @@ describe("the project allowlist round-trips through queue-config.json", () => {
     const blocked = configFile({});
     const error = persistQueueProjects(join(blocked, "c.json"), ["aide"]);
     expect(typeof error).toBe("string");
+  });
+});
+
+// --- spec 160: a later phase can be added while the job runs ------------------
+
+// A run started with too few phases meant waiting for it to end and
+// pressing Run again; one started with too many meant Cancel and start
+// over. Both are the reader knowing more at minute ten than at minute
+// zero. The tail of a RUNNING job's step list is editable — and only
+// the tail: what has run, and what is running, is not up for a second
+// opinion.
+describe("editing a running job's tail (spec 160)", () => {
+  /** A job in the store, running the step at `stepIndex`. The state is
+   *  set through `update()` rather than by a runner: what these tests
+   *  are about is the store's own rule, and a runner would only make
+   *  the fixture slower to state. */
+  let made_ = 0;
+  const running = (steps: string[], stepIndex = 0) => {
+    // A mirror of its own per job: a second store on the same file
+    // loads the first one's job and refuses the enqueue as a clash.
+    const mirror = join(dir, `queue-${(made_ += 1)}.json`);
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: mirror });
+    const made = store.enqueue({ ...REQ, steps });
+    if (!made.ok) throw new Error(made.error);
+    store.update(made.job.id, { state: "running", stepIndex });
+    return { store, mirror, id: made.job.id, steps: () => store.get(made.job.id)!.steps };
+  };
+
+  test("an added step lands in WORKFLOW_STEPS order, not at the array end (criterion 1)", () => {
+    const job = running(["analyze"]);
+    expect(job.store.editTailStep(job.id, "archive", true).ok).toBe(true);
+    expect(job.store.editTailStep(job.id, "implement", true).ok).toBe(true);
+    expect(job.steps()).toEqual(["analyze", "implement", "archive"]);
+    // The running step is where it was: the head of the list is not
+    // touched by an edit to the tail.
+    expect(job.store.get(job.id)!.stepIndex).toBe(0);
+  });
+
+  test("a not-yet-started step can be removed (criterion 2)", () => {
+    const job = running(["analyze", "review-plan", "implement"]);
+    const answer = job.store.editTailStep(job.id, "review-plan", false);
+    expect(answer.ok).toBe(true);
+    expect(job.steps()).toEqual(["analyze", "implement"]);
+    expect(job.store.get(job.id)!.stepIndex).toBe(0);
+  });
+
+  test("the running step and everything behind it are closed (criterion 3)", () => {
+    const job = running(["analyze", "review-plan"], 1);
+    for (const [step, add] of [
+      ["review-plan", false], ["review-plan", true],
+      ["analyze", false], ["analyze", true],
+    ] as const) {
+      const answer = job.store.editTailStep(job.id, step, add);
+      expect(`${step} ${add}: ${answer.ok}`).toBe(`${step} ${add}: false`);
+      // Named, never a bare "no": the row has one line to say why.
+      if (!answer.ok) expect(answer.error).toContain(step);
+    }
+    expect(job.steps()).toEqual(["analyze", "review-plan"]);
+  });
+
+  // The step the reader is looking at may finish between the page
+  // rendering and the tick arriving. The store decides against the job
+  // as it is at that instant, never against what the page believed.
+  test("a step the runner has walked past since the page drew it is refused by name (criterion 4)", () => {
+    const job = running(["analyze", "implement"]);
+    // What the page believed: implement has not started, so its box is
+    // live and unticking it would drop it. Then the runner moves on.
+    job.store.update(job.id, { stepIndex: 1 });
+    const answer = job.store.editTailStep(job.id, "implement", false);
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toContain("implement");
+    expect(job.steps()).toEqual(["analyze", "implement"]);
+  });
+
+  test("a job that is not running is closed altogether (criterion 6)", () => {
+    for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
+      const job = running(["analyze"]);
+      job.store.update(job.id, { state });
+      const answer = job.store.editTailStep(job.id, "implement", true);
+      expect(`${state}: ${answer.ok}`).toBe(`${state}: false`);
+      expect(job.steps()).toEqual(["analyze"]);
+    }
+  });
+
+  test("a step already in the job cannot be added a second time", () => {
+    const job = running(["analyze", "archive"]);
+    const answer = job.store.editTailStep(job.id, "archive", true);
+    expect(answer.ok).toBe(false);
+    expect(job.steps()).toEqual(["analyze", "archive"]);
+  });
+
+  // A job created without every earlier step ticked would otherwise
+  // show the missing one as live, and adding it would run it AFTER the
+  // step now running — out of the only order these steps have.
+  test("a step that ranks earlier than the one running is refused (criterion 9)", () => {
+    const job = running(["review-plan", "archive"]);
+    const answer = job.store.editTailStep(job.id, "analyze", true);
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toContain("analyze");
+    expect(job.steps()).toEqual(["review-plan", "archive"]);
+  });
+
+  test("an unknown job is not found", () => {
+    const job = running(["analyze"]);
+    expect(job.store.editTailStep("no-such-job", "implement", true).ok).toBe(false);
+  });
+
+  // The mirror is what survives a restart, and a tail edited only in
+  // memory would be undone by one.
+  test("the edit reaches the mirror", () => {
+    const job = running(["analyze"]);
+    expect(job.store.editTailStep(job.id, "implement", true).ok).toBe(true);
+    const stored = JSON.parse(readFileSync(job.mirror, "utf-8")) as { id: string; steps: string[] }[];
+    expect(stored.find((j) => j.id === job.id)!.steps).toEqual(["analyze", "implement"]);
+  });
+
+  // What the ROW needs to know before it draws a box: which steps are
+  // still open to a tick. One function answers it for the store's own
+  // refusal and for the page alike, so the two cannot drift apart.
+  describe("tailEdits", () => {
+    test("names the tail and every later step the job does not have, in workflow order", () => {
+      const job = running(["analyze", "archive"]);
+      expect(tailEdits(job.store.get(job.id)!)).toEqual(["review-plan", "implement", "archive"]);
+    });
+
+    test("a job that is not running has nothing open (criterion 8)", () => {
+      const job = running(["analyze", "archive"]);
+      job.store.update(job.id, { state: "queued" });
+      expect(tailEdits(job.store.get(job.id)!)).toEqual([]);
+    });
+
+    test("nothing earlier than the running step is offered (criterion 9)", () => {
+      const job = running(["review-plan", "archive"]);
+      expect(tailEdits(job.store.get(job.id)!)).not.toContain("analyze");
+    });
+  });
+});
+
+// Spec 160: the steps a running job's tail may be given are exactly the
+// ones a spec's row draws a box for. Two lists, in two layers that do
+// not import each other — the render side knows nothing of the queue's
+// module, deliberately — so this is what says they agree.
+describe("PHASE_STEPS", () => {
+  test("is the row's own box list, in the workflow's order", () => {
+    expect([...PHASE_STEPS] as string[]).toEqual([...QUEUE_STEPS]);
+    const ranks = PHASE_STEPS.map((s) => WORKFLOW_STEPS.indexOf(s));
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    expect(ranks).not.toContain(-1);
   });
 });

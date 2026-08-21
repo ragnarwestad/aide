@@ -125,7 +125,9 @@ export function badge(variant: BadgeVariant, label: string, title?: string): str
  *
  *  The checkbox is a REAL one, kept visible rather than replaced by a
  *  drawn square: the row is a plain form, and it has to work with
- *  script off and from a keyboard. */
+ *  script off and from a keyboard. One box is outside that promise and
+ *  says so: a `postTo` box (spec 160) belongs to no form at all and
+ *  needs the page's script to do anything. */
 export function phaseChip(o: {
   /** The technical name — the form value and the `data-` attribute. */
   value: string;
@@ -162,6 +164,14 @@ export function phaseChip(o: {
    *  Run form's closing tag, beside it on the same line rather than
    *  inside it. Without this the browser posts the form without them. */
   form?: string;
+  /** Where this ONE box posts itself, for a box that is not part of any
+   *  submission (spec 160): a phase a running job has not reached, whose
+   *  tick is the press. The page's own script reads it off the input and
+   *  posts there on `change`. Such a box carries no `name` — it names
+   *  the row's form only so a press can find the row to lock — and it is
+   *  the one kind of chip that does nothing with script off, which is
+   *  what the invariant above stops short of. */
+  postTo?: string;
 }): string {
   const locked = !!o.disabled && !o.plain;
   const state = o.busy ? "busy" : locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
@@ -180,6 +190,7 @@ export function phaseChip(o: {
     `<input type="checkbox"${o.name ? ` name="${esc(o.name)}"` : ""} value="${esc(o.value)}"` +
     `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}` +
     `${o.form ? ` form="${esc(o.form)}"` : ""}` +
+    `${o.postTo ? ` data-post-to="${esc(o.postTo)}"` : ""}` +
     `${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>` +
     `${mark} <span>${esc(o.label)}</span>${tick}</label>`
   );

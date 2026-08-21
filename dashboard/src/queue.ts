@@ -25,6 +25,39 @@ export const WORKFLOW_STEPS = [
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
+/** The steps a spec's row draws a box for, in the order they run — and
+ *  so the steps a running job's tail may be given (spec 160). It is
+ *  narrower than `WORKFLOW_STEPS` on purpose: `create` cannot be run
+ *  for a spec that exists, `explore` is not a phase of the work, and
+ *  `manifest` and `resolve` are not part of the workflow's order at
+ *  all (the same reason `resolve`'s own comment above gives).
+ *
+ *  `queue-list.ts` keeps the same list, because the render layer does
+ *  not import this module; the two are hand-paired and compared by
+ *  `queue.test.ts`, exactly as `WORKFLOW_STEPS` is compared with the
+ *  bash copy in `aide-run-spec`. */
+export const PHASE_STEPS = ["analyze", "review-plan", "implement", "archive"] as const;
+
+/** Which steps a reader may still tick or untick on a job, in workflow
+ *  order — the tail that has not started, plus every phase the job does
+ *  not have that would run AFTER the one running now.
+ *
+ *  One function for two callers: the store refuses anything it does not
+ *  name, and `serve.ts` puts it on the row so a box is never drawn live
+ *  for an edit the store would refuse. Nothing but a RUNNING job has an
+ *  editable tail — a job between two steps is a job whose next step may
+ *  start in the same instant, and the window is under two seconds. */
+export function tailEdits(job: Pick<Job, "steps" | "stepIndex" | "state">): string[] {
+  if (job.state !== "running") return [];
+  const current = job.steps[job.stepIndex];
+  if (current === undefined) return [];
+  const rank = WORKFLOW_STEPS.indexOf(current as WorkflowStep);
+  const tail = new Set(job.steps.slice(job.stepIndex + 1));
+  return PHASE_STEPS.filter(
+    (s) => tail.has(s) || (!job.steps.includes(s) && WORKFLOW_STEPS.indexOf(s) > rank),
+  );
+}
+
 export const JOB_STATES = [
   "queued", "running", "done",
   "stopped", "failed", "cancelled", "interrupted",
@@ -804,6 +837,57 @@ export class QueueStore {
 
   get(id: string): Job | undefined {
     return this.jobs.get(id);
+  }
+
+  /** Add or remove a step a RUNNING job has not reached yet (spec 160).
+   *
+   *  Read, checked and written in ONE synchronous call, with nothing
+   *  awaited in between — the same property `insert()` and `update()`
+   *  already rely on. That is the whole of what closes the race the
+   *  feature is built around: the runner's own `tick()` is synchronous
+   *  too, so `stepIndex` cannot move between the check and the write,
+   *  and a request that arrives after its step has started finds it
+   *  outside `tailEdits()` and is refused by name. A `stepIndex` the
+   *  CALLER read a moment ago is never consulted. */
+  editTailStep(id: string, step: string, add: boolean): ParseResult {
+    const job = this.jobs.get(id);
+    if (!job) return { ok: false, error: "no such job" };
+    const named = step || "that step";
+    const wanted = WORKFLOW_STEPS.find((s) => s === step);
+    if (!wanted || !tailEdits(job).includes(wanted)) {
+      // One sentence, and it names the step: the row has a single line
+      // to say why a tick did not take.
+      return {
+        ok: false,
+        error:
+          job.state === "running"
+            ? `${named} is not a step this run can still be given`
+            : `${named} cannot be changed: this job is ${job.state}, not running`,
+      };
+    }
+    const present = job.steps.includes(wanted);
+    if (add === present) {
+      return {
+        ok: false,
+        error: add ? `${named} is already part of this job` : `${named} is not part of this job`,
+      };
+    }
+    const head = job.steps.slice(0, job.stepIndex + 1);
+    const tail = job.steps.slice(job.stepIndex + 1);
+    if (add) {
+      // Into the TAIL at its own rank, never at the array's end: a job
+      // running analyze that is given archive and then implement must
+      // run implement first.
+      const rank = WORKFLOW_STEPS.indexOf(wanted);
+      const before = tail.findIndex((s) => WORKFLOW_STEPS.indexOf(s) > rank);
+      tail.splice(before === -1 ? tail.length : before, 0, wanted);
+    } else {
+      tail.splice(tail.indexOf(wanted), 1);
+    }
+    const next = { ...job, steps: [...head, ...tail] };
+    this.jobs.set(id, next);
+    this.mirror();
+    return { ok: true, job: next };
   }
 
   update(id: string, patch: Partial<Job>): Job | undefined {
