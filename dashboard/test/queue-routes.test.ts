@@ -45,6 +45,13 @@ const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
+/** The row's message panel (spec 143): the full-width row under the
+ *  head, where every long message a row has to say is written — and
+ *  since spec 151 that includes the queue's refusal of a press, which
+ *  used to be squeezed into the name cell above. */
+const specPanel = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
 /** Everything an OPEN row draws: its header line and the phase lines
  *  under it. Since spec 124 the row's controls are split across the
  *  two — Run and the other buttons stand in the header's own first
@@ -725,7 +732,9 @@ describe("every row answers for itself", () => {
     const location = refused.headers.get("location") ?? "";
     expect(location.startsWith("/?error=")).toBe(true);
     const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(specHead(html, "81-queue-and-runner")).toContain("already queued");
+    // In the row's own panel since spec 151, not in the name cell.
+    expect(specPanel(html, "81-queue-and-runner")).toContain("already queued");
+    expect(specHead(html, "81-queue-and-runner")).not.toContain("already queued");
     // Once, not twice: the banner is the fallback for a refusal that
     // belongs to no row.
     expect(html).not.toContain('<p class="refusal">');
