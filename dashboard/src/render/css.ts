@@ -19,6 +19,21 @@
 // by a shade of the accent, so "running" and "refused" never rest on
 // hue alone.
 
+// A chevron on a <select> has to be a background-image, and a
+// background-image is resolved before custom properties — the URI
+// cannot read a var(), so the colour has to be literal text inside it,
+// percent-encoded. That is exactly the kind of literal the guard test
+// refuses, so it lives in the token block, which is where the guard
+// says a literal belongs. One copy of the path data, one interpolated
+// colour: the two themes then differ by their stroke and nothing else,
+// which is the drift spec 130 removed from the palettes.
+//
+// No semicolon anywhere inside the URI (hence `svg+xml,` and not
+// `svg+xml;utf8,`): the guard's token parser splits a declaration on
+// `;` and would read half an arrow as the whole value.
+const chevron = (stroke: string) =>
+  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='${stroke}' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E")`;
+
 // Each palette is written HERE and nowhere else, and read four times
 // below. All four blocks have to exist — the reason is specificity and
 // it is spelled out at the two of them that look redundant — but the
@@ -30,7 +45,8 @@ const LIGHT_COLORS = `  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
   --on-accent: #FCFAF7;
   --ok: #2F7D4F; --ok-soft: #E3F0E7;
   --warn: #B7791F; --warn-soft: #F8EDD6;
-  --danger: #6B1D0C; --danger-soft: #F1DDD7;`;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+  --chevron: ${chevron("%236B6760")};`;
 
 const DARK_COLORS = `  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
   --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
@@ -38,7 +54,8 @@ const DARK_COLORS = `  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
   --on-accent: #16181C;
   --ok: #6FC08F; --ok-soft: #22352A;
   --warn: #E0A84A; --warn-soft: #3A2F1C;
-  --danger: #E8836B; --danger-soft: #3D211B;`;
+  --danger: #E8836B; --danger-soft: #3D211B;
+  --chevron: ${chevron("%239A958B")};`;
 
 export const CSS = `
 :root {
@@ -120,6 +137,13 @@ body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
   background: var(--bg); color: var(--text); }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-strong); text-decoration: underline; }
+/* One ring for everything focusable, declared here rather than on each
+   component: the page had no focus style anywhere, so every control
+   focused in the browser's default blue — the one hue the palette does
+   not contain, and which spec 102 took out of the stylesheet on
+   purpose. :focus-visible and not :focus, or a mouse press leaves a
+   ring behind it. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* The mark left, the "…" menu right — space-between is what puts the
    menu at the right-hand end; DOM order alone would leave it beside
    the mark. */
@@ -277,10 +301,54 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 .field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
 .field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
-.field input, .field select, .field textarea {
+/* The two pickers on a spec row are named here alongside the fields
+   because neither one is inside a field: modelPicker renders into a
+   span.row and toolPicker into a label.muted.small (queue-list.ts), so
+   the .field selector reached neither, and both carried no height,
+   border, background or colour from the design system at all.
+   Attribute selectors rather than a wrapper — both attributes are
+   already in the markup, so this stays a stylesheet change. */
+.field input, .field select, .field textarea,
+select[name^="model."], select[data-tool-picker] {
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
+/* Without appearance: none the browser goes on drawing its own control
+   on top of ours — its chevron, its inner edge, and a height that is
+   advisory rather than binding. -webkit-appearance is spelled out
+   alongside because Safari has historically wanted it. The right-hand
+   padding is what keeps our arrow BESIDE a long option label, such as
+   claude-sonnet-4-6, instead of over the end of it. The background is
+   set piece by piece: the shorthand would drop the var(--surface)
+   ground the rule above gives it. */
+.field select, select[name^="model."], select[data-tool-picker] {
+  appearance: none; -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 12px; }
+/* A disabled field had no look of its own at all, so a model picker
+   disabled for the length of a run still read as pressable and the
+   reason for it was only findable by hovering. The button keeps its own
+   opacity: 0.45 — a button and a field fail differently, and on a
+   select a blanket opacity dims the border into invisibility.
+   background-color rather than the shorthand, for the same reason as
+   above. */
+.field input:disabled, .field select:disabled, .field textarea:disabled,
+select[name^="model."]:disabled, select[data-tool-picker]:disabled {
+  background-color: var(--surface-2); color: var(--muted);
+  border-color: var(--line); cursor: default; }
+.field select:disabled, select[name^="model."]:disabled, select[data-tool-picker]:disabled {
+  background-image: none; }
+/* A model name is a value, like a spec id, a duration or a branch name,
+   and its version digits are what a reader is actually comparing. The
+   project and checkout pickers name a thing rather than a value and
+   stay in the sans face. --fs-s because mono runs wider at the same
+   nominal size, and these sit in a table column whose width is argued
+   over in the comments around .phasecell. */
+select[name^="model."], select[data-tool-picker] {
+  font-family: var(--mono); font-size: var(--fs-s); }
 /* border-box, or width:100% means "100% plus padding and border" and
    the box sticks 18px out of its own field — which is exactly the gap
    to whatever stands beside it (seen against Create, 2026-08-19). */
