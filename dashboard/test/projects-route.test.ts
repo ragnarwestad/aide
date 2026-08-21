@@ -113,7 +113,11 @@ describe("GET /projects and a checkout that fell behind origin", () => {
     const res = await fetch(`${base}/projects`, { headers: AUTH });
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain("<h2>Projects</h2>");
+    // The list is still drawn — its own top line and a row per project.
+    // The <h2> that used to prove that is gone: "Projects" is said once,
+    // in the tab (2026-08-21).
+    expect(html).toContain('class="summary"');
+    expect(html).toContain('class="proj-row"');
     expect(html).not.toContain("behind origin");
   });
 

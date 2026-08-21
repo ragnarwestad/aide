@@ -39,7 +39,11 @@ describe("the listing on /projects", () => {
       }),
       project("beta"),
     ]);
-    expect(html).toContain('<h2>Projects</h2>');
+    // The word "Projects" is said once, in the tab (2026-08-21): the
+    // shell's <h1> is hidden and the <h2> over the list is gone. What
+    // opens the list now is the counts, beside the Add button.
+    expect(html).not.toContain("<h2>Projects</h2>");
+    expect(html).toContain('class="summary"');
     expect(html).toContain('class="proj-row"');
     expect(html).toContain('href="alpha.html"');
     expect(html).toContain('href="beta.html"');
@@ -64,7 +68,7 @@ describe("the listing on /projects", () => {
     const html = page([project("alpha")]);
     expect(html).toContain("<nav");
     expect(html).not.toContain(AT);
-    expect(html).toContain("<h1>Projects</h1>");
+    expect(html).not.toContain("<h1>Projects</h1>");
   });
 });
 
@@ -121,8 +125,14 @@ describe("the drift banner on /projects", () => {
 describe("the Add button and the Remove links on /projects", () => {
   test("Add is a button above the list, at the right — like New spec", () => {
     const html = page([project("aide")], { createProjects: ["aide"] });
-    expect(html).toContain('<div class="listtop"><a class="btn primary" href="/projects/new">Add</a></div>');
-    expect(html.indexOf('href="/projects/new"')).toBeLessThan(html.indexOf("<h2>Projects</h2>"));
+    // One line above the list: the counts on the left, Add on the right
+    // — the shape the spec list's filter row has. Add stood alone here
+    // until 2026-08-21, between an <h1> and an <h2> that both said
+    // "Projects", and read as floating between two titles.
+    expect(html).toMatch(
+      /<div class="listtop"><span class="summary">[^<]*<\/span><a class="btn primary" href="\/projects\/new">Add<\/a><\/div>/,
+    );
+    expect(html.indexOf('href="/projects/new"')).toBeLessThan(html.indexOf('class="proj-row"'));
     // The old fold is gone with its bare-word opener.
     expect(html).not.toContain('<details class="newspec projectadmin">');
     expect(html).not.toContain('action="/api/queue/projects"');

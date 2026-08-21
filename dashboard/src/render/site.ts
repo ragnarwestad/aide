@@ -225,6 +225,23 @@ function projectBody(p: ProjectView): string {
  *  `/projects` page draws exactly this (spec 115) — same rows, same
  *  data, one function, so "the same page plus two controls" is true by
  *  construction rather than by convention. */
+/** The counts, and nothing else. Read on a phone the explanation filled
+ *  the screen before anything the reader came for; it is documentation,
+ *  and documentation has its own page in the menu.
+ *
+ *  Separate from the list since 2026-08-21: it rides on the list's own
+ *  top line beside the Add button, the way the spec list's count and
+ *  its New spec link share the filter row. The list itself then starts
+ *  with a row, and the word "Projects" is said once — in the tab. */
+export function projectSummary(projects: ProjectView[]): string {
+  const active = projects.reduce((n, p) => n + p.specs.filter((s) => !s.archived).length, 0);
+  const archived = projects.reduce((n, p) => n + p.specs.filter((s) => s.archived).length, 0);
+  return (
+    `<span class="summary">${projects.length} projects · ` +
+    `${active} active · ${archived} archived</span>`
+  );
+}
+
 export function projectListBody(
   projects: ProjectView[],
   opts: {
@@ -238,23 +255,7 @@ export function projectListBody(
 ): string {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  const totalActive = projects.reduce(
-    (n, p) => n + p.specs.filter((s) => !s.archived).length,
-    0,
-  );
-  const totalArchived = projects.reduce(
-    (n, p) => n + p.specs.filter((s) => s.archived).length,
-    0,
-  );
-  // The counts, and nothing else. Read on a phone the explanation
-  // filled the screen before anything the reader came for; it is
-  // documentation, and documentation has its own page in the menu.
-  const intro =
-    `<p class="summary">${projects.length} projects · ` +
-    `${totalActive} active · ${totalArchived} archived</p>`;
   return (
-    intro +
-    `\n<h2>Projects</h2>\n` +
     ordered
       .map((p) => overviewRow(p, `${slugs.get(p)!}.html`, opts.removeHref?.(p.name), opts.note?.(p.name)))
       .join("\n")

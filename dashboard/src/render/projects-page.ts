@@ -23,7 +23,7 @@ import {
 } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { projectListBody, type ProjectView } from "./site.ts";
+import { projectListBody, projectSummary, type ProjectView } from "./site.ts";
 
 /** Where a project is added (its own page, like `/new`), and where one
  *  is removed — the confirm page each row's Remove links to. */
@@ -98,9 +98,14 @@ export function renderProjectsPage(
     (opts.notice
       ? rowMessage(opts.noticeOk ? "info" : "warn", opts.notice, { hook: "notice", tag: "p" }) + "\n"
       : "") +
-    // The Add button above the list, at the right — the same place and
-    // shape as New spec on the spec list.
-    `<div class="listtop"><a class="btn primary" href="${ADD_PROJECT_ROUTE}">Add</a></div>\n` +
+    // One line above the list: the counts on the left, Add on the right
+    // — the same shape the spec list's filter row has, where its own
+    // count sits beside New spec. Add used to stand alone here, between
+    // an <h1> and an <h2> that both said "Projects", and read as
+    // floating between two titles rather than sitting on the list
+    // (2026-08-21).
+    `<div class="listtop">${projectSummary(projects)}` +
+    `<a class="btn primary" href="${ADD_PROJECT_ROUTE}">Add</a></div>\n` +
     // Remove rides on each row the allowlist knows — a discovered
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
@@ -114,7 +119,12 @@ export function renderProjectsPage(
   // no blunt reload. The tagline rides on the tab here, the way it did
   // on the generated overview — this is still the page that is about
   // aide itself.
+  // No heading: the tab says "Projects" and the page said it twice more
+  // — an <h1> from the shell and an <h2> over the list (2026-08-21).
+  // The spec list has hidden its own for the same reason since
+  // 2026-08-19.
   return pageShell("Projects", entries, "/projects", body, generatedAt, undefined, {
+    hideHeading: true,
     docTitle: "aide -board — from spec to merge",
     script: opts.script,
   });
