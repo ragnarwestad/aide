@@ -90,6 +90,14 @@ no host is named anywhere in this repo.
   own name: it is a contract, not a page anyone reads. `approve` and
   `merge` were routes here until spec 149 and are gone: there is no stop
   between steps to approve, and every step lands its own work.
+- `POST /api/queue/<id>/steps` — edit a RUNNING job's tail (spec 160):
+  `step` plus a `checked` flag adds a phase the run has not reached yet,
+  or removes one it has not started. The running step and everything
+  behind it are refused by name, as is any job that is not running — the
+  decision is made against the job as it stands when the request
+  arrives, never against what the page believed. This is deliberately
+  NOT `POST /api/queue`: that route creates a job, and for a spec with
+  one in flight it answers with the clash refusal.
 - `POST /api/queue/create` — project, title and description in; a job
   that MAKES a spec out, which then lands itself and becomes an ordinary
   row (token required, like the rest of `/api/queue*`)
@@ -1034,6 +1042,20 @@ keep. Every control that can act on a busy row — the phase boxes, the
 Run button, the model and "also touches" fields, and Resolve in the
 opened row's stack — reads the same flag, so a new control cannot
 forget to check it.
+
+Spec 160 narrowed that, and only that: the boxes for phases a RUNNING
+job has not reached yet stay live, so a reader who knows more at minute
+ten than at minute zero can add a phase to the run or drop one it has
+not started. Which those are is not re-derived by the row — the server
+puts them on it (`editableSteps`, from `tailEdits()` in `queue.ts`,
+the same function the edit route refuses against), so a box is never
+drawn live for an edit the store would say no to. Everything else is as
+it was: the running step and every step behind it stay locked, a job
+merely `queued` between two steps locks the whole row, and a live box
+posts to `POST /api/queue/<id>/steps` on the tick itself rather than to
+the Run form, which while busy would be asking for a second job. A live
+box is the one `phaseChip` that does nothing with script off — it
+belongs to no form — and that is a known limitation, not an oversight.
 
 ### A structural marker with no CSS rule uses data-*, not a class (spec 123)
 

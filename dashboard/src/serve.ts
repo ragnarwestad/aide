@@ -32,6 +32,7 @@ import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
   QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
+  tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
 } from "./queue.ts";
@@ -1062,6 +1063,11 @@ export function createServer(opts: ServerOptions) {
       createTitle: job.createTitle,
       steps: job.steps,
       stepIndex: job.stepIndex,
+      // Spec 160: which of them the row may still be given or relieved
+      // of. Asked of the queue's own module, so the box and the route
+      // that takes its tick cannot disagree about where the tail
+      // starts.
+      editableSteps: tailEdits(job),
       state: job.state,
       model: job.modelChoice ?? (step ? job.model[step] : undefined),
       spentUsd: job.spentUsd,
@@ -1974,6 +1980,50 @@ export function createServer(opts: ServerOptions) {
       }
       queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
       return wantsJson ? json({ ok: true, job: queue.get(id) }) : specsRedirect(view);
+    }
+
+    // Spec 160: an edit to the job that is RUNNING, not a request for a
+    // new one. `POST /api/queue` would be the wrong door — its answer
+    // for a spec with a job in flight is the clash refusal, and rightly
+    // — so the tail gets a route of its own, named after what it does.
+    //
+    // Every decision is the store's, against the job as it stands at
+    // that instant: the page's idea of which step is running is a
+    // second old by the time the tick lands, and it is never consulted.
+    const tailEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/steps$/);
+    if (tailEdit) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, id] = tailEdit;
+      const job = queue.get(id!);
+      if (!job) return json({ error: "no such job" }, 404);
+      const sent = await readBounded(req);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const step = typeof body.step === "string" ? body.step : "";
+      // A form sends the tick as text, an API caller as a boolean. Both
+      // say the same thing, and the box's own state is what they say:
+      // ticked adds the step, unticked removes it.
+      const checked = body.checked;
+      const add =
+        checked === true ||
+        (typeof checked === "string" && ["1", "true", "on", "yes"].includes(checked.toLowerCase()));
+      const spec = `${job.project}/${job.specFolder}`;
+      const result = queue.editTailStep(id!, step, add);
+      if (!result.ok) {
+        logRefusal("steps", spec, result.error);
+        return wantsJson
+          ? json({ error: result.error, spec }, 400)
+          : specsRedirect(body, { error: result.error, spec });
+      }
+      // Now, not on the next two-second timer: a step added in the
+      // instant the running one finishes would otherwise wait for it.
+      await tickRunner();
+      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
     }
 
     // The SPEC page, and the Update button that keeps it honest (spec

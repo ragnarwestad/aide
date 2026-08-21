@@ -172,7 +172,15 @@ function harness(
   const headControls = [...new Set([runButton, cancelButton, button])];
   /** The run form as the State cell holds it: hidden fields only, and
    *  an id every control outside its tags names. */
-  const runFormEl = { id: ROW_FORM, className: "rowrun" };
+  const runFormEl = {
+    id: ROW_FORM,
+    className: "rowrun",
+    // What `rowControls` asks any form: which row am I on. And what a
+    // press asks: where is this row's token.
+    closest: (sel: string) => (sel.includes("spechead") ? (o.offRow ? null : spechead) : null),
+    querySelector: (sel: string) => (sel.includes("token") ? tokenInput : null),
+    querySelectorAll: () => [],
+  };
   /** The `<tr class="spechead">` the row's one control is drawn in.
    *  It is what a press scopes itself to. */
   const spechead = {
@@ -283,11 +291,14 @@ function harness(
       isConnected: true,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
       // A change lands on the select itself, and the handler walks up
-      // with `closest`. A model select is NOT the AI picker and not a
-      // phase box either, so it answers both of those selectors with
-      // null and its own with itself.
+      // with `closest`. A model select is NOT the AI picker, not a
+      // phase box and not a tail box (spec 160) — it is not an `input`
+      // at all — so it answers all three of those selectors with null
+      // and its own with itself.
       closest: (sel: string): unknown =>
-        sel.includes("data-tool-picker") || sel.includes('name="steps"') ? null : self,
+        sel.includes("data-tool-picker") || sel.includes('name="steps"') || sel.includes("data-post-to")
+          ? null
+          : self,
       get selectedOptions() {
         return options.filter((o) => o.selected);
       },
@@ -368,6 +379,30 @@ function harness(
     stepCheckbox("implement", false),
     stepCheckbox("archive", false),
   ];
+  // Spec 160: a box for a phase the RUNNING job has not reached yet.
+  // It names the run form the way every other control on the row does
+  // — that is how a press finds the row to lock — but carries no
+  // `name`, so it is never posted with it. Its own route is in
+  // `data-post-to`, and a tick goes there on `change` rather than
+  // waiting for a submit this row does not offer.
+  const tailBox = (() => {
+    const self = {
+      name: "",
+      value: "archive",
+      checked: false,
+      tagName: "INPUT",
+      disabled: false,
+      isConnected: true,
+      getAttribute: (n: string) =>
+        n === "form" ? ROW_FORM : n === "data-post-to" ? "/api/queue/job-1/steps" : null,
+      closest: (sel: string): unknown => (sel.includes("data-post-to") ? self : null),
+      /** What the SERVER draws after the swap: the tick the job's own
+       *  step list justifies, which for a refused edit is the box
+       *  exactly as it was. */
+      redraw: () => void (self.checked = false),
+    };
+    return self;
+  })();
   const createForm = {
     action: "http://dash.test/api/queue/create",
     fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
@@ -483,6 +518,7 @@ function harness(
       for (const m of modelSelects) m.redraw();
       otherRowSelect.redraw();
       for (const b of stepBoxes) b.redraw();
+      tailBox.redraw();
     },
     querySelectorAll: (sel: string) =>
       sel.includes("data-tool-picker")
@@ -519,7 +555,16 @@ function harness(
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
     querySelector: (sel: string) =>
-      sel.includes("newspecform") ? createForm : sel.includes("phases") ? otherPhases : null,
+      sel.includes("newspecform")
+        ? createForm
+        : // Spec 160: a tail box is on a phase LINE, and the row it
+          // belongs to is reached through the form it names — the same
+          // id every other control outside that form carries.
+          sel.startsWith("form[id=")
+          ? (sel.includes(ROW_FORM) ? runFormEl : null)
+          : sel.includes("phases")
+            ? otherPhases
+            : null,
     // Spec 112 binds its panel's forms as a SET, the same way it is
     // rendered: one Add form and one Remove per allowlisted project.
     // A form-scoped selector answers only the selects that name that
@@ -537,8 +582,8 @@ function harness(
             // which is what "the press reaches its own row and no
             // other" is proved against.
             sel.startsWith("[form=")
-            ? [runButton, ...stepBoxes, ...modelSelects, toolSelect, otherRowSelect].filter((el) =>
-                sel.includes(`"${el.getAttribute("form")}"`),
+            ? [runButton, ...stepBoxes, tailBox, ...modelSelects, toolSelect, otherRowSelect].filter(
+                (el) => sel.includes(`"${el.getAttribute("form")}"`),
               )
             : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
@@ -647,7 +692,13 @@ function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, toolSelect, stepBoxes,
+    modelSelects, otherRowSelect, toolSelect, stepBoxes, tailBox,
+    /** A tail box ticked or unticked by hand — the tick that posts on
+     *  its own, without a Run press behind it (spec 160). */
+    changeTail: (checked: boolean) => {
+      tailBox.checked = checked;
+      return on["change"]?.({ target: tailBox }) as unknown as Promise<void>;
+    },
     runButton, cancelButton,
     changeTool: (value: string) => {
       toolSelect.value = value;
@@ -1804,5 +1855,91 @@ describe("the Add form keeps the readiness answer on screen", () => {
     );
     await h.submitRemove();
     expect(h.location.href).toBe("/projects");
+  });
+});
+
+// --- spec 160: a tail box posts on its own -------------------------------------
+
+// While a job runs, the boxes for phases it has not reached stay live.
+// There is no Run button on a busy row to submit them with — the row
+// shows Cancel — and posting to `/api/queue` would ask for a SECOND
+// job, which the clash check refuses outright. So the tick is the
+// press: it goes to the running job's own route, the moment it happens.
+describe("a tail box's tick posts itself (spec 160)", () => {
+  const OK = { ok: true, job: { id: "job-1" } };
+
+  test("it posts the tick to the job's own route, not to /api/queue", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeTail(true);
+    const posted = h.requests.find((r) => r.url.includes("/steps"))!;
+    expect(posted.url).toContain("/api/queue/job-1/steps");
+    expect(posted.init.method).toBe("POST");
+    expect(String(posted.init.body)).toContain("step=archive");
+    expect(String(posted.init.body)).toContain("checked=1");
+    // The token rides in the query string, as every other press does.
+    expect(posted.url).toContain("token=s3cret");
+    // And never the create route.
+    expect(h.requests.some((r) => r.url.endsWith("/api/queue"))).toBe(false);
+  });
+
+  test("unticking says so", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeTail(false);
+    expect(String(h.requests[0]!.init.body)).toContain("checked=0");
+  });
+
+  // Spec 151's rule, applied to a control that is not a button: the
+  // whole row locks the instant the tick lands, and stays locked until
+  // the row has been redrawn from the server's own answer.
+  test("the row locks at once and is redrawn from the answer (criterion 7)", async () => {
+    let atRequest = { run: false, box: false, tail: false, cancel: false, otherRow: false };
+    let atRedraw = false;
+    const h = harness((url) => {
+      if (url.includes("/steps")) {
+        atRequest = {
+          run: h.runButton.disabled,
+          box: h.stepBoxes[0]!.disabled,
+          tail: h.tailBox.disabled,
+          cancel: h.cancelButton.disabled,
+          otherRow: h.otherRowSelect.disabled,
+        };
+      }
+      if (url.includes("rows=1")) atRedraw = h.runButton.disabled;
+      return { ok: true, body: OK };
+    });
+    await h.changeTail(true);
+    expect(atRequest).toEqual({ run: true, box: true, tail: true, cancel: true, otherRow: false });
+    // Still locked when the redraw is asked for — not merely until the
+    // answer arrived.
+    expect(atRedraw).toBe(true);
+    expect(h.rows.innerHTML).not.toBe("");
+    expect(h.runButton.disabled).toBe(false);
+  });
+
+  // A refusal has to be visible on the box itself: the tick showed the
+  // step as added, and the server did not add it.
+  test("a refused tick is put back, and the reason is shown (criterion 7)", async () => {
+    let checkedWhenRedrawn: boolean | undefined;
+    const h = harness((url) => {
+      if (url.includes("/steps")) {
+        return { ok: false, body: { error: "archive is not an editable step on this job" } };
+      }
+      if (url.includes("rows=1")) checkedWhenRedrawn = h.tailBox.checked;
+      return { ok: true };
+    });
+    await h.changeTail(true);
+    // Put back BEFORE the row is re-asked for, so a redraw that never
+    // comes still leaves the box telling the truth.
+    expect(checkedWhenRedrawn).toBe(false);
+    expect(h.replaced.join("")).toContain(encodeURIComponent("not an editable step"));
+    // And the row is live again.
+    expect(h.tailBox.disabled).toBe(false);
+    expect(h.runButton.disabled).toBe(false);
+  });
+
+  test("a request that cannot be sent reloads the page, as every other press does", async () => {
+    const h = harness(() => ({ ok: false, throws: true }));
+    await h.changeTail(true);
+    expect(h.location.href).toBe("/");
   });
 });

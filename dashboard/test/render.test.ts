@@ -1272,6 +1272,82 @@ describe("a spec's row runs its own phases", () => {
     }
   });
 
+  // Spec 160 narrowed the rule above, and did not replace it: the tail
+  // of a RUNNING job is editable, and everything else on a busy row is
+  // as locked as it ever was. `editableSteps` is the server's own
+  // answer for which those are — worked out in `queue.ts` against the
+  // job as it stands, so the box and the route that takes its tick can
+  // never disagree about the boundary.
+  test("a later phase's box stays live while the job runs (spec 160, criterion 1)", () => {
+    const line = runLine(
+      rows(
+        [job("j1", "analyze", { state: "running", editableSteps: ["review-plan", "implement", "archive"] })],
+        [target("94-row-runs-it")],
+      ),
+      "94-row-runs-it",
+    );
+    // The running step and everything behind it: closed, as before.
+    expect(box(line, "analyze")).toContain("disabled");
+    for (const step of ["review-plan", "implement", "archive"]) {
+      expect(box(line, step)).not.toContain("disabled");
+      // Never the Run form's: while a job is running, that form's
+      // submit target creates a SECOND job and the queue refuses it.
+      expect(box(line, step)).toContain('data-post-to="/api/queue/j1/steps"');
+      expect(box(line, step)).not.toContain('name="steps"');
+    }
+  });
+
+  test("a step the server did not name stays locked (spec 160, criterion 9)", () => {
+    const line = runLine(
+      rows(
+        [
+          job("j1", "review-plan", {
+            state: "running",
+            steps: ["review-plan", "archive"],
+            editableSteps: ["implement", "archive"],
+          }),
+        ],
+        [target("94-row-runs-it")],
+      ),
+      "94-row-runs-it",
+    );
+    // analyze ranks earlier than the step now running: adding it would
+    // run it afterwards, which is not what "a LATER phase" means.
+    expect(box(line, "analyze")).toContain("disabled");
+    expect(box(line, "analyze")).not.toContain("data-post-to");
+    expect(box(line, "implement")).not.toContain("disabled");
+  });
+
+  // The window between two steps is under two seconds long and is not a
+  // job that is running: the server names no editable step for it, and
+  // the row goes back to what it looks like today.
+  test("a job merely queued between two steps locks everything (spec 160, criterion 8)", () => {
+    const line = runLine(
+      rows([job("j1", "analyze", { state: "queued" })], [target("94-row-runs-it")]),
+      "94-row-runs-it",
+    );
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(box(line, step)).toContain("disabled");
+      expect(box(line, step)).not.toContain("data-post-to");
+    }
+  });
+
+  // An editable box still belongs to the row for LOCKING purposes: it
+  // names the run form, which is how the page's own script finds every
+  // control on a row and disables them together while a press is out.
+  // It carries no `name`, so naming that form posts nothing.
+  test("an editable box names the run form but posts nothing with it (spec 160)", () => {
+    const line = runLine(
+      rows(
+        [job("j1", "analyze", { state: "running", editableSteps: ["archive"] })],
+        [target("94-row-runs-it")],
+      ),
+      "94-row-runs-it",
+    );
+    expect(box(line, "archive")).toContain('form="rowrun-aide/94-row-runs-it"');
+    expect(box(line, "archive")).not.toContain('name="steps"');
+  });
+
   /** Rewritten by spec 145. While a row is busy, a box's tick stopped
    *  meaning "what a fresh press would pre-tick" and started meaning
    *  "this job named this step" — and a job names the step it is
@@ -1288,7 +1364,9 @@ describe("a spec's row runs its own phases", () => {
     // what the reader sees in its place either way (the stylesheet
     // hides a busy box's input).
     expect(box(line, "analyze")).toContain('class="phase busy"');
-    // The one that is NOT in this job stays untouched by that.
+    // The one that is NOT in this job stays untouched by that. It is
+    // locked here because the server named no editable step — spec 160
+    // is what decides that, and this test is about the tick.
     expect(box(line, "implement")).not.toContain("checked");
     expect(box(line, "implement")).toContain("disabled");
   });

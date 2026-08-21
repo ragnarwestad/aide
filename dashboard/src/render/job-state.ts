@@ -33,6 +33,15 @@ export interface QueueRowView {
   createTitle?: string;
   steps: string[];
   stepIndex: number;
+  /** The steps whose box a reader may still tick or untick while this
+   *  job runs (spec 160): the tail that has not started, plus every
+   *  later phase the job does not have. Worked out server-side, by the
+   *  same function that decides what the edit route accepts — a box
+   *  drawn live for an edit the store would refuse is a click that
+   *  answers with a refusal instead of a change. Absent, or empty, for
+   *  every job that is not running: then the row locks as it always
+   *  did. */
+  editableSteps?: string[];
   state:
     | "queued" | "running" | "done"
     | "stopped" | "failed" | "cancelled" | "interrupted";

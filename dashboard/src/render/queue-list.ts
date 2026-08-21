@@ -176,7 +176,11 @@ const CHEVRON =
   'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M4 6l4 4 4-4"></path></svg>';
 
-const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
+// Exported since spec 160: `queue.ts` keeps the same list under
+// `PHASE_STEPS` — it decides which steps a running job may still be
+// given — and the render layer does not import that module. A test
+// reads both and refuses to let them drift.
+export const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
 
 // The phase LINES a spec's expanded row shows, in order. `create` is
 // history, not a control (spec 116): a spec that exists cannot be
@@ -1477,6 +1481,13 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   const ticked = preTicked(g);
   const why = busy ? busyReason(g) : "";
   const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
+  // Spec 160: the phases this run can still be given or relieved of.
+  // The server worked it out from the job as it stands — the row does
+  // not re-derive it, so a live box and the route that takes its tick
+  // can never disagree about where the tail starts. Empty for every
+  // job that is not running, which is what keeps the brief `queued`
+  // window between two steps looking exactly as it does today.
+  const editable = new Set(g.lead?.editableSteps ?? []);
   // Every sub-row's tag and its cells, kept apart because the tag
   // carries the step and the cells carry the line. There is no cell
   // spanning them any more: the row's one action moved beside the
@@ -1514,6 +1525,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           : "";
       const tries =
         p.attempts.length > 1 ? `<span class="muted small">${p.attempts.length} attempts</span>` : "";
+      // Live although the row is busy (spec 160): a phase this run has
+      // not reached, which the reader may add to it or drop from it as
+      // the run goes.
+      const live = editable.has(p.step);
       // The picker directly after the name, so the two line up in the
       // caption's columns; what the last run used is not spelled out in
       // text any more — it IS the select's pre-filled value.
@@ -1537,19 +1552,33 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // since a wrapper with no text has no name to offer.
             label: "",
             ariaLabel: stepLabel(p.step),
-            name: "steps",
+            // An editable box is never posted with the Run form: while
+            // a job runs, that form asks for a SECOND job and the
+            // queue refuses it as a clash. It still NAMES the form,
+            // because that is how a press finds every control on the
+            // row to lock — and a field with no name is submitted by
+            // nobody, whatever it names.
+            name: live ? "" : "steps",
             form: runFormId(g),
+            postTo: live ? `/api/queue/${esc(g.lead!.id)}/steps` : undefined,
             // While busy this says what the RUNNING job will do with
             // the step, not what a fresh press would pre-tick
             // (`ticked`) — a step queued behind the running one is
             // still one this job named, and still reads as ticked.
             checked: busy ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
             busy: busy && p.step === running,
-            disabled: busy && p.step !== running,
+            disabled: busy && !live && p.step !== running,
             // Inert, but not padlocked: the tick already says whether
             // this job will get to the step (spec 145).
             plain: true,
-            title: busy ? why : undefined,
+            // A box the reader can still act on says what the tick
+            // WOULD do; the rest say why the row will not take a
+            // click.
+            title: live
+              ? `not started yet — ${g.lead?.steps.includes(p.step) ? "untick to drop it from this run" : "tick to add it to this run"}`
+              : busy
+                ? why
+                : undefined,
           })
         : phaseChip({
             dataAttr: "data-phase",

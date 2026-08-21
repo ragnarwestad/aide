@@ -934,3 +934,53 @@ describe("parked on a dependency (spec 122)", () => {
     expect(store.get(job.id)?.error).toBeUndefined();
   });
 });
+
+// --- spec 160: a step added while the job runs ---------------------------------
+
+// Nothing in the runner had to change for this: `startOne` reads
+// `job.steps[job.stepIndex]` at the moment it starts a step, and
+// `tick()` calls it again every two seconds. These tests pin that,
+// so a future rewrite that caches the step list is a failed test
+// rather than a feature that quietly stops working.
+describe("a step appended to a running job's tail (spec 160)", () => {
+  test("is started once the step now running has finished", () => {
+    const job = enqueue({ steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    expect(store.get(job.id)!.state).toBe("running");
+    // Ticked while analyze is in flight.
+    expect(store.editTailStep(job.id, "implement", true).ok).toBe(true);
+    runner.poll();
+    expect(store.get(job.id)!.stepIndex).toBe(1);
+    runner.tick();
+    expect(spawns.map((s) => s.step)).toEqual(["analyze", "implement"]);
+  });
+
+  test("that is removed again before it starts is never spawned", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    expect(store.editTailStep(job.id, "implement", false).ok).toBe(true);
+    runner.poll();
+    runner.tick();
+    expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
+    expect(store.get(job.id)!.state).toBe("done");
+  });
+
+  // The gate is a per-tick question, not a per-job one: a step added to
+  // a running job's tail meets it when it becomes current, exactly as a
+  // step named at job creation does. Nothing refuses it at add time.
+  test("a dependency-gated one is accepted at once and held back only when it becomes current", () => {
+    const job = enqueue({ steps: ["analyze"] });
+    const runner = makeRunner({ readResult: () => okResult(1) });
+    runner.tick();
+    expect(store.editTailStep(job.id, "archive", true).ok).toBe(true);
+    runner.poll();
+    // Now archive is the current step, and its dependency has not landed.
+    runner.tick(new Map([[job.id, "80-dependency"]]));
+    expect(spawns.map((s) => s.step)).toEqual(["analyze"]);
+    const after = store.get(job.id)!;
+    expect(after.state).toBe("queued");
+    expect(after.error).toContain("held back: depends on 80-dependency");
+  });
+});

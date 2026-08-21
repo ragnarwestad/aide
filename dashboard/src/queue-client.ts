@@ -392,6 +392,67 @@ async function postForm(
   }
 }
 
+/** A phase box that posts itself (spec 160). While a job runs, the
+ *  boxes for phases it has not reached stay live — and there is nothing
+ *  to submit them with: a busy row draws Cancel where Run would be, and
+ *  posting to `/api/queue` would ask for a second job the queue refuses
+ *  as a clash. So the tick IS the press, and it goes straight to the
+ *  running job's own route.
+ *
+ *  Everything else about it is the shape every other press already has
+ *  (`postForm`): the whole row locks the instant the tick lands, the
+ *  row is redrawn from the server's own answer, and a refusal lands
+ *  beside the row rather than navigating. The one thing a checkbox
+ *  cannot borrow is the busy LOOK — it has no button to carry a
+ *  spinner, and the chip's own `busy` style hides the input, so the
+ *  lock is what says the tick registered.
+ *
+ *  The row is reached through the form the box names — the same id
+ *  every control written outside that form carries — which is also
+ *  where the token is. */
+async function postTailStep(box: HTMLInputElement): Promise<void> {
+  const to = box.getAttribute("data-post-to") ?? "";
+  const formId = box.getAttribute("form") ?? "";
+  const form = formId
+    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
+    : null;
+  const controls = form ? rowControls(form) : [box as Control];
+  const wanted = box.checked;
+  const before = controls.map((el) => [el, el.disabled] as const);
+  inFlight += 1;
+  pressGen += 1;
+  for (const el of controls) el.disabled = true;
+  try {
+    const url = new URL(to, location.href);
+    const token = form?.querySelector('input[name="token"]') as HTMLInputElement | null;
+    if (token?.value) url.searchParams.set("token", token.value);
+    const body = new URLSearchParams();
+    body.append("step", box.value);
+    body.append("checked", wanted ? "1" : "0");
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const answer = (await res.json().catch(() => null)) as ActionResult | null;
+    if (res.ok && answer?.ok) {
+      await swapRows();
+      return;
+    }
+    // Put the tick back BEFORE the refusal is shown: the swap that
+    // follows redraws the box from the server anyway, and a swap that
+    // never comes must not leave the box claiming an edit that did not
+    // take.
+    if (box.isConnected) box.checked = !wanted;
+    await showRefusal(refusalText(answer), answer?.spec);
+  } catch {
+    location.href = location.pathname + location.search;
+  } finally {
+    inFlight -= 1;
+    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+  }
+}
+
 // A refusal used to navigate — and take the reader's view with it. It
 // does not any more: the address bar is moved WITHOUT a document load,
 // and the rows are re-asked with the same query the server's own
@@ -613,6 +674,13 @@ document.getElementById("jobrows")?.addEventListener("submit", submitAction as E
 // would last five seconds.
 document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
+  // A tail box's tick is a press, not something to remember for the
+  // next redraw (spec 160): it goes to the server now, and what comes
+  // back is what the row is drawn from. The promise is returned rather
+  // than dropped — a listener's return value is nobody's to wait on,
+  // and it is what lets the test wait for the request the tick makes.
+  const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
+  if (tail) return postTailStep(tail);
   const picker = target?.closest?.("select[data-tool-picker]") as HTMLSelectElement | null;
   // Every select on the rows is remembered, not only the picker: the
   // phase selects are swapped away just as often, and a model picked
