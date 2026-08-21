@@ -153,17 +153,25 @@ describe("nav (criterion 2)", () => {
     expect(navEntries([healthy, broken])[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
-  // Two tabs since spec 119, and only two: the site has a Specs half
-  // and a Projects half, and the project pages are the Projects page's
-  // business rather than tabs of their own. About left the bar for the
-  // "…" menu — it is not a half of the site.
-  test("the tabs are Specs and Projects; the wordmark is still home", () => {
+  // Criterion 4 (spec 163): the archive's pages have worked since spec
+  // 150 and nothing linked to one, so they existed and could not be
+  // found. The nav is the way in.
+  test("the Archive entry is there, pointing at the served page", () => {
+    expect(navEntries([healthy, broken])).toContainEqual({ label: "Archive", path: "/archive" });
+  });
+
+  // Two tabs since spec 119, three since spec 163: the site has a Specs
+  // half, a Projects half and now the archive. The project pages are
+  // still the Projects page's business rather than tabs of their own,
+  // and About left the bar for the "…" menu — it is not a half of the
+  // site.
+  test("the tabs are Specs, Projects and Archive; the wordmark is still home", () => {
     for (const page of site) {
       const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const links = [...navHtml.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"]]);
+      expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"], ["Archive", "/archive"]]);
       expect(page.html).toContain('<a class="brand" href="/">');
     }
   });

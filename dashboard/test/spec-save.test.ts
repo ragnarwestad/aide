@@ -39,6 +39,20 @@ const start = (gitRun: GitRunner, extra = {}) =>
 const descriptionPath = (dir: string, folder = SPEC) =>
   join(dir, "root", "aide", "specs", folder, "1-description.md");
 
+// Spec 163: an archived spec is a record, and both halves of the edit
+// pair have to say so — hiding the button leaves the save endpoint live
+// for anyone who already has the URL.
+const ARCHIVED = "150-one-page-shows-the-whole-spec";
+const ARCHIVED_TEXT = "# One page shows the whole spec - Description\n";
+const startArchived = (gitRun: GitRunner) =>
+  harness.start({
+    description: DESCRIPTION,
+    archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
+    extra: { queueToken: TOKEN, gitRun },
+  });
+const archivedDescriptionPath = (dir: string) =>
+  join(dir, "root", "aide", "specs", "archive", ARCHIVED, "1-description.md");
+
 /** A specs checkout that is clean, on its default branch, reachable,
  *  and whose description last moved at `FILE_SHA`. Everything a save
  *  asks for succeeds unless a test overrides it. */
@@ -118,6 +132,16 @@ describe("GET the edit page", () => {
     const { base } = start(savable("/host"));
     const html = await (await fetch(`${base}${PAGE}`, auth)).text();
     expect(html).toContain(`href="${EDIT}"`);
+  });
+
+  // Criterion 11 (spec 163): the button is gone from the page, but the
+  // route resolved through `specDir()` with no archived check at all,
+  // so the form was one URL away.
+  test("an archived spec has no edit page — it is a record", async () => {
+    const { base } = startArchived(savable("/host"));
+    const res = await fetch(`${base}/specs/aide/${ARCHIVED}/edit`, { ...auth, redirect: "manual" });
+    expect(res.status).not.toBe(200);
+    expect(await res.text()).not.toContain("<textarea");
   });
 });
 
@@ -339,5 +363,19 @@ describe("two specs sharing one checkout", () => {
     release();
     await Promise.all([first, second]);
     expect(order).toEqual([`start ${SPEC}`, `end ${SPEC}`, `start ${OTHER}`, `end ${OTHER}`]);
+  });
+});
+
+// --- criterion 7 (spec 163): the save endpoint refuses an archived spec -----
+
+describe("POST the Save action against an archived spec", () => {
+  test("writes nothing, and says why on the spec's own page", async () => {
+    const { base, dir } = startArchived(savable("/host"));
+    const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA }, `/api/queue/specs/aide/${ARCHIVED}/save`);
+    expect(res.status).toBe(303);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location).toContain("error=");
+    expect(location).toContain("archived");
+    expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
   });
 });

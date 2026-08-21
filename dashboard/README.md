@@ -68,6 +68,18 @@ no host is named anywhere in this repo.
   nav, labelled "Projects". Token required, like `/`: the panel is a
   mutating control, and a page carrying one needs a server to check the
   token per request.
+- `/archive` — every ARCHIVED spec, grouped by project: number, title
+  and the date it was archived, each linking to its own
+  `/specs/<project>/<spec>` page (spec 163). One page with a heading per
+  project rather than a tab each — three of the four allowlisted
+  projects have a handful of archived specs and a tab would cost them a
+  click for nothing, and the one that is long gets the jump-links at the
+  top. The date is the `**Archived:**` stamp in `4-status.md`, or, for
+  the older half of the archive that predates the stamp, the commit that
+  last touched the folder; a spec neither can date reads "date unknown"
+  rather than leaving the column blank. Reached from the nav, labelled
+  "Archive". Token required, like every other `/specs` route it links
+  into.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address
   carried; no token needed, like every other generated page. The file
@@ -86,8 +98,14 @@ no host is named anywhere in this repo.
   files, each stamped with the commit that last changed it, plus the
   lead job's Activity and Steps tabs and the Update button that pulls
   the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`).
+  An ARCHIVED spec has this page too, and always did — the scan records
+  every spec's directory before it drops the archived ones from the
+  list. Since spec 163 it says it is archived and offers no Edit: the
+  spec is a record.
 - `/specs/<project>/<spec>/edit` — `1-description.md` in a textarea, and
-  nothing else (spec 162). It is the one of the four files a person
+  nothing else (spec 162). Refused for an ARCHIVED spec, here and at the
+  save route below: hiding the button would have left both reachable for
+  anyone holding the URL. It is the one of the four files a person
   owns: the other three are written by a step and a hand edit there is
   overwritten the next time that step runs. The page carries the commit
   its text was read at and never refreshes itself.
