@@ -1917,8 +1917,8 @@ describe("the description-changed badge (criteria 1, 3)", () => {
   // Where the mark sits, not just that it is there. Beside the model
   // picker it had no width of its own, so two lines of free text
   // stretched the name column and took the table sideways with it
-  // (2026-08-20). The name cell holds the checkbox, the name and the
-  // picker; state goes in the state cell.
+  // (2026-08-20). The name cell holds the phase's name and nothing
+  // else since spec 165; state goes in the state cell.
   test("the stale mark sits in the state cell, not beside the model picker", () => {
     const html = rows([job("j1", "analyze")], [target("97-stale", { analyzeStale: true })]);
     const line = subRow(html, "analyze");
@@ -3858,17 +3858,16 @@ describe("spec 116: create is the first phase line", () => {
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
     // its own, so the emptiness is inside that cell.
-    // The box before the name holds the checkbox column's place, so
-    // every phase name starts at the same x (spec 124). It was an
-    // EMPTY span until 2026-08-21 and the hole read as a different
-    // kind of line; the box is ticked, disabled and nameless instead.
+    // The name stands alone in the first cell since spec 165, and the
+    // box moved in beside the model. `create`'s box is ticked,
+    // disabled and nameless: the folder being on disk IS its answer,
+    // and a line with no box at all read as a different KIND of line.
+    expect(line).toContain('<td class="phasecell"><span class="muted">create</span></td>');
     expect(line).toContain(
-      '<td class="phasecell"><span class="row"><span class="row">' +
-        '<label class="phase checked" data-phase="create">' +
+      '<label class="phase checked" data-phase="create">' +
         '<input type="checkbox" value="create" checked disabled ' +
         'aria-label="create — already done, and not a step you can run"> ' +
-        "<span></span></label></span>" +
-        '<span class="muted">create</span></span></td>',
+        "<span></span></label>",
     );
     expect(line).toContain(
       '<td><span class="badge b-done">done</span></td>' +
@@ -4335,12 +4334,17 @@ describe("spec 123: each phase line picks its own model", () => {
 
   // --- the gap the description asked to close --------------------------------
 
-  test("the phase name and its picker share one cell, so nothing sits between them", () => {
+  test("nothing sits between the phase name and its picker", () => {
     const line = subRow(rows([]), "analyze");
-    // Two columns merged into one, with the flex-gap container that
-    // holds a name and a control together whatever the table's
-    // auto-sized widths turn out to be.
-    expect(line).toContain('<td class="phasecell"><span class="row">');
+    // The two shared one cell from spec 123 until spec 165 gave each a
+    // real column of its own — with the row's AI between them, which
+    // is the choice that comes first. What the gap was for is still
+    // gone: no empty column stands between the name and the model.
+    // `analyze` is not the first phase line, so the AI column's slot
+    // here is the first line's `rowspan` and no cell of its own
+    // stands between the two.
+    expect(line).toMatch(/<td class="phasecell">[\s\S]*?<\/td><td class="modelcell">/);
+    expect(line).toContain('<select name="model.analyze"');
   });
 
   // --- the lock spec 105 put on the shared field follows it here -------------
@@ -4463,7 +4467,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // `phaseCaptionRow`, `phaseSubRows`) and nothing in the type system
   // makes them agree. A row short of a column does not fail loudly —
   // it shifts every column after it, on some rows and not others.
-  test("every row kind declares the same six columns, action last", () => {
+  test("every row kind declares the same seven columns, action last", () => {
     const html = renderQueuePage(
       [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })],
       "2026-08-19T00:00:00Z",
@@ -4479,12 +4483,18 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const thead = html.match(/<thead><tr>.*?<\/tr><\/thead>/)?.[0] ?? "";
     const spechead = head(html, "124-stack");
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect([thead, spechead, firstSub, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Six on EVERY row alike since spec 157: nothing spans any more,
-    // so a phase line declares the same six the header does.
-    for (const tr of [thead, spechead, firstSub, subRow(html, "analyze")]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
+    const firstPhase = subRow(html, "create");
+    expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
+    // Seven since spec 165, which gave the row's AI a column of its
+    // own between the phase name and the model.
+    for (const tr of [thead, spechead, firstSub, firstPhase]) {
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 7]);
     }
+    // And six on every phase line after the first, which is correct
+    // rather than short: the seventh slot is the FIRST line's
+    // `rowspan`, and `columnUnits` counts `colspan` alone — a
+    // preceding row's span is not this row's to declare.
+    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
     // The spare cell is at the END, and blank on every row now: the
     // one action a shut row drew there moved beside the state.
     expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
@@ -4872,8 +4882,11 @@ describe("spec 127: the row names its AI once", () => {
   test("a two-tool config gives the row one AI select, not one per phase", () => {
     const html = rows();
     expect(pickers(html)).toHaveLength(1);
-    // And it is on the caption line, above the phases — not inside one.
-    expect(caption(html)).toContain("data-tool-picker");
+    // And it is in the group's own AI column since spec 165 — one
+    // spanning cell on the first phase line, not on the caption line
+    // and not inside each phase's own cell.
+    expect(caption(html)).not.toContain("data-tool-picker");
+    expect(html).toMatch(/<td class="toolcell" rowspan="\d+"><label[^>]*>AI <select[^>]*data-tool-picker/);
     // Both tools are offered, under names a reader recognises.
     const picker = html.match(/<select[^>]*data-tool-picker[\s\S]*?<\/select>/)![0];
     expect(picker).toContain('value="claude"');
@@ -5045,17 +5058,21 @@ describe("spec 127: the row names its AI once", () => {
     noSelectedOptionIsHidden(rows([], { defaultModels: { default: "codex-fast" } }));
   });
 
-  // --- the Medium risk in the plan: the caption's pinned columns -------------
+  // --- where the control sits, and why -------------------------------------
 
-  // The caption's first two children are pinned to the checkbox and
-  // name widths (`css.ts`), so every phase line's select starts under
-  // the word "Model". A control inserted before either of them takes a
-  // pinned width and drags the whole caption out of line.
-  test("the AI select sits after both pinned caption columns", () => {
-    const cap = caption(rows());
-    const at = cap.indexOf("data-tool-picker");
-    expect(at).toBeGreaterThan(cap.indexOf(">Phase<"));
-    expect(at).toBeGreaterThan(cap.indexOf(">Model<"));
+  // It stood at the far end of the caption line until spec 165, after
+  // "Phase" and "Model", which were pinned to the phase lines' own
+  // widths. Pressed against "Model" it read as part of the model
+  // choice; it is the choice that decides which models there ARE, so
+  // it belongs in the column BEFORE the model, which is where it is.
+  test("the AI select sits between the phase name and the model", () => {
+    const html = rows();
+    const first = html.match(/<tr class="subrow[^"]*" data-step="create">[\s\S]*?<\/tr>/)![0];
+    const tags = [...first.matchAll(/<td\b[^>]*>/g)].map((m) => m[0]);
+    expect(tags[0]).toContain("phasecell");
+    expect(tags[1]).toMatch(/^<td class="toolcell" rowspan="\d+">$/);
+    expect(tags[2]).toContain("modelcell");
+    expect(first.indexOf("data-tool-picker")).toBeLessThan(first.indexOf('name="model.create"'));
   });
 });
 
@@ -5258,7 +5275,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    expect(panel(html)).toContain('colspan="6"');
+    expect(panel(html)).toContain('colspan="7"');
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.
@@ -5910,17 +5927,22 @@ describe("spec 157: the row's one action sits in the State column", () => {
     }
   });
 
-  test("the phase line leads with its own cell, and still fills six columns (criterion 14)", () => {
+  test("the phase line leads with its own cell, and still fills the table (criterion 14)", () => {
     const html = rows([], [target("157-one-action")], {
       open: true,
       modelChoices: [{ name: "sonnet", budgetUsd: 3 }],
     });
-    for (const sub of html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)) {
-      expect([sub[0].slice(0, 60), sub[0].indexOf('<td class="phasecell">')]).toEqual([
-        sub[0].slice(0, 60),
-        sub[0].indexOf("<td"),
+    const subs = [...html.matchAll(/<tr class="subrow[^"]*"[^>]*>[\s\S]*?<\/tr>/g)].map((m) => m[0]);
+    for (const sub of subs) {
+      expect([sub.slice(0, 60), sub.indexOf('<td class="phasecell">')]).toEqual([
+        sub.slice(0, 60),
+        sub.indexOf("<td"),
       ]);
-      expect([sub[0].slice(0, 60), cells(sub[0]).length]).toEqual([sub[0].slice(0, 60), 6]);
+      // Seven since spec 165 gave the row's AI a column of its own —
+      // and six on every phase line after the first, whose seventh
+      // slot is that column's `rowspan` rather than a cell.
+      const first = sub.includes('data-caption="1"') || sub.includes('data-step="create"');
+      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), first ? 7 : 6]);
     }
   });
 
@@ -5930,7 +5952,10 @@ describe("spec 157: the row's one action sits in the State column", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: true });
     const analyze = html.match(/<tr class="subrow[^"]*" data-step="analyze">[\s\S]*?<\/tr>/)![0];
     expect(cells(analyze)[2]).toContain('class="badge b-done"');
-    expect(cells(analyze)[1]).toBe("");
+    // The cell before it is the model column since spec 165 — the
+    // Progress cell a phase line had nothing to put in is what the
+    // model select and the phase's box moved into.
+    expect(cells(analyze)[1]).toContain('data-phase="analyze"');
   });
 
   // --- criterion 15: "also touches" moves with the control it belongs to ----
@@ -6041,5 +6066,205 @@ describe("spec 161: the row's one action is primary", () => {
     );
     expect(html).toContain(">Resolve</button>");
     expect(classes(html)).toEqual(["btn primary"]);
+  });
+});
+
+// --- spec 165: the phase lines read left to right ---------------------------
+//
+// The phase lines grew by addition and stopped reading in the order the
+// choices are made in. The name started 2.5rem in, behind an unlabelled
+// box; the row's AI select sat at the far end of the caption line,
+// pressed against "Model", so it read as part of the model choice
+// rather than as the choice that decides which models there ARE; and
+// the Progress column, which a phase line has nothing to put in, left a
+// hand's width of nothing between the model select and the State word.
+//
+// So: the name hard left in a column of its own, then the AI — one
+// control for the whole group, in a real column of its own, spanning
+// every phase line and centred in them — then the model select with the
+// phase's box beside it, in the column the pips leave empty. Three
+// choices in the order they are made, and no gap left to close.
+describe("spec 165: the phase lines read left to right", () => {
+  const target = (specFolder = "165-left-to-right"): QueueTarget => ({
+    project: "aide",
+    specFolder,
+  });
+
+  const BOTH = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+  ];
+  const ONE = [{ name: "sonnet", budgetUsd: 3 }];
+
+  const rows = (
+    list: QueueRowView[] = [],
+    opts: Partial<QueuePageOptions> = {},
+    targets: QueueTarget[] = [target()],
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        projects: ["aide"],
+        modelChoices: BOTH,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+
+  /** Every cell of one row, in order — the content between one cell's
+   *  opening tag and the next one's. */
+  const cells = (tr: string): string[] =>
+    tr
+      .split(/<t[dh]\b[^>]*>/)
+      .slice(1)
+      .map((s) => s.replace(/<\/t[dh]>[\s\S]*$/, ""));
+  /** One row's cell OPENING TAGS, in order: what a cell is, as opposed
+   *  to what is in it. */
+  const cellTags = (tr: string): string[] => [...tr.matchAll(/<t[dh]\b[^>]*>/g)].map((m) => m[0]);
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">[\\s\\S]*?</tr>`))?.[0] ?? "";
+  const caption = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const subRows = (html: string) => [
+    ...html.matchAll(/<tr class="subrow[^"]*"[^>]*data-step="[^"]*">[\s\S]*?<\/tr>/g),
+  ].map((m) => m[0]);
+
+  // --- criterion 1: the name is what the eye lands on -----------------------
+
+  test("the phase's name has its own cell, alone and hard left (criterion 1)", async () => {
+    const html = rows();
+    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
+      const first = cells(subRow(html, step))[0] ?? "";
+      // The name, and nothing in front of it: no box, no placeholder
+      // span holding a column's place, no select.
+      expect([step, first.includes("<input")]).toEqual([step, false]);
+      expect([step, first.includes("data-phase")]).toEqual([step, false]);
+      expect([step, first.includes("<select")]).toEqual([step, false]);
+      // The name is the whole of it — `review-plan` reaches a reader
+      // as "review", so the cell is checked for text and not for the
+      // step's own word.
+      expect([step, /^<(a|span)[^>]*>[a-z-]+<\/(a|span)>$/.test(first)]).toEqual([step, true]);
+    }
+    // And the indent that used to hold the box's place goes with it.
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).not.toContain("table.list tr.subrow .phasecell { padding-left");
+  });
+
+  // --- criterion 2: the AI is one control, in the column before Model -------
+
+  test("the AI picker is one cell for the whole group, spanning every phase line (criterion 2)", () => {
+    const html = rows();
+    const toolCells = [...html.matchAll(/<td class="toolcell"[^>]*>/g)];
+    // One per group: the caption line's placeholder and the first
+    // phase line's real cell. Only the second one spans.
+    expect(toolCells.filter((m) => m[0].includes("rowspan"))).toHaveLength(1);
+    const first = subRow(html, "create");
+    expect(cellTags(first)[1]).toBe('<td class="toolcell" rowspan="5">');
+    expect(cells(first)[1]).toContain("data-tool-picker");
+    // Between the name and the model, in that order: the choice that
+    // decides which models there are comes before the model.
+    expect(cellTags(first)[0]).toContain("phasecell");
+    expect(cellTags(first)[2]).toContain("modelcell");
+    // And it is drawn on the PHASE lines, not on the caption line —
+    // that is what lets it sit at the height of analyze and implement
+    // rather than up on the heading.
+    expect(caption(html)).not.toContain("data-tool-picker");
+  });
+
+  test("a step outside the usual five widens the span with it (criterion 3)", () => {
+    const html = rows([
+      row({ id: "j1", specFolder: "165-left-to-right", steps: ["resolve"], stepIndex: 0, state: "done" }),
+    ]);
+    expect(subRows(html)).toHaveLength(6);
+    expect(subRow(html, "create")).toContain('<td class="toolcell" rowspan="6">');
+  });
+
+  // --- criterion 4: the box moves in beside the model -----------------------
+
+  test("the box shares the model's cell, and the caption names both (criterion 4)", async () => {
+    const html = rows();
+    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
+      const line = subRow(html, step);
+      // The first line carries the AI column's spanning cell, so the
+      // model is its THIRD; on every line after it the second.
+      const modelCell = cells(line)[step === "create" ? 2 : 1] ?? "";
+      expect([step, modelCell.includes(`<select name="model.${step}"`)]).toEqual([step, true]);
+      expect([step, modelCell.includes(`data-phase="${step}"`)]).toEqual([step, true]);
+    }
+    // The caption line says what the two columns under it are.
+    const capCells = cells(caption(html));
+    expect(capCells[0]).toContain(">Phase<");
+    expect(capCells[2]).toContain(">Model<");
+    expect(capCells[2]).toContain(">Select<");
+    // And "Select" stands OVER the boxes rather than beside the word
+    // before it: the caption's first item and the model select
+    // reserve the same width, which is the whole of what makes the
+    // boxes read as a column with a heading.
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toContain(
+      "table.list tr.subrow .modelcell > .row > :first-child { min-width: 10rem; }",
+    );
+    expect(caption(html)).toMatch(
+      /<td class="modelcell"><span class="row"><span class="muted small">Model<\/span>/,
+    );
+  });
+
+  // --- criterion 5: the column is reserved whether it draws or not ----------
+
+  test("one configured tool still reserves the AI column (criterion 5)", async () => {
+    const html = rows([], { modelChoices: ONE });
+    // Nothing to choose between, so nothing is drawn — and the column
+    // is there all the same, at a width the stylesheet states.
+    expect(html).not.toContain("data-tool-picker");
+    expect(subRow(html, "create")).toContain('<td class="toolcell" rowspan="5"></td>');
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toMatch(/td\.toolcell \{[^}]*min-width: [\d.]+rem/);
+    expect(CSS).toMatch(/td\.toolcell \{[^}]*vertical-align: middle/);
+  });
+
+  // --- criterion 6: seven columns, and the span accounts for the seventh ----
+
+  test("the seventh column is a real one, and the span fills it (criterion 6)", () => {
+    const html = rows();
+    // The caption line and the FIRST phase line write all seven.
+    expect(cells(caption(html))).toHaveLength(7);
+    expect(cells(subRow(html, "create"))).toHaveLength(7);
+    // Every later line writes six: the seventh slot is the first
+    // line's `rowspan`, not a cell of its own.
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect([step, cells(subRow(html, step)).length]).toEqual([step, 6]);
+    }
+    // And nothing but the AI picker spans anything.
+    expect([...html.matchAll(/rowspan="/g)]).toHaveLength(1);
+  });
+
+  // --- criterion 8: the refresh still finds the picker ----------------------
+
+  // `restoreChosen` re-applies a reader's un-submitted choice after the
+  // five-second swap by querying `select[data-tool-picker]` and keying
+  // it on `form` + `name` (`queue-client.ts`). Neither depends on which
+  // `<td>` the control sits in — but both are markup this file writes,
+  // and moving the control into a spanning cell is exactly the edit
+  // that could drop one without a type error to say so.
+  test("the picker in its new cell is still the one the refresh restores (criterion 8)", () => {
+    const html = rows();
+    const picker = html.match(/<select[^>]*data-tool-picker[^>]*>/)![0];
+    expect(picker).not.toContain("name=");
+    const formId = html.match(/<form id="([^"]+)"/)![1];
+    expect(picker).toContain(`form="${formId}"`);
+  });
+
+  // --- the narrow layout has an answer too (criterion 7) --------------------
+
+  test("at phone width the model and its box wrap inside their own cell (criterion 7)", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(narrow).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
+    // The pinned flex bases the three-in-one cell needed are gone from
+    // both halves of the cascade — real columns line up by themselves.
+    expect(CSS).not.toContain(".phasecell > .row");
   });
 });
