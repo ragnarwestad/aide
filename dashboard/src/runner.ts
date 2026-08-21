@@ -499,11 +499,10 @@ export class Runner {
       this.announce(done ?? job, "finished", step);
       return;
     }
-    if (step && job.gateAfter.includes(step)) {
-      const parked = this.o.store.update(job.id, { ...base, state: "awaiting-approval", stepIndex: nextIndex });
-      this.announce(parked ?? job, "gate", step);
-      return;
-    }
+    // A step used to be able to PARK the job here, waiting for a person
+    // to press Approve. Spec 149 removed the stop: every step lands the
+    // work it produced, so there is nothing between two steps for anyone
+    // to weigh, and the next step is simply queued.
     this.o.store.update(job.id, { ...base, state: "queued", stepIndex: nextIndex });
   }
 }

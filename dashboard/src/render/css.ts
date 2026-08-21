@@ -405,8 +405,8 @@ table.list tr.subrow[data-caption] .phasecell label {
 .pip.now { background: var(--accent); }
 
 /* --- rows and forms ----------------------------------------------------- */
-/* "rowrun", "actionform", "mergeform", "resolveform", "newspecform",
-   "refused" and "refusal" are what queue-client.ts selects on. They are
+/* "rowrun", "actionform", "resolveform", "newspecform", "refused" and
+   "refusal" are what queue-client.ts selects on. They are
    laid out here and coloured nowhere: a rename breaks the browser code
    with no type error to catch it. */
 
@@ -429,25 +429,22 @@ td form { margin: 0; display: inline-block; }
    down; the gap is the container's, as everywhere else. */
 .stack { display: flex; flex-direction: column; align-items: flex-start;
   gap: var(--sp-2); }
-/* The column above is 14rem because the longest label a row can draw —
-   the Merge button naming two repos at once — fits in it. The two
+/* The column above is 14rem because the longest label a row can draw
+   fits in it. The two
    rules below are the backstop for the day one does not: a button
    clips rather than demanding a wider column, since a column that
    grows to fit one row's button moves every other row on the page,
    which is what the width was declared to stop. */
 .stack > * { max-width: 100%; }
 .stack .btn { overflow: hidden; }
-/* No margin on any of the three below, nor on "extra": the space
-   between two controls is declared once, by the "row" that holds them
-   (spec 120). A margin here would travel into every layout the form is
-   put in next, and a container gap does not absorb it. "actionform"
-   has no rule left at all — "td form" above gives it everything it
-   had. */
-.mergeform { display: inline-block; }
+/* No margin on the rule below, nor on "extra": the space between two
+   controls is declared once, by the "row" that holds them (spec 120). A
+   margin here would travel into every layout the form is put in next,
+   and a container gap does not absorb it. "actionform" has no rule left
+   at all — "td form" above gives it everything it had. */
 .resolveform { display: inline-block; }
-.mergeform form { display: inline-block; }
-/* The end of the action stack: the gate and "also touches" (the model
-   left for the phase lines in spec 123). Small and bottom-aligned, so
+/* The end of the action stack: "also touches" (the model left for the
+   phase lines in spec 123). Small and bottom-aligned, so
    a labelled field and a bare checkbox share one line, and quiet
    enough that the buttons above them still read first. */
 .extra { display: inline-flex; vertical-align: bottom;

@@ -35,7 +35,7 @@ Available skills:
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Archive a finished spec and feed durable knowledge back into the docs
-- `/aide-resolve` - Finish a merge the Merge button refused for a conflict, and run the tests
+- `/aide-resolve` - Finish a merge the dashboard refused for a conflict, and run the tests
 - `/aide-to-pdf` - Render the specs to PDF
 - `/tdd-coach` - Test-Driven Development methodology
 
@@ -100,8 +100,8 @@ project states them.
 `AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
 that installs itself somewhere — aide puts its scripts in
 `~/.local/bin` — code reaching the default branch changes nothing on
-the machine until the install runs, and the dashboard's Merge button
-said "merged" while the host went on running the old version. The value
+the machine until the install runs, and the dashboard once said
+"merged" while the host went on running the old version. The value
 is an argv, split on whitespace and run with **no shell**, in the
 project's own checkout, bounded by a timeout; a failure is reported
 beside the merge and never turns a completed merge back into a failed

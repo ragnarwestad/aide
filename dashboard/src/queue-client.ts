@@ -153,36 +153,13 @@ function navigate(event: MouseEvent): void {
   void swapRows();
 }
 
-// What happened AFTER the merge landed: whatever the install did (or
-// that there was none to run), and whether the spec branch was actually
-// removed from origin. Merged is not deployed — the default branch
-// moving changes nothing on the machine until the install runs — and a
-// branch left on origin is what spec 92's dependency guard reads as
-// "not merged yet". Both are said out loud, in the same banner a
-// refusal already uses. It sits OUTSIDE #jobrows on purpose: it is
-// about what just happened, not about any row, and the five-second swap
-// must not wipe it.
-function afterMergeNote(text: string): void {
-  const rows = document.getElementById("jobrows");
-  document.getElementById("installnote")?.remove();
-  if (!text || !rows?.parentNode) return;
-  const note = document.createElement("p");
-  note.id = "installnote";
-  // `refusal` is the selector hook and carries no look of its own;
-  // `rowmsg err` is the component that gives it one. Both, because
-  // neither does the other's job.
-  note.className = "refusal rowmsg err";
-  note.textContent = text;
-  rows.parentNode.insertBefore(note, rows);
-}
-
 // Every control on this page used to be a plain form POST: the browser
 // navigated on the click, so the button froze mid-navigation with
 // nothing to say for itself, and the 303 landed on a page whose render
 // asks git once per spec — several seconds later, at the top of the
 // list, away from the row the reader was watching. Merge was fixed
-// first (spec 96); spec 101 gave Run, Approve, Cancel and Create the
-// same treatment and took the navigation out of the REFUSAL path too.
+// first (spec 96); spec 101 gave Run, Cancel and Create the same
+// treatment and took the navigation out of the REFUSAL path too.
 //
 // Same request, same route, same answer; only the waiting and the jump
 // are gone. Everything here degrades: without this file the forms still
@@ -192,7 +169,7 @@ function afterMergeNote(text: string): void {
 
 /** Every form in `#jobrows` this file speaks for. They differ in what
  *  they ask the server, not in what pressing them should look like. */
-const ACTIONS = "form.rowrun, form.actionform, form.mergeform, form.resolveform";
+const ACTIONS = "form.rowrun, form.actionform, form.resolveform";
 
 /** Character for character what `components.ts` renders (`SPINNER`).
  *  This file can neither import nor export, so the one thing keeping
@@ -210,7 +187,10 @@ interface ActionResult {
   ok?: boolean;
   spec?: string;
   error?: string;
-  results?: { error?: string; reason?: string; installError?: string; branchDeleteError?: string }[];
+  /** The project routes answer step by step (`answerProjectChange`), so
+   *  a refusal can name WHICH step refused. The merge route answered in
+   *  the same shape, per repo, until spec 149 removed it. */
+  results?: { error?: string }[];
   /** An Add that SUCCEEDED and still has something to say: whether a
    *  run can start in the project it just registered (spec 138). The
    *  server writes the sentence — the same one its own redirect carries
@@ -218,33 +198,25 @@ interface ActionResult {
   readiness?: { canRun?: boolean; note?: string };
 }
 
-/** Why the server said no, whichever shape it said it in: merge answers
- *  per repo, the other four answer once. */
+/** Why the server said no, whichever shape it said it in: the project
+ *  routes answer per step, the queue routes answer once. */
 function refusalText(body: ActionResult | null): string {
-  const perRepo = (body?.results ?? []).map((r) => r.error).filter(Boolean).join("; ");
-  return perRepo || body?.error || "the request failed";
-}
-
-/** The one machine-readable refusal class the page acts on: a per-repo
- *  `reason: "conflict"` is what makes the row offer the resolve step.
- *  The no-JS redirect carries it as `errorReason`; this path lost it,
- *  and the resolve button never appeared for anyone with JS on. */
-function refusalReason(body: ActionResult | null): string | undefined {
-  return (body?.results ?? []).some((r) => r.reason === "conflict") ? "conflict" : undefined;
+  const perStep = (body?.results ?? []).map((r) => r.error).filter(Boolean).join("; ");
+  return perStep || body?.error || "the request failed";
 }
 
 /** Post a form as JSON-wanting XHR and hand the answer on. The button
- *  work is the same for all five controls, and is the whole point: a
- *  press has to change something the instant it happens.
+ *  work is the same for every control, and is the whole point: a press
+ *  has to change something the instant it happens.
  *
- *  The form's own fields go with it. Merge needs none — but Run IS its
+ *  The form's own fields go with it. Cancel needs none — but Run IS its
  *  fields (the phases ticked, the model, the other repos), and
  *  the hidden view fields are what the server rebuilds the reader's
  *  filter from on the no-JS path. */
 async function postForm(
   form: HTMLFormElement,
   onOk: (body: ActionResult | null) => Promise<void> | void,
-  onRefused: (why: string, spec: string | undefined, reason?: string) => Promise<void> | void,
+  onRefused: (why: string, spec: string | undefined) => Promise<void> | void,
 ): Promise<void> {
   const buttons = Array.from(form.querySelectorAll("button"));
   const primary = buttons[0];
@@ -313,7 +285,7 @@ async function postForm(
       await onOk(answer);
       return;
     }
-    await onRefused(refusalText(answer), answer?.spec, refusalReason(answer));
+    await onRefused(refusalText(answer), answer?.spec);
   } catch {
     // Offline, or the server restarting mid-request: the page reload is
     // the always-correct answer, because it asks the server again. With
@@ -347,13 +319,13 @@ async function postForm(
 // every refusal back on the default list, which is the thing the plain
 // form POST was fixed for. `errorSpec` is the server's own answer for
 // WHICH row this belongs to, and `specHeadRow` puts it there.
-async function showRefusal(why: string, spec: string | undefined, reason?: string): Promise<void> {
+async function showRefusal(why: string, spec: string | undefined): Promise<void> {
   const back = new URLSearchParams(location.search);
   // Handed over once as a cookie: putting it back in the address bar
   // would leave the token in history for nothing. `rows` and the two
   // this is about to set would otherwise be carried over from a URL
   // that is already showing a refusal.
-  for (const drop of ["token", "rows", "error", "errorSpec", "errorReason"]) back.delete(drop);
+  for (const drop of ["token", "rows", "error", "errorSpec"]) back.delete(drop);
   // Percent-encoded one key at a time, exactly as the server's own
   // redirect does it (`specsRedirect`): `URLSearchParams.toString()`
   // writes a space as `+`, and this string is a sentence a person reads
@@ -361,7 +333,6 @@ async function showRefusal(why: string, spec: string | undefined, reason?: strin
   const parts = [...back].map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
   parts.push(`error=${encodeURIComponent(why)}`);
   if (spec) parts.push(`errorSpec=${encodeURIComponent(spec)}`);
-  if (reason) parts.push(`errorReason=${encodeURIComponent(reason)}`);
   history.replaceState(null, "", `/?${parts.join("&")}`);
   await swapRows();
 }
@@ -375,18 +346,10 @@ async function submitAction(event: Event): Promise<void> {
   event.preventDefault();
   await postForm(
     form,
-    async (body) => {
+    async () => {
       // Now, not on the next five-second tick: the result belongs where
       // the reader already is.
       await swapRows();
-      // Only a merge reports per repo, and only a merge has anything to
-      // say after the fact. Another action's success must not wipe the
-      // note a merge just left.
-      if (body?.results) {
-        afterMergeNote(
-          body.results.flatMap((r) => [r.installError, r.branchDeleteError]).filter(Boolean).join("; "),
-        );
-      }
     },
     showRefusal,
   );

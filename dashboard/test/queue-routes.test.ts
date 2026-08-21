@@ -190,7 +190,7 @@ describe("token configured", () => {
     expect(listed.jobs).toEqual([]);
   });
 
-  test("cancel marks the job cancelled; approve releases a gate back to queued", async () => {
+  test("cancel marks the job cancelled", async () => {
     const { base } = start({ queueToken: TOKEN });
     const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
     const made = (await (
@@ -342,11 +342,6 @@ describe("the page moved from /queue to /specs to / (criteria 7-9, 12)", () => {
     expect(one.status).toBe(200);
     expect(((await one.json()) as { job: { id: string } }).job.id).toBe(id);
 
-    const approve = await fetch(`${base}/api/queue/${id}/approve`, {
-      method: "POST", headers, redirect: "manual",
-    });
-    // A queued job cannot be approved — the same 409 as before the rename.
-    expect(approve.status).toBe(409);
     const cancel = await fetch(`${base}/api/queue/${id}/cancel`, {
       method: "POST", headers, redirect: "manual",
     });
@@ -408,14 +403,13 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     });
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      job: { steps: string[]; gateAfter: string[]; model: Record<string, string> };
+      job: { steps: string[]; gateAfter?: string[]; model: Record<string, string> };
     };
     expect(body.job.steps).toEqual(["implement"]);
     expect(body.job.model).toEqual({ implement: "fable" });
-    // A form names no gate at all (spec 133 took the checkbox out), and
-    // that silence must mean "run straight through", not "gate after
-    // every step" (the schema's own default).
-    expect(body.job.gateAfter).toEqual([]);
+    // Spec 149: there is no gate to name at all any more, so the field
+    // is not on the job the queue hands back.
+    expect(body.job.gateAfter).toBeUndefined();
   });
 
   test("the default option queues no override at all (criterion 4)", async () => {
@@ -470,16 +464,16 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: body.toString(),
     });
     expect(res.status).toBe(200);
-    const made = (await res.json()) as { job: { steps: string[]; gateAfter: string[] } };
+    const made = (await res.json()) as { job: { steps: string[]; gateAfter?: string[] } };
     expect(made.job.steps).toEqual(["analyze", "implement"]);
-    expect(made.job.gateAfter).toEqual([]);
+    expect(made.job.gateAfter).toBeUndefined();
   });
 
-  // The checkbox that used to send this key is gone (spec 133), so a
-  // urlencoded body naming `gate` is a stray from somewhere else. It
-  // must not gate the job: `gateAfter` follows the same rule as any
-  // other form post — `[]` unless `gateAfter` itself is named.
-  test("a stray gate key no longer gates the job (criterion 3)", async () => {
+  // The checkbox that used to send this key went in spec 133 and the
+  // gate itself in spec 149, so a urlencoded body naming `gate` is a
+  // stray from somewhere else. It is ignored, like any other unknown
+  // key, and the job runs straight through.
+  test("a stray gate key is ignored (criterion 3)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const body = new URLSearchParams({ project: "aide", specFolder: "81-queue-and-runner" });
     body.append("steps", "analyze");
@@ -494,8 +488,9 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       },
       body: body.toString(),
     });
-    const made = (await res.json()) as { job: { gateAfter: string[] } };
-    expect(made.job.gateAfter).toEqual([]);
+    const made = (await res.json()) as { job: { gateAfter?: string[]; state: string } };
+    expect(made.job.gateAfter).toBeUndefined();
+    expect(made.job.state).toBe("queued");
   });
 
   test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
@@ -673,7 +668,6 @@ describe("renderQueuePage state labels", () => {
         row("failed", { error: "boom" }),
         row("queued"),
         row("running"),
-        row("awaiting-approval"),
         row("done"),
         row("cancelled"),
         row("interrupted"),
@@ -685,7 +679,6 @@ describe("renderQueuePage state labels", () => {
     expect(html).toContain("stopped — budget");
     expect(html).toContain("stopped — 20 min");
     expect(html).toContain("failed");
-    expect(html).toContain("waiting for approval");
     expect(html).not.toContain("stopped — failed");
   });
 });
@@ -1361,7 +1354,7 @@ describe("the job list sorts and filters", () => {
   });
 
   test("asking for active work leaves the finished jobs out", () => {
-    const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "awaiting-approval" })];
+    const rows = [row("a", { state: "running" }), row("b"), row("c", { state: "queued" })];
     const html = page(rows, { state: "active" });
     expect(html).toContain("a-spec");
     expect(html).toContain("c-spec");
@@ -1824,256 +1817,10 @@ describe("each row asks which other repos its job will touch (criterion 5)", () 
 
 // --- spec 89: merging a spec's branches from the page ------------------------
 
-// The same mistake happened three times on 2026-08-17: a spec's work
-// was merged in `aide-specs` and forgotten in `aide`, or the other way
-// round. The route merges every repo the spec has a branch in, and
-// reports each one on its own — never one collective "ok".
-describe("POST /api/queue/<id>/merge", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-  const PROJECT_REPO = "/repos/aide";
-  const SPECS_REPO = "/repos/aide-specs";
-
-  /** A git that answers per repo. `conflicting` names the roots whose
-   *  real merge fails, so a two-repo spec can have one of each. */
-  function gitFor(conflicting: string[] = []) {
-    const calls: { dir: string; args: string[] }[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only")) return { code: 1, stdout: "" };
-      if (a.startsWith("merge -q --no-edit")) {
-        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-      }
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    return { run, calls };
-  }
-
-  /** Seed a finished job whose steps pushed to these repos, and hand
-   *  back a mirror a second server can read. */
-  async function seeded(
-    branchUrls: { root: string; url: string }[],
-    steps: string[] = ["analyze"],
-  ): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify({ ...JOB, steps }) })
-    ).json()) as { job: { id: string } };
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = "done";
-    job.branchUrls = branchUrls;
-    job.branchUrl = branchUrls[0]?.url;
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, id: made.job.id };
-  }
-
-  test("a single-repo spec merges and pushes, and says which repo it did", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    const git = gitFor();
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { ok: boolean; results: { root: string; ok: boolean }[] };
-    expect(body.ok).toBe(true);
-    expect(body.results).toEqual([{ root: PROJECT_REPO, ok: true }]);
-    expect(git.calls.some((c) => c.dir === PROJECT_REPO && c.args[0] === "push")).toBe(true);
-  });
-
-  // Decided up front #2: several repos cannot be merged atomically, so
-  // a single green tick would recreate today's problem mirrored.
-  test("one repo merging and another conflicting is reported per repo", async () => {
-    const { mirror, id } = await seeded([
-      { root: PROJECT_REPO, url: "https://example.test/aide" },
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-    ]);
-    const git = gitFor([SPECS_REPO]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
-    const body = (await res.json()) as { ok: boolean; results: { root: string; ok: boolean; error?: string }[] };
-    expect(body.ok).toBe(false);
-    expect(body.results.find((r) => r.root === PROJECT_REPO)!.ok).toBe(true);
-    const refused = body.results.find((r) => r.root === SPECS_REPO)!;
-    expect(refused.ok).toBe(false);
-    expect(refused.error).toContain(SPECS_REPO);
-    // The conflicting repo left nothing half-merged, and nothing of it
-    // reached origin.
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args.join(" ") === "merge --abort")).toBe(true);
-    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(false);
-    // The repo that DID merge was still pushed — one failure never
-    // rolls back another repo's success.
-    expect(git.calls.some((c) => c.dir === PROJECT_REPO && c.args[0] === "push")).toBe(true);
-  });
-
-  // Decided up front #4: every step makes branches, and merging after
-  // `analyze` is a legitimate thing to want. Nothing here gates on
-  // which step ran — only on a branch existing.
-  test("a spec that has only been analyzed still merges", async () => {
-    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }], ["analyze"]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor().run });
-    const body = (await (
-      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
-    ).json()) as { ok: boolean; results: { root: string }[] };
-    expect(body.ok).toBe(true);
-    expect(body.results.map((r) => r.root)).toEqual([SPECS_REPO]);
-  });
-
-  test("an unknown job id is a 404", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    expect((await fetch(`${base}/api/queue/nope/merge`, { method: "POST", headers: AUTH })).status).toBe(404);
-  });
-
-  test("a spec with no branch recorded is refused, and no git is run at all", async () => {
-    const { base } = start({ queueToken: TOKEN });
-    const git = gitFor();
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const { base: base2 } = start({ queueToken: TOKEN, gitRun: git.run });
-    const res = await fetch(`${base2}/api/queue/${made.job.id}/merge`, { method: "POST", headers: AUTH });
-    expect(res.status).toBe(404); // the second server does not know this job
-    // …and the one that does refuses it with 400, having run nothing.
-    const own = await fetch(`${base}/api/queue/${made.job.id}/merge`, { method: "POST", headers: AUTH });
-    expect(own.status).toBe(400);
-    expect(git.calls.length).toBe(0);
-  });
-
-  // Criterion 8. `isMerged()` caches for 30 s, so the page that
-  // triggered the merge is exactly the page that would show its own
-  // result as "ready to merge" — the one place a stale answer is certain
-  // rather than unlikely. The clock does not move in this test: only
-  // the invalidation can account for the change.
-  test("the page shows the merge it just did, without waiting out the cache", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    // A git that starts out saying "ready to merge" and starts saying
-    // "merged" once the branch has actually been pushed to the base.
-    const pushed = new Set<string>();
-    const run = async (dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only")) return { code: 0, stdout: "" };
-      if (a.startsWith("push")) {
-        pushed.add(dir);
-        return { code: 0, stdout: "" };
-      }
-      if (a.startsWith("merge-base")) return { code: pushed.has(dir) ? 0 : 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
-    const auth = { headers: { "x-aide-token": TOKEN } };
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH });
-    expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
-    expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
-  });
-
-  // Spec 129, criterion 4. The other direction of the same cache: 54 of
-  // the 75 refusals in the log, across 23 specs, were "there is nothing
-  // left to merge" — a row that offered a button for a branch that was
-  // not on origin any more. The refusal PROVES the cached "not merged"
-  // wrong, so the row has no business offering the same press again for
-  // the rest of the 30 s TTL. The clock does not move in this test:
-  // only the invalidation can account for the change.
-  test("a branch that turned out to be gone stops being offered at once", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    // The branch is on origin and unmerged to start with, and is taken
-    // off origin — by a hand merge, another tab, another machine —
-    // before the press lands.
-    let gone = false;
-    const run = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("ls-remote")) return { code: gone ? 2 : 0, stdout: "" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
-    const auth = { headers: { "x-aide-token": TOKEN } };
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    gone = true;
-    const body = (await (
-      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
-    ).json()) as { ok: boolean; results: { error?: string }[] };
-    expect(body.ok).toBe(false);
-    expect(body.results[0]!.error).toContain("nothing left to merge");
-    expect(await (await fetch(`${base}/`, auth)).text()).not.toContain("ready to merge");
-  });
-
-  // Criterion 5: and no other refusal touches the cache. A push that
-  // failed says nothing about whether the branch is still there to
-  // merge, so clearing the answer on it would throw away a true one and
-  // spend three git calls re-deriving it on the next page load.
-  test("a refusal that proves nothing leaves the cached answer alone", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    let pushFails = false;
-    const calls: string[] = [];
-    const run = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      calls.push(a);
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("push") && pushFails) return { code: 1, stdout: "" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
-    const auth = { headers: { "x-aide-token": TOKEN } };
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    pushFails = true;
-    const body = (await (
-      await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })
-    ).json()) as { ok: boolean; results: { error?: string }[] };
-    expect(body.ok).toBe(false);
-    expect(body.results[0]!.error).toContain("push");
-    // Still offered, and answered from the cache: no second ls-remote
-    // was needed to say so.
-    const before = calls.filter((a) => a.startsWith("ls-remote")).length;
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    expect(calls.filter((a) => a.startsWith("ls-remote"))).toHaveLength(before);
-  });
-
-  test("GET is not a way to merge anything", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    const git = gitFor();
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
-    expect((await fetch(`${base}/api/queue/${id}/merge`, { headers: AUTH })).status).toBe(405);
-    expect(git.calls.length).toBe(0);
-  });
-
-  // Not a new guard: `isQueuePath` already covers every `/api/queue/`
-  // path, and this confirms the new route inherited it rather than
-  // needing its own.
-  test("it is behind the same token as every other queue route", async () => {
-    const { mirror, id } = await seeded([{ root: PROJECT_REPO, url: "https://example.test/aide" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor().run });
-    expect((await fetch(`${base}/api/queue/${id}/merge`, { method: "POST" })).status).toBe(401);
-    const { base: off } = start({ queueMirrorPath: mirror, gitRun: gitFor().run });
-    expect((await fetch(`${off}/api/queue/${id}/merge`, { method: "POST" })).status).toBe(503);
-  });
-
-  // A person pressing a button on a page gets the answer on that page,
-  // not a JSON blob — the same shape the enqueue form already uses.
-  test("a plain form post lands back on /, with the refusal in the query string", async () => {
-    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitFor([SPECS_REPO]).run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
-      redirect: "manual",
-    });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location.startsWith("/?error=")).toBe(true);
-    expect(decodeURIComponent(location)).toContain(SPECS_REPO);
-  });
-});
+// Spec 149: the Merge button is gone, and this whole block with it. What it
+// covered — the per-repo merge, the plan-before-code order, the install
+// afterwards, the conflict that offers a resolve — is what a step's own
+// landing does now, and is covered in "every step lands its own work" below.
 
 // --- Spec 91, criterion 26: how many at once -------------------------------
 // The slot count is a number, and a number that turns out wrong should
@@ -2136,197 +1883,6 @@ describe("the queue config decides how many run at once", () => {
 });
 
 // --- spec 96: what a merge does, and in what order ---------------------------
-
-// Two things the merge route got wrong once it was used in anger. It
-// merged the repos in the order the run happened to record them —
-// project first, specs root last — so a reader watching the page saw the
-// code land before the plan that describes it; and merging a project's
-// code changed nothing on the serving host, because "deployed" for a
-// tool like aide means INSTALLED, which was a hand step nobody was told
-// about.
-describe("POST /api/queue/<id>/merge: order, and what happens after (criteria 14, 17, 18)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-  const PROJECT_ROOT = "/repos";
-  const PROJECT_REPO = "/repos/aide";
-  const SPECS_REPO = "/repos/aide-specs";
-
-  function gitOk() {
-    const calls: { dir: string; args: string[] }[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    return { run, calls };
-  }
-
-  async function seeded(branchUrls: { root: string; url: string }[]): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const made = (await (
-      await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) })
-    ).json()) as { job: { id: string } };
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = "done";
-    job.branchUrls = branchUrls;
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, id: made.job.id };
-  }
-
-  interface MergeBody {
-    ok: boolean;
-    results: { root: string; ok: boolean; error?: string; installError?: string }[];
-  }
-
-  const merge = async (base: string, id: string): Promise<MergeBody> =>
-    (await (await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })).json()) as MergeBody;
-
-  // The code is the one that matters, so it should be the last word:
-  // the plan and the status land first, and the reader's eye ends on
-  // the repo that reaches the serving host.
-  test("the specs repo is merged before the project's own (criterion 14)", async () => {
-    const { mirror, id } = await seeded([
-      { root: PROJECT_REPO, url: "https://example.test/aide" },
-      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
-    ]);
-    const git = gitOk();
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: PROJECT_ROOT,
-      gitRun: git.run,
-    });
-    const body = await merge(base, id);
-    expect(body.ok).toBe(true);
-    const dirs = git.calls.map((c) => c.dir);
-    expect(dirs.lastIndexOf(SPECS_REPO)).toBeLessThan(dirs.indexOf(PROJECT_REPO));
-    // The report still names both, in whatever order they ran.
-    expect(body.results.map((r) => r.root).sort()).toEqual([PROJECT_REPO, SPECS_REPO]);
-  });
-
-  /** A project checkout with an `.aide/config` of its own — the file the
-   *  install command is read from, and the only place it may come from.
-   *  `AIDE_INSTALL_CMD` unset means the file is written without it. */
-  function checkout(installCmd?: string): { root: string; repo: string } {
-    const root = mkdtempSync(join(tmpdir(), "aide-install-"));
-    ownDirs.push(root);
-    const repo = join(root, "aide");
-    mkdirSync(join(repo, ".aide"), { recursive: true });
-    writeFileSync(
-      join(repo, ".aide", "config"),
-      `AIDE_SPECS_PATH=${join(repo, "specs")}\n` + (installCmd ? `AIDE_INSTALL_CMD=${installCmd}\n` : ""),
-    );
-    return { root, repo };
-  }
-
-  test("a merged project repo runs the project's own install command (criterion 17)", async () => {
-    // Argv, split on whitespace and run with no shell — so the fixture
-    // is a command that needs no quoting, run in the repo's own
-    // checkout, which is the only way to tell it ran THERE.
-    const { root, repo } = checkout("/usr/bin/touch installed");
-    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      gitRun: gitOk().run,
-    });
-    const body = await merge(base, id);
-    expect(body.ok).toBe(true);
-    expect(existsSync(join(repo, "installed"))).toBe(true);
-    // Success is silent: one message about this repo's install state, or
-    // none at all.
-    expect(body.results[0]!.installError).toBeUndefined();
-  });
-
-  test("without the key the page says deploy is still a hand step (criterion 17)", async () => {
-    const { root, repo } = checkout();
-    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      gitRun: gitOk().run,
-    });
-    const body = await merge(base, id);
-    expect(body.ok).toBe(true);
-    expect(body.results[0]!.installError).toContain("not installed");
-  });
-
-  test("an install that fails is named, and never unmerges the merge (criterion 17)", async () => {
-    const { root, repo } = checkout("/usr/bin/false");
-    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      gitRun: gitOk().run,
-    });
-    const body = await merge(base, id);
-    // The merge already happened. A failed install is reported beside
-    // it, never turned back into a merge failure.
-    expect(body.ok).toBe(true);
-    expect(body.results[0]!.ok).toBe(true);
-    expect(body.results[0]!.installError).toContain("install failed");
-  });
-
-  test("an install that hangs is killed, and the response still comes (criterion 18)", async () => {
-    const { root, repo } = checkout("/bin/sleep 30");
-    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      queueInstallTimeoutMs: 150,
-      gitRun: gitOk().run,
-    });
-    const body = await merge(base, id);
-    expect(body.ok).toBe(true);
-    expect(body.results[0]!.installError).toContain("timed out");
-  });
-
-  // Without JavaScript the form still submits itself and the 303 still
-  // works — so the same sentence has to reach the page that way too, or
-  // a merge that deployed nothing reads as one that did.
-  test("a plain form POST carries the install message back to the page (criterion 17)", async () => {
-    const { root, repo } = checkout();
-    const { mirror, id } = await seeded([{ root: repo, url: "https://example.test/aide" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      gitRun: gitOk().run,
-    });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
-      redirect: "manual",
-    });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("not installed");
-  });
-
-  // The specs repo is not the project's checkout, so nothing is
-  // installed from it — merging a plan deploys nothing, by definition.
-  test("merging only the specs repo installs nothing and says nothing about it", async () => {
-    const { root } = checkout("/usr/bin/false");
-    const { mirror, id } = await seeded([{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({
-      queueToken: TOKEN,
-      queueMirrorPath: mirror,
-      queueProjectRoot: root,
-      gitRun: gitOk().run,
-    });
-    const body = await merge(base, id);
-    expect(body.ok).toBe(true);
-    expect(body.results[0]!.installError).toBeUndefined();
-  });
-});
 
 // --- spec 93: making a spec from the page ------------------------------------
 
@@ -2655,13 +2211,10 @@ describe("landing a created spec (spec 93)", () => {
     const group = specControls(html, "94-a-new-spec");
     // Runnable from its own phase lines, like every other spec...
     expect(group).toContain('name="steps" value="analyze"');
-    // ...and with nothing left to merge: the branch is landed. The
-    // button stands in the row's stack whatever the state, so what says
-    // there is nothing to merge is that it cannot be pressed — not that
-    // it went missing.
-    const merge = group.match(/<form method="post" action="[^"]*\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(merge).toContain("disabled");
-    expect(merge).toContain('title="no branch is open yet"');
+    // ...and with nothing left to merge: the branch is landed, and
+    // since spec 149 there is no control to merge it with either.
+    expect(group).not.toContain("/merge");
+    expect(group).not.toContain(">Merge</button>");
     expect(group).not.toContain("ready to merge");
   });
 
@@ -2751,7 +2304,7 @@ describe("landing an archived spec (spec 136)", () => {
       await fetch(`${base}/api/queue`, {
         method: "POST",
         headers: AUTH,
-        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step], gateAfter: [] }),
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
       })
     ).json()) as { job: { id: string; specFolder: string } };
     return made.job;
@@ -2935,12 +2488,12 @@ describe("landing an archived spec (spec 136)", () => {
     expect(html).toContain("archive held back — the implementation was reverted");
   });
 
-  // Criterion 5. The wiring stays narrow to the two steps whose work is
-  // invisible until it lands. Every other step pushes a branch and
-  // stops, and for `implement` above all that is the point: its diff
-  // reaches the serving host and is worth a person's eye first.
-  test("no other step lands itself — the branch waits for a press", async () => {
-    const steps = ["implement", "resolve", "analyze", "review-plan", "explore", "manifest"];
+  // Criterion 5, as spec 149 leaves it. `analyze`, `review-plan` and
+  // `resolve` land themselves now too, so the steps that still land
+  // nothing are `implement` — whose pushed branch IS the place a person
+  // tests the code — and the two that belong to no spec's branch at all.
+  test("no other step lands itself — implement's branch stays open", async () => {
+    const steps = ["implement", "explore", "manifest"];
     const checked = await Promise.all(
       steps.map(async (step) => {
         const git = gitFor();
@@ -2960,6 +2513,408 @@ describe("landing an archived spec (spec 136)", () => {
       );
     }
   });
+});
+
+// --- spec 149: merging happens inside the steps, never by hand --------------
+//
+// A queue job that ran analyze, review-plan, implement and archive in one
+// go ended with the spec archived and the code still on a branch, waiting
+// for someone to press Merge; the same four steps run one at a time piled
+// three "ready to merge" buttons on the row for the specs repo and one for
+// the code. None of those buttons exist any more. Every step lands the work
+// it produced, and `implement` is the one exception ON PURPOSE: its branch
+// is where a person tests the code, by leaving `archive` unticked.
+//
+// `archive` is therefore the one step that sends CODE to a default branch —
+// so it is the one landing that has to look past its own outcome (the code
+// branch moved during implement, not during archive) and the one that has
+// to install afterwards, exactly as the Merge button did.
+describe("every step lands its own work (spec 149)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const SPEC = "81-queue-and-runner";
+  const BRANCH = `aide/${SPEC}`;
+
+  /** A projects root this suite owns, so `projectDir("aide")` is a path
+   *  the test can name — and can hang an `AIDE_INSTALL_CMD` off. The
+   *  shared harness leaves `queueProjectRoot` unset, which resolves the
+   *  project's checkout to a bare relative name. */
+  function own(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    ownDirs.push(dir);
+    return dir;
+  }
+
+  /** A git that answers per repo. `conflicting` names the roots whose
+   *  merge fails both ways. `slow` delays the ff-only merge, so two
+   *  landings on one root can be caught overlapping. */
+  function gitFor({ conflicting = [] as string[], slow = null as null | (() => Promise<void>) } = {}) {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only")) {
+        if (slow) await slow();
+        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      }
+      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  /** A discoverable project root with a real directory for the project's
+   *  own checkout, plus the specs repo the run pushes to. */
+  function repos(dir: string): { root: string; project: string; specs: string } {
+    const projectsRoot = join(dir, "root");
+    const project = join(projectsRoot, "aide");
+    const specs = join(dir, "aide-specs");
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
+    mkdirSync(join(project, "specs", SPEC), { recursive: true });
+    writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
+    writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
+    mkdirSync(specs, { recursive: true });
+    return { root: projectsRoot, project, specs };
+  }
+
+  /** The install the project runs once its code has landed — a `touch`,
+   *  so the test can ask whether it ran by asking the filesystem. */
+  function installs(project: string): string {
+    const marker = join(project, "installed");
+    writeFileSync(join(project, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
+    return marker;
+  }
+
+  function serverWith(
+    dir: string,
+    paths: { root: string },
+    git: { run: (dir: string, args: string[]) => Promise<unknown> },
+    extra: Partial<ServerOptions> = {},
+  ): { base: string } {
+    const results = join(dir, "jobs");
+    mkdirSync(results, { recursive: true });
+    return harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        gitRun: git.run as never,
+        queueRunnerBin: "/usr/bin/true",
+        queueResultDir: results,
+        ...extra,
+      },
+    });
+  }
+
+  const resultDir = (dir: string) => join(dir, "jobs");
+
+  async function runStep(base: string, step: string): Promise<{ id: string }> {
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: [step] }),
+      })
+    ).json()) as { job: { id: string } };
+    return made.job;
+  }
+
+  async function settle(
+    base: string,
+    id: string,
+    done: (job: Record<string, unknown>) => boolean,
+  ): Promise<Record<string, unknown>> {
+    for (let n = 0; n < 100; n++) {
+      const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
+        job: Record<string, unknown>;
+      };
+      if (done(body.job)) return body.job;
+      await Bun.sleep(50);
+    }
+    throw new Error("the job never settled");
+  }
+
+  const merges = (calls: { dir: string; args: string[] }[], root?: string) =>
+    calls.filter(
+      (c) =>
+        c.args[0] === "merge" &&
+        c.args.includes(`refs/remotes/origin/${BRANCH}`) &&
+        (root === undefined || c.dir === root),
+    );
+
+  const result = (over: Record<string, unknown> = {}) => ({
+    ok: true,
+    exitCode: 0,
+    costUsd: 0.2,
+    costMeasured: true,
+    terminalReason: "completed",
+    branch: BRANCH,
+    repos: [],
+    ...over,
+  });
+
+  /** Run one step to completion with the result `aide-run-spec` would
+   *  have written for it, and hand back the job as the queue left it. */
+  async function stepWithResult(
+    base: string,
+    dir: string,
+    step: string,
+    over: Record<string, unknown>,
+    settled: (job: Record<string, unknown>) => boolean = (j) => j.state === "done" && !j.landing,
+  ): Promise<Record<string, unknown>> {
+    const job = await runStep(base, step);
+    writeFileSync(join(resultDir(dir), `${job.id}.json`), JSON.stringify(result(over)));
+    return settle(base, job.id, settled);
+  }
+
+  // Criteria 1 and 2. The argument that made `create` and `archive` land
+  // themselves holds word for word here: analyze and review-plan write
+  // markdown in the specs repo and nothing else, so there is no diff for
+  // a person to weigh and nothing that reaches the serving host.
+  test.each(["analyze", "review-plan"])(
+    "a finished %s step lands its own branch, with no press and no HTTP request",
+    async (step) => {
+      const dir = own(`aide-149-${step}-`);
+      const paths = repos(dir);
+      const git = gitFor();
+      const { base } = serverWith(dir, paths, git);
+
+      const landed = await stepWithResult(base, dir, step, {
+        branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+      });
+
+      expect(landed.error).toBeFalsy();
+      expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
+      expect(git.calls.some((c) => c.dir === paths.specs && c.args[0] === "push")).toBe(true);
+      // Landed, so the row stops advertising a branch at all.
+      expect(landed.branchUrls).toEqual([]);
+    },
+  );
+
+  // Criterion 3. The one step that deliberately does not land. The code
+  // stays on `aide/<spec>`, which is where a person tests it — by
+  // leaving `archive` unticked. The worktree is gone when the run ends,
+  // so the branch on origin is what remains.
+  test("a finished implement step merges nothing and leaves its branch open", async () => {
+    const dir = own("aide-149-implement-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWith(dir, paths, git);
+    const marker = installs(paths.project);
+
+    const branchUrls = [
+      { root: paths.project, url: "https://example.test/aide" },
+      { root: paths.specs, url: "https://example.test/aide-specs" },
+    ];
+    const done = await stepWithResult(base, dir, "implement", { branchUrls }, (j) => j.state === "done");
+
+    expect(merges(git.calls)).toEqual([]);
+    expect(done.landing).toBeFalsy();
+    expect(done.branchUrls).toEqual(branchUrls);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  // Criterion 4. The one landing that sends CODE to a default branch —
+  // and the reason it cannot read its own outcome alone. The code branch
+  // moved during IMPLEMENT; archive's own run may touch the project
+  // checkout without moving its HEAD at all, so the project root need
+  // never appear in archive's `branchUrls`. `queue.branchesFor` is the
+  // record that still has it.
+  test("archive lands the code branch an earlier implement left, and installs it", async () => {
+    const dir = own("aide-149-archive-code-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWith(dir, paths, git);
+    const marker = installs(paths.project);
+
+    // Implement first: it lands nothing, and its record is what carries
+    // the project's branch forward.
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      {
+        branchUrls: [
+          { root: paths.project, url: "https://example.test/aide" },
+          { root: paths.specs, url: "https://example.test/aide-specs" },
+        ],
+      },
+      (j) => j.state === "done",
+    );
+
+    // Archive's own run reports the specs repo alone.
+    const landed = await stepWithResult(base, dir, "archive", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(merges(git.calls, paths.project).length).toBeGreaterThan(0);
+    expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
+    // Merged is not deployed: for a tool that lives in `~/.local/bin`,
+    // the default branch moving changes nothing on the machine until the
+    // install runs. That is spec 92's bug, and the Merge button ran the
+    // install for exactly this reason.
+    for (let i = 0; i < 40 && !existsSync(marker); i++) await Bun.sleep(25);
+    expect(existsSync(marker)).toBe(true);
+  });
+
+  // Criterion 5. A code merge that cannot be made stops the step: nothing
+  // is left half-merged, the reason names the repo, and the spec stays in
+  // the active list. `errorReason` is what makes the way out survive —
+  // there is no browser attached to an automatic landing, so the one-shot
+  // redirect the Merge button used cannot carry it.
+  test("an archive landing that conflicts records errorReason and archives nothing", async () => {
+    const dir = own("aide-149-archive-conflict-");
+    const paths = repos(dir);
+    const git = gitFor({ conflicting: [paths.project] });
+    const { base } = serverWith(dir, paths, git);
+    const marker = installs(paths.project);
+
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+      (j) => j.state === "done",
+    );
+    const failed = await stepWithResult(
+      base,
+      dir,
+      "archive",
+      { branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] },
+      (j) => !!j.error,
+    );
+
+    expect(String(failed.error)).toContain(paths.project);
+    expect(String(failed.error)).toContain("conflict");
+    expect(failed.errorReason).toBe("conflict");
+    expect(failed.landing).toBeFalsy();
+    // Nothing half-merged, and nothing deployed from a merge that never
+    // happened.
+    expect(git.calls.some((c) => c.dir === paths.project && c.args.join(" ") === "merge --abort")).toBe(true);
+    expect(existsSync(marker)).toBe(false);
+    // Still in the active list, with its branch, exactly as it was.
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(specHead(html, SPEC)).not.toBe("");
+  }, 20000);
+
+  // Criterion 6. `resolve` lands what its OWN run reports and nothing
+  // else. A real conflict forces a commit, so every root it genuinely
+  // fixed has moved its HEAD and is in that outcome; reading
+  // `branchesFor` history instead would let a resolve of the specs repo
+  // drag an unarchived implement's code onto the default branch as a
+  // side effect.
+  test("resolve lands the repos its own run reports, and installs a code root among them", async () => {
+    const dir = own("aide-149-resolve-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWith(dir, paths, git);
+    const marker = installs(paths.project);
+
+    const landed = await stepWithResult(base, dir, "resolve", {
+      branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    expect(merges(git.calls, paths.project).length).toBeGreaterThan(0);
+    expect(landed.branchUrls).toEqual([]);
+    for (let i = 0; i < 40 && !existsSync(marker); i++) await Bun.sleep(25);
+    expect(existsSync(marker)).toBe(true);
+  });
+
+  // The other half of criterion 6, and the whole of the risk this spec
+  // accepted knowingly: a resolve run that touched only the specs repo
+  // must not reach back into the queue's history and land the code an
+  // earlier implement left open.
+  test("resolve does not land an unarchived implement's code branch", async () => {
+    const dir = own("aide-149-resolve-scope-");
+    const paths = repos(dir);
+    const git = gitFor();
+    const { base } = serverWith(dir, paths, git);
+
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+      (j) => j.state === "done",
+    );
+    await stepWithResult(base, dir, "resolve", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(merges(git.calls, paths.specs).length).toBeGreaterThan(0);
+    expect(merges(git.calls, paths.project)).toEqual([]);
+  });
+
+  // Criterion 7. The Resolve control used to be drawn from a query
+  // string the Merge button's own 303 wrote — one page load, one
+  // browser. An automatic landing has neither, so the reason is stored
+  // on the job and the row reads it from there on any later request.
+  test("a stored conflict still offers Resolve on a fresh request with no query string", async () => {
+    const dir = own("aide-149-resolve-offer-");
+    const paths = repos(dir);
+    const git = gitFor({ conflicting: [paths.specs] });
+    const { base } = serverWith(dir, paths, git);
+
+    await stepWithResult(
+      base,
+      dir,
+      "analyze",
+      { branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] },
+      (j) => !!j.error,
+    );
+
+    const url = `${base}/?${OPEN_81}`;
+    const html = await (await fetch(url, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain("resolveform");
+    expect(specControls(html, SPEC)).toContain('value="resolve"');
+  });
+
+  // Criterion 8. Both routes are gone, not merely unreachable from the
+  // page: the actions they offered are what this whole spec removes.
+  test.each(["merge", "approve"])("POST /api/queue/<id>/%s is not a route any more", async (verb) => {
+    const dir = own(`aide-149-route-${verb}-`);
+    const paths = repos(dir);
+    const { base } = serverWith(dir, paths, gitFor());
+    const job = await runStep(base, "analyze");
+
+    const res = await fetch(`${base}/api/queue/${job.id}/${verb}`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(404);
+    // Cancel is untouched — it is the one thing on that route that was
+    // never about merging.
+    const cancel = await fetch(`${base}/api/queue/${job.id}/cancel`, { method: "POST", headers: AUTH });
+    expect(cancel.status).toBe(200);
+  });
+
+  // Criterion 9. No form on the page could ever set a gate, and the
+  // three jobs that ever had one were posted as JSON by hand. A request
+  // that still names it is accepted and the field ignored, like every
+  // other unknown key — and no job can reach the state it produced.
+  test("a POST naming gateAfter is accepted, and the job runs straight through", async () => {
+    const dir = own("aide-149-gate-");
+    const paths = repos(dir);
+    const { base } = serverWith(dir, paths, gitFor());
+    const made = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({
+        project: "aide",
+        specFolder: SPEC,
+        steps: ["analyze", "implement"],
+        gateAfter: ["analyze"],
+      }),
+    });
+    expect(made.status).toBe(200);
+    const body = (await made.json()) as { job: Record<string, unknown> };
+    expect("gateAfter" in body.job).toBe(false);
+    expect(body.job.state).not.toBe("awaiting-approval");
+  });
+
 });
 
 // Spec 97: a description edited after the analyze ran leaves the plan
@@ -3104,7 +3059,12 @@ describe("a description newer than the analysis is shown on the row", () => {
 // it by hand" between the clicks: both requests share one checkout and
 // fought over its index.lock. Both went through on a retry, which is
 // what says it was a race and not a divergence.
-describe("two merges against one repo run one at a time (criteria 6, 10)", () => {
+//
+// Spec 149 removed the button and made the collision likelier, not
+// rarer: four steps land themselves now, and two specs sharing one
+// specs repo can finish within seconds of each other under queue
+// concurrency. So the same measurement is taken over two LANDINGS.
+describe("two landings against one repo run one at a time (criteria 6, 10)", () => {
   const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
   const SHARED_REPO = "/repos/aide-specs";
   const SECOND_SPEC = "82-second-spec";
@@ -3135,41 +3095,61 @@ describe("two merges against one repo run one at a time (criteria 6, 10)", () =>
     return { run, peak: () => peak };
   }
 
-  /** Two finished jobs for two different specs, both with a branch in
-   *  the SAME repo — which every spec has, because every spec's plan
-   *  lives in the specs root. */
-  async function seededPair(): Promise<{ mirror: string; ids: string[] }> {
-    const { base, dir } = start({ queueToken: TOKEN }, [], [SECOND_SPEC]);
-    const ids: string[] = [];
-    for (const specFolder of ["81-queue-and-runner", SECOND_SPEC]) {
-      const made = (await (
-        await fetch(`${base}/api/queue`, {
-          method: "POST",
-          headers: AUTH,
-          body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
-        })
-      ).json()) as { job: { id: string } };
-      ids.push(made.job.id);
-    }
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    for (const job of jobs) {
-      job.state = "done";
-      job.branchUrls = [{ root: SHARED_REPO, url: "https://example.test/aide-specs" }];
-    }
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, ids };
-  }
-
-  test("neither request ever sees the other mid-merge, and both go through (criterion 6)", async () => {
-    const { mirror, ids } = await seededPair();
+  test("neither landing ever sees the other mid-merge, and both go through (criterion 6)", async () => {
+    const results = mkdtempSync(join(tmpdir(), "aide-lock-results-"));
+    ownDirs.push(results);
     const git = gitCounting();
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: git.run });
-    const [a, b] = await Promise.all(
-      ids.map((id) => fetch(`${base}/api/queue/${id}/merge`, { method: "POST", headers: AUTH })),
+    const { base } = start(
+      {
+        queueToken: TOKEN,
+        gitRun: git.run,
+        queueRunnerBin: "/usr/bin/true",
+        queueResultDir: results,
+        queueConcurrency: 2,
+      },
+      [],
+      [SECOND_SPEC],
     );
-    expect(((await a!.json()) as { ok: boolean }).ok).toBe(true);
-    expect(((await b!.json()) as { ok: boolean }).ok).toBe(true);
+
+    // Two analyze steps on two specs, both landing in the SAME specs
+    // repo — which every spec shares, because every spec's plan lives
+    // in the specs root.
+    const settled = await Promise.all(
+      ["81-queue-and-runner", SECOND_SPEC].map(async (specFolder) => {
+        const made = (await (
+          await fetch(`${base}/api/queue`, {
+            method: "POST",
+            headers: AUTH,
+            body: JSON.stringify({ project: "aide", specFolder, steps: ["analyze"] }),
+          })
+        ).json()) as { job: { id: string } };
+        writeFileSync(
+          join(results, `${made.job.id}.json`),
+          JSON.stringify({
+            ok: true,
+            exitCode: 0,
+            costUsd: 0.1,
+            costMeasured: true,
+            terminalReason: "completed",
+            branch: `aide/${specFolder}`,
+            branchUrls: [{ root: SHARED_REPO, url: "https://example.test/aide-specs" }],
+            repos: [],
+          }),
+        );
+        for (let n = 0; n < 100; n++) {
+          const body = (await (await fetch(`${base}/api/queue/${made.job.id}`, { headers: AUTH })).json()) as {
+            job: Record<string, unknown>;
+          };
+          if (body.job.state === "done" && !body.job.landing) return body.job;
+          await Bun.sleep(50);
+        }
+        throw new Error("the job never settled");
+      }),
+    );
+
+    for (const job of settled) expect(job.error).toBeFalsy();
+    // Both landed: the branch each job advertised is gone from its row.
+    for (const job of settled) expect(job.branchUrls).toEqual([]);
     expect(git.peak()).toBe(1);
   });
 });
@@ -3233,18 +3213,6 @@ describe("the per-repo lock lets go once its chain has settled (criterion 10)", 
 describe("an action keeps the page's view (criterion 7)", () => {
   const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
   const VIEW = { "view.state": "active", "view.sort": "cost", "view.dir": "desc" };
-  const SPECS_REPO = "/repos/aide-specs";
-
-  function gitOk() {
-    return async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-  }
 
   const post = (base: string, path: string, fields: Record<string, string>) =>
     fetch(`${base}${path}`, {
@@ -3254,10 +3222,8 @@ describe("an action keeps the page's view (criterion 7)", () => {
       body: new URLSearchParams(fields),
     });
 
-  async function seededJob(
-    state: string,
-    branchUrls: { root: string; url: string }[] = [],
-  ): Promise<{ mirror: string; id: string }> {
+  /** One job in the mirror, in the state the test needs it. */
+  async function seededJob(state: string): Promise<{ mirror: string; id: string }> {
     const { base, dir } = start({ queueToken: TOKEN });
     const made = (await (
       await fetch(`${base}/api/queue`, {
@@ -3268,9 +3234,7 @@ describe("an action keeps the page's view (criterion 7)", () => {
     ).json()) as { job: { id: string } };
     const mirror = join(dir, "queue.json");
     const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = state;
-    if (branchUrls.length) job.branchUrls = branchUrls;
+    jobs.find((j) => j.id === made.job.id)!.state = state;
     writeFileSync(mirror, JSON.stringify(jobs));
     return { mirror, id: made.job.id };
   }
@@ -3303,22 +3267,6 @@ describe("an action keeps the page's view (criterion 7)", () => {
     expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
   });
 
-  test("Approve carries the view forward", async () => {
-    const { mirror, id } = await seededJob("awaiting-approval");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
-    const res = await post(base, `/api/queue/${id}/approve`, VIEW);
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
-  });
-
-  test("Merge carries the view forward", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: gitOk() });
-    const res = await post(base, `/api/queue/${id}/merge`, VIEW);
-    expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/?state=active&sort=cost&dir=desc");
-  });
-
   // The exact assertion spec 81 wrote: with nothing to carry, the
   // redirect is `/` and not `/?`.
   test("with no view submitted the redirect stays exactly /", async () => {
@@ -3334,7 +3282,6 @@ describe("an action keeps the page's view (criterion 7)", () => {
 // all on the day this was written.
 describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () => {
   const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
-  const SPECS_REPO = "/repos/aide-specs";
   const SPEC = "aide/81-queue-and-runner";
 
   /** `console.error` for the duration of one test. serve.log is both
@@ -3352,141 +3299,11 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     }
   }
 
-  async function seededJob(
-    state: string,
-    branchUrls: { root: string; url: string }[] = [],
-  ): Promise<{ mirror: string; id: string }> {
-    const { base, dir } = start({ queueToken: TOKEN });
-    const made = (await (
-      await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
-        body: JSON.stringify(JOB),
-      })
-    ).json()) as { job: { id: string } };
-    const mirror = join(dir, "queue.json");
-    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
-    const job = jobs.find((j) => j.id === made.job.id)!;
-    job.state = state;
-    if (branchUrls.length) job.branchUrls = branchUrls;
-    writeFileSync(mirror, JSON.stringify(jobs));
-    return { mirror, id: made.job.id };
-  }
-
-  test("a merge refusal carries the spec in the redirect, and is logged (criterion 8)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
-    const { result: res, lines } = await capturingLog(() =>
-      fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM }),
-    );
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
-    expect(decodeURIComponent(location)).toContain("push");
-    expect(lines.join("\n")).toContain(SPEC);
-    expect(lines.join("\n")).toContain("push");
-  });
-
-  // --- spec 106: a conflict says so in the redirect, and nothing else does ---
-  //
-  // Four files carry one boolean between the git call and the row's new
-  // control, and a gap at any hop breaks the chain silently — the
-  // control simply never appears, and nothing errors. This starts at the
-  // POST and reads the query string, so every hop is in it.
-
-  /** A git that merges cleanly and then cannot push. The refusal these
-   *  three tests need is one that is real, names the repo, and carries
-   *  no machine-readable `reason` — which was the dirty tree's job until
-   *  spec 144 stopped a dirty tree from refusing anything. */
-  const pushFailsGit = () =>
-    gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      "merge -q --ff-only": { code: 0 },
-      "merge-base": { code: 1 },
-      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
-      push: { code: 1 },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-      pull: { code: 0 },
-    });
-
-  /** A git whose real merge conflicts: ff-only fails, the merge fails,
-   *  and the abort goes through. */
-  const conflictGit = () =>
-    gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "status --porcelain": { code: 0, stdout: "" },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      "merge -q --ff-only": { code: 1 },
-      "merge -q --no-edit": { code: 1 },
-      "merge --abort": { code: 0 },
-      "merge-base": { code: 1 },
-      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-      pull: { code: 0 },
-    });
-
-  test("a conflict refusal says WHY in the redirect, not only what (spec 106)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: conflictGit().run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location).toContain("errorReason=conflict");
-    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
-    expect(decodeURIComponent(location)).toContain("conflict");
-  });
-
-  test("a failed push carries no reason at all (spec 106)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    expect(res.headers.get("location")!).not.toContain("errorReason");
-  });
-
-  test("a merge that went through carries no reason either (spec 106)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const clean = gitFake({
-      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/master\n" },
-      "status --porcelain": { code: 0, stdout: "" },
-      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-      "merge -q --ff-only": { code: 0 },
-      "merge-base": { code: 1 },
-      "ls-remote": { code: 0, stdout: "abc123\trefs/heads/x\n" },
-      switch: { code: 0 },
-      fetch: { code: 0 },
-      pull: { code: 0 },
-      push: { code: 0 },
-    });
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: clean.run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    expect(res.headers.get("location")!).not.toContain("errorReason");
-  });
-
-  test("the row carries the resolve control after a conflict, and only then (spec 106)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: conflictGit().run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    const page = await (
-      await fetch(`${base}${res.headers.get("location")!}`, { headers: { "x-aide-token": TOKEN } })
-    ).text();
-    expect(specHead(page, "81-queue-and-runner")).toContain("resolveform");
-  });
-
-  test("the page shows the reason on that spec's row (criterion 8)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: pushFailsGit().run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    const page = await (
-      await fetch(`${base}${res.headers.get("location")!}`, { headers: { "x-aide-token": TOKEN } })
-    ).text();
-    expect(specHead(page, "81-queue-and-runner")).toContain("push");
-    // Not twice: the row is where it belongs, so the page-top banner
-    // stands down.
-    expect(page).not.toContain('<p class="refusal">');
-  });
+  // Spec 106's own chain — git says "conflict", and the row ends up
+  // offering a Resolve — used to run through this redirect, and was
+  // tested here. Since spec 149 the reason is stored on the JOB instead,
+  // because a landing has no browser to redirect; the chain is covered
+  // end to end in "every step lands its own work" above.
 
   test("an enqueue refusal names the spec it was for (criterion 9)", async () => {
     const { base } = start({ queueToken: TOKEN });
@@ -3503,31 +3320,6 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(lines.join("\n")).toContain(SPEC);
   });
 
-  test("an approve of a job that has moved on is refused on its own row (criterion 11)", async () => {
-    const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
-    const { result: res, lines } = await capturingLog(() =>
-      fetch(`${base}/api/queue/${id}/approve`, { method: "POST", redirect: "manual", headers: FORM }),
-    );
-    expect(res.status).toBe(303);
-    const location = res.headers.get("location")!;
-    expect(location).toContain(`errorSpec=${encodeURIComponent(SPEC)}`);
-    expect(decodeURIComponent(location)).toContain("cannot approve a running job");
-    expect(lines.join("\n")).toContain(SPEC);
-  });
-
-  // The API contract is untouched: a caller asking for JSON still gets
-  // the 409 it has always got.
-  test("a JSON caller still gets the status code, not a redirect (criterion 11)", async () => {
-    const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
-    const res = await fetch(`${base}/api/queue/${id}/approve`, {
-      method: "POST",
-      headers: { accept: "application/json", "x-aide-token": TOKEN },
-    });
-    expect(res.status).toBe(409);
-  });
-
   // Spec 101: the page stopped navigating on a refusal, so the row it
   // belongs to is now picked out from the JSON body rather than from a
   // redirect the server built. Merge already said which spec; Run and
@@ -3542,17 +3334,6 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     });
     expect(res.status).toBe(400);
     expect(await res.json()).toMatchObject({ spec: SPEC });
-  });
-
-  test("a refused approve says which spec it was for, to a JSON caller too", async () => {
-    const { mirror, id } = await seededJob("running");
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror });
-    const res = await fetch(`${base}/api/queue/${id}/approve`, {
-      method: "POST",
-      headers: { accept: "application/json", "x-aide-token": TOKEN },
-    });
-    expect(res.status).toBe(409);
-    expect(await res.json()).toMatchObject({ spec: SPEC, error: "cannot approve a running job" });
   });
 
   // Criterion 9: the script above these forms is an enhancement, never
@@ -3585,22 +3366,6 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
     expect(created.status).toBe(303);
   });
 
-  test("a branch deletion that failed is reported beside the merge (criterion 4)", async () => {
-    const { mirror, id } = await seededJob("done", [{ root: SPECS_REPO, url: "https://example.test/aide-specs" }]);
-    const run = async (_dir: string, args: string[]) => {
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      if (a.startsWith("push -q origin --delete")) return { code: 1, stdout: "", stderr: "remote rejected\n" };
-      return { code: 0, stdout: "" };
-    };
-    const { base } = start({ queueToken: TOKEN, queueMirrorPath: mirror, gitRun: run });
-    const res = await fetch(`${base}/api/queue/${id}/merge`, { method: "POST", redirect: "manual", headers: FORM });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).toContain("deleting");
-  });
 });
 
 // --- spec 95: the preview link is read from the project's own manifest -------
@@ -4359,24 +4124,33 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(git.calls.some((c) => c.dir === paths.specs)).toBe(true);
   });
 
-  test("merging the dependency's branch releases the parked job at once", async () => {
+  // Criterion 10 (spec 149). The gate's code is unchanged, but what
+  // satisfies it has moved: a dependency's ANALYZE lands itself now, so
+  // its specs-repo branch merges early — and that must not read as "the
+  // dependency is done". Only the ARCHIVE that lands its code releases a
+  // dependent, because since spec 149 that is the only point a spec's
+  // code branch reaches a default branch at all.
+  //
+  // Three servers over one mirror, rather than one server watching the
+  // answer change: each merge answer is cached for 30 s, and this test
+  // is about which ANSWER releases the job, not about when a cache
+  // expires.
+  test("only the dependency's archive releases the parked job — its analyze does not", async () => {
     const dir = own("aide-queue-release-");
-    const { bin, argvFile } = stub(dir);
     const paths = root(dir);
     const mirror = join(dir, "queue.json");
-    let unmerged = [paths.project, paths.specs];
-    const git = gitFor(() => unmerged);
     const common = {
       queueToken: TOKEN,
       projectRoot: paths.root,
       queueProjectRoot: paths.root,
       queueMirrorPath: mirror,
-      gitRun: git.run,
     };
 
     // The dependency's own finished job, recorded through a server with
     // no runner: it must leave a branch behind without ever running.
-    const { base: seeder } = harness.start({ extra: common });
+    const { base: seeder } = harness.start({
+      extra: { ...common, gitRun: gitFor(() => [paths.project, paths.specs]).run },
+    });
     const dep = (await (
       await fetch(`${seeder}/api/queue`, {
         method: "POST",
@@ -4393,25 +4167,40 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     ];
     writeFileSync(mirror, JSON.stringify(jobs));
 
-    const { base } = harness.start({
-      extra: { ...common, queueRunnerBin: bin, queueResultDir: join(dir, "jobs") },
-    });
-    expect((await queueImplement(base)).status).toBe(200);
-    await settle();
-    expect(existsSync(argvFile)).toBe(false);
+    /** One server's answer to "does this dependent start?", with the
+     *  dependency's branch merged in exactly the named roots. `waitMs`
+     *  is how long to give it: a refused enqueue does not tick the
+     *  runner, so a job already in the mirror waits for the server's own
+     *  2 s interval — worth waiting out when a start is expected, worth
+     *  not waiting out three times over when one is not. */
+    async function startsWith(unmerged: string[], prefix: string, waitMs = 800): Promise<boolean> {
+      const runDir = own(prefix);
+      const { bin, argvFile } = stub(runDir);
+      const { base } = harness.start({
+        extra: {
+          ...common,
+          queueRunnerBin: bin,
+          queueResultDir: join(runDir, "jobs"),
+          gitRun: gitFor(() => unmerged).run,
+        },
+      });
+      const posted = await queueImplement(base);
+      // The dependent's own job is enqueued once and lives in the shared
+      // mirror; a later server finds it already there and refuses a
+      // second copy, which is not what this test is asking about.
+      expect([200, 400]).toContain(posted.status);
+      for (let i = 0; i * 100 < waitMs && !existsSync(argvFile); i++) await Bun.sleep(100);
+      return existsSync(argvFile);
+    }
 
-    // The merge lands the dependency. The cached "not merged" answer is
-    // dropped by the merge itself, and the route re-evaluates the queue
-    // rather than leaving the parked job to the next interval.
-    unmerged = [];
-    const merged = await fetch(`${base}/api/queue/${dep.job.id}/merge`, { method: "POST", headers: AUTH });
-    expect(merged.status).toBe(200);
-    // The spawn itself is a real process: the decision was made inside
-    // the merge request, the file appears a moment later.
-    for (let i = 0; i < 40 && !existsSync(argvFile); i++) await Bun.sleep(25);
-    expect(existsSync(argvFile)).toBe(true);
-    expect(readFileSync(argvFile, "utf-8")).toContain("--command implement");
-  });
+    // Nothing landed: parked, as spec 122 already had it.
+    expect(await startsWith([paths.project, paths.specs], "aide-queue-release-none-")).toBe(false);
+    // The dependency's analyze self-landed — the specs repo is merged
+    // and the code is not. Still parked.
+    expect(await startsWith([paths.project], "aide-queue-release-analyzed-")).toBe(false);
+    // Archived: the code landed too, and the dependent starts.
+    expect(await startsWith([], "aide-queue-release-archived-", 6000)).toBe(true);
+  }, 20000);
 
   test("a parked job's row shows the queued badge and the reason it is held back", async () => {
     const dir = own("aide-queue-parked-row-");

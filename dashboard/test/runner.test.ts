@@ -72,7 +72,6 @@ function enqueue(overrides: Record<string, unknown> = {}) {
     project: "aide",
     specFolder: "81-queue-and-runner",
     steps: ["analyze"],
-    gateAfter: [],
     ...overrides,
   });
   if (!r.ok) throw new Error(r.error);
@@ -215,7 +214,7 @@ describe("several jobs at once", () => {
 
 describe("steps and cost", () => {
   test("a successful step advances the job and adds its cost", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1.5) });
     runner.tick();
     runner.poll();
@@ -227,7 +226,7 @@ describe("steps and cost", () => {
   });
 
   test("a step stopped by its budget ends the job as stopped, not failed", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({
       readResult: () => ({ ...okResult(3), ok: false, terminalReason: "budget" }),
     });
@@ -380,7 +379,7 @@ describe("caps are checked before a step starts", () => {
   });
 
   test("the per-job cap parks the job instead of starting another step", () => {
-    const job = enqueue({ steps: ["analyze", "implement", "archive"], gateAfter: [], jobCapUsd: 4 });
+    const job = enqueue({ steps: ["analyze", "implement", "archive"], jobCapUsd: 4 });
     const runner = makeRunner({ readResult: () => okResult(3) });
     runner.tick();
     runner.poll(); // spent 3 of 4; the next step would need 3 more
@@ -443,42 +442,26 @@ describe("reconciliation after a restart", () => {
   });
 });
 
-describe("gates and notifications (criterion 7)", () => {
-  test("a step whose name is in gateAfter parks the job for approval", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: ["analyze"] });
+describe("notifications (criterion 7)", () => {
+  // Spec 149. A gate parked a job between two steps and waited for a
+  // person to press Approve. There is no stop between steps any more —
+  // every step lands its own work, so there is nothing to hold a job for
+  // — and the runner has no branch left that can produce the state.
+  test("a finished step never parks the job — the next one is queued straight away", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
     runner.tick();
     runner.poll();
-    expect(store.get(job.id)?.state).toBe("awaiting-approval");
-    runner.tick();
-    expect(spawns.length).toBe(1); // nothing starts until it is approved
-  });
-
-  test("the gate notifies exactly once, and approval starts exactly one more step", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: ["analyze"] });
-    const runner = makeRunner({ readResult: () => okResult(1) });
-    runner.tick();
-    runner.poll();
-    runner.poll(); // a second poll must not notify again
-    runner.tick();
-    expect(events.length).toBe(1);
-    expect(events[0]!.event).toBe("gate");
-    expect(events[0]!.step).toBe("analyze");
-    expect(events[0]!.spec).toBe("81-queue-and-runner");
-    expect(events[0]!.project).toBe("aide");
-    expect(events[0]!.jobId).toBe(job.id);
-    expect(events[0]!.costUsd).toBeCloseTo(1);
-
-    // Approve, the way the route does it.
-    store.update(job.id, { state: "queued" });
+    expect(store.get(job.id)?.state).toBe("queued");
+    // And it actually STARTS, unpressed: the old gate left `spawns` at 1
+    // however many ticks followed.
     runner.tick();
     expect(spawns.length).toBe(2);
-    runner.tick();
-    expect(spawns.length).toBe(2);
+    expect(events.map((e) => e.event)).not.toContain("gate");
   });
 
   test("a finished job notifies once, with the branch to look at", () => {
-    enqueue({ steps: ["analyze"], gateAfter: [] });
+    enqueue({ steps: ["analyze"] });
     const runner = makeRunner({
       readResult: () => ({ ...okResult(1), branchUrl: "https://example.test/compare" }),
     });
@@ -511,7 +494,7 @@ describe("gates and notifications (criterion 7)", () => {
   });
 
   test("a job stopped by its own cap notifies as well — nothing ends in silence", () => {
-    enqueue({ steps: ["analyze", "implement"], gateAfter: [], jobCapUsd: 4 });
+    enqueue({ steps: ["analyze", "implement"], jobCapUsd: 4 });
     const runner = makeRunner({ readResult: () => okResult(3) });
     runner.tick();
     runner.poll();
@@ -557,7 +540,7 @@ describe("the session id is known before the step starts", () => {
   });
 
   test("every step gets its own session id", () => {
-    enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    enqueue({ steps: ["analyze", "implement"] });
     const runner = makeRunner({ readResult: () => okResult(1) });
     runner.tick();
     runner.poll();
@@ -645,7 +628,7 @@ describe("what the page needs from a step", () => {
   // after it changes both. Replacing the list wholesale would make the
   // project's branch vanish from a spec that has one.
   test("a later step touching fewer repos does not erase the earlier ones", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    const job = enqueue({ steps: ["analyze", "implement"] });
     let call = 0;
     const runner = makeRunner({
       readResult: () => {
@@ -677,7 +660,7 @@ describe("what the page needs from a step", () => {
   });
 
   test("a step that pushed nowhere leaves what earlier steps recorded", () => {
-    const job = enqueue({ steps: ["analyze", "implement"], gateAfter: [] });
+    const job = enqueue({ steps: ["analyze", "implement"] });
     let call = 0;
     const runner = makeRunner({
       readResult: () => {
@@ -836,8 +819,7 @@ describe("a resolve job in flight (spec 106)", () => {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: ["resolve"],
-      gateAfter: [],
-    });
+      });
     expect(again.ok).toBe(false);
   });
 

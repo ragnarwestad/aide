@@ -12,7 +12,7 @@
 # channel — so it lives in a file outside both repos, never in an
 # argument (`ps` shows arguments to every user on the machine).
 #
-#   echo '{"event":"gate",...}' | notify-slack.sh
+#   echo '{"event":"finished",...}' | notify-slack.sh
 #
 # Env: AIDE_SLACK_WEBHOOK_FILE (default ~/aide-dashboard/slack-webhook)
 #
@@ -36,8 +36,7 @@ payload="$(cat)"
 text="$(printf '%s' "$payload" | jq -r '
   def money: if (.costUsd // 0) > 0 then " · $" + ((.costUsd * 100 | round) / 100 | tostring) else "" end;
   def what:
-    if .event == "gate" then ((.step // "the step") + " done, waiting for approval")
-    elif .event == "finished" then ((.step // "the last step") + " done")
+    if .event == "finished" then ((.step // "the last step") + " done")
     elif .event == "stopped" then ("stopped: " + (.reason // "a cap"))
     else ("failed: " + (.reason // "unknown")) end;
   (.project // "?") + " · " + (.spec // "?") + " · " + what + money

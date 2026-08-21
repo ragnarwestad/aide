@@ -105,13 +105,27 @@ would have gone on warning about a refusal that no longer happens.
 **`DEPENDENCY_GATED_STEPS` is the second list of that shape (spec 122),
 and it works the same way.** `implement`, `resolve` and `archive` are
 the steps an unmerged dependency holds back; the other steps run
-regardless. The bash string in `core/scripts/aide-run-spec` and the
+regardless. Since spec 149 "merged" means ARCHIVED: the dependency's
+code lands when its `archive` step runs, so that is when a dependent
+spec's held-back steps are released. The bash string in `core/scripts/aide-run-spec` and the
 TypeScript array in `dashboard/src/serve.ts` are pinned to each other by
 `test_the_two_copies_of_the_dependency_gate_agree`, and are edited by
 hand together exactly as `WORKFLOW_STEPS` is. The dashboard's copy is
 what decides whether a queued job is PARKED (left `queued` with the
 reason on its row until the dependency merges); the script's copy is
 what decides whether a run started by hand is REFUSED.
+
+**No step's work is merged by hand (spec 149).** The dashboard lands
+each step's branch when the step reports success — `create`, `analyze`,
+`review-plan` and `resolve` merge into the repo's default branch and
+delete the branch on origin; `implement` lands nothing, so code waits
+on its branch until `archive`, which merges every repo the spec's
+branch still exists in (specs first, code last), runs `AIDE_INSTALL_CMD`
+after a code root, and then archives. There is no Merge or Approve button, no `gateAfter` and
+no `awaiting-approval` state; a landing refused for a conflict leaves
+the branch, records `errorReason: "conflict"` on the job, and offers
+`resolve` on the row. `landBranch` in `dashboard/src/serve.ts` is the
+one place all of this happens, under `mergeLock` per repo root.
 
 **One step, `resolve`, can touch the worktree and fail to finish — the
 generic commit loop needed a guard for that.** Every other step either

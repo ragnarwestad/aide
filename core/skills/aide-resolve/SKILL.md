@@ -4,8 +4,9 @@ description: >-
   Resolve the merge conflict between a spec's branch and the default
   branch, run the project's tests, and leave the branch either finished
   or exactly as it was found.
-  Use when: the dashboard's Merge button refused a spec for a conflict,
-  a spec branch cannot be brought up to date with the default branch.
+  Use when: the dashboard refused to land a spec's branch for a
+  conflict, a spec branch cannot be brought up to date with the default
+  branch.
   Do NOT use for: implementing a spec (use aide-implement), merging a
   clean branch (that needs no step at all), resolving conflicts in a
   checkout aide-run-spec did not prepare.
@@ -34,13 +35,14 @@ cannot be finished safely, and put everything back.
 
 ## Why this step exists
 
-The dashboard's Merge button refuses a spec whose branch conflicts with
-the default branch: "cannot merge … (conflict — merge it by hand)". The
-by-hand routine that followed was always the same — merge the default
-branch into the spec's branch in a worktree, resolve, run the tests,
-push the branch, press Merge again. This step IS that routine. Merge
-stays a deliberate press afterwards, so the resolution is a diff a
-person looks at before anything reaches the default branch.
+The dashboard refuses to land a spec whose branch conflicts with the
+default branch: "cannot merge … (conflict)". The by-hand routine that
+followed was always the same — merge the default branch into the spec's
+branch in a worktree, resolve, run the tests, push the branch. This
+step IS that routine. When it reports success the dashboard lands the
+resolved branch itself, as it lands every step's work (spec 149); when
+it stops, the branch is left exactly as it was found and the refusal
+stays on the row.
 
 ## What you are standing in
 
@@ -141,7 +143,8 @@ put back where it was reaches origin at all.
 **Never push, and never touch the default branch.** No `git push`, no
 `git switch main`, no merge in the other direction. `aide-run-spec`
 owns the push and pushes the spec's branch only; the default branch is
-merged by a person pressing Merge, with the diff in front of them.
+merged by the dashboard once this step has reported success — never by
+this step, and never half-way.
 
 IMPORTANT:
 - Stopping is a successful outcome of this step, not a failure of it —

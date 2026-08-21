@@ -461,12 +461,6 @@ describe("the primary button's label per row state (the design sheet's table)", 
     }
   });
 
-  test("a job waiting for approval offers Approve and Cancel", () => {
-    const b = buttons(rows([row({ state: "awaiting-approval" })], { targets: [target()] }));
-    expect(b).toContain("Approve");
-    expect(b).toContain("Cancel");
-  });
-
   test("a running job offers Cancel; Run is disabled without a spinner of its own", () => {
     const html = rows([row({ state: "running" })], { targets: [target()] });
     expect(buttons(html)).toContain("Cancel");
@@ -478,9 +472,11 @@ describe("the primary button's label per row state (the design sheet's table)", 
     expect(run).not.toContain("busy");
   });
 
-  // Spec 132: the button is one word, and the row's State line is what
-  // says which repo a press would land.
-  test("the merge button says Merge; the State line says what it merges", () => {
+  // Spec 149: there is no Merge button at all any more, and the State
+  // line stopped naming what one would land. A finished spec with a
+  // branch still open says which PHASE is next, and the branch's own
+  // badge says what it is waiting for.
+  test("a finished spec with an open branch offers no merge, and asks for none", () => {
     const html = rows(
       [
         row({
@@ -490,39 +486,20 @@ describe("the primary button's label per row state (the design sheet's table)", 
       ],
       { targets: [target()] },
     );
-    expect(buttons(html)).toContain("Merge");
-    expect(buttons(html)).not.toContain("Merge the plan");
-    expect(html).toContain(">ready to merge the plan<");
+    expect(buttons(html)).not.toContain("Merge");
+    expect(html).not.toContain("ready to merge");
+    expect(html).toContain(">waiting for archive<");
   });
 
-  // Spec 135: a refusal is the row's history, and the row says it. The
-  // button keeps its verb — pressing it a second time is not a
-  // different action from pressing it the first time.
-  test("a refusal does not change the word: the button still says Merge", () => {
-    const html = rows(
-      [
-        row({
-          state: "done",
-          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
-        }),
-      ],
-      {
-        targets: [target()],
-        error: "conflict — merge it by hand",
-        errorSpec: "aide/102-design-foundation",
-      },
-    );
-    expect(buttons(html)).toContain("Merge");
-    expect(buttons(html)).not.toContain("Merge again");
-  });
 });
 
 // --- spec 106: the way out of a conflict, offered where the refusal is --------
 //
-// The control is ADDITIVE — "merge it by hand" never goes away — and
-// NARROWLY GATED: it is offered for one refusal reason among several
-// that share the same free-text channel, so the test that matters most
-// is the one that says it is ABSENT everywhere else.
+// The control is NARROWLY GATED: it is offered for one refusal class
+// among several, so the test that matters most is the one that says it
+// is ABSENT everywhere else. It used to be ADDITIVE too — "merge it by
+// hand" stood beside it — until spec 149 removed the hand route, which
+// leaves resolving the only thing a conflicted row offers.
 
 describe("Resolve (spec 106)", () => {
   const buttons = (html: string) =>
@@ -541,18 +518,32 @@ describe("Resolve (spec 106)", () => {
       { targets: [target()], ...opts },
     );
 
+  // Since spec 149 the reason is on the JOB, not in the page's query
+  // string: the refusal it describes is a landing's, and a landing has
+  // no browser to redirect a reason to.
   const CONFLICT = {
-    error: "cannot merge aide/102 into main in /repos/aide (conflict — merge it by hand)",
-    errorSpec: "aide/102-design-foundation",
-    errorReason: "conflict",
+    error: "cannot merge aide/102 into main in /repos/aide (conflict)",
+    errorReason: "conflict" as const,
   };
 
-  test("a conflict refusal offers it, beside Merge and never instead of it", () => {
-    const html = merged(CONFLICT);
+  const conflicted = (opts: Partial<QueuePageOptions> = {}) =>
+    rows(
+      [
+        row({
+          state: "done",
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+          ...CONFLICT,
+        }),
+      ],
+      { targets: [target()], ...opts },
+    );
+
+  test("a conflict refusal offers it, and it is all the row offers", () => {
+    const html = conflicted();
     expect(html).toContain("resolveform");
     expect(buttons(html)).toContain("Resolve");
-    // The hand route is what the reader had yesterday, and it stays.
-    expect(buttons(html)).toContain("Merge");
+    // The hand route the reader had yesterday is gone (spec 149).
+    expect(buttons(html)).not.toContain("Merge");
   });
 
   test("a collapsed row offers it too — the refusal is read there as well", () => {
@@ -561,9 +552,10 @@ describe("Resolve (spec 106)", () => {
         row({
           state: "done",
           branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+          ...CONFLICT,
         }),
       ],
-      { runnerAvailable: true, targets: [target()], filter: {}, ...CONFLICT },
+      { runnerAvailable: true, targets: [target()], filter: {} },
       NOW,
     );
     expect(html).toContain("resolveform");
@@ -574,11 +566,20 @@ describe("Resolve (spec 106)", () => {
     // them is a merge a step could sit down and finish. (A dirty tree
     // was a fourth until spec 144 stopped it from refusing anything.)
     for (const error of [
-      "cannot fast-forward main in /repos/aide — merge it by hand",
+      "cannot fast-forward main in /repos/aide",
       "aide/102 is not on origin in /repos/aide — there is nothing left to merge",
       "merged locally in /repos/aide, but the push of main failed",
     ]) {
-      const html = merged({ error, errorSpec: "aide/102-design-foundation" });
+      const html = rows(
+        [
+          row({
+            state: "done",
+            branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+            error,
+          }),
+        ],
+        { targets: [target()] },
+      );
       expect(html).not.toContain("resolveform");
     }
   });
@@ -587,22 +588,34 @@ describe("Resolve (spec 106)", () => {
     expect(merged()).not.toContain("resolveform");
   });
 
+  // Reading the reason off the row's own job settles by construction
+  // what the query string needed an `errorSpec` to get right: a
+  // conflict on another spec cannot reach this row at all.
   test("a refusal belonging to ANOTHER spec does not put it on this row", () => {
-    const html = merged({ ...CONFLICT, errorSpec: "aide/99-someone-else" });
+    const html = rows(
+      [
+        row({
+          state: "done",
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+        }),
+      ],
+      { targets: [target()], error: CONFLICT.error, errorSpec: "aide/99-someone-else" },
+    );
     expect(html).not.toContain("resolveform");
   });
 
   test("it queues a resolve step, and says so in the form itself", () => {
-    const html = merged(CONFLICT);
+    const html = conflicted();
     expect(html).toContain('action="/api/queue"');
     expect(html).toMatch(/name="steps"\s+value="resolve"/);
   });
 
-  // Spec 120: the two are the one place on a header row where two
-  // controls stand side by side, and the space between them used to be
-  // a margin each form carried with it. A margin travels into the next
-  // layout the form is used in; a container's gap does not.
-  test("Merge and resolve are one group, spaced by the container (spec 120)", () => {
+  // Spec 120: Merge and resolve were the one place on a header row where
+  // two controls stood side by side, and the space between them used to
+  // be a margin each form carried with it. Merge is gone (spec 149), so
+  // what is left to hold is that resolving carries no margin of its own
+  // into whichever layout it lands in.
+  test("resolve is spaced by its container, never by a margin of its own (spec 120)", () => {
     // An open row's stack leads its phase lines; a shut row's one
     // action is the header's last cell (2026-08-19).
     const cell = (html: string) => {
@@ -612,16 +625,14 @@ describe("Resolve (spec 106)", () => {
       const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
       return cells[cells.length - 1] ?? "";
     };
-    // Open: the two stand in the row's own stack, with every other
-    // button the row offers, and the gap is the stack's.
-    const stack = cell(merged(CONFLICT)).match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
-    expect(stack).toContain("mergeform");
+    // Open: it stands in the row's own stack, with every other button
+    // the row offers, and the gap is the stack's.
+    const stack = cell(conflicted()).match(/<span class="stack">[\s\S]*<\/span>/)?.[0] ?? "";
     expect(stack).toContain("resolveform");
-    // Shut: since spec 132 there is only ONE control left out here —
-    // Merge moved into the panel — so there is no pair to space, and no
+    expect(stack).not.toContain("mergeform");
+    // Shut: one control out here, so there is no pair to space and no
     // container around a single form either.
-    const shut = cell(merged({ ...CONFLICT, filter: {} }));
-    expect(shut).not.toContain("mergeform");
+    const shut = cell(conflicted({ filter: {} }));
     expect(shut).toContain("resolveform");
     expect(shut).not.toContain('<span class="row">');
   });

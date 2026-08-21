@@ -481,14 +481,14 @@ describe("the unmerged badge (criteria 1-4)", () => {
   test("a branch whose job is still going says what the job is doing (criterion 1)", () => {
     const html = queueRows({ branchUrls: at(false), state: "running" });
     expect(html).toContain("analyze running");
-    expect(html).not.toContain("ready to merge");
+    expect(html).not.toContain("waiting for archive");
     // The link a reader already uses is untouched beside it.
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
-  test("a branch whose job has stopped is ready to merge (criterion 3)", () => {
+  test("a branch whose job has stopped is waiting for archive (criterion 3)", () => {
     const html = queueRows({ branchUrls: at(false), state: "done" });
-    expect(html).toContain("ready to merge");
+    expect(html).toContain("waiting for archive");
     expect(html).not.toContain('class="chip running"');
     expect(html).toContain(`href="${BRANCH}"`);
   });
@@ -496,7 +496,7 @@ describe("the unmerged badge (criteria 1-4)", () => {
   test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
     for (const state of ["running", "done"] as const) {
       const html = queueRows({ branchUrls: at(true), state });
-      expect(html).not.toContain("ready to merge");
+      expect(html).not.toContain("waiting for archive");
       expect(html).not.toContain('class="chip running"');
       expect(html).toContain(`href="${BRANCH}"`);
     }
@@ -513,13 +513,13 @@ describe("the unmerged badge (criteria 1-4)", () => {
     for (const state of ["running", "done"] as const) {
       const html = jobPage({ branchUrls: at(false), state });
       expect(html).not.toContain(BRANCH);
-      expect(html).not.toContain("ready to merge");
+      expect(html).not.toContain("waiting for archive");
     }
   });
 
   test("no branch, no badge — on either page (criterion 4)", () => {
     for (const html of [queueRows({ branchUrls: [] }), queueRows({})]) {
-      expect(html).not.toContain("ready to merge");
+      expect(html).not.toContain("waiting for archive");
       expect(html).not.toContain('class="chip running"');
     }
   });
@@ -535,9 +535,8 @@ describe("the unmerged badge (criteria 1-4)", () => {
         { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
       ],
     });
-    // The State line says "ready to merge the plan"/"the code" too since
-    // spec 132; this test is about the per-repo badge, whose wording is bare.
-    expect(html.match(/>ready to merge</g)).toHaveLength(1);
+    // One badge per REPO, and only for the one still open.
+    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
     expect(html).toContain("https://example.test/aide-specs");
     expect(html).toContain("aide-specs");
   });
@@ -960,14 +959,13 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
         branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
       }),
     ]);
-    // The State line says "ready to merge the plan"/"the code" too since
-    // spec 132; this test is about the per-repo badge, whose wording is bare.
-    expect(html.match(/>ready to merge</g)).toHaveLength(1);
+    // One badge per REPO, and only for the one still open.
+    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
     // The link comes from the most recently active job, not an older one.
     expect(html).toContain("https://example.test/compare");
     expect(html).not.toContain("https://example.test/old");
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain("ready to merge");
+    expect(head).toContain("waiting for archive");
   });
 
   test("the action sits once on the header, never on a phase line (criterion 12)", () => {
@@ -1260,7 +1258,7 @@ describe("a spec's row runs its own phases", () => {
   // rule is read off the spec — one job in flight on it, so no second
   // job from this row — not off the one step that job happens to name.
   test("a phase in flight locks every box on the row, not only its own (criterion 2)", () => {
-    for (const state of ["queued", "running", "awaiting-approval"] as const) {
+    for (const state of ["queued", "running"] as const) {
       const line = runLine(
         rows([job("j1", "implement", { state })], [target("94-row-runs-it")]),
         "94-row-runs-it",
@@ -1829,10 +1827,8 @@ describe("every action form carries the current view (criterion 7)", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
-  const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
   /** The Run form and Cancel are on the line an open row reveals under
-   *  its header (spec 109); Approve and Merge stay on the header. */
+   *  its header (spec 109). */
   const runLine = (html: string, folder: string) =>
     html.match(
       new RegExp(
@@ -1883,26 +1879,6 @@ describe("every action form carries the current view (criterion 7)", () => {
     expect(form).toContain('<input type="hidden" name="view.state" value="active">');
   });
 
-  test("the Approve form sends them too (criterion 7)", () => {
-    const waiting = row({ id: "j1", specFolder: "99-x", state: "awaiting-approval" });
-    const line = head(rows([waiting], [target("99-x")], { filter: { sort: "cost" } }), "99-x");
-    const form = line.match(/<form method="post" action="\/api\/queue\/j1\/approve"[^>]*>.*?<\/form>/)![0];
-    expect(form).toContain('<input type="hidden" name="view.sort" value="cost">');
-  });
-
-  test("the Merge form sends them too (criterion 7)", () => {
-    const done = row({
-      id: "j1",
-      specFolder: "99-x",
-      state: "done",
-      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
-    });
-    // Spec 132: the form lives in the panel, so the row is opened to
-    // reach it. What it carries is unchanged.
-    const html = rows([done], [target("99-x")], { filter: { state: "all", open: "aide/99-x" } });
-    const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
-    expect(form).toContain('<input type="hidden" name="view.state" value="all">');
-  });
 });
 
 // The page lists up to 25 rows, so a refusal shown once at the top of
@@ -2060,16 +2036,6 @@ describe("spec 101: a busy job holds every step on the row (criteria 1-3)", () =
     const l = line(pair("queued"));
     expect(box(l, "implement")).toContain("disabled");
     expect(box(l, "archive")).toContain("disabled");
-  });
-
-  // A gate is a job in flight as much as a running one is — the queue
-  // refuses a second job for it, so the row must not offer one. Nothing
-  // exercised this state here before spec 105.
-  test("a job parked at a gate holds every step too (spec 105)", () => {
-    const l = line(pair("awaiting-approval"));
-    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
-      expect(box(l, step)).toContain("disabled");
-    }
   });
 
   test("a disabled box says why, on the label the pointer is over", () => {
@@ -2317,13 +2283,6 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(head).not.toContain("review-planing");
   });
 
-  test("a job waiting on a person says whose move it is", () => {
-    const text = hint(
-      rows([row({ specFolder: "101-a", state: "awaiting-approval" })], [target("101-a")]),
-    );
-    expect(text.toLowerCase()).toContain("approval");
-  });
-
   test("a job that stopped short says how to try again", () => {
     for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
       const text = hint(
@@ -2334,9 +2293,11 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     }
   });
 
-  // Spec 132: the sentence moved up into the badge, and it names WHICH
-  // repo — the distinction spec 96 put on the button, kept on the row.
-  test("a finished spec with a branch still out says so in the badge, and names it", () => {
+  // Spec 132 put the sentence in the badge and had it name WHICH repo
+  // was ready to merge. Spec 149 took the naming back out with the
+  // button it was for: the badge says what can HAPPEN next instead, and
+  // for a branch left open that is the archive step which lands it.
+  test("a finished spec with a branch still out says which phase is next", () => {
     const html = rows(
       [
         row({
@@ -2347,7 +2308,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       ],
       [target("101-a")],
     );
-    expect(chip(html)).toBe("ready to merge the code");
+    expect(chip(html)).toBe("ready for analyze");
     expect(hint(html)).toBe("");
   });
 
@@ -2399,9 +2360,10 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(chip(html)).toBe("ready for archive");
   });
 
-  // Precedence is the whole of the risk here: merging first still
-  // outranks starting the next phase, exactly as before.
-  test("an unmerged branch still outranks the phase that is ready", () => {
+  // An open branch used to outrank the phase that was ready, because
+  // merging it was a thing to do. It is not one since spec 149 — the
+  // phase that lands it IS the next phase — so the badge says that.
+  test("an open branch does not displace the phase that is ready", () => {
     const html = rows(
       [
         row({
@@ -2413,8 +2375,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       ],
       [target("101-a", { done: ["analyze", "review-plan"] })],
     );
-    expect(chip(html)).toBe("ready to merge the code");
-    expect(chip(html)).not.toContain("ready for");
+    expect(chip(html)).toBe("ready for implement");
     expect(hint(html)).toBe("");
   });
 
@@ -2556,22 +2517,6 @@ describe("spec 132: the State line says what is happening, or what is next", () 
   const done = (branchUrls: { label: string; url: string; merged: boolean }[]) =>
     row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done", branchUrls });
 
-  // Criteria 3, 4: what spec 96 put on the button — WHICH of the two
-  // repos a press would land — said as a resting state instead. Losing
-  // the distinction would rebuild the problem 96 fixed.
-  test("only the project's own branch open reads: ready to merge the code", () => {
-    expect(chip(rows([done([at("aide")])], [target("132-a")]))).toBe("ready to merge the code");
-  });
-
-  test("only the specs repo's branch open reads: ready to merge the plan", () => {
-    expect(chip(rows([done([at("aide-specs")])], [target("132-a")]))).toBe("ready to merge the plan");
-  });
-
-  test("both open reads: ready to merge plan and code", () => {
-    const html = rows([done([at("aide"), at("aide-specs")])], [target("132-a")]);
-    expect(chip(html)).toBe("ready to merge plan and code");
-  });
-
   // Criterion 10: the per-repo badge in the Affected-repos line is a
   // different piece of markup with the same three words in it. The two
   // must not be conflated — this reads the branch line, not the State
@@ -2579,7 +2524,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
   test("the per-repo badge in the branch line keeps its own bare wording", () => {
     const html = rows([done([at("aide")])], [target("132-a")]);
     const branchLine = html.match(/<span class="branchlist">[\s\S]*?<\/span><\/span>/)?.[0] ?? "";
-    expect(branchLine).toContain(">ready to merge<");
+    expect(branchLine).toContain(">waiting for archive<");
     expect(branchLine).not.toContain("ready to merge the code");
   });
 
@@ -2610,30 +2555,6 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     expect(cell).not.toContain("<button");
   });
 
-  // Criterion 2: whatever is open, the button in the panel is one word.
-  // What it will land is on the row, in the badge, with no button on it.
-  test("the panel's Merge button is one word, whatever it would land", () => {
-    for (const branches of [[at("aide")], [at("aide-specs")], [at("aide"), at("aide-specs")]]) {
-      const html = rows([done(branches)], [target("132-a")], { filter: { open: "aide/132-a" } });
-      const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
-      expect(form).toContain(">Merge</button>");
-      expect(form).not.toContain("Merge the");
-    }
-  });
-
-  // Spec 135 took the last label branch out too: a refused merge is the
-  // same decision, and the button says the same verb for it. That a
-  // merge was refused is the row's to say, on its State line.
-  test("a refused merge still says Merge, and nothing about the refusal", () => {
-    const html = rows([done([at("aide")])], [target("132-a")], {
-      filter: { open: "aide/132-a" },
-      error: "cannot merge — conflict",
-      errorSpec: "aide/132-a",
-    });
-    const form = html.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)?.[0] ?? "";
-    expect(form).toContain(">Merge</button>");
-    expect(form).not.toContain("Merge again");
-  });
 });
 
 
@@ -2722,19 +2643,6 @@ describe("spec 103: a collapsed row shows status only", () => {
     expect(line).toContain("$1.50");
   });
 
-  test("a gated collapsed row offers Approve, and only Approve (criterion 2)", () => {
-    const cell = actionCell(
-      controlsLine(
-        rows([row({ id: "j1", specFolder: "103-gated", state: "awaiting-approval" })],
-             [target("103-gated")]),
-        "103-gated",
-      ),
-    );
-    expect(cell).toContain('action="/api/queue/j1/approve"');
-    expect(cell).not.toContain('action="/api/queue/j1/cancel"');
-    expect(cell.match(/<form/g)).toHaveLength(1);
-  });
-
   // Spec 132 took Merge back out of the row: the State column already
   // says "ready to merge the code", and acting means opening the panel,
   // the same as every other action a collapsed row does not draw.
@@ -2785,23 +2693,6 @@ describe("spec 103: a collapsed row shows status only", () => {
     }
   });
 
-  // The gated case is spec 103's, unchanged by 105: Approve is the one
-  // thing a gate needs, and an unmerged branch does not add a second.
-  test("a gated collapsed row with an unmerged branch still offers Approve alone (spec 105)", () => {
-    const cell = actionCell(
-      controlsLine(
-        rows(
-          [row({ id: "j1", specFolder: "103-gated-branch", state: "awaiting-approval",
-                 branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
-          [target("103-gated-branch")],
-        ),
-        "103-gated-branch",
-      ),
-    );
-    expect(cell).toContain('action="/api/queue/j1/approve"');
-    expect(cell.match(/<form/g)).toHaveLength(1);
-  });
-
   test("a collapsed row with nothing pending has an empty action cell (criterion 4)", () => {
     const cell = actionCell(controlsLine(rows([], [target("103-idle")]), "103-idle"));
     expect(cell).not.toContain("<form");
@@ -2847,22 +2738,21 @@ describe("spec 103: a collapsed row shows status only", () => {
 
   test("an expanded row's forms carry the open key forward (criterion 6)", () => {
     const html = rows(
-      [row({ id: "j1", specFolder: "103-gated", state: "awaiting-approval" })],
-      [target("103-gated")],
-      open("103-gated"),
+      [row({ id: "j1", specFolder: "103-running", state: "running" })],
+      [target("103-running")],
+      open("103-running"),
     );
     // The stack, on the line it leads — an open row's buttons are not
     // in the header cell any more (2026-08-19).
-    const line = controlsLine(html, "103-gated");
-    expect(line).toContain('<input type="hidden" name="view.open" value="aide/103-gated">');
-    const approve = line.match(/<form method="post" action="\/api\/queue\/j1\/approve"[^>]*>[\s\S]*?<\/form>/)![0];
-    expect(approve).toContain('name="view.open" value="aide/103-gated"');
-    // And Cancel is back — on the controls line the open row reveals
-    // (spec 109), carrying the same key.
-    const cancel = controlsLine(html, "103-gated").match(
+    const line = controlsLine(html, "103-running");
+    expect(line).toContain('<input type="hidden" name="view.open" value="aide/103-running">');
+    // Cancel is on the controls line the open row reveals (spec 109),
+    // carrying the same key. It is the whole of that form since spec
+    // 149 — Approve stood beside it until then.
+    const cancel = line.match(
       /<form method="post" action="\/api\/queue\/j1\/cancel"[^>]*>.*?<\/form>/,
     )![0];
-    expect(cancel).toContain('name="view.open" value="aide/103-gated"');
+    expect(cancel).toContain('name="view.open" value="aide/103-running"');
   });
 
   test("the rarely-set fields end the action stack, on no line of their own (criterion 10)", () => {
@@ -3024,14 +2914,13 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     test(`a ${state} spec's opened row offers Cancel, and nothing else it can press (criterion 1)`, () => {
       // Since spec 124 the buttons never come and go — a row's stack is
       // the same buttons throughout, and its STATE says which of them
-      // will take a click. Cancel is the only one here that will.
+      // will take a click. Since spec 149 Cancel is the only one in it
+      // at all: Approve went with the stop between steps, Merge with
+      // the hand merge.
       const cell = actionCell(openControls(spec(state)));
       expect(control(cell, "cancel")).not.toContain("disabled");
-      expect(control(cell, "approve")).toContain("disabled");
-      // The branch is unmerged and Merge still cannot be pressed:
-      // merging mid-job means cancelling the job first.
-      expect(control(cell, "merge")).toContain("disabled");
-      expect(control(cell, "merge")).toContain(`title="implement is ${state === "running" ? "running" : "queued"}"`);
+      expect(control(cell, "approve")).toBe("");
+      expect(control(cell, "merge")).toBe("");
     });
   }
 
@@ -3133,38 +3022,16 @@ describe("spec 105: a busy row offers only what its state allows", () => {
 
   // --- criterion 4: a gate offers Approve and Cancel, and locks the rest -----
 
-  test("a gated spec's opened row offers Approve and Cancel, and no pressable Merge (criterion 4)", () => {
-    // Both are one click away in the row's own stack (spec 124), and
-    // Merge stands with them, unpressable and saying why.
-    const cell = actionCell(openControls(spec("awaiting-approval")));
-    expect(control(cell, "approve")).not.toContain("disabled");
-    expect(control(cell, "cancel")).not.toContain("disabled");
-    expect(control(cell, "merge")).toContain("disabled");
-    expect(control(cell, "merge")).toContain('title="implement is waiting for approval"');
-  });
-
-  test("a gated spec locks the boxes, the model and Run exactly as a running one does (criterion 4)", () => {
-    const html = rows([spec("awaiting-approval")], [target("105-busy")]);
-    const line = controlsLine(html, "105-busy");
-    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
-      expect(box(line, step)).toContain("disabled");
-      expect(box(line, step)).toContain('title="implement is waiting for approval"');
-    }
-    expect(runBtn(line)).toContain("disabled");
-    expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).toContain("disabled");
-  });
-
   // --- criterion 5: a settled spec is the ordinary row it always was ---------
 
   for (const state of ["done", "failed", "stopped", "cancelled", "interrupted"] as const) {
-    test(`a ${state} spec's row is fully interactive again, Merge included (criterion 5)`, () => {
+    test(`a ${state} spec's row is fully interactive again (criterion 5)`, () => {
       const html = rows([spec(state)], [target("105-busy")]);
       const line = controlsLine(html, "105-busy");
       for (const step of ["analyze", "review-plan", "implement", "archive"]) {
         expect(box(line, step)).not.toContain("disabled");
       }
       expect(runBtn(line)).not.toContain("disabled");
-      expect(actionCell(controlsLine(html, "105-busy"))).toContain('action="/api/queue/j1/merge"');
       expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
       expect(line.match(/<input type="checkbox" name="extraProjects"[^>]*>/)![0]).not.toContain(
         "disabled",
@@ -3182,19 +3049,14 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     expect(html.match(/<select name="model\.analyze"[^>]*>/)![0]).not.toContain("disabled");
   });
 
-  // Merge belongs to work that is finished; it comes back the moment
-  // the job settles, so the rule takes nothing away permanently.
-  test("Merge becomes pressable as soon as the spec stops being busy (criterion 5)", () => {
-    expect(control(actionCell(openControls(spec("running"))), "merge")).toContain("disabled");
-    expect(control(actionCell(openControls(spec("done"))), "merge")).not.toContain("disabled");
-  });
 });
 
 // --- spec 109: an expanded row reveals its controls BELOW the header ---------
 
 // Opening a row used to pile the run form, the Approve/Cancel form and
 // the Merge button into the header's action cell, on top of whatever
-// that cell already offered while shut. The cell has no width of its
+// that cell already offered while shut. (Approve and Merge are gone
+// since spec 149; what they did to the layout is why this exists.) The cell has no width of its
 // own, so it wrapped — and the header line the reader was scanning
 // moved down at the moment they acted on it.
 //
@@ -3300,15 +3162,6 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     });
   }
 
-  test("a gated spec's header row is byte-identical open or shut (criterion 1)", () => {
-    const { shut, opened } = shutAndOpen(
-      [row({ id: "j1", specFolder: "109-gated", state: "awaiting-approval" })],
-      [target("109-gated")],
-      "109-gated",
-    );
-    expect(opened).toBe(shut);
-  });
-
   test("a settled spec with an unmerged branch keeps its header line too (criterion 1)", () => {
     const { shut, opened } = shutAndOpen(
       [row({ id: "j1", specFolder: "109-merge", state: "done", branchUrls: branch })],
@@ -3353,43 +3206,6 @@ describe("spec 109: an expanded row reveals its controls below the header line",
       expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(1);
     });
   }
-
-  test("a gated row keeps Approve and Cancel together in its stack (criterion 4)", () => {
-    const html = rows(
-      [row({ id: "j1", specFolder: "109-gated", state: "awaiting-approval" })],
-      [target("109-gated")],
-      open("109-gated"),
-    );
-    const cell = actionCell(controlsLine(html, "109-gated"));
-    // Spec 109 split the two across two lines; spec 124 put every
-    // button a row has in one stack, so the reader looks in one place.
-    expect(cell).toContain('action="/api/queue/j1/approve"');
-    expect(cell).toContain('action="/api/queue/j1/cancel"');
-    // Exactly once on the page, not once per line.
-    expect(html.match(/action="\/api\/queue\/j1\/approve"/g)).toHaveLength(1);
-    expect(html.match(/action="\/api\/queue\/j1\/cancel"/g)).toHaveLength(1);
-  });
-
-  // Spec 132 took Merge out of the SHUT row — the State column says
-  // "ready to merge the code" there instead, with no button on it. What
-  // spec 109 guards is unchanged where the button is still drawn: once
-  // per row, in the stack, and never on a phase line of its own.
-  test("Merge is offered exactly once, in the open row's stack (criterion 5)", () => {
-    const list = [row({ id: "j1", specFolder: "109-merge", state: "done", branchUrls: branch })];
-    const shutHtml = rows(list, [target("109-merge")]);
-    const openHtml = rows(list, [target("109-merge")], open("109-merge"));
-    expect(shutHtml).not.toContain("/merge");
-    expect(shutHtml).toContain(">ready to merge the code<");
-    for (const html of [openHtml]) {
-      expect(html.match(/action="\/api\/queue\/j1\/merge"/g)).toHaveLength(1);
-      expect(actionCell(controlsLine(html, "109-merge"))).toContain('action="/api/queue/j1/merge"');
-    }
-    // Once per row, wherever it sits: on a shut row the header's last
-    // cell, on an open row the stack beside the phase lines — and no
-    // phase LINE carries an action of its own.
-    const openGroup = controlsLine(openHtml, "109-merge");
-    expect(openGroup.replace(/<td class="stackcell"[\s\S]*?<\/td>/, "")).not.toContain("/merge");
-  });
 
   // --- criterion 6: the order of the lines an open row grows ----------------
 
@@ -4578,24 +4394,6 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(head(html, "124-stack")).toMatch(/<td class="num">[^<]*<\/td><td><\/td><\/tr>$/);
   });
 
-  test("a spec with a job always offers Approve and Cancel, enabled or not (criterion 7)", () => {
-    for (const [state, approve, cancel] of [
-      ["done", true, true],
-      ["running", true, false],
-      ["awaiting-approval", false, false],
-    ] as const) {
-      const cell = actionCell(
-        group(rows([row({ id: "j1", specFolder: "124-stack", state })], [target("124-stack")]), "124-stack"),
-      );
-      expect(cell).toContain('action="/api/queue/j1/approve"');
-      expect(cell).toContain('action="/api/queue/j1/cancel"');
-      const btnOf = (verb: string) =>
-        cell.match(new RegExp(`action="/api/queue/j1/${verb}"[^>]*>.*?<button[^>]*>`))?.[0] ?? "";
-      expect([state, "approve", btnOf("approve").includes("disabled")]).toEqual([state, "approve", approve]);
-      expect([state, "cancel", btnOf("cancel").includes("disabled")]).toEqual([state, "cancel", cancel]);
-    }
-  });
-
   test("a spec no job has ever touched offers Run alone (criterion 8)", () => {
     const cell = actionCell(group(rows([]), "124-stack"));
     expect(cell).toContain(">Run</button>");
@@ -4604,75 +4402,54 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(cell).not.toContain("/merge");
   });
 
-  test("Merge is disabled, never absent, while a job's spec has no open branch (criterion 9)", () => {
-    const cell = actionCell(
-      group(rows([row({ id: "j1", specFolder: "124-stack", state: "done" })], [target("124-stack")]), "124-stack"),
-    );
-    expect(cell).toContain("mergeform");
-    const merge = cell.match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
-    expect(merge).toContain("disabled");
-    expect(merge).toContain('title="no branch is open yet"');
-    // And a real branch turns it on, with the name of what it will land.
-    const live = actionCell(
-      group(
-        rows([row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })], [target("124-stack")]),
-        "124-stack",
-      ),
-    ).match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
-    expect(live).not.toContain("disabled");
-    // Spec 132: what it will land is on the State line now; the button
-    // itself is one word. The names stay in the title.
-    expect(live).toContain(">Merge</button>");
-    expect(live).toContain('title="aide"');
+  // --- spec 149: the buttons that merged and approved are gone ------------
+  //
+  // Every step lands the work it produced, so there is nothing left for a
+  // person to merge by hand and no stop between steps to approve. The
+  // routes are gone (`queue-routes.test.ts`); this is the half that says
+  // nothing draws a form for them either.
+  test("no row draws a Merge or an Approve, in any state (spec 149)", () => {
+    for (const state of ["queued", "running", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+      const html = rows(
+        [row({ id: "j1", specFolder: "124-stack", state, branchUrls: branch })],
+        [target("124-stack")],
+      );
+      expect(`${state}: ${html.includes(">Merge</button>")}`).toBe(`${state}: false`);
+      expect(`${state}: ${html.includes(">Approve</button>")}`).toBe(`${state}: false`);
+      expect(`${state}: ${html.includes("mergeform")}`).toBe(`${state}: false`);
+      expect(`${state}: ${html.includes("/merge")}`).toBe(`${state}: false`);
+      expect(`${state}: ${html.includes("/approve")}`).toBe(`${state}: false`);
+      // "ready to merge" stops being a state the row reports: there is
+      // no press behind it any more. The branch badge says what the
+      // branch is waiting FOR instead, which is not an instruction.
+      expect(`${state}: ${html.includes("ready to merge")}`).toBe(`${state}: false`);
+    }
   });
 
-  test("a busy spec's Merge is there and disabled, saying why (criterion 9)", () => {
-    const merge = actionCell(
-      group(
-        rows(
-          [row({ id: "j1", specFolder: "124-stack", steps: ["implement"], stepIndex: 0, state: "running", branchUrls: branch })],
-          [target("124-stack")],
-        ),
-        "124-stack",
-      ),
-    ).match(/<form method="post" action="\/api\/queue\/j1\/merge"[\s\S]*?<\/form>/)![0];
-    expect(merge).toContain("disabled");
-    expect(merge).toContain('title="implement is running"');
-  });
-
-  test("Resolve appears only after a conflict on this very row (criterion 10)", () => {
-    const list = [row({ id: "j1", specFolder: "124-stack", state: "failed", branchUrls: branch })];
-    const withConflict = rows(list, [target("124-stack")], {
-      error: "cannot merge — conflict",
-      errorSpec: "aide/124-stack",
-      errorReason: "conflict",
-    });
-    expect(actionCell(group(withConflict, "124-stack"))).toContain(">Resolve</button>");
-    expect(actionCell(group(rows(list), "124-stack"))).not.toContain(">Resolve</button>");
-  });
-
-  // Spec 135: Merge demotes itself on a row that has just told the
-  // reader why it could not be done, and until now nothing took the
-  // role it vacated. Resolving IS what to do next there, so the pair is
-  // asserted as a pair — exactly one primary, and it is Resolve.
-  test("a conflict refusal leaves Resolve primary and Merge demoted", () => {
-    const cell = actionCell(
-      group(
-        rows([row({ id: "j1", specFolder: "124-stack", state: "failed", branchUrls: branch })], [target("124-stack")], {
-          error: "cannot merge — conflict",
-          errorSpec: "aide/124-stack",
-          errorReason: "conflict",
-        }),
-        "124-stack",
-      ),
-    );
-    const form = (cls: string) =>
-      cell.match(new RegExp(`<form[^>]*class="${cls}"[\\s\\S]*?</form>`))?.[0] ?? "";
-    expect(form("resolveform")).toContain('class="btn primary"');
-    // Exactly one of the pair is primary, and it is not Merge. (Run is
-    // primary on this row too — that is the row's own action, not this
-    // pair's, so the count is taken over the pair and not the cell.)
-    expect(form("mergeform")).not.toContain("primary");
+  // Criterion 7. The Resolve control used to need a query string the
+  // Merge button's own 303 wrote. A landing that nobody pressed has no
+  // browser to redirect, so the reason is stored on the job and read off
+  // the row — on this request and on every later one.
+  test("Resolve is drawn from the job's own stored errorReason (spec 149)", () => {
+    const conflicted = [
+      row({
+        id: "j1",
+        specFolder: "124-stack",
+        state: "done",
+        branchUrls: branch,
+        error: "cannot merge — conflict",
+        errorReason: "conflict",
+      }),
+    ];
+    // No `error`/`errorSpec` in the page options at all.
+    const cell = actionCell(group(rows(conflicted, [target("124-stack")]), "124-stack"));
+    expect(cell).toContain(">Resolve</button>");
+    // And it is the row's primary action, the role Merge used to vacate
+    // for it (spec 135).
+    expect(cell.match(/<form[^>]*class="resolveform"[\s\S]*?<\/form>/)![0]).toContain('class="btn primary"');
+    // A job with no stored reason offers nothing.
+    const clean = [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })];
+    expect(actionCell(group(rows(clean, [target("124-stack")]), "124-stack"))).not.toContain(">Resolve</button>");
   });
 
   test("the rarely-set fields end the stack, on no line of their own (criterion 11)", () => {
@@ -4689,11 +4466,15 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
   });
 
   test("a shut row's action cell is what a collapsed row has always offered (criterion 12)", () => {
-    const gated = [row({ id: "j1", specFolder: "124-stack", state: "awaiting-approval" })];
-    const shut = actionCell(group(rows(gated, [target("124-stack")], { filter: {} }), "124-stack"));
-    expect(shut).toContain('action="/api/queue/j1/approve"');
+    // Since spec 149 the one thing a collapsed row can still offer is
+    // the way out of a conflict; Approve was the other, and it went
+    // with the stop between steps.
+    const conflicted = [
+      row({ id: "j1", specFolder: "124-stack", state: "done", errorReason: "conflict" }),
+    ];
+    const shut = actionCell(group(rows(conflicted, [target("124-stack")], { filter: {} }), "124-stack"));
+    expect(shut).toContain(">Resolve</button>");
     expect(shut).not.toContain("/cancel");
-    expect(shut).not.toContain("mergeform");
     expect(shut).not.toContain(">Run<");
     expect(shut).not.toContain('class="stack"');
     // Nothing pending at all is an empty cell — the container the

@@ -34,7 +34,7 @@ export interface QueueRowView {
   steps: string[];
   stepIndex: number;
   state:
-    | "queued" | "running" | "awaiting-approval" | "done"
+    | "queued" | "running" | "done"
     | "stopped" | "failed" | "cancelled" | "interrupted";
   spentUsd: number;
   /** The same figure in tokens (spec 118). A NUMBER here, not the stored
@@ -54,6 +54,12 @@ export interface QueueRowView {
    *  answer changes long after the job stops running. */
   branchUrls?: BranchView[];
   error?: string;
+  /** Why the job's own landing was refused, when it was refused for
+   *  something the row can offer a way out of. Stored on the job since
+   *  spec 149 and read from here: a landing happens with nobody's
+   *  browser attached, so the reason cannot ride in a redirect the way
+   *  the Merge button's refusal used to. */
+  errorReason?: "conflict";
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
@@ -84,7 +90,6 @@ export interface StepResultView {
 // the same string: with tight caps a cap-stop is a common, healthy
 // outcome, and a reader who cannot tell them apart ignores both.
 export function stateLabel(r: QueueRowView): string {
-  if (r.state === "awaiting-approval") return "waiting for approval";
   if (r.state === "stopped") {
     return r.stopReason === "timeout"
       ? `stopped — ${Math.round(r.timeoutSec / 60)} min`
@@ -111,7 +116,6 @@ export function stateLabel(r: QueueRowView): string {
 export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
   queued: "idle",
   running: "running",
-  "awaiting-approval": "waiting",
   done: "done",
   stopped: "waiting",
   failed: "refused",
@@ -125,13 +129,18 @@ export function stateChip(r: QueueRowView): string {
 
 /** What the badge says when nothing is running: the resting state and
  *  what can happen next, in one sentence. Handed in rather than worked
- *  out here, because none of it is the JOB's to know — `openBranch` and
- *  `readyPhase` are the SPEC's answers (see `nextActionHint`), and the
- *  "ready to merge X" wording needs `mergeReadyLabel`, which only
- *  `queue-list.ts` can compute: it alone knows which repo is code. */
+ *  out here, because none of it is the JOB's to know — `readyPhase` is
+ *  the SPEC's answer (see `nextActionHint`).
+ *
+ *  `mergeReady` was the third of them until spec 149. It said "ready to
+ *  merge the code" for a branch a person was expected to press Merge
+ *  for, and there is no such press any more: every step lands the work
+ *  it produced, and the one branch left standing open is `implement`'s,
+ *  which `archive` lands. `readyPhase` already says "ready for archive"
+ *  on exactly that row, so the badge kept the answer and lost the
+ *  duplicate. */
 export interface RestingState {
   archiveHeldBack?: string;
-  mergeReady?: string;
   readyPhase?: string;
 }
 
@@ -158,7 +167,6 @@ export function specStateChip(r: QueueRowView, resting: RestingState = {}): stri
     // off the right edge of the table. It is said in full in the row's
     // own panel instead (`specNotice`), once (spec 143).
     if (resting.archiveHeldBack) return badge("waiting", "archive held back");
-    if (resting.mergeReady) return badge("ready", resting.mergeReady);
     if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
     return badge("done", "done — nothing waiting on you");
   }
@@ -183,7 +191,7 @@ export const notStartedChip = (): string => badge("idle", "not started");
  *  and forgotten in the other is exactly the drift neither page can
  *  afford, and the single-job page needs the same test without importing
  *  the list's filter vocabulary. */
-export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running", "awaiting-approval"];
+export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running"];
 
 export const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state);
 
@@ -197,13 +205,9 @@ export function currentStep(r: QueueRowView): string {
  *  e.g. `review-plan running`. Both pages ask this one function, for the
  *  same reason `stateLabel` exists — a spec's state and a phase's state
  *  are the same question at two altitudes and must never be worded
- *  differently. A job waiting for approval is the one exception: the
- *  state already says everything, and naming the step it stopped after
- *  reads as though that step were still going. */
+ *  differently. */
 export function activityLabel(r: QueueRowView): string {
-  return r.state === "awaiting-approval"
-    ? stateLabel(r)
-    : `${stepLabel(currentStep(r))} ${stateLabel(r)}`;
+  return `${stepLabel(currentStep(r))} ${stateLabel(r)}`;
 }
 
 // A branch link says where the work IS, never whether it landed, so a
@@ -219,13 +223,18 @@ export function activityLabel(r: QueueRowView): string {
 // It used to say "not merged" whatever the job was doing — a fact about
 // the BRANCH, read as a verdict on the spec. Beside a step that was
 // still writing to that branch it said nothing about the one thing that
-// decided whether merging made sense, so the badge is handed the job's
-// activity and says that instead; "ready to merge" is what is left once
-// there is no activity to report.
+// decided whether the branch mattered, so the badge is handed the job's
+// activity and says that instead.
+//
+// What is left once there is no activity to report used to be "ready to
+// merge", which was an instruction: press the button. Spec 149 removed
+// the button — every step lands its own work — so the one window a
+// branch can legitimately sit open in is after `implement` and before
+// `archive`, and the badge states that rather than asking for anything.
 export function unmergedBadge(b: BranchView, activity?: string): string {
   if (b.merged) return "";
   if (activity) return ` ${badge("running", activity)}`;
-  return ` ${badge("ready", "ready to merge")}`;
+  return ` ${badge("ready", "waiting for archive")}`;
 }
 
 /** The badge's second argument, worked out from the job that owns the
@@ -261,7 +270,6 @@ export const branchActivity = (r: QueueRowView): string | undefined =>
  *  not already contain — it says it in one place, as a sentence. */
 export function nextActionHint(r: QueueRowView | undefined): string {
   if (!r) return "never run — tick a phase and press Run";
-  if (r.state === "awaiting-approval") return "waiting for your approval to carry on";
   // In flight the sentence says NOTHING (asked for 2026-08-19): the
   // spec's chip already reads "analyzing" (`specStateChip`) and the
   // running phase line says the rest — "analyze running — review to

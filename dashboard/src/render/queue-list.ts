@@ -131,14 +131,6 @@ export interface QueuePageOptions {
    *  button was pressed. Derived server-side from the job, never taken
    *  from the browser. */
   errorSpec?: string;
-  /** WHY that refusal happened, when the reason is one the row can
-   *  offer a way out of — today only `"conflict"` (spec 106). Derived
-   *  server-side from the merge result's own field, never from the
-   *  refusal sentence: that text is joined across repos before the page
-   *  sees it, and a rewording would silently take the offer away.
-   *  Absent for every other refusal, which is what keeps the offer
-   *  narrow. */
-  errorReason?: string;
   /** How the list is cut and ordered, straight from the query string.
    *  Anything unrecognised falls back to the default rather than
    *  emptying the page. */
@@ -675,28 +667,25 @@ function sortableHead(f: QueueFilter): string {
   );
 }
 
-// A gated job is waiting on a person, and the two things that person
-// can do are approve it or stop it. Cancel used to be offered only
-// while a job was queued or running — the route has never had a state
-// guard on it (`serve.ts`), so a gated job could be cancelled by
-// anything except the page it was gated on. The design sheet puts both
-// buttons on that row; this is where they come from.
+// Stopping a run is the one thing this form does. It offered Approve
+// beside it until spec 149, for a job parked between two steps — there
+// is no stop between steps any more, so there is nothing to release and
+// nothing to approve.
 function actionForm(
   r: QueueRowView,
   token: string | undefined,
   filter: QueueFilter | undefined,
-  o: { approveOnly?: boolean; cancelOnly?: boolean; always?: boolean } = {},
+  o: { always?: boolean } = {},
 ): string {
-  const gated = r.state === "awaiting-approval";
-  const canCancel = gated || r.state === "queued" || r.state === "running";
-  if (!o.always && !(o.approveOnly ? gated : canCancel)) return "";
+  const canCancel = r.state === "queued" || r.state === "running";
+  if (!o.always && !canCancel) return "";
   const hidden = tokenField(token) + filterFields(filter);
   // `actionform` is what the page's own code selects on, and
   // `data-pending` is what the button says while the request is out —
   // written here, beside the label it replaces, rather than as a verb
   // table in the script.
   const one = (
-    verb: "approve" | "cancel",
+    verb: "cancel",
     label: string,
     pending: string,
     variant: "ok" | "danger",
@@ -706,141 +695,39 @@ function actionForm(
     `<form method="post" action="/api/queue/${esc(r.id)}/${verb}" class="actionform">${hidden}` +
     btn({ label, pending, variant: disabled ? "" : variant, disabled, title: disabled ? why : undefined }) +
     `</form>`;
-  // A collapsed row offers the one thing it needs RIGHT NOW and nothing
-  // else — approving is that thing; stopping the job is a decision the
-  // reader takes with the row open in front of them.
-  if (o.approveOnly) return one("approve", "Approve", "approving…", "ok");
-  // The OPEN row's stack (spec 124): both buttons are in the markup
+  // The OPEN row's stack (spec 124): the button is in the markup
   // whatever the state, and only `disabled` moves. A button that comes
   // and goes changes the width of the column every row on the page
   // shares — which is the shove this was written to stop. Reached only
-  // once the spec HAS a job: with none, there is nothing to approve or
-  // cancel, ever, and a permanently disabled pair would say otherwise.
+  // once the spec HAS a job: with none, there is nothing to cancel,
+  // ever, and a permanently disabled button would say otherwise.
   if (o.always) {
-    return (
-      one("approve", "Approve", "approving…", "ok", !gated, "no job is waiting for approval") +
-      one("cancel", "Cancel", "cancelling…", "danger", !canCancel, "nothing is running to cancel")
-    );
+    return one("cancel", "Cancel", "cancelling…", "danger", !canCancel, "nothing is running to cancel");
   }
-  // The mirror of `approveOnly`, and it exists for the same reason the
-  // two buttons ended up on different lines (spec 109): Approve is what
-  // a gate needs RIGHT NOW, so it stays on the header the reader is
-  // already looking at, and drawing it a second time on the controls
-  // line below would be one decision offered twice.
-  return (
-    (o.cancelOnly ? "" : gated ? one("approve", "Approve", "approving…", "ok") : "") +
-    one("cancel", "Cancel", "cancelling…", "danger")
-  );
+  return one("cancel", "Cancel", "cancelling…", "danger");
 }
 
-// The merging still belongs to the user — the button is pressed, never
-// scheduled. What moves onto the page is the EXECUTION, which is the
-// part that got forgotten: a spec's work merged in one repo and left in
-// the other, three times on 2026-08-17.
-//
-// One button for the whole spec, not one per repo. The report that
-// comes back is per repo, because several repos cannot be merged
-// atomically — but a spec with three repos growing three near-identical
-// buttons to find and press in turn is not what "sørger for å gjøre det
-// rett" asked for.
-//
-// What would land is said BEFORE it is pressed, so merging an
-// unfinished spec is a choice rather than a surprise.
-//
-// The COUNT is not, any more. `Merge (1)` said how many repos and
-// nothing about which kind, so a reader had to know that one meant the
-// specs repo, that the specs repo is the plan, and that the step still
-// running was about to rewrite it. Two of those three facts are the
-// page's to state.
-//
-// Spec 132 moved that sentence off the button and onto the State line,
-// where the rest of the row's state lives. The reason it was on the
-// button was that the button was where a reader was looking; the reason
-// it is not any more is that there is no choice AT the button —
-// whatever it says, pressing it merges whatever is open, and the label
-// was a sentence long for a control with one outcome. The button says
-// `Merge`. Which repos remains visible, on the row, in the badge.
+// Merging was a button here until spec 149, with a long comment about
+// what it said and where it said it. It says nothing now, because it is
+// not pressed: every step lands the work it produced, `implement` alone
+// leaves its branch open on purpose, and `archive` is what lands that.
+// `mergeForm`, `mergeReadyLabel` and `isCodeRepo` went with it —
+// `isCodeRepo` existed only so the button's own sentence could say
+// whether it would land the plan or the code.
 
-/** A branch's label is a directory basename (`serve.ts`, `repoLabel`)
- *  and a project's checkout is named after the project by construction
- *  (`branch-status.ts`, `projectCheckout`) — so a label that is a known
- *  project name is that project's CODE, and a label that is not is the
- *  specs repo. Not a heuristic: `.claude/rules/development.md` closes
- *  the set ("the run only watches ... the roots it knows about"), so
- *  there is no third kind of repo for a label to belong to. */
-function isCodeRepo(label: string, g: SpecGroup, opts: QueuePageOptions): boolean {
-  return label === g.project || (opts.projects ?? []).includes(label);
-}
-
-/** What a merge would actually land, worded as the row's resting state
- *  rather than as an instruction — it is read on the State line now, not
- *  pressed. `paceup` and `atlasaurus` keep their specs inside the
- *  project repo, so their one branch is code — the common shape, and
- *  the one calling it "the plan" would get backwards. */
-function mergeReadyLabel(open: BranchView[], g: SpecGroup, opts: QueuePageOptions): string {
-  const code = open.some((b) => isCodeRepo(b.label, g, opts));
-  const plan = open.some((b) => !isCodeRepo(b.label, g, opts));
-  return code && plan
-    ? "ready to merge plan and code"
-    : code
-      ? "ready to merge the code"
-      : "ready to merge the plan";
-}
-
-function mergeForm(
-  g: SpecGroup,
-  opts: QueuePageOptions,
-  refused: boolean,
-  o: { always?: boolean } = {},
-): string {
-  const open = g.branches.filter((b) => !b.merged);
-  // No lead means no job, which means no branch — the guard is for the
-  // type checker, and it holds for the same reason the `if` above does.
-  // Both call sites already refuse to draw a Merge for a spec that has
-  // never run anything: nothing to merge is not "not now".
-  if (!g.lead) return "";
-  // Why it cannot be pressed, in the two words the row has for it. A
-  // SHUT row draws nothing at all in either case (it offers only what
-  // the spec needs right now); an OPEN row's stack draws the button
-  // anyway, disabled, so the column it sits in never changes width.
-  const blocked = open.length === 0 || specBusy(g);
-  if (!o.always && blocked) return "";
-  const names = open.map((b) => b.label).join(", ");
-  // A button says the verb for what pressing it does, not the row's
-  // history: a merge pressed a second time is not a different action
-  // from the first, so "Merge again" left the label (spec 135) and the
-  // refusal is read where the rest of the row's state is. What it
-  // would land is on the State line (spec 132), and the repo names are
-  // in the title. `refused` still stands the button DOWN from primary
-  // below — it stops being the primary action on a row that has just
-  // told the reader why it could not be done.
-  const label = "Merge";
-  const why = open.length === 0 ? "no branch is open yet" : busyReason(g);
-  const hidden = tokenField(opts.token) + filterFields(opts.filter);
-  const action = `/api/queue/${esc(g.lead.id)}/merge`;
-  return (
-    `<form method="post" action="${action}" class="mergeform">${hidden}` +
-    btn({
-      label,
-      pending: "merging…",
-      title: blocked ? why : names,
-      variant: refused || blocked ? "" : "primary",
-      disabled: blocked,
-    }) +
-    `</form>`
-  );
-}
-
-// The way out of the one refusal that HAS one (spec 106). Merging by
-// hand is still there beside it, unchanged — this is an alternative
-// offered, never a replacement, and it appears only after a merge was
-// refused for a real conflict.
+// The way out of the one refusal that HAS one (spec 106): a landing
+// that could not be made because the branch genuinely conflicts.
 //
-// It queues a job, so it is the Run form's shape and not `mergeForm`'s:
-// a POST to /api/queue with the steps fixed, since this control never
-// lets a person pick them. Everything that follows — the cost, the
-// cancel, the caps, the model — is what any other step gets, because it
-// IS any other step.
+// It appears from the job's own stored `errorReason` since spec 149 — it
+// used to need a query string the Merge button's 303 wrote, which meant
+// one page load, in one browser, belonging to whoever pressed it. A
+// landing nobody pressed has no browser to redirect, so a conflict from
+// a headless run was invisible and unrecoverable from the page.
+//
+// It queues a job: a POST to /api/queue with the steps fixed, since this
+// control never lets a person pick them. Everything that follows — the
+// cost, the cancel, the caps, the model — is what any other step gets,
+// because it IS any other step.
 function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
   const hidden =
     tokenField(opts.token) +
@@ -855,10 +742,8 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
       pending: "queueing…",
       title: "merge the default branch into the spec's branch, resolve, and run the tests",
       // Primary, and only ever here: the form is drawn on one kind of
-      // row only — a merge refused for a conflict — and resolving is
-      // what to do next there. Merge stands itself down on that row
-      // (`mergeForm`'s variant), so without this the row has no
-      // primary action at the moment it most needs one (spec 135).
+      // row only — a landing refused for a conflict — and resolving is
+      // what to do next there (spec 135).
       variant: "primary",
     }) +
     `</form>`
@@ -866,39 +751,25 @@ function resolveForm(g: SpecGroup, opts: QueuePageOptions): string {
 }
 
 // What a COLLAPSED row may ask of the reader: the one thing the spec
-// needs right now, or nothing at all. Approve while a gate waits, and
-// the way out of a conflict where the refusal is — everything else
-// (Run, Cancel, Merge, the model, the other repos) belongs to
-// the row you have opened.
+// needs right now, or nothing at all. That is the way out of a
+// conflict, where the refusal is — everything else (Run, Cancel, the
+// model, the other repos) belongs to the row you have opened.
 //
-// Merge was the third of them until spec 132. It was the one action on
-// this page living outside the panel actions live in, and what it was
-// out here FOR — saying which repos a press would land, where a reader
-// was looking — is now said by the State column instead, on the same
-// row, with no button attached.
+// Approve stood here too until spec 149, for a job parked at a gate;
+// Merge until spec 132, which moved it into the panel before spec 149
+// removed it outright. What is left answers what it always did, for the
+// same reason: a collapsed row is about what the spec IS, plus at most
+// the one thing it is waiting on.
 //
-// Spec 109 made it what the header cell drew whether the row was open
-// or shut; spec 124 gave the OPEN row that cell for its whole stack
-// (`openActionsCell`), so this is the shut row's alone again. What it
-// answers is unchanged, and so is the reason for it: a collapsed row
-// is about what the spec IS, plus at most the one thing it is waiting
-// on.
-//
-// A selector, never a second copy of the markup: both branches call the
-// same component the expanded row calls, so a change to either form
-// reaches both places at once.
+// A selector, never a second copy of the markup: it calls the same
+// component the expanded row calls, so a change to the form reaches
+// both places at once.
 function collapsedAction(g: SpecGroup, opts: QueuePageOptions, conflict: boolean): string {
-  if (g.lead && g.lead.state === "awaiting-approval") {
-    return actionForm(g.lead, opts.token, opts.filter, { approveOnly: true });
-  }
   // A branch an earlier job left behind does not make a busy row
   // actionable: the step still running is writing to that very branch,
-  // and the merge would be refused. Nothing at all, then — Cancel stays
-  // one click away, by opening the row.
+  // and a resolve queued against it would collide with the run. Nothing
+  // at all, then — Cancel stays one click away, by opening the row.
   if (specBusy(g)) return "";
-  // One control, so no container to space it in: the pair spec 120 gave
-  // a gap to was Merge and resolve, and Merge went into the panel
-  // (spec 132). The two still stand side by side there, in the stack.
   return conflict ? resolveForm(g, opts) : "";
 }
 
@@ -1099,7 +970,6 @@ function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): strin
 // spec 123 introduced for the model select, used twice more here.
 function openActionsCell(g: SpecGroup, opts: QueuePageOptions): string {
   const busy = specBusy(g);
-  const refused = opts.errorSpec === groupKey(g.project, g.specFolder);
   // Always "Run" — never "Run again". The again-variant tried to say
   // whether anything was left to run for the first time, guessed wrong
   // at the edges (archive ticked but not run still said "again"), and
@@ -1129,8 +999,7 @@ function openActionsCell(g: SpecGroup, opts: QueuePageOptions): string {
     `</form>` +
     run +
     (g.lead ? actionForm(g.lead, opts.token, opts.filter, { always: true }) : "") +
-    (g.lead ? mergeForm(g, opts, refused, { always: true }) : "") +
-    (refused && opts.errorReason === "conflict" ? resolveForm(g, opts) : "") +
+    (g.lead?.errorReason === "conflict" ? resolveForm(g, opts) : "") +
     // The two nobody sets every time, quiet and small-text at the end
     // of the stack (spec 117's shape, one turn to the right).
     `<span class="row extra">${extraFields(g, opts, busy)}</span>` +
@@ -1228,19 +1097,21 @@ function specHeadRow(
   // "which spec" is invented.
   const refusal =
     opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
-  // The one refusal with a way out. Both halves are required: the
-  // reason belongs to whichever row the refusal does, so a conflict on
-  // another spec's row must not offer this one a resolve.
-  const conflict = !!refusal && opts.errorReason === "conflict";
+  // The one refusal with a way out — read off the row's own job since
+  // spec 149, not off the query string. A landing happens with nobody's
+  // browser attached, so the redirect that used to carry this reason
+  // never happens; and reading it from the job also settles by
+  // construction the thing the query string needed two halves to get
+  // right, that the reason belongs to THIS spec and no other.
+  const conflict = g.lead?.errorReason === "conflict";
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, asked once more for the
   // sentence. Worded for a reader here, so `review-plan` reaches it as
   // "review".
   const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
-  // The other two the State column is built from: whatever this spec
-  // pushed and left behind, and the archive that declined to move.
-  const unmerged = g.branches.filter((b) => !b.merged);
+  // The other thing the State column is built from: the archive that
+  // declined to move.
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
@@ -1272,9 +1143,6 @@ function specHeadRow(
       g.lead
         ? stateCell(g.lead, {
             archiveHeldBack: heldBack,
-            // Only what is still open, and only worded here: which repo
-            // is code is the queue page's question, not the badge's.
-            mergeReady: unmerged.length ? mergeReadyLabel(unmerged, g, opts) : undefined,
             readyPhase,
           })
         : notStartedChip()

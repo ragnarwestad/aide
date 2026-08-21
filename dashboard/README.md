@@ -15,7 +15,7 @@
     - [Whether a run can start there (spec 138)](#whether-a-run-can-start-there-spec-138)
     - [What Add finishes itself (spec 140)](#what-add-finishes-itself-spec-140)
   - [How many run at once](#how-many-run-at-once)
-  - [Gates and notifications](#gates-and-notifications)
+  - [Notifications](#notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
@@ -53,7 +53,7 @@ no host is named anywhere in this repo.
 - `/` — one row per spec — every non-archived spec of every
   allowlisted project, whether or not it has ever run — with its
   workflow phases beneath, foldable away; run any phase from its own
-  line, watch one, approve a gate (token required). The front page: it
+  line, watch one, cancel one (token required). The front page: it
   is what the dashboard is used for, so it is what the dashboard opens
   on.
 - `/new` — the form that makes a spec: a project, what it builds on, a
@@ -85,8 +85,10 @@ no host is named anywhere in this repo.
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
-  `POST /api/queue/<id>/approve` and `/cancel` act on one. The API keeps
-  the queue's own name: it is a contract, not a page anyone reads.
+  `POST /api/queue/<id>/cancel` acts on one. The API keeps the queue's
+  own name: it is a contract, not a page anyone reads. `approve` and
+  `merge` were routes here until spec 149 and are gone: there is no stop
+  between steps to approve, and every step lands its own work.
 - `POST /api/queue/create` — project, title and description in; a job
   that MAKES a spec out, which then lands itself and becomes an ordinary
   row (token required, like the rest of `/api/queue*`)
@@ -172,7 +174,7 @@ a time instead.
 **Every phase the job in flight was queued with shows its box
 disabled**, not merely the step it has reached, because the queue would
 refuse any of them anyway (see
-[the duplicate guard](#gates-and-notifications)) — a job queued as
+[the duplicate guard](#notifications)) — a job queued as
 `analyze` + `review-plan` left `review-plan` tickable until the moment
 it got there, and Run then answered "already running on this spec".
 The box says why on hover ("analyze is running"), in the same words the
@@ -211,8 +213,8 @@ The State column answers what a reader came to find out, and its FIRST
 line is one of two things, always (spec 132): the verb for what is
 happening — "analyzing", "implementing", "implementing queued" — or,
 once nothing is running, the resting state and what can happen next —
-"ready to merge the code", "ready for implement", "archive held back —
-the Slack webhook", "done — nothing waiting on you". The bare words
+"ready for implement", "archive held back — the Slack webhook", "done —
+nothing waiting on you". The bare words
 "done" and "queued" are neither, and neither appears alone: "done" said
 nothing about WHAT was done, and "queued" said nothing about which step
 was waiting, while both facts were known.
@@ -280,14 +282,13 @@ Two things about it are worth knowing:
   the disk, and left unreported when zero or several appeared rather than
   guessed at.
 
-When the step succeeds the dashboard **lands the branch itself**, through
-the same `mergeBranchIntoDefault` the Merge button uses, and renames the
-job to the real folder. This is the one merge here that nobody pressed a
-button for, and it is not a convenience: the list shows what is on disk
-in the main checkout, which every run keeps on its default branch, so a
-created spec that is only pushed to a branch appears nowhere at all. A
-landing that fails leaves the provisional key in place and says which
-repo and why — merge that one by hand. **While any job is landing the
+When the step succeeds the dashboard **lands the branch itself** and
+renames the job to the real folder. It was the first step to do so, and
+it is not a convenience: the list shows what is on disk in the main
+checkout, which every run keeps on its default branch, so a created spec
+that is only pushed to a branch appears nowhere at all. A landing that
+fails leaves the provisional key in place and says which repo and why.
+**While any job is landing the
 scheduler starts nothing at all**, whatever the concurrency is set to: a
 landing merges into the shared main checkout, which worktree isolation
 does not cover.
@@ -300,10 +301,10 @@ every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
 A spec's row is collapsed by default: name, title, one status line, the
-four phase pips, and at most one action button (Approve if a gate is
-waiting, Resolve after a conflict on that very row). The four phase
-lines and every control — phase checkboxes, model dropdown, gate and
-also-touches fields, Run, Cancel — sit behind the same chevron in front
+four phase pips, and at most one action button (Resolve, after a landing
+on that row was refused for a conflict). The four phase lines and every
+control — phase checkboxes, model dropdown, the also-touches field, Run,
+Cancel — sit behind the same chevron in front
 of the name (spec 103). Expanding is a link and lives in the query
 string (`?open=<project>/<folder>,…`), which is what makes it survive
 the table's own five-second refresh, what makes it work with JavaScript
@@ -311,8 +312,8 @@ switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
 Every control here is a plain form first: ticking phases and pressing
-Run works with JavaScript switched off, and so do Approve, Cancel,
-Merge, Create and expanding a row — each posts its form and follows a
+Run works with JavaScript switched off, and so do Cancel, Resolve,
+Create and expanding a row — each posts its form and follows a
 303 back to the list. `queue-client.ts` is a layer ABOVE that floor,
 never the mechanism (see
 [what the script adds](#what-the-script-adds-specs-96-and-101)). It
@@ -619,15 +620,15 @@ are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their
 default branch and no run can see another's.
 
-### Gates and notifications
+### Notifications
 
-A gate sits BETWEEN steps, never inside one. A step named in the job's
-`gateAfter` list parks it in `awaiting-approval`: the notifier fires
-once, and nothing starts until someone presses Approve. The schema's own
-default gates after every step, but no form on the page can ask for
-that — since spec 133 a browser post always means `gateAfter: []`, run
-straight through, and a gated job is something only an API caller
-naming `gateAfter` can start. Approve stays on the row for it.
+There is no stop between steps and no way to ask for one (spec 149). A
+gate used to park a job in `awaiting-approval` until someone pressed
+Approve; no form on the page could ever set one, the three jobs that
+ever had one were posted as JSON by hand, and every step lands its own
+work now, so there is nothing between two steps for anyone to weigh. A
+request that still names `gateAfter` is accepted and the field ignored,
+like any other unknown key.
 
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line
 of JSON on stdin (claude-usage's contract, copied so one wrapper can
@@ -640,7 +641,7 @@ incoming webhook, whose URL lives in `~/aide-dashboard/slack-webhook`
 The line reads, for example:
 
 ```text
-aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
+aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
 ```
 
 ### What a finished step publishes
@@ -662,8 +663,8 @@ name, title, one status line, the phase pips, and at most one action
 button. Expanding it (the chevron in front of the name, `?open=…`)
 reveals the workflow phases underneath, always in that order, so how
 far a spec has got is readable without counting rows, plus the run
-controls (phase checkboxes, model, gate and also-touches fields after
-it, Run/Run again, Cancel). A
+controls (phase checkboxes, model, the also-touches field after it,
+Run, Cancel). A
 phase never run shows a muted "not run yet". A phase run more than once
 shows its LATEST attempt with the count beside it, because a re-run is
 ordinary: one spec needed three `archive` runs.
@@ -681,22 +682,21 @@ The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per
 repo the spec pushed to, and the state that matters most right now —
 whatever is in flight, else the most recent outcome. A collapsed row's
-single action button — Approve if a gate is waiting, else the way out
-of a conflict where the refusal is — sits there too, once per spec
-instead of once per job; Cancel and Merge are only offered once the row
-is expanded.
+single action button — the way out of a conflict, where the refusal
+is — sits there too, once per spec instead of once per job; Cancel is
+only offered once the row is expanded.
 
 ### What the script adds (specs 96 and 101)
 
 The page's own browser code does one thing to the controls: it keeps
-the reader where they are. Every one of the five — Run, Approve,
-Cancel, Merge, Create — is a real `<form>` that works on its own, and
-the script only intercepts.
+the reader where they are. Every one of them — Run, Cancel, Resolve,
+Create — is a real `<form>` that works on its own, and the script only
+intercepts.
 
 - **A press changes the button at once, without changing its width**
   (spec 104). It disables, gains the `busy` look and a spinner ahead of
   its own label — the label itself stays put, only the `title` carries
-  the pending word ("starting…", "approving…", "cancelling…",
+  the pending word ("starting…", "cancelling…", "queueing…",
   "merging…", "creating…"), read from `data-pending` beside the label
   it used to replace. On a row control the same press swaps that row's
   own `.phases` chips for the same spinner, holding their width with
@@ -748,31 +748,34 @@ used to read "not merged" whatever was going on — a fact about the
 BRANCH that read as a verdict on the spec, shown in the same amber
 while the step writing that branch was still running. So while the
 spec's job is in flight the badge names what it is doing
-(`review-plan running`), and once nothing is running it reads **ready
-to merge**.
+(`review-plan running`), and once nothing is running it says what is
+open and why — the one window that still exists being the code after
+`implement` and before `archive`.
 
-Beside the approve/cancel action sits the merge button, and it says
-**Merge** — one word. What a press would land is said on the row
-instead, in the State column: **ready to merge the plan** when only the
-specs repo is behind, **ready to merge the code** when only the project
-is, **ready to merge plan and code** when both are. The repo names stay
-in the tooltip. A branch whose label is a known project name is that
+**Nothing here is merged by hand (spec 149).** Every step lands its own
+work the moment it finishes: `create`, `analyze`, `review-plan` and
+`resolve` merge the branch they pushed into that repo's default branch
+and delete it on origin; `implement` lands nothing, so the code stays
+on the branch for anyone who wants to read or test it first; `archive`
+merges every repo the spec's branch still exists in — the specs repo
+first, the code last, so the code is the last word — runs
+`AIDE_INSTALL_CMD` after a code root exactly as the old Merge route did,
+and then archives. Leaving `archive` unticked IS the inspection
+point. A landing that cannot be made (a conflict with the default
+branch) is refused by name, the branch stays where it was, and the row
+offers Resolve. A branch whose label is a known project name is that
 project's code; a label that is not any project on this machine is the
 specs repo, which is a closed set rather than a guess
 (`.claude/rules/development.md`: "the run only watches ... the roots it
 knows about").
 
-Spec 96 put that sentence ON the button, because the button was where a
-reader was looking; spec 132 moved it to where the rest of the row's
-state lives. What 96 was for is untouched — a plan merge changes only
-the specs repo, a code merge is what reaches the serving host, and the
-page still says which. What went is a button whose label was a sentence
-for a control with one outcome: whatever it read, pressing it merged
-whatever was open. There is no choice AT the button, so there was
-nothing there for a label to help decide. The button also left the
-collapsed row entirely: it was the one action on this page living
-outside the panel every other action lives in, and acting now means
-opening the row.
+There was a Merge button until spec 149 — spec 96 put the sentence
+"what a press would land" on it, spec 132 moved that sentence into the
+State column and the button into the opened row's panel. Both were
+about a control that had one outcome: whatever it read, pressing it
+merged whatever was open. Spec 149 took the press away: the steps that
+made the work know when it is done, and `create` and `archive` had
+already been landing themselves for the same reason (specs 93 and 136).
 
 While a step is still running that button is **disabled**, and a small
 "merge anyway" sits beside it behind a confirmation. Merging an
@@ -849,9 +852,9 @@ to do next there (spec 135). Pressing it queues an ordinary job with one
 step, `resolve`, which does by machine what the by-hand routine did —
 in a worktree of the spec's branch, merge origin's default branch into
 it, resolve the conflicts, run the project's test command, and push the
-BRANCH. The row then reads "ready to merge" again and a person presses
-Merge, so the resolution is a diff they look at first. The default
-branch is never touched by the step.
+BRANCH — and the dashboard lands it, the way it lands any other step's
+work (spec 149). The default branch is never touched by the step
+itself.
 
 - **It is offered for a conflict and nothing else.** Every other
   refusal here — a branch gone from origin, a base that will not
@@ -974,9 +977,9 @@ earlier per-step lookup let a row show a step as tickable, and Run as
 clickable, while a job was already running on the spec — the queue
 would refuse the request, so the row promised something it could not
 keep. Every control that can act on a busy row — the phase boxes, the
-Run button, the model/gate/"also touches" fields, and the Merge button
-in the opened row's stack — reads the same flag, so a new control
-cannot forget to check it.
+Run button, the model and "also touches" fields, and Resolve in the
+opened row's stack — reads the same flag, so a new control cannot
+forget to check it.
 
 ### A structural marker with no CSS rule uses data-*, not a class (spec 123)
 

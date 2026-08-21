@@ -48,14 +48,14 @@ export interface RepoMergeResult {
    *  and the row offers that step on the strength of this field.
    *
    *  `"gone"` (spec 129) is the one whose cached "not merged" answer the
-   *  refusal itself just disproved: `mergeSpecBranches` invalidates
+   *  refusal itself just disproved: the landing invalidates
    *  `BranchStatusChecker` for exactly that branch rather than leaving
-   *  the row offering the same doomed press for the rest of the 30 s
-   *  TTL. 54 of the 75 refusals in the log were this one.
+   *  the row reporting a branch that is not on origin for the rest of
+   *  the 30 s TTL. 54 of the 75 refusals in the log were this one.
    *
    *  Every other refusal here (a base that will not fast-forward, a
    *  failed push) leaves it unset, and so does a merge that went
-   *  through — nothing can be done about any of them but by hand.
+   *  through — none of them is something a step could be sent to fix.
    *
    *  `error` stays the sentence a person reads, and the page keeps
    *  showing that. This field exists so the page or the server can act
