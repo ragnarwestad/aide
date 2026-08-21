@@ -171,9 +171,7 @@ describe("BranchStatusChecker.invalidate", () => {
     // the entry is dropped. The clock does NOT move: without the drop
     // the second call would return the stale answer from cache.
     let ancestor = 1;
-    const calls: string[] = [];
     const run: GitRunner = async (_dir, args) => {
-      calls.push(args[0]!);
       if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (args[0] === "merge-base") return { code: ancestor, stdout: "" };
       return { code: 0, stdout: "" };

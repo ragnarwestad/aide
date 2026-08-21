@@ -81,7 +81,7 @@ function* events(text: string): Generator<Record<string, unknown>> {
       if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) continue;
       yield parsed as Record<string, unknown>;
     } catch {
-      continue; // a truncated or non-JSON line costs nothing
+      // a truncated or non-JSON line costs nothing
     }
   }
 }

@@ -319,9 +319,7 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
 
   test("a deletion that fails is reported and never unmerges the merge (criterion 4)", async () => {
     // The push of the base succeeds; only the deletion is refused.
-    const calls: GitCall[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
+    const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
