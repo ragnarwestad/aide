@@ -1,6 +1,5 @@
-// The notifier (spec 81, slice 81c): a job that parks at a gate — or
-// stops at 02:00 — must be visible in the morning without reading a
-// log.
+// The notifier (spec 81, slice 81c): a job that stops at 02:00 — or
+// fails there — must be visible in the morning without reading a log.
 //
 // The contract is claude-usage's, copied deliberately so ONE wrapper
 // script can serve both dashboards: an argv array run with no shell,
@@ -10,7 +9,10 @@
 // Nothing here knows about Slack. The wrapper named in the config does,
 // so the target can be swapped by editing one config line.
 
-export type NotifyEventName = "gate" | "finished" | "stopped" | "failed";
+// `gate` was the fourth until spec 149: a job parked between two steps,
+// waiting for a person to press Approve. There is no stop between steps
+// any more, so nothing can announce one.
+export type NotifyEventName = "finished" | "stopped" | "failed";
 
 export interface NotifyEvent {
   event: NotifyEventName;

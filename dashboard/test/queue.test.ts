@@ -7,8 +7,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest, persistQueueProjects,
-  type QueueDefaults,
+  JOB_STATES, QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
+  persistQueueProjects, type QueueDefaults,
 } from "../src/queue.ts";
 import { parseArgs } from "../src/serve.ts";
 
@@ -58,11 +58,31 @@ describe("parseJobRequest", () => {
     expect(r.job.stepIndex).toBe(0);
   });
 
-  test("gateAfter defaults to every step, and may be emptied to run straight through", () => {
-    const all = parseJobRequest({ ...REQ, steps: ["analyze", "implement"] }, { resolve, defaults: DEFAULTS });
-    expect(all.ok && all.job.gateAfter).toEqual(["analyze", "implement"]);
-    const none = parseJobRequest({ ...REQ, gateAfter: [] }, { resolve, defaults: DEFAULTS });
-    expect(none.ok && none.job.gateAfter).toEqual([]);
+  // Spec 149. A gate was a stop between steps, and no form on this page
+  // could ever set one — the only three jobs that ever had one were
+  // posted as JSON by hand. The stop is gone, so the field is gone with
+  // it: a request that still names it is not refused, it is ignored, the
+  // same way every other unknown key on this route already is.
+  test("gateAfter is an unknown field now — ignored, not refused, and never stored", () => {
+    const named = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], gateAfter: ["analyze"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(named.ok).toBe(true);
+    if (!named.ok) return;
+    expect("gateAfter" in named.job).toBe(false);
+    // Not even the shapes that used to be REFUSED: a step not in the
+    // job, or a value that is not a list at all.
+    for (const bad of [["archive"], "analyze", 7]) {
+      const r = parseJobRequest({ ...REQ, gateAfter: bad }, { resolve, defaults: DEFAULTS });
+      expect(`${JSON.stringify(bad)}: ${r.ok}`).toBe(`${JSON.stringify(bad)}: true`);
+    }
+  });
+
+  // Criterion 9. Nothing a request can say puts a job into the state
+  // that no longer exists.
+  test("awaiting-approval is not a job state any more", () => {
+    expect((JOB_STATES as readonly string[]).includes("awaiting-approval")).toBe(false);
   });
 
   test("the permission mode and model come from the config, per step", () => {
@@ -105,7 +125,6 @@ describe("parseJobRequest", () => {
     ["an unknown spec folder", { ...REQ, specFolder: "99-nope" }, "specFolder"],
     ["a step that is not a workflow step", { ...REQ, steps: ["deploy"] }, "steps"],
     ["no steps at all", { ...REQ, steps: [] }, "steps"],
-    ["a gate for a step not in the job", { ...REQ, gateAfter: ["archive"] }, "gateAfter"],
     ["a non-object body", "hello", "object"],
   ])("%s is rejected", (_label, body, field) => {
     const r = parseJobRequest(body, { resolve, defaults: DEFAULTS });
@@ -159,6 +178,41 @@ describe("QueueStore", () => {
   test("a corrupt mirror is survivable — the store starts empty", () => {
     writeFileSync(mirrorPath, "{not json");
     expect(new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve }).list()).toEqual([]);
+  });
+
+  // Criterion 11 (spec 149). Three jobs on this machine were posted with
+  // a gate before the stop between steps was removed, and their records
+  // are still in the mirror. A retired FIELD is ignored, like every
+  // other unknown key; a retired STATE fails the state check and takes
+  // its own row with it, which is the rule a corrupt row has always
+  // had — but it must take only its own. A boot that threw, or that
+  // dropped the rest of the file with it, would lose every job on the
+  // page for the sake of one from August.
+  test("a record mirrored with gateAfter or awaiting-approval does not take the file down", () => {
+    const store = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    const keep = store.enqueue(REQ);
+    expect(keep.ok).toBe(true);
+    if (!keep.ok) return;
+    const raw = JSON.parse(readFileSync(mirrorPath, "utf-8")) as Record<string, unknown>[];
+    // One row as it was written in August: both retired shapes at once.
+    raw.unshift({ ...raw[0], id: "old-gated", state: "awaiting-approval", gateAfter: ["analyze"] });
+    // And one that carries only the retired FIELD — that row is fine and
+    // stays, minus the field.
+    raw.push({ ...raw[raw.length - 1], id: "old-field", gateAfter: ["analyze"] });
+    writeFileSync(mirrorPath, JSON.stringify(raw));
+
+    const reloaded = new QueueStore({ mirrorPath, defaults: DEFAULTS, resolve });
+    expect(reloaded.get(keep.job.id)?.id).toBe(keep.job.id);
+    expect(reloaded.get("old-gated")).toBeUndefined();
+    const field = reloaded.get("old-field");
+    expect(field?.state).toBe("queued");
+    // Left behind on the way in, so it is gone from the mirror the
+    // store writes back too — a field nothing reads must not survive a
+    // reload-and-save round trip.
+    expect(field && "gateAfter" in field).toBe(false);
+    // Any update rewrites the mirror from what is in memory.
+    reloaded.update("old-field", { spentUsd: 1 });
+    expect(readFileSync(mirrorPath, "utf-8")).not.toContain("gateAfter");
   });
 });
 
@@ -634,9 +688,9 @@ describe("the same work is not queued twice", () => {
     expect(again.error).toContain("81-queue-and-runner");
   });
 
-  test("a job waiting for approval still blocks — it is not finished", () => {
+  test("a job that has been started still blocks — it is not finished", () => {
     const { store, first } = queued();
-    store.update(first.id, { state: "awaiting-approval" });
+    store.update(first.id, { state: "running" });
     expect(store.enqueue(REQ).ok).toBe(false);
   });
 
@@ -762,7 +816,6 @@ describe("parseCreateRequest", () => {
     if (!r.ok) return;
     expect(r.job.project).toBe("brandnew");
     expect(r.job.steps).toEqual(["create"]);
-    expect(r.job.gateAfter).toEqual([]);
     expect(r.job.createTitle).toBe("A new spec");
     expect(r.job.createDescription).toBe("Do the thing");
     // A provisional key, and one nobody could mistake for a spec folder.

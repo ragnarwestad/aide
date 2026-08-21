@@ -28,8 +28,9 @@ import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import {
-  QueueStore, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
+  QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
+  type WorkflowStep,
 } from "./queue.ts";
 import {
   addProject,
@@ -207,8 +208,8 @@ export function createRootLock() {
 
 /** Where a form POST goes back to. Built from the five view keys the
  *  page's own forms send (`FILTER_KEYS`, under `FILTER_FIELD_PREFIX`),
- *  so pressing Run, Approve, Cancel or Merge lands the reader back on
- *  the list they were looking at instead of the default one.
+ *  so pressing Run, Cancel or Resolve lands the reader back on the list
+ *  they were looking at instead of the default one.
  *
  *  Encoded one key at a time rather than through `URLSearchParams`,
  *  which writes a space as `+`: a refusal's reason goes in this string
@@ -216,7 +217,7 @@ export function createRootLock() {
  *  exactly `/`, never `/?`. */
 function specsRedirect(
   body: unknown,
-  refusal?: { error: string; spec?: string; reason?: string },
+  refusal?: { error: string; spec?: string },
   // Which page the form was ON. `/` for every control on the spec list,
   // which is all of them but three: the project panel moved to
   // `/projects` with spec 115 and the New-spec form to `/new` with spec
@@ -241,11 +242,10 @@ function specsRedirect(
     // caller — the page lists up to 25 specs, and a reason attached to
     // none of them says nothing about which button was pressed.
     if (refusal.spec) parts.push(`errorSpec=${encodeURIComponent(refusal.spec)}`);
-    // And WHY, when the answer is one the page can act on rather than
-    // only show: a conflict is the one refusal a `resolve` step could
-    // finish, so it is the one the row may offer that step for. Absent
-    // for every other refusal, which is what keeps the offer narrow.
-    if (refusal.reason) parts.push(`errorReason=${encodeURIComponent(refusal.reason)}`);
+    // WHY it was refused used to ride here too, so the row could offer a
+    // `resolve` step for a conflict. It is on the job since spec 149:
+    // the refusal that needs it is a LANDING's, and a landing has no
+    // browser to redirect.
   }
   if (notice) {
     parts.push(`notice=${encodeURIComponent(notice.note)}`);
@@ -328,7 +328,6 @@ function bodyToObject(text: string, contentType: string | null): unknown {
       delete out.target;
     }
     if (typeof out.steps === "string") out.steps = [out.steps];
-    if (typeof out.gateAfter === "string") out.gateAfter = [out.gateAfter];
     if (typeof out.extraProjects === "string") out.extraProjects = [out.extraProjects];
     if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
     // The model is picked on the PHASE line since spec 123, so a form
@@ -356,11 +355,6 @@ function bodyToObject(text: string, contentType: string | null): unknown {
       }
       if (Object.keys(picked).length) out.model = picked;
     }
-    // No form on the page can gate a job, so a urlencoded body's silence
-    // always means "run straight through" — the opposite of the schema's
-    // own default, which gates after every step. A caller that does want
-    // a gate names `gateAfter` itself, and is left alone above.
-    if (out.gateAfter === undefined) out.gateAfter = [];
     for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
       if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
     }
@@ -721,17 +715,31 @@ export function createServer(opts: ServerOptions) {
         },
         notify: (event) => notifier.notify(event),
         // A step's work is invisible to this page until its branch is on
-        // the default branch of the checkout the page reads. For the two
-        // steps that BRACKET a spec's life — the one that makes it and
-        // the one that ends it — that is the whole of the step, so those
-        // two land their own work. Every other step pushes a branch and
-        // stops: its diff reaches the serving host and is worth a
-        // person's eye first. The returned promise holds the queue for as
-        // long as the landing takes; see `Runner.tick()`.
+        // the default branch of the checkout the page reads — so every
+        // step lands the work it produced, and nobody merges by hand
+        // (spec 149). `create` and `archive` already did (specs 93 and
+        // 136); `analyze`, `review-plan` and `resolve` write in the specs
+        // repo exactly as those two do, so the same argument covers them
+        // and they were simply never given it.
+        //
+        // `implement` is the one exception, and it is deliberate: the
+        // code stays on the pushed branch, which is where a person tests
+        // it — by leaving `archive` unticked. `archive` is therefore the
+        // one step that sends CODE to a default branch, which is why it
+        // has a landing of its own.
+        //
+        // The returned promise holds the queue for as long as the
+        // landing takes; see `Runner.tick()`.
         onStepDone: (job, step, outcome) => {
           if (!outcome.ok) return undefined;
           if (step === "create") return landNewSpec(job, outcome);
+          if (step === "analyze" || step === "review-plan" || step === "resolve") {
+            return landStepBranch(job, step, outcome);
+          }
           if (step === "archive") return landArchivedSpec(job, outcome);
+          // `implement`, `explore` and `manifest` fall through: the first
+          // by design, the other two because neither leaves a spec branch
+          // for anyone to land.
           return undefined;
         },
         clearResult: (path) => {
@@ -1007,69 +1015,14 @@ export function createServer(opts: ServerOptions) {
       branchUrls,
       stopReason: job.stopReason,
       error: job.error,
+      // Why the landing was refused, when it was refused for something
+      // the row can act on. Stored on the job (spec 149), because a
+      // landing has no browser to redirect the reason to.
+      errorReason: job.errorReason,
       results: job.results.map((r) => ({
         step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
       })),
     };
-  }
-
-  /** Merge every repo this spec has a branch in, one at a time, and
-   *  report each on its own. Several repos cannot be merged atomically:
-   *  if one succeeds and another fails, saying so plainly is the whole
-   *  point — a single green tick would recreate the problem this route
-   *  exists to solve, mirrored. */
-  async function mergeSpecBranches(job: Job): Promise<RepoMergeResult[]> {
-    const branch = specBranch(job.specFolder);
-    // The queue's own history, re-derived HERE from the job id. Nothing
-    // the browser sent is used to decide which directory git runs in.
-    const known = queue.branchesFor(job.project, job.specFolder);
-    const branches = known.length ? known : jobBranches(job);
-    // The plan first, the code last. A run records the project before
-    // its specs root (`aide-run-spec`, `roots`), so a reader watching
-    // the page saw the code land before the plan describing it — and the
-    // code is the one that matters, so it should be the last word. Sorted
-    // here rather than in the script: `roots` also decides commit,
-    // worktree and push order on every future run, none of which this is
-    // about. A passenger repo named with --extra-project-dir carries code
-    // too, so it goes last for the same reason the project does.
-    const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
-    // `sort` is stable, so two repos of the same kind keep the order the
-    // run recorded them in.
-    const ordered = [...branches].sort(
-      (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
-    );
-    const results: RepoMergeResult[] = [];
-    for (const b of ordered) {
-      const base = await branchStatus.defaultBranch(b.root);
-      if (!base) {
-        // No mutation is attempted on a repo whose default branch we
-        // cannot name — guessing which branch to merge INTO is the one
-        // guess with no safe direction.
-        results.push({ root: b.root, ok: false, error: `cannot work out the default branch in ${b.root}` });
-        continue;
-      }
-      // The lock goes around the git-mutating call and nothing else:
-      // `defaultBranch` above only asks a question, and holding the
-      // root while asking it would serialize page loads too.
-      const result = await mergeLock.run(b.root, () => mergeBranchIntoDefault(gitRun, b.root, branch, base));
-      // The check caches for 30 s. Without this, the page that triggered
-      // the merge would show its own result as "not merged" — and, since
-      // spec 129, a "gone" refusal disproves the same cached answer from
-      // the other side: the branch is not on origin, so the row must
-      // stop offering a press for it now rather than in half a minute.
-      // No other refusal is told anything about the branch's existence,
-      // and clearing the answer on one of those would throw away a true
-      // answer and spend three git calls re-deriving it.
-      if (result.ok || result.reason === "gone") branchStatus.invalidate(b.root, branch);
-      // Merged is not deployed. For a tool that lives in `~/.local/bin`,
-      // the code landing on the default branch changes nothing on the
-      // machine until it is installed — which is why spec 92's merged
-      // code kept running as the old version. The install belongs to the
-      // project, so the project says what it is.
-      if (result.ok && b.root === projectDir(job.project)) await installAfterMerge(result);
-      results.push(result);
-    }
-    return results;
   }
 
   /** What a landing does that is not the merge itself: what to write on
@@ -1089,38 +1042,60 @@ export function createServer(opts: ServerOptions) {
     /** The catch-all message, which has to name the step: "landing it
      *  failed" alone leaves a reader guessing what "it" was. */
     failedNote: (why: string) => string;
+    /** Which repos to land. Absent means the step's own outcome, which
+     *  is right for every landing but archive's — see
+     *  `landArchivedSpec` for why that one has to look further. */
+    repos?: BranchRef[];
   }
 
   /** Merge a step's own branch into the default branch of every repo it
-   *  pushed to, and report per repo — the landing both self-landing
-   *  steps share (specs 93 and 136).
+   *  pushed to, and report per repo — the landing every self-landing
+   *  step shares (specs 93, 136 and 149).
    *
-   *  The branch and the repos come from the RESULT, never from
-   *  `specBranch(...)` or `queue.branchesFor(...)`. Two reasons, one per
-   *  caller: a create step's folder did not exist when its branch was
-   *  named, and `onStepDone` runs SYNCHRONOUSLY inside `complete()`,
-   *  before the runner has written this step's own `branchUrls` into the
-   *  store — so a spec whose first-ever queue job is the one landing
-   *  would find that history empty. The outcome in hand has neither
-   *  problem.
+   *  The branch and, by default, the repos come from the RESULT, never
+   *  from `specBranch(...)` or `queue.branchesFor(...)`. Two reasons,
+   *  one per caller: a create step's folder did not exist when its
+   *  branch was named, and `onStepDone` runs SYNCHRONOUSLY inside
+   *  `complete()`, before the runner has written this step's own
+   *  `branchUrls` into the store — so a spec whose first-ever queue job
+   *  is the one landing would find that history empty. The outcome in
+   *  hand has neither problem. Archive is the one caller that has to
+   *  look further, and says so itself (`what.repos`).
    *
-   *  No install is run afterwards, unlike the manual Merge route: both
-   *  steps that land themselves write markdown and no code, so there is
-   *  nothing on this machine to deploy. */
+   *  Every merge goes through `mergeLock`, one repo at a time. Four
+   *  steps land themselves now, and two specs sharing one specs repo can
+   *  finish within seconds of each other under queue concurrency — which
+   *  is the collision the lock exists to serialize. `create` merged
+   *  outside it until spec 149, which was survivable only because it was
+   *  one of two rare self-landings.
+   *
+   *  Plan first, code last, for the same reason the manual route sorted
+   *  them: a run records the project before its specs root, so a reader
+   *  watching the page saw the code land before the plan describing it,
+   *  and the code is the one that matters. */
   async function landBranch(job: Job, outcome: Partial<StepOutcome>, what: Landing): Promise<void> {
     try {
       const branch = outcome.branch;
-      const repos = outcome.branchUrls ?? [];
+      // Code roots last. `sort` is stable, so two repos of the same kind
+      // keep the order the run recorded them in. A passenger repo named
+      // with --extra-project-dir carries code too.
+      const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+      const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort(
+        (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
+      );
       if (!branch || repos.length === 0) {
         if (what.nothingToLand) queue.update(job.id, { error: what.nothingToLand });
         return;
       }
       const failures: string[] = [];
+      // Which refusal it was, when it is one the row can offer a way out
+      // of. A conflict is the only one a `resolve` step could finish.
+      let reason: Job["errorReason"];
       for (const repo of repos) {
         const base = await branchStatus.defaultBranch(repo.root);
         if (!base) {
           // Guessing which branch to merge INTO is the one guess with no
-          // safe direction — the same refusal the manual route makes.
+          // safe direction.
           failures.push(`cannot work out the default branch in ${repo.root}`);
           continue;
         }
@@ -1129,34 +1104,69 @@ export function createServer(opts: ServerOptions) {
         // main), and both 111 and 112 were left stranded by giving up
         // on the first loss. A real conflict fails all three the same
         // way and is reported as before.
-        let result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+        //
+        // The lock goes around the git-mutating call and nothing else:
+        // `defaultBranch` above only asks a question, and holding the
+        // root while asking it would serialize page loads too.
+        const merge = () => mergeLock.run(repo.root, () => mergeBranchIntoDefault(gitRun, repo.root, branch, base));
+        let result = await merge();
         for (let retry = 0; !result.ok && retry < 2; retry++) {
           await new Promise((r) => setTimeout(r, 700 * (retry + 1)));
-          result = await mergeBranchIntoDefault(gitRun, repo.root, branch, base);
+          result = await merge();
         }
-        if (result.ok) branchStatus.invalidate(repo.root, branch);
-        else failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
+        if (result.ok) {
+          branchStatus.invalidate(repo.root, branch);
+          // Merged is not deployed. For a tool that lives in
+          // `~/.local/bin`, the code landing on the default branch
+          // changes nothing on the machine until it is installed —
+          // which is why spec 92's merged code kept running as the old
+          // version. The install belongs to the project, so the project
+          // says what it is.
+          if (codeRoots.has(repo.root)) {
+            await installAfterMerge(result);
+            // Never fatal, and never silent either: the merge already
+            // happened, so this is reported beside it rather than
+            // turning a successful merge into a failure.
+            if (result.installError) {
+              console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.installError}`);
+            }
+          }
+          if (result.branchDeleteError) {
+            console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.branchDeleteError}`);
+          }
+        } else {
+          failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
+          if (result.reason === "conflict") reason = "conflict";
+          // A "gone" refusal disproves the cached answer from the other
+          // side: the branch is not on origin at all.
+          if (result.reason === "gone") branchStatus.invalidate(repo.root, branch);
+        }
       }
       if (failures.length > 0) {
         // Whatever the success path would have written is NOT written: a
         // create job keeps its provisional key, because the job is still
         // the only handle on a branch that has not landed, and renaming
         // it to a folder the page cannot see would hide the work rather
-        // than report it. The branch stays on the row either way, so the
-        // Merge button — and, on a conflict, the resolve step — is still
-        // there to press.
-        queue.update(job.id, { error: failures.join("; ") });
+        // than report it. The branch stays on the row either way.
+        //
+        // `errorReason` is STORED rather than carried in a redirect, and
+        // that is the whole difference between this and the Merge button
+        // spec 149 removed: nobody's browser is attached to a landing, so
+        // the row has to be able to read the reason on any later request
+        // (`queue-list.ts`, `resolveForm`).
+        queue.update(job.id, { error: failures.join("; "), errorReason: reason });
         return;
       }
       // Landed. The branch is on the default branch now, so the job stops
       // advertising one: a compare page for a merged branch shows
-      // nothing, and the row would otherwise offer to merge a name it can
+      // nothing, and the row would otherwise name a branch it can
       // no longer derive (`specBranch` reads the RENAMED folder).
       queue.update(job.id, {
         ...what.landed,
         branchUrl: undefined,
         branchUrls: [],
         error: undefined,
+        errorReason: undefined,
       });
       // The page caches its scan for five seconds. Without this the very
       // request that follows a landing would still not show the spec —
@@ -1168,6 +1178,10 @@ export function createServer(opts: ServerOptions) {
       // do, however this went.
       queue.update(job.id, {
         error: what.failedNote(err instanceof Error ? err.message : String(err)),
+        // A thrown landing is not a conflict — the merge never got far
+        // enough to be one, and offering Resolve for it would send a
+        // whole run at a problem it cannot fix.
+        errorReason: undefined,
       });
     }
   }
@@ -1178,9 +1192,9 @@ export function createServer(opts: ServerOptions) {
    *  button for, and it is not a convenience: the spec list shows what is
    *  on disk in the main checkout, which every run is careful never to
    *  leave its default branch, so a created spec that is only pushed to
-   *  a branch appears nowhere at all. A job parked in `awaiting-approval` until
-   *  somebody notices would not be the feature with one extra click — it
-   *  would be the feature not working. */
+   *  a branch appears nowhere at all. A spec waiting on the page until
+   *  somebody noticed and merged it by hand would not be the feature
+   *  with one extra click — it would be the feature not working. */
   async function landNewSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
     return landBranch(job, outcome, {
       landed: { specFolder: outcome.specFolder ?? job.specFolder },
@@ -1188,6 +1202,40 @@ export function createServer(opts: ServerOptions) {
         "the spec was created, but the run reported no pushed branch to land it from — " +
         "merge it by hand, or check the queue's push mode",
       failedNote: (why) => `the spec was created, but landing it failed: ${why}`,
+    });
+  }
+
+  /** Land the work a middle-of-the-workflow step produced (spec 149).
+   *
+   *  `analyze` and `review-plan` write markdown in the specs repo and
+   *  nothing else — the same argument that made `create` and `archive`
+   *  land themselves, word for word; they were simply never given it,
+   *  and the row piled up a "ready to merge" button per step for work
+   *  nobody had a reason to weigh.
+   *
+   *  `resolve` lands what its OWN run reports and nothing else. A real
+   *  conflict forces a commit, so every root it genuinely fixed has
+   *  moved its HEAD and is in that outcome. Reading `branchesFor`
+   *  history instead would let a resolve of the specs repo drag an
+   *  unarchived `implement`'s code onto the default branch as a side
+   *  effect — which is exactly what "archive is the one step that sends
+   *  code to the default branch" rules out. The residual gap is that a
+   *  resolve run whose own catch-up merge happens to move the project's
+   *  HEAD lands that code early; it is accepted and written down in
+   *  `.claude/rules/development.md`.
+   *
+   *  The install is neither asked for nor refused here: `landBranch`
+   *  runs it for any CODE root that lands, whichever step landed it.
+   *  `analyze` and `review-plan` never have one; a `resolve` that fixed
+   *  the project's own checkout does, and merged is not deployed there
+   *  any more than it is after an archive (spec 92). */
+  async function landStepBranch(
+    job: Job,
+    step: WorkflowStep,
+    outcome: Partial<StepOutcome>,
+  ): Promise<void> {
+    return landBranch(job, outcome, {
+      failedNote: (why) => `the ${step} step finished, but landing it failed: ${why}`,
     });
   }
 
@@ -1214,6 +1262,17 @@ export function createServer(opts: ServerOptions) {
    *  behaviour is the fallback, not the thing being removed. */
   async function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>): Promise<void> {
     return landBranch(job, outcome, {
+      // The ONE landing that reads past its own outcome (spec 149).
+      // `implement` deliberately never lands, so the project's code
+      // branch sits open for however many steps follow — and whether an
+      // archive run's own git touches that checkout is not guaranteed:
+      // `update_branch_to_base` runs for every root on every step, but
+      // where the code branch is already an ancestor of the default
+      // branch the `--ff-only` is a no-op, so HEAD never moves and the
+      // project root never appears here. `branchesFor` is the record
+      // that still has it — implement's job entry keeps its
+      // `branchUrls`, because nothing ever clears them.
+      repos: mergeBranchRefs(queue.branchesFor(job.project, job.specFolder), outcome.branchUrls ?? []),
       // A run that pushed nothing archived nothing new — a re-run of a
       // spec already held back for the same reason writes no commit, and
       // an error there would report a problem that is not one.
@@ -1404,10 +1463,6 @@ export function createServer(opts: ServerOptions) {
         // string with the reason itself, so it survives the
         // five-second row swap the same way the filter does.
         errorSpec: url.searchParams.get("errorSpec") ?? undefined,
-        // And why, when the reason is one the row offers a way out of.
-        // Rides in the query string beside the reason itself, for the
-        // same reason: it has to survive the five-second row swap.
-        errorReason: url.searchParams.get("errorReason") ?? undefined,
         projects: [...new Set(liveTargets.map((t) => t.project))].sort(),
         // The raw allowlist, not the discovered set: a project whose
         // FIRST spec this form exists to make has nothing on disk to be
@@ -1756,10 +1811,16 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw);
     }
 
-    const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/(approve|cancel|merge)$/);
+    // Spec 149: `cancel` is what is left of a route that also had
+    // `approve` and `merge`. Both were removed with the things they
+    // acted on — there is no stop between steps to approve, and every
+    // step lands its own work, so there is nothing left to merge by
+    // hand. Cancelling a run is the one action on a row that was never
+    // about either.
+    const action = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/cancel$/);
     if (action) {
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-      const [, id, verb] = action;
+      const [, id] = action;
       const job = queue.get(id);
       if (!job) return json({ error: "no such job" }, 404);
       // The body is read for ONE thing: the view the press came from,
@@ -1774,79 +1835,17 @@ export function createServer(opts: ServerOptions) {
       } catch {
         view = {};
       }
-      // Never off the body: the server already knows which spec this
-      // job is, and identity is re-derived here for the same reason the
-      // repo roots are.
-      const spec = `${job.project}/${job.specFolder}`;
-      if (verb === "merge") {
-        const results = await mergeSpecBranches(job);
-        if (results.length === 0) {
-          return json({ error: "no branch has been recorded for this spec" }, 400);
+      // SIGTERM to the GROUP, never a bare pid: claude spawns
+      // children, and a kill that only reaches the parent is not a
+      // bound.
+      if (job.pgid !== undefined) {
+        try {
+          process.kill(-job.pgid, "SIGTERM");
+        } catch {
+          /* already gone */
         }
-        const ok = results.every((r) => r.ok);
-        for (const r of results) {
-          if (r.error) logRefusal("merge", spec, `${r.root}: ${r.error}`);
-          // Both, when both happened: a merge can install nothing AND
-          // leave its branch on origin, and the log is the only record
-          // of either once the page has moved on.
-          for (const note of [r.installError, r.branchDeleteError]) {
-            if (note) console.error(`queue: merge of ${spec} in ${r.root} — ${note}`);
-          }
-        }
-        // A merge from the page is the very event a parked job is
-        // waiting on (spec 122). The other four actions already
-        // re-tick; this one never did, so a job held back on the spec
-        // just merged would have sat until the next interval. Above
-        // BOTH answers, never beside one of them: an API caller merges
-        // for the same reason a reader pressing the button does.
-        await tickRunner();
-        // `spec` is additive and for the page's own code: it navigates
-        // on a refusal and has to say WHICH row the reason belongs to,
-        // which only the server can answer.
-        if (wantsJson) return json({ ok, results, spec });
-        // A person who pressed a button gets the answer on the page they
-        // pressed it from, per repo — never a bare "something failed".
-        // A merge that went through but did not install says so here
-        // too: for a project that installs itself, merged is not
-        // deployed, and a silent success reads as though it were. The
-        // branch that outlived its own merge belongs in the same
-        // sentence, for the same reason.
-        const summary = results
-          .flatMap((r) => [r.error, r.installError, r.branchDeleteError])
-          .filter(Boolean)
-          .join("; ");
-        // One repo conflicting is enough to offer the way out: the
-        // resolve step runs against the spec's branch in every repo it
-        // has one in, which is the same set this route just merged.
-        const reason = results.some((r) => r.reason === "conflict") ? "conflict" : undefined;
-        return summary ? specsRedirect(view, { error: summary, spec, reason }) : specsRedirect(view);
       }
-      if (verb === "cancel") {
-        // SIGTERM to the GROUP, never a bare pid: claude spawns
-        // children, and a kill that only reaches the parent is not a
-        // bound.
-        if (job.pgid !== undefined) {
-          try {
-            process.kill(-job.pgid, "SIGTERM");
-          } catch {
-            /* already gone */
-          }
-        }
-        queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
-      } else {
-        if (job.state !== "awaiting-approval") {
-          const why = `cannot approve a ${job.state} job`;
-          logRefusal("approve", spec, why);
-          // The API contract is untouched: a caller asking for JSON
-          // still gets the 409. A person pressing a button on a page
-          // used to get that JSON body in the browser instead of the
-          // page they pressed it from.
-          return wantsJson ? json({ error: why, spec }, 409) : specsRedirect(view, { error: why, spec });
-        }
-        // Approving a gate releases the job back into the queue.
-        queue.update(id, { state: "queued" });
-        await tickRunner();
-      }
+      queue.update(id, { state: "cancelled", finishedAt: new Date().toISOString() });
       return wantsJson ? json({ ok: true, job: queue.get(id) }) : specsRedirect(view);
     }
 

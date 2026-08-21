@@ -1,5 +1,5 @@
-// Criterion 7 (spec 81, slice 81c): the notifier. A job that parks at a
-// gate — or stops at 02:00 — must be visible without reading a log.
+// Criterion 7 (spec 81, slice 81c): the notifier. A job that stops at
+// 02:00 — or fails there — must be visible without reading a log.
 //
 // The contract is claude-usage's, copied deliberately so one wrapper
 // script can serve both: an argv array run with NO shell, one line of
@@ -9,7 +9,7 @@ import { describe, expect, test } from "bun:test";
 import { Notifier, type NotifyEvent, type NotifyChild } from "../src/notify.ts";
 
 const EVENT: NotifyEvent = {
-  event: "gate",
+  event: "finished",
   project: "aide",
   spec: "81-queue-and-runner",
   step: "analyze",

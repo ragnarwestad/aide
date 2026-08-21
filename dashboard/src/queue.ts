@@ -26,7 +26,7 @@ export const WORKFLOW_STEPS = [
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
 export const JOB_STATES = [
-  "queued", "running", "awaiting-approval", "done",
+  "queued", "running", "done",
   "stopped", "failed", "cancelled", "interrupted",
 ] as const;
 export type JobState = (typeof JOB_STATES)[number];
@@ -37,8 +37,13 @@ export type JobState = (typeof JOB_STATES)[number];
 export type StopReason = "budget" | "timeout";
 
 /** States where a job still owns its work. Anything else has released
- *  it, and the same step may be queued again. */
-const UNFINISHED = new Set<string>(["queued", "running", "awaiting-approval"]);
+ *  it, and the same step may be queued again.
+ *
+ *  `awaiting-approval` was the third of them until spec 149. It was a
+ *  stop between steps, waiting for a person to press Approve — and
+ *  since every step lands its own work now, there is nothing left to
+ *  hold a job for. */
+const UNFINISHED = new Set<string>(["queued", "running"]);
 
 /** What one step actually metered, as `aide-run-spec` read it out of
  *  claude's own result event (spec 118). `total` is the sum of the other
@@ -108,7 +113,6 @@ export interface Job {
   project: string;
   specFolder: string;
   steps: WorkflowStep[];
-  gateAfter: WorkflowStep[];
   stepIndex: number;
   state: JobState;
   budgetUsd: number;
@@ -176,6 +180,14 @@ export interface Job {
   branchUrls?: BranchRef[];
   stopReason?: StopReason;
   error?: string;
+  /** The one machine-readable class of refusal the page can act on: a
+   *  landing that failed on a real merge conflict, which a `resolve`
+   *  step could finish. Stored on the job since spec 149, and stored
+   *  rather than passed because a landing happens with nobody's browser
+   *  attached — the one-shot redirect the Merge button used to carry it
+   *  in has no equivalent here. Cleared, like `error`, the moment a
+   *  landing succeeds. */
+  errorReason?: "conflict";
 }
 
 /** What one pickable model is granted. The budget lives HERE, not in
@@ -265,19 +277,11 @@ export function parseJobRequest(
     steps.push(s as WorkflowStep);
   }
 
-  // Default: every step gates. A job may be posted with an empty list
-  // to run straight through.
-  let gateAfter: WorkflowStep[] = [...steps];
-  if (r.gateAfter !== undefined && r.gateAfter !== null) {
-    if (!Array.isArray(r.gateAfter)) return { ok: false, error: "gateAfter must be a list" };
-    gateAfter = [];
-    for (const g of r.gateAfter) {
-      if (typeof g !== "string" || !steps.includes(g as WorkflowStep)) {
-        return { ok: false, error: `gateAfter names a step not in this job: ${String(g)}` };
-      }
-      gateAfter.push(g as WorkflowStep);
-    }
-  }
+  // `gateAfter` was parsed here until spec 149 — a list of steps to stop
+  // after. It is an unknown key now, and unknown keys are ignored rather
+  // than refused (see the header): the three jobs that ever carried one
+  // were posted as JSON by hand, and refusing the field would turn a
+  // retired feature into a new error.
 
   // Passenger projects: NAMES, resolved against the same allowlist as
   // the primary. A request never carries a path.
@@ -371,7 +375,6 @@ export function parseJobRequest(
       project: r.project,
       specFolder: r.specFolder,
       steps,
-      gateAfter,
       stepIndex: 0,
       state: "queued",
       budgetUsd,
@@ -484,9 +487,6 @@ export function parseCreateRequest(
       project: r.project,
       specFolder: provisionalKey(),
       steps,
-      // Nothing to gate on: a create job is one step, and a gate after
-      // the last step parks a job nobody has anything left to approve.
-      gateAfter: [],
       stepIndex: 0,
       state: "queued",
       budgetUsd: defaults.budgetUsd,
@@ -520,10 +520,17 @@ function parseStoredJob(raw: unknown): Job | null {
     return null;
   }
   if (typeof r.state !== "string" || !(JOB_STATES as readonly string[]).includes(r.state)) return null;
+  // Spec 149: a record written before the stop between steps was removed
+  // still carries `gateAfter`. Left behind HERE rather than overwritten
+  // below, because the spread is what would otherwise carry it straight
+  // back out into the next mirror. A record whose STATE is the retired
+  // one fails the check above and is dropped whole — the rule a corrupt
+  // row has always had, and the three jobs it can apply to finished in
+  // August.
+  const { gateAfter: _retired, ...kept } = r;
   return {
-    ...(r as unknown as Job),
+    ...(kept as unknown as Job),
     steps: r.steps as WorkflowStep[],
-    gateAfter: Array.isArray(r.gateAfter) ? (r.gateAfter as WorkflowStep[]) : [],
     extraProjects: Array.isArray(r.extraProjects) ? (r.extraProjects as string[]) : [],
     results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,

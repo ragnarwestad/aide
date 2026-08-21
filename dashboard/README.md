@@ -53,7 +53,7 @@ no host is named anywhere in this repo.
 - `/` — one row per spec — every non-archived spec of every
   allowlisted project, whether or not it has ever run — with its
   workflow phases beneath, foldable away; run any phase from its own
-  line, watch one, approve a gate (token required). The front page: it
+  line, watch one, cancel one (token required). The front page: it
   is what the dashboard is used for, so it is what the dashboard opens
   on.
 - `/new` — the form that makes a spec: a project, what it builds on, a
@@ -85,8 +85,10 @@ no host is named anywhere in this repo.
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
-  `POST /api/queue/<id>/approve` and `/cancel` act on one. The API keeps
-  the queue's own name: it is a contract, not a page anyone reads.
+  `POST /api/queue/<id>/cancel` acts on one. The API keeps the queue's
+  own name: it is a contract, not a page anyone reads. `approve` and
+  `merge` were routes here until spec 149 and are gone: there is no stop
+  between steps to approve, and every step lands its own work.
 - `POST /api/queue/create` — project, title and description in; a job
   that MAKES a spec out, which then lands itself and becomes an ordinary
   row (token required, like the rest of `/api/queue*`)
@@ -211,8 +213,8 @@ The State column answers what a reader came to find out, and its FIRST
 line is one of two things, always (spec 132): the verb for what is
 happening — "analyzing", "implementing", "implementing queued" — or,
 once nothing is running, the resting state and what can happen next —
-"ready to merge the code", "ready for implement", "archive held back —
-the Slack webhook", "done — nothing waiting on you". The bare words
+"ready for implement", "archive held back — the Slack webhook", "done —
+nothing waiting on you". The bare words
 "done" and "queued" are neither, and neither appears alone: "done" said
 nothing about WHAT was done, and "queued" said nothing about which step
 was waiting, while both facts were known.
@@ -280,14 +282,13 @@ Two things about it are worth knowing:
   the disk, and left unreported when zero or several appeared rather than
   guessed at.
 
-When the step succeeds the dashboard **lands the branch itself**, through
-the same `mergeBranchIntoDefault` the Merge button uses, and renames the
-job to the real folder. This is the one merge here that nobody pressed a
-button for, and it is not a convenience: the list shows what is on disk
-in the main checkout, which every run keeps on its default branch, so a
-created spec that is only pushed to a branch appears nowhere at all. A
-landing that fails leaves the provisional key in place and says which
-repo and why — merge that one by hand. **While any job is landing the
+When the step succeeds the dashboard **lands the branch itself** and
+renames the job to the real folder. It was the first step to do so, and
+it is not a convenience: the list shows what is on disk in the main
+checkout, which every run keeps on its default branch, so a created spec
+that is only pushed to a branch appears nowhere at all. A landing that
+fails leaves the provisional key in place and says which repo and why.
+**While any job is landing the
 scheduler starts nothing at all**, whatever the concurrency is set to: a
 landing merges into the shared main checkout, which worktree isolation
 does not cover.
@@ -300,10 +301,10 @@ every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
 A spec's row is collapsed by default: name, title, one status line, the
-four phase pips, and at most one action button (Approve if a gate is
-waiting, Resolve after a conflict on that very row). The four phase
-lines and every control — phase checkboxes, model dropdown, gate and
-also-touches fields, Run, Cancel — sit behind the same chevron in front
+four phase pips, and at most one action button (Resolve, after a landing
+on that row was refused for a conflict). The four phase lines and every
+control — phase checkboxes, model dropdown, the also-touches field, Run,
+Cancel — sit behind the same chevron in front
 of the name (spec 103). Expanding is a link and lives in the query
 string (`?open=<project>/<folder>,…`), which is what makes it survive
 the table's own five-second refresh, what makes it work with JavaScript
@@ -311,8 +312,8 @@ switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
 Every control here is a plain form first: ticking phases and pressing
-Run works with JavaScript switched off, and so do Approve, Cancel,
-Merge, Create and expanding a row — each posts its form and follows a
+Run works with JavaScript switched off, and so do Cancel, Resolve,
+Create and expanding a row — each posts its form and follows a
 303 back to the list. `queue-client.ts` is a layer ABOVE that floor,
 never the mechanism (see
 [what the script adds](#what-the-script-adds-specs-96-and-101)). It
@@ -619,15 +620,15 @@ are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their
 default branch and no run can see another's.
 
-### Gates and notifications
+### Notifications
 
-A gate sits BETWEEN steps, never inside one. A step named in the job's
-`gateAfter` list parks it in `awaiting-approval`: the notifier fires
-once, and nothing starts until someone presses Approve. The schema's own
-default gates after every step, but no form on the page can ask for
-that — since spec 133 a browser post always means `gateAfter: []`, run
-straight through, and a gated job is something only an API caller
-naming `gateAfter` can start. Approve stays on the row for it.
+There is no stop between steps and no way to ask for one (spec 149). A
+gate used to park a job in `awaiting-approval` until someone pressed
+Approve; no form on the page could ever set one, the three jobs that
+ever had one were posted as JSON by hand, and every step lands its own
+work now, so there is nothing between two steps for anyone to weigh. A
+request that still names `gateAfter` is accepted and the field ignored,
+like any other unknown key.
 
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line
 of JSON on stdin (claude-usage's contract, copied so one wrapper can
@@ -640,7 +641,7 @@ incoming webhook, whose URL lives in `~/aide-dashboard/slack-webhook`
 The line reads, for example:
 
 ```text
-aide · 81-queue-and-runner · analyze done, waiting for approval · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
+aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/compare/main...aide/81-queue-and-runner
 ```
 
 ### What a finished step publishes
@@ -662,8 +663,8 @@ name, title, one status line, the phase pips, and at most one action
 button. Expanding it (the chevron in front of the name, `?open=…`)
 reveals the workflow phases underneath, always in that order, so how
 far a spec has got is readable without counting rows, plus the run
-controls (phase checkboxes, model, gate and also-touches fields after
-it, Run/Run again, Cancel). A
+controls (phase checkboxes, model, the also-touches field after it,
+Run, Cancel). A
 phase never run shows a muted "not run yet". A phase run more than once
 shows its LATEST attempt with the count beside it, because a re-run is
 ordinary: one spec needed three `archive` runs.
@@ -681,22 +682,21 @@ The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per
 repo the spec pushed to, and the state that matters most right now —
 whatever is in flight, else the most recent outcome. A collapsed row's
-single action button — Approve if a gate is waiting, else the way out
-of a conflict where the refusal is — sits there too, once per spec
-instead of once per job; Cancel and Merge are only offered once the row
-is expanded.
+single action button — the way out of a conflict, where the refusal
+is — sits there too, once per spec instead of once per job; Cancel is
+only offered once the row is expanded.
 
 ### What the script adds (specs 96 and 101)
 
 The page's own browser code does one thing to the controls: it keeps
-the reader where they are. Every one of the five — Run, Approve,
-Cancel, Merge, Create — is a real `<form>` that works on its own, and
-the script only intercepts.
+the reader where they are. Every one of them — Run, Cancel, Resolve,
+Create — is a real `<form>` that works on its own, and the script only
+intercepts.
 
 - **A press changes the button at once, without changing its width**
   (spec 104). It disables, gains the `busy` look and a spinner ahead of
   its own label — the label itself stays put, only the `title` carries
-  the pending word ("starting…", "approving…", "cancelling…",
+  the pending word ("starting…", "cancelling…", "queueing…",
   "merging…", "creating…"), read from `data-pending` beside the label
   it used to replace. On a row control the same press swaps that row's
   own `.phases` chips for the same spinner, holding their width with

@@ -42,29 +42,24 @@ interface Reply {
  *  form it is drawn in. The wording is the server's (`data-pending` in
  *  the markup); the harness only has to carry it the way the DOM would.
  *
- *  Keyed by CONTROL, not by form class: `actionForm` renders Approve and
- *  Cancel as two separate `<form class="actionform">` elements
- *  (`queue-list.ts`), told apart by route, label and variant and never
- *  by class — so a table keyed by class could only ever test one of
- *  them. The `variant` is what the server put on the button before the
- *  press, which is the thing `busy` has to replace. */
+ *  Keyed by CONTROL, not by form class: two controls can share a class
+ *  and be told apart by route, label and variant only, so a table keyed
+ *  by class could test one of them at most. The `variant` is what the
+ *  server put on the button before the press, which is the thing `busy`
+ *  has to replace. */
 const CONTROLS: Record<
   string,
   { label: string; pending: string; action: string; formClass: string; variant: string }
 > = {
-  mergeform: {
-    label: "Merge", pending: "merging…", formClass: "mergeform", variant: "primary",
-    action: "http://dash.test/api/queue/job-1/merge",
+  resolveform: {
+    label: "Resolve", pending: "queueing…", formClass: "resolveform", variant: "primary",
+    action: "http://dash.test/api/queue",
   },
   rowrun: {
     label: "Run", pending: "starting…", formClass: "rowrun", variant: "primary",
     action: "http://dash.test/api/queue",
   },
   actionform: {
-    label: "Approve", pending: "approving…", formClass: "actionform", variant: "ok",
-    action: "http://dash.test/api/queue/job-1/approve",
-  },
-  cancel: {
     label: "Cancel", pending: "cancelling…", formClass: "actionform", variant: "danger",
     action: "http://dash.test/api/queue/job-1/cancel",
   },
@@ -94,7 +89,7 @@ function classes(el: { className: string }) {
  *  records what it was asked to do. */
 function harness(
   reply: (url: string) => Reply,
-  control_ = "mergeform",
+  control_ = "actionform",
   search = "",
   o: { collapsed?: boolean; pathname?: string } = {},
 ) {
@@ -576,22 +571,22 @@ const flush = async (): Promise<void> => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
-const OK_MERGE = { ok: true, results: [{ root: "/repos/aide", ok: true }] };
+const OK_ACTION = { ok: true, job: { id: "job-1" } };
 /** Where `swapRows` asked for the rows, which is where the refusal the
  *  page is about to show comes from. */
 const swapUrl = (h: { requests: { url: string }[] }): string =>
   h.requests.map((r) => r.url).find((u) => u.startsWith("/?") && u.includes("rows=1")) ?? "";
 
-describe("the merge button posts from the page (criteria 10-12)", () => {
+describe("a row button posts from the page (criteria 10-12)", () => {
   test("it asks for JSON on the form's own route, and carries the token", async () => {
-    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: OK_MERGE } : { ok: true }));
+    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION } : { ok: true }));
     await h.submit();
-    const merge = h.requests.find((r) => r.url.includes("/merge"))!;
-    expect(merge.init.method).toBe("POST");
-    expect((merge.init.headers as Record<string, string>).accept).toBe("application/json");
+    const posted = h.requests.find((r) => r.url.includes("/cancel"))!;
+    expect(posted.init.method).toBe("POST");
+    expect((posted.init.headers as Record<string, string>).accept).toBe("application/json");
     // The guard reads a header, the query string or the cookie — never
     // the form body, which is where the hidden field would have gone.
-    expect(merge.url).toContain("token=s3cret");
+    expect(posted.url).toContain("token=s3cret");
   });
 
   // Spec 104: it says so by CHANGING, not by changing its word. The
@@ -601,21 +596,21 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
     let seenBusy = false;
     let seenTitle = "";
     const h = harness((url) => {
-      if (url.includes("/merge")) {
+      if (url.includes("/cancel")) {
         seenBusy = h.button.classList.contains("busy");
         seenTitle = h.button.title;
       }
-      return { ok: true, body: OK_MERGE };
+      return { ok: true, body: OK_ACTION };
     });
     await h.submit();
     expect(seenBusy).toBe(true);
-    expect(seenTitle).toBe("merging…");
+    expect(seenTitle).toBe("cancelling…");
     // And the page stayed where the reader was.
     expect(h.location.href).toBe("http://dash.test/");
   });
 
   test("the rows are swapped as soon as the answer arrives, not on the next tick (criterion 11)", async () => {
-    const h = harness(() => ({ ok: true, body: OK_MERGE }));
+    const h = harness(() => ({ ok: true, body: OK_ACTION }));
     await h.submit();
     expect(swapUrl(h)).toContain("rows=1");
     expect(h.rows.innerHTML).toBe("<tr></tr>");
@@ -623,13 +618,13 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
 
   // The five-second tick swaps `#jobrows` from the server. While a press
   // is in flight the server still shows the OLD state, so a swap in that
-  // window put back an untouched "Merge" over the "merging…"
-  // the press had just shown — seen on 2026-08-19: no feedback, then a
-  // jump. The tick waits while anything is in flight.
+  // window put back an untouched label over the pending one the press
+  // had just shown — seen on 2026-08-19: no feedback, then a jump. The
+  // tick waits while anything is in flight.
   test("the tick does not swap the rows while a press is in flight", async () => {
     let release: () => void = () => {};
     const held = new Promise<void>((r) => (release = r));
-    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: OK_MERGE, hold: held } : { ok: true }));
+    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true }));
     h.document.visibilityState = "visible";
     const pressed = h.submit();
     await Promise.resolve();
@@ -651,48 +646,20 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
   // server restarted used to land on a bare `/`, and the sort and
   // filter they had set were gone (seen 2026-08-19: "Spec ▴" reset to
   // "Started ▾" with no press of theirs).
-  test("a merge that cannot be sent at all reloads rather than lying — and keeps the view (criterion 12)", async () => {
-    const h = harness(() => ({ ok: false, throws: true }), "mergeform", "?sort=spec&dir=asc");
+  test("a press that cannot be sent at all reloads rather than lying — and keeps the view (criterion 12)", async () => {
+    const h = harness(() => ({ ok: false, throws: true }), "actionform", "?sort=spec&dir=asc");
     await h.submit();
     expect(h.location.href).toBe("/?sort=spec&dir=asc");
-  });
-
-  // Merged is not deployed: the code reaching the default branch changes
-  // nothing on the machine until the project's install runs, and spec
-  // 92's merged code went on running as the old version because nobody
-  // was told.
-  test("what the install did is said on the page, not only in the JSON", async () => {
-    const h = harness(() => ({
-      ok: true,
-      body: {
-        ok: true,
-        results: [{ root: "/repos/aide", ok: true, installError: "merged, not installed — deploying is a hand step" }],
-      },
-    }));
-    await h.submit();
-    expect(h.inserted).toHaveLength(1);
-    expect(h.inserted[0]!.textContent).toContain("not installed");
-    // The banner the page already has for a refusal, and still no jump.
-    // `refusal` is the selector hook; `rowmsg err` is the component
-    // that gives it the look every other refusal on the page has.
-    expect(h.inserted[0]!.className).toBe("refusal rowmsg err");
-    expect(h.location.href).toBe("http://dash.test/");
-  });
-
-  test("an install that said nothing leaves no banner behind", async () => {
-    const h = harness(() => ({ ok: true, body: OK_MERGE }));
-    await h.submit();
-    expect(h.inserted).toHaveLength(0);
   });
 
   // A form whose own onsubmit cancelled the event is not ours to post:
   // a delegated handler that ignored that would post anyway.
   test("a submit that was already cancelled posts nothing", async () => {
-    const h = harness(() => ({ ok: true, body: OK_MERGE }), "mergeform");
+    const h = harness(() => ({ ok: true, body: OK_ACTION }), "actionform");
     await h.submit({ defaultPrevented: true });
     expect(h.requests).toHaveLength(0);
     expect(h.button.disabled).toBe(false);
-    expect(h.button.textContent).toBe("Merge");
+    expect(h.button.textContent).toBe("Cancel");
   });
 });
 
@@ -706,16 +673,18 @@ describe("the merge button posts from the page (criteria 10-12)", () => {
 // the reader keeps the page, the scroll position and the form they were
 // filling in.
 describe("a refused action keeps the view and names its spec (criteria 7, 8)", () => {
+  // One sentence, not a list: the route that answered per repo was the
+  // merge route, and it went with the button (spec 149).
   const REFUSED = {
     ok: false,
     spec: "aide/99-merge-leaves-nothing-behind",
-    results: [{ root: "/repos/aide-specs", error: "the tree is dirty in /repos/aide-specs" }],
+    error: "the tree is dirty in /repos/aide-specs",
   };
 
   test("the current filter and sort come along", async () => {
     const h = harness(
-      (url) => (url.includes("/merge") ? { ok: true, body: REFUSED } : { ok: true }),
-      "mergeform",
+      (url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }),
+      "actionform",
       "?state=active&sort=cost&token=s3cret",
     );
     await h.submit();
@@ -729,32 +698,16 @@ describe("a refused action keeps the view and names its spec (criteria 7, 8)", (
   });
 
   test("the spec the server named rides along, so the row can show it", async () => {
-    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: REFUSED } : { ok: true }));
+    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }));
     await h.submit();
     const to = new URL(h.replaced[0]!, "http://dash.test");
     expect(to.searchParams.get("errorSpec")).toBe("aide/99-merge-leaves-nothing-behind");
     expect(to.searchParams.get("error")).toContain("the tree is dirty");
   });
 
-  // The no-JS redirect carries errorReason; the XHR path lost it, so
-  // the resolve button never appeared for anyone with JS on — seen on
-  // 109 and 112, 2026-08-19.
-  test("a conflict refusal carries errorReason=conflict into the view", async () => {
-    const h = harness(() => ({
-      ok: false,
-      body: { ok: false, spec: "109-x", results: [{ error: "cannot merge (conflict)", reason: "conflict" }] },
-    }));
-    await h.submit();
-    const url = h.replaced[h.replaced.length - 1] ?? "";
-    expect(url).toContain("errorReason=conflict");
-    expect(url).toContain("errorSpec=109-x");
-  });
-
   test("a refusal the server did not attribute still says the reason", async () => {
     const h = harness((url) =>
-      url.includes("/merge")
-        ? { ok: true, body: { ok: false, results: [{ root: "/repos/aide", error: "the tree is dirty" }] } }
-        : { ok: true },
+      url.includes("/cancel") ? { ok: true, body: { ok: false, error: "the tree is dirty" } } : { ok: true },
     );
     await h.submit();
     const to = new URL(h.replaced[0]!, "http://dash.test");
@@ -767,7 +720,7 @@ describe("a refused action keeps the view and names its spec (criteria 7, 8)", (
   // address bar now holds, so the reason comes back rendered on the
   // spec it belongs to — and nothing scrolled.
   test("the page does not navigate, and the rows are re-asked with the reason", async () => {
-    const h = harness((url) => (url.includes("/merge") ? { ok: true, body: REFUSED } : { ok: true }));
+    const h = harness((url) => (url.includes("/cancel") ? { ok: true, body: REFUSED } : { ok: true }));
     await h.submit();
     expect(h.location.href).toBe("http://dash.test/");
     expect(decodeURIComponent(swapUrl(h))).toContain("errorSpec=aide/99-merge-leaves-nothing-behind");
@@ -775,51 +728,10 @@ describe("a refused action keeps the view and names its spec (criteria 7, 8)", (
   });
 });
 
-// A branch that outlived its own merge is what spec 92's dependency
-// guard reads as "not merged yet". The JSON already carries it; the page
-// has to say it out loud, in the same place the install message goes.
-describe("a failed branch deletion is said on the page (criterion 4)", () => {
-  test("it lands in the same note the install message uses", async () => {
-    const h = harness(() => ({
-      ok: true,
-      body: {
-        ok: true,
-        results: [
-          {
-            root: "/repos/aide-specs",
-            ok: true,
-            branchDeleteError: "merged, but deleting aide/99-x on origin failed: remote rejected",
-          },
-        ],
-      },
-    }));
-    await h.submit();
-    expect(h.inserted).toHaveLength(1);
-    expect(h.inserted[0]!.textContent).toContain("deleting aide/99-x on origin failed");
-    expect(h.location.href).toBe("http://dash.test/");
-  });
+// --- spec 101: every control answers the press ------------------------------
 
-  test("both messages are said, not just the first", async () => {
-    const h = harness(() => ({
-      ok: true,
-      body: {
-        ok: true,
-        results: [
-          { root: "/repos/aide-specs", ok: true, branchDeleteError: "deleting the branch failed" },
-          { root: "/repos/aide", ok: true, installError: "merged, not installed" },
-        ],
-      },
-    }));
-    await h.submit();
-    expect(h.inserted[0]!.textContent).toContain("deleting the branch failed");
-    expect(h.inserted[0]!.textContent).toContain("merged, not installed");
-  });
-});
-
-// --- spec 101: every control answers the press, not only Merge --------------
-
-// Run, Approve and Cancel were plain form posts: the browser navigated
-// on the click, the button froze mid-navigation, and the redirect target
+// Run and Cancel were plain form posts: the browser navigated on the
+// click, the button froze mid-navigation, and the redirect target
 // re-rendered the whole page (a git call per spec) before anything came
 // back. Same request, same route, same answer — the wait and the jump
 // are what go.
@@ -994,7 +906,7 @@ describe("the Depends-on chips are scoped to the chosen project", () => {
 describe("a pressed row button holds its size (spec 104)", () => {
   const OK = { ok: true, job: { id: "job-1" } };
 
-  for (const control of ["rowrun", "actionform", "cancel", "mergeform"] as const) {
+  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
     test(`${control} swaps to the busy look without changing its label`, async () => {
       const { label, variant } = CONTROLS[control]!;
       let seen = { label: "", busy: false, variant: true, spinner: "" };
@@ -1044,7 +956,7 @@ describe("a pressed row button holds its size (spec 104)", () => {
   // are on the phase LINES, and every button on the row is on the
   // header. So the spinner goes where it always went on a collapsed
   // row: inside the button that was pressed, for every control alike.
-  for (const control of ["rowrun", "actionform", "cancel", "mergeform"] as const) {
+  for (const control of ["rowrun", "actionform", "resolveform"] as const) {
     test(`${control} carries its own spinner, and asks no row for boxes`, async () => {
       let seen = { busy: false, spinner: "" };
       const h = harness((url) => {
@@ -1145,7 +1057,7 @@ describe("Remove is gated on the name being typed back", () => {
   test("a removal posts the confirmation and reloads the page it is on, keeping the view", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
-      "mergeform",
+      "actionform",
       "?state=running&sort=cost",
       { pathname: "/projects" },
     );
@@ -1442,8 +1354,9 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
 // The window is wide, not theoretical. Every `/?rows=1` answer waits on
 // `isMerged()` for every branch of every listed job, and a cache miss
 // there costs up to three sequential git calls at four seconds each —
-// which is the 10-15 seconds of a Merge button sitting unchanged that
-// was measured on 2026-08-20.
+// which is the 10-15 seconds of a pressed button sitting unchanged that
+// was measured on 2026-08-20 (on the Merge button, which spec 149 later
+// removed; the window it measured belongs to every control alike).
 describe("a swap older than the press is discarded, not applied (spec 129)", () => {
   /** What the server said BEFORE the press, and what must never reach
    *  the page after it. */
@@ -1454,11 +1367,11 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
   test("a tick's answer arriving mid-press does not put the untouched row back", async () => {
     let releaseTick: () => void = () => {};
     const tickHeld = new Promise<void>((r) => (releaseTick = r));
-    let releaseMerge: () => void = () => {};
-    const mergeHeld = new Promise<void>((r) => (releaseMerge = r));
+    let releasePress: () => void = () => {};
+    const pressHeld = new Promise<void>((r) => (releasePress = r));
     const h = harness((url) =>
-      url.includes("/merge")
-        ? { ok: true, body: OK_MERGE, hold: mergeHeld }
+      url.includes("/cancel")
+        ? { ok: true, body: OK_ACTION, hold: pressHeld }
         : { ok: true, text: STALE, hold: tickHeld },
     );
     h.document.visibilityState = "visible";
@@ -1478,7 +1391,7 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
     // the untouched one the server still believed in.
     expect(h.rows.innerHTML).toBe("");
     expect(h.button.classList.contains("busy")).toBe(true);
-    releaseMerge();
+    releasePress();
     await pressed;
   });
 
@@ -1488,10 +1401,10 @@ describe("a swap older than the press is discarded, not applied (spec 129)", () 
     const REFUSED = {
       ok: false,
       spec: "aide/129-the-merge-button-answers-the-press",
-      results: [{ root: "/repos/aide", error: "cannot fast-forward main in /repos/aide — merge it by hand" }],
+      error: "cannot fast-forward main in /repos/aide — resolve it first",
     };
     const h = harness((url) => {
-      if (url.includes("/merge")) return { ok: true, body: REFUSED };
+      if (url.includes("/cancel")) return { ok: true, body: REFUSED };
       // The refusal's OWN swap asks with the reason in the query
       // string (`showRefusal` put it there): that answer is the current
       // one, and it is the one that must survive.
@@ -1576,7 +1489,7 @@ describe("the Add form keeps the readiness answer on screen", () => {
   test("a removal still returns to the list, because it has no such answer", async () => {
     const h = harness(
       () => ({ ok: true, body: { ok: true, results: [{ step: "confirm", ok: true }] } }),
-      "mergeform",
+      "actionform",
       "",
       { pathname: "/projects" },
     );
