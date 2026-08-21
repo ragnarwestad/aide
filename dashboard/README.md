@@ -32,6 +32,7 @@
   - [Theme choice (spec 107)](#theme-choice-spec-107)
   - [Header and tab bar, not a sidebar (spec 119)](#header-and-tab-bar-not-a-sidebar-spec-119)
 - [Deploying](#deploying)
+  - [Installing it as an app (spec 173)](#installing-it-as-an-app-spec-173)
   - [On a second host](#on-a-second-host)
   - [Saying it once instead of every time](#saying-it-once-instead-of-every-time)
   - [On one machine](#on-one-machine)
@@ -159,6 +160,13 @@ no host is named anywhere in this repo.
 - `POST /api/queue/projects/<name>/remove` — take it off the allowlist
   and off this dashboard. Requires `confirm` to equal the project's name
   exactly, and never touches the checkout or the specs root.
+
+- `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`,
+  `/icon-512-maskable.svg`, `/apple-touch-icon.png` — what a browser
+  reads before it offers to install the dashboard as an app (spec 173).
+  No token: a manifest fetch that answers 401 is a page no browser
+  offers to install. All five are computed in `src/render/pwa.ts` and
+  answered from memory — see "Installing it as an app" under Deploying.
 
 Keep the scheme stable: the pages are linked from outside.
 
@@ -1245,9 +1253,9 @@ empty spec list) stop filling the viewport. It now sits on `body`.
 The serving host answers on **two** addresses as of 2026-08-21, and only
 one of them works:
 
-- `http://100.115.106.17:8788` — what the launchd job binds
+- `http://<tailnet-ip>:8788` — what the launchd job binds
   (`--bind`), the address everything names today, plain HTTP.
-- `https://rw-macmini-m2.tail97789a.ts.net/` — a `tailscale serve`
+- `https://<host>.<tailnet>.ts.net/` — a `tailscale serve`
   proxy set up by hand the same day. TLS terminates correctly with a
   certificate Tailscale renews itself, and the address answers **502**.
 
@@ -1269,6 +1277,43 @@ enabled for it at all, both in the admin console: **Serve**, and
 Why it matters beyond a nicer URL: a service worker needs a secure
 context, so the dashboard cannot be installed as an app on a phone or
 a desktop until this lands.
+
+### Installing it as an app (spec 173)
+
+The served dashboard is a web app you can install: Chrome and Edge
+offer it from the address bar, and iOS Safari from Share → "Add to
+Home Screen". It then opens in a window of its own, with the mark as
+its icon and the page's own background behind the title bar.
+
+**Install it after signing in, not before.** An installed app is
+launched on `start_url` — `/`, with no query string — so the token has
+to be in the cookie already. Open `/?token=<the token>` once in the
+browser, and the installed app opens straight into the spec list. The
+other order gives a 401 as the app's first screen, and the fix is the
+same: open it with `?token=` once.
+
+Five routes make it work, and none of them is a file:
+`/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`,
+`/icon-512-maskable.svg` and `/apple-touch-icon.png` are all computed
+in `src/render/pwa.ts` and answered from memory, so nothing has to be
+kept in sync with the mark by hand and nothing is published by rsync.
+They are the only things on this site a page fetches rather than
+carries inline — a browser will not install a page whose manifest is a
+data URI — and they are outside the token, because a manifest fetch
+that answers 401 is a page the browser will not offer to install at
+all.
+
+The service worker caches **nothing**. Every line of this dashboard is
+live state, and a queue served out of yesterday's storage would be
+worse than no app at all: it passes every request through to the
+server and answers a page load with a short "not reachable" page when
+the tailnet is out of reach. That is all it is for — that, and being
+what a browser looks for before it offers to install anything.
+
+None of this works over plain HTTP: a service worker needs a secure
+context, which is what the section above is about. The manifest and
+the icons are served either way, and the tags on the page are inert
+until then.
 
 ### On a second host
 

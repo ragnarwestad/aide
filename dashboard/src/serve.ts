@@ -49,6 +49,9 @@ import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
+  APPLE_TOUCH_ICON,
+  APP_ICON,
+  APP_ICON_MASKABLE,
   ARCHIVE_ROUTE,
   NEW_SPEC_ROUTE,
   OVERVIEW_PAGE,
@@ -67,6 +70,8 @@ import {
   renderQueueRows,
   renderSpecEditPage,
   renderSpecPage,
+  SERVICE_WORKER,
+  WEBMANIFEST,
   specEditPath,
   specPagePath,
   EDITABLE_SPEC_FILE,
@@ -1075,6 +1080,41 @@ export function createServer(opts: ServerOptions) {
       if (req.method !== "GET" && req.method !== "HEAD") {
         return new Response("method not allowed", { status: 405 });
       }
+
+      // What makes this page an app you install (spec 173): five
+      // answers built in `render/pwa.ts` and served from memory, the
+      // same shape /api/aide-run has — a computed string, an explicit
+      // content type, no file on disk. None of them is behind the
+      // token, deliberately: the manifest fetch that drives the install
+      // prompt does not always carry the cookie, and a worker whose
+      // script answers 401 never installs at all. There is nothing in
+      // any of them a reader could not already see in the page's own
+      // <head>.
+      if (path === "/manifest.webmanifest") {
+        return new Response(WEBMANIFEST, {
+          headers: { "content-type": "application/manifest+json" },
+        });
+      }
+      if (path === "/sw.js") {
+        return new Response(SERVICE_WORKER, {
+          headers: {
+            "content-type": "text/javascript; charset=utf-8",
+            // A worker the browser is holding on to is a worker a fix
+            // cannot reach; this makes it revalidate first.
+            "cache-control": "no-cache",
+          },
+        });
+      }
+      if (path === "/icon-512.svg" || path === "/icon-512-maskable.svg") {
+        // "512" names the size a launcher asks for, not the file: the
+        // mark is vector, so one SVG answers every size.
+        const icon = path === "/icon-512.svg" ? APP_ICON : APP_ICON_MASKABLE;
+        return new Response(icon, { headers: { "content-type": "image/svg+xml; charset=utf-8" } });
+      }
+      if (path === "/apple-touch-icon.png") {
+        return new Response(APPLE_TOUCH_ICON, { headers: { "content-type": "image/png" } });
+      }
+
       return serveStatic(opts.siteDir, path);
     },
   });

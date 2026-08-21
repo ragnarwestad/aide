@@ -60,3 +60,40 @@ export const ICON_LINKS =
 export const WORDMARK =
   `<a class="brand" href="/">${MARK}` +
   `<span>a<i>i</i>de <span class="surface">-board</span></span></a>`;
+
+/** The bounding box `bars()` actually covers on the 64 grid: x 10 to
+ *  61, y 14 to 50. Written down because the icons below centre the
+ *  MARK on the canvas, not the grid — the bars sit 10 units in from
+ *  the left and 3 from the right, which nobody can see at favicon size
+ *  and everybody can see at 512. */
+const BBOX = { x0: 10, x1: 61, y0: 14, y1: 50 };
+
+/** The mark as an app icon: the same four bars, centred on a filled
+ *  canvas, for a launcher rather than a tab.
+ *
+ *  `fit` is how much of the canvas the mark takes. The bars are not
+ *  redrawn at any of it — `bars()` stays the one description of the
+ *  mark's shape, and the group around them is moved and scaled whole.
+ *  The canvas colour comes from the caller: it is the PAGE's
+ *  background, and that lives in `css.ts` with the rest of the tokens,
+ *  not here with the brand's own four. */
+function icon(background: string, fit: number): string {
+  const round = (v: number) => Number(v.toFixed(2));
+  const tx = round(32 - fit * ((BBOX.x0 + BBOX.x1) / 2));
+  const ty = round(32 - fit * ((BBOX.y0 + BBOX.y1) / 2));
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">` +
+    `<rect width="64" height="64" fill="${background}"/>` +
+    `<g transform="translate(${tx} ${ty}) scale(${fit})">${bars(LIGHT, 9)}</g>` +
+    `</svg>`
+  );
+}
+
+/** For the manifest's `any` purpose, and for iOS, which draws the icon
+ *  as given and rounds the corners itself. */
+export const appIcon = (background: string): string => icon(background, 0.86);
+
+/** For the manifest's `maskable` purpose: the OS may crop this one to
+ *  a circle or a squircle, so the mark keeps well clear of the edges.
+ *  Same bars, less of the canvas. */
+export const appIconMaskable = (background: string): string => icon(background, 0.7);

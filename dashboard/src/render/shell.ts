@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { CSS } from "./css.ts";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
+import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
 
 export interface NavEntry {
@@ -34,6 +35,12 @@ const UNIT_SCRIPT = transpile("unit-script.ts");
 // Close-on-outside-click and Escape for the "…" menu: what makes the
 // disclosure BEHAVE as a menu rather than a box that stays open.
 const MENU_SCRIPT = transpile("menu-script.ts");
+// Spec 173's fourth: the two lines that register the service worker,
+// which is what a browser wants to see before it offers to install the
+// page. It shares the one <script> tag for the reason UNIT_SCRIPT
+// does — the guard counts tags, and what it guards against is page
+// code drifting back onto the generated pages.
+const SW_REGISTER_SCRIPT = transpile("sw-register.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -209,8 +216,9 @@ export function pageShell(
 <meta name="viewport" content="width=device-width, initial-scale=1">${refresh}
 <title>${esc(opts.docTitle ?? `aide -board · ${title}`)}</title>
 ${ICON_LINKS}
+${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}

@@ -12,6 +12,8 @@
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting
 //   render/css.ts         the stylesheet, inlined into every page
+//   render/pwa.ts         the manifest, the icons and the worker that
+//                         make the served dashboard installable
 //
 // This file is the door: callers ask render.ts for a page and do not
 // have to know which file it lives in. Every page is self-contained —
@@ -38,6 +40,19 @@ export { renderNewSpecPage } from "./render/new-spec-page.ts";
 export type { NewSpecPageOptions } from "./render/new-spec-page.ts";
 
 export type { NavEntry } from "./render/shell.ts";
+
+// The five answers that make the dashboard an app you install (spec
+// 173). Unlike every other export here they are not pages: they are
+// what `serve.ts` puts behind /manifest.webmanifest, /sw.js and the
+// three icon paths, computed rather than read from disk like the rest
+// of this file.
+export {
+  APPLE_TOUCH_ICON,
+  APP_ICON,
+  APP_ICON_MASKABLE,
+  SERVICE_WORKER,
+  WEBMANIFEST,
+} from "./render/pwa.ts";
 
 
 // `stepBoxes` and `specSummary` used to be exported alongside these

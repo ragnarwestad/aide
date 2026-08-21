@@ -25,6 +25,13 @@ import {
 // without restating its markup (spec 145).
 import { ICON_LOCK } from "../src/render/components.ts";
 
+/** Every <link> on a page that is a second REQUEST rather than a data
+ *  URI — what "self-contained" means here, since the site is published
+ *  as plain files and opened from a folder as often as from a server. */
+function external(html: string): (string | undefined)[] {
+  return [...html.matchAll(/<link[^>]+href="(?!data:)([^"]*)"/g)].map((m) => m[1]);
+}
+
 function project(name: string, overrides: Partial<ProjectView> = {}): ProjectView {
   return {
     name,
@@ -353,7 +360,15 @@ describe("self-contained (criterion 5)", () => {
       expect(page.html).not.toContain("<script src");
       // The favicons are data URIs, so a <link> is fine — what this
       // test is about is a reference that needs a second request.
-      expect(page.html).not.toMatch(/<link[^>]+href="(?!data:)/);
+      //
+      // Spec 173 added the only two that do, and they are named here
+      // rather than allowed in general: a browser will not install a
+      // page whose manifest is a data URI, so the manifest and iOS's
+      // touch icon HAVE to be resources at a URL. `serve.ts` answers
+      // both from memory. On a generated page opened from a folder
+      // they find nothing at all, which is the same inert as the
+      // `href="/"` that page's own nav already carries.
+      expect(external(page.html)).toEqual(["/manifest.webmanifest", "/apple-touch-icon.png"]);
       expect(page.html).not.toMatch(/<img[^>]+src="https?:/);
     }
   });
@@ -783,7 +798,9 @@ describe("renderJobDetailPage", () => {
   test("the page is self-contained and carries the shared nav", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).not.toContain("<script src");
-    expect(html).not.toMatch(/<link[^>]+href="(?!data:)/);
+    // The two the manifest needs, and nothing else — see the same
+    // assertion under "self-contained (criterion 5)" for why.
+    expect(external(html)).toEqual(["/manifest.webmanifest", "/apple-touch-icon.png"]);
     // The job page belongs to the spec list at `/`, and says so twice
     // over: the wordmark goes home, and the Specs tab is the current
     // one (spec 119 — `job-page.ts` passes `currentPath = "/"`).
@@ -6267,5 +6284,77 @@ describe("spec 169: one picker per phase", () => {
       row({ id: "j1", specFolder: "169-one-picker", steps: ["implement"], stepIndex: 0, state: "done" }),
     ]);
     expect(setAll(html).match(/<select[^>]*>/)![0]).not.toContain("disabled");
+  });
+});
+
+// --- spec 173: the head elements that make the page an app ------------------
+//
+// Criterion 4. `pageShell` is the single <head> every page on this site
+// is built from — the served pages, the New-spec form, and the
+// generated files alike — so installability is added in exactly one
+// place and every page gets it the way every page already gets a
+// favicon. A generated page opened from a folder finds no manifest and
+// no worker at the other end of these, which is the same inert as its
+// own `href="/"` nav links, not a new kind of broken.
+describe("spec 173: every page says how it is installed", () => {
+  const pages = (): string[] => [
+    ...renderSite([project("aide")], "2026-08-21T00:00:00Z").map((p) => p.html),
+    renderQueuePage([], "2026-08-21T00:00:00Z", [{ label: "Projects", path: "/projects" }], {
+      runnerAvailable: true,
+      targets: [],
+    }),
+    renderNewSpecPage([{ label: "Projects", path: "/projects" }], "2026-08-21T00:00:00Z", {
+      createProjects: ["aide"],
+    }),
+  ];
+
+  test("the manifest is linked once, on every page", () => {
+    for (const html of pages()) {
+      expect(html.match(/<link rel="manifest" href="\/manifest\.webmanifest">/g)).toHaveLength(1);
+    }
+  });
+
+  test("iOS gets the icon it will not take from the manifest", () => {
+    // "Add to Home Screen" reads apple-touch-icon, and Safari will not
+    // rasterize an SVG for it the way it accepts one as a favicon.
+    for (const html of pages()) {
+      expect(html.match(/<link rel="apple-touch-icon" href="\/apple-touch-icon\.png">/g)).toHaveLength(1);
+    }
+  });
+
+  test("the window's own colour is given for both themes", () => {
+    for (const html of pages()) {
+      const metas = [...html.matchAll(/<meta name="theme-color" content="(#[0-9A-F]{6})" media="([^"]+)">/g)];
+      expect(metas.map((m) => m[2])).toEqual([
+        "(prefers-color-scheme: light)",
+        "(prefers-color-scheme: dark)",
+      ]);
+    }
+  });
+
+  test("all of it sits in <head>, before the stylesheet", () => {
+    for (const html of pages()) {
+      const manifest = html.indexOf('<link rel="manifest"');
+      const themeColor = html.indexOf('<meta name="theme-color"');
+      // An element that is absent has index -1 and would sit "before"
+      // anything at all — the one way this could pass for nothing.
+      expect(manifest).toBeGreaterThan(-1);
+      expect(themeColor).toBeGreaterThan(-1);
+      expect(manifest).toBeLessThan(html.indexOf("<style>"));
+      expect(themeColor).toBeLessThan(html.indexOf("</head>"));
+    }
+  });
+
+  test("the worker is registered from the script every page already carries", () => {
+    // Not a <script> of its own: the guard on the generated pages
+    // counts script tags, and what it guards against is page code
+    // drifting back onto them — not a fourth small setting sharing the
+    // one tag the theme switcher already opened.
+    for (const html of pages()) {
+      const head = html.slice(0, html.indexOf("</head>"));
+      const scripts = [...head.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+      expect(scripts).toHaveLength(1);
+      expect(scripts[0]![1]).toContain("/sw.js");
+    }
   });
 });
