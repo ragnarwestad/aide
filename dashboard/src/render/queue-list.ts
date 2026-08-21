@@ -23,6 +23,9 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
+// One function, because the server routes on this path and the list
+// links to it (spec 150).
+import { specPagePath } from "./spec-page.ts";
 import {
   badge,
   btn,
@@ -1182,18 +1185,22 @@ function specHeadRow(
   // question of whether a spec folder has been archived on disk. The
   // two used to share the words and mean different things.
   const rowClass = !g.lead ? "run-new" : inFlight(g.lead) ? "run-live" : "run-past";
-  // The spec name is the way IN: the job it points at is whatever is
-  // running, or the last thing that happened. The diff link sits beside
-  // it rather than replacing it — nothing a reader uses today disappears.
-  // A spec that has never run has no job page to point at, so the name
-  // is text: a link to nothing is worse than no link.
+  // The spec name is the way IN, and since spec 150 it opens the SPEC —
+  // all four of its files as they stand — rather than whichever job
+  // happened to run last. Which means EVERY spec has somewhere to point:
+  // the old branch here said "a spec that has never run has no job page
+  // to point at, so the name is text", and that is the sentence the spec
+  // page invalidates. The phase lines below still link to jobs, because
+  // a phase's page is that phase's own run.
+  // The diff link sits beside it rather than replacing it — nothing a
+  // reader uses today disappears.
   // `.label` so the name can be clamped to one line with an ellipsis
   // (asked for 2026-08-19): a long folder name used to wrap, and its
   // tail landed in front of the branch marks — "refusing, aide-specs,
   // aide" read as a list of three marks.
-  const spec = g.lead
-    ? `<a class="label" href="/specs/${esc(g.lead.id)}" title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`
-    : `<span class="label" title="${esc(g.specFolder)}">${esc(g.specFolder)}</span>`;
+  const spec =
+    `<a class="label" href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+    `title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`;
   // The badge is about the branch AND the job that is still writing to
   // it, so the row's lead job comes down with the list.
   const diff = g.branches.length

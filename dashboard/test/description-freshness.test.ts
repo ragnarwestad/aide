@@ -15,6 +15,7 @@ import {
   descriptionDiffers,
   lastAnalyzeCommit,
   lastCommitAt,
+  lastCommitOf,
 } from "../src/description-freshness.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
@@ -27,7 +28,7 @@ const SUBJECT = `Run /aide-analyze for ${FOLDER} (headless)`;
  *  the other. */
 const gitFor = (description: string | null, analyzeLog: string | null, differs = true) =>
   fakeGit({
-    "log -1 --format=%aI": description === null ? { code: 1 } : { code: 0, stdout: `${description}\n` },
+    "log -1 --format=%H": description === null ? { code: 1 } : { code: 0, stdout: `deadbee\t${description}\n` },
     "log --format=%H%x09%aI%x09%s":
       analyzeLog === null ? { code: 1 } : { code: 0, stdout: analyzeLog },
     // `git diff --quiet`: 0 identical, 1 different.
@@ -72,7 +73,7 @@ describe("lastCommitAt", () => {
     // The pathspec is what keeps a plan-merge out of the answer: a
     // merge commit touches 2-analysis.md and 3-solution.md and never
     // the description (criterion 6).
-    expect(git.calls[0]!.args).toEqual(["log", "-1", "--format=%aI", "--", "1-description.md"]);
+    expect(git.calls[0]!.args).toEqual(["log", "-1", "--format=%H%x09%aI", "--", "1-description.md"]);
     expect(git.calls[0]!.dir).toBe(DIR);
   });
 
@@ -234,5 +235,54 @@ describe("DescriptionFreshnessChecker", () => {
     const checker = new DescriptionFreshnessChecker({ run: git.run });
     expect(await checker.isStale(DIR, FOLDER)).toBe(false);
     expect(git.calls).toHaveLength(1);
+  });
+});
+
+// --- spec 150: the same question, of all four files --------------------------
+//
+// The spec page stamps each of the four files with the commit that last
+// touched it, so a reader can tell which version is on the screen. That
+// is this module's own one-path question asked four times — with the
+// SHA as well as the time, because "which version" is what the stamp is
+// for.
+
+describe("lastCommitOf", () => {
+  const SPEC_FILES = ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"];
+
+  test("answers with the commit and its time, per file", async () => {
+    const git = fakeGit({
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21deadbeef\t2026-08-21T09:14:00+02:00\n" },
+    });
+    expect(await lastCommitOf(git.run, DIR, "2-analysis.md")).toEqual({
+      sha: "a3f9c21deadbeef",
+      at: "2026-08-21T09:14:00+02:00",
+    });
+  });
+
+  test("each file is asked about on its own — a folder-wide log answers for the wrong one", async () => {
+    const git = fakeGit({
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
+    });
+    for (const name of SPEC_FILES) await lastCommitOf(git.run, DIR, name);
+    expect(git.calls.map((c) => c.args[c.args.length - 1])).toEqual(SPEC_FILES);
+    // `--` before the path, so a file named like a revision is a file.
+    for (const call of git.calls) expect(call.args).toContain("--");
+  });
+
+  test("a file git has never seen is null, not an invented stamp", async () => {
+    const git = fakeGit({ "log -1 --format=%H": { code: 0, stdout: "\n" } });
+    expect(await lastCommitOf(git.run, DIR, "2-analysis.md")).toBeNull();
+  });
+
+  test("git failing at all is null — a spec outside git still renders", async () => {
+    const git = fakeGit({});
+    expect(await lastCommitOf(git.run, DIR, "1-description.md")).toBeNull();
+  });
+
+  test("lastCommitAt is the same answer with the sha dropped", async () => {
+    const git = fakeGit({
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
+    });
+    expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-21T09:14:00+02:00");
   });
 });

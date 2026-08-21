@@ -16,12 +16,13 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
-import { DescriptionFreshnessChecker } from "./description-freshness.ts";
+import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
+import { pullFastForward } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
-  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, type DiscoveredProject, type SpecRef,
+  SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
+  gitignoreCandidates, specFileText, specPhaseFile, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
@@ -57,7 +58,11 @@ import {
   ADD_PROJECT_ROUTE,
   renderQueuePage,
   renderQueueRows,
+  renderSpecPage,
+  specPagePath,
   type JobDetailView,
+  type SpecFileView,
+  type SpecPageView,
   type NavEntry,
   type ProjectView,
   type QueueRowView,
@@ -560,16 +565,24 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
-  let scan: { at: number; targets: QueueTarget[]; archived: string[] } | null = null;
+  let scan: { at: number; targets: QueueTarget[]; archived: string[]; dirs: Map<string, string> } | null =
+    null;
   const targets = (): QueueTarget[] => {
     const now = Date.now();
     if (scan && now - scan.at < 5000) return scan.targets;
     const found: QueueTarget[] = [];
     const gone: string[] = [];
+    // Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
+    // 150). `targets` deliberately drops an archived spec — a ghost row
+    // outliving the spec is what that costs — but the archive job that
+    // moved it still has a page, and that page's whole content is the
+    // stamp in the folder it moved to.
+    const dirs = new Map<string, string>();
     if (opts.projectRoot) {
       for (const p of discoverProjects(opts.projectRoot)) {
         if (!allowed.has(p.name)) continue;
         for (const s of p.specs) {
+          dirs.set(`${p.name}/${s.folder}`, s.dir);
           // Remembered by key: a create job keeps its group visible
           // while its spec has not landed, and "archived" is the one
           // proof that it HAS — without it the ghost row outlives the
@@ -627,8 +640,18 @@ export function createServer(opts: ServerOptions) {
         }
       }
     }
-    scan = { at: now, targets: found, archived: gone };
+    scan = { at: now, targets: found, archived: gone, dirs };
     return found;
+  };
+
+  /** A spec's folder on this host, archived or not. Goes through
+   *  `targets()` so it shares the 5-second scan rather than walking the
+   *  projects root again — but what it returns is only WHERE the files
+   *  are; the files themselves are read fresh on every request, which
+   *  is the whole point of the Update button. */
+  const specDir = (project: string, specFolder: string): string | undefined => {
+    targets();
+    return scan?.dirs.get(`${project}/${specFolder}`);
   };
   const resolveProject: ProjectResolver = (project) => {
     if (!allowed.has(project)) return null;
@@ -1850,6 +1873,56 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: queue.get(id) }) : specsRedirect(view);
     }
 
+    // The SPEC page, and the Update button that keeps it honest (spec
+    // 150). Two path segments where the job route has one, so the two
+    // are disjoint by shape: a job id never contains a slash, and a
+    // spec that has never run has no job id to be found by.
+    const specPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)$/);
+    if (specPage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = specPage;
+      const view = await specPageView(project!, specFolder!);
+      if (!view) return new Response("not found", { status: 404 });
+      const html = renderSpecPage(
+        {
+          ...view,
+          error: url.searchParams.get("error") ?? undefined,
+          notice: url.searchParams.get("notice")
+            ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
+            : undefined,
+        },
+        new Date().toISOString(),
+        nav(),
+        { tab: url.searchParams.get("tab") ?? undefined },
+      );
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    // Pull the specs repository and come back to the same page. Four
+    // segments, where the job actions have two and the project ones
+    // three — nothing above can match it and it can match nothing
+    // above.
+    const update = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/update$/);
+    if (update) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = update;
+      const dir = specDir(project!, specFolder!);
+      if (!dir) return new Response("not found", { status: 404 });
+      const back = specPagePath(project!, specFolder!);
+      // The same lock a merge takes, and for the same hazard: every
+      // spec shares the specs root, so two presses — or a press racing
+      // the `aide-pull-specs` cron — would be two git sequences in one
+      // working tree.
+      const result = await mergeLock.run(dir, () =>
+        pullFastForward(gitRun, dir, (root) => branchStatus.defaultBranch(root)),
+      );
+      if (!result.ok) {
+        logRefusal("update", `${project}/${specFolder}`, result.note);
+        return specsRedirect({}, { error: result.note }, back);
+      }
+      return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    }
+
     // One job, in full: what it IS (the spec's title and description),
     // every step it has already run, and — while a step is running —
     // what that session is doing. Deliberately AFTER the approve/cancel
@@ -1877,6 +1950,52 @@ export function createServer(opts: ServerOptions) {
     return new Response("not found", { status: 404 });
   }
 
+  /** The four files, each with the commit that last touched it (spec
+   *  150). Read straight off disk on every request, never through
+   *  `targets()`'s 5-second cache: the Update button exists to put a
+   *  just-pulled file on the screen, and a cached read would show the
+   *  one before it.
+   *
+   *  A file git cannot date still renders — a spec outside git, a file
+   *  never committed. The content is what the page is for; the stamp is
+   *  what tells one version from another when there is one to tell. */
+  async function specFileViews(dir: string): Promise<SpecFileView[]> {
+    return Promise.all(
+      SPEC_FILES.map(async (name) => {
+        const commit = await lastCommitOf(gitRun, dir, name);
+        return { label: name, text: specFileText(dir, name), sha: commit?.sha, at: commit?.at };
+      }),
+    );
+  }
+
+  async function specPageView(project: string, specFolder: string): Promise<SpecPageView | null> {
+    const dir = specDir(project, specFolder);
+    if (!dir) return null;
+    const target = targets().find((t) => t.project === project && t.specFolder === specFolder);
+    // Whatever is in flight, or failing that the most recently active —
+    // the rule `jobGroup` uses for the row's own lead, over the same
+    // three in-flight states and the same "started, or failing that
+    // created" clock, so the page a name opens speaks for the job the
+    // name spoke for.
+    const jobs = queue
+      .list()
+      .filter((j) => j.project === project && j.specFolder === specFolder)
+      .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
+    const inFlight = (j: Job): boolean =>
+      j.state === "queued" || j.state === "running" || j.state === "awaiting-approval";
+    const lead = jobs.find(inFlight) ?? jobs[0];
+    return {
+      project,
+      specFolder,
+      title: target?.title,
+      files: await specFileViews(dir),
+      lead: lead ? await jobDetailView(lead) : undefined,
+      // Built from the page's own path, so the two cannot drift into a
+      // button that posts where nothing listens.
+      updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
+    };
+  }
+
   async function jobDetailView(job: Job): Promise<JobDetailView> {
     const target = targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
     // The step running now, or failing that the last one that ran: a
@@ -1893,20 +2012,22 @@ export function createServer(opts: ServerOptions) {
       ? queue.defaults.modelChoices?.[job.model[step ?? ""] ?? ""]?.tool
       : job.results[job.results.length - 1]?.tool;
     const tool = named ?? "claude";
-    // Degrade, never throw: an unreachable claude-usage leaves the rest
-    // of the page intact and says the session is unknown. Skipped
-    // outright for Codex: `claude-usage` watches Claude Code sessions
-    // and would answer "not-live" for a thread it has never heard of.
-    const live = running && job.sessionId && tool !== "codex" ? await enricher.lookup(job.sessionId) : null;
+    // What this job's step WROTE (spec 150). The step running now, or
+    // failing that the last one that ran — the same choice `streamFile`
+    // above makes, so the file shown and the transcript shown are about
+    // the same step. Read off disk, uncached and ungitted: this page
+    // says what the phase produced, and which VERSION of it is the spec
+    // page's question.
+    const shownStep = step ?? job.steps[job.steps.length - 1];
+    const dir = specDir(job.project, job.specFolder);
+    const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
     return {
       ...(await jobRow(job)),
       tool,
       title: target?.title,
-      description: target?.description,
       finishedAt: job.finishedAt,
-      sessionId: job.sessionId,
       results: job.results.map((r) => ({ ...r, tokens: r.tokens?.total })),
-      live,
+      phase: phase ?? undefined,
       // `named`, not `tool`: defaulting to claude here would be a claim,
       // and a wrong one blanks the list rather than degrading it — the
       // Claude parser finds nothing at all in a Codex transcript. With

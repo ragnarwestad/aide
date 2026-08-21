@@ -2975,7 +2975,7 @@ describe("a description newer than the analysis is shown on the row", () => {
    *  last committed, and what its analyze history looks like. */
   const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
-      "log -1 --format=%aI": { code: 0, stdout: `${descriptionAt}\n` },
+      "log -1 --format=%H": { code: 0, stdout: `deadbee\t${descriptionAt}\n` },
       "log --format=%H%x09%aI%x09%s": { code: 0, stdout: analyzeLog },
       // `git diff --quiet`: 1 means the description says something the
       // analysis never read, 0 means the commit changed nothing.
@@ -3674,11 +3674,15 @@ describe("GET /queue and /specs/<id>: the preview link (criteria 1-4)", () => {
     expect(id).toBeTruthy();
   });
 
-  test("the job page shows the same link (criterion 2)", async () => {
+  // Spec 150: the Work row left the job page, and the preview link went
+  // with it — both are on the row this page is opened from, and the
+  // Overview is now what is said nowhere else.
+  test("the job page carries neither link — the row has both (spec 150)", async () => {
     const { root, repo } = roots(TEMPLATE);
     const { mirror, id } = await seed([{ root: repo, url: "https://example.test/aide" }]);
     const html = await (await fetch(`${startWith(root, mirror)}/specs/${id}`, { headers: AUTH })).text();
-    expect(html).toContain(`href="${EXPECTED}"`);
+    expect(html).not.toContain(`href="${EXPECTED}"`);
+    expect(html).not.toContain('href="https://example.test/aide"');
   });
 
   test("a manifest without the key adds nothing at all (criterion 3)", async () => {

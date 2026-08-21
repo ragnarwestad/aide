@@ -1,11 +1,18 @@
-// /specs/<id>: one job, in full (spec 02). Its four parts — what the
-// job is, what is happening now, what it has been doing, what it has
-// run — sit behind tabs, because under plain headings they ran together
-// and a reader scrolled past the one they came for.
+// /specs/<id>: one job, in full (spec 02). Its parts — what the job is,
+// what it has been doing, what it has run — sit behind tabs, because
+// under plain headings they ran together and a reader scrolled past the
+// one they came for.
+//
+// It is also where the tabbed-page machinery LIVES: the tab bar, the
+// activity block, the steps table, the file panel and the frame around
+// them are exported, and `spec-page.ts` calls the same functions rather
+// than carrying copies (spec 150). `development.md` names the
+// two-copies-of-one-shape problem three times over as this repo's own
+// recurring cost; a second tab bar would have been the fourth.
 
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { branchActivity, stateChip, unmergedBadge, type QueueRowView } from "./job-state.ts";
+import { stateChip, type QueueRowView } from "./job-state.ts";
 import { filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
@@ -27,35 +34,41 @@ export interface JobStepResultView {
   at: string;
 }
 
-export interface JobLiveView {
-  state: string;
-  subagents: number | null;
-  costUsd: number | null;
-  /** What the session has metered so far, when whoever is watching it
-   *  can say. claude-usage reports a cost and no token count, so this is
-   *  absent in practice today and the row shows a dash in token mode —
-   *  which is the honest answer for a figure nobody has, and the row
-   *  flips with every other one rather than staying stubbornly in
-   *  dollars. */
-  tokens?: number | null;
-  /** False when claude-usage could not be reached at all — the page says
-   *  "unknown" rather than pretending the run is idle. */
-  enriched: boolean;
+/** A spec's own file, or one section of one, as it stands on disk
+ *  (spec 150). Shown preformatted and escaped: rendering markdown to
+ *  HTML is its own decision and was put out of scope, and seeing which
+ *  version is up needs the text, not a rendering of it.
+ *
+ *  `text: null` is "not written yet" — three of the four files are
+ *  legitimately absent halfway through the workflow, and the page says
+ *  so rather than showing an empty box.
+ *
+ *  `sha`/`at` are the commit that last touched the file. Absent when
+ *  nobody asked git: the SPEC page stamps all four, because "which
+ *  version is on the screen" is the question its Update button exists
+ *  for; a job page shows one file and asks git nothing. */
+export interface SpecFileView {
+  /** How the panel names it — a file, or a file and the one section of
+   *  it being shown. */
+  label: string;
+  text: string | null;
+  sha?: string;
+  at?: string;
 }
 
 export interface JobDetailView extends QueueRowView {
   /** Which CLI is running (or last ran) this job's current step. Absent
-   *  means claude. It decides one thing on this page: whether there is
-   *  anything watching the session to build a Live panel out of. */
+   *  means claude. */
   tool?: "claude" | "codex";
-  /** The spec's H1 and its `## Description` prose. */
+  /** The spec's H1. */
   title?: string;
-  description?: string;
   finishedAt?: string;
-  sessionId?: string;
   results: JobStepResultView[];
-  /** The running step's session, when there is one to look up. */
-  live?: JobLiveView | null;
+  /** What THIS job's step wrote (spec 150): analyze's 2-analysis.md,
+   *  review-plan's `## Plan review` section, implement's 4-status.md,
+   *  archive's one outcome. Absent for a step that writes no file of its
+   *  own — the page then shows its three facts and nothing else. */
+  phase?: SpecFileView;
   /** Already-escaped lines from `parse-stream.ts`. */
   activity?: string[];
   /** Why the spec's archive run did not move the folder (spec 108).
@@ -95,7 +108,12 @@ function outcome(r: JobStepResultView, archiveHeldBack?: string): string {
   return r.ok ? "ok" : esc(r.terminalReason || "failed");
 }
 
-function stepResults(results: JobStepResultView[], archiveHeldBack?: string): string {
+/** Exported since spec 150: the SPEC page's Steps tab is the lead job's
+ *  own, and two copies of this table would be a fourth instance of the
+ *  hand-paired-lists problem `development.md` already names three times
+ *  over. A spec with no job at all renders through the same empty case
+ *  an empty job does. */
+export function stepResults(results: JobStepResultView[], archiveHeldBack?: string): string {
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
@@ -130,121 +148,86 @@ function stepResults(results: JobStepResultView[], archiveHeldBack?: string): st
 const JOB_TABS = ["overview", "activity", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
-// While a step is running, what it is DOING is what the page was
-// opened for; a job that has stopped has nothing running, so its facts
-// open instead.
-function jobTab(name: string | undefined, job: JobDetailView): JobTab {
-  if ((JOB_TABS as readonly string[]).includes(name ?? "")) return name as JobTab;
-  return job.state === "running" ? "activity" : "overview";
+/** A tab name off the query string, or the fallback. Exported with
+ *  `tabBar` below because the spec page offers the same three tabs and
+ *  has to reject the same rubbish; its fallback differs (that page is
+ *  about the SPEC, so it opens on the spec whatever is running), which
+ *  is why the default is an argument. */
+export function pickTab(name: string | undefined, fallback: JobTab): JobTab {
+  return (JOB_TABS as readonly string[]).includes(name ?? "") ? (name as JobTab) : fallback;
 }
 
-function tabBar(job: JobDetailView, current: JobTab): string {
-  const counts: Record<string, number> = {
-    activity: job.activity?.length ?? 0,
-    steps: job.results.length,
-  };
+/** The tab bar, over a BASE PATH rather than a job (spec 150). It used
+ *  to build its hrefs from `job.id`, which is the one assumption a
+ *  spec-scoped page could not share — and copying the bar into the new
+ *  page would have been two renderings of "Activity · 12" that nothing
+ *  keeps in step. */
+export function tabBar(
+  basePath: string,
+  current: JobTab,
+  counts: { activity: number; steps: number },
+  /** What the group of pills is OF. "Job" on a job's page; the spec
+   *  page says "Spec", because a caption naming the wrong thing is the
+   *  one part of a shared component that cannot be shared. */
+  caption = "Job",
+): string {
   // The same pill the list's filters are: one control, one look. The
   // count rides in the label — "Activity · 12" — rather than in a badge
   // sitting on it, because it is part of the sentence.
   return filterPills(
     "tab",
-    "Job",
+    caption,
     JOB_TABS.map((t) => ({
       label: t[0]!.toUpperCase() + t.slice(1),
-      count: counts[t] ? counts[t] : undefined,
+      count: counts[t as "activity" | "steps"] || undefined,
       on: t === current,
-      href: `/specs/${esc(job.id)}?tab=${t}`,
+      href: `${esc(basePath)}?tab=${t}`,
     })),
     "page",
   );
 }
 
-// Server-rendered in the site's layout. Poll-and-refresh like every
-// other page here — no new transport for one panel.
-export function renderJobDetailPage(
-  job: JobDetailView,
-  generatedAt: string,
-  entries: NavEntry[],
-  opts: { tab?: string; now?: number } = {},
-): string {
-  const now = opts.now ?? Date.now();
-  const tab = jobTab(opts.tab, job);
-  const progress = pips(
-    job.steps.map((s, i) => ({
-      kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
-      title: stepLabel(s),
-    })),
+/** The frame a tabbed page sits in: the way back, then the banner, the
+ *  tabs, and whatever the open tab holds. Shared with `spec-page.ts`
+ *  (spec 150) so the last three literals the two pages had in common
+ *  are written once — the panels themselves already are. */
+export function tabbedBody(banner: string, tabs: string, panel: string): string {
+  return (
+    `<p class="intro"><a href="/">← all jobs</a></p>\n` +
+    banner +
+    tabs +
+    `<div class="tabpanel">${panel}</div>`
   );
-  const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1] ?? "–";
+}
 
-  // State and title stay ABOVE the tabs: whichever tab is open, the
-  // reader still needs to know which job this is and how it is doing.
-  const banner =
-    `<p class="pagehead">${stateChip(job)}` +
-    (job.error ? ` <span class="muted small">${esc(job.error)}</span>` : "") +
-    `</p>` +
-    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");
+/** One spec file, preformatted and escaped, under its own name and —
+ *  when somebody asked git — the commit that last changed it (spec
+ *  150). Markdown is deliberately not rendered: the description put
+ *  that out of scope, and a reader checking WHICH VERSION is up wants
+ *  the text as written. */
+export function specFilePanel(file: SpecFileView, now: number): string {
+  const stamp =
+    file.sha && file.at
+      ? ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`
+      : "";
+  return (
+    `<h2>${esc(file.label)}${stamp}</h2>` +
+    (file.text === null
+      ? `<p class="muted">${esc(file.label)} has not been written yet.</p>`
+      : `<pre class="specfile">${esc(file.text)}</pre>`)
+  );
+}
 
-  const head =
-    (job.description ? `<p class="desc specdesc">${esc(job.description)}</p>` : "") +
-    labelled([
-      ["Project", esc(job.project)],
-      ["Spec", esc(job.specFolder)],
-      ["Step", `${esc(stepLabel(step))}${progress}`],
-      ["Model", esc(job.model ?? "as configured")],
-      [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.spentUsd, job.spentTokens)],
-      ["Started", relTime(job.startedAt ?? job.createdAt, now)],
-      // One line per repo. A job that touched two repositories made a
-      // branch of the same name in both, with different contents and
-      // two separate compare pages — so each is named, linked and
-      // badged on its own. A one-repo job renders the same way, with a
-      // list of one.
-      ...(job.branchUrls?.length
-        ? ([
-            [
-              "Work",
-              job.branchUrls
-                .map(
-                  (b) =>
-                    `<div class="branch"><span class="muted small">${esc(b.label)}</span> ` +
-                    `<a href="${esc(b.url)}">${esc(b.url)}</a>` +
-                    // The same pair as on the row: compare, then try.
-                    (b.previewUrl
-                      ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
-                        `title="open this branch's own build">preview</a>`
-                      : "") +
-                    `${unmergedBadge(b, branchActivity(job))}</div>`,
-                )
-                .join(""),
-            ],
-          ] as [string, string][])
-        : []),
-    ]);
-
-  // Only while a step is actually running: a finished job has no session
-  // to follow, and a panel that still showed one would read as "working".
-  //
-  // And never for Codex. The panel's whole content comes from
-  // `claude-usage`, a separate process that watches Claude Code sessions
-  // and has no Codex awareness to be given. An empty panel saying
-  // "unknown" would be a promise the machine cannot keep, so the heading
-  // goes with it (spec 125).
-  const live =
-    job.state !== "running" || job.tool === "codex"
-      ? ""
-      : `<h2>Live right now</h2>` +
-        (job.live
-          ? labelled([
-              ["State", esc(job.live.state)],
-              ["Subagents", job.live.subagents === null ? "–" : String(job.live.subagents)],
-              [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.live.costUsd, job.live.tokens)],
-              ["Session", esc(job.sessionId ? job.sessionId.slice(0, 8) : "–")],
-            ]) +
-            (job.live.enriched
-              ? ""
-              : `<p class="muted small">claude-usage is unreachable — liveness, subagents and cost are unknown right now.</p>`)
-          : `<p class="muted">unknown — no session is linked to this step yet.</p>`);
-
+/** What the run has been doing, or why there is nothing to show. Takes
+ *  the four fields it actually reads, so the spec page can pass its lead
+ *  job — or, for a spec nothing has ever run, the empty shape that
+ *  produces exactly the message an empty job's tab already shows. */
+export function activityPanel(job: {
+  activity?: string[];
+  results: JobStepResultView[];
+  error?: string;
+  archiveHeldBack?: string;
+}): string {
   // A run the runner REFUSED never started claude, so there is no
   // transcript and never will be. "Nothing has been captured" reads as
   // a lost transcript; the reader opened this tab to find out what
@@ -260,39 +243,96 @@ export function renderJobDetailPage(
   // tab already applies (`outcome`). A spec whose archive has never
   // been attempted has no job and so no page to write it into; the
   // row's panel is the only place it appears.
-  const archiveNotice = job.results.some((r) => r.step === "archive")
-    ? job.archiveHeldBack
-    : undefined;
+  const archiveNotice = job.results.some((r) => r.step === "archive") ? job.archiveHeldBack : undefined;
   const trailingNotice = job.error ?? archiveNotice;
   const streamed = !!job.activity && job.activity.length > 0;
-  const activity =
-    streamed || refused || trailingNotice
-      ? (streamed
-          ? `<ul class="activity">${job.activity!.map((a) => `<li>${a}</li>`).join("")}</ul>`
-          : refused
-            ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
-              `no transcript exists.</p>`
-            : "") +
+  return streamed || refused || trailingNotice
+    ? (streamed
+        ? `<ul class="activity">${job.activity!.map((a) => `<li>${a}</li>`).join("")}</ul>`
+        : refused
+          ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
+            `no transcript exists.</p>`
+          : "") +
         // Not when the transcript's own last line already said it — the
         // summarizer reads the run, and a run that ends by reporting
         // its own refusal would otherwise say it twice.
         (trailingNotice && job.activity?.at(-1) !== trailingNotice
           ? rowMessage("err", trailingNotice, { hook: "refusal", tag: "p" })
           : "")
-      : `<p class="muted">Nothing has been captured from this run yet.</p>`;
+    : `<p class="muted">Nothing has been captured from this run yet.</p>`;
+}
+
+// Server-rendered in the site's layout. Poll-and-refresh like every
+// other page here — no new transport for one panel.
+export function renderJobDetailPage(
+  job: JobDetailView,
+  generatedAt: string,
+  entries: NavEntry[],
+  opts: { tab?: string; now?: number } = {},
+): string {
+  const now = opts.now ?? Date.now();
+  // While a step is running, what it is DOING is what the page was
+  // opened for; a job that has stopped has nothing running, so its
+  // facts open instead.
+  const tab = pickTab(opts.tab, job.state === "running" ? "activity" : "overview");
+  const progress = pips(
+    job.steps.map((s, i) => ({
+      kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
+      title: stepLabel(s),
+    })),
+  );
+
+  // State and title stay ABOVE the tabs: whichever tab is open, the
+  // reader still needs to know which job this is and how it is doing.
+  // The pips came down with the facts table's Step row (spec 150) and
+  // land here, beside the state: "Step is in the pips" is why that row
+  // went, so the pips have to be somewhere a reader sees them. Their own
+  // block rather than inside the paragraph — `pips()` is a `<div>`.
+  const banner =
+    `<p class="pagehead">${stateChip(job)}` +
+    (job.error ? ` <span class="muted small">${esc(job.error)}</span>` : "") +
+    `</p>` +
+    progress +
+    (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");
+
+  // Three facts, and only three (spec 150). Project and Spec are in the
+  // heading, Step is in the pips beside the state chip, and Work — one
+  // line per repo, with its compare and preview links — is on the row
+  // this page was opened from. What is left is what this page is the
+  // only place for.
+  //
+  // "Live right now" was under them and is gone outright. It existed for
+  // the one moment a step is running and answered `State not-live ·
+  // Subagents – · Cost so far – · Session decc8861` for spec 149's
+  // implement step: claude-usage does not recognise a session run in a
+  // worktree under `~/aide-worktrees/`, which is where every run has
+  // worked since spec 91.
+  const head =
+    labelled([
+      ["Started", relTime(job.startedAt ?? job.createdAt, now)],
+      [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.spentUsd, job.spentTokens)],
+      ["Model", esc(job.model ?? "as configured")],
+    ]) +
+    // And what this phase MADE. A reader opens a phase's page to find
+    // out what that phase did, and it used to show the same
+    // `## Description` prose every other page showed.
+    (job.phase ? specFilePanel(job.phase, now) : "");
 
   const panel =
     tab === "activity"
-      ? activity
+      ? activityPanel(job)
       : tab === "steps"
         ? stepResults(job.results, job.archiveHeldBack)
-        : head + live;
+        : head;
 
-  const body =
-    `<p class="intro"><a href="/">← all jobs</a></p>\n` +
-    banner +
-    tabBar(job, tab) +
-    `<div class="tabpanel">${panel}</div>`;
+  const body = tabbedBody(
+    banner,
+    tabBar(`/specs/${esc(job.id)}`, tab, {
+      activity: job.activity?.length ?? 0,
+      steps: job.results.length,
+    }),
+    panel,
+  );
 
   // `/`, not this page's own address: the nav entry it belongs under is
   // the spec list, and that is where the list lives now.

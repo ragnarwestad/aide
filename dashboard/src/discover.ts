@@ -7,7 +7,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseManifest } from "./parse-manifest.ts";
 import { projectNameError } from "./project-admin.ts";
-import { parseStatus } from "./parse-status.ts";
+import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import type { ProjectView } from "./render/site.ts";
 
 export interface SpecRef {
@@ -64,27 +64,101 @@ function specTitle(dir: string): string | null {
   return m[1].trim().replace(/\s*-\s*Description$/i, "");
 }
 
-// The prose under `## Description` — the section every 1-description.md
-// the templates produce has, and the one a reader currently leaves the
-// dashboard to read. No markdown parser: the section runs to the next
-// heading or the next `---`, and that is the whole rule.
-export function specDescription(dir: string): string | null {
-  const desc = join(dir, "1-description.md");
-  if (!existsSync(desc)) return null;
-  let text: string;
+/** The four files a spec is made of, in the order they are written and
+ *  the order a reader goes through them (spec 150). The layout itself
+ *  is `core/rules/spec-structure.md`'s; this is the dashboard's copy of
+ *  the NAMES, which is all it needs to show them. */
+export const SPEC_FILES = [
+  "1-description.md",
+  "2-analysis.md",
+  "3-solution.md",
+  "4-status.md",
+] as const;
+
+/** One spec file, whole. `null` covers all three ways there is nothing
+ *  to show — the file is not there, it is a directory, it cannot be
+ *  read — because the page says the same thing about each of them, and
+ *  a spec halfway through the workflow legitimately has three of the
+ *  four missing.
+ *
+ *  Raw text, not an excerpt: `specTitle` and `specDescription` below
+ *  read one line and one section, and the spec page exists because
+ *  neither of those is the file. */
+export function specFileText(dir: string, name: string): string | null {
   try {
-    text = readFileSync(desc, "utf-8");
+    const path = join(dir, name);
+    if (!existsSync(path) || !statSync(path).isFile()) return null;
+    return readFileSync(path, "utf-8");
   } catch {
     return null;
   }
-  const start = text.match(/^##\s+Description\s*$/m);
+}
+
+/** The body under a `## <heading>` line, to the next heading or the next
+ *  `---`. No markdown parser: that IS the whole rule, and it is the one
+ *  `specDescription` has always used — which is why both callers use
+ *  this rather than each carrying a copy of the regex.
+ *
+ *  Null, never an empty string, for a heading nobody wrote and for one
+ *  with nothing under it: the page tells "no such section" and "written
+ *  and empty" apart from a section it can show. */
+export function markdownSection(text: string, heading: string): string | null {
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const start = text.match(new RegExp(`^##\\s+${escaped}\\s*$`, "m"));
   if (!start || start.index === undefined) return null;
   const body = text.slice(start.index + start[0].length);
   const end = body.search(/^(#{1,6}\s|---\s*$)/m);
-  return (end === -1 ? body : body.slice(0, end))
+  return (end === -1 ? body : body.slice(0, end)).trim() || null;
+}
+
+// The prose under `## Description` — the section every 1-description.md
+// the templates produce has, and the one a reader currently leaves the
+// dashboard to read.
+export function specDescription(dir: string): string | null {
+  const text = specFileText(dir, "1-description.md");
+  if (text === null) return null;
+  const body = markdownSection(text, "Description");
+  if (body === null) return null;
+  return body
     // The template's own note about the field is not part of it.
     .replace(/^_\(This field can be edited manually[^\n]*\n?/gm, "")
     .trim() || null;
+}
+
+/** What ONE workflow step wrote, as a labelled slice of the spec's own
+ *  files (spec 150). A phase's page is where a reader goes to find out
+ *  what that phase did, and it used to show the same `## Description`
+ *  prose every other page showed.
+ *
+ *  `null` is "this step writes no file of its own" — `resolve` merges,
+ *  and a step the list does not know is not a step. A named phase whose
+ *  file is not written yet keeps its NAME and answers `text: null`: the
+ *  reader asked what analyze produced, and "nothing yet" is the answer.
+ *
+ *  `archive` is the one that is not a whole file. It either moved the
+ *  folder or declined to, and the page must show exactly one of those:
+ *  the stamp when it is there, because a folder that MOVED is archived
+ *  whatever an earlier attempt wrote into the same file. */
+export function specPhaseFile(dir: string, step: string): { label: string; text: string | null } | null {
+  if (step === "create") return { label: "1-description.md", text: specFileText(dir, "1-description.md") };
+  if (step === "analyze") return { label: "2-analysis.md", text: specFileText(dir, "2-analysis.md") };
+  if (step === "review-plan") {
+    const solution = specFileText(dir, "3-solution.md");
+    return {
+      label: "3-solution.md — Plan review",
+      text: solution === null ? null : markdownSection(solution, "Plan review"),
+    };
+  }
+  if (step === "implement") return { label: "4-status.md", text: specFileText(dir, "4-status.md") };
+  if (step === "archive") {
+    const status = specFileText(dir, "4-status.md");
+    const stamp = status?.match(/^.*\*\*Archived:\*\*.*$/m)?.[0]?.trim() ?? null;
+    // The same reader the row's own held-back mark uses, so the two
+    // cannot word one fact differently.
+    const held = status ? archiveHeldBackReason(status) : null;
+    return { label: "4-status.md", text: stamp ?? held };
+  }
+  return null;
 }
 
 // The `Depends on:` line in Tracking info (spec 92) — the specs this one

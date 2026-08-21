@@ -43,15 +43,23 @@ async function enqueue(base: string, steps: string[] = ["analyze"]): Promise<str
 }
 
 describe("GET /specs/<id>", () => {
-  test("shows what the job IS: its spec's title and description (criterion 1)", async () => {
-    const { base } = start();
+  // Spec 150: the `## Description` prose left this page for the spec
+  // page, where the whole file is one of four. The title stays — a
+  // reader still has to know which spec the job is about — and the
+  // phase's own file takes the prose's place.
+  test("shows what the job IS: its spec's title and its phase's file (criterion 1)", async () => {
+    const { base, dir } = start();
+    writeFileSync(
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
+      "# Q - Analysis\n\n## Findings\n\nSeven files, one route.\n",
+    );
     const id = await enqueue(base);
     const res = await fetch(`${base}/specs/${id}`, auth);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
     expect(html).toContain("A running job is a black box");
-    expect(html).toContain("It shows nothing about what the job IS");
+    expect(html).toContain("Seven files, one route.");
     expect(html).toContain("81-queue-and-runner");
   });
 
@@ -177,11 +185,13 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
     return { code: 0, stdout: "" };
   };
 
-  test("an unmerged branch is called out on both pages (criteria 1, 3)", async () => {
-    const { mirror, id } = await seeded();
+  // Spec 150 took the branch off the job page — it is on the row the
+  // page is opened from, and the Overview is now what is said nowhere
+  // else — so the list is where the caveat is asserted.
+  test("an unmerged branch is called out on the row (criteria 1, 3)", async () => {
+    const { mirror } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
     expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 
   test("once the branch has landed the caveat is gone (criterion 2)", async () => {
@@ -190,14 +200,15 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
     const list = await (await fetch(`${base}/`, auth)).text();
     expect(list).not.toContain("ready to merge");
     expect(list).toContain(BRANCH);
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("ready to merge");
+    // and the job page carries neither, since spec 150
+    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain(BRANCH);
   });
 
   // Criterion 5: uncertainty never hides the caveat. A git that cannot
   // answer at all — no checkout, an offline remote, a timeout — must
   // leave the page saying what it said before the check existed.
   test("a git that cannot answer still shows the caveat (criterion 5)", async () => {
-    const { mirror, id } = await seeded();
+    const { mirror } = await seeded();
     const { base } = start({
       queueMirrorPath: mirror,
       gitRun: async () => {
@@ -205,7 +216,6 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
       },
     });
     expect(await (await fetch(`${base}/`, auth)).text()).toContain("ready to merge");
-    expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).toContain("ready to merge");
   });
 });
 
@@ -250,14 +260,17 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
       { root: SPECS_REPO, url: SPECS_URL },
     ]);
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([]) });
-    for (const page of [`/`, `/specs/${id}`]) {
-      const html = await (await fetch(`${base}${page}`, auth)).text();
-      expect(html).toContain(PROJECT_URL);
-      expect(html).toContain(SPECS_URL);
-      // Each repo is named, so a reader knows WHICH branch is which.
-      expect(html).toContain("aide-specs");
-      expect(count(html, ">ready to merge<")).toBe(2);
-    }
+    // The row, and the row alone, since spec 150 took the branch list
+    // off the job page.
+    const html = await (await fetch(`${base}/`, auth)).text();
+    expect(html).toContain(PROJECT_URL);
+    expect(html).toContain(SPECS_URL);
+    // Each repo is named, so a reader knows WHICH branch is which.
+    expect(html).toContain("aide-specs");
+    expect(count(html, ">ready to merge<")).toBe(2);
+    const job = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    expect(job).not.toContain(PROJECT_URL);
+    expect(job).not.toContain(SPECS_URL);
   });
 
   // The bug in four lines (2-analysis.md, finding 1): `isMerged` was
@@ -265,18 +278,16 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
   // unmerged was invisible — and could even be answered confidently and
   // wrongly by a stale ref of the same name in the project.
   test("a merged repo loses its caveat while the other keeps it (criterion 2)", async () => {
-    const { mirror, id } = await seededWith([
+    const { mirror } = await seededWith([
       { root: PROJECT_REPO, url: PROJECT_URL },
       { root: SPECS_REPO, url: SPECS_URL },
     ]);
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
-    for (const page of [`/`, `/specs/${id}`]) {
-      const html = await (await fetch(`${base}${page}`, auth)).text();
-      expect(count(html, ">ready to merge<")).toBe(1);
-      // The caveat belongs to the specs repo, and to it alone.
-      const specsPart = html.slice(html.indexOf(SPECS_URL));
-      expect(specsPart.slice(0, 300)).toContain("ready to merge");
-    }
+    const html = await (await fetch(`${base}/`, auth)).text();
+    expect(count(html, ">ready to merge<")).toBe(1);
+    // The caveat belongs to the specs repo, and to it alone.
+    const specsPart = html.slice(html.indexOf(SPECS_URL));
+    expect(specsPart.slice(0, 300)).toContain("ready to merge");
   });
 
   // `paceup` and `atlasaurus` keep their specs inside the project repo,
@@ -550,5 +561,241 @@ describe("a Codex step's job page", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const html = await (await fetch(`${base2}/specs/${id}?tab=activity`, auth)).text();
     expect(html).toContain("bun test");
+  });
+});
+
+// --- spec 150: a page for the SPEC, not for one of its runs ------------------
+//
+// `/specs/<job-id>` is one queue run. `/specs/<project>/<specFolder>` is
+// the spec itself: the four files as they stand on this host's checkout,
+// each stamped with its own last commit, plus an Update button that
+// pulls the specs repository so a change pushed a moment ago is on the
+// screen at once.
+
+describe("GET /specs/<project>/<specFolder>", () => {
+  const SPEC = "81-queue-and-runner";
+  const PATH = `/specs/aide/${SPEC}`;
+
+  /** The three files the harness does not write. */
+  const fillSpec = (dir: string): void => {
+    const spec = join(dir, "root", "aide", "specs", SPEC);
+    writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\n## Findings\n\nSeven files.\n");
+    writeFileSync(
+      join(spec, "3-solution.md"),
+      "# Q - Solution\n\n## Plan review\n\nOne must-fix.\n\n## Risk analysis\n\nMedium.\n",
+    );
+  };
+
+  test("shows all four files, whether or not anything has ever run (criterion 2)", async () => {
+    const { base, dir } = start();
+    fillSpec(dir);
+    const res = await fetch(`${base}${PATH}`, auth);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    const html = await res.text();
+    for (const name of ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]) {
+      expect(html).toContain(name);
+    }
+    expect(html).toContain("Seven files.");
+    expect(html).toContain("One must-fix.");
+    expect(html).toContain("not started");
+  });
+
+  test("with a lead job it shows that job's Activity and Steps (criterion 1)", async () => {
+    const { base, dir } = start();
+    fillSpec(dir);
+    const id = await enqueue(base);
+    expect(id).toBeTruthy();
+    const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
+    expect(html).toContain("No step has finished yet");
+    expect(html).toContain(`href="${PATH}?tab=overview"`);
+  });
+
+  test("a spec nobody has is a 404, not a blank page", async () => {
+    const { base } = start();
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec`, auth)).status).toBe(404);
+    expect((await fetch(`${base}/specs/no-such-project/${SPEC}`, auth)).status).toBe(404);
+  });
+
+  // The two routes are one path segment apart and must stay disjoint:
+  // a job id has no slash in it, and a spec page has no job.
+  test("the job route still answers, and neither swallows the other", async () => {
+    const { base } = start();
+    const id = await enqueue(base);
+    expect((await fetch(`${base}/specs/${id}`, auth)).status).toBe(200);
+    expect((await fetch(`${base}${PATH}`, auth)).status).toBe(200);
+    // The job page is about the run; the spec page is about the spec.
+    const job = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    expect(job).not.toContain("3-solution.md");
+  });
+
+  test("it is behind the token like every other queue path", async () => {
+    const { base } = start();
+    expect((await fetch(`${base}${PATH}`)).status).toBe(401);
+    const { base: off } = start({ queueToken: undefined });
+    expect((await fetch(`${off}${PATH}`)).status).toBe(503);
+  });
+
+  test("the spec's files are re-read on every request, never served from the 5 s scan", async () => {
+    const { base, dir } = start();
+    const spec = join(dir, "root", "aide", "specs", SPEC);
+    writeFileSync(join(spec, "2-analysis.md"), "before\n");
+    expect(await (await fetch(`${base}${PATH}`, auth)).text()).toContain("before");
+    writeFileSync(join(spec, "2-analysis.md"), "after\n");
+    const html = await (await fetch(`${base}${PATH}`, auth)).text();
+    expect(html).toContain("after");
+    expect(html).not.toContain("before");
+  });
+});
+
+// A phase's own page shows what that phase made, and nothing else of
+// the spec (criteria 5-7).
+describe("a phase job's page shows that phase's file", () => {
+  const SPEC = "81-queue-and-runner";
+
+  const withFiles = (dir: string): void => {
+    const spec = join(dir, "root", "aide", "specs", SPEC);
+    writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\n## Findings\n\nSeven files.\n");
+    writeFileSync(
+      join(spec, "3-solution.md"),
+      "# Q - Solution\n\n## Plan review\n\nOne must-fix.\n\n## Risk analysis\n\nMedium.\n",
+    );
+  };
+
+  test("an analyze job shows 2-analysis.md and repeats nothing else", async () => {
+    const { base, dir } = start();
+    withFiles(dir);
+    const id = await enqueue(base, ["analyze"]);
+    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    expect(html).toContain("Seven files.");
+    expect(html).not.toContain("One must-fix.");
+    expect(html).not.toContain("It shows nothing about what the job IS");
+  });
+
+  test("a review-plan job shows only the Plan review section", async () => {
+    const { base, dir } = start();
+    withFiles(dir);
+    const id = await enqueue(base, ["review-plan"]);
+    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    expect(html).toContain("One must-fix.");
+    expect(html).not.toContain("Medium.");
+    expect(html).not.toContain("Seven files.");
+  });
+
+  test("an implement job shows 4-status.md", async () => {
+    const { base, dir } = start();
+    withFiles(dir);
+    const id = await enqueue(base, ["implement"]);
+    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
+    expect(html).toContain("Workflow steps completed");
+  });
+});
+
+// --- criteria 3, 4: the Update button ---------------------------------------
+
+describe("POST the Update action", () => {
+  const SPEC = "81-queue-and-runner";
+  const UPDATE = `/api/queue/specs/aide/${SPEC}/update`;
+  const PATH = `/specs/aide/${SPEC}`;
+
+  const press = (base: string) =>
+    fetch(`${base}${UPDATE}`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, "content-type": "application/x-www-form-urlencoded" },
+      redirect: "manual",
+      body: "",
+    });
+
+  /** A specs checkout that is clean, on its default branch and behind. */
+  const pullable = (extra: Record<string, { code: number; stdout?: string }> = {}) => {
+    let heads = 0;
+    const answers: Record<string, { code: number; stdout?: string }> = {
+      "rev-parse --show-toplevel": { code: 0, stdout: "/host/aide-specs\n" },
+      "diff --quiet HEAD": { code: 0 },
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+      "symbolic-ref --quiet refs/remotes/origin/HEAD": { code: 0, stdout: "refs/remotes/origin/main\n" },
+      fetch: { code: 0 },
+      "merge-base --is-ancestor": { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
+      ...extra,
+    };
+    return async (_dir: string, args: string[]) => {
+      const line = args.join(" ");
+      if (line === "rev-parse HEAD") {
+        return { code: 0, stdout: `${heads++ === 0 ? "a3f9c21" : "7b1e004"}\n` };
+      }
+      for (const [prefix, answer] of Object.entries(answers)) {
+        if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+  };
+
+  test("a fast-forwardable checkout is pulled and the reader lands back on the spec page", async () => {
+    const { base } = start({ gitRun: pullable() });
+    const res = await press(base);
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith(PATH)).toBe(true);
+    expect(decodeURIComponent(location)).toContain("7b1e004");
+  });
+
+  for (const [what, extra, expected] of [
+    ["uncommitted changes", { "diff --quiet HEAD": { code: 1 } }, "uncommitted"],
+    [
+      "a checkout on another branch",
+      { "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/150-one-page\n" } },
+      "aide/150-one-page",
+    ],
+    ["a checkout that has diverged", { "merge-base --is-ancestor": { code: 1 } }, "fast-forward"],
+    ["a directory that is not a git tree", { "rev-parse --show-toplevel": { code: 128 } }, "git working tree"],
+  ] as [string, Record<string, { code: number; stdout?: string }>, string][]) {
+    test(`${what} changes nothing and says which one applied (criterion 4)`, async () => {
+      const { base } = start({ gitRun: pullable(extra) });
+      const res = await press(base);
+      expect(res.status).toBe(303);
+      const location = decodeURIComponent(res.headers.get("location")!);
+      expect(location.startsWith(PATH)).toBe(true);
+      expect(location).toContain("error=");
+      expect(location).toContain(expected);
+    });
+  }
+
+  test("the refusal is on the page the button was pressed from, not in a JSON body", async () => {
+    const { base } = start({ gitRun: pullable({ "diff --quiet HEAD": { code: 1 } }) });
+    const location = decodeURIComponent((await press(base)).headers.get("location")!);
+    const html = await (await fetch(`${base}${location}`, auth)).text();
+    expect(html).toContain("uncommitted");
+  });
+
+  test("a spec nobody has cannot be pulled for", async () => {
+    const { base } = start({ gitRun: pullable() });
+    const res = await fetch(`${base}/api/queue/specs/aide/99-no-such-spec/update`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test("GET is not an update — a pull is a POST like every other action", async () => {
+    const { base } = start({ gitRun: pullable() });
+    expect((await fetch(`${base}${UPDATE}`, auth)).status).toBe(405);
+  });
+
+  test("it is behind the token like every other queue path", async () => {
+    const { base } = start({ gitRun: pullable() });
+    expect((await fetch(`${base}${UPDATE}`, { method: "POST", redirect: "manual" })).status).toBe(401);
+  });
+
+  test("approve, cancel and merge still answer — the new action does not swallow them", async () => {
+    const { base } = start({ gitRun: pullable() });
+    const id = await enqueue(base);
+    const res = await fetch(`${base}/api/queue/${id}/cancel`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, accept: "application/json" },
+    });
+    expect(res.status).toBe(200);
   });
 });
