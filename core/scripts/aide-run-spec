@@ -1176,6 +1176,143 @@ if [ "$command_name" = "resolve" ]; then
   done
 fi
 
+# --- the record of what has run (spec 154) -----------------------------------
+# The dashboard reads this spec's own commits to decide which steps it
+# has had. Everything that is not the dashboard — a person opening the
+# raw markdown, aide-generate-pdf, the /projects page — reads
+# `4-status.md`. So the file's own line is written HERE, from the same
+# commits, and the file agrees with git by construction: a step killed
+# before the model reached its last instruction does not leave the line
+# stale, and a `4-status.md` copied from a sibling is corrected by the
+# first step that runs on it.
+#
+# Written BEFORE the commit loop below, never after: the loop's own
+# commit is what has to carry this edit, and `head_after_per_root` — the
+# obvious thing to key it on — is not known until that commit has been
+# made. So the edit goes in first and the existing `add -A` picks it up.
+#
+# THIS BLOCK IS COPIED VERBATIM from `dashboard/src/workflow-history.ts`,
+# which derives the same answer in TypeScript for the live page. Two
+# implementations of one rule, in two languages, the way WORKFLOW_STEPS
+# and DEPENDENCY_GATED_STEPS already are — change one and the other has
+# to change with it.
+#
+#     Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
+#
+# - `<step>` is the step's own name, `review-plan` hyphen included.
+# - `<spec-folder>` is the folder, never the numeric id: a `create` run
+#   names the folder it just made.
+# - ` (headless)` is present for a run `aide-run-spec` made and absent
+#   for one committed at somebody's keyboard. Both count.
+# - ` (stopped: <reason>)` is present only when the run did NOT
+#   complete, and carries `terminal_reason` verbatim (`timeout`,
+#   `budget_exhausted`, …). Such a step has RUN but is not DONE.
+# - The newest commit for a step is the one that speaks for it: a
+#   re-run supersedes whatever the attempt before it said.
+# - Anything else with the same words in it — a revert, a merge, a
+#   subject with more after it — is not a step. The match is the whole
+#   subject or nothing.
+#
+# The five values the line may name are the workflow's own stages, and
+# deliberately not the eight steps this script will run: `explore`,
+# `manifest` and `resolve` are things you can queue, not places a spec
+# gets to. Same list as `parse-status.ts` and `workflow-history.ts`.
+WORKFLOW_ARC="create analyze review-plan implement archive"
+
+# Where the spec's `4-status.md` is in the specs worktree RIGHT NOW. An
+# archive step's own `git mv` has already moved the folder by the time
+# this runs, so `archive/` is tried too — the same two-step resolution
+# `resolve_dependency_folder` does for a dependency.
+status_file_for() {   # sets $status_file
+  local folder="$1"
+  status_file=""
+  [ -n "$folder" ] || return 0
+  if [ -f "$specs_root_wt/$folder/4-status.md" ]; then
+    status_file="$specs_root_wt/$folder/4-status.md"
+  elif [ -f "$specs_root_wt/archive/$folder/4-status.md" ]; then
+    status_file="$specs_root_wt/archive/$folder/4-status.md"
+  fi
+  return 0
+}
+
+# The steps this spec has COMPLETED, in workflow order, as a comma
+# separated list. This run's own outcome is known directly and is
+# recorded first, so it wins over anything the log says about the same
+# step — its commit does not exist yet.
+completed_steps_for() {   # sets $completed_steps
+  local folder="$1" dir="$2" subject step reason seen completed re
+  completed_steps=""
+  seen="|"; completed="|"
+  case " $WORKFLOW_ARC " in
+    *" $command_name "*)
+      seen="|$command_name|"
+      [ "$terminal_reason" = "completed" ] && completed="|$command_name|"
+      ;;
+  esac
+  re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(stopped: (.+)\))?$"
+  # --all, not HEAD: `implement` deliberately lands nothing until
+  # `archive` runs, so its commit sits on this spec's own branch for as
+  # long as the spec takes. Newest first, which is what makes the first
+  # sighting of a step the one that speaks for it.
+  while IFS= read -r subject; do
+    [ -n "$subject" ] || continue
+    [[ "$subject" =~ $re ]] || continue
+    step="${BASH_REMATCH[1]}"
+    reason="${BASH_REMATCH[4]}"
+    case " $WORKFLOW_ARC " in *" $step "*) ;; *) continue ;; esac
+    case "$seen" in *"|$step|"*) continue ;; esac
+    seen="$seen$step|"
+    [ -n "$reason" ] || completed="$completed$step|"
+  done <<EOF
+$(git -C "$dir" log --all --format=%s --fixed-strings \
+    --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
+EOF
+  for step in $WORKFLOW_ARC; do
+    case "$completed" in
+      *"|$step|"*) completed_steps="${completed_steps:+$completed_steps, }$step" ;;
+    esac
+  done
+  return 0
+}
+
+# Only the five steps the line is ABOUT write it. `explore`, `manifest`
+# and `resolve` leave the file exactly as they found it: none of them is
+# a stage a spec passes through, and an explore run that today writes
+# nothing at all must not start leaving a commit — and with it a branch
+# no step lands — for a line it has no news about.
+status_file=""
+case " $WORKFLOW_ARC " in
+  *" $command_name "*) status_file_for "$commit_label" ;;
+esac
+if [ -n "$status_file" ]; then
+  completed_steps_for "$commit_label" "$(dirname "$status_file")"
+  # Nothing derived leaves the file alone: an empty line says less than
+  # the one already there.
+  #
+  # A file with neither the line nor the Tracking info entry it goes
+  # under is left alone too — this writes the value, never the layout.
+  if [ -n "$completed_steps" ] && \
+     grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
+    awk -v line="- **Workflow steps completed:** $completed_steps" '
+      BEGIN { written = 0 }
+      /^- \*\*Workflow steps completed:\*\*/ {
+        if (!written) { print line; written = 1 }
+        next
+      }
+      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
+      { print }
+    ' "$status_file" > "$work_dir/status-line" 2>/dev/null
+    # Written back only when it actually differs. The commit loop below
+    # commits whatever it finds changed, and a file rewritten to exactly
+    # what it already said would put a step's name on a commit that
+    # carries nothing.
+    if [ -s "$work_dir/status-line" ] && \
+       ! cmp -s "$work_dir/status-line" "$status_file"; then
+      cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
+    fi
+  fi
+fi
+
 repos_json="[]"
 # Parallel to roots (bash 3.2 has no associative arrays): the HEAD this
 # loop ends on, whether it moved because this loop committed or because

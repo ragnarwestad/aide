@@ -68,9 +68,9 @@ Structure - follow the spec structure § 4-status:
 - `# TITLE - Status`
 - Total progress: `0% (0 of X completed)`, Estimate: `[X hours/days]`
 - TOC with: Tracking info, Phase 1-4, Notation
-- **Tracking info:** Task=`FOLDER/`, Workflow steps completed=`create`,
-  Last updated=`[not started]` — the workflow-steps line is what the
-  dashboard reads to decide which step to offer next, and creating the
-  spec is the one step that has happened
+- **Tracking info:** Task=`FOLDER/`, Last updated=`[not started]` — and
+  nothing about which steps the spec has had. That line is written by
+  `aide-run-spec` from the spec's own commits (see the spec structure
+  § 4-status), so a new spec starts without it
 - **Phase 1-4:** RED/GREEN/GREEN/REFACTOR phases with tables (Task|Status|Notes)
 - **Notation:** Not started, In progress, Completed, Blocked, Waiting

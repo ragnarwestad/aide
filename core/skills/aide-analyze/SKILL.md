@@ -106,15 +106,21 @@ Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 
-Then record the step on the line the dashboard reads, in Tracking info:
+Nothing in Tracking info records the step. Which steps a spec has had
+is read off the spec's own commits, and `aide-run-spec` writes the
+`Workflow steps completed:` line from them — leave that line exactly as
+you found it.
 
-```markdown
-- **Workflow steps completed:** create, analyze
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the analysis, and suggest this message so the step is
+recognised the same way:
+
+```text
+Run /aide-analyze for <spec-folder>
 ```
 
-Add `analyze` once and keep the values already there — the line is the
-whole record of how far the spec has got, and rewriting it loses the
-steps before this one. Do not record it if the analysis did not complete: an analysis that failed, or that you stopped part-way, leaves the line as it was.
+Offer it only when the analysis actually completed; one that failed, or
+that you stopped part-way, has nothing to record.
 
 ### Step 7: Confirm
 

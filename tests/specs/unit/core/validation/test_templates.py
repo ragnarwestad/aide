@@ -465,27 +465,39 @@ class TestManualTestingIsANote:
 
 @pytest.mark.validation
 class TestWorkflowStepRecord:
-    """Spec 139: one line says which workflow steps a spec has HAD.
+    """Spec 154: the RUNNER owns the line that says how far a spec has got.
 
-    The dashboard used to infer it — 2-analysis.md over 400 bytes meant
-    analysed, a `## Plan review` heading meant reviewed, 100% meant
-    implemented. All three are proxies, and the first marked spec 138
-    analysed before any analyze had run. The steps now record themselves
-    on one line of `4-status.md`, so this pins the two template sources,
-    the rule that defines the line, and the four skills that write it.
+    Spec 139 put the record on one line of `4-status.md` and had each
+    step write its own value. Two incidents on 2026-08-21 showed what
+    that costs: 147's implement was killed by its own time limit before
+    the model reached the instruction, so the line lagged behind a
+    finished branch; 153's files were copied from a sibling, so a
+    brand-new spec claimed three steps it had never had.
+
+    The commits are the record now. `core/scripts/aide-run-spec` writes
+    the line from them, and the four step-completing skills do not touch
+    it at all — which is what this class pins, since a SKILL.md is an
+    instruction to a model and there is nothing else a test can execute.
     """
 
     FIELD = "**Workflow steps completed:**"
 
-    # Each writer, the value it adds, and the words that must appear in
-    # the section where it says so: what it must NOT undo, and the case
-    # in which it must NOT write at all (criteria 5-8).
+    # The four skills that used to write the line, and the value each
+    # one used to add.
     WRITERS = {
-        "aide-analyze": ("analyze", ("fail",)),
-        "aide-review-plan": ("review-plan", ("zero findings", "template")),
-        "aide-implement": ("implement", ("verification",)),
-        "aide-archive": ("archive", ("held back", "after")),
+        "aide-analyze": "analyze",
+        "aide-review-plan": "review-plan",
+        "aide-implement": "implement",
+        "aide-archive": "archive",
     }
+
+    # The instruction spec 139 gave and spec 154 takes away, in the
+    # wordings all four skills used. Any of them surviving means a model
+    # is still being told to write a line it no longer owns.
+    BANNED = (
+        "record the step on the line",
+        "keep the values already there",
+    )
 
     @staticmethod
     def _text(workspace_root, *parts):
@@ -494,48 +506,50 @@ class TestWorkflowStepRecord:
             pytest.skip(f"{path.name} not found")
         return path.read_text()
 
-    def _record_section(self, content, name):
-        """The `###` section in which a skill writes the record."""
-        assert self.FIELD in content, \
-            f"{name} never names the '{self.FIELD}' line the dashboard reads"
-        at = content.index(self.FIELD)
-        start = content.rfind("\n### ", 0, at)
-        assert start != -1, f"{name} states the line outside any step"
-        # From the `###` heading to the next heading of any level — the
-        # section's own body, not the one after it.
-        body_at = content.index("\n", start + 1) + 1
-        end = re.search(r"^#{1,3} ", content[body_at:], flags=re.M)
-        return content[start:body_at + end.start()] if end else content[start:]
+    # Criterion 6: the grep. Not one skill of the four writes the line.
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_skill_does_not_write_the_line_itself(self, workspace_root, skill):
+        lowered = self._text(workspace_root, "core", "skills", skill, "SKILL.md").lower()
+        for phrase in self.BANNED:
+            assert phrase not in lowered, \
+                f"{skill} still tells the model to write the record: {phrase!r}"
+        # Naming the line is fine — saying to LEAVE it is the point.
+        assert "workflow steps completed" in lowered, \
+            f"{skill} must name the line, so a model knows which one not to touch"
+        assert "leave that line" in lowered, \
+            f"{skill} must say plainly that the line is not its to write"
 
-    # Criterion 1: a new spec has had exactly one step.
-    def test_status_template_starts_the_record_at_create(self, workspace_root):
+    # ...and the interactive path keeps the signal rather than losing
+    # it: the skill OFFERS the commit whose subject the reader
+    # recognises, and asks first.
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_skill_offers_the_commit_that_records_the_step(self, workspace_root, skill):
+        content = self._text(workspace_root, "core", "skills", skill, "SKILL.md")
+        subject = f"Run /aide-{skill.removeprefix('aide-')} for "
+        assert subject in content, \
+            f"{skill} must name the commit subject that records the step: {subject!r}"
+        lowered = content.lower()
+        assert "ask" in lowered.split(subject.lower(), 1)[0][-600:], \
+            f"{skill} must ASK before committing — this repo never commits unasked"
+
+    # Criterion 1, reversed: a new spec starts with nothing claimed,
+    # because nothing has run. The `create` step's own commit is what
+    # puts `create` on the line, exactly like every other step.
+    def test_status_template_claims_no_steps(self, workspace_root):
         content = self._template(workspace_root, "4-status.md.template")
         line = next((ln for ln in content.splitlines() if self.FIELD in ln), None)
-        assert line is not None, \
-            "4-status.md.template must carry the workflow-steps line — without it a " \
-            "created spec reads as having had nothing"
-        value = line.split(self.FIELD, 1)[1].strip().strip("`")
-        assert value == "create", \
-            f"a new spec has had create and nothing else, not {value!r}"
+        assert line is None, \
+            "4-status.md.template must not claim a step: the line is written by " \
+            f"the runner from the commits, and the template said {line!r}"
 
-    def test_status_template_puts_the_record_in_tracking_info(self, workspace_root):
-        content = self._template(workspace_root, "4-status.md.template")
-        tracking = content.split("## Tracking info", 1)[1].split("\n---", 1)[0]
-        assert self.FIELD in tracking, \
-            "the record belongs in Tracking info, beside the task and the date"
-
-    # Criterion 1, the other template source: /aide-create follows the
-    # skill's copy, and the two disagreeing is what caused spec 138's
-    # analysis to read as done (1-description.md).
-    def test_file_templates_describe_the_record(self, workspace_root):
+    def test_file_templates_say_the_line_is_not_the_models(self, workspace_root):
         content = self._text(workspace_root, "core", "skills", "aide-create",
                              "references", "file-templates.md")
         status = next(chunk for chunk in content.split("\n## ")
                       if chunk.splitlines()[0].startswith("4-status"))
-        assert "Workflow steps completed" in status, \
-            "file-templates.md must tell /aide-create to write the workflow-steps line"
-        assert "create" in status.split("Workflow steps completed", 1)[1].split("\n")[0], \
-            "file-templates.md must say a new spec's record is `create`"
+        lowered = status.lower()
+        assert "workflow steps completed" not in lowered, \
+            "file-templates.md must stop telling /aide-create to write the line"
 
     @staticmethod
     def _status_section(rule):
@@ -565,41 +579,16 @@ class TestWorkflowStepRecord:
             assert step in section, \
                 f"spec-structure.md's 4-status section must name '{step}' as an allowed value"
 
-    def test_the_rule_says_the_step_writes_its_own_value(self, workspace_root):
+    def test_the_rule_says_the_runner_writes_the_line(self, workspace_root):
         lowered = self._status_section(self._rule(workspace_root)).lower()
-        assert "succeed" in lowered or "success" in lowered, \
-            "the rule must say a step records itself only once it has SUCCEEDED"
+        assert "aide-run-spec" in lowered, \
+            "the rule must name the runner as the writer, so nobody edits the line by hand"
+        assert "commit" in lowered, \
+            "the rule must say the record is the commits, not the file"
+        assert "do not edit" in lowered or "never edit" in lowered, \
+            "the rule must say plainly that the line is not written by hand"
         assert "dashboard" in lowered, \
             "the rule must say who reads the line, so nobody edits it as decoration"
-
-    # Criteria 5-8: each writer adds its own value, keeps the earlier
-    # ones, and withholds it when its own work did not happen.
-    @pytest.mark.parametrize("skill", sorted(WRITERS))
-    def test_the_writer_records_its_own_step(self, workspace_root, skill):
-        step, _ = self.WRITERS[skill]
-        section = self._record_section(
-            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill)
-        assert step in section, \
-            f"{skill} must name '{step}' as the value it adds"
-
-    @pytest.mark.parametrize("skill", sorted(WRITERS))
-    def test_the_writer_preserves_the_values_already_there(self, workspace_root, skill):
-        section = self._record_section(
-            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill).lower()
-        assert "keep the values already there" in section, \
-            f"{skill} must say plainly that earlier values stay — a rewritten line loses them"
-
-    @pytest.mark.parametrize("skill", sorted(WRITERS))
-    def test_the_writer_withholds_the_value_when_the_step_did_not_happen(
-            self, workspace_root, skill):
-        _, required = self.WRITERS[skill]
-        section = self._record_section(
-            self._text(workspace_root, "core", "skills", skill, "SKILL.md"), skill).lower()
-        assert "do not record" in section, \
-            f"{skill} must name the case in which it writes nothing at all"
-        for phrase in required:
-            assert phrase in section, \
-                f"{skill}'s exclusion must name '{phrase}' — the case criteria 5-8 pin"
 
     @staticmethod
     def _template(workspace_root, name):

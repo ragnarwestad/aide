@@ -71,8 +71,22 @@ export interface QueueTarget {
    *  92). Named by folder, the way `aide-run-spec`'s own dependency
    *  refusal names it. Empty or absent when it names none. */
   dependsOn?: string[];
-  /** Steps this spec has already had. Marked, never forbidden. */
+  /** Steps this spec has already had, from the runner's own commits
+   *  (spec 154). Marked, never forbidden. */
   done?: string[];
+  /** Steps whose latest commit STOPPED, by step, with the reason —
+   *  `timeout`, `budget_exhausted`. Such a step has run and has not
+   *  finished, and the row says so instead of "not run yet" even once
+   *  the queue's own memory of that attempt is gone. */
+  stopped?: Record<string, string>;
+  /** What `4-status.md`'s own line claims. Not what anything is decided
+   *  from — the history above is — but the row wears a qualifier when
+   *  the two disagree, which is how a copied folder or a killed run
+   *  becomes visible rather than silently wrong. */
+  fileSteps?: string[];
+  /** The steps the file and the history do not agree about — said on
+   *  the phase line it is about, never once per phase. */
+  fileDisagrees?: string[];
   /** Where the spec's folder is on this machine. Server-side only — it
    *  is what the freshness check runs git in, and an absolute path has
    *  no business on a page. */
@@ -290,6 +304,10 @@ interface Phase {
   /** Archive only: the spec's own reason for not having been archived.
    *  Every other phase answers "has this happened" out of `done`. */
   heldBack?: { reason: string };
+  /** What this phase's own git history says beyond whether it happened
+   *  (spec 154): why its last run did not finish, and whether
+   *  `4-status.md` agrees that it ran at all. */
+  history: { stopped?: string; fileDisagrees?: boolean };
 }
 
 interface SpecGroup {
@@ -369,7 +387,12 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     costUnmeasured: false,
     activityAt: 0,
     branches: [],
-    phases: PHASE_LINES.map((step) => ({ step, attempts: [], ...heldBackFor(step, t) })),
+    phases: PHASE_LINES.map((step) => ({
+      step,
+      attempts: [],
+      ...heldBackFor(step, t),
+      ...historyFor(step, t),
+    })),
     ...fromTarget(t),
   };
 }
@@ -394,6 +417,22 @@ function fromTarget(
  *  Written once because both constructors build their phases. */
 const heldBackFor = (step: string, t: QueueTarget | undefined): { heldBack?: { reason: string } } =>
   step === "archive" && t?.archiveHeldBack ? { heldBack: t.archiveHeldBack } : {};
+
+/** The git-side answer for one phase (spec 154), for the same reason
+ *  `heldBackFor` exists: both constructors build their phases, and a
+ *  phase reading another phase's stop reason is the one way this join
+ *  can go wrong.
+ *
+ *  The disagreement is asked per step, not per spec: one line of one
+ *  file covers all five, but the row has a line per phase and the same
+ *  sentence down all five of them is the duplication spec 143 already
+ *  took off this page once. */
+const historyFor = (
+  step: string,
+  t: QueueTarget | undefined,
+): { history: { stopped?: string; fileDisagrees?: boolean } } => ({
+  history: { stopped: t?.stopped?.[step], fileDisagrees: t?.fileDisagrees?.includes(step) },
+});
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
@@ -473,6 +512,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
         .map((r) => attemptFor(r, step))
         .filter((a): a is QueueRowView => a !== null),
       ...heldBackFor(step, target),
+      ...historyFor(step, target),
     })),
     ...spec,
     // A create job has no target to read a title off — the spec it is
@@ -890,12 +930,17 @@ const busyReason = (g: SpecGroup): string =>
 // ordinary single pre-tick even though its done-set is still empty.
 //
 // The pair is filtered against the done-set, because the two answer
-// different questions: `done` is read off the spec's own FILES, so a
-// spec analysed by hand and never queued has `analyze` done while
-// nothing has ever run for it. And a spec that has both of them done
-// already falls back to the ordinary rule rather than to nothing: the
-// pair exists to tick a spec's two STARTING phases, not to leave a
-// spec that is past them with no box ticked at all.
+// different questions. `done` is what the spec's own git history PROVES
+// (spec 154): the runner commits every step it finishes, and only such
+// a commit puts a step here — a `4-status.md` line naming a step is a
+// claim the row reports a disagreement about, never a source. A step
+// run at somebody's keyboard counts once it is committed with the same
+// subject, which is what the four skills now offer to do; declined,
+// the spec reads as still having that phase ahead of it. And a spec
+// that has both of them done already falls back to the ordinary rule
+// rather than to nothing: the pair exists to tick a spec's two
+// STARTING phases, not to leave a spec that is past them with no box
+// ticked at all.
 //
 // It used to live inside the strip of chips the controls line drew
 // (`stepBoxes`, retired with that line in spec 124). The boxes are on
@@ -1119,8 +1164,12 @@ function specHeadRow(
       // The pips used to read the job history alone, so a spec analysed
       // by hand showed four grey pips and a cancelled re-run turned a
       // finished phase grey again.
-      kind: wordPhase(g.done.includes(p.step), p.heldBack, p.attempts.find(inFlight) ?? p.attempts[0])
-        .pip,
+      kind: wordPhase(
+        g.done.includes(p.step),
+        p.heldBack,
+        p.attempts.find(inFlight) ?? p.attempts[0],
+        p.history,
+      ).pip,
       title: stepLabel(p.step),
     })),
   );
@@ -1366,7 +1415,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   g.phases
     .forEach((p) => {
       const latest = p.attempts[0];
-      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest);
+      const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
       const name = latest
         ? `<a href="/specs/${esc(latest.id)}">${esc(stepLabel(p.step))}</a>`
         : `<span class="muted">${esc(stepLabel(p.step))}</span>`;

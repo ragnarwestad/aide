@@ -4,7 +4,7 @@
 // kept in two copies is a fixture that will one day disagree with
 // itself about what a project looks like.
 
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer, type ServerOptions } from "../../src/serve.ts";
@@ -22,11 +22,11 @@ export interface StartOptions {
   alsoSpecs?: string[];
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
-  /** The spec's 4-status.md (spec 139). Since the workflow steps a spec
-   *  has had are READ off one line of that file, a spec without it has
-   *  had nothing — including `create`. Every spec the harness makes is
-   *  a created one, so the default says so, and a suite that cares
-   *  about a further step names the whole line itself. */
+  /** The spec's 4-status.md. Its "Workflow steps completed" line is
+   *  what the spec CLAIMS to have had; `ran()` is what makes a step
+   *  count (spec 154). The default claims `create`, which is what
+   *  `/aide-create` used to write — a suite about the two records
+   *  disagreeing sets one without the other. */
   status?: string;
 }
 
@@ -84,12 +84,53 @@ export function queueHarness(prefix: string): QueueHarness {
   };
 }
 
+/** The runner's own commits, in the specs root, for the steps a spec
+ *  has HAD (spec 154). Since the queue reads git rather than the file,
+ *  this — not `statusSaying` — is what makes a step count.
+ *
+ *  The repo is made on first use rather than by `start`: a suite that
+ *  never asks about workflow history gets the same non-git fixture it
+ *  always had, including the one that checks what the Update button
+ *  refuses for a directory that is not a working tree.
+ *
+ *  Empty commits, because what is under test is the SUBJECT. The
+ *  grammar is `core/scripts/aide-run-spec`'s and is repeated here
+ *  deliberately: a helper that built it from the same code as the
+ *  reader would prove only that the two agreed with each other. */
+export function ran(
+  dir: string,
+  steps: string[],
+  specFolder = "81-queue-and-runner",
+  opts: { stopped?: string; headless?: boolean } = {},
+): void {
+  const root = join(dir, "root");
+  if (!existsSync(join(root, ".git"))) {
+    git(root, "init", "-q", "-b", "main");
+    git(root, "config", "user.name", "Test");
+    git(root, "config", "user.email", "test@example.com");
+    git(root, "add", "-A");
+    git(root, "commit", "-qm", "the projects root as it was found");
+  }
+  for (const step of steps) {
+    const subject =
+      `Run /aide-${step} for ${specFolder}` +
+      (opts.headless === false ? "" : " (headless)") +
+      (opts.stopped ? ` (stopped: ${opts.stopped})` : "");
+    git(root, "commit", "-q", "--allow-empty", "-m", subject);
+  }
+}
+
+function git(cwd: string, ...args: string[]): void {
+  const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+  if (out.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${out.stderr.toString()}`);
+}
+
 /** A 4-status.md whose Tracking info says which workflow steps the spec
- *  has HAD (spec 139), plus whatever else the suite wants in the file.
- *  Exported because the route suites build their own: the line is the
- *  contract every workflow step writes and the dashboard reads, and a
- *  fixture spelling it out by hand in twenty places is a fixture that
- *  will one day spell it differently. */
+ *  has HAD (spec 139) — a CLAIM since spec 154, and the thing the row
+ *  reports a disagreement about when git says otherwise. Exported
+ *  because the route suites build their own: a fixture spelling the
+ *  line out by hand in twenty places is a fixture that will one day
+ *  spell it differently. */
 export const statusSaying = (steps: string[], rest = ""): string =>
   `# Queue - Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n${rest}`;
 

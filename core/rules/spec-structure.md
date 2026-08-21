@@ -323,7 +323,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 ## Tracking info
 
 - **Task:** `NN-slug/`
-- **Workflow steps completed:** create, analyze
+- **Workflow steps completed:** create, analyze   <!-- written by aide-run-spec -->
 - **Total progress:** X% (Y of Z completed)
 - **Estimate:** [time]
 - **Last updated:** `YYYY-MM-DD`
@@ -365,8 +365,8 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 #### Workflow steps completed
 
-One line in Tracking info, and the ONLY record of how far a spec has
-got through the workflow:
+One line in Tracking info, saying how far a spec has got through the
+workflow:
 
 ```markdown
 - **Workflow steps completed:** create, analyze, review-plan
@@ -376,19 +376,35 @@ The allowed values, in workflow order, are `create`, `analyze`,
 `review-plan`, `implement` and `archive`. A missing line means nothing
 is known to have completed; an unknown value is ignored.
 
-**Each step writes its own value, and only once it has succeeded.**
-`/aide-create` starts the line at `create`; `/aide-analyze`,
-`/aide-review-plan`, `/aide-implement` and `/aide-archive` each add
-their own, keeping the values already there. A step that failed, was
-declined, was held back or had nothing it could do writes nothing —
-the line says what HAPPENED, never what was attempted. Re-running a
-step leaves one occurrence, not two.
+**Do not edit this line. It is written by `aide-run-spec`, from the
+spec's own commits.** Every step the runner finishes leaves a commit
+whose subject says which step it was and how it ended:
 
-The dashboard reads this line to mark a spec's phases done and to
-pre-tick the step to run next. It reads nothing else for that: the
-progress percentage below says how far the TDD phases inside
-`implement` have got, which is a different question from whether
-`implement` ran at all.
+```text
+Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
+```
+
+Those commits are the record. The line is derived from them at the end
+of every run, so the file agrees with git rather than with whoever
+remembered to update it. A step run interactively counts once it is
+committed with the same subject — the four step skills offer exactly
+that commit, and ask first.
+
+Why it stopped being the model's to write: on 2026-08-21 the line was
+wrong in both directions on the same day. One spec's implement had RED
+and GREEN done and was killed by the step's time limit before the model
+reached the instruction, so the line lagged behind a finished branch.
+Another spec's four files were copied from a sibling, so a folder
+minutes old claimed three steps it had never had. A commit cannot be
+copied into existence and does not depend on reaching the last
+instruction.
+
+The dashboard reads the same commits, live, to mark a spec's phases
+done and to pre-tick the step to run next; a `4-status.md` that
+disagrees with them is said out loud on the row rather than believed.
+The progress percentage below the line is a different question and is
+still the model's: it says how far the TDD phases inside `implement`
+have got, not whether `implement` ran at all.
 
 ---
 

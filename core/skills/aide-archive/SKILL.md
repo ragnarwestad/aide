@@ -97,15 +97,21 @@ active list with its lesson unrecorded.
    `git mv` if the specs root is git-tracked, plain `mv` otherwise
 
 
-Then record the step on the line the dashboard reads, in Tracking info:
+Nothing in Tracking info records the step. Which steps a spec has had
+is read off the spec's own commits, and `aide-run-spec` writes the
+`Workflow steps completed:` line from them — leave that line exactly as
+you found it, at whichever address the folder now has.
 
-```markdown
-- **Workflow steps completed:** create, analyze, review-plan, implement, archive
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the move, and suggest this message so the step is
+recognised the same way:
+
+```text
+Run /aide-archive for <spec-folder>
 ```
 
-Add `archive` once and keep the values already there — the line is the
-whole record of how far the spec has got, and rewriting it loses the
-steps before this one. Write it AFTER the move, into the status file at its new address under `archive/` — a record written first would claim a move that then failed. Do not record it when the archive was held back or the move did not happen.
+Offer it only after the move actually happened. An archive that was
+held back, or a move that did not go through, has nothing to record.
 
 The folder keeps its `NN-slug` name — the date lives in `4-status.md`.
 Numbers are never reused: `aide_next_spec_number` (in
