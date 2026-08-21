@@ -8,6 +8,7 @@
 // a badge, and that the row's rarely-set controls lie flat on the
 // controls line rather than behind a disclosure.
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   navEntries,
   renderJobDetailPage,
@@ -285,10 +286,79 @@ describe("the phase lines line up in columns", () => {
   });
 });
 
-describe("the busy chip swaps its checkbox for the spinner", () => {
-  test("the stylesheet hides the input wherever a mark stands in for it", async () => {
+// The one moving thing that said a phase was running used to be a
+// spinner on that phase's CHECKBOX, and a checkbox only exists on an
+// open row — so the closed row, which spec 157 made the whole interface
+// for the ordinary case, showed no motion at all. Spec 168 moved the
+// signal onto the running phase's Progress marker: the mark that
+// already says WHICH phase is running says "and it is alive" in the
+// same 14x4 glyph, taking no space and needing no new element.
+describe("the running phase's pip carries the motion, not the checkbox", () => {
+  test("the pip skims along the bar rather than pulsing in place", async () => {
     const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).toContain(".phase.busy input, .phase.off input { display: none; }");
+    const pipNow = CSS.match(/\.pip\.now\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(pipNow).toMatch(/animation:\s*\S+/);
+    // Matched by the animation's own NAME, never as "the first
+    // @keyframes in the file": `.spin`'s `@keyframes sp { ... }` is
+    // written on one line too, and a name-agnostic pattern would pass
+    // by matching that one instead, for the wrong reason.
+    const keyframes = CSS.match(/@keyframes\s+pipskim\s*\{([\s\S]*?)\}\s*\}/)?.[1] ?? "";
+    // A pulse reads as an alert; a band travelling ALONG the bar reads
+    // as work being done, in the direction the four marks already run.
+    expect(keyframes).toContain("background-position");
+    expect(keyframes).not.toContain("opacity");
+  });
+
+  test("a machine set to reduce motion gets none, and can still tell running from waiting", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const reduced = CSS.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(reduced).toContain(".pip.now");
+    expect(reduced).toContain("animation: none");
+    // The mark stands still; it does not go grey. The accent is what
+    // says which phase, and that half of the signal is not motion.
+    expect(reduced).toContain("background: var(--accent)");
+  });
+
+  test("every running row's pip shares one clock", async () => {
+    // No `animation-delay` anywhere. The whole `#jobrows` subtree is
+    // replaced in a single `innerHTML` swap, so every pip on the page
+    // starts together by construction; a delay keyed off a row index or
+    // a job's own start time is exactly what would make a list of
+    // running specs shimmer at random instead of moving as one.
+    const { CSS } = await import("../src/render/css.ts");
+    // The DECLARATION, not the word: the rule's own comment says why
+    // there is no delay, and a guard tripped by prose that agrees with
+    // it would only teach the next reader to delete the prose.
+    expect(CSS).not.toMatch(/animation-delay\s*:/);
+    expect(CSS).not.toMatch(/animation:[^;}]*\d[a-z]*\s+[^;}]*\d+m?s[^;}]*\d+m?s/);
+    // And nothing sets one from script either — a per-row delay read
+    // off a job's own start time is the shape this is really guarding
+    // against, and it would live in the browser code, not the CSS.
+    const root = join(import.meta.dir, "..");
+    // css.ts is read above as the EVALUATED stylesheet and left out
+    // here: it is the one file in the glob whose comments are page
+    // content, so its own explanation of why there is no delay is text
+    // this loop would read as a declaration.
+    const files = [
+      ...[...new Bun.Glob("src/render/*.ts").scanSync(root)].filter((f) => f !== "src/render/css.ts"),
+      "src/queue-client.ts",
+    ];
+    expect(files.length).toBeGreaterThan(4);
+    for (const file of files) {
+      const source = await Bun.file(join(root, file)).text();
+      expect([file, /animation-delay|animationDelay/.test(source)]).toEqual([file, false]);
+    }
+  });
+
+  test("the spinner is off the checkbox entirely", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    // Two signals for one fact, and the wrong one of the two: a box is
+    // a control, so a spinner on it read as "this box is working"
+    // rather than "this phase is running".
+    expect(CSS).not.toContain(".phase.busy");
+    // The lock still replaces the box it stands in for — that rule is
+    // the reason the selector list existed, and it stays.
+    expect(CSS).toContain(".phase.off input { display: none; }");
   });
 });
 

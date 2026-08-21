@@ -1537,13 +1537,13 @@ function toolPicker(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string
 // spec 157 moved the row's one button beside the state.
 function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
-  // Row-level, all four: which phases a press would run, why the row
-  // will not take a click, and which step (if any) is actually being
-  // worked. Row-level facts, so they are asked once and consulted per
-  // phase — the same shape `busy` itself already had.
+  // Row-level, all three: which phases a press would run and why the
+  // row will not take a click. Row-level facts, so they are asked once
+  // and consulted per phase — the same shape `busy` itself already had.
+  // Which step is being worked was a fourth until spec 168, read by
+  // nothing but the spinner that used to sit on that phase's box.
   const ticked = preTicked(g);
   const why = busy ? busyReason(g) : "";
-  const running = g.lead?.state === "running" ? currentStep(g.lead) : "";
   // Spec 160: the phases this run can still be given or relieved of.
   // The server worked it out from the job as it stands — the row does
   // not re-derive it, so a live box and the route that takes its tick
@@ -1630,8 +1630,13 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // (`ticked`) — a step queued behind the running one is
             // still one this job named, and still reads as ticked.
             checked: busy ? !!g.lead?.steps.includes(p.step) : ticked.has(p.step),
-            busy: busy && p.step === running,
-            disabled: busy && !live && p.step !== running,
+            // The step being run had a carve-out here until spec 168,
+            // because its box was drawn as a spinner instead. It falls
+            // under the ordinary rule now and lands in the same place:
+            // a running step is never `live` — `live` names a step the
+            // run has NOT reached — so `busy && !live` disables it
+            // exactly as the carve-out did.
+            disabled: busy && !live,
             // Inert, but not padlocked: the tick already says whether
             // this job will get to the step (spec 145).
             plain: true,

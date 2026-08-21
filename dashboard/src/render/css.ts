@@ -42,6 +42,7 @@ const chevron = (stroke: string) =>
 const LIGHT_COLORS = `  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
   --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
   --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
+  --pip-skim: #F0A48B;
   --on-accent: #FCFAF7;
   --ok: #2F7D4F; --ok-soft: #E3F0E7;
   --warn: #B7791F; --warn-soft: #F8EDD6;
@@ -51,6 +52,7 @@ const LIGHT_COLORS = `  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
 const DARK_COLORS = `  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
   --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
   --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --pip-skim: #FFC4AC;
   --on-accent: #16181C;
   --ok: #6FC08F; --ok-soft: #22352A;
   --warn: #E0A84A; --warn-soft: #3A2F1C;
@@ -276,15 +278,14 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .phase svg { width: 12px; height: 12px; }
 .phase.checked { border-color: var(--line-strong); }
 .phase.done { color: var(--muted); }
-.phase.busy { border-color: var(--accent); background: var(--accent-soft);
-  color: var(--accent-strong); cursor: default; }
 .phase.off { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
-/* The spinner and the lock REPLACE the checkbox, never stand beside it:
-   both marks are checkbox-sized, so the chip keeps its width when a
-   run starts (asked for repeatedly, last 2026-08-19). The input stays
-   in the markup for the form's sake — it is disabled in both states
-   and posts nothing. */
-.phase.busy input, .phase.off input { display: none; }
+/* The lock REPLACES the checkbox, never stands beside it: the mark is
+   checkbox-sized, so the chip keeps its width (asked for repeatedly,
+   last 2026-08-19). The input stays in the markup for the form's sake
+   — it is disabled and posts nothing. A running phase had a spinner
+   here on the same terms until spec 168, which moved that signal to
+   the row's own Progress marker. */
+.phase.off input { display: none; }
 .phase.off .box { color: var(--muted); }
 
 /* --- row-level message ---------------------------------------------- */
@@ -492,7 +493,28 @@ table.list tr.subrow .modelcell > .row > :first-child { min-width: 10rem; }
 .pips { display: flex; gap: 3px; }
 .pip { width: 14px; height: 4px; border-radius: 2px; background: var(--line-strong); }
 .pip.past { background: var(--ok); }
-.pip.now { background: var(--accent); }
+/* The one moving thing on the page that says a phase is RUNNING (spec
+   168). It was a spinner on that phase's checkbox, which only exists
+   on an open row — so the closed row, the whole interface for the
+   ordinary case since spec 157, showed no motion at all. The mark
+   already answers half the question in --accent alone: WHICH phase.
+   A lighter band travelling along it says "and it is alive" in the
+   same 14x4 glyph, taking no space and needing no new element.
+   Movement ALONG the bar, in the direction the four marks already
+   read, rather than a pulse — a pulse reads as an alert.
+   No animation-delay, ever: every row's pip is torn down and rebuilt
+   in one innerHTML swap (queue-client.ts), so a plain infinite
+   animation starts them all together. A delay keyed off a row's index
+   or a job's start time is what would make four running specs shimmer
+   at random instead of moving as one. */
+.pip.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
+  background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
+@keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+/* Motion off, and the reader can still tell a running phase from a
+   waiting one: --accent stays, the mark simply stands still. */
+@media (prefers-reduced-motion: reduce) {
+  .pip.now { animation: none; background: var(--accent); }
+}
 
 /* --- rows and forms ----------------------------------------------------- */
 /* "rowrun", "actionform", "resolveform", "newspecform", "refused" and

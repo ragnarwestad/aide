@@ -1413,10 +1413,12 @@ describe("a spec's row runs its own phases", () => {
       "94-row-runs-it",
     );
     expect(box(line, "analyze")).toContain("disabled");
-    // Its own job named it, so it reads as ticked — the spinner is
-    // what the reader sees in its place either way (the stylesheet
-    // hides a busy box's input).
-    expect(box(line, "analyze")).toContain('class="phase busy"');
+    // Its own job named it, so it reads as ticked — and since spec 168
+    // that is ALL it reads as: the running phase's box looks exactly
+    // like every other locked-but-ticked phase behind it, because the
+    // "this phase is running" signal moved to the row's pip.
+    expect(box(line, "analyze")).toContain('class="phase checked"');
+    expect(box(line, "analyze")).not.toContain('class="spin"');
     // The one that is NOT in this job stays untouched by that. It is
     // locked here because the server named no editable step — spec 160
     // is what decides that, and this test is about the tick.
@@ -3126,9 +3128,13 @@ describe("spec 105: a busy row offers only what its state allows", () => {
     });
   }
 
-  test("the step being worked carries the spinner; the rest keep their own look (criterion 2)", () => {
+  test("the step being worked reads as ticked; the rest keep their own look (criterion 2)", () => {
     const line = openControls(spec("running"));
-    expect(box(line, "implement")).toContain('class="phase busy"');
+    // Since spec 168 the box says only that the job named the step.
+    // What says the step is being worked RIGHT NOW is the pip on the
+    // row above, which is visible whether the row is open or shut.
+    expect(box(line, "implement")).toContain('class="phase checked"');
+    expect(box(line, "implement")).not.toContain('class="spin"');
     // Not part of this job, so unticked — inert, but not padlocked
     // (spec 145): the padlock is for a control with nothing else on it
     // to say why it will not take a click.
@@ -3165,8 +3171,10 @@ describe("spec 105: a busy row offers only what its state allows", () => {
         state: "running",
       }),
     );
-    // The one being worked, in the same job — its spinner is untouched.
-    expect(box(line, "analyze")).toContain('class="phase busy"');
+    // The one being worked, in the same job — since spec 168 it is
+    // drawn like the three behind it, and the pip carries the motion.
+    expect(box(line, "analyze")).toContain('class="phase checked"');
+    expect(box(line, "analyze")).not.toContain('class="spin"');
     for (const step of ["review-plan", "implement", "archive"]) {
       const b = box(line, step);
       expect(b).toContain(`value="${step}" checked`);
@@ -3507,6 +3515,16 @@ describe("spec 108: one rule per phase", () => {
     expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("not run yet");
     expect(analyze).not.toContain("last re-run");
+  });
+
+  // Spec 168 gave `.pip.now` the only motion on the page, so what
+  // decides whether a spec HAS a `now` pip is now load-bearing twice
+  // over: draw one for a spec with nothing running and the closed row
+  // says a phase is alive when none is.
+  test("a spec with nothing running has no now pip at all", () => {
+    const html = rows([], [target("108-hand-analysed", { done: ["analyze"] })]);
+    expect(head(html)).toContain('class="pip ');
+    expect(head(html)).not.toContain('class="pip now"');
   });
 
   test("a cancelled re-run never overturns a finished analysis (criterion 2)", () => {
@@ -4573,12 +4591,15 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(box(subRow(html, "implement"), "implement")).toContain('value="implement" checked');
   });
 
-  test("the running phase's box spins; the others go inert with the reason (criterion 5)", () => {
+  test("the running phase's box reads ticked; the others go inert with the reason (criterion 5)", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "124-stack", steps: ["implement"], stepIndex: 0, state: "running" })],
       [target("124-stack")],
     );
-    expect(box(subRow(html, "implement"), "implement")).toContain('class="phase busy"');
+    const running = box(subRow(html, "implement"), "implement");
+    expect(running).toContain('class="phase checked"');
+    expect(running).toContain("disabled");
+    expect(running).not.toContain('class="spin"');
     for (const step of ["analyze", "review-plan", "archive"]) {
       const b = box(subRow(html, step), step);
       // Not in this job's steps, so unticked — and unticked is what it

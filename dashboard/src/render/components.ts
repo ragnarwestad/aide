@@ -118,10 +118,15 @@ export function badge(variant: BadgeVariant, label: string, title?: string): str
 
 // --- phase chip ----------------------------------------------------------------
 
-/** A phase, as a control. Five states: the plain box, the ticked box,
- *  a finished phase (checkmark, text dimmed), the phase running right
- *  now (spinner), and one that will not take a click (lock, and the
- *  reason in `title` — the only place the reason fits on a row).
+/** A phase, as a control. Four states: the plain box, the ticked box,
+ *  a finished phase (checkmark, text dimmed), and one that will not
+ *  take a click (lock, and the reason in `title` — the only place the
+ *  reason fits on a row). There was a fifth, the phase running right
+ *  now, drawn with a spinner in the checkbox's place; spec 168 took it
+ *  away. A box is a CONTROL, so a spinner on it read as "this box is
+ *  working" rather than "this phase is running" — and it was only ever
+ *  visible on an open row, while the fact it reported belongs on the
+ *  closed one. The running phase is said by its Progress marker now.
  *
  *  The checkbox is a REAL one, kept visible rather than replaced by a
  *  drawn square: the row is a plain form, and it has to work with
@@ -148,7 +153,6 @@ export function phaseChip(o: {
   ariaLabel?: string;
   checked?: boolean;
   done?: boolean;
-  busy?: boolean;
   disabled?: boolean;
   /** `disabled` because the row is busy running a job that already
    *  decided this box's tick, not because the box itself is off
@@ -174,12 +178,12 @@ export function phaseChip(o: {
   postTo?: string;
 }): string {
   const locked = !!o.disabled && !o.plain;
-  const state = o.busy ? "busy" : locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
-  // `done` is a FACT about the phase, not one of the five looks: a step
+  const state = locked ? "off" : o.done ? "done" : o.checked ? "checked" : "default";
+  // `done` is a FACT about the phase, not one of the four looks: a step
   // the spec has already had can also be the step a job is running
   // right now, and a chip that showed only the second lost the first.
   const cls = ["phase", state, o.done && state !== "done" ? "done" : ""].filter(Boolean).join(" ");
-  const mark = o.busy ? SPINNER : locked ? `<span class="box">${ICON_LOCK}</span>` : "";
+  const mark = locked ? `<span class="box">${ICON_LOCK}</span>` : "";
   const tick = o.done ? ` <span class="box" title="already done">${ICON_CHECK}</span>` : "";
   return (
     `<label class="${cls}" ${o.dataAttr}="${esc(o.value)}"` +
@@ -188,7 +192,7 @@ export function phaseChip(o: {
     // are about plumbing rather than state: what a box SAYS is read
     // together, in markup as on the page.
     `<input type="checkbox"${o.name ? ` name="${esc(o.name)}"` : ""} value="${esc(o.value)}"` +
-    `${o.checked ? " checked" : ""}${o.busy || o.disabled ? " disabled" : ""}` +
+    `${o.checked ? " checked" : ""}${o.disabled ? " disabled" : ""}` +
     `${o.form ? ` form="${esc(o.form)}"` : ""}` +
     `${o.postTo ? ` data-post-to="${esc(o.postTo)}"` : ""}` +
     `${o.ariaLabel ? ` aria-label="${esc(o.ariaLabel)}"` : ""}>` +
