@@ -98,14 +98,17 @@ describe("the mark is on the page (description item 3)", () => {
 
   test("the overview's tab title carries the tagline; its heading does not change", () => {
     const html = site.get("projects.html")!;
-    expect(html).toContain("<title>aide — from spec to merge</title>");
+    expect(html).toContain("<title>aide -board — from spec to merge</title>");
     expect(html).toContain("<h1>Projects</h1>");
   });
 
-  // Every tab leads with aide: the reader picks it out of a row of
-  // tabs by the product's name, not by which page happens to be open.
-  test("a sub-page's tab title leads with aide", () => {
-    expect(site.get("about.html")!).toContain("<title>aide · About</title>");
+  // Every tab leads with the surface's name: the reader picks it out of
+  // a row of tabs by what this is, not by which page happens to be open.
+  // "aide -board" rather than "aide" since the wordmark took the surface
+  // name — the CLI and this page are one product and two surfaces, and
+  // the tab is one of the places that has to say which.
+  test("a sub-page's tab title leads with the surface name", () => {
+    expect(site.get("about.html")!).toContain("<title>aide -board · About</title>");
   });
 });
 

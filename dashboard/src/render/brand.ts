@@ -44,5 +44,19 @@ export const ICON_LINKS =
   `<link rel="icon" href="${dataUri(LIGHT)}">\n` +
   `<link rel="icon" href="${dataUri(DARK)}" media="(prefers-color-scheme: dark)">`;
 
-/** The wordmark, for the top of the nav. */
-export const WORDMARK = `<a class="brand" href="/">${MARK}<span>a<i>i</i>de</span></a>`;
+/** The wordmark, for the top of the nav.
+ *
+ *  The MARK is aide's and unchanged — the CLI and this page are one
+ *  product. What the surface name adds is which of the two you are
+ *  looking at: `-board`, in the ordinary weight and `--muted`, one word
+ *  space from the name and tight against the dash, so the two read as
+ *  one token — the shape a CLI flag has, which on a tool that IS a CLI
+ *  is the joke rather than a misreading. Spoken "aide dash board".
+ *
+ *  The dash is deliberately NOT accented: in the accent it became the
+ *  first thing the eye found, ahead of the `i`, and the `i` is the pun
+ *  that carries the meaning. Two red marks, and the one that matters
+ *  loses. */
+export const WORDMARK =
+  `<a class="brand" href="/">${MARK}` +
+  `<span>a<i>i</i>de <span class="surface">-board</span></span></a>`;

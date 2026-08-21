@@ -234,7 +234,7 @@ const JS_HOOKS = [
 const STRUCTURE = [
   // the frame — "menu" and "menupanel" are the "…" disclosure in the
   // header and the box it opens (spec 119, which removed "layout").
-  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "current", "lbl",
+  "pagehead", "stamp", "brand", "mark", "mark-l", "mark-d", "surface", "current", "lbl",
   "tabbar", "tab",
   "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop", "stackcell",
   // text roles — "u-usd"/"u-tok" are the two halves of every

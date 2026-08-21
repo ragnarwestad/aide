@@ -269,7 +269,7 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
       // The tab always leads with aide; the tagline rides on the
       // overview, the one page that is about aide itself.
       html: pageShell("Projects", entries, PROJECTS_ROUTE, moved, generatedAt, undefined, {
-        docTitle: "aide — from spec to merge",
+        docTitle: "aide -board — from spec to merge",
         // The query string comes along: a bookmark that carried the
         // token is how a reader arrives here with one.
         script: `location.replace('${PROJECTS_ROUTE}' + location.search);`,

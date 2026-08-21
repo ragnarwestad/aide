@@ -165,7 +165,7 @@ export function renderNewSpecPage(
   // No meta refresh, for the reason `/projects` has none: this page is
   // a form, and a blunt refresh wipes a half-typed description.
   return pageShell("New spec", entries, "/", body, generatedAt, undefined, {
-    docTitle: "aide — new spec",
+    docTitle: "aide -board — new spec",
     script: opts.script,
   });
 }

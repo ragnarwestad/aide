@@ -186,6 +186,10 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
   letter-spacing: -0.035em; }
 .brand:hover { text-decoration: none; color: var(--text); }
 .brand i { font-style: normal; color: var(--accent); }
+/* The surface name, not the product name: ordinary weight and muted, so
+   the name stays the wordmark and the suffix says which surface. No
+   backticks in here — this file IS a template literal. */
+.brand .surface { font-weight: 400; color: var(--muted); }
 .brand .mark, .brand .mark svg { display: block; width: 40px; height: 40px; }
 
 /* --- text roles ----------------------------------------------------- */

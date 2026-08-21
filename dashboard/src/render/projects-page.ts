@@ -115,7 +115,7 @@ export function renderProjectsPage(
   // on the generated overview — this is still the page that is about
   // aide itself.
   return pageShell("Projects", entries, "/projects", body, generatedAt, undefined, {
-    docTitle: "aide — from spec to merge",
+    docTitle: "aide -board — from spec to merge",
     script: opts.script,
   });
 }
@@ -224,7 +224,7 @@ export function renderAddProjectPage(
     messageSlot("refused") +
     `</form>`;
   return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
-    docTitle: "aide — add project",
+    docTitle: "aide -board — add project",
     script: opts.script,
   });
 }
@@ -256,7 +256,7 @@ export function renderRemoveProjectPage(
     messageSlot("refused") +
     `</form>`;
   return pageShell(`Remove ${name}`, entries, "/projects", body, generatedAt, undefined, {
-    docTitle: `aide — remove ${name}`,
+    docTitle: `aide -board — remove ${name}`,
     script: opts.script,
   });
 }
