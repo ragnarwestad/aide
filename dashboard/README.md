@@ -1053,6 +1053,14 @@ So a spec that wants a look it cannot build from the tokens has to
 change the TOKENS — visibly, in one block — rather than add a colour
 beside them.
 
+`CSS` in `css.ts` is a template literal, so a backtick inside a comment
+closes it and the file stops parsing — `bunx tsc --noEmit` catches this,
+`bun test` alone does not (spec 165). A comment's prose also reaches the
+browser as page content, re-read on every request, so it is read by
+whoever views source, not just by the next editor (`queue-detail.test.ts`
+proves the re-read by writing a marker word to a comment and asserting a
+second response does not contain it).
+
 `mergeoverride` in that allow-list and in `queue-client.ts`'s `ACTIONS`
 selector is dead in production since spec 105: no render path emits it
 any more (the server stopped emitting it in commit `cd81e95`, before
