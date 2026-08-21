@@ -420,7 +420,10 @@ describe("what an open branch says about itself (criteria 1-8)", () => {
     const html = await listWith(await seededWith(BOTH, "running"));
     expect(html).not.toContain('class="mergeform"');
     expect(html).not.toContain("/merge");
-    expect(html).not.toContain("waiting for archive");
+    // Spec 174: the repo mark reads the same while a step runs as after
+    // it — the branch is open either way, and the State column is where
+    // the running step's verb is said.
+    expect(html).toContain("waiting for archive");
   });
 
   // Gone since 2026-08-19: the small "merge anyway" behind a confirm was

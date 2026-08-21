@@ -21,6 +21,8 @@
 
 import { btn, field, rowMessage, tokenField } from "./components.ts";
 import { esc } from "./html.ts";
+import { dependsOnField } from "./new-spec-page.ts";
+import type { QueueTarget } from "./queue-list.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { specPagePath } from "./spec-page.ts";
 
@@ -33,11 +35,20 @@ export interface SpecEditPageView {
   /** The file as it is on disk right now. Empty for a file that is not
    *  there yet — the editor is then how it gets written. */
   text: string;
-  /** What the spec depends on right now, comma-separated (spec 166).
-   *  Empty for a spec that depends on nothing. The line itself is never
-   *  in `text` — this field is its only writer, so the two cannot say
-   *  different things about it. */
-  dependsOn: string;
+  /** What this spec MAY be made to depend on: every active spec in its
+   *  own project, itself left out. Empty — a project whose only spec is
+   *  this one — and the field is not drawn at all (spec 174).
+   *
+   *  A list rather than a line to type into, because the New-spec page
+   *  already had the right control and this page had a text input only
+   *  because spec 166's description said "a field" without saying which. */
+  dependsOnOptions: QueueTarget[];
+  /** Which of them are ticked: the spec's `Depends on:` line, resolved
+   *  to folders the way the runtime gate resolves it (spec 166's line
+   *  may hold a bare number, and a hand-edited one usually does). The
+   *  line itself is never in `text` — this page is its only writer, so
+   *  the two cannot say different things about it. */
+  dependsOnChecked: string[];
   /** The commit that text was read at, carried through the form so a
    *  save whose file has moved since can be refused. Absent for a file
    *  git has never committed, which is not a mismatch. */
@@ -61,6 +72,7 @@ export function renderSpecEditPage(
   entries: NavEntry[],
 ): string {
   const back = specPagePath(view.project, view.specFolder);
+  const picker = dependsOnField(view.dependsOnOptions, new Set(view.dependsOnChecked));
   const body =
     `<p class="intro"><a href="${esc(back)}">← ${esc(view.specFolder)}</a></p>\n` +
     // A refusal first, or it is read after the thing it refused.
@@ -74,17 +86,17 @@ export function renderSpecEditPage(
     `<input type="hidden" name="baseSha" value="${esc(view.baseSha ?? "")}">` +
     // Spec 166: above the file, because a dependency is about the spec
     // rather than about the prose — and because the line it writes is
-    // the one line the textarea below no longer shows.
-    `<span class="frow">` +
-    field(
-      "Depends on",
-      `<input type="text" name="dependsOn" value="${esc(view.dependsOn)}" ` +
-        `placeholder="another spec in this project, e.g. 164 — comma-separated for more">`,
-      { wide: true },
-    ) +
-    `</span>` +
-    `<p class="muted">A dependency applies from this spec's next gated step ` +
-    `(implement, resolve, archive) — never to a step already running.</p>` +
+    // the one line the textarea below no longer shows. The control is
+    // the New-spec page's own since spec 174.
+    //
+    // The note goes with the picker rather than standing on its own: a
+    // project with nothing to depend on draws neither, and a sentence
+    // about a control that is not there is one more thing to read past.
+    (picker
+      ? `<span class="frow">${picker}</span>` +
+        `<p class="muted">A dependency applies from this spec's next gated step ` +
+        `(implement, resolve, archive) — never to a step already running.</p>`
+      : "") +
     `<span class="frow">` +
     field(
       view.file,

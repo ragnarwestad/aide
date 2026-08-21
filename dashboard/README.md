@@ -282,17 +282,22 @@ nothing waiting on you". The bare words
 nothing about WHAT was done, and "queued" said nothing about which step
 was waiting, while both facts were known.
 
-The line beneath it is for the states whose badge cannot carry the
-whole answer: "never run — tick a phase and press Run", "waiting for
-your approval to carry on", "press Run to try implement again", and the
-held-back archive of a run that stopped short. For a row at rest it is
-empty, exactly as it has been for a running row since spec 101 — the
-sentence is in the badge, and saying it twice is the row telling a
-reader one fact at two levels of precision. It invents no vocabulary:
-both are built from the same `stateLabel`/`currentStep` the chip and the
-phase lines use, so the row cannot say one thing in two ways. Everything it summarises is still
-there beside it — the pips, the chip, the branch badges — each
-answering its own narrower question.
+A second line under it used to carry the states whose badge could not
+say the whole thing — "never run — tick a phase and press Run", "press
+Run to try implement again". Spec 174 removed it and the div it filled.
+Since spec 157 the row's button stands beside the badge and NAMES the
+phase it would run, so the sentence was telling a reader to press the
+control they were looking at, to do the thing it already said. The page
+says what IS; the controls say what can be done. The pips, the chip and
+the branch marks each answer their own narrower question beside it.
+
+The branch marks answer WHERE the work is and whether it landed, and
+nothing else. An unmerged repo reads "waiting for archive" — one
+answer, whether or not a step is running for that spec, because the
+branch is open either way and `archive` is what lands it. Between spec
+96 and spec 174 the mark echoed the running job's own verb instead
+("archiving"), which the State column beside it was already saying: on
+a row with two repos the verb appeared three times.
 
 The four sentences about how runs work on this machine sit behind a
 shut "How runs work here" disclosure, like the New-spec panel and for

@@ -46,9 +46,9 @@ export interface NewSpecPageOptions {
   error?: string;
 }
 
-// What the new spec builds on (spec 110). One chip per active spec,
-// newest first — the number is the order a reader thinks in, and it is
-// the reverse of `discoverProjects`'s ascending sort.
+// What a spec builds on (spec 110). One chip per active spec, newest
+// first — the number is the order a reader thinks in, and it is the
+// reverse of `discoverProjects`'s ascending sort.
 //
 // The chip's own project rides on a WRAPPER, not on the chip: `phaseChip`
 // ties its `data-` attribute to its form value, and the value here has
@@ -56,12 +56,19 @@ export interface NewSpecPageOptions {
 // so the closed component vocabulary (`css-token-guard.test.ts`) is
 // untouched.
 //
-// Every project's chips are rendered, and the browser scopes them to the
-// chosen one (`queue-client.ts`). Without script they are all offered,
-// and a cross-project pick is caught by the same server refusal that
-// catches it from the API — the convenience is lost, the guard is not.
-function dependsOnField(opts: NewSpecPageOptions): string {
-  const specs = [...(opts.targets ?? [])].sort(
+// On THIS page every project's chips are rendered, and the browser
+// scopes them to the chosen one (`queue-client.ts`). Without script they
+// are all offered, and a cross-project pick is caught by the same server
+// refusal that catches it from the API — the convenience is lost, the
+// guard is not.
+//
+// Shared with the Edit page since spec 174, which had a free-text input
+// where this control already existed. Hence the two arguments rather
+// than the page's own options object: the list to offer, and which of
+// it is already ticked. A second copy of this markup would have drifted
+// from it the first time one of the two was fixed.
+export function dependsOnField(targets: QueueTarget[], checked: Set<string> = new Set()): string {
+  const specs = [...targets].sort(
     (a, b) =>
       a.project.localeCompare(b.project) ||
       -a.specFolder.localeCompare(b.specFolder, "en", { numeric: true }),
@@ -79,6 +86,7 @@ function dependsOnField(opts: NewSpecPageOptions): string {
               value: t.specFolder,
               label: t.specFolder,
               name: "dependsOn",
+              checked: checked.has(t.specFolder),
             }) +
             `</span>`,
         )
@@ -111,7 +119,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
-    dependsOnField(opts) +
+    dependsOnField(opts.targets ?? []) +
     `</span>` +
     field(
       "Title",
