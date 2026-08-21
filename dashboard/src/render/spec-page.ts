@@ -62,6 +62,20 @@ export interface SpecPageView {
 export const specPagePath = (project: string, specFolder: string): string =>
   `/specs/${encodeURIComponent(project)}/${encodeURIComponent(specFolder)}`;
 
+/** The one file of the four a person owns (spec 162). `2-analysis.md`
+ *  and `3-solution.md` are the analyze and review-plan steps' output —
+ *  a hand edit there is overwritten the next time they run — and
+ *  `4-status.md` has been the runner's since spec 154. Named here
+ *  because the page decides which panel offers the link and the server
+ *  decides which file the route writes, and those two must be the same
+ *  file. */
+export const EDITABLE_SPEC_FILE = "1-description.md";
+
+/** Where Edit goes. Beside `specPagePath` for the same reason: the
+ *  server routes on it and this page links to it. */
+export const specEditPath = (project: string, specFolder: string): string =>
+  `${specPagePath(project, specFolder)}/edit`;
+
 export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
@@ -94,7 +108,15 @@ export function renderSpecPage(
       ? activityPanel(lead ?? { results: [] })
       : tab === "steps"
         ? stepResults(lead?.results ?? [], lead?.archiveHeldBack)
-        : view.files.map((f) => specFilePanel(f, now)).join("");
+        : view.files
+            .map((f) =>
+              specFilePanel(
+                f,
+                now,
+                f.label === EDITABLE_SPEC_FILE ? specEditPath(view.project, view.specFolder) : undefined,
+              ),
+            )
+            .join("");
 
   const body = tabbedBody(
     banner,

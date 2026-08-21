@@ -208,13 +208,19 @@ export function tabbedBody(banner: string, tabs: string, panel: string): string 
  *  150). Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
-export function specFilePanel(file: SpecFileView, now: number): string {
+export function specFilePanel(file: SpecFileView, now: number, editHref?: string): string {
   const stamp =
     file.sha && file.at
       ? ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`
       : "";
+  // Spec 162: one of the four files is a person's to write, and only the
+  // SPEC page passes a link for it. A step's own output — which is what
+  // this page shows through the same function — is not a thing to hand
+  // edit, so a caller that says nothing gets exactly the panel it got
+  // before the parameter existed.
+  const edit = editHref ? ` <a class="btn small" href="${esc(editHref)}">Edit</a>` : "";
   return (
-    `<h2>${esc(file.label)}${stamp}</h2>` +
+    `<h2>${esc(file.label)}${stamp}${edit}</h2>` +
     (file.text === null
       ? `<p class="muted">${esc(file.label)} has not been written yet.</p>`
       : `<pre class="specfile">${esc(file.text)}</pre>`)

@@ -56,5 +56,10 @@ export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./r
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
 // 150). It shares the job page's tab bar, activity block and steps
 // table rather than carrying copies of them.
-export { renderSpecPage, specPagePath } from "./render/spec-page.ts";
+export { EDITABLE_SPEC_FILE, renderSpecPage, specEditPath, specPagePath } from "./render/spec-page.ts";
 export type { SpecPageView } from "./render/spec-page.ts";
+
+// `/specs/<project>/<specFolder>/edit` — the one of the four files a
+// person owns, in a textarea (spec 162).
+export { renderSpecEditPage } from "./render/spec-edit-page.ts";
+export type { SpecEditPageView } from "./render/spec-edit-page.ts";

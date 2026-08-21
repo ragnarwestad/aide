@@ -11,7 +11,13 @@
 // order, each stamped with the commit that last touched it.
 
 import { describe, expect, test } from "bun:test";
-import { renderJobDetailPage, renderSpecPage, type SpecPageView } from "../src/render.ts";
+import {
+  renderJobDetailPage,
+  renderSpecEditPage,
+  renderSpecPage,
+  type SpecEditPageView,
+  type SpecPageView,
+} from "../src/render.ts";
 import type { JobDetailView } from "../src/render.ts";
 
 const NAV = [{ label: "Overview", path: "projects.html" }];
@@ -270,5 +276,105 @@ describe("the shared panels are the job page's own", () => {
     expect(panelOf(renderSpecPage(empty, GENERATED, NAV, { tab: "steps", now: NOW }))).toBe(
       panelOf(renderJobDetailPage(lead(), GENERATED, NAV, { tab: "steps", now: NOW })),
     );
+  });
+});
+
+// --- spec 162: the Edit link, and the page it opens -------------------------
+//
+// One of the four files is a person's to write. `2-analysis.md` and
+// `3-solution.md` are the analyze and review-plan steps' output and a
+// hand edit there is overwritten the next time they run; `4-status.md`
+// has been the runner's since spec 154. So the link is on
+// `1-description.md` and on nothing else — including the phase file the
+// JOB page shows through the same `specFilePanel`.
+
+describe("the Edit link", () => {
+  test("is on the description and on none of the other three files", () => {
+    const html = page();
+    const href = "/specs/aide/150-one-page-shows-the-whole-spec/edit";
+    expect(html).toContain(`href="${href}"`);
+    expect(html.split(`href="${href}"`)).toHaveLength(2);
+    expect(html).toContain("Edit");
+  });
+
+  test("is absent when the description is not among the files shown", () => {
+    const html = page(view({ files: [file("2-analysis.md", "## Findings\n")] }));
+    expect(html).not.toContain("/edit");
+  });
+
+  // The job page draws its phase's file through the same function. A
+  // step's own output is not a thing to hand-edit, and an Edit link
+  // there would post the wrong file's text at the description's route.
+  test("never appears on a job page's phase file", () => {
+    const html = renderJobDetailPage(
+      lead({ phase: { label: "2-analysis.md", text: "## Findings\n", sha: "a3f9c21", at: "2026-08-21T09:14:00+02:00" } }),
+      GENERATED,
+      NAV,
+      { now: NOW },
+    );
+    expect(html).toContain("2-analysis.md");
+    expect(html).not.toContain("/edit");
+  });
+});
+
+describe("the edit page", () => {
+  const editView = (extra: Partial<SpecEditPageView> = {}): SpecEditPageView => ({
+    project: "aide",
+    specFolder: "150-one-page-shows-the-whole-spec",
+    file: "1-description.md",
+    text: "## Description\n\nThe dashboard never shows a spec.\n",
+    baseSha: "a3f9c21deadbeef",
+    saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
+    ...extra,
+  });
+  const edit = (v: SpecEditPageView = editView()) => renderSpecEditPage(v, GENERATED, NAV);
+
+  test("holds the file's current text in a real textarea, in a real form", () => {
+    const html = edit();
+    expect(html).toMatch(/<form[^>]*method="post"/);
+    expect(html).toContain('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save"');
+    expect(html).toContain("<textarea");
+    expect(html).toContain("The dashboard never shows a spec.");
+  });
+
+  // The whole point of the hidden field: the page is rendered once and
+  // a reader may sit on it while an analyze step lands a new version.
+  test("carries the commit the text was read at, so a save can be refused", () => {
+    expect(edit()).toContain('value="a3f9c21deadbeef"');
+  });
+
+  // A spec whose description git has never seen still opens: the field
+  // is empty rather than the word "undefined".
+  test("a file with no commit yet opens all the same", () => {
+    const html = edit(editView({ baseSha: undefined }));
+    expect(html).toContain("<textarea");
+    expect(html).not.toContain("undefined");
+  });
+
+  test("the text is escaped — a description is arbitrary text off disk", () => {
+    const html = edit(editView({ text: "</textarea><script>alert(1)</script>" }));
+    expect(html).not.toContain("<script>alert(1)");
+    expect(html).toContain("&lt;/textarea&gt;");
+  });
+
+  // A ten-second meta refresh on a page with a textarea on it wipes
+  // whatever the reader was half-way through typing.
+  test("does not refresh itself under the reader", () => {
+    expect(edit()).not.toContain("http-equiv=\"refresh\"");
+  });
+
+  test("a refused save has somewhere to show its reason", () => {
+    const html = edit(editView({ error: "1-description.md has changed since you opened it" }));
+    expect(html).toContain("1-description.md has changed since you opened it");
+  });
+
+  test("Cancel goes back to the spec, having posted nothing", () => {
+    const html = edit();
+    expect(html).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec"');
+    expect(html).toContain("Cancel");
+  });
+
+  test("carries the token for a browser that got the page with one", () => {
+    expect(edit(editView({ token: "s3cret" }))).toContain('name="token" value="s3cret"');
   });
 });

@@ -82,6 +82,24 @@ no host is named anywhere in this repo.
   interactive sessions are claude-usage's own page.)
 - `/specs/<id>` — one job, in full. It did NOT move with the list: every
   job link already sent out points here.
+- `/specs/<project>/<spec>` — the whole SPEC, as it stands now: all four
+  files, each stamped with the commit that last changed it, plus the
+  lead job's Activity and Steps tabs and the Update button that pulls
+  the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`).
+- `/specs/<project>/<spec>/edit` — `1-description.md` in a textarea, and
+  nothing else (spec 162). It is the one of the four files a person
+  owns: the other three are written by a step and a hand edit there is
+  overwritten the next time that step runs. The page carries the commit
+  its text was read at and never refreshes itself.
+- `POST /api/queue/specs/<project>/<spec>/save` — writes, commits and
+  pushes that one file on the specs repo's default branch, then returns
+  to the spec. Refused, with nothing written, when the checkout is
+  dirty, on another branch, diverged or unreachable, and when the file
+  has moved since the editor was opened; a commit whose push fails is
+  reset away, because an unpushed commit in the one shared specs
+  checkout breaks the next fast-forward for every project in it. It is
+  the only route that accepts a body over 4096 bytes — a description is
+  not an action post — and its own cap is 64 KiB.
 - `/specs` and `/queue` — where the list used to live; both redirect to
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is

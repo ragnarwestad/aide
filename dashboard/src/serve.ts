@@ -19,7 +19,7 @@ import {
 import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
-import { pullFastForward } from "./specs-pull.ts";
+import { pullFastForward, saveSpecFile } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
@@ -62,9 +62,13 @@ import {
   ADD_PROJECT_ROUTE,
   renderQueuePage,
   renderQueueRows,
+  renderSpecEditPage,
   renderSpecPage,
+  specEditPath,
   specPagePath,
+  EDITABLE_SPEC_FILE,
   type JobDetailView,
+  type SpecEditPageView,
   type SpecFileView,
   type SpecPageView,
   type NavEntry,
@@ -74,6 +78,15 @@ import {
 } from "./render.ts";
 
 const MAX_BODY = 4096;
+
+/** What the save route accepts instead (spec 162). A description is not
+ *  an action post: this spec's own `1-description.md` was 4182 raw
+ *  bytes before a single character of form-urlencoding overhead, so
+ *  `MAX_BODY` would have refused the very file the editor was written
+ *  for. 64 KiB is roughly fifteen times that — headroom for a
+ *  description that grows, without becoming an unbounded body on a
+ *  token-gated internal server. */
+const MAX_SAVE_BODY = 65536;
 
 /** How long the project's own install may run after its code merged.
  *  The same bounded-timeout discipline every git call already has
@@ -177,11 +190,18 @@ function json(body: unknown, status = 200): Response {
 // can lie about, and the actual text is the only thing that has to be
 // held in memory. Written once because a size guard kept in two copies
 // is a size guard that will one day disagree with itself.
-async function readBounded(req: Request): Promise<{ text: string } | { refusal: Response }> {
+async function readBounded(
+  req: Request,
+  // Spec 162: one route passes its own. `MAX_BODY` is right for what it
+  // guards — small JSON job requests and short action posts — and
+  // raising it globally to fit a description would widen every one of
+  // them.
+  cap: number = MAX_BODY,
+): Promise<{ text: string } | { refusal: Response }> {
   const claimed = Number(req.headers.get("content-length") ?? "0");
-  if (claimed > MAX_BODY) return { refusal: json({ error: "payload too large" }, 413) };
+  if (claimed > cap) return { refusal: json({ error: "payload too large" }, 413) };
   const text = await req.text();
-  if (text.length > MAX_BODY) return { refusal: json({ error: "payload too large" }, 413) };
+  if (text.length > cap) return { refusal: json({ error: "payload too large" }, 413) };
   return { text };
 }
 
@@ -679,6 +699,28 @@ export function createServer(opts: ServerOptions) {
     targets();
     return scan?.dirs.get(`${project}/${specFolder}`);
   };
+  /** The checkout a spec folder sits in — the lock key for everything
+   *  that touches the specs repository (spec 162).
+   *
+   *  `createRootLock`'s own docstring says what it is for: "per repo
+   *  ROOT, not global: two requests that touch no directory in common
+   *  cannot collide." The Update button was locking on `specDir(...)`,
+   *  the individual spec's subfolder, and every project and every spec
+   *  in a specs checkout shares ONE `.git` — so two presses on
+   *  different specs were given different keys and ran two git
+   *  sequences in one working tree. Latent while the only write was a
+   *  fast-forward merge; not latent beside a Save that writes, commits
+   *  and pushes.
+   *
+   *  Read-only and outside the lock, which is where it has to be: it is
+   *  what decides which lock to take. A directory git will not answer
+   *  for keys on itself, which is what the routes did before and is no
+   *  worse — the save's own first question refuses it by name. */
+  const specsRoot = async (dir: string): Promise<string> => {
+    const top = await gitRun(dir, ["rev-parse", "--show-toplevel"]);
+    return top.code === 0 && top.stdout.trim() ? top.stdout.trim() : dir;
+  };
+
   const resolveProject: ProjectResolver = (project) => {
     if (!allowed.has(project)) return null;
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
@@ -2066,7 +2108,7 @@ export function createServer(opts: ServerOptions) {
       // spec shares the specs root, so two presses — or a press racing
       // the `aide-pull-specs` cron — would be two git sequences in one
       // working tree.
-      const result = await mergeLock.run(dir, () =>
+      const result = await mergeLock.run(await specsRoot(dir), () =>
         pullFastForward(gitRun, dir, (root) => branchStatus.defaultBranch(root)),
       );
       if (!result.ok) {
@@ -2074,6 +2116,80 @@ export function createServer(opts: ServerOptions) {
         return specsRedirect({}, { error: result.note }, back);
       }
       return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    }
+
+    // Spec 162: the one of the four files a person owns, in a textarea,
+    // and the Save that commits and pushes it. Three segments where the
+    // spec page has two, so neither can swallow the other.
+    const specEdit = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/edit$/);
+    if (specEdit) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = specEdit;
+      const dir = specDir(project!, specFolder!);
+      if (!dir) return new Response("not found", { status: 404 });
+      // Read off disk and out of git on every request, exactly as the
+      // Overview tab's own panels are: the text in the box and the
+      // commit it is compared against have to be the same instant.
+      const commit = await lastCommitOf(gitRun, dir, EDITABLE_SPEC_FILE);
+      const view: SpecEditPageView = {
+        project: project!,
+        specFolder: specFolder!,
+        file: EDITABLE_SPEC_FILE,
+        text: specFileText(dir, EDITABLE_SPEC_FILE) ?? "",
+        baseSha: commit?.sha,
+        saveAction: `/api/queue${specPagePath(project!, specFolder!)}/save`,
+        token: queueToken,
+        error: url.searchParams.get("error") ?? undefined,
+        notice: url.searchParams.get("notice")
+          ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
+          : undefined,
+      };
+      const html = renderSpecEditPage(view, new Date().toISOString(), nav());
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    const save = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/save$/);
+    if (save) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = save;
+      const dir = specDir(project!, specFolder!);
+      if (!dir) return new Response("not found", { status: 404 });
+      const sent = await readBounded(req, MAX_SAVE_BODY);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const back = specEditPath(project!, specFolder!);
+      // An EMPTY textarea is a legitimate save — the terminal-edit path
+      // this matches has never stopped anyone deleting the lot. A body
+      // with no field at all is not: it is a request that never came
+      // from this form, and writing it would empty the file.
+      if (typeof body.text !== "string") {
+        return specsRedirect({}, { error: "no text was submitted — nothing was saved" }, back);
+      }
+      const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+      const result = await mergeLock.run(await specsRoot(dir), () =>
+        saveSpecFile(gitRun, dir, (root) => branchStatus.defaultBranch(root), {
+          file: EDITABLE_SPEC_FILE,
+          text: body.text as string,
+          baseSha,
+          specLabel: specFolder!,
+        }),
+      );
+      if (!result.ok) {
+        logRefusal("save", `${project}/${specFolder}`, result.note);
+        return specsRedirect({}, { error: result.note }, back);
+      }
+      // Back to the whole spec, where the description now carries its
+      // new commit stamp — the Overview tab is what the editor was
+      // opened from.
+      return specsRedirect({}, undefined, specPagePath(project!, specFolder!), {
+        note: result.note,
+        ok: true,
+      });
     }
 
     // One job, in full: what it IS (the spec's title and description),
