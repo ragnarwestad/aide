@@ -47,6 +47,12 @@ export interface SpecPageView {
    *  happened. Absent for a spec nothing has ever run — which is the
    *  whole reason this page is keyed on the spec and not on a job id. */
   lead?: JobDetailView;
+  /** Whether the spec has been archived (spec 163). Its folder has
+   *  moved into `archive/` and the spec is a RECORD: Edit was built for
+   *  a description edited while the work is live (spec 162), and Save
+   *  on an archived spec would have written, committed and pushed into
+   *  `archive/`. */
+  archived?: boolean;
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
@@ -100,6 +106,12 @@ export function renderSpecPage(
     `<button class="btn" type="submit" title="pull the specs repository and show what it says now">` +
     `Update</button></form></div>` +
     (view.title ? `<p class="desc"><strong>${esc(view.title)}</strong></p>` : "") +
+    // Where Edit would have been, in words: a reader who came looking
+    // for it should not have to work out from a missing button that the
+    // spec is closed.
+    (view.archived
+      ? rowMessage("info", "This spec is archived — a record, and read-only.", { tag: "p" })
+      : "") +
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
 
@@ -113,7 +125,9 @@ export function renderSpecPage(
               specFilePanel(
                 f,
                 now,
-                f.label === EDITABLE_SPEC_FILE ? specEditPath(view.project, view.specFolder) : undefined,
+                f.label === EDITABLE_SPEC_FILE && !view.archived
+                  ? specEditPath(view.project, view.specFolder)
+                  : undefined,
               ),
             )
             .join("");

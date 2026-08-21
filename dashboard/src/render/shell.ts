@@ -138,7 +138,17 @@ function tabBar(entries: NavEntry[], currentPath: string): string {
   // pages, which are NOT tabs — the Projects page lists them, and two
   // lists of the same projects were one too many. A project's own page
   // counts as being "in" Projects, so that tab is current there too.
-  const [projectsPage, ...projects] = entries;
+  //
+  // Except the sections (spec 163): a project page is a generated file,
+  // `<slug>.html`, and anything among the rest with an ABSOLUTE path is
+  // a half of the dashboard rather than a project — so it gets a tab of
+  // its own and is not one of the pages Projects is current on. The
+  // shape is what decides, not the label, and `navFromSite()`'s
+  // fallback nav (all `.html`, no root, no archive to read) therefore
+  // draws exactly the two tabs it always drew.
+  const [projectsPage, ...rest] = entries;
+  const sections = rest.filter((e) => e.path.startsWith("/"));
+  const projects = rest.filter((e) => !e.path.startsWith("/"));
   const onAProject = projects.some((p) => p.path === currentPath);
   // The spec list is `/` for the list itself AND for every job detail
   // page — `job-page.ts` passes the literal `"/"` — so one check covers
@@ -152,6 +162,7 @@ function tabBar(entries: NavEntry[], currentPath: string): string {
     `<nav class="tabbar">` +
     tab("Specs", "/", currentPath === "/") +
     tab("Projects", projectsPage!.path, projectsPage!.path === currentPath || onAProject) +
+    sections.map((e) => tab(e.label, e.path, e.path === currentPath)).join("") +
     `</nav>`
   );
 }

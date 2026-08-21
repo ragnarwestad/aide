@@ -161,6 +161,28 @@ export function specPhaseFile(dir: string, step: string): { label: string; text:
   return null;
 }
 
+/** WHEN a spec was archived, off the `**Archived:** <date>` stamp the
+ *  archive step writes into `4-status.md` (spec 163). The value alone,
+ *  backticks stripped — both shapes are in aide's own archive today,
+ *  a bare line and a Tracking-info bullet.
+ *
+ *  A SECOND reader of the same line as `specPhaseFile`'s, on purpose:
+ *  that one hands a phase panel the whole line to print, this one hands
+ *  the archive listing a value to show and sort on, and neither shape
+ *  serves the other's caller.
+ *
+ *  `null` covers every way the stamp can be missing — no file, no line,
+ *  a line with nothing after it. The stamp only started being written
+ *  at spec 147, so half the archive answers `null` and the caller has a
+ *  fallback for exactly that. */
+export function specArchivedDate(dir: string): string | null {
+  const status = specFileText(dir, "4-status.md");
+  if (!status) return null;
+  const m = status.match(/^.*\*\*Archived:\*\*[ \t]*(.*)$/m);
+  if (!m) return null;
+  return m[1].replace(/`/g, "").trim() || null;
+}
+
 // The `Depends on:` line in Tracking info (spec 92) — the specs this one
 // builds on, comma-separated, backticks and whitespace stripped. A
 // SECOND reader of the same on-disk format, not a shared one: the shell

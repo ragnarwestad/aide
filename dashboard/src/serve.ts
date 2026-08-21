@@ -23,7 +23,8 @@ import { pullFastForward, saveSpecFile } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, specFileText, specPhaseFile, type DiscoveredProject, type SpecRef,
+  gitignoreCandidates, specArchivedDate, specFileText, specPhaseFile, type DiscoveredProject,
+  type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
@@ -48,6 +49,7 @@ import { Runner, type StepOutcome } from "./runner.ts";
 import { summarizeStream } from "./parse-stream.ts";
 import {
   ABOUT_PAGE,
+  ARCHIVE_ROUTE,
   NEW_SPEC_ROUTE,
   OVERVIEW_PAGE,
   PROJECTS_ROUTE,
@@ -60,6 +62,7 @@ import {
   renderAddProjectPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
+  renderArchivePage,
   renderQueuePage,
   renderQueueRows,
   renderSpecEditPage,
@@ -67,6 +70,8 @@ import {
   specEditPath,
   specPagePath,
   EDITABLE_SPEC_FILE,
+  type ArchivePageView,
+  type ArchivedSpecView,
   type JobDetailView,
   type SpecEditPageView,
   type SpecFileView,
@@ -247,6 +252,12 @@ export function createRootLock() {
     },
   };
 }
+
+/** Why an archived spec refuses to be edited (spec 163). One sentence,
+ *  in one place: the GET that would have rendered the form and the POST
+ *  that would have written the file both say it, and the page a reader
+ *  lands on is the spec's own. */
+const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
 
 /** Where a form POST goes back to. Built from the five view keys the
  *  page's own forms send (`FILTER_KEYS`, under `FILTER_FIELD_PREFIX`),
@@ -605,8 +616,15 @@ export function createServer(opts: ServerOptions) {
   // Project names resolve through a short-lived scan: fresh enough that
   // a new spec shows up, cheap enough for a page that refreshes.
   const allowed = new Set(opts.queueProjects ?? []);
-  let scan: { at: number; targets: QueueTarget[]; archived: string[]; dirs: Map<string, string> } | null =
-    null;
+  let scan:
+    | {
+        at: number;
+        targets: QueueTarget[];
+        archived: string[];
+        dirs: Map<string, string>;
+        refs: Map<string, SpecRef>;
+      }
+    | null = null;
   const targets = (): QueueTarget[] => {
     const now = Date.now();
     if (scan && now - scan.at < 5000) return scan.targets;
@@ -618,11 +636,19 @@ export function createServer(opts: ServerOptions) {
     // moved it still has a page, and that page's whole content is the
     // stamp in the folder it moved to.
     const dirs = new Map<string, string>();
+    // And WHAT each of them is, from the same walk (spec 163). `targets`
+    // is live-only by design, so the page of an ARCHIVED spec looked its
+    // title up in a list that could not hold it and rendered no
+    // description line at all — silently, because the H1 comes from the
+    // folder name. One lookup answers the title and whether the spec is
+    // archived, for every spec there is.
+    const refs = new Map<string, SpecRef>();
     if (opts.projectRoot) {
       for (const p of discoverProjects(opts.projectRoot)) {
         if (!allowed.has(p.name)) continue;
         for (const s of p.specs) {
           dirs.set(`${p.name}/${s.folder}`, s.dir);
+          refs.set(`${p.name}/${s.folder}`, s);
           // Remembered by key: a create job keeps its group visible
           // while its spec has not landed, and "archived" is the one
           // proof that it HAS — without it the ghost row outlives the
@@ -686,7 +712,7 @@ export function createServer(opts: ServerOptions) {
         }
       }
     }
-    scan = { at: now, targets: found, archived: gone, dirs };
+    scan = { at: now, targets: found, archived: gone, dirs, refs };
     return found;
   };
 
@@ -698,6 +724,13 @@ export function createServer(opts: ServerOptions) {
   const specDir = (project: string, specFolder: string): string | undefined => {
     targets();
     return scan?.dirs.get(`${project}/${specFolder}`);
+  };
+  /** What that spec IS — its title, and whether it has been archived
+   *  (spec 163). Through the same 5-second scan `specDir` goes through,
+   *  and unlike `targets()` it answers for an archived spec too. */
+  const specRef = (project: string, specFolder: string): SpecRef | undefined => {
+    targets();
+    return scan?.refs.get(`${project}/${specFolder}`);
   };
   /** The checkout a spec folder sits in — the lock key for everything
    *  that touches the specs repository (spec 162).
@@ -959,6 +992,10 @@ export function createServer(opts: ServerOptions) {
     // reason: it carries a real form, and a form's token has to be
     // checked per request.
     path === NEW_SPEC_ROUTE ||
+    // The archive is a read route inside the same surface (spec 163) —
+    // outside the guard it would list every archived spec, and its
+    // links, to anyone who can reach the port.
+    path === ARCHIVE_ROUTE ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -2068,6 +2105,17 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
     }
 
+    // The archive (spec 163): every archived spec, grouped by project,
+    // each linking to the page that has worked since spec 150 and that
+    // nothing pointed at. Read fresh per request, like `/projects` —
+    // nothing polls it, and a record nobody is writing has no cache to
+    // invalidate.
+    if (path === ARCHIVE_ROUTE) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const html = renderArchivePage(await archivePageView(), new Date().toISOString(), nav());
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
     // The SPEC page, and the Update button that keeps it honest (spec
     // 150). Two path segments where the job route has one, so the two
     // are disjoint by shape: a job id never contains a slash, and a
@@ -2127,6 +2175,14 @@ export function createServer(opts: ServerOptions) {
       const [, project, specFolder] = specEdit;
       const dir = specDir(project!, specFolder!);
       if (!dir) return new Response("not found", { status: 404 });
+      // Hiding the Edit button leaves this route reachable for anyone
+      // who already has the URL — so the refusal is here, where the
+      // form would otherwise be rendered, and not only on the page that
+      // links to it (spec 163).
+      if (specRef(project!, specFolder!)?.archived) {
+        logRefusal("edit", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      }
       // Read off disk and out of git on every request, exactly as the
       // Overview tab's own panels are: the text in the box and the
       // commit it is compared against have to be the same instant.
@@ -2154,6 +2210,12 @@ export function createServer(opts: ServerOptions) {
       const [, project, specFolder] = save;
       const dir = specDir(project!, specFolder!);
       if (!dir) return new Response("not found", { status: 404 });
+      // Before the body is even read: this one WRITES, commits and
+      // pushes, and an archived spec's folder is in `archive/`.
+      if (specRef(project!, specFolder!)?.archived) {
+        logRefusal("save", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      }
       const sent = await readBounded(req, MAX_SAVE_BODY);
       if ("refusal" in sent) return sent.refusal;
       let body: Record<string, unknown> = {};
@@ -2237,10 +2299,66 @@ export function createServer(opts: ServerOptions) {
     );
   }
 
+  /** WHEN a spec was archived. The stamp the archive step writes into
+   *  `4-status.md` first; failing that, the commit that last touched the
+   *  folder — an archived spec is not edited afterwards, so the newest
+   *  commit under `archive/<folder>` IS the one that moved it there.
+   *
+   *  `dir` is the spec's OWN folder and the pathspec is `"."`, the same
+   *  dir/pathspec pairing every other `lastCommitOf` call here uses: git
+   *  is run IN the directory being asked about, and a pathspec naming a
+   *  path outside it would answer nothing at all.
+   *
+   *  `null` from both is a real answer and the page prints it in words.
+   *  Only a spec with no stamp reaches git, which since spec 147 is a
+   *  shrinking minority. */
+  async function archivedAt(dir: string): Promise<string | null> {
+    const stamped = specArchivedDate(dir);
+    if (stamped) return stamped;
+    const commit = await lastCommitOf(gitRun, dir, ".");
+    // The DATE, not the instant: every stamp on disk is a date, and one
+    // column reading two ways is worse than either.
+    return commit?.at ? commit.at.slice(0, 10) : null;
+  }
+
+  /** The archive listing, built off the same walk and the same
+   *  allowlist as everything else on the dashboard: a project the queue
+   *  may not run is not a project this dashboard shows. */
+  async function archivePageView(): Promise<ArchivePageView> {
+    if (!opts.projectRoot) return { projects: [] };
+    const projects = await Promise.all(
+      discoverProjects(opts.projectRoot)
+        .filter((p) => allowed.has(p.name))
+        .map(async (p) => {
+          const specs: ArchivedSpecView[] = await Promise.all(
+            p.specs
+              .filter((s) => s.archived)
+              .map(async (s) => ({
+                folder: s.folder,
+                title: s.title ?? undefined,
+                archivedAt: await archivedAt(s.dir),
+                href: specPagePath(p.name, s.folder),
+              })),
+          );
+          // Newest first, and a spec no date could be found for last:
+          // the listing only grows, and what someone came to look up is
+          // far more often recent than old.
+          specs.sort((a, b) => {
+            if (a.archivedAt === b.archivedAt) return b.folder.localeCompare(a.folder, "en", { numeric: true });
+            if (!a.archivedAt) return 1;
+            if (!b.archivedAt) return -1;
+            return b.archivedAt.localeCompare(a.archivedAt);
+          });
+          return { name: p.name, specs };
+        }),
+    );
+    return { projects };
+  }
+
   async function specPageView(project: string, specFolder: string): Promise<SpecPageView | null> {
     const dir = specDir(project, specFolder);
     if (!dir) return null;
-    const target = targets().find((t) => t.project === project && t.specFolder === specFolder);
+    const ref = specRef(project, specFolder);
     // Whatever is in flight, or failing that the most recently active —
     // the rule `jobGroup` uses for the row's own lead, over the same
     // in-flight states (queued and running — there is no stop between
@@ -2256,7 +2374,8 @@ export function createServer(opts: ServerOptions) {
     return {
       project,
       specFolder,
-      title: target?.title,
+      title: ref?.title ?? undefined,
+      archived: ref?.archived ?? false,
       files: await specFileViews(dir),
       lead: lead ? await jobDetailView(lead) : undefined,
       // Built from the page's own path, so the two cannot drift into a

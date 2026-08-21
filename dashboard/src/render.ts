@@ -7,6 +7,7 @@
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
+//   render/archive-page.ts   /archive — every archived spec, by project
 //   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting
@@ -21,7 +22,8 @@
 // none.
 
 export {
-  ABOUT_PAGE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite, navEntries,
+  ABOUT_PAGE, ARCHIVE_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
+  navEntries,
 } from "./render/site.ts";
 export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
@@ -58,6 +60,12 @@ export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./r
 // table rather than carrying copies of them.
 export { EDITABLE_SPEC_FILE, renderSpecPage, specEditPath, specPagePath } from "./render/spec-page.ts";
 export type { SpecPageView } from "./render/spec-page.ts";
+
+// `/archive` — every archived spec, grouped by project (spec 163). The
+// pages it links to are the spec page's; what was missing was the way
+// in.
+export { renderArchivePage } from "./render/archive-page.ts";
+export type { ArchivePageView, ArchiveProjectView, ArchivedSpecView } from "./render/archive-page.ts";
 
 // `/specs/<project>/<specFolder>/edit` — the one of the four files a
 // person owns, in a textarea (spec 162).

@@ -302,6 +302,16 @@ describe("the Edit link", () => {
     expect(html).not.toContain("/edit");
   });
 
+  // Spec 163: an archived spec is a RECORD. Editing was built for a
+  // description that is edited WHILE the work is live (spec 162), and
+  // Save on an archived spec would have written, committed and pushed
+  // into `archive/`.
+  test("is gone on an archived spec, replaced by a note that says why", () => {
+    const html = page(view({ archived: true }));
+    expect(html).not.toContain("/edit");
+    expect(html).toContain("archived");
+  });
+
   // The job page draws its phase's file through the same function. A
   // step's own output is not a thing to hand-edit, and an Edit link
   // there would post the wrong file's text at the description's route.

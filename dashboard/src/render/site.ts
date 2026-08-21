@@ -139,6 +139,11 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
+    // Spec 163. It sits among the project pages rather than beside
+    // Projects because the FIRST entry is what the tab bar reads as the
+    // Projects tab; what makes it a tab of its own instead of a project
+    // is its absolute path, which no project page has.
+    { label: "Archive", path: ARCHIVE_ROUTE },
     ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
   ];
 }
@@ -164,6 +169,12 @@ export const PROJECTS_ROUTE = "/projects";
 /** Where a spec is made (spec 121). It was a disclosure folded into the
  *  spec list until the button that opened it became a link to here. */
 export const NEW_SPEC_ROUTE = "/new";
+
+/** Where the archive is read (spec 163). An archived spec's own page
+ *  has worked since spec 150 — `specDir()` resolves an archived folder
+ *  and the four files render — but nothing linked to one, so the pages
+ *  existed and could not be found. This is the way in. */
+export const ARCHIVE_ROUTE = "/archive";
 
 // The prose itself lives in shell.ts, where the About DIALOG on every
 // page shows the same words — this page is the no-JS fallback the menu
