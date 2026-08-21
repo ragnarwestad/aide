@@ -491,12 +491,11 @@ export class Runner {
         state: "failed",
         finishedAt: this.o.now(),
         error: outcome.error ?? outcome.terminalReason,
-        // The row draws Resolve off this and nothing else (spec 149), so
-        // a conflict found HERE — at step start, by the runner — has to
-        // reach the job the same way a landing's conflict does. Without
-        // it the row read "press Run to try again", which fails
-        // identically. Undefined for every other refusal, which is what
-        // clears a reason left by an earlier attempt.
+        // A conflict found HERE — at step start, by the runner — has to
+        // reach the job the same way a landing's conflict does, so the
+        // failure is stored as what it IS rather than as an unexplained
+        // refusal. Undefined for every other one, which is what clears a
+        // reason left by an earlier attempt.
         errorReason: outcome.errorReason,
       });
       this.announce(failed ?? job, "failed", step, outcome.error ?? outcome.terminalReason);

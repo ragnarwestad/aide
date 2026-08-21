@@ -333,7 +333,8 @@ describe("the edit page", () => {
     specFolder: "150-one-page-shows-the-whole-spec",
     file: "1-description.md",
     text: "## Description\n\nThe dashboard never shows a spec.\n",
-    dependsOn: "",
+    dependsOnOptions: [],
+    dependsOnChecked: [],
     baseSha: "a3f9c21deadbeef",
     saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
     ...extra,
@@ -387,5 +388,67 @@ describe("the edit page", () => {
 
   test("carries the token for a browser that got the page with one", () => {
     expect(edit(editView({ token: "s3cret" }))).toContain('name="token" value="s3cret"');
+  });
+
+  // --- spec 174: the same picker the New-spec page has ---------------------
+  //
+  // Spec 166 shipped this as a free-text input because its own
+  // description asked for "a field" without saying which control. The
+  // New-spec page already had the right one — a checkbox per existing
+  // spec — so this page calls the same function rather than a second
+  // copy of the markup.
+  describe("the Depends on picker", () => {
+    const OPTIONS = [
+      { project: "aide", specFolder: "164-a-spec-can-depend" },
+      { project: "aide", specFolder: "09-ninth" },
+    ];
+    const withOptions = (checked: string[] = []) =>
+      edit(editView({ dependsOnOptions: OPTIONS, dependsOnChecked: checked }));
+
+    test("one checkbox per spec offered, not a text box to type into", () => {
+      const html = withOptions();
+      expect(html).toContain('name="dependsOn"');
+      expect(html).toContain('type="checkbox"');
+      expect(html).toContain('value="164-a-spec-can-depend"');
+      expect(html).toContain('value="09-ninth"');
+      expect(html).not.toContain('<input type="text" name="dependsOn"');
+    });
+
+    // The same order the New-spec page draws: newest first, because the
+    // number is the order a reader thinks in.
+    test("newest first, as on the New-spec page", () => {
+      const html = withOptions();
+      expect(html.indexOf('value="164-a-spec-can-depend"')).toBeLessThan(html.indexOf('value="09-ninth"'));
+    });
+
+    test("what the spec already depends on is ticked", () => {
+      const html = withOptions(["164-a-spec-can-depend"]);
+      expect(html).toMatch(/value="164-a-spec-can-depend"[^>]*checked/);
+      expect(html).not.toMatch(/value="09-ninth"[^>]*checked/);
+    });
+
+    test("a spec that depends on nothing has nothing ticked", () => {
+      // The boxes themselves: the page's stylesheet has a `.checked`
+      // rule in it, which a search of the whole document would find.
+      const boxes = [...withOptions().matchAll(/<input[^>]*name="dependsOn"[^>]*>/g)].map((m) => m[0]);
+      expect(boxes).toHaveLength(2);
+      for (const box of boxes) expect(box).not.toContain("checked");
+    });
+
+    // A project with one spec in it — the one being edited — has
+    // nothing to offer, and the server has already left it out. The
+    // field is then absent rather than an empty box (the New-spec page
+    // does the same).
+    test("nothing to depend on, no field", () => {
+      const html = edit(editView({ dependsOnOptions: [], dependsOnChecked: [] }));
+      expect(html).not.toContain('name="dependsOn"');
+      // The note about when a dependency takes effect goes with it:
+      // there is nothing on the page for it to be about.
+      expect(html).not.toContain("next gated step");
+    });
+
+    test("the note about when it takes effect stays beside the picker", () => {
+      expect(withOptions()).toContain("next gated step");
+    });
   });
 });

@@ -739,6 +739,31 @@ export function createServer(opts: ServerOptions) {
     targets();
     return scan?.refs.get(`${project}/${specFolder}`);
   };
+  /** What a spec's `Depends on:` line RESOLVES to, folder by folder
+   *  (spec 174) — which boxes the Edit page's picker ticks.
+   *
+   *  Through `resolveDependencyFolder`, the same reader the save route
+   *  and the runtime gate use, because the line is written by hand as
+   *  often as by the page and `164` is what a person types. An
+   *  identifier nothing matches simply ticks nothing: this is a form
+   *  being drawn, not a run being gated, and the refusal for a typo
+   *  belongs to Save and to `aide-run-spec`.
+   *
+   *  Not `targets()`: an entry may name an already-archived spec, which
+   *  that scan drops. Such an entry ticks no box either — the picker
+   *  offers live specs only — but it must not be mistaken for one that
+   *  resolves to a live one. */
+  const dependencyFolders = (project: string, dir: string): string[] => {
+    const ids = specDependsOn(dir);
+    if (ids.length === 0 || !opts.projectRoot) return [];
+    const discovered = discoverProjects(opts.projectRoot).find((p) => p.name === project);
+    if (!discovered) return [];
+    return ids.flatMap((id) => {
+      const dep = resolveDependencyFolder(discovered, id);
+      return dep && !dep.archived ? [dep.folder] : [];
+    });
+  };
+
   /** The checkout a spec folder sits in — the lock key for everything
    *  that touches the specs repository (spec 162).
    *
@@ -2244,7 +2269,16 @@ export function createServer(opts: ServerOptions) {
         // into a field of its own. Left in both, a save could not tell
         // which of the two the person meant.
         text: stripDependsOnLine(specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
-        dependsOn: specDependsOn(dir).join(", "),
+        // Spec 174: the New-spec page's picker, fed this project's own
+        // active specs. Self excluded — the one box that could only ever
+        // earn spec 166's "cannot depend on itself" refusal.
+        dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
+        // Ticked by what the LINE resolves to, not by what it says:
+        // `resolve_dependency_folder` takes a bare number, and a
+        // hand-written line usually is one — matching the raw string
+        // against a folder would leave a real dependency unticked, and
+        // the next Save would then silently drop it.
+        dependsOnChecked: dependencyFolders(project!, dir),
         baseSha: commit?.sha,
         saveAction: `/api/queue${specPagePath(project!, specFolder!)}/save`,
         token: queueToken,

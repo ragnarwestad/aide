@@ -422,21 +422,57 @@ describe("the Depends on field", () => {
 
   // --- criteria 1, 2: what the page opens with ------------------------------
 
-  test("a spec that depends on nothing opens with the field empty", async () => {
+  test("a spec that depends on nothing opens with nothing ticked", async () => {
     const { base } = startTracked(savable("/host"));
     const html = await (await fetch(`${base}${EDIT}`, auth)).text();
-    expect(html).toContain('name="dependsOn"');
-    expect(html).toContain('name="dependsOn" value=""');
+    // Spec 174: a box per spec in the project, as on the New-spec page
+    // — never a line to type an identifier into.
+    expect(html).toContain(`value="${OTHER}"`);
+    expect(html).not.toContain('<input type="text" name="dependsOn"');
+    // The boxes, not the whole document: the stylesheet carries a
+    // `.checked` rule of its own.
+    for (const box of html.match(/<input[^>]*name="dependsOn"[^>]*>/g) ?? []) {
+      expect(box).not.toContain("checked");
+    }
     expect(html).not.toContain("Depends on:**");
   });
 
-  test("an existing line pre-fills the field and leaves the textarea", async () => {
+  test("an existing line ticks its box and leaves the textarea", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
     const html = await (await fetch(`${base}${EDIT}`, auth)).text();
-    expect(html).toContain(`name="dependsOn" value="${OTHER}"`);
+    expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
     // The raw markdown is gone from the box: one control for one fact.
     expect(html).not.toContain("Depends on:**");
     expect(html).toContain("As it was.");
+  });
+
+  // Spec 174. The line is written by hand as often as by this page, and
+  // `resolve_dependency_folder` has always taken a bare number — so the
+  // box that gets ticked is the one the RUNNER would resolve the line
+  // to, not the one whose folder happens to match the text.
+  test("a dependency written as a bare number ticks the spec it resolves to", async () => {
+    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
+  });
+
+  // A spec cannot depend on itself, and spec 166 spent a refusal saying
+  // so. With a list of real specs the case mostly stops arising: the
+  // one box that would say it is not drawn.
+  test("the spec being edited is not among the boxes", async () => {
+    const { base } = startTracked(savable("/host"));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).not.toContain(`value="${SPEC}"`);
+  });
+
+  // The narrowing this control brings, stated as a test rather than
+  // left to be discovered: `targets()` is the live list, so an archived
+  // spec is not offered as a NEW dependency. One already written into
+  // the line still resolves and still gates the run.
+  test("an archived spec is not offered as a new dependency", async () => {
+    const { base } = startTracked(savable("/host"));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).not.toContain(`value="${ARCHIVED}"`);
   });
 
   // --- criterion 8: when the change takes effect ----------------------------
@@ -478,6 +514,34 @@ describe("the Depends on field", () => {
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS("99")));
+  });
+
+  // Spec 174: what the checkbox set actually POSTs — the field repeated
+  // once per ticked box, where the old text input sent one comma-joined
+  // string. The route already took both shapes; this is the regression
+  // check that says so out loud.
+  test("two ticked boxes arrive as two fields and both are written", async () => {
+    const THIRD = "88-a-third-spec";
+    const { base, dir } = harness.start({
+      description: TRACKED(),
+      alsoSpecs: [OTHER, THIRD],
+      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+    });
+    const body = new URLSearchParams([
+      ["text", TRACKED()],
+      ["baseSha", FILE_SHA],
+      ["dependsOn", OTHER],
+      ["dependsOn", THIRD],
+    ]);
+    const res = await fetch(`${base}${SAVE}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+      body: body.toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(`${DEPENDS(OTHER)}, \`${THIRD}\``));
   });
 
   test("emptying the field removes the line", async () => {

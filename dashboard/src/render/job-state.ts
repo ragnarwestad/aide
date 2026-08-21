@@ -154,7 +154,8 @@ export function stateChip(r: QueueRowView): string {
 /** What the badge says when nothing is running: the resting state and
  *  what can happen next, in one sentence. Handed in rather than worked
  *  out here, because none of it is the JOB's to know — `readyPhase` is
- *  the SPEC's answer (see `nextActionHint`).
+ *  the SPEC's answer, worked out by the caller from the spec's own
+ *  files.
  *
  *  `mergeReady` was the third of them until spec 149. It said "ready to
  *  merge the code" for a branch a person was expected to press Merge
@@ -179,9 +180,9 @@ export interface RestingState {
  *  next. `queued` said neither — one bare word, with the step it was
  *  waiting to run known all along — and `done` said the resting state
  *  without the half that matters, while the sentence disambiguating it
- *  sat one line lower. The order of the resting cases is
- *  `nextActionHint`'s own, unchanged: a branch to merge outranks a
- *  phase to run, and a held-back archive outranks both. */
+ *  sat one line lower. The order of the resting cases came from the
+ *  sentence this badge replaced: a branch to merge outranks a phase to
+ *  run, and a held-back archive outranks both. */
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
   if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
@@ -225,23 +226,6 @@ export function currentStep(r: QueueRowView): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }
 
-/** What this job is doing, in words: the verb alone while it runs
- *  (`archiving`), or what it is waiting to become while it queues
- *  (`queued to archive`) — never the step name and the raw state glued
- *  together, which is what it said until spec 161 (`archive running`).
- *  Both pages ask this one function, for the same reason `stateLabel`
- *  exists — a spec's state and a phase's state are the same question at
- *  two altitudes and must never be worded differently.
- *
- *  Only ever asked of a job in flight (`branchActivity` gates it on
- *  `inFlight`), so the two branches here are the whole vocabulary. A
- *  queued job gets its own phrasing rather than the bare gerund: it has
- *  not started, and "analyzing" would say it had. */
-export function activityLabel(r: QueueRowView): string {
-  const step = currentStep(r);
-  return r.state === "queued" ? `queued to ${stepLabel(step)}` : gerund(step);
-}
-
 // A branch link says where the work IS, never whether it landed, so a
 // finished job reads as a delivered one. The caveat sits beside the link
 // on both pages, and disappears the moment the branch is an ancestor of
@@ -252,78 +236,22 @@ export function activityLabel(r: QueueRowView): string {
 // project's branch landed and the specs repo's did not, and that is
 // exactly the state that went unnoticed three times on 2026-08-17.
 //
-// It used to say "not merged" whatever the job was doing — a fact about
-// the BRANCH, read as a verdict on the spec. Beside a step that was
-// still writing to that branch it said nothing about the one thing that
-// decided whether the branch mattered, so the badge is handed the job's
-// activity and says that instead.
+// It said "ready to merge" until spec 149, which was an instruction:
+// press the button. There is no button — every step lands its own work
+// — so the one window a branch can legitimately sit open in is after
+// `implement` and before `archive`, and the badge states that rather
+// than asking for anything.
 //
-// What is left once there is no activity to report used to be "ready to
-// merge", which was an instruction: press the button. Spec 149 removed
-// the button — every step lands its own work — so the one window a
-// branch can legitimately sit open in is after `implement` and before
-// `archive`, and the badge states that rather than asking for anything.
-export function unmergedBadge(b: BranchView, activity?: string): string {
+// Between spec 96 and spec 174 it was handed the job's own verb while
+// one was in flight ("archiving"), on the reasoning that a branch a
+// step is still writing to is a different thing from one left behind.
+// The State column beside it gerunds the same job already, so a row
+// with two repos said the verb three times. The branch is unmerged
+// either way and `archive` is what lands it: one answer, whatever the
+// job is doing.
+export function unmergedBadge(b: BranchView): string {
   if (b.merged) return "";
-  if (activity) return ` ${badge("running", activity)}`;
   return ` ${badge("ready", "waiting for archive")}`;
-}
-
-/** The badge's second argument, worked out from the job that owns the
- *  branch — written once so the two pages cannot drift on when a job
- *  counts as busy any more than on what to call it. */
-export const branchActivity = (r: QueueRowView): string | undefined =>
-  inFlight(r) ? activityLabel(r) : undefined;
-
-/** The line UNDER the badge, for the states whose badge cannot carry
- *  the whole answer: never run, waiting on a person, or stopped short.
- *  Everything else on the row answers a narrower question — the pips
- *  say what has run, the chip says the state, the badges say what is
- *  unmerged — and a reader had to assemble the answer from all of them.
- *
- *  Spec 132: a resting `done` says nothing here any more. Its four
- *  sub-cases are what the badge itself now reads (`specStateChip`), the
- *  same way an in-flight row has said its verb in the badge and nothing
- *  below it since spec 101 — saying it in both places is the row
- *  telling a reader one fact at two levels of precision.
- *
- *  That move took two of this function's arguments with it. The spec's
- *  open branch (spec 96) and the earliest phase its own FILES say has
- *  not happened (spec 111) were read HERE only to word the `done`
- *  sentence; the caller works both out exactly as before and hands them
- *  to `specStateChip` instead. Spec 143 took the third — the held-back
- *  archive — to the row's panel (`specNotice`) for the same reason it
- *  took it out of the badge: it is a sentence, and every cell on this
- *  row is sized for a word. Nothing free-text is left here.
- *
- *  Built from `stepLabel`/`currentStep` rather than from new literals,
- *  for the same reason those exist: the same job must not be worded one
- *  way in the chip and another way here. It says nothing the row does
- *  not already contain — it says it in one place, as a sentence. */
-export function nextActionHint(r: QueueRowView | undefined): string {
-  if (!r) return "never run — tick a phase and press Run";
-  // In flight the sentence says NOTHING (asked for 2026-08-19): the
-  // spec's chip already reads "analyzing" (`specStateChip`) and the
-  // running phase line says the rest — "analyze running — review to
-  // follow" was the same fact a third time.
-  if (r.state === "queued" || r.state === "running") return "";
-  // Spec 132 said the file's reason here for the four states BELOW —
-  // failed, stopped, cancelled, interrupted — because the badge that
-  // reads "failed" has no room for it. Spec 143 moved it to the row's
-  // own panel (`specNotice`), which has the width for a sentence and
-  // draws it for every state: the State column is a cell sized for a
-  // word, and putting the sentence back here would only reinstate the
-  // overflow one state further along. What is left is the same thing
-  // the other stopped-short rows say — what to press.
-  //
-  // A resting `done` says the whole of it in the badge
-  // (`specStateChip`): the branch waiting, the phase that is ready, or
-  // that nothing is waiting on anyone.
-  if (r.state === "done") return "";
-  // failed, stopped, cancelled, interrupted: the chip beside this line
-  // already says which of the four it was, and the row's own error text
-  // says why. What is missing is what to do about it.
-  return `press Run to try ${stepLabel(currentStep(r))} again`;
 }
 
 // --- spec 143: the one long message a row has to say -------------------------

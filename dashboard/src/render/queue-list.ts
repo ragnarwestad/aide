@@ -41,10 +41,8 @@ import {
 import {
   IN_FLIGHT,
   anyCostUnmeasured,
-  branchActivity,
   currentStep,
   inFlight,
-  nextActionHint,
   specNotice,
   type RestingState,
   notStartedChip,
@@ -786,7 +784,7 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
 // Every repo the spec pushed to, each with its own compare link and its
 // own merge state. Never one link standing in for two: the two branches
 // share a NAME and nothing else.
-function branchList(branches: BranchView[], activity?: string): string {
+function branchList(branches: BranchView[]): string {
   if (branches.length === 0) return "";
   // A lead-in, because bare repo names read as words that fell out of
   // something else (asked for 2026-08-19).
@@ -803,7 +801,7 @@ function branchList(branches: BranchView[], activity?: string): string {
             ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
               `title="open this branch's own build">preview</a>`
             : "") +
-          `${unmergedBadge(b, activity)}</span>`,
+          `${unmergedBadge(b)}</span>`,
       )
       .join("") +
     `</span>`
@@ -1205,11 +1203,10 @@ function specHeadRow(
     `<a class="label" href="${esc(specPagePath(g.project, g.specFolder))}" ` +
     `title="${esc(g.project)}:${esc(g.specFolder)}">` +
     `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`;
-  // The badge is about the branch AND the job that is still writing to
-  // it, so the row's lead job comes down with the list.
-  const diff = g.branches.length
-    ? ` ${branchList(g.branches, g.lead ? branchActivity(g.lead) : undefined)}`
-    : "";
+  // The mark beside each link is about the BRANCH alone (spec 174):
+  // whether it landed, and what lands it. What the row's lead job is
+  // doing is the State column's answer, said there once.
+  const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
@@ -1280,11 +1277,12 @@ function specHeadRow(
     // say "N attempts" on a re-run). Removed 2026-08-19.
     `<td>${progress}</td>` +
     // The badge says what is happening, or — once nothing is — the
-    // resting state and what can happen next (spec 132). The line
-    // beneath it is for the states whose badge cannot carry the whole
-    // answer. The pips, the badge and the branch marks each answer a
-    // narrower question, and a reader had to assemble this from all of
-    // them.
+    // resting state and what can happen next (spec 132). A sentence
+    // under it said what to press until spec 174: the button beside it
+    // names the phase it would run, so the line was telling a reader to
+    // press the control they were looking at, to do what it already
+    // said. The pips, the badge and the branch marks each answer a
+    // narrower question of their own.
     //
     // The row's one button stands beside the badge since spec 157,
     // completing the sentence it starts: "archive held back ·
@@ -1304,9 +1302,7 @@ function specHeadRow(
       opts,
       opened.has(groupKey(g.project, g.specFolder)),
     )}</span></span>` +
-    `<div class="muted small">${esc(
-      nextActionHint(g.lead),
-    )}</div></td>` +
+    `</td>` +
     `<td data-col="started">${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     // The spare cell, blank on every row since spec 157: the one

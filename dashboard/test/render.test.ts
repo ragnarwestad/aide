@@ -500,8 +500,13 @@ describe("the queue row links to the spec (criterion 12)", () => {
 // Spec 96 (criteria 1, 3, 9): "not merged" was a fact about the BRANCH
 // that read as a verdict on the spec — shown in the same amber whether
 // the job that made the branch had finished or was still writing to it.
-// A branch whose job is still going now says what that job is DOING; one
-// whose job has stopped says the work is ready.
+// A branch whose job is still going said what that job was DOING; one
+// whose job had stopped said the work was ready.
+//
+// Spec 174 took the verb back off: the State column beside the list
+// already gerunds the same job once, so a two-repo row said it three
+// times. The repo mark answers WHERE the work is and whether it landed
+// — "waiting for archive" whatever the job is doing.
 describe("the unmerged badge (criteria 1-4)", () => {
   const BRANCH = "https://example.test/compare";
   // Spec 89: one entry per repo. A one-repo spec — `paceup`,
@@ -518,43 +523,60 @@ describe("the unmerged badge (criteria 1-4)", () => {
     const list = html.slice(html.indexOf('class="branchlist"'));
     return list.match(/<span class="badge b-\w+"[^>]*>(?:<span class="dot"[^>]*><\/span>)?([^<]*)</)?.[1] ?? "";
   };
+  /** The repo list and NOTHING after it: it sits in the name cell,
+   *  which the State cell follows — so a slice to the end of the row
+   *  would carry the very chip these tests prove it does not repeat
+   *  (spec 174). */
+  const branchArea = (html: string): string => {
+    const from = html.slice(html.indexOf('class="branchlist"'));
+    return from.slice(0, from.indexOf("</td>"));
+  };
   const jobPage = (extra: Partial<JobDetailView>) =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
 
-  test("a branch whose job is still going says what the job is doing (criterion 1)", () => {
+  // Spec 174, criterion 3: the mark does not echo the job's verb any
+  // more. The State chip is asserted here too, because it is the one
+  // that must go on carrying the verb — the removal is of the SECOND
+  // telling, not of the word.
+  test("a branch whose job is still going is still waiting for archive (spec 174)", () => {
     const html = queueRows({ branchUrls: at(false), state: "running" });
-    // Spec 161: the verb alone, never the step name and the raw state
-    // glued together.
-    expect(branchBadge(html)).toBe("analyzing");
-    expect(html).not.toContain("analyze running");
-    expect(html).not.toContain("waiting for archive");
+    expect(branchBadge(html)).toBe("waiting for archive");
+    // Once, in the State column, and nowhere near the repo list.
+    expect(html).toContain(">analyzing<");
+    expect(branchArea(html)).not.toContain("analyzing");
     // The link a reader already uses is untouched beside it.
     expect(html).toContain(`href="${BRANCH}"`);
   });
 
-  // Spec 161, criterion 3. A queued job has not started, so the bare
-  // gerund would say it had; and "analyze queued" is the shape this
-  // spec is removing. It says what it is waiting to become instead.
-  test("a queued job says what it is queued to do, not that it is doing it (spec 161)", () => {
+  // Spec 161 gave a queued job its own phrasing here — "queued to
+  // analyze" — because the bare gerund would have said it had started.
+  // Spec 174: the repo mark says neither. The State chip still does.
+  test("a queued job's repo mark says nothing about the queue either (spec 174)", () => {
     const html = queueRows({ branchUrls: at(false), state: "queued", steps: ["analyze"] });
-    expect(branchBadge(html)).toBe("queued to analyze");
-    expect(html).not.toContain("analyze queued");
+    expect(branchBadge(html)).toBe("waiting for archive");
+    expect(branchArea(html)).not.toContain("queued to");
+    // Spec 161's wording lives on where it belongs.
+    expect(html).toContain(">analyzing queued<");
   });
 
-  // Spec 161, criterion 4. `review-plan` is the one that cannot be
-  // gerunded off the step name — it reads as the reader's word,
-  // "reviewing", not "review-planing".
+  // Spec 161, criterion 4 moved to the State chip alone: `review-plan`
+  // is the one step that cannot be gerunded off its step name — it
+  // reads as the reader's word, "reviewing", not "review-planing".
+  // Spec 174 keeps that coverage and asserts the repo mark stays out of
+  // it, for every step and both in-flight states.
   test.each([
-    ["create", "creating", "queued to create"],
-    ["analyze", "analyzing", "queued to analyze"],
-    ["review-plan", "reviewing", "queued to review"],
-    ["implement", "implementing", "queued to implement"],
-    ["archive", "archiving", "queued to archive"],
-  ])("a %s job's branch badge reads %s (spec 161)", (step, running, queued) => {
-    const run = queueRows({ branchUrls: at(false), state: "running", steps: [step], stepIndex: 0 });
-    expect(branchBadge(run)).toBe(running);
-    const wait = queueRows({ branchUrls: at(false), state: "queued", steps: [step], stepIndex: 0 });
-    expect(branchBadge(wait)).toBe(queued);
+    ["create", "creating"],
+    ["analyze", "analyzing"],
+    ["review-plan", "reviewing"],
+    ["implement", "implementing"],
+    ["archive", "archiving"],
+  ])("a %s job's repo mark says 'waiting for archive', and the chip says %s", (step, running) => {
+    for (const state of ["running", "queued"] as const) {
+      const html = queueRows({ branchUrls: at(false), state, steps: [step], stepIndex: 0 });
+      expect(branchBadge(html)).toBe("waiting for archive");
+      expect(html).toContain(state === "running" ? `>${running}<` : `>${running} queued<`);
+      expect(branchArea(html)).not.toContain(running);
+    }
   });
 
   test("a branch whose job has stopped is waiting for archive (criterion 3)", () => {
@@ -2438,15 +2460,20 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   });
   const rows = (list: QueueRowView[], targets: QueueTarget[] = []) =>
     renderQueueRows(list, { runnerAvailable: true, targets }, Date.parse("2026-08-18T12:00:00Z"));
-  // The sentence sits in the state cell now, under the badge it
-  // explains, and is the last thing in that cell.
-  const hint = (html: string) => {
+  // The sentence used to sit in the state cell, under the badge it
+  // explained. Spec 174 removed it and the div it filled: the button
+  // beside the badge names the phase it would run, so the sentence
+  // told a reader to press the control they were looking at. `hint`
+  // stays as the reader of that div — it is how these tests say the
+  // div is not there.
+  const stateCell = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     // The THIRD cell: name, progress, state (the action cell went back
     // to the end of the row, 2026-08-19).
-    const state = head.split("<td")[3] ?? "";
-    return state.match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
+    return head.split("<td")[3] ?? "";
   };
+  const hint = (html: string) =>
+    stateCell(html).match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
   /** Spec 132: the FIRST line — the badge itself. Once nothing is
    *  running it carries the whole sentence, and `hint` above is empty.
    *  The dot comes off first: it is the badge's live mark, not a word. */
@@ -2456,9 +2483,18 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
 
-  test("a spec nothing has run says what the next click is", () => {
-    const text = hint(rows([], [target("101-never-run")]));
-    expect(text).toContain("Run");
+  // Spec 174, criteria 1-2: it used to say "never run — tick a phase
+  // and press Run", beside a button that already reads "Analyze". The
+  // page says what IS; the controls say what can be done.
+  test("a spec nothing has run is not told what to press", () => {
+    const cell = stateCell(rows([], [target("101-never-run")]));
+    expect(cell).not.toContain("press Run");
+    expect(cell).not.toContain("tick a phase");
+    // The div itself, not only its text: an empty one is a line the
+    // row draws and can never fill.
+    expect(cell).not.toContain('<div class="muted small">');
+    // The badge and the button are untouched — they are what says it.
+    expect(cell).toContain("not started");
   });
 
   // In flight the sentence says nothing (asked for 2026-08-19): the
@@ -2486,13 +2522,19 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(head).not.toContain("review-planing");
   });
 
-  test("a job that stopped short says how to try again", () => {
+  // Spec 174: "press Run to try implement again" sat directly above a
+  // button reading "Implement". The four states keep their badge; the
+  // sentence goes.
+  test("a job that stopped short is not told how to try again", () => {
     for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
-      const text = hint(
+      const cell = stateCell(
         rows([row({ specFolder: "101-a", steps: ["implement"], state })], [target("101-a")]),
       );
-      expect(text).toContain("Run");
-      expect(text).toContain("implement");
+      expect(cell).not.toContain("press Run");
+      expect(cell).not.toContain('<div class="muted small">');
+      // Which of the four it was is still said, in the badge (a
+      // cap-stop names its cap there too, hence toContain).
+      expect(cell).toContain(state);
     }
   });
 
@@ -2610,17 +2652,19 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(chip(html)).not.toContain("nothing waiting on you");
   });
 
-  // A run that stopped short has better wording of its own — it says
-  // why, and what to press. "ready for X" must not widen into it.
-  test("a job that stopped short keeps its retry wording, whatever the files say", () => {
+  // A run that stopped short says which of the four it was, whatever
+  // the spec's files say has been done: "ready for X" must not widen
+  // into a state that stopped. Until spec 174 the retry sentence below
+  // the badge was what this test read; the badge is what carries it now.
+  test("a job that stopped short keeps its own badge, whatever the files say", () => {
     for (const state of ["failed", "stopped", "cancelled", "interrupted"] as const) {
-      const text = hint(
-        rows(
-          [row({ specFolder: "101-a", steps: ["implement"], state })],
-          [target("101-a", { done: ["analyze", "review-plan"] })],
-        ),
+      const html = rows(
+        [row({ specFolder: "101-a", steps: ["implement"], state })],
+        [target("101-a", { done: ["analyze", "review-plan"] })],
       );
-      expect(text).toBe("press Run to try implement again");
+      expect(chip(html)).toContain(state);
+      expect(chip(html)).not.toContain("ready for");
+      expect(hint(html)).toBe("");
     }
   });
 
@@ -2658,7 +2702,9 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
         "archive held back — the Slack webhook",
       );
-      expect(hint(html)).toBe("press Run to try archive again");
+      // Spec 174: and nothing under the badge at all any more.
+      expect(hint(html)).toBe("");
+      expect(stateCell(html)).not.toContain('<div class="muted small">');
       expect(html.match(/the Slack webhook/g)).toHaveLength(1);
     }
   });
@@ -2675,13 +2721,20 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(text).not.toContain("held back");
   });
 
-  test("every row has the line — a hint that is blank on half the rows says nothing", () => {
+  // Spec 101 asked for the line on EVERY row, so a blank one did not
+  // read as a row missing something. Spec 174 took the line off every
+  // row instead, which answers the same worry the other way: no row
+  // draws it, so none is missing it.
+  test("no row draws the line any more", () => {
     const html = rows(
       [row({ specFolder: "101-a", state: "running" })],
       [target("101-a"), target("101-b")],
     );
-    // The hint closes the state cell on every row.
-    expect([...html.matchAll(/<\/span><div class="muted small">[^<]*<\/div><\/td>/g)]).toHaveLength(2);
+    // The spec rows only: a phase line has asides of its own in the
+    // same class, and those are not what this spec removed.
+    const heads = [...html.matchAll(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/g)].map((m) => m[0]);
+    expect(heads).toHaveLength(2);
+    for (const head of heads) expect(head).not.toContain('<div class="muted small">');
   });
 });
 
