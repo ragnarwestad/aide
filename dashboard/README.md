@@ -15,7 +15,7 @@
     - [Whether a run can start there (spec 138)](#whether-a-run-can-start-there-spec-138)
     - [What Add finishes itself (spec 140)](#what-add-finishes-itself-spec-140)
   - [How many run at once](#how-many-run-at-once)
-  - [Gates and notifications](#gates-and-notifications)
+  - [Notifications](#notifications)
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
@@ -174,7 +174,7 @@ a time instead.
 **Every phase the job in flight was queued with shows its box
 disabled**, not merely the step it has reached, because the queue would
 refuse any of them anyway (see
-[the duplicate guard](#gates-and-notifications)) — a job queued as
+[the duplicate guard](#notifications)) — a job queued as
 `analyze` + `review-plan` left `review-plan` tickable until the moment
 it got there, and Run then answered "already running on this spec".
 The box says why on hover ("analyze is running"), in the same words the
@@ -748,31 +748,34 @@ used to read "not merged" whatever was going on — a fact about the
 BRANCH that read as a verdict on the spec, shown in the same amber
 while the step writing that branch was still running. So while the
 spec's job is in flight the badge names what it is doing
-(`review-plan running`), and once nothing is running it reads **ready
-to merge**.
+(`review-plan running`), and once nothing is running it says what is
+open and why — the one window that still exists being the code after
+`implement` and before `archive`.
 
-Beside the approve/cancel action sits the merge button, and it says
-**Merge** — one word. What a press would land is said on the row
-instead, in the State column: **ready to merge the plan** when only the
-specs repo is behind, **ready to merge the code** when only the project
-is, **ready to merge plan and code** when both are. The repo names stay
-in the tooltip. A branch whose label is a known project name is that
+**Nothing here is merged by hand (spec 149).** Every step lands its own
+work the moment it finishes: `create`, `analyze`, `review-plan` and
+`resolve` merge the branch they pushed into that repo's default branch
+and delete it on origin; `implement` lands nothing, so the code stays
+on the branch for anyone who wants to read or test it first; `archive`
+merges every repo the spec's branch still exists in — the specs repo
+first, the code last, so the code is the last word — runs
+`AIDE_INSTALL_CMD` after a code root exactly as the old Merge route did,
+and then archives. Leaving `archive` unticked IS the inspection
+point. A landing that cannot be made (a conflict with the default
+branch) is refused by name, the branch stays where it was, and the row
+offers Resolve. A branch whose label is a known project name is that
 project's code; a label that is not any project on this machine is the
 specs repo, which is a closed set rather than a guess
 (`.claude/rules/development.md`: "the run only watches ... the roots it
 knows about").
 
-Spec 96 put that sentence ON the button, because the button was where a
-reader was looking; spec 132 moved it to where the rest of the row's
-state lives. What 96 was for is untouched — a plan merge changes only
-the specs repo, a code merge is what reaches the serving host, and the
-page still says which. What went is a button whose label was a sentence
-for a control with one outcome: whatever it read, pressing it merged
-whatever was open. There is no choice AT the button, so there was
-nothing there for a label to help decide. The button also left the
-collapsed row entirely: it was the one action on this page living
-outside the panel every other action lives in, and acting now means
-opening the row.
+There was a Merge button until spec 149 — spec 96 put the sentence
+"what a press would land" on it, spec 132 moved that sentence into the
+State column and the button into the opened row's panel. Both were
+about a control that had one outcome: whatever it read, pressing it
+merged whatever was open. Spec 149 took the press away: the steps that
+made the work know when it is done, and `create` and `archive` had
+already been landing themselves for the same reason (specs 93 and 136).
 
 While a step is still running that button is **disabled**, and a small
 "merge anyway" sits beside it behind a confirmation. Merging an
@@ -849,9 +852,9 @@ to do next there (spec 135). Pressing it queues an ordinary job with one
 step, `resolve`, which does by machine what the by-hand routine did —
 in a worktree of the spec's branch, merge origin's default branch into
 it, resolve the conflicts, run the project's test command, and push the
-BRANCH. The row then reads "ready to merge" again and a person presses
-Merge, so the resolution is a diff they look at first. The default
-branch is never touched by the step.
+BRANCH — and the dashboard lands it, the way it lands any other step's
+work (spec 149). The default branch is never touched by the step
+itself.
 
 - **It is offered for a conflict and nothing else.** Every other
   refusal here — a branch gone from origin, a base that will not
@@ -974,9 +977,9 @@ earlier per-step lookup let a row show a step as tickable, and Run as
 clickable, while a job was already running on the spec — the queue
 would refuse the request, so the row promised something it could not
 keep. Every control that can act on a busy row — the phase boxes, the
-Run button, the model/gate/"also touches" fields, and the Merge button
-in the opened row's stack — reads the same flag, so a new control
-cannot forget to check it.
+Run button, the model and "also touches" fields, and Resolve in the
+opened row's stack — reads the same flag, so a new control cannot
+forget to check it.
 
 ### A structural marker with no CSS rule uses data-*, not a class (spec 123)
 

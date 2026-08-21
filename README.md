@@ -223,10 +223,11 @@ belong together (`AIDE_INSTALL_CMD`), and a background pull would move
 the code under a server that goes on running the old version — merged,
 but not deployed, and reported as deployed.
 
-Code that landed some other way is REPORTED instead of pulled. The
-dashboard's own Merge button runs `AIDE_INSTALL_CMD` and says what
-happened; a merge made from a laptop, the GitHub web UI or another
-machine runs nothing at all. For every project that has an install
+Code that landed some other way is REPORTED instead of pulled. A merge
+the dashboard makes itself — an `archive` step landing a spec's code
+(spec 149) — runs `AIDE_INSTALL_CMD` and says what happened; a merge
+made from a laptop, the GitHub web UI or another machine runs nothing
+at all. For every project that has an install
 command configured, `/projects` compares the checkout against
 `origin` on each load and says "N commits behind origin — deploy is a
 hand step" on that project's row. It only ever looks: nothing on that
