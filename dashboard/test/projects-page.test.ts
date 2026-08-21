@@ -237,6 +237,15 @@ describe("the Remove page", () => {
     expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
   });
 
+  // Spec 161 made every row action on the queue primary, Cancel
+  // included, and left `danger` meaning exactly one thing on the whole
+  // dashboard: an action a mistake cannot undo. Remove is that one, and
+  // this is the guard that it was not swept up in the change.
+  test("Remove keeps danger — it is the one thing that cannot be undone (spec 161)", () => {
+    const html = remove("atlasaurus").split("</style>").pop()!;
+    expect(html).toMatch(/<button[^>]*class="btn danger"[^>]*>/);
+  });
+
   // Without the page's own code the typed confirmation is server-side
   // only and every refusal costs a page load.
   test("the pages carry the browser code the controls need", () => {

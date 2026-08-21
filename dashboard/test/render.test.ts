@@ -447,7 +447,10 @@ describe("the queue row links to the spec (criterion 12)", () => {
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).toContain('<span class="branchlist"><span class="lbl">Affected repos:</span>');
+    expect(html).toContain('<span class="branchlist"><span class="lbl">Repos:</span>');
+    // Spec 161: "Affected" said nothing — a repo listed on a spec's row
+    // is affected by it, which is why it is listed.
+    expect(html).not.toContain("Affected repos");
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).toContain(".spec-name > .label { overflow: hidden; text-overflow: ellipsis;");
   });
@@ -484,15 +487,52 @@ describe("the unmerged badge (criteria 1-4)", () => {
   const at = (merged: boolean) => [{ label: "aide", url: BRANCH, merged }];
   const queueRows = (extra: Partial<QueueRowView>) =>
     renderQueueRows([row(extra)], { runnerAvailable: true, targets: [] });
+  /** The badge BESIDE THE BRANCH LINK, and no other badge on the row.
+   *  The State column already gerunds (spec 132), so a bare
+   *  `toContain("analyzing")` would pass off that one and prove
+   *  nothing about this one. */
+  const branchBadge = (html: string): string => {
+    const list = html.slice(html.indexOf('class="branchlist"'));
+    return list.match(/<span class="badge b-\w+"[^>]*>(?:<span class="dot"[^>]*><\/span>)?([^<]*)</)?.[1] ?? "";
+  };
   const jobPage = (extra: Partial<JobDetailView>) =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
 
   test("a branch whose job is still going says what the job is doing (criterion 1)", () => {
     const html = queueRows({ branchUrls: at(false), state: "running" });
-    expect(html).toContain("analyze running");
+    // Spec 161: the verb alone, never the step name and the raw state
+    // glued together.
+    expect(branchBadge(html)).toBe("analyzing");
+    expect(html).not.toContain("analyze running");
     expect(html).not.toContain("waiting for archive");
     // The link a reader already uses is untouched beside it.
     expect(html).toContain(`href="${BRANCH}"`);
+  });
+
+  // Spec 161, criterion 3. A queued job has not started, so the bare
+  // gerund would say it had; and "analyze queued" is the shape this
+  // spec is removing. It says what it is waiting to become instead.
+  test("a queued job says what it is queued to do, not that it is doing it (spec 161)", () => {
+    const html = queueRows({ branchUrls: at(false), state: "queued", steps: ["analyze"] });
+    expect(branchBadge(html)).toBe("queued to analyze");
+    expect(html).not.toContain("analyze queued");
+  });
+
+  // Spec 161, criterion 4. `review-plan` is the one that cannot be
+  // gerunded off the step name — it reads as the reader's word,
+  // "reviewing", not "review-planing".
+  test.each([
+    ["create", "creating", "queued to create"],
+    ["analyze", "analyzing", "queued to analyze"],
+    ["review-plan", "reviewing", "queued to review"],
+    ["implement", "implementing", "queued to implement"],
+    ["resolve", "resolving", "queued to resolve"],
+    ["archive", "archiving", "queued to archive"],
+  ])("a %s job's branch badge reads %s (spec 161)", (step, running, queued) => {
+    const run = queueRows({ branchUrls: at(false), state: "running", steps: [step], stepIndex: 0 });
+    expect(branchBadge(run)).toBe(running);
+    const wait = queueRows({ branchUrls: at(false), state: "queued", steps: [step], stepIndex: 0 });
+    expect(branchBadge(wait)).toBe(queued);
   });
 
   test("a branch whose job has stopped is waiting for archive (criterion 3)", () => {
@@ -5733,4 +5773,56 @@ describe("spec 157: the row's one action sits in the State column", () => {
     expect(labels(state(html))).toEqual([]);
   });
 
+});
+
+// --- spec 161: a row's one action is primary, whichever it is ----------------
+//
+// Spec 157 built Run as a bare `.btn` on the argument that a column of
+// primary buttons says nothing about which row to look at. A row draws
+// exactly ONE control now, so there is no column to differentiate and
+// nothing for the colour to tell apart — it only has to say the action
+// is here. Cancel came along for the same reason plus one more: in dark
+// mode `--danger` (#E8836B) and `--accent` (#F0663F) sit close enough in
+// hue that an outlined Cancel and a filled Resolve said nothing
+// different to the eye (looked at live, 2026-08-21).
+describe("spec 161: the row's one action is primary", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, projects: ["aide"] },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+  /** Every button on the page, as its class attribute. */
+  const classes = (html: string): string[] =>
+    [...html.matchAll(/<button[^>]*class="([^"]*)"[^>]*>/g)].map((m) => m[1] ?? "");
+  const lead = (extra: Partial<QueueRowView> = {}) =>
+    row({ id: "j1", specFolder: "161-one-variant", steps: ["analyze"], state: "done", ...extra });
+
+  test("the Run button is filled, not bare (criterion 5)", () => {
+    const html = rows([], [target("161-one-variant")]);
+    expect(classes(html)).toEqual(["btn primary"]);
+  });
+
+  test("Cancel is filled too — it is the busy row's one action (criterion 6)", () => {
+    const html = rows(
+      [lead({ steps: ["implement"], stepIndex: 0, state: "running" })],
+      [target("161-one-variant", { done: ["analyze", "review-plan"] })],
+    );
+    expect(classes(html)).toEqual(["btn primary"]);
+    expect(html).not.toContain("danger");
+  });
+
+  test("Resolve was already primary and stays so (criterion 7)", () => {
+    const html = rows(
+      [lead({ errorReason: "conflict", error: "cannot merge — conflict" })],
+      [target("161-one-variant", { done: ["analyze", "review-plan"] })],
+    );
+    expect(html).toContain(">Resolve</button>");
+    expect(classes(html)).toEqual(["btn primary"]);
+  });
 });

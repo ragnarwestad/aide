@@ -216,13 +216,21 @@ export function currentStep(r: QueueRowView): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }
 
-/** What this job is doing, in words: the step and the state together,
- *  e.g. `review-plan running`. Both pages ask this one function, for the
- *  same reason `stateLabel` exists — a spec's state and a phase's state
- *  are the same question at two altitudes and must never be worded
- *  differently. */
+/** What this job is doing, in words: the verb alone while it runs
+ *  (`archiving`), or what it is waiting to become while it queues
+ *  (`queued to archive`) — never the step name and the raw state glued
+ *  together, which is what it said until spec 161 (`archive running`).
+ *  Both pages ask this one function, for the same reason `stateLabel`
+ *  exists — a spec's state and a phase's state are the same question at
+ *  two altitudes and must never be worded differently.
+ *
+ *  Only ever asked of a job in flight (`branchActivity` gates it on
+ *  `inFlight`), so the two branches here are the whole vocabulary. A
+ *  queued job gets its own phrasing rather than the bare gerund: it has
+ *  not started, and "analyzing" would say it had. */
 export function activityLabel(r: QueueRowView): string {
-  return `${stepLabel(currentStep(r))} ${stateLabel(r)}`;
+  const step = currentStep(r);
+  return r.state === "queued" ? `queued to ${stepLabel(step)}` : gerund(step);
 }
 
 // A branch link says where the work IS, never whether it landed, so a

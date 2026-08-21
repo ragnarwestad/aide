@@ -60,7 +60,7 @@ const CONTROLS: Record<
     action: "http://dash.test/api/queue",
   },
   actionform: {
-    label: "Cancel", pending: "cancelling…", formClass: "actionform", variant: "danger",
+    label: "Cancel", pending: "cancelling…", formClass: "actionform", variant: "primary",
     action: "http://dash.test/api/queue/job-1/cancel",
   },
 };

@@ -62,7 +62,11 @@ export const stepLabel = (step: string): string => STEP_LABELS[step] ?? step;
 
 // --- button -------------------------------------------------------------------
 
-/** Bare is secondary — the default, and the one most rows get. */
+/** Bare is secondary — the default for a control that is NOT the one
+ *  thing a page wants pressed: the escape-hatch Cancel link beside a
+ *  primary Create or Save. A spec row's own action is never bare, and
+ *  since spec 161 never `danger` either — `danger` means one thing on
+ *  this dashboard now, an action a mistake cannot undo. */
 export type BtnVariant = "" | "primary" | "ok" | "danger" | "busy";
 
 export function btn(o: {

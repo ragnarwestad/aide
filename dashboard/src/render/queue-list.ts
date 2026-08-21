@@ -756,7 +756,12 @@ function actionForm(r: QueueRowView, token: string | undefined, filter: QueueFil
   const hidden = tokenField(token) + filterFields(filter);
   return (
     `<form method="post" action="/api/queue/${esc(r.id)}/cancel" class="actionform">${hidden}` +
-    btn({ label: "Cancel", pending: "cancelling…", variant: "danger" }) +
+    // Primary, like every row's one action (spec 161): `danger` was
+    // supposed to set it apart, but in dark mode `--danger` and
+    // `--accent` sit close enough in hue that an outlined Cancel and a
+    // filled Resolve said nothing different to the eye. And a cancelled
+    // run can be started again, so it was never what `danger` is for.
+    btn({ label: "Cancel", pending: "cancelling…", variant: "primary" }) +
     `</form>`
   );
 }
@@ -812,7 +817,7 @@ function branchList(branches: BranchView[], activity?: string): string {
   // A lead-in, because bare repo names read as words that fell out of
   // something else (asked for 2026-08-19).
   return (
-    `<span class="branchlist"><span class="lbl">Affected repos:</span>` +
+    `<span class="branchlist"><span class="lbl">Repos:</span>` +
     branches
       .map(
         (b) =>
@@ -1119,15 +1124,17 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
     if (busy) return actionForm(g.lead!, opts.token, opts.filter);
     if (conflict) return resolveForm(g, opts);
     if (!label) return "";
-    // Secondary, not primary: every row on the page draws one of
-    // these now, and a column of primary buttons says nothing about
-    // which row to look at. Resolve keeps primary because it is drawn
-    // on one kind of row only.
+    // Primary, like every row's one action (spec 161). It was
+    // secondary until then, on the argument that a column of primary
+    // buttons says nothing about which row to look at — but a row
+    // draws exactly one control now, so there is no column to tell
+    // apart and nothing left for the colour to say except that the
+    // action is here.
     //
     // Built by hand rather than through `btn()`: it needs `form="…"`,
     // an attribute that helper's signature does not carry — the same
     // reason `modelPicker` builds its own `<select>`.
-    return `<button type="submit" form="${esc(runFormId(g))}" class="btn" data-pending="starting…">${esc(label)}</button>`;
+    return `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…">${esc(label)}</button>`;
   })();
   // The one nobody sets every time, quiet and small-text after the
   // button (spec 117's shape). Open rows only, as it has always been:
