@@ -305,7 +305,7 @@ The sections below describe what each individual installer does.
     - Reuse the `core/rules/` rules
 
 3. **Use the generic workflows:**
-    - Read `core/rules/workflows.md` for JIRA/TODO workflows
+    - Read `core/skills/workflows/SKILL.md` for JIRA/TODO workflows
     - Follow `core/rules/testing.md` for TDD
     - Follow `core/rules/git.md` for git operations
 
@@ -345,7 +345,7 @@ Regardless of which AI tool you use, test that the setup works:
 
 **With other AI tools:**
 
-- Ask the AI tool to create documentation based on `core/rules/workflows.md`
+- Ask the AI tool to create documentation based on `core/skills/workflows/SKILL.md`
 - Use the templates from `core/templates/todo/`
 
 **Expected result:**
@@ -376,7 +376,7 @@ Test that the AI tool can analyze the codebase:
 **With other AI tools:**
 
 - Ask for a codebase analysis based on `1-description.md`
-- Follow the structure from `core/rules/workflows.md`
+- Follow the structure from `core/skills/workflows/SKILL.md`
 
 **Expected result:**
 
@@ -419,7 +419,7 @@ implementations/copilot/install.sh
 **For other AI tools:**
 
 - Be more explicit in your prompts
-- Refer directly to `core/rules/workflows.md`
+- Refer directly to `core/skills/workflows/SKILL.md`
 - Ask for step-by-step execution
 
 ---
@@ -434,8 +434,8 @@ Once the setup is complete:
     - [AI_DEVELOPMENT_GUIDE.md](./AI_DEVELOPMENT_GUIDE.md)
 
 2. **Read the generic workflows:**
-    - [core/rules/workflows.md](../core/rules/workflows.md)
-    - [core/rules/documentation.md](../core/rules/documentation.md)
+    - [core/skills/workflows/SKILL.md](../core/skills/workflows/SKILL.md)
+    - [core/skills/documentation/SKILL.md](../core/skills/documentation/SKILL.md)
 
 3. **Test with a real JIRA issue:**
     - Create the documentation

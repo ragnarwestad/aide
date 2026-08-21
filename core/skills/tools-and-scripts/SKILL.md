@@ -1,3 +1,16 @@
+---
+name: tools-and-scripts
+description: >-
+  aide's skills, the per-project .aide/config keys, how a project's own
+  test/lint/build commands are detected, and where specs are stored.
+  Use when: running a project's test, lint or build command; looking up
+  which aide skill does what; reading or writing .aide/config; deciding
+  where a spec belongs.
+  Do NOT use for: how to run tests correctly (that is the testing rule),
+  the spec files' own layout (use the spec-structure skill).
+effort: medium
+---
+
 # Tools and scripts
 
 ## Table of contents

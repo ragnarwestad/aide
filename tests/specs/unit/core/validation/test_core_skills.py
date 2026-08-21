@@ -93,7 +93,8 @@ class TestUninstallListsEverySkill:
 
     Every skill in core/skills/ is installed to ~/.claude/skills/ — so every
     one of them must be in uninstall.sh's SKILLS list, or uninstalling
-    leaves it behind silently.
+    leaves it behind silently. The one exception is spec-structure, which
+    install.sh excludes by name (see the comment on the filter below).
     """
 
     def test_every_core_skill_is_in_the_uninstall_list(self):
@@ -105,6 +106,13 @@ class TestUninstallListsEverySkill:
         missing = [
             d.name for d in get_skill_dirs()
             if f'"{d.name}"' not in content
+            # spec-structure is the one exception, and it is excluded by
+            # name in implementations/claude-code/install.sh too: Claude
+            # Code already has that content as a path-scoped rule
+            # (core/rules/spec-structure.md), so the generated skill is
+            # for Codex/Copilot's ~/.agents/skills/ only. Never installed
+            # to ~/.claude/skills/, so never uninstalled from it.
+            and d.name != "spec-structure"
         ]
         assert not missing, (
             f"Skills missing from uninstall.sh's SKILLS list: {missing}"
@@ -304,3 +312,87 @@ class TestManifestTemplate:
             if not any(line.startswith(f"{k}:") for line in lines)
         ]
         assert not missing, f"template lacks top keys: {missing}"
+
+
+@pytest.mark.validation
+class TestInstallRetiresTheRulesThatBecameSkills:
+    """Spec 147: four rules became skills, and the rules side has no
+    pruning mechanism of its own.
+
+    install.sh's rule loop only ever COPIES the files still on its list —
+    it never diffs against what a previous install left behind. Without an
+    explicit removal step, a machine that installed before this change
+    keeps loading ~/.claude/rules/workflows.md forever, so the four rules
+    stay resident in every prompt AND ship again as skills: the resident
+    footprint goes up, not down. prune_retired_skills (spec 142) is the
+    equivalent on the skills side; this is the rules side.
+    """
+
+    RETIRED = ["workflows.md", "documentation.md", "tools-and-scripts.md",
+               "markdown-linting.md"]
+
+    def install(self, workspace_root, home):
+        return subprocess.run(
+            [str(workspace_root / "implementations" / "claude-code" / "install.sh")],
+            capture_output=True,
+            text=True,
+            env={"HOME": str(home), "PATH": "/usr/bin:/bin"},
+        )
+
+    def test_a_retired_rule_from_an_earlier_install_is_removed(self, workspace_root, tmp_path):
+        home = tmp_path / "home"
+        rules = home / ".claude" / "rules"
+        rules.mkdir(parents=True)
+        for name in self.RETIRED:
+            (rules / name).write_text("# stale copy from an earlier install\n")
+
+        result = self.install(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        left = [name for name in self.RETIRED if (rules / name).exists()]
+        assert not left, (
+            f"install.sh left retired rules behind in ~/.claude/rules/: {left} — "
+            "they became skills, and nothing else will ever remove them"
+        )
+
+    def test_the_rules_that_stayed_are_still_installed(self, workspace_root, tmp_path):
+        """The removal must be surgical: four names, not a wipe."""
+        home = tmp_path / "home"
+
+        result = self.install(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        rules = home / ".claude" / "rules"
+        for name in ("llm-discipline.md", "git.md", "testing.md",
+                     "communication.md", "spec-structure.md"):
+            assert (rules / name).is_file(), \
+                f"~/.claude/rules/{name} was not installed"
+
+    def test_spec_structure_is_not_installed_as_a_claude_code_skill(self, workspace_root, tmp_path):
+        """It reaches Codex/Copilot via ~/.agents/skills/ only.
+
+        Claude Code has the same content path-scoped as a rule; a second,
+        model-triggered copy would be redundant guidance competing with
+        itself.
+        """
+        home = tmp_path / "home"
+
+        result = self.install(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        assert not (home / ".claude" / "skills" / "spec-structure").exists(), (
+            "install.sh copied core/skills/spec-structure/ into "
+            "~/.claude/skills/ — exclude it from the skill rsync by name"
+        )
+
+    def test_the_skills_that_replaced_the_rules_are_installed(self, workspace_root, tmp_path):
+        home = tmp_path / "home"
+
+        result = self.install(workspace_root, home)
+
+        assert result.returncode == 0, result.stderr
+        skills = home / ".claude" / "skills"
+        for name in ("workflows", "documentation", "tools-and-scripts",
+                     "markdown-linting"):
+            assert (skills / name / "SKILL.md").is_file(), \
+                f"~/.claude/skills/{name}/SKILL.md was not installed"

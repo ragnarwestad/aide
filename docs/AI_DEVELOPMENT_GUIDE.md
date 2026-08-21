@@ -59,7 +59,7 @@ specs/                 # Output (AI-agnostic)
 
 | Layer              | Responsibility                       | Example                        |
 |--------------------|--------------------------------------|--------------------------------|
-| **Core**           | Workflows, standards, data           | `core/rules/workflows.md`      |
+| **Core**           | Workflows, standards, data           | `core/skills/workflows/SKILL.md`      |
 | **Implementation** | AI-specific commands/instructions    | `implementations/claude-code/` |
 | **Scripts**        | CLI tools                            | `core/scripts/`                |
 | **Templates**      | Document structures                  | `core/templates/todo/`         |
@@ -149,7 +149,7 @@ pnpm test -- validateApplication  # Test passes (GREEN)
 
 **Why:** AI that jumps straight to coding without understanding the problem gives worse results.
 
-**See:** [workflows.md](../core/rules/workflows.md)
+**See:** [workflows.md](../core/skills/workflows/SKILL.md)
 
 ### Pattern 6: Basic RAG (Retrieval-Augmented Generation)
 
@@ -157,7 +157,7 @@ pnpm test -- validateApplication  # Test passes (GREEN)
 
 **Our implementation:**
 - Testing rules: `core/rules/testing.md`
-- Workflows: `core/rules/workflows.md`
+- Workflows: `core/skills/workflows/SKILL.md`
 - The AI reads the relevant documents before generating
 
 **Example:**
@@ -197,7 +197,7 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 
 1. **Explore → Plan → Code → Commit workflow**
    - Steps 1-2 are critical - without them the AI jumps straight to coding
-   - Already built into `core/rules/workflows.md`
+   - Already built into `core/skills/workflows/SKILL.md`
 
 2. **Test-Driven Development**
    - Iterate toward a clear goal (a test that must pass)
@@ -205,17 +205,17 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 
 3. **Visual iteration**
    - Use screenshots and design mocks
-   - Added to `core/rules/documentation.md` (assets folders)
+   - Added to `core/skills/documentation/SKILL.md` (assets folders)
 
 4. **Context management**
    - Use `/clear` between independent tasks
-   - Added to `core/rules/workflows.md` (Workflow optimization)
+   - Added to `core/skills/workflows/SKILL.md` (Workflow optimization)
 
 5. **Specific instructions**
    - Detailed descriptions give a significantly higher success rate
-   - Added to `core/rules/documentation.md` (Best practices)
+   - Added to `core/skills/documentation/SKILL.md` (Best practices)
 
-**See:** [documentation.md](../core/rules/documentation.md#best-practices-for-ai-assisted-documentation) and [workflows.md](../core/rules/workflows.md#workflow-optimization)
+**See:** [documentation.md](../core/skills/documentation/SKILL.md#best-practices-for-ai-assisted-documentation) and [workflows.md](../core/skills/workflows/references/workflow-optimization.md)
 
 ### From OpenAI: Best Practices for Prompt Engineering
 
@@ -394,13 +394,13 @@ AI concludes: Both frontend (my-app) and backend (my-api) must be changed
 1. **Find a new resource:** Blog post, research article, documentation
 2. **Evaluate relevance:** Does it fit the project's architecture?
 3. **Document it here:** Add it under "AI best practices"
-4. **Implement:** Update the relevant files (`core/rules/workflows.md`, `core/rules/documentation.md`)
+4. **Implement:** Update the relevant files (`core/skills/workflows/SKILL.md`, `core/skills/documentation/SKILL.md`)
 
 ---
 
 ## See also
 
 - [README.md](../README.md) - The project's main page
-- [workflows.md](../core/rules/workflows.md) - JIRA issue and TODO plan workflows
-- [documentation.md](../core/rules/documentation.md) - Documentation standard
+- [workflows.md](../core/skills/workflows/SKILL.md) - JIRA issue and TODO plan workflows
+- [documentation.md](../core/skills/documentation/SKILL.md) - Documentation standard
 - [implementations/claude-code/README.md](../implementations/claude-code/README.md) - Claude Code implementation

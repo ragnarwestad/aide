@@ -131,7 +131,7 @@ All AI tools follow the same basic workflow:
 /aide-implement PROJ-7890        # Implement with TDD
 ```
 
-**See:** [core/rules/workflows.md](core/rules/workflows.md) for details.
+**See:** [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) for details.
 
 ---
 
@@ -238,5 +238,5 @@ moves a checkout.
 ## Resources
 
 - [DEVELOPING.md](DEVELOPING.md) - Developer guide for aide
-- [core/rules/workflows.md](core/rules/workflows.md) - JIRA/TODO workflows
+- [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - JIRA/TODO workflows
 - [core/rules/git.md](core/rules/git.md) - Git rules

@@ -47,7 +47,11 @@ mkdir -p "$GLOBAL_CLAUDE/skills" "$GLOBAL_CLAUDE/agents" "$GLOBAL_CLAUDE/rules"
 
 # Skills (copy without --delete to avoid deleting other tools' skills)
 if [ -d "$WORKSPACE_ROOT/core/skills" ]; then
-  rsync -a "$WORKSPACE_ROOT/core/skills/" "$GLOBAL_CLAUDE/skills/"
+  # spec-structure is generated for Codex/Copilot's ~/.agents/skills/ only
+  # (spec 147). Claude Code already has that content as a path-scoped rule,
+  # core/rules/spec-structure.md, and a second model-triggered copy of the
+  # same guidance would only compete with it.
+  rsync -a --exclude='spec-structure/' "$WORKSPACE_ROOT/core/skills/" "$GLOBAL_CLAUDE/skills/"
   # ...and the half that subtracts (spec 142). The rsync above may not
   # use --delete — ~/.claude/skills/ is allowed to hold skills aide
   # never put there — so a skill dropped from core/skills/ would sit
@@ -71,13 +75,29 @@ if [ -d "$IMPL_DIR/agents" ]; then
 fi
 
 # Generic rules
-GENERIC_RULES="tools-and-scripts workflows llm-discipline git testing documentation markdown-linting spec-structure communication"
+# The rules that apply to every turn, plus spec-structure, which is copied
+# here but loaded only for spec files (its `paths` frontmatter). The four
+# task-specific ones became skills in spec 147.
+GENERIC_RULES="llm-discipline git testing spec-structure communication"
 for rule in $GENERIC_RULES; do
   if [ -f "$WORKSPACE_ROOT/core/rules/$rule.md" ]; then
     cp "$WORKSPACE_ROOT/core/rules/$rule.md" "$GLOBAL_CLAUDE/rules/"
   fi
 done
 echo "   ✅ Rules installed: ~/.claude/rules/"
+
+# Migrate: four rules became skills (spec 147). The loop above only ever
+# ADDS the files still on the list — it never diffs against what an
+# earlier install left behind, the way prune_retired_skills does on the
+# skills side. Without this, a machine that installed before the change
+# keeps loading the retired rule in every prompt AND gets the new skill:
+# the resident footprint grows instead of shrinking.
+for retired in tools-and-scripts workflows documentation markdown-linting; do
+  if [ -f "$GLOBAL_CLAUDE/rules/$retired.md" ]; then
+    rm "$GLOBAL_CLAUDE/rules/$retired.md"
+    echo "   🗑️  Removed retired rule: ~/.claude/rules/$retired.md (now a skill)"
+  fi
+done
 
 # Migrate: remove old docs/ and api-mapping/ (now consolidated into skills)
 for old_dir in docs api-mapping; do

@@ -129,7 +129,7 @@ Instead of slash commands (like Claude Code), use natural language:
   - `1-description.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`
   - **NOTE:** If `.aide/config` sets `AIDE_SPECS_PATH`, specs are written there instead
 - **Todo plans:** `specs/`
-- **Generic workflows:** `core/rules/`
+- **Generic workflows:** `core/skills/workflows/`
 
 ---
 
@@ -180,7 +180,7 @@ If available via Copilot extensions:
 ## 🔗 Further reading
 
 **Must read before use:**
-- ✅ [core/rules/workflows.md](core/rules/workflows.md) - JIRA/TODO workflows
+- ✅ [core/skills/workflows/SKILL.md](core/skills/workflows/SKILL.md) - JIRA/TODO workflows
 - ✅ [core/rules/git.md](core/rules/git.md) - Git best practices
 - ✅ [core/rules/testing.md](core/rules/testing.md) - Testing rules
 

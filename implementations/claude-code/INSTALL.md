@@ -167,5 +167,5 @@ To update to a new version:
 
 - `README.md` - Overview
 - `CLAUDE.md` - AI instructions
-- `core/rules/workflows.md` - Workflows
+- `core/skills/workflows/SKILL.md` - Workflows
 - `core/rules/git.md` - Git rules

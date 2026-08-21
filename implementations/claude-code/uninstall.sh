@@ -11,9 +11,9 @@ echo ""
 
 # Confirm uninstallation
 echo "⚠️  This will remove:"
-echo "   - Skills from ~/.claude/skills/ (9 named directories)"
+echo "   - Skills from ~/.claude/skills/ (15 named directories)"
 echo "   - Agents from ~/.claude/agents/ (task-analyzer.md)"
-echo "   - Rules from ~/.claude/rules/ (9 named files)"
+echo "   - Rules from ~/.claude/rules/ (5 named files)"
 echo "   - ~/.claude/docs/ and ~/.claude/api-mapping/ (legacy)"
 echo ""
 read -p "Are you sure you want to continue? [y/N]: " CONFIRM
@@ -61,6 +61,10 @@ SKILLS=(
   "aide-to-pdf"
   "task-workflow-assistant"
   "tdd-coach"
+  "documentation"
+  "markdown-linting"
+  "tools-and-scripts"
+  "workflows"
 )
 
 for skill in "${SKILLS[@]}"; do
@@ -129,13 +133,9 @@ echo ""
 echo "7️⃣  Removing rules from ~/.claude/rules/..."
 
 RULES=(
-  "tools-and-scripts.md"
-  "workflows.md"
   "llm-discipline.md"
   "git.md"
   "testing.md"
-  "documentation.md"
-  "markdown-linting.md"
   "spec-structure.md"
   "communication.md"
 )

@@ -13,7 +13,9 @@ from pathlib import Path
 
 import pytest
 
-RULES_DIR = Path(__file__).parents[5] / "core" / "rules"
+ROOT = Path(__file__).parents[5]
+RULES_DIR = ROOT / "core" / "rules"
+SKILLS_DIR = ROOT / "core" / "skills"
 
 # Paths the rule must activate for: the default in-project location and an
 # external specs repo (AIDE_SPECS_PATH).
@@ -72,12 +74,22 @@ class TestPlanReviewIsWired:
     step exists between analyze and implement.
     """
 
-    @pytest.mark.parametrize("rule", ["workflows.md", "tools-and-scripts.md"])
-    def test_docs_mention_the_review_step(self, rule):
-        content = (RULES_DIR / rule).read_text(encoding="utf-8")
+    @pytest.mark.parametrize("skill", ["workflows", "tools-and-scripts"])
+    def test_docs_mention_the_review_step(self, skill):
+        """Both were rules until spec 147 moved them to core/skills/.
+
+        The whole skill directory is searched, not just SKILL.md: a skill
+        over the size guidance keeps its detail in references/, and the
+        review step may legitimately live there.
+        """
+        directory = SKILLS_DIR / skill
+        assert directory.is_dir(), f"core/skills/{skill}/ is missing"
+        content = "\n".join(
+            path.read_text(encoding="utf-8") for path in sorted(directory.rglob("*.md"))
+        )
         assert "aide-review-plan" in content, (
-            f"{rule} does not mention aide-review-plan — the step is "
-            "not wired into the documented workflow"
+            f"the {skill} skill does not mention aide-review-plan — the step "
+            "is not wired into the documented workflow"
         )
 
 
@@ -101,9 +113,12 @@ class TestManifestIsWired:
     ROOT = Path(__file__).parents[5]
 
     def test_tools_and_scripts_documents_the_manifest(self):
-        content = (RULES_DIR / "tools-and-scripts.md").read_text(encoding="utf-8")
+        directory = SKILLS_DIR / "tools-and-scripts"
+        content = "\n".join(
+            path.read_text(encoding="utf-8") for path in sorted(directory.rglob("*.md"))
+        )
         assert "aide-manifest" in content and "project.yaml" in content, (
-            "tools-and-scripts.md does not document the project manifest"
+            "the tools-and-scripts skill does not document the project manifest"
         )
 
     def test_aide_analyze_reads_the_manifest(self):
@@ -120,4 +135,77 @@ class TestManifestIsWired:
             f"{doc} still recommends ignoring the whole .aide/ directory — "
             "the manifest is committable team knowledge; only .aide/config "
             "is personal"
+        )
+
+
+# The four rules that became skills in spec 147, so that AGENTS.md fits
+# inside Codex's read window and Claude Code stops carrying all four in
+# every prompt regardless of the task.
+RETIRED_RULES = ["workflows", "documentation", "tools-and-scripts", "markdown-linting"]
+
+
+@pytest.mark.validation
+class TestRetiredRulesAreGoneFromTheSource:
+    """The four task-specific rules live in core/skills/ now, not core/rules/.
+
+    A copy left behind in core/rules/ is worse than useless: the installer
+    would ship both, the generator would concatenate the rule back into
+    AGENTS.md, and the two copies would drift.
+    """
+
+    @pytest.mark.parametrize("name", RETIRED_RULES)
+    def test_the_rule_file_is_gone(self, name):
+        assert not (RULES_DIR / f"{name}.md").exists(), (
+            f"core/rules/{name}.md still exists — it became "
+            f"core/skills/{name}/SKILL.md in spec 147"
+        )
+
+    @pytest.mark.parametrize("name", RETIRED_RULES)
+    def test_the_skill_took_its_place(self, name):
+        assert (SKILLS_DIR / name / "SKILL.md").exists(), (
+            f"core/skills/{name}/SKILL.md is missing — the rule was retired "
+            "without its replacement"
+        )
+
+    def test_spec_structure_stays_a_rule(self):
+        """It is the one that does NOT fully move: Claude Code keeps
+        loading it path-scoped, and only Codex/Copilot get the skill."""
+        rule = RULES_DIR / "spec-structure.md"
+        assert rule.exists(), "core/rules/spec-structure.md must stay a rule"
+        assert rule_paths(rule), (
+            "core/rules/spec-structure.md lost its paths frontmatter — "
+            "without it Claude Code would load the whole spec layout in "
+            "every prompt, which is what spec 147 exists to stop"
+        )
+
+
+@pytest.mark.validation
+class TestNoLinksToRetiredRules:
+    """No document may point at core/rules/<retired>.md any more.
+
+    Ten documents linked to the four by that path before spec 147. A link
+    that survives the move is a 404 for a reader and a dead end for a
+    model.
+    """
+
+    def test_no_document_links_to_a_retired_rule_path(self):
+        import subprocess
+
+        offenders = []
+        for name in RETIRED_RULES:
+            needle = f"core/rules/{name}.md"
+            result = subprocess.run(
+                ["git", "grep", "-nF", "--", needle],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+            for line in result.stdout.splitlines():
+                # This test names the paths it forbids; so does the spec
+                # documentation that records the move.
+                if line.startswith(f"{Path(__file__).relative_to(ROOT)}:"):
+                    continue
+                offenders.append(line)
+        assert not offenders, (
+            "documents still link to a rule that became a skill in spec "
+            "147 (point them at core/skills/<name>/SKILL.md instead):\n  "
+            + "\n  ".join(offenders)
         )

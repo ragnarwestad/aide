@@ -23,7 +23,7 @@ This directory contains the Claude Code implementation with configuration files,
 **References:**
 - Claude Code instructions: See `CLAUDE.md`
 - Agent documentation: See `agents/README.md`
-- Generic workflows: See `../../core/rules/workflows.md`
+- Generic workflows: See `../../core/skills/workflows/SKILL.md`
 
 ---
 

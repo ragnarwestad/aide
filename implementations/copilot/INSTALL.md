@@ -263,7 +263,7 @@ See [README.md](./README.md#limitations) for the complete flag reference.
 
 - `README.md` - User guide for Copilot
 - `../../COPILOT.md` - Quick start guide (workspace root)
-- `../../core/rules/workflows.md` - JIRA/TODO workflows
+- `../../core/skills/workflows/SKILL.md` - JIRA/TODO workflows
 - `../../DEVELOPING.md` - Developer guide for aide
 
 ---

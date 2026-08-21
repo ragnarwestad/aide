@@ -1,3 +1,16 @@
+---
+name: markdown-linting
+description: >-
+  Markdown linting for this workspace: MD029 list numbering, MD040 code
+  block language tags, MD051 anchor links, and the closing-fence mistake
+  that breaks HTML generation.
+  Use when: writing or editing any .md file, running markdownlint-cli2,
+  fixing MD029/MD040/MD051 errors, generating HTML or PDF from markdown.
+  Do NOT use for: the general documentation standard (use the
+  documentation skill) — this is the linter-specific subset.
+effort: medium
+---
+
 # Markdown Linting
 
 ## Table of contents
@@ -143,4 +156,4 @@ echo "Hello"
 
 **Preventive fix:**
 - The `aide-generate-html` script corrects this automatically
-- But the source should be fixed - see [documentation.md](./documentation.md#code-blocks)
+- But the source should be fixed - see the "Code blocks" section of the documentation skill

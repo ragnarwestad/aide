@@ -1,3 +1,17 @@
+---
+name: documentation
+description: >-
+  The documentation standard for markdown documents: title, table of
+  contents, headings, separators, code blocks, numbered lists, emojis,
+  and the practices that make a document useful to an AI assistant.
+  Use when: writing or restructuring any markdown document, adding a
+  table of contents, formatting code examples, referencing files or
+  screenshots in a document.
+  Do NOT use for: linter errors specifically (use the markdown-linting
+  skill), the 4-file spec layout (use the spec-structure skill).
+effort: medium
+---
+
 # Documentation standard
 
 ## Table of contents
@@ -167,7 +181,7 @@ const value = useSelector(state => state.value);
 - Lists and tables
 - Metadata fields
 
-**See also:** [markdown-linting.md](./markdown-linting.md) for detailed linting rules.
+**See also:** the markdown-linting skill for detailed linting rules.
 
 ---
 
@@ -242,5 +256,5 @@ Avoid mocks for validation - use real test data.
 
 ## See also
 
-- [spec-structure.md](./spec-structure.md) - 4-file structure for JIRA/TODO reports
-- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
+- The spec-structure skill - 4-file structure for JIRA/TODO reports
+- The markdown-linting skill - Markdown linting rules

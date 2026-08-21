@@ -150,10 +150,15 @@ copilot
 The install script places `AGENTS.md` as global instructions in `~/.copilot/copilot-instructions.md`. It contains:
 
 - 🎯 Workspace concept and structure
-- 📋 References to `core/rules/workflows.md`
 - 🧪 TDD rules from `core/rules/testing.md`
 - 🔀 Git rules from `core/rules/git.md`
-- 📝 Documentation standard from `core/rules/documentation.md`
+- 🗣️ Communication rules from `core/rules/communication.md`
+- 🧠 Coding discipline from `core/rules/llm-discipline.md`
+
+Only the rules that apply to every turn are in this file. The
+task-specific guidance — workflows, the documentation standard, markdown
+linting, tools and scripts, and the 4-file spec structure — are skills in
+`~/.agents/skills/`, read when they are relevant instead (spec 147).
 
 Copilot will automatically follow these rules when you ask for help.
 
@@ -189,7 +194,7 @@ Type the command in a `copilot` session, just like in Claude Code.
 Create structured documentation for JIRA issue PROJ-7890:
 
 1. Create directory: specs/<NN>-PROJ-7890-slug/
-2. Follow core/rules/documentation.md
+2. Follow core/skills/documentation/SKILL.md
 3. Use templates from core/templates/todo/
 4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
 5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
@@ -212,7 +217,7 @@ Analyze the codebase for JIRA issue PROJ-7890:
 5. Assess complexity (simple/medium/complex)
 6. Update 2-analysis.md with findings
 7. Create an implementation plan in 3-solution.md
-8. Follow the core/rules/workflows.md structure
+8. Follow the core/skills/workflows/SKILL.md structure
 ```
 
 #### 3. Implement with TDD
@@ -269,7 +274,7 @@ Analyze PROJ-7890
 
 ✅ **Good:**
 ```text
-Analyze PROJ-7890 following core/rules/workflows.md.
+Analyze PROJ-7890 following core/skills/workflows/SKILL.md.
 First read 1-description.md, then search the codebase,
 and update 2-analysis.md with findings (file:line).
 ```
@@ -277,7 +282,7 @@ and update 2-analysis.md with findings (file:line).
 ### 2. Always refer to core/rules/
 
 ```text
-Follow the workflows in core/rules/workflows.md
+Follow the workflows in core/skills/workflows/SKILL.md
 Follow the git rules in core/rules/git.md
 Follow the testing rules in core/rules/testing.md
 Follow the project's coding standards
@@ -296,7 +301,7 @@ Do this step by step. Stop after each phase and ask for confirmation:
 
 ```text
 Status check:
-- Have you read core/rules/workflows.md?
+- Have you read core/skills/workflows/SKILL.md?
 - Have you followed the 4-file structure?
 - Have you run the tests?
 - Have you updated status.md?

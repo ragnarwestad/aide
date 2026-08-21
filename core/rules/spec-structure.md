@@ -442,5 +442,5 @@ The `/aide-analyze` command fills in the analysis, solution and status.
 
 ## See also
 
-- [documentation.md](./documentation.md) - General documentation rules
-- [markdown-linting.md](./markdown-linting.md) - Markdown linting rules
+- The documentation skill - General documentation rules
+- The markdown-linting skill - Markdown linting rules

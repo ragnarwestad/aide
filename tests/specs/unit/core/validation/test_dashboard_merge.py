@@ -12,14 +12,14 @@ either side alone:
    would be a file nothing reads, describing a project nothing shows.
 3. The bun toolchain stays inside `dashboard/`. Two toolchains now meet
    in one repo, and the project-command detection in
-   `core/rules/tools-and-scripts.md` reads the ROOT only: a JS lockfile
+   `core/skills/tools-and-scripts/SKILL.md` reads the ROOT only: a JS lockfile
    or `package.json` appearing there would silently redirect every AI's
    idea of "run the tests" from pytest to npm.
 """
 import pytest
 
 
-# The detection table in core/rules/tools-and-scripts.md, in the order it
+# The detection table in core/skills/tools-and-scripts/SKILL.md, in the order it
 # lists them. The first match at the project root wins, and pytest.ini is
 # near the bottom — so anything above it landing at the root outranks it.
 JS_TOOLCHAIN_MARKERS = ("pnpm-lock.yaml", "package-lock.json", "yarn.lock",

@@ -23,10 +23,10 @@ aide/
 │   ├── skills/                    # Skills (SKILL.md per directory)
 │   │   ├── tdd-coach/
 │   │   └── ...
-│   ├── rules/                     # Generic rules — installed to ~/.claude/rules/
-│   │   ├── workflows.md
+│   ├── rules/                     # Always-loaded rules — installed to ~/.claude/rules/
 │   │   ├── git.md
 │   │   ├── testing.md
+│   │   ├── spec-structure.md      # path-scoped: loaded only for spec files
 │   │   └── ...
 │   ├── scripts/                   # CLI scripts: aide-generate-pdf, aide-generate-html
 │   └── templates/                 # Document templates
@@ -86,7 +86,7 @@ git commit -m "Add database-expert skill"
 ### Updating rules
 
 ```bash
-vim core/rules/workflows.md
+vim core/skills/workflows/SKILL.md
 cd implementations/claude-code && ./install.sh
 ```
 

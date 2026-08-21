@@ -11,8 +11,9 @@ _FENCE_OPEN = re.compile(r"^(`{3,})markdown[ \t]*$", re.M)
 def structure_block(content: str, heading: str, level: str = "###") -> str:
     """Return the fenced markdown example under `<level> <heading>`.
 
-    spec-structure.md (and the AGENTS.md it is concatenated into) documents
-    each spec file as a fenced example whose BODY contains `## ` headings.
+    spec-structure.md (and the core/skills/spec-structure/SKILL.md
+    generated from it) documents each spec file as a fenced example whose
+    BODY contains `## ` headings.
     Splitting the whole document on `\\n## ` therefore collides on headings
     that several examples share — `## Scope` appears in both the
     1-description and the 2-analysis example. Isolate one example first,

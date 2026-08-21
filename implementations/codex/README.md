@@ -111,10 +111,18 @@ Codex reads `~/.codex/AGENTS.md` automatically at startup (as well as the repo `
 Codex automatically reads `~/.codex/AGENTS.md` (installed from `core/AGENTS.md`), which contains:
 
 - 🎯 The workspace concept and structure
-- 📋 References to `core/rules/workflows.md`
 - 🧪 TDD rules from `core/rules/testing.md`
 - 🔀 Git rules from `core/rules/git.md`
-- 📝 Documentation standard from `core/rules/documentation.md`
+- 🗣️ Communication rules from `core/rules/communication.md`
+- 🧠 Coding discipline from `core/rules/llm-discipline.md`
+
+Only the rules that apply to every turn are in this file. The
+task-specific guidance — workflows, the documentation standard, markdown
+linting, tools and scripts, and the 4-file spec structure — are skills in
+`~/.agents/skills/`, read when they are relevant instead. Codex appends
+at most `project_doc_max_bytes` of AGENTS.md, 32768 by default, and drops
+the rest without saying so, so the file is kept well inside that budget
+(spec 147).
 
 ### Environment variables
 
@@ -246,7 +254,7 @@ codex
 codex "Create structured documentation for JIRA issue PROJ-7890:
 
 1. Create directory: specs/<NN>-PROJ-7890-slug/
-2. Follow core/rules/documentation.md
+2. Follow core/skills/documentation/SKILL.md
 3. Use templates from core/templates/todo/
 4. Fill in 1-description.md with JIRA metadata (user pastes in the data)
 5. Create empty files: 2-analysis.md, 3-solution.md, 4-status.md
@@ -269,7 +277,7 @@ codex "Analyze the codebase for JIRA issue PROJ-7890:
 5. Assess complexity (simple/medium/complex)
 6. Update 2-analysis.md with findings
 7. Create an implementation plan in 3-solution.md
-8. Follow the core/rules/workflows.md structure"
+8. Follow the core/skills/workflows/SKILL.md structure"
 ```
 
 #### 3. Implement with TDD
@@ -332,7 +340,7 @@ codex "Analyze PROJ-7890"
 
 ✅ **Good:**
 ```bash
-codex "Analyze PROJ-7890 by following core/rules/workflows.md.
+codex "Analyze PROJ-7890 by following core/skills/workflows/SKILL.md.
 First read 1-description.md, then search the codebase,
 and update 2-analysis.md with findings (file:line)."
 ```
@@ -340,7 +348,7 @@ and update 2-analysis.md with findings (file:line)."
 ### 2. Always reference core/rules/
 
 ```bash
-codex "Follow the workflows in core/rules/workflows.md
+codex "Follow the workflows in core/skills/workflows/SKILL.md
 Follow the git rules in core/rules/git.md
 Follow the testing rules in core/rules/testing.md
 Follow the project's coding standards"

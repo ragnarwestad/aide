@@ -86,7 +86,7 @@ Done in August 2026:
       `PROJ-` example prefix. `PROJ-` remains in illustrative examples only.
 - [x] **Project-agnostic commands.** Test/lint/build commands are detected
       from what the project ships (lockfiles, gradlew, pom.xml, …) — see
-      "Project commands" in `core/rules/tools-and-scripts.md`. The pnpm
+      "Project commands" in `core/skills/tools-and-scripts/SKILL.md`. The pnpm
       blocks in skills are labeled examples.
 - [x] **Per-project setup.** Optional `.aide/config` in the project root
       (KEY=value): `AIDE_JIRA_BASE_URL`, `AIDE_SPECS_PATH` (spec 73) plus
