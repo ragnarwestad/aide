@@ -267,17 +267,19 @@ function harness(
   };
   const chips = [chip("aide"), chip("aide-dashboard")];
 
-  // Spec 127: the row's own AI select, and the five phase model selects
-  // it narrows. `<option>` collections are new scaffolding here — the
-  // chips above are checkbox/wrapper pairs and model nothing a select
-  // needs (a value that IS one of its options, and a selection that
-  // moves when the one it points at is hidden).
+  // The five phase model selects, and (spec 169) the row's set-all
+  // control that writes them. `<option>` collections are scaffolding
+  // the chips above cannot stand in for: a select's value IS one of
+  // its options, which is the whole of what a write has to move.
   const MODELS: [string, string][] = [
     ["sonnet", "claude"],
     ["fable", "claude"],
     ["codex-fast", "codex"],
   ];
-  const modelSelect = (step: string, chosen: string) => {
+  /** `ran` is the server's own "this phase has history" marker
+   *  (`data-ran="1"`, `queue-list.ts`): the select is showing what the
+   *  phase really ran on, so "set all" leaves it alone. */
+  const modelSelect = (step: string, chosen: string, ran = false) => {
     const options = MODELS.map(([value, tool]) => ({
       value,
       dataset: { tool },
@@ -287,6 +289,7 @@ function harness(
     const self = {
       name: `model.${step}`,
       options,
+      dataset: ran ? { ran: "1" } : ({} as { ran?: string }),
       tagName: "SELECT",
       // Spec 151: a press locks the row, and a select is a control on
       // it. `isConnected` is what tells "the swap replaced me" from
@@ -295,12 +298,12 @@ function harness(
       isConnected: true,
       getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
       // A change lands on the select itself, and the handler walks up
-      // with `closest`. A model select is NOT the AI picker, not a
-      // phase box and not a tail box (spec 160) — it is not an `input`
-      // at all — so it answers all three of those selectors with null
-      // and its own with itself.
+      // with `closest`. A model select is NOT the set-all control, not
+      // a phase box and not a tail box (spec 160) — it is not an
+      // `input` at all — so it answers all three of those selectors
+      // with null and its own with itself.
       closest: (sel: string): unknown =>
-        sel.includes("data-tool-picker") || sel.includes('name="steps"') || sel.includes("data-post-to")
+        sel.includes("data-set-all") || sel.includes('name="steps"') || sel.includes("data-post-to")
           ? null
           : self,
       get selectedOptions() {
@@ -326,30 +329,34 @@ function harness(
     };
     return self;
   };
+  // Two phases with history and three still ahead — the mixed row
+  // "set all" is scoped against (spec 169).
   const modelSelects = [
     modelSelect("create", "sonnet"),
-    modelSelect("analyze", "fable"),
-    modelSelect("review-plan", "sonnet"),
+    modelSelect("analyze", "fable", true),
+    modelSelect("review-plan", "sonnet", true),
     modelSelect("implement", "codex-fast"),
     modelSelect("archive", "sonnet"),
   ];
-  /** A model select belonging to ANOTHER row: the filter must reach the
+  /** A model select belonging to ANOTHER row: a write must reach the
    *  five that share its form id and no others. */
   const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
-  const toolSelect = {
-    value: "claude",
+  // Spec 169: the row's set-all control. It rests on its placeholder
+  // option — the empty value — and goes back to it after every write,
+  // so it never claims the row rests on a model it does not.
+  const setAllSelect = {
+    value: "",
     tagName: "SELECT",
     disabled: false,
     isConnected: true,
-    // No `name`: the picker posts nothing (`queue-list.ts`). It is
+    // No `name`: the control posts nothing (`queue-list.ts`). It is
     // still what the DOM reports — an empty string, not undefined —
-    // and the key a kept choice is filed under is built from it.
+    // and the key a kept choice would be filed under is built from it.
     name: "",
     getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
-    closest: (sel: string) => (sel.includes("data-tool-picker") ? toolSelect : null),
-    /** The picker's resting value, which the server states outright
-     *  since spec 141: Claude Code. */
-    redraw: () => void (toolSelect.value = "claude"),
+    closest: (sel: string) => (sel.includes("data-set-all") ? setAllSelect : null),
+    /** What the server draws: the placeholder, never a model. */
+    redraw: () => void (setAllSelect.value = ""),
   };
   // Spec 141: the row's phase boxes. They share one `name` — the step
   // is in the VALUE — which is why what is remembered about them is
@@ -523,22 +530,20 @@ function harness(
     },
     set innerHTML(html: string) {
       rowsHtml = html;
-      toolSelect.redraw();
+      setAllSelect.redraw();
       for (const m of modelSelects) m.redraw();
       otherRowSelect.redraw();
       for (const b of stepBoxes) b.redraw();
       tailBox.redraw();
     },
     querySelectorAll: (sel: string) =>
-      sel.includes("data-tool-picker")
-        ? [toolSelect]
-        : sel.includes("model.")
-          ? [...modelSelects, otherRowSelect]
-          : sel.includes('name="steps"')
-            ? stepBoxes
-            : sel.startsWith("button")
-              ? [runButton]
-              : [],
+      sel.includes("model.")
+        ? [...modelSelects, otherRowSelect]
+        : sel.includes('name="steps"')
+          ? stepBoxes
+          : sel.startsWith("button")
+            ? [runButton]
+            : [],
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
@@ -588,12 +593,12 @@ function harness(
           ? [...modelSelects, otherRowSelect].filter((s) => sel.includes(`form="${s.getAttribute("form")}"`))
           : // Spec 151: everything written OUTSIDE a form and tied to
             // it by name — the Run button, the four phase boxes, the
-            // five model selects and the AI picker. Another row's
-            // select names another form and is not answered here,
-            // which is what "the press reaches its own row and no
-            // other" is proved against.
+            // five model selects and the set-all control. Another
+            // row's select names another form and is not answered
+            // here, which is what "the press reaches its own row and
+            // no other" is proved against.
             sel.startsWith("[form=")
-            ? [runButton, ...stepBoxes, tailBox, ...modelSelects, toolSelect, otherRowSelect].filter(
+            ? [runButton, ...stepBoxes, tailBox, ...modelSelects, setAllSelect, otherRowSelect].filter(
                 (el) => sel.includes(`"${el.getAttribute("form")}"`),
               )
             : [],
@@ -703,7 +708,7 @@ function harness(
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, toolSelect, stepBoxes, tailBox,
+    modelSelects, otherRowSelect, setAllSelect, stepBoxes, tailBox,
     /** A tail box ticked or unticked by hand — the tick that posts on
      *  its own, without a Run press behind it (spec 160). */
     changeTail: (checked: boolean) => {
@@ -711,9 +716,11 @@ function harness(
       return on["change"]?.({ target: tailBox }) as unknown as Promise<void>;
     },
     runButton, cancelButton,
-    changeTool: (value: string) => {
-      toolSelect.value = value;
-      on["change"]?.({ target: toolSelect });
+    /** A model picked in the row's set-all control (spec 169) — the
+     *  one action that writes every phase still ahead. */
+    setAll: (value: string) => {
+      setAllSelect.value = value;
+      on["change"]?.({ target: setAllSelect });
     },
     /** One phase's model, moved by hand — the other half of what a
      *  swap must not wash away. */
@@ -1235,7 +1242,7 @@ describe("a press locks every control on its row (spec 151)", () => {
     cancel: h.cancelButton.disabled,
     box: h.stepBoxes[0]!.disabled,
     model: h.modelSelects[0]!.disabled,
-    tool: h.toolSelect.disabled,
+    setAll: h.setAllSelect.disabled,
     otherRow: h.otherRowSelect.disabled,
   });
 
@@ -1248,7 +1255,7 @@ describe("a press locks every control on its row (spec 151)", () => {
       }, control);
       await h.submit();
       expect(seen).toEqual({
-        run: true, cancel: true, box: true, model: true, tool: true,
+        run: true, cancel: true, box: true, model: true, setAll: true,
         // The other row's select names another form. A press that
         // reached it would grey out a spec nobody touched.
         otherRow: false,
@@ -1328,7 +1335,7 @@ describe("a press locks every control on its row (spec 151)", () => {
     h.stepBoxes[1]!.disabled = true;
     await h.submit();
     expect(rowState(h)).toEqual({
-      run: false, cancel: false, box: false, model: false, tool: false, otherRow: false,
+      run: false, cancel: false, box: false, model: false, setAll: false, otherRow: false,
     });
     expect(h.stepBoxes[1]!.disabled).toBe(true);
   });
@@ -1347,7 +1354,7 @@ describe("a press locks every control on its row (spec 151)", () => {
     }, "resolveform");
     await h.submit();
     expect(seen).toEqual({
-      run: true, cancel: true, box: true, model: true, tool: true, otherRow: false,
+      run: true, cancel: true, box: true, model: true, setAll: true, otherRow: false,
     });
     expect(h.button.disabled).toBe(false);
     expect(h.button.classList.contains("busy")).toBe(false);
@@ -1507,64 +1514,57 @@ describe("on /projects, where there is no New-spec form", () => {
   });
 });
 
-// --- spec 127: the row's AI select narrows its model selects ----------------
+// --- spec 169: one action sets every phase still ahead ----------------------
 
-// One control for the row instead of five: picking the AI hides the
-// other tool's models everywhere on that row at once. The row's own
-// consequence, accepted when it was asked for — a row can no longer be
-// half Claude Code and half Codex through the UI.
+// The row's AI select is gone. It posted nothing and chose nothing: all
+// it did was hide the other tool's models from the five phase selects,
+// which is exactly what stopped anyone discovering that a row CAN run
+// analyze on one CLI and implement on another.
 //
-// It runs on CHANGE and never on load: the server has already pre-filled
-// every phase select with what that phase last ran on, and a filter that
-// ran by itself would re-pick for phases nobody touched.
-describe("the row's AI select filters its model selects (spec 127)", () => {
-  const hidden = (h: ReturnType<typeof harness>) =>
-    h.modelSelects.map((s) => s.options.filter((o) => o.hidden).map((o) => o.value));
+// What takes its slot is the convenience the filter was really standing
+// in for — one action instead of five — done the way round that does
+// not take anything away: it WRITES the five selects rather than
+// hiding half of each.
+//
+// It writes only the phases still AHEAD. A phase that has run shows
+// what it ran on, which is history rather than a suggestion, and the
+// server marks those selects `data-ran="1"` so the two can never
+// disagree about where the tail starts.
+describe("the row's set-all control writes every phase still ahead (spec 169)", () => {
+  const values = (h: ReturnType<typeof harness>) => h.modelSelects.map((s) => s.value);
 
-  test("nothing is filtered until the reader changes it", () => {
+  test("nothing is written until the reader picks a model", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    expect(hidden(h)).toEqual([[], [], [], [], []]);
-    expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
-    ]);
+    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
   });
 
-  test("choosing Codex hides every claude option, on all five selects", () => {
+  test("picking a model writes the phases with no history and leaves the rest", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeTool("codex");
+    h.setAll("codex-fast");
+    // analyze and review-plan ran already — their selects say what they
+    // ran ON, and that is not a value one action may overwrite.
+    expect(values(h)).toEqual(["codex-fast", "fable", "sonnet", "codex-fast", "codex-fast"]);
+  });
+
+  test("it can set a Claude model just as well — it is not a tool filter", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.setAll("fable");
+    expect(values(h)).toEqual(["fable", "fable", "sonnet", "fable", "fable"]);
+    // And nothing is hidden by it: every model stays on offer in every
+    // select, which is the whole point of removing the filter.
     for (const select of h.modelSelects) {
-      for (const option of select.options) {
-        expect([option.value, option.hidden]).toEqual([option.value, option.dataset.tool !== "codex"]);
-      }
+      expect([select.name, select.options.some((o) => o.hidden)]).toEqual([select.name, false]);
     }
   });
 
-  test("a selection the change hides moves to one still on offer", () => {
+  // It carries no resting value of its own: it is an action, not a
+  // statement about the row. Left showing the last model picked it
+  // would read as "this row is on codex-fast", which is precisely the
+  // claim the removed AI select made and could not keep.
+  test("the control goes back to its placeholder after it has written", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeTool("codex");
-    // Every phase now shows the codex entry — including the four that
-    // were showing a claude model a moment ago.
-    expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "codex-fast", "codex-fast", "codex-fast", "codex-fast", "codex-fast",
-    ]);
-    // And no select is left pointing at something out of sight.
-    for (const select of h.modelSelects) {
-      expect([select.name, select.selectedOptions[0]?.hidden]).toEqual([select.name, false]);
-    }
-  });
-
-  test("changing back offers the claude models again", () => {
-    const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeTool("codex");
-    h.changeTool("claude");
-    expect(hidden(h)).toEqual([
-      ["codex-fast"], ["codex-fast"], ["codex-fast"], ["codex-fast"], ["codex-fast"],
-    ]);
-    // The one phase that was on codex takes the first claude option; the
-    // four that were reassigned keep whatever they were left holding.
-    for (const select of h.modelSelects) {
-      expect([select.name, select.value]).toEqual([select.name, "sonnet"]);
-    }
+    h.setAll("codex-fast");
+    expect(h.setAllSelect.value).toBe("");
   });
 
   // The selects are tied to their form by ATTRIBUTE, not by nesting
@@ -1572,46 +1572,40 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
   // rather than a walk of the row.
   test("another row's model select is left alone", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeTool("codex");
-    expect(h.otherRowSelect.options.some((o) => o.hidden)).toBe(false);
+    h.setAll("codex-fast");
     expect(h.otherRowSelect.value).toBe("fable");
   });
 
   // Delegated on #jobrows, like every other control on the table: the
-  // rows are replaced wholesale every five seconds, and a listener bound
-  // to the select itself would last exactly one tick.
+  // rows are replaced wholesale every five seconds, and a listener
+  // bound to the select itself would last exactly one tick.
   test("it answers a change on the container, and ignores every other one", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    // A change on something that is not the AI select — a phase's own
-    // model select, say — reaches the same delegated listener and must
-    // pass straight through it.
+    // A change on something that is not the set-all control — a
+    // phase's own model select, say — reaches the same delegated
+    // listener and must pass straight through it.
     h.changeOther();
-    expect(hidden(h)).toEqual([[], [], [], [], []]);
-    // The listener the container recorded IS the one that filters.
-    h.changeTool("codex");
-    expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
+    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
+    // The listener the container recorded IS the one that writes.
+    h.setAll("codex-fast");
+    expect(values(h)[0]).toBe("codex-fast");
   });
 
-  // Reported 2026-08-20, from the page: pick Codex, wait, and the
-  // select is back on Claude Code. The rows are replaced wholesale
-  // every five seconds and the fresh markup rests on Claude Code. The
-  // damage is not the flicker: a press after that reversion starts the
-  // step on Claude without a word, having been asked for Codex.
-  test("a chosen AI survives the five-second swap", async () => {
+  // Setting `.value` from script fires no `change` event, so the
+  // per-select "remember what a hand touched" map is not written by the
+  // browser on this path — `applySetAll` has to write it itself. Without
+  // that, the five-second swap puts the server's markup back and every
+  // phase this just set silently reverts, with a press afterwards
+  // starting the step on a model nobody chose.
+  test("what set-all wrote survives the five-second swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeTool("codex");
+    h.setAll("codex-fast");
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
 
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
-    expect(h.toolSelect.value).toBe("codex");
-    // And the filter it stands for is back on with it: the row's
-    // model selects still offer the codex entry alone.
-    expect(hidden(h)[0]).toEqual(["sonnet", "fable"]);
-    expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "codex-fast", "codex-fast", "codex-fast", "codex-fast", "codex-fast",
-    ]);
+    expect(values(h)).toEqual(["codex-fast", "fable", "sonnet", "codex-fast", "codex-fast"]);
   });
 
   test("a chosen MODEL survives it too, and an untouched one is the server's", async () => {
@@ -1622,9 +1616,7 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
     h.tick();
     await flush();
 
-    expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "sonnet", "sonnet", "sonnet", "codex-fast", "sonnet",
-    ]);
+    expect(values(h)).toEqual(["sonnet", "sonnet", "sonnet", "codex-fast", "sonnet"]);
   });
 
   test("a swap nobody has touched a select on is left to the server", async () => {
@@ -1635,11 +1627,8 @@ describe("the row's AI select filters its model selects (spec 127)", () => {
 
     // The point of restoring only what a hand moved: a phase that has
     // RUN shows the model it ran on, and the swap is what delivers it.
-    expect(h.toolSelect.value).toBe("claude");
-    expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
-    ]);
-    expect(hidden(h)).toEqual([[], [], [], [], []]);
+    expect(h.setAllSelect.value).toBe("");
+    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
   });
 });
 
@@ -1729,7 +1718,7 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     h.changeStep(2, true);
     await swap(h);
 
-    expect(h.toolSelect.value).toBe("claude");
+    expect(h.setAllSelect.value).toBe("");
     expect(h.modelSelects.map((s) => s.value)).toEqual([
       "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
     ]);

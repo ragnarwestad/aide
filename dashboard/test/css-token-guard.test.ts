@@ -487,22 +487,22 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.body).toMatch(/padding-right:\s*\d+px/);
   });
 
-  test("the model and tool pickers are ours too, not only the fields", () => {
+  test("the model select and the set-all control are ours too", () => {
     // Neither has a `.field` ancestor, so `.field select` alone reaches
     // neither of them.
     const rule = oneRule((r) => r.body.includes("appearance: none"));
     expect(rule.selectors).toContain(".field select");
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-tool-picker]");
+    expect(rule.selectors).toContain("select[data-set-all]");
   });
 
-  test("the two pickers get the whole field look, not only the arrow", () => {
+  test("the two selects get the whole field look, not only the arrow", () => {
     // They are in no `.field`, so until this spec they carried no
     // height, border, background or colour from the design system at
     // all — the base rule has to name them as well.
     const rule = oneRule((r) => r.selectors.includes(".field input,"));
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-tool-picker]");
+    expect(rule.selectors).toContain("select[data-set-all]");
   });
 
   test("there is one focus rule, it is :focus-visible, and it is the accent", () => {
@@ -515,7 +515,7 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.body).toContain("outline: 2px solid var(--accent)");
   });
 
-  test("a disabled field reads as unavailable, and so do the two pickers", () => {
+  test("a disabled field reads as unavailable, and so do the two selects", () => {
     // `.btn:disabled` has had `opacity: 0.45` since spec 102; a field
     // had nothing, so a model picker disabled for the length of a run
     // still read as pressable and its reason lived only in a `title`.
@@ -523,7 +523,7 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.selectors).toContain(".field select:disabled");
     expect(rule.selectors).toContain(".field textarea:disabled");
     expect(rule.selectors).toContain('select[name^="model."]:disabled');
-    expect(rule.selectors).toContain("select[data-tool-picker]:disabled");
+    expect(rule.selectors).toContain("select[data-set-all]:disabled");
     // `background-color`, not the `background` shorthand: the shorthand
     // would drop the ground the base rule sets.
     expect(rule.body).toContain("background-color: var(--surface-2)");
@@ -535,7 +535,7 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
       (r) => r.body.includes("font-family: var(--mono)") && r.selectors.includes("select["),
     );
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-tool-picker]");
+    expect(rule.selectors).toContain("select[data-set-all]");
     // Mono runs wider at the same nominal size, and these sit in a
     // pinned table column.
     expect(rule.body).toContain("font-size: var(--fs-s)");

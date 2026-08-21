@@ -44,13 +44,11 @@ let pressGen = 0;
  *  and five seconds later the select is back on Claude Code.
  *
  *  The rows are replaced wholesale on every tick, and the fresh markup
- *  is the server's answer: the AI picker back on its resting default
- *  (Claude Code, stated since spec 141 — it used to be whichever option
- *  the configuration listed first), and the phase selects on the
- *  CONFIGURED model rather than the one just picked. Nothing about that
- *  is visible in the moment it happens. The cost is the press
- *  afterwards: a row asked for Codex, left alone for six seconds and
- *  then Run, started the step on Claude without a word.
+ *  is the server's answer: every phase select back on the CONFIGURED
+ *  model rather than the one just picked. Nothing about that is
+ *  visible in the moment it happens. The cost is the press afterwards:
+ *  a row asked for Codex, left alone for six seconds and then Run,
+ *  started the step on Claude without a word.
  *
  *  Only hand-made choices are kept. A select nobody touched belongs to
  *  the server — that is how a phase that has run shows the model it
@@ -82,13 +80,11 @@ const checkboxKey = (el: HTMLInputElement): string =>
 
 /** Put the hand-made choices back on the rows that were just drawn.
  *
- *  The AI pickers go FIRST and re-narrow their row's model selects,
- *  because that filter moves a selection of its own (`syncToolFilter`):
- *  a model restored ahead of it would be re-picked by it and the
- *  restore would look like it had not happened. A remembered model is
- *  only put back if the fresh markup still offers it and the filter has
- *  not hidden it — a value no visible option carries is not a choice
- *  the row can honour. */
+ *  A remembered model is only put back if the fresh markup still offers
+ *  it: a value no option carries is not a choice the row can honour.
+ *  There is nothing to restore ahead of it any more — the row's AI
+ *  select went in spec 169, and with it the filter that used to move a
+ *  selection of its own on the way past. */
 /** The row's button says what a press would run — and a press runs the
  *  BOXES, so the label has to follow them as they are clicked.
  *
@@ -153,19 +149,12 @@ function relabelAll(body: Element): void {
 
 function restoreChosen(body: Element): void {
   if (!chosen.size && !chosenSteps.size) return;
-  for (const el of body.querySelectorAll("select[data-tool-picker]")) {
-    const picker = el as HTMLSelectElement;
-    const want = chosen.get(selectKey(picker));
-    if (want === undefined) continue;
-    picker.value = want;
-    syncToolFilter(picker);
-  }
   for (const el of body.querySelectorAll('select[name^="model."]')) {
     const model = el as HTMLSelectElement;
     const want = chosen.get(selectKey(model));
     if (want === undefined) continue;
     for (const option of model.options) {
-      if (option.value === want && !option.hidden) model.value = want;
+      if (option.value === want) model.value = want;
     }
   }
   for (const el of body.querySelectorAll('input[name="steps"]')) {
@@ -277,7 +266,7 @@ const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
 
 /** Everything written OUTSIDE a form and tied to it by name alone. On
  *  a spec's row that is the Run button, the four phase boxes, the five
- *  model selects and the AI picker: the trick spec 123 introduced so
+ *  model selects and the set-all control: the trick spec 123 introduced so
  *  the button could sit above the phase lines and the boxes on them,
  *  while the form itself carries nothing but hidden fields. */
 const namesForm = (id: string): Element[] =>
@@ -601,33 +590,51 @@ function syncDependsOn(): void {
   }
 }
 
-// The row's AI select (spec 127): one control instead of five. Picking
-// a tool narrows every model select on that row to the models that
-// tool actually runs, and moves any phase whose pick just went out of
-// sight onto one still on offer — a select left pointing at a hidden
-// option is a choice the reader can no longer see they are making,
-// the same rule the Depends-on chips are held to above.
+// The row's set-all control (spec 169): one action instead of five.
+// Picking a model writes it into every phase select on that row that
+// has not run yet.
+//
+// It replaced an AI select that did the opposite — hid the other
+// tool's models from all five — which is what stopped anyone
+// discovering that a row can run analyze on one CLI and implement on
+// another. Nothing is hidden here: every select goes on offering every
+// model, and this only moves the ones with nothing to lose.
+//
+// `data-ran="1"` is the server's own word for "this select is showing
+// history" (`queue-list.ts`), derived from the same value that
+// pre-filled it. A phase that has run shows the model it really ran
+// on, and no single action may overwrite that; the phases still ahead
+// are showing a suggestion, and a suggestion is exactly what this
+// replaces.
 //
 // Scoped by FORM ID, not by walking the row: the model selects are
 // written outside their form's own tags and tied to it by that
 // attribute alone, so the row is not a container that holds them.
 //
-// It runs on change and never on load. Every phase select is already
-// pre-filled by the server with what that phase last ran on — a row
-// whose phases ran on different tools is a real history, and filtering
-// it on sight would re-pick for phases nobody touched.
-function syncToolFilter(select: HTMLSelectElement): void {
+// Each write is recorded in `chosen` as well. Setting `.value` from
+// script fires no `change` event, so the delegated listener that
+// normally remembers a hand-made choice never sees this one — and
+// without the record the five-second swap would put the server's
+// markup back over every phase this just set, with a press afterwards
+// starting the step on a model nobody chose.
+//
+// Finally the control goes back to its placeholder: it is an action,
+// not a statement about the row, and one left resting on the last
+// model picked would claim the row is on that model.
+function applySetAll(select: HTMLSelectElement): void {
+  const want = select.value;
   const form = select.getAttribute("form");
-  if (!form) return;
+  if (!want || !form) return;
   for (const el of document.querySelectorAll(`select[name^="model."][form="${form}"]`)) {
     const model = el as HTMLSelectElement;
-    let firstVisible: HTMLOptionElement | undefined;
+    if (model.dataset.ran === "1") continue;
     for (const option of model.options) {
-      option.hidden = option.dataset.tool !== select.value;
-      if (!option.hidden && !firstVisible) firstVisible = option;
+      if (option.value !== want) continue;
+      model.value = want;
+      chosen.set(selectKey(model), want);
     }
-    if (firstVisible && model.selectedOptions[0]?.hidden) model.value = firstVisible.value;
   }
+  select.value = "";
 }
 
 // The one control in this file that deliberately NAVIGATES on success,
@@ -733,9 +740,9 @@ function tick(): void {
 // would last five seconds.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
-// And the row's AI select, for the same reason: the rows are replaced
-// wholesale on every tick, so a listener bound to the select itself
-// would last five seconds.
+// And the row's selects and boxes, for the same reason: the rows are
+// replaced wholesale on every tick, so a listener bound to a control
+// itself would last five seconds.
 document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
   // A tail box's tick is a press, not something to remember for the
@@ -745,11 +752,17 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // and it is what lets the test wait for the request the tick makes.
   const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
   if (tail) return postTailStep(tail);
-  const picker = target?.closest?.("select[data-tool-picker]") as HTMLSelectElement | null;
-  // Every select on the rows is remembered, not only the picker: the
-  // phase selects are swapped away just as often, and a model picked
-  // for the next run is the same promise the AI picker makes.
-  const select = picker ?? (target?.closest?.("select") as HTMLSelectElement | null);
+  // The set-all control is an action and nothing else (spec 169): it
+  // writes the row's phase selects and is done. Nothing about it is
+  // remembered for the next redraw — it has no value of its own to
+  // remember, and `applySetAll` records what it wrote under the
+  // selects it wrote it into.
+  const setAll = target?.closest?.("select[data-set-all]") as HTMLSelectElement | null;
+  if (setAll) return applySetAll(setAll);
+  // Every other select on the rows IS remembered: they are swapped
+  // away every five seconds, and a model picked for the next run is a
+  // promise the page has to keep.
+  const select = target?.closest?.("select") as HTMLSelectElement | null;
   if (select) chosen.set(selectKey(select), select.value);
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is
@@ -761,7 +774,6 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
     const formId = step.getAttribute("form");
     if (rows && formId) relabelRunButton(rows, formId);
   }
-  if (picker) syncToolFilter(picker);
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its
 // own page, with no swapped container to hang a delegated one off.
