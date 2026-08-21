@@ -208,7 +208,18 @@ export async function saveSpecFile(
     // Nothing staged means the text is what was already committed. No
     // empty commit, no push, and the page must not stamp a new version
     // onto a file that did not move.
-    const staged = await run(root, ["diff", "--cached", "--quiet", "HEAD", "--", file]);
+    //
+    // Asked from `dir`, NOT from `root`. `file` is a bare filename —
+    // `1-description.md` — which names the file from the spec's own
+    // folder and names NOTHING from the repository root. Asked there it
+    // matched an empty pathspec, git answered "no difference" with exit
+    // 0, and every save took this branch: the text was written and
+    // staged, the commit and the push never ran, and the page reported
+    // success. What it left behind was the reader's edit sitting
+    // uncommitted in the shared checkout — which is exactly what the
+    // next pull, this button's or the cron's, refuses (2026-08-21, the
+    // first real save anyone made).
+    const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", file]);
     if (staged.code === 0) {
       return { ok: true, note: `${file} is unchanged — nothing was saved`, committed: false };
     }

@@ -242,6 +242,23 @@ describe("saveSpecFile", () => {
     expect(lines.some((l) => l.startsWith("reset"))).toBe(false);
   });
 
+  // The fake answers by COMMAND and ignores the directory, which is how
+  // the first real save got past this suite: `file` is a bare name, so
+  // the staged-check asked from the repository root matched an empty
+  // pathspec, git said "no difference", and the save returned success
+  // having written and staged the text without committing it. The rule
+  // the fake cannot see is that a bare pathspec must be asked where it
+  // means something — the same directory the `add` used.
+  test("the staged-check is asked where the bare filename means something", async () => {
+    const { root, dir } = checkout();
+    const git = savable(root);
+    await saveSpecFile(git.run, dir, base, edit(NEW_TEXT));
+    const add = git.calls.find((c) => c.args[0] === "add")!;
+    const staged = git.calls.find((c) => c.args.join(" ").startsWith("diff --cached"))!;
+    expect(staged.dir).toBe(add.dir);
+    expect(staged.dir).toBe(dir);
+  });
+
   test("the commit says which spec, which file, and that a person did it", async () => {
     const { root, dir } = checkout();
     const git = savable(root);
