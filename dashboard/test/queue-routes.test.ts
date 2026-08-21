@@ -719,13 +719,15 @@ describe("renderQueuePage state labels", () => {
 
 describe("every row answers for itself", () => {
   // The title and the phase left the row on 2026-08-21 — the folder name
-  // says the one and the pips say the other. The progress is what is
-  // left, and the point of the test is unchanged: the row answers for
+  // says the one and the pips say the other — and the percentage left it
+  // in spec 167. The point of the test is unchanged: the row answers for
   // itself, server-rendered, with no selection and no data block for a
-  // script to read.
-  test("a spec's progress is on its own row (criterion 9)", async () => {
+  // script to read. This is the one test that follows the percentage all
+  // the way from a real 4-status.md on disk to the served HTML, so it is
+  // the one that can still go red if the figure ever creeps back.
+  test("a spec's progress stays off its own row (criterion 9)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    // Give the spec a status file the page can summarise.
+    // A status file that DOES carry a percentage: the row must ignore it.
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
       statusSaying(
@@ -737,8 +739,16 @@ describe("every row answers for itself", () => {
     // Server-rendered on the row itself: there is no selection left to
     // answer, and no data block for a script to answer it from.
     const line = specHead(html, "81-queue-and-runner");
-    expect(line).toContain("64% done");
+    // The figure counted the checkbox rows implement ticks, so it was 0
+    // with analyze and review-plan both done and 90-something the moment
+    // implement ended. The pips say how far the spec has got and the
+    // State column says what is happening now.
+    expect(line).not.toContain("% done");
+    expect(line).not.toContain("64%");
     expect(line).not.toContain("Phase 2: GREEN");
+    // What the row DOES still read off this same file: the steps behind
+    // it, as green pips. The percentage is gone; the file is still read.
+    expect(line).toContain('class="pips"');
     expect(html).not.toContain('id="targetdata"');
     expect(html).not.toContain('<select name="target"');
   });

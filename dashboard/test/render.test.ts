@@ -1549,23 +1549,39 @@ describe("a spec's row runs its own phases", () => {
     expect(head(open, "94-never-run")).not.toContain('type="hidden" name="steps"');
   });
 
-  // The title and the phase came off the row on 2026-08-21: the folder
-  // name above IS the title in slug form and said it twice, and the
-  // phase is what the pips and the State column already answer. What
-  // stays is the progress, which neither of them carries — and it still
-  // has to come from this row's OWN target, which is what this test was
-  // written for and still proves.
-  test("a row's progress comes from its OWN target (criterion 9)", () => {
+  // The title and the phase came off the row on 2026-08-21, and the
+  // percentage followed them in spec 167: it counted the checkbox rows
+  // the implement step ticks, so it read 0 with analyze and review-plan
+  // both finished and 90-something the moment implement ended, never
+  // anything between — while the pips already say how far the spec has
+  // got and the State column says what is happening now.
+  // What is left of the spec's own files on this line is what it
+  // depends on, and THAT still has to come from this row's own target,
+  // which is what this test was written for and still proves. The
+  // percentage's absence is proved end to end from a real 4-status.md
+  // by queue-routes.test.ts, "a spec's progress stays off its row".
+  test("a row's summary comes from its OWN target (criterion 9)", () => {
     const html = rows(
       [job("j1", "analyze")],
       [
-        target("94-other", { title: "Another spec", phase: "Phase 1: RED", percent: 10 }),
-        target("94-row-runs-it", { title: "Row runs it", phase: "Phase 2: GREEN", percent: 64 }),
+        target("94-other", {
+          title: "Another spec",
+          phase: "Phase 1: RED",
+          dependsOn: ["12-other-dep"],
+        }),
+        target("94-row-runs-it", {
+          title: "Row runs it",
+          phase: "Phase 2: GREEN",
+          dependsOn: ["165-own-dep"],
+        }),
       ],
     );
     const line = head(html, "94-row-runs-it");
-    expect(line).toContain("64% done");
-    expect(line).not.toContain("10% done");
+    expect(line).toContain("depends on: 165");
+    expect(line).not.toContain("depends on: 12");
+    // No percentage on the row at all any more — neither this spec's
+    // nor another's.
+    expect(line).not.toContain("% done");
     // Neither spec's title or phase is on the row at all any more.
     expect(line).not.toContain("Row runs it");
     expect(line).not.toContain("Phase 2: GREEN");
@@ -1955,7 +1971,7 @@ describe("the description-changed badge (criteria 1, 3)", () => {
   test("analyze is pre-ticked again, not implement (criterion 3)", () => {
     const html = rows(
       [job("j1", "analyze"), job("j2", "implement")],
-      [target("97-stale", { analyzeStale: true, done: ["implement"], percent: 100 })],
+      [target("97-stale", { analyzeStale: true, done: ["implement"] })],
     );
     const line = runLine(html, "97-stale");
     expect(line).toMatch(/value="analyze" checked/);
@@ -2800,16 +2816,17 @@ describe("spec 103: a collapsed row shows status only", () => {
       rows(
         [row({ id: "j1", specFolder: "103-idle", state: "done", spentUsd: 1.5,
                startedAt: "2026-08-19T09:00:00Z" })],
-        [target("103-idle", { title: "Status only", phase: "Phase 3", percent: 75 })],
+        [target("103-idle", { title: "Status only", phase: "Phase 3" })],
       ),
       "103-idle",
     );
     expect(line).toContain("103-idle");
     // The title left the row on 2026-08-21 — the folder name is it, in
-    // slug form. What the row keeps of the spec's own status is the
-    // progress.
+    // slug form — and the percentage left it in spec 167, so what a
+    // collapsed row keeps of the spec's own status is the pips and the
+    // badge below.
     expect(line).not.toContain("Status only");
-    expect(line).toContain("75% done");
+    expect(line).not.toContain("% done");
     // Spec 132: the badge says the resting state and what is next, so a
     // spec whose files say nothing has run reads "ready for analyze".
     expect(line).toContain('class="badge b-ready"');
@@ -3348,7 +3365,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // --- criterion 1: the header line is the same line, open or shut ----------
 
   test("an idle spec's header row is byte-identical open or shut (criterion 1)", () => {
-    const { shut, opened } = shutAndOpen([], [target("109-idle", { title: "Held still", percent: 50 })], "109-idle");
+    const { shut, opened } = shutAndOpen([], [target("109-idle", { title: "Held still" })], "109-idle");
     expect(opened).toBe(shut);
   });
 
@@ -3921,18 +3938,41 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).toContain("$0.42");
   });
 
-  // --- criterion 5: history, not a fifth pip ---------------------------------
+  // --- criterion 5: a fifth pip, past because the spec exists ----------------
+  //
+  // Create had no pip from spec 116 until spec 167: the glance was about
+  // the four phases a reader can still run. The hole made create read as
+  // a different kind of thing rather than as the phase already behind
+  // you — the same reason the phase LINE got a box on 2026-08-21 — so it
+  // is a pip like the other four now.
+  //
+  // It cannot simply be un-filtered. `done` comes from the git history,
+  // which counts only `Run /aide-<step> for <folder>` commits, and a
+  // spec written by hand has no create commit — every one of those would
+  // show a grey pip. The rule is the box's rule: a spec that exists was
+  // created, so the pip is past unless a create job is running right
+  // now.
 
-  test("create is never a progress pip (criterion 5)", () => {
+  test("create is a past pip once the spec exists, with or without a create commit", () => {
     const withJob = rows(
       [createJob("116-landed")],
       [target("116-landed", { done: ["create", "analyze"] })],
     );
-    const withoutJob = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
-    for (const html of [withJob, withoutJob]) {
-      expect(pipTitles(html)).toEqual(["analyze", "review", "implement", "archive"]);
-      expect(pipFor(html, "create")).toBe("");
+    // The hand-written spec is the case `done` cannot answer: no create
+    // commit, so `wordPhase`'s ordinary rule would call it "todo".
+    const handMade = rows([], [target("116-hand-made", { done: ["analyze"] })]);
+    for (const html of [withJob, handMade]) {
+      expect(pipTitles(html)).toEqual(["create", "analyze", "review", "implement", "archive"]);
+      expect(pipFor(html, "create")).toBe("past");
     }
+  });
+
+  test("create is the running pip while a create job is in flight", () => {
+    const html = rows(
+      [createJob("116-landing", { state: "running" })],
+      [target("116-landing")],
+    );
+    expect(pipFor(html, "create")).toBe("now");
   });
 
   // --- criterion 6: history, not a control -----------------------------------
@@ -4826,13 +4866,17 @@ describe("a job run by Codex", () => {
   });
 });
 
-// The picker is where a tool is CHOSEN, so the option has to say which
-// one it is before it is picked — two entries that differ only in which
-// CLI they start would otherwise be two identical-looking names.
-describe("the model picker names the tool", () => {
+// The picker used to append the tool to a non-Claude entry's label
+// (spec 125), so two entries starting different CLIs could be told
+// apart. Spec 167 took it back off: the entries are called `codex-sol`
+// and `codex-luna`, so the name already says it, and since spec 164 the
+// list is filtered to the AI selected in the picker beside it, which
+// says it a third time. A model name that does not say which tool it
+// starts is a name to fix in queue-config.json, not a label to patch.
+describe("the model picker shows the model's name and nothing else", () => {
   const codexTarget: QueueTarget = { project: "aide", specFolder: "125-codex" };
 
-  test("a codex entry is distinguishable from a claude one", () => {
+  test("a codex entry's option text is exactly its name, with no suffix", () => {
     const html = renderQueueRows(
       [],
       {
@@ -4840,16 +4884,22 @@ describe("the model picker names the tool", () => {
         targets: [codexTarget],
         modelChoices: [
           { name: "sonnet", budgetUsd: 3 },
-          { name: "codex-fast", budgetUsd: 5, tool: "codex" },
+          // Deliberately a name that does NOT contain "codex": a name
+          // that did would pass this test whether or not the suffix is
+          // still being appended.
+          { name: "gpt-fast", budgetUsd: 5, tool: "codex" },
         ],
         filter: { open: openKeys([], [codexTarget]) },
       },
       Date.parse("2026-08-20T12:00:00Z"),
     );
-    expect(html).toContain("codex-fast");
-    expect(html).toMatch(/<option value="codex-fast"[^>]*>[^<]*codex[^<]*<\/option>/);
-    // The claude entries are left exactly as they were — the default
-    // tool is not a label anyone needs.
+    expect(html).toMatch(/<option value="gpt-fast"[^>]*>gpt-fast<\/option>/);
+    // `data-tool` still says which CLI the option starts — to the row's
+    // AI select rather than to a reader (spec 127). It is the visible
+    // suffix that went.
+    expect(html).toMatch(/<option value="gpt-fast"[^>]*data-tool="codex"/);
+    expect(html).not.toContain("(codex)");
+    // The claude entries are left exactly as they were.
     expect(html).toMatch(/<option value="sonnet"[^>]*>sonnet<\/option>/);
   });
 });

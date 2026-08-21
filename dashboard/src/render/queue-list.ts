@@ -66,7 +66,6 @@ export interface QueueTarget {
    *  find out what a job called `02-job-detail-view` actually is. */
   description?: string;
   phase?: string;
-  percent?: number;
   /** What this spec builds on, from its own `Depends on:` line (spec
    *  92). Named by folder, the way `aide-run-spec`'s own dependency
    *  refusal names it. Empty or absent when it names none. */
@@ -360,7 +359,6 @@ interface SpecGroup {
    *  dropdown had selected; every row now answers for itself. */
   title?: string;
   phase?: string;
-  percent?: number;
   /** The specs this one builds on, by folder — from its own
    *  1-description.md, not from anything the queue ran. */
   dependsOn: string[];
@@ -413,12 +411,11 @@ function emptyGroup(t: QueueTarget): SpecGroup {
  *  spec's done-set or progress is the one way this join can go wrong. */
 function fromTarget(
   t: QueueTarget | undefined,
-): Pick<SpecGroup, "done" | "title" | "phase" | "percent" | "dependsOn" | "analyzeStale"> {
+): Pick<SpecGroup, "done" | "title" | "phase" | "dependsOn" | "analyzeStale"> {
   return {
     done: t?.done ?? [],
     title: t?.title,
     phase: t?.phase,
-    percent: t?.percent,
     dependsOn: t?.dependsOn ?? [],
     analyzeStale: t?.analyzeStale ?? false,
   };
@@ -1181,17 +1178,21 @@ function newSpecLink(opts: QueuePageOptions): string {
 // blank on half the rows reads as a page that failed to load.
 function specSummary(g: SpecGroup): string {
   const bits: string[] = [];
-  // NOT the title, and NOT the phase (2026-08-21). The folder name
-  // above IS the title in slug form and said it twice; the phase is
-  // what the pips and the State column are for. What is left is what
-  // neither of those carries.
+  // NOT the title, and NOT the phase (2026-08-21), and NOT the
+  // percentage (spec 167). The folder name above IS the title in slug
+  // form and said it twice; the phase is what the pips and the State
+  // column are for. The percentage counted the checkbox rows the
+  // implement step ticks, and implement is ONE step — so it read 0
+  // until implement finished and 90-something after, never anything
+  // between. Two specs on the same day both read "0% done", one with
+  // 21 task rows behind it and one with 4. What is left is what
+  // neither the pips nor the badge carries.
   //
   // ONE exception, and it is the reason `named` exists: a create job's
   // spec has no folder yet, so the name above is a provisional key that
   // says nothing to anyone. There the title is the only readable thing
   // the row has, and it stays until the spec lands.
   if (!g.named && g.title) bits.push(esc(g.title));
-  if (typeof g.percent === "number") bits.push(`${g.percent}% done`);
   // By NUMBER since 2026-08-21, not by folder. This line used to match
   // `aide-run-spec`'s dependency refusal word for word, which names the
   // whole folder; the number is what a reader recognises, it is
@@ -1254,22 +1255,41 @@ function specHeadRow(
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
-  // `create` is a phase LINE and never a pip (spec 116): the glance is
-  // about the four phases a reader can still run, and a spec that
-  // exists cannot be created again.
+  // `create` had no pip from spec 116 until spec 167: the glance was
+  // about the four phases a reader can still RUN. The hole made create
+  // read as a different kind of thing rather than as the phase already
+  // behind you — the same reason the phase line got a box of its own on
+  // 2026-08-21 — so it is a pip like the other four now.
+  //
+  // It cannot go through `wordPhase` with them, though. `g.done` comes
+  // from the git history, which counts only the runner's own
+  // `Run /aide-<step> for <folder>` commits, and a spec written by hand
+  // has no create commit — every one of those would show a grey pip
+  // saying the spec had not been made yet. Create gets the BOX's rule
+  // instead, and it has only two states: a spec that exists was
+  // created, so the pip is past unless a create job is running right
+  // now, in which case it is the running one.
+  const createRunning = g.phases
+    .find((p) => p.step === "create")
+    ?.attempts.some(inFlight);
   const progress = pips(
-    g.phases.filter((p) => p.step !== "create").map((p) => ({
+    g.phases.map((p) => ({
       // One rule, one function: what the FILES say, qualified by the
       // most relevant attempt (whatever is in flight, else the latest).
       // The pips used to read the job history alone, so a spec analysed
       // by hand showed four grey pips and a cancelled re-run turned a
       // finished phase grey again.
-      kind: wordPhase(
-        g.done.includes(p.step),
-        p.heldBack,
-        p.attempts.find(inFlight) ?? p.attempts[0],
-        p.history,
-      ).pip,
+      kind:
+        p.step === "create"
+          ? createRunning
+            ? "now"
+            : "past"
+          : wordPhase(
+              g.done.includes(p.step),
+              p.heldBack,
+              p.attempts.find(inFlight) ?? p.attempts[0],
+              p.history,
+            ).pip,
       title: stepLabel(p.step),
     })),
   );
@@ -1408,15 +1428,19 @@ function modelPicker(
     models
       .map(
         (m) =>
-          // The tool is named only when it is not the default one:
-          // labelling every claude entry "(claude)" would be three
-          // words of noise on a page about work, but two entries that
-          // start DIFFERENT CLIs have to be tellable apart before one
-          // is picked (spec 125).
-          // `data-tool` says the same thing the suffix does, to the
-          // row's AI select rather than to a reader (spec 127): the
-          // filter has to know which tool an option starts without
-          // reading its label back.
+          // The option's text is the model's NAME and nothing else
+          // (spec 167). A non-Claude entry used to carry the tool as a
+          // suffix — "gpt-fast (codex)" — so two entries starting
+          // different CLIs could be told apart before one was picked
+          // (spec 125). The entries are called `codex-sol` and
+          // `codex-luna`, so the name already says it, and since spec
+          // 164 the list is filtered to the AI selected in the picker
+          // beside it, which says it a third time. A model name that
+          // does NOT say which tool it starts is a name to fix in
+          // `queue-config.json`, not something to patch in the label.
+          // `data-tool` says it to the row's AI select rather than to a
+          // reader (spec 127): the filter has to know which tool an
+          // option starts without reading its label back.
           // `hidden`, from the FIRST byte: `syncToolFilter` sets it in
           // the browser, but only when a reader changes the AI select,
           // so before spec 164 a fresh page — and every page with
@@ -1426,8 +1450,7 @@ function modelPicker(
           `<option value="${esc(m.name)}" data-tool="${esc(m.tool ?? "claude")}"` +
           ` title="$${m.budgetUsd} per step"` +
           `${(m.tool ?? "claude") !== chosenTool ? " hidden" : ""}` +
-          `${m.name === chosen ? " selected" : ""}>${esc(m.name)}` +
-          `${m.tool && m.tool !== "claude" ? ` (${esc(m.tool)})` : ""}</option>`,
+          `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
       )
       .join("") +
     `</select>`

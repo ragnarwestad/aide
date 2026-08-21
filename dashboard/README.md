@@ -247,7 +247,11 @@ before any analyze had run — its untouched analysis template is 693
 bytes — so the row offered review-plan instead, and review-plan ran
 three times against an empty template. The percentage keeps its own
 job: it says how far the TDD phases INSIDE implement have got, which is
-a different question from whether implement ran.
+a different question from whether implement ran. It stopped being shown
+on the row in spec 167 — implement is ONE step, so the figure read 0
+until implement finished and 90-something after, never anything
+between, and two specs of entirely different sizes both read "0% done"
+on the same day. The spec's own page still shows it in full.
 
 A spec whose status file predates the line has had nothing as far as
 the page is concerned. That is deliberate: a spec that reads as
@@ -346,7 +350,7 @@ every row it has: an empty spec list means "we cannot tell", never
 "everything here is archived".
 
 A spec's row is collapsed by default: name, title, one status line, the
-four phase pips, and at most one action button (Resolve, after a landing
+five phase pips, and at most one action button (Resolve, after a landing
 on that row was refused for a conflict). The four phase lines and every
 control — phase checkboxes, model dropdown, the also-touches field, Run,
 Cancel — sit behind the same chevron in front
@@ -473,8 +477,13 @@ each entry may name a `tool` and a `model` of its own:
 means) or `codex`. `model` is the literal value handed to the CLI when
 it differs from the entry's own key — the key is what the picker shows
 and what a request posts, so a readable name can front a model string
-nobody wants to read. An entry naming a tool other than claude says so
-in the dropdown, so two entries are tellable apart before one is picked.
+nobody wants to read. An entry naming a tool other than claude used to say
+so in the dropdown, as a `(codex)` suffix, so two entries were tellable
+apart before one was picked; spec 167 took that off. The entries are
+called `codex-sol` and `codex-luna`, so the name already says it, and
+since spec 164 the list is filtered to the AI selected beside it, which
+says it a third time. A model name that does NOT say which tool it
+starts is a name to fix here, not something to patch in the label.
 
 That baseline is where the row's own AI select rests when there is
 nothing else to go on. What it actually opens on is the tool of the
@@ -783,9 +792,15 @@ reads done once `4-status.md` records it, which is what `/aide-create`
 writes into a new spec; a spec with a create job in the queue's history additionally
 shows that run (state, model, time, cost, link), and a spec made by
 hand or before spec 93 shows the line inert, the same way any phase run
-outside the queue does. It has no checkbox and no pip of its own — the
-pips still count only the four RUNNABLE phases below it: analyze,
-review-plan, implement, archive.
+outside the queue does. It has no checkbox. It had no pip either until spec 167 — the
+pips counted only the four RUNNABLE phases below it — and the hole made
+create read as a different kind of thing rather than as the phase
+already behind you. It is a pip like the other four now, but not on
+their rule: `done` comes from the git history, which counts only the
+runner's own commits, so a spec written by hand has no create commit
+and would show grey. Create gets the LINE's rule instead, and it has
+only two states — a spec that exists was created, so the pip is past
+unless a create job is running right now.
 
 The header carries what belongs to the spec rather than to one run,
 unconditionally (collapsed or expanded): the summed cost, one link per

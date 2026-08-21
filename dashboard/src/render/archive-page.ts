@@ -98,5 +98,11 @@ export function renderArchivePage(
 
   // No meta refresh: the archive is a record, and a record does not
   // change under the reader.
-  return pageShell("Archive", entries, ARCHIVE_ROUTE, body, generatedAt);
+  //
+  // And no heading: the tab says "Archive", and the shell's <h1> said it
+  // again directly under it (2026-08-21). The page's own headings are
+  // the project names, which is what a reader is actually scanning for.
+  return pageShell("Archive", entries, ARCHIVE_ROUTE, body, generatedAt, undefined, {
+    hideHeading: true,
+  });
 }

@@ -286,6 +286,36 @@ describe("the phase lines line up in columns", () => {
   });
 });
 
+// An open row's last phase line sat hard against the next spec's name.
+// The rule meant to prevent it read `tr.subrow:last-child`, and
+// `:last-child` means the last row in the TABLE — so it fired only when
+// the open spec happened to be the bottom one, and any spec below it
+// left the last phase line on its ordinary 2px. A collapsed row looks
+// right because its air comes from ABOVE: the head row has its own
+// border-top and padding-top.
+//
+// What is wanted is "the last sub-row of THIS spec". `:has()` reads
+// forward from the subrow to the head row that follows it, which is the
+// only direction a flat, unwrapped tbody allows without a wrapper
+// element per spec. Adding a standalone selector beside the existing one
+// is also narrower than moving the space onto tr.spechead's own
+// border-top/padding-top rule, which three other things on the page rely
+// on (spec 167).
+describe("an open spec's last phase line has air under it", () => {
+  test("the padding rule reaches a spec's own last subrow, not just the table's", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const rule =
+      CSS.match(/([^\n}]*tr\.subrow:last-child td[^{]*)\{([^}]*)\}/) ??
+      ([] as unknown as RegExpMatchArray);
+    const selector = rule[1] ?? "";
+    expect(rule[2] ?? "").toContain("padding-bottom: var(--sp-3)");
+    // The case that was already right — the page's literal last row —
+    // is kept, and the case that was not is added beside it.
+    expect(selector).toContain("tr.subrow:last-child td");
+    expect(selector).toContain("tr.subrow:has(+ tr.spechead) td");
+  });
+});
+
 // The one moving thing that said a phase was running used to be a
 // spinner on that phase's CHECKBOX, and a checkbox only exists on an
 // open row — so the closed row, which spec 157 made the whole interface
