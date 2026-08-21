@@ -6,6 +6,7 @@
 //   render/queue-list.ts  / — the spec list
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
+//   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
 //   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting
@@ -50,4 +51,10 @@ export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-
 export type { BranchView, QueueRowView } from "./render/job-state.ts";
 
 export { renderJobDetailPage } from "./render/job-page.ts";
-export type { JobDetailView, JobLiveView, JobStepResultView, JobTab } from "./render/job-page.ts";
+export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/job-page.ts";
+
+// `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
+// 150). It shares the job page's tab bar, activity block and steps
+// table rather than carrying copies of them.
+export { renderSpecPage, specPagePath } from "./render/spec-page.ts";
+export type { SpecPageView } from "./render/spec-page.ts";

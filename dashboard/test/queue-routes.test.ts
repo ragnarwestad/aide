@@ -45,6 +45,13 @@ const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 const specHead = (html: string, folder: string): string =>
   html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
 
+/** The row's message panel (spec 143): the full-width row under the
+ *  head, where every long message a row has to say is written — and
+ *  since spec 151 that includes the queue's refusal of a press, which
+ *  used to be squeezed into the name cell above. */
+const specPanel = (html: string, folder: string): string =>
+  html.match(new RegExp(`<tr class="specnotice"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+
 /** Everything an OPEN row draws: its header line and the phase lines
  *  under it. Since spec 124 the row's controls are split across the
  *  two — Run and the other buttons stand in the header's own first
@@ -725,7 +732,9 @@ describe("every row answers for itself", () => {
     const location = refused.headers.get("location") ?? "";
     expect(location.startsWith("/?error=")).toBe(true);
     const html = await (await fetch(`${base}${location}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(specHead(html, "81-queue-and-runner")).toContain("already queued");
+    // In the row's own panel since spec 151, not in the name cell.
+    expect(specPanel(html, "81-queue-and-runner")).toContain("already queued");
+    expect(specHead(html, "81-queue-and-runner")).not.toContain("already queued");
     // Once, not twice: the banner is the fallback for a refusal that
     // belongs to no row.
     expect(html).not.toContain('<p class="refusal">');
@@ -2930,7 +2939,7 @@ describe("a description newer than the analysis is shown on the row", () => {
    *  last committed, and what its analyze history looks like. */
   const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
-      "log -1 --format=%aI": { code: 0, stdout: `${descriptionAt}\n` },
+      "log -1 --format=%H": { code: 0, stdout: `deadbee\t${descriptionAt}\n` },
       "log --format=%H%x09%aI%x09%s": { code: 0, stdout: analyzeLog },
       // `git diff --quiet`: 1 means the description says something the
       // analysis never read, 0 means the commit changed nothing.
@@ -3439,11 +3448,15 @@ describe("GET /queue and /specs/<id>: the preview link (criteria 1-4)", () => {
     expect(id).toBeTruthy();
   });
 
-  test("the job page shows the same link (criterion 2)", async () => {
+  // Spec 150: the Work row left the job page, and the preview link went
+  // with it — both are on the row this page is opened from, and the
+  // Overview is now what is said nowhere else.
+  test("the job page carries neither link — the row has both (spec 150)", async () => {
     const { root, repo } = roots(TEMPLATE);
     const { mirror, id } = await seed([{ root: repo, url: "https://example.test/aide" }]);
     const html = await (await fetch(`${startWith(root, mirror)}/specs/${id}`, { headers: AUTH })).text();
-    expect(html).toContain(`href="${EXPECTED}"`);
+    expect(html).not.toContain(`href="${EXPECTED}"`);
+    expect(html).not.toContain('href="https://example.test/aide"');
   });
 
   test("a manifest without the key adds nothing at all (criterion 3)", async () => {

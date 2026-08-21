@@ -168,6 +168,15 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .summary { color: var(--muted); }
 .counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
 .specdesc { white-space: pre-wrap; max-width: 46rem; }
+/* A whole spec file, shown as written (spec 150). Markdown is
+   deliberately not rendered, so this carries what a reader needs to
+   read one anyway: the file's own line breaks, a measure that does not
+   run to the window's edge, and a scrollbar for the one thing wrapping
+   cannot save — a table three columns wider than the box. */
+.specfile { white-space: pre-wrap; overflow-x: auto; max-width: 60rem;
+  font: var(--fs-s)/1.5 var(--mono); color: var(--text);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: var(--sp-3); }
 .lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
   text-transform: uppercase; letter-spacing: 0.06em; }
 

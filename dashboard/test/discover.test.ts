@@ -7,8 +7,9 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories, gitignoreCandidates,
-  specDependsOn, specDescription,
+  SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
+  gitignoreCandidates, markdownSection, specDependsOn, specDescription, specFileText,
+  specPhaseFile,
 } from "../src/discover.ts";
 
 let root: string;
@@ -358,5 +359,202 @@ describe("gitignoreCandidates", () => {
 
   test("a directory that is not there at all is an empty list too", () => {
     expect(gitignoreCandidates(join(checkouts, "nowhere"))).toEqual([]);
+  });
+});
+
+// --- spec 150: the whole spec, read off disk ---------------------------------
+//
+// `specTitle` and `specDescription` read one section of one file. The
+// spec page shows all four files as they stand, so it needs the raw
+// text — and a spec half-written (analysis started, solution still the
+// template, status absent) has to render as what it is, not as a crash.
+
+describe("the four spec files, raw", () => {
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "aide-specfiles-"));
+    mkdirSync(join(dir, "150-one-page"), { recursive: true });
+    writeFileSync(join(dir, "150-one-page", "1-description.md"), "# One page - Description\n\nprose\n");
+    writeFileSync(
+      join(dir, "150-one-page", "3-solution.md"),
+      "# One page - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +
+        "Reviewed by three reviewers.\n\n## Risk analysis\n\nMedium.\n",
+    );
+  });
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test("the order is the order they are written and read", () => {
+    expect(SPEC_FILES).toEqual([
+      "1-description.md",
+      "2-analysis.md",
+      "3-solution.md",
+      "4-status.md",
+    ]);
+  });
+
+  test("a file that is there comes back whole, not as an excerpt", () => {
+    expect(specFileText(join(dir, "150-one-page"), "1-description.md")).toBe(
+      "# One page - Description\n\nprose\n",
+    );
+  });
+
+  test("a file that is not there is null, and not an empty string", () => {
+    // The page tells "nothing written yet" from "written and empty".
+    expect(specFileText(join(dir, "150-one-page"), "2-analysis.md")).toBeNull();
+  });
+
+  test("a directory in place of a file is null, not a throw", () => {
+    mkdirSync(join(dir, "150-one-page", "4-status.md"), { recursive: true });
+    expect(specFileText(join(dir, "150-one-page"), "4-status.md")).toBeNull();
+  });
+
+  test("a spec folder that does not exist reads as four missing files", () => {
+    for (const name of SPEC_FILES) {
+      expect(specFileText(join(dir, "no-such-spec"), name)).toBeNull();
+    }
+  });
+});
+
+// The review-plan phase's page shows ONE section of 3-solution.md, and
+// the rule that finds it is the rule `specDescription` has always used:
+// to the next heading or the next `---`, and no markdown parser.
+describe("markdownSection", () => {
+  const SOLUTION =
+    "# S - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +
+    "Reviewed by three reviewers.\n\n## Risk analysis\n\nMedium.\n";
+
+  test("a section runs to the next heading", () => {
+    expect(markdownSection(SOLUTION, "Plan review")).toBe("Reviewed by three reviewers.");
+  });
+
+  test("a section runs to a horizontal rule too", () => {
+    expect(markdownSection("## Plan review\n\nnothing yet.\n\n---\n\n## Risk\n", "Plan review")).toBe(
+      "nothing yet.",
+    );
+  });
+
+  test("the last section runs to the end of the file", () => {
+    expect(markdownSection(SOLUTION, "Risk analysis")).toBe("Medium.");
+  });
+
+  test("a heading nobody wrote is null, never the whole file", () => {
+    expect(markdownSection(SOLUTION, "Plan revue")).toBeNull();
+  });
+
+  test("a section with nothing under it is null, not an empty string", () => {
+    expect(markdownSection("## Plan review\n\n## Risk\n\nMedium.\n", "Plan review")).toBeNull();
+  });
+});
+
+// --- spec 150: what a phase MADE --------------------------------------------
+//
+// "A phase's page shows what that phase made": analyze wrote
+// 2-analysis.md, review-plan wrote one section of 3-solution.md,
+// implement wrote 4-status.md, and archive either moved the folder or
+// said why it did not. Nothing else of the spec is repeated there.
+
+describe("specPhaseFile", () => {
+  let dir: string;
+  const STATUS_HEAD = "# S - Status\n\n## Tracking info\n\n- **Task:** `x`\n";
+
+  const write = (name: string, text: string) => writeFileSync(join(dir, name), text);
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "aide-phase-"));
+    write("1-description.md", "# S - Description\n\n## Description\n\nWhat it is about.\n");
+    write("2-analysis.md", "# S - Analysis\n\n## Findings\n\nSeven files.\n");
+    write(
+      "3-solution.md",
+      "# S - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +
+        "One must-fix, five should-fix.\n\n## Risk analysis\n\nMedium.\n",
+    );
+    write("4-status.md", `${STATUS_HEAD}\n## Phase 1: RED\n\nNothing yet.\n`);
+  });
+
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  test("create shows the description it wrote", () => {
+    expect(specPhaseFile(dir, "create")).toEqual({
+      label: "1-description.md",
+      text: "# S - Description\n\n## Description\n\nWhat it is about.\n",
+    });
+  });
+
+  test("analyze shows 2-analysis.md (criterion 5)", () => {
+    expect(specPhaseFile(dir, "analyze")?.label).toBe("2-analysis.md");
+    expect(specPhaseFile(dir, "analyze")?.text).toContain("Seven files.");
+    // and nothing else of the spec
+    expect(specPhaseFile(dir, "analyze")?.text).not.toContain("Approach 1.");
+  });
+
+  test("review-plan shows only the Plan review section of 3-solution.md (criterion 6)", () => {
+    const phase = specPhaseFile(dir, "review-plan");
+    expect(phase?.label).toContain("3-solution.md");
+    expect(phase?.label).toContain("Plan review");
+    expect(phase?.text).toBe("One must-fix, five should-fix.");
+    expect(phase?.text).not.toContain("Approach 1.");
+    expect(phase?.text).not.toContain("Medium.");
+  });
+
+  test("implement shows 4-status.md (criterion 7)", () => {
+    expect(specPhaseFile(dir, "implement")?.label).toBe("4-status.md");
+    expect(specPhaseFile(dir, "implement")?.text).toContain("Phase 1: RED");
+  });
+
+  test("a step that writes no file of its own has nothing to show", () => {
+    expect(specPhaseFile(dir, "resolve")).toBeNull();
+    expect(specPhaseFile(dir, "")).toBeNull();
+  });
+
+  test("a phase whose file is not written yet keeps its name and says nothing was written", () => {
+    const empty = mkdtempSync(join(tmpdir(), "aide-phase-empty-"));
+    expect(specPhaseFile(empty, "analyze")).toEqual({ label: "2-analysis.md", text: null });
+    rmSync(empty, { recursive: true, force: true });
+  });
+
+  // Criterion 8. `archive` is the one phase whose answer is not a whole
+  // file: it either moved the folder or declined to, and the two must
+  // never both be on the page.
+  describe("archive shows one of its two outcomes, never both", () => {
+    test("a spec held back shows the reason", () => {
+      const held = mkdtempSync(join(tmpdir(), "aide-phase-held-"));
+      writeFileSync(
+        join(held, "4-status.md"),
+        `${STATUS_HEAD}\n## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n`,
+      );
+      const phase = specPhaseFile(held, "archive");
+      expect(phase?.text).toContain("the Slack webhook (Phase 4, still unchecked)");
+      expect(phase?.text).not.toContain("Archived:");
+      rmSync(held, { recursive: true, force: true });
+    });
+
+    test("a spec that was archived shows the stamp", () => {
+      const done = mkdtempSync(join(tmpdir(), "aide-phase-done-"));
+      writeFileSync(join(done, "4-status.md"), `${STATUS_HEAD}\n**Archived:** 2026-08-21\n`);
+      const phase = specPhaseFile(done, "archive");
+      expect(phase?.text).toContain("2026-08-21");
+      expect(phase?.text).not.toContain("held back");
+      rmSync(done, { recursive: true, force: true });
+    });
+
+    // A folder that MOVED is archived whatever an earlier attempt wrote,
+    // so the stamp is the later fact and the one that is shown.
+    test("a file carrying both shows the stamp alone", () => {
+      const both = mkdtempSync(join(tmpdir(), "aide-phase-both-"));
+      writeFileSync(
+        join(both, "4-status.md"),
+        `${STATUS_HEAD}\n## Archive held back\n\n- the Slack webhook\n\n**Archived:** 2026-08-21\n`,
+      );
+      const phase = specPhaseFile(both, "archive");
+      expect(phase?.text).toContain("2026-08-21");
+      expect(phase?.text).not.toContain("Slack webhook");
+      rmSync(both, { recursive: true, force: true });
+    });
+
+    test("an archive that has run neither way says nothing was written", () => {
+      expect(specPhaseFile(dir, "archive")).toEqual({ label: "4-status.md", text: null });
+    });
   });
 });

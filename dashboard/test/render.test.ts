@@ -398,10 +398,39 @@ const openKeys = (
   ].join(",");
 
 // Criterion 12: the row a reader actually watches is the way in.
-describe("the queue row links to the job (criterion 12)", () => {
-  test("the spec cell links to /specs/<id>", () => {
+//
+// Spec 150 changed WHERE in: the name opens the SPEC, not whichever job
+// happened to run last — so every spec has somewhere to point, including
+// one that has never run anything.
+describe("the queue row links to the spec (criterion 12)", () => {
+  const SPEC_HREF = "/specs/aide/81-queue-and-runner";
+
+  test("the spec cell links to the spec page", () => {
     const html = renderQueueRows([row()], { runnerAvailable: true, targets: [] });
-    expect(html).toContain('<a class="label" href="/specs/job-1234" title="81-queue-and-runner">81-queue-and-runner</a>');
+    expect(html).toContain(`<a class="label" href="${SPEC_HREF}" title="81-queue-and-runner">81-queue-and-runner</a>`);
+  });
+
+  // "A spec that has never run has no job page to point at, so the name
+  // is text: a link to nothing is worse than no link." That sentence is
+  // what the spec page invalidates.
+  test("a spec that has never run is a link too", () => {
+    const html = renderQueueRows([], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+    });
+    expect(html).toContain(`href="${SPEC_HREF}"`);
+    expect(html).not.toContain('<span class="label" title="81-queue-and-runner">');
+  });
+
+  // The phase lines are unchanged: a phase's page is that phase's own
+  // RUN, which is a job and is still read at /specs/<job-id>.
+  test("the phase lines still point at the job that ran them", () => {
+    const html = renderQueueRows([row({ steps: ["analyze"], state: "done" })], {
+      runnerAvailable: true,
+      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
+      filter: { open: "aide/81-queue-and-runner" },
+    });
+    expect(html).toContain('href="/specs/job-1234"');
   });
 
   // The name is one line with an ellipsis, and the marks carry a
@@ -422,7 +451,7 @@ describe("the queue row links to the job (criterion 12)", () => {
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
       { runnerAvailable: true, targets: [] },
     );
-    expect(html).toContain('<a class="label" href="/specs/job-1234" title="81-queue-and-runner">81-queue-and-runner</a>');
+    expect(html).toContain('<a class="label" href="/specs/aide/81-queue-and-runner" title="81-queue-and-runner">81-queue-and-runner</a>');
     expect(html).toContain('href="https://example.test/compare"');
   });
 });
@@ -476,19 +505,20 @@ describe("the unmerged badge (criteria 1-4)", () => {
   // Criterion 9: the two pages sharing one word choice is the whole
   // reason job-state.ts exists, and until spec 96 it was not exercised
   // for this particular piece of wording.
-  test("the job page's Work row says the same thing (criteria 3, 9)", () => {
-    expect(jobPage({ branchUrls: at(false), state: "running" })).toContain("analyze running");
-    expect(jobPage({ branchUrls: at(false), state: "done" })).toContain("waiting for archive");
-    expect(jobPage({ branchUrls: at(true), state: "done" })).not.toContain("waiting for archive");
+  // The Work row left the job page with spec 150: the branch, its
+  // compare link and its badge are all on the row this page is opened
+  // from, and the Overview is now what is said nowhere else. The badge
+  // itself is unchanged — it is asserted on the row above.
+  test("the job page no longer carries the branch at all (spec 150)", () => {
+    for (const state of ["running", "done"] as const) {
+      const html = jobPage({ branchUrls: at(false), state });
+      expect(html).not.toContain(BRANCH);
+      expect(html).not.toContain("waiting for archive");
+    }
   });
 
   test("no branch, no badge — on either page (criterion 4)", () => {
-    for (const html of [
-      queueRows({ branchUrls: [] }),
-      queueRows({}),
-      jobPage({ branchUrls: [] }),
-      jobPage({}),
-    ]) {
+    for (const html of [queueRows({ branchUrls: [] }), queueRows({})]) {
       expect(html).not.toContain("waiting for archive");
       expect(html).not.toContain('class="chip running"');
     }
@@ -535,20 +565,21 @@ describe("the preview link beside the compare link (criteria 1-4)", () => {
     expect(html).toContain(">preview</a>");
   });
 
-  test("the job page's Work line shows the same link (criterion 2)", () => {
+  // Spec 150 took the Work line off the job page; the row is where both
+  // links live now.
+  test("the job page shows neither link — the row carries both (spec 150)", () => {
     const html = jobPage({ branchUrls: withPreview, state: "done" });
-    expect(html).toContain(`href="${PREVIEW}"`);
-    expect(html).toContain('href="https://example.test/aide"');
+    expect(html).not.toContain(PREVIEW);
+    expect(html).not.toContain('href="https://example.test/aide"');
   });
 
   // A project with no `deployment.preview` — aide itself, PaceUp — must
   // render exactly as it did before this field existed.
   test("no previewUrl, nothing new on either page (criterion 3)", () => {
     const bare = [{ label: "aide", url: "https://example.test/aide", merged: false }];
-    for (const html of [queueRows({ branchUrls: bare }), jobPage({ branchUrls: bare })]) {
-      expect(html).not.toContain(">preview</a>");
-      expect(html).toContain('href="https://example.test/aide"');
-    }
+    const html = queueRows({ branchUrls: bare });
+    expect(html).not.toContain(">preview</a>");
+    expect(html).toContain('href="https://example.test/aide"');
   });
 
   // The specs repo holds a plan. There is nothing to try in it, whatever
@@ -568,18 +599,23 @@ describe("the preview link beside the compare link (criteria 1-4)", () => {
 // Criteria 1, 2, 4, 5: what the job IS, everything it has already run,
 // and what it is doing right now.
 describe("renderJobDetailPage", () => {
-  test("shows the spec's title and description without leaving the dashboard (criterion 1)", () => {
+  // Spec 150 moved the `## Description` prose off this page: the whole
+  // description is one of the four files on the SPEC page, and a
+  // phase's page shows what that PHASE made instead. The title stays,
+  // above the tabs, because a reader still has to know which spec this
+  // job is about.
+  test("shows the spec's title, and the phase's own file (criterion 1)", () => {
     const html = renderJobDetailPage(
       detail({
         title: "A running job is a black box",
-        description: "The queue shows state, step and cost — and <nothing> about what the job IS.",
+        phase: { label: "2-analysis.md", text: "It shows <nothing> about what the job IS." },
       }),
       "2026-08-16T10:05:00Z",
       NAV,
       { tab: "overview" },
     );
     expect(html).toContain("A running job is a black box");
-    expect(html).toContain("The queue shows state, step and cost");
+    expect(html).toContain("about what the job IS");
     // Spec prose is arbitrary text from a file, not markup.
     expect(html).toContain("&lt;nothing&gt;");
     expect(html).not.toContain("<nothing>");
@@ -616,37 +652,13 @@ describe("renderJobDetailPage", () => {
     expect(html).toContain("No step has finished yet");
   });
 
-  test("a live session shows state, subagents and cost so far (criterion 4)", () => {
-    const html = renderJobDetailPage(
-      detail({
-        sessionId: "11111111-2222-4333-8444-555555555555",
-        live: { state: "working", subagents: 7, costUsd: 1.25, enriched: true },
-      }),
-      "2026-08-16T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).toContain("Live right now");
-    expect(html).toContain("working");
-    expect(html).toMatch(/Subagents<\/td><td[^>]*>7</);
-    expect(html).toContain("$1.25");
-  });
-
-  test("an unreachable claude-usage says unknown and keeps the rest of the page (criterion 5)", () => {
-    const html = renderJobDetailPage(
-      detail({
-        title: "A running job is a black box",
-        sessionId: "11111111-2222-4333-8444-555555555555",
-        live: { state: "unknown", subagents: null, costUsd: null, enriched: false },
-      }),
-      "2026-08-16T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).toContain("unknown");
-    expect(html).toContain("A running job is a black box");
-    expect(html).toContain("</html>");
-  });
+  // Criteria 4 and 5 were the "Live right now" panel, and spec 150
+  // removed it outright: it existed for the one moment a step runs and
+  // answered `State not-live · Subagents – · Cost so far – · Session
+  // decc8861`, because claude-usage does not recognise a session run in
+  // a worktree under `~/aide-worktrees/` — which is where every run has
+  // worked since spec 91. Its absence is asserted in its own block
+  // further down ("Live right now is gone").
 
   test("the activity list is rendered as the parser produced it, already escaped", () => {
     const html = renderJobDetailPage(
@@ -724,7 +736,7 @@ describe("renderJobDetailPage", () => {
 
   test("a finished job shows no live panel — there is no session to follow", () => {
     const html = renderJobDetailPage(
-      detail({ state: "done", sessionId: undefined, live: null }),
+      detail({ state: "done" }),
       "2026-08-16T10:05:00Z",
       NAV,
     );
@@ -777,7 +789,7 @@ describe("the job page is split into tabs", () => {
 
   test("a job that is not running opens on the overview", () => {
     const html = renderJobDetailPage(
-      withParts({ state: "done", live: null }),
+      withParts({ state: "done" }),
       "2026-08-16T10:05:00Z",
       NAV,
     );
@@ -807,26 +819,13 @@ describe("the job page is split into tabs", () => {
 
   test("a tab name nobody offers falls back to the default instead of a blank page", () => {
     const html = renderJobDetailPage(
-      withParts({ state: "done", live: null }),
+      withParts({ state: "done" }),
       "2026-08-16T10:05:00Z",
       NAV,
       { tab: "../secrets" },
     );
     expect(html).toContain("A running job is a black box");
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
-  });
-
-  test("the live panel belongs to the overview — it is about what is happening now", () => {
-    const job = withParts({
-      sessionId: "11111111-2222-4333-8444-555555555555",
-      live: { state: "working", subagents: 7, costUsd: 1.25, enriched: true },
-    });
-    expect(renderJobDetailPage(job, "2026-08-16T10:05:00Z", NAV, { tab: "overview" })).toContain(
-      "Live right now",
-    );
-    expect(renderJobDetailPage(job, "2026-08-16T10:05:00Z", NAV, { tab: "steps" })).not.toContain(
-      "Live right now",
-    );
   });
 
   test("the tab says how much is behind it, so a reader knows before clicking", () => {
@@ -1519,15 +1518,16 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
-  test("a never-run spec reads 'not started' and links to no job (criterion 3)", () => {
+  test("a never-run spec reads 'not started' and links to its SPEC (criterion 3)", () => {
     const html = rows([], [target("90-never-run")]);
     const line = head(html, "90-never-run");
     // Hyphen in the class, space in the text: one is the filter key, the
     // other is what the reader sees.
     expect(line).toContain('<span class="badge b-idle">not started</span>');
-    // The absence of the JOB link, not of an anchor — the fold control
-    // is an anchor and lives in the same cell.
-    expect(line).not.toMatch(/href="\/specs\/[^"]+"/);
+    // It used to link to nothing — "a link to nothing is worse than no
+    // link". Spec 150 gave every spec somewhere to point, so what must
+    // NOT be there is a JOB link: a spec that has never run has no job.
+    expect(line).toContain('href="/specs/aide/90-never-run"');
     expect(line).toContain("90-never-run");
   });
 
@@ -1893,8 +1893,17 @@ describe("a refusal is shown on the row it belongs to (criteria 8, 12)", () => {
       Date.parse("2026-08-18T12:00:00Z"),
     );
 
+  /** The row's head AND the message panel under it. Spec 151 moved the
+   *  refusal out of the name cell and into that panel, so a matcher
+   *  that stopped at the first `</tr>` would no longer see the text
+   *  this block is about. */
   const head = (html: string, folder: string) =>
-    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
 
   test("the named spec's row carries the reason, and no other row does (criterion 8)", () => {
     const html = rows([target("99-x"), target("99-y")], {
@@ -3938,15 +3947,9 @@ describe("spec 118: the job page's figures carry both units", () => {
     expect(html).toContain('<span class="u-tok">2.0M tok</span>');
   });
 
-  test("the live panel's Cost so far row carries both", () => {
-    const html = page({
-      state: "running",
-      sessionId: "abcdef01",
-      live: { state: "working", subagents: 1, costUsd: 0.25, tokens: 800, enriched: true },
-    });
-    expect(html).toContain('<span class="u-usd">$0.25</span>');
-    expect(html).toContain('<span class="u-tok">800 tok</span>');
-  });
+  // The live panel had a Cost so far row of its own; spec 150 removed
+  // the panel. The job's own row above is the one that is left, and it
+  // is asserted directly above this.
 });
 
 describe("the day total that used to sit under the list", () => {
@@ -4527,7 +4530,7 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
 describe("a job run by Codex", () => {
   test("shows no Live right now panel — nothing watches a Codex session", () => {
     const html = renderJobDetailPage(
-      detail({ state: "running", tool: "codex", sessionId: "0199f4c2", live: null }),
+      detail({ state: "running", tool: "codex" }),
       "2026-08-20T10:05:00Z",
       NAV,
       { tab: "overview" },
@@ -4535,15 +4538,9 @@ describe("a job run by Codex", () => {
     expect(html).not.toContain("Live right now");
   });
 
-  test("a running Claude job still shows it — the panel is skipped by tool, not by luck", () => {
-    const html = renderJobDetailPage(
-      detail({ state: "running", sessionId: "11111111-2222-4333-8444-555555555555", live: null }),
-      "2026-08-20T10:05:00Z",
-      NAV,
-      { tab: "overview" },
-    );
-    expect(html).toContain("Live right now");
-  });
+  // Spec 125's other half — that a running CLAUDE job still showed the
+  // panel — is gone with the panel itself (spec 150). Both tools are
+  // asserted panel-free in "Live right now is gone" below.
 
   test("a Codex step's Cost column is tokens and a dash, never $0.00", () => {
     const html = renderJobDetailPage(
@@ -4854,13 +4851,19 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     specFolder,
     ...extra,
   });
-  const rows = (list: QueueRowView[], targets: QueueTarget[] = [], open = true) =>
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    open = true,
+    extra: Partial<QueuePageOptions> = {},
+  ) =>
     renderQueueRows(
       list,
       {
         runnerAvailable: true,
         targets,
         ...(open ? { filter: { open: openKeys(list, targets) } } : {}),
+        ...extra,
       },
       Date.parse("2026-08-20T12:00:00Z"),
     );
@@ -4873,6 +4876,10 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   /** The State column: third cell of the head row. */
   const stateCell = (html: string) =>
     [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[2] ?? "";
+  /** The Spec column: first cell of the head row, and the one the
+   *  queue's refusal used to be written into (spec 151). */
+  const nameCell = (html: string) =>
+    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[0] ?? "";
   const panel = (html: string) =>
     html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
@@ -4988,6 +4995,54 @@ describe("spec 143: a long message gets a panel row of its own", () => {
     }
   });
 
+  // --- spec 151: the third producer ------------------------------------------
+  //
+  // The queue's own refusal of a press ("analyze on 150-… is already
+  // running (job 03238f57) — cancel that one first"). It is returned at
+  // enqueue time, before any job exists to carry it, so it reaches the
+  // page on the query string instead — and spec 143 left it behind in
+  // the name cell, where it pushed the branch marks and the title
+  // around.
+  const REFUSAL =
+    "analyze on 150-one-page-shows-the-whole-spec is already running (job 03238f57) — " +
+    "cancel that one first if you want to start over";
+
+  test("the queue's refusal of a press is written in the panel, not the name cell", () => {
+    const html = rows([], [target("150-one-page")], true, {
+      error: REFUSAL,
+      errorSpec: "aide/150-one-page",
+    });
+    expect(panel(html)).toContain("is already running (job 03238f57)");
+    expect(nameCell(html)).not.toContain("is already running");
+    // Once for the whole row, like every other message since spec 143.
+    expect([...wholeRow(html).matchAll(/is already running/g)]).toHaveLength(1);
+  });
+
+  // The refusal answers the press just made, so it outranks a standing
+  // note about an archive that declined earlier.
+  test("the refusal outranks the spec's own held-back note", () => {
+    const html = rows([], [target("150-one-page", { done: BUILT, archiveHeldBack: { reason: REASON } })], true, {
+      error: REFUSAL,
+      errorSpec: "aide/150-one-page",
+    });
+    expect(panel(html)).toContain("is already running (job 03238f57)");
+    expect(panel(html)).not.toContain("hand ticks survive");
+  });
+
+  // A refused press on a row whose job is RUNNING is the whole of the
+  // incident: the panel is otherwise blank while something is in
+  // flight, and blanking this would put the reader back where they
+  // started — a press that said nothing.
+  test("a running job does not swallow the refusal", () => {
+    const html = rows(
+      [row({ id: "live", specFolder: "150-one-page", steps: ["analyze"], state: "running" })],
+      [target("150-one-page")],
+      true,
+      { error: REFUSAL, errorSpec: "aide/150-one-page" },
+    );
+    expect(panel(html)).toContain("is already running (job 03238f57)");
+  });
+
   // A spec nothing has ever run has no message and no panel: an empty
   // `.rowmsg` draws nothing, but an empty `<tr>` is still a row.
   test("a row with nothing to say has no panel row at all", () => {
@@ -5008,7 +5063,6 @@ describe("spec 143: the Activity tab carries the message too", () => {
       id: "job-archive",
       state: "done",
       steps: ["archive"],
-      live: null,
       activity: [],
       results: [
         {
@@ -5096,6 +5150,139 @@ describe("spec 143: the Activity tab carries the message too", () => {
     );
     expect(html).toContain("refused before it started");
     expect(html).toContain("held back: depends on 80-dependency");
+  });
+});
+
+// --- spec 150: the job page's Overview, cut to what is said nowhere else -----
+//
+// The Overview's labelled list repeated the heading (Project, Spec), the
+// pips (Step) and the row (Work), and then a "Live right now" panel
+// answered `State not-live · Subagents – · Cost so far – · Session
+// decc8861` for a run in a worktree — a panel that exists for exactly
+// that moment and answered with dashes. What is left is the three facts
+// the page is the only place for, and the file the phase actually made.
+
+describe("the Overview's facts table (criterion 10)", () => {
+  const facts = (html: string): string[] =>
+    [...html.matchAll(/<td class="label">([\s\S]*?)<\/td>/g)].map((m) =>
+      m[1]!.replace(/<[^>]*>/g, "").trim(),
+    );
+
+  test("exactly three rows: Started, Cost so far, Model", () => {
+    const html = renderJobDetailPage(
+      detail({ state: "done", model: "sonnet" }),
+      "2026-08-21T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(facts(html)).toEqual(["Started", "Cost so farTokens so far", "Model"]);
+  });
+
+  test("the four facts said elsewhere are gone, branch list included", () => {
+    const html = renderJobDetailPage(
+      detail({
+        state: "done",
+        branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
+      }),
+      "2026-08-21T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(facts(html)).not.toContain("Project");
+    expect(facts(html)).not.toContain("Spec");
+    expect(facts(html)).not.toContain("Step");
+    expect(facts(html)).not.toContain("Work");
+    expect(html).not.toContain("https://example.test/compare");
+  });
+
+  // The heading is where the spec is named, and it stays: whichever tab
+  // is open, a reader still has to know which job this is.
+  test("the spec's own name and title stay above the tabs", () => {
+    const html = renderJobDetailPage(
+      detail({ state: "done", title: "One page shows the whole spec" }),
+      "2026-08-21T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).toContain("One page shows the whole spec");
+    expect(html).toContain("02-job-detail-view");
+  });
+});
+
+describe("Live right now is gone (criterion 9)", () => {
+  for (const tool of ["claude", "codex"] as const) {
+    test(`a running ${tool} job does not show it`, () => {
+      const html = renderJobDetailPage(
+        detail({ state: "running", tool }),
+        "2026-08-21T10:05:00Z",
+        NAV,
+        { tab: "overview" },
+      );
+      expect(html).not.toContain("Live right now");
+      expect(html).not.toContain("Subagents");
+    });
+  }
+
+  for (const state of ["queued", "done", "failed", "cancelled"] as const) {
+    test(`nor does a ${state} one`, () => {
+      const html = renderJobDetailPage(
+        detail({ state }),
+        "2026-08-21T10:05:00Z",
+        NAV,
+        { tab: "overview" },
+      );
+      expect(html).not.toContain("Live right now");
+    });
+  }
+});
+
+// A phase's own page shows what that phase MADE. Which file that is per
+// step is the server's answer (`specPhaseFile`); this is the page
+// showing whatever it was handed.
+describe("a phase's page shows that phase's own file", () => {
+  const withPhase = (label: string, text: string | null) =>
+    renderJobDetailPage(
+      detail({ state: "done", phase: { label, text } }),
+      "2026-08-21T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+
+  test("the file is named and its content shown, preformatted", () => {
+    const html = withPhase("2-analysis.md", "## Findings\n\nspecTitle() and specDescription().");
+    expect(html).toContain("2-analysis.md");
+    expect(html).toContain("specTitle() and specDescription().");
+    expect(html).toContain("<pre");
+  });
+
+  test("its text is escaped — a spec file is text off disk, not markup", () => {
+    const html = withPhase("2-analysis.md", "<b>not bold</b>");
+    expect(html).toContain("&lt;b&gt;");
+    expect(html).not.toContain("<b>not bold</b>");
+  });
+
+  test("a phase that has written nothing yet says so", () => {
+    const html = withPhase("2-analysis.md", null);
+    expect(html).toContain("has not been written yet");
+  });
+
+  test("a job whose step made no file of its own shows the facts and nothing else", () => {
+    const html = renderJobDetailPage(detail({ state: "done" }), "2026-08-21T10:05:00Z", NAV, {
+      tab: "overview",
+    });
+    expect(html).not.toContain("<pre");
+    expect(html).toContain("Started");
+  });
+
+  test("it belongs to the Overview — the other tabs are unchanged", () => {
+    const job = detail({
+      state: "done",
+      phase: { label: "4-status.md", text: "## Phase 1: RED" },
+      activity: ["Bash ls"],
+    });
+    expect(renderJobDetailPage(job, "2026-08-21T10:05:00Z", NAV, { tab: "activity" })).not.toContain(
+      "Phase 1: RED",
+    );
   });
 });
 

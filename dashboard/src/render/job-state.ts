@@ -319,12 +319,27 @@ export function nextActionHint(r: QueueRowView | undefined): string {
 export interface RowNotice {
   variant: MessageVariant;
   text: string;
+  /** The class the panel's message is marked with, for the one
+   *  producer that has always carried one: a refusal (spec 151). */
+  hook?: string;
 }
 
-/** Which of the two applies, if either. The order is the row's own: a
- *  job that failed says why it failed, and the spec's standing note
- *  about an archive that declined is what is left when no job is
- *  complaining.
+/** Which of the three applies, if any. The order is the row's own: the
+ *  queue's refusal of the press just made comes first, then a job that
+ *  failed saying why it failed, and the spec's standing note about an
+ *  archive that declined is what is left when no job is complaining.
+ *
+ *  The refusal is the third producer, added by spec 151 and the only
+ *  one that belongs to no job: the queue returns it at enqueue time,
+ *  before a job exists to carry it, so it reaches the page on the
+ *  query string (`errorSpec`/`error`) instead. It was left drawing
+ *  itself inside the name cell when spec 143 built this panel — where
+ *  it pushed the branch marks and the title around, on the one row the
+ *  reader had just pressed a button on. It outranks both of the
+ *  others because it answers that press, and for the same reason it is
+ *  said even while a job is running: a clash refusal is a refusal
+ *  BECAUSE something is running, and gating it on "nothing in flight"
+ *  would silence exactly the case it exists for.
  *
  *  Requirement 3 of 1-description.md — the panel cleared when a new
  *  action starts on the row — is already answered by each of them, in
@@ -349,7 +364,9 @@ export interface RowNotice {
 export function specNotice(
   lead: QueueRowView | undefined,
   archiveHeldBack?: string,
+  refusal?: string,
 ): RowNotice | undefined {
+  if (refusal) return { variant: "err", text: refusal, hook: "refused" };
   if (lead?.error) return { variant: "err", text: lead.error };
   if (lead && inFlight(lead)) return undefined;
   // The same amber the badge takes, and for the same reason: a held-back

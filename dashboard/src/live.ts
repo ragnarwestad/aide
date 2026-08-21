@@ -71,27 +71,6 @@ export class LiveEnricher {
     return sessions;
   }
 
-  /** One session, for a page that is about one job (spec 02). Shares
-   *  this enricher's cache and its degrade-never-throw discipline:
-   *  claude-usage unreachable answers "unknown", never an error. */
-  async lookup(sessionId: string): Promise<{
-    state: LiveState;
-    subagents: number | null;
-    costUsd: number | null;
-    enriched: boolean;
-  }> {
-    const sessions = await this.sessions();
-    if (!sessions) return { state: "unknown", subagents: null, costUsd: null, enriched: false };
-    const s = sessions.get(sessionId);
-    if (!s) return { state: "not-live", subagents: null, costUsd: null, enriched: true };
-    return {
-      state: s.state ?? "live",
-      subagents: Array.isArray(s.agents) ? s.agents.length : 0,
-      costUsd: typeof s.sessionCostUSD === "number" ? s.sessionCostUSD : null,
-      enriched: true,
-    };
-  }
-
   async rows(store: AideRunStore): Promise<{ rows: RunRow[]; enriched: boolean }> {
     const sessions = await this.sessions();
     const enriched = sessions !== null;

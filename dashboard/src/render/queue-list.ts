@@ -23,6 +23,9 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
+// One function, because the server routes on this path and the list
+// links to it (spec 150).
+import { specPagePath } from "./spec-page.ts";
 import {
   badge,
   btn,
@@ -912,6 +915,18 @@ function preTicked(g: SpecGroup): Set<string> {
 // anyway.
 const runFormId = (g: SpecGroup): string => `rowrun-${groupKey(g.project, g.specFolder)}`;
 
+// Why the button you just pressed did nothing, and whether it was
+// pressed on THIS row. The same key the fold state is written in, so
+// no second format for "which spec" is invented.
+//
+// It is drawn in the row's panel and no longer in the name cell (spec
+// 151): the sentence is a whole one — "analyze on 150-… is already
+// running (job 03238f57) — cancel that one first if you want to start
+// over" — and the name cell is sized for a folder name, so it pushed
+// the branch marks and the title around underneath it.
+const refusalFor = (g: SpecGroup, opts: QueuePageOptions): string | undefined =>
+  opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
+
 // The row's own anchor. `id`, not `data-folder`: a badge pointing at
 // another spec's row needs something `href="#..."` can find with no
 // script at all — this page's own rule. Same shape as `runFormId`, so
@@ -1070,18 +1085,22 @@ function specHeadRow(
   // question of whether a spec folder has been archived on disk. The
   // two used to share the words and mean different things.
   const rowClass = !g.lead ? "run-new" : inFlight(g.lead) ? "run-live" : "run-past";
-  // The spec name is the way IN: the job it points at is whatever is
-  // running, or the last thing that happened. The diff link sits beside
-  // it rather than replacing it — nothing a reader uses today disappears.
-  // A spec that has never run has no job page to point at, so the name
-  // is text: a link to nothing is worse than no link.
+  // The spec name is the way IN, and since spec 150 it opens the SPEC —
+  // all four of its files as they stand — rather than whichever job
+  // happened to run last. Which means EVERY spec has somewhere to point:
+  // the old branch here said "a spec that has never run has no job page
+  // to point at, so the name is text", and that is the sentence the spec
+  // page invalidates. The phase lines below still link to jobs, because
+  // a phase's page is that phase's own run.
+  // The diff link sits beside it rather than replacing it — nothing a
+  // reader uses today disappears.
   // `.label` so the name can be clamped to one line with an ellipsis
   // (asked for 2026-08-19): a long folder name used to wrap, and its
   // tail landed in front of the branch marks — "refusing, aide-specs,
   // aide" read as a list of three marks.
-  const spec = g.lead
-    ? `<a class="label" href="/specs/${esc(g.lead.id)}" title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`
-    : `<span class="label" title="${esc(g.specFolder)}">${esc(g.specFolder)}</span>`;
+  const spec =
+    `<a class="label" href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+    `title="${esc(g.specFolder)}">${esc(g.specFolder)}</a>`;
   // The badge is about the branch AND the job that is still writing to
   // it, so the row's lead job comes down with the list.
   const diff = g.branches.length
@@ -1105,10 +1124,6 @@ function specHeadRow(
       title: stepLabel(p.step),
     })),
   );
-  // The same key the fold state is written in, so no second format for
-  // "which spec" is invented.
-  const refusal =
-    opts.errorSpec && opts.errorSpec === groupKey(g.project, g.specFolder) ? opts.error : undefined;
   // The one refusal with a way out — read off the row's own job since
   // spec 149, not off the query string. A landing happens with nobody's
   // browser attached, so the redirect that used to carry this reason
@@ -1136,10 +1151,6 @@ function specHeadRow(
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
     diff +
-    // Why the button you just pressed did nothing — on the row you
-    // pressed it on, with the warning mark beside it, so a refusal is
-    // never told from a running row by colour alone.
-    (refusal ? rowMessage("err", refusal, { hook: "refused" }) : "") +
     `</td>` +
     // The pips alone: a "N runs" count under them said less than they
     // do (it counted phase-runs, not jobs, and the phase lines already
@@ -1444,12 +1455,16 @@ const LIST_COLUMNS = 6;
 //
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
-function specNoticeRow(g: SpecGroup): string {
-  const notice = specNotice(g.lead, g.phases.find((p) => p.step === "archive")?.heldBack?.reason);
+function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {
+  const notice = specNotice(
+    g.lead,
+    g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+    refusal,
+  );
   if (!notice) return "";
   return (
     `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text)}</td></tr>`
+    `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text, { hook: notice.hook })}</td></tr>`
   );
 }
 
@@ -1472,7 +1487,7 @@ function groupRows(
     .map((g) => {
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
-      const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g);
+      const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g, refusalFor(g, opts));
       return opened.has(groupKey(g.project, g.specFolder))
         ? head + phaseSubRows(g, opts, now)
         : head;
@@ -1534,7 +1549,7 @@ export function renderQueuePage(
   const body =
     notice +
     // The fallback, and only that. A refusal that names its spec is
-    // shown on that spec's own row (`specHeadRow`) — the page lists up
+    // shown in that spec's own panel (`specNoticeRow`) — the page lists up
     // to 25 of them, so the banner said nothing about which button was
     // pressed. One that names no spec has nowhere else to go, and
     // dropping it silently is worse than a banner.

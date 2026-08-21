@@ -30,19 +30,35 @@ const DEFAULT_TTL_MS = 30_000;
 const analyzeSubject = (specFolder: string): string =>
   `Run /aide-analyze for ${specFolder} (headless)`;
 
-/** When the last commit touching `pathspec` was authored, or null if
- *  git cannot say. Scoped to ONE path on purpose: a plan-merge commit
+/** The last commit touching `pathspec` — which one, and when — or null
+ *  if git cannot say. Scoped to ONE path on purpose: a plan-merge commit
  *  touches 2-analysis.md, 3-solution.md and 4-status.md but never the
  *  description, and a folder-wide log would read every such merge as a
- *  description edit. */
+ *  description edit.
+ *
+ *  The SHA comes back as well as the time because the spec page stamps
+ *  each of the four files with the version on the screen (spec 150), and
+ *  "which version" is what a stamp is for. The freshness check below
+ *  wants only the time, and asks through `lastCommitAt` — one git shape
+ *  for one question, whichever half of the answer the caller uses. */
+export async function lastCommitOf(
+  run: GitRunner,
+  dir: string,
+  pathspec: string,
+): Promise<{ sha: string; at: string } | null> {
+  const out = await run(dir, ["log", "-1", "--format=%H%x09%aI", "--", pathspec]);
+  if (out.code !== 0) return null;
+  const [sha, at] = out.stdout.trim().split("\t");
+  return sha && at ? { sha, at } : null;
+}
+
+/** When the last commit touching `pathspec` was authored. */
 export async function lastCommitAt(
   run: GitRunner,
   dir: string,
   pathspec: string,
 ): Promise<string | null> {
-  const out = await run(dir, ["log", "-1", "--format=%aI", "--", pathspec]);
-  if (out.code !== 0) return null;
-  return out.stdout.trim() || null;
+  return (await lastCommitOf(run, dir, pathspec))?.at ?? null;
 }
 
 /** When this spec was last analysed by a run that FINISHED. Narrowed

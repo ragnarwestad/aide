@@ -241,6 +241,9 @@ const STRUCTURE = [
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.
   "small", "muted", "num", "label", "desc", "summary", "counts", "specdesc",
+  // one whole spec file, preformatted (spec 150) — the spec page shows
+  // four of them and a phase's job page one
+  "specfile",
   "u-usd", "u-tok",
   // containers — "stack" is the vertical one (spec 124): the row's
   // action buttons, one under the next, in the list's first column.
