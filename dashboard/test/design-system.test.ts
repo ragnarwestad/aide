@@ -430,7 +430,7 @@ describe("the row's rarely-set controls sit beside the row's action (item 4)", (
     // The fixture's job is RUNNING, so the row's one control is Cancel
     // — no run form beside it, which is the point of "one control".
     expect(outer).toContain('class="actionform"');
-    expect(outer).toContain(">Cancel analyze</button>");
+    expect(outer).toContain(">Cancel</button>");
     expect(outer).toContain('<span class="row extra">');
     // The run form is still there — it is the carrier the phase boxes
     // name — but nothing submits it while a job is in flight.
@@ -459,7 +459,7 @@ describe("the primary button's label per row state (the design sheet's table)", 
     );
 
   test("a spec nothing has ever run is offered its first two phases", () => {
-    expect(buttons(rows([], { targets: [target()] }))).toContain("Analyze + 1");
+    expect(buttons(rows([], { targets: [target()] }))).toContain("Analyze");
   });
 
   // The bare word "Run" went in spec 157, and "Run again" before it
@@ -484,14 +484,14 @@ describe("the primary button's label per row state (the design sheet's table)", 
     const html = rows([row({ state: "running" })], { targets: [target()] });
     // Named for the step it would stop, so it reads like the Run
     // button it replaces (spec 157).
-    expect(buttons(html)).toContain("Cancel analyze");
+    expect(buttons(html)).toContain("Cancel");
     // No Run at all — a greyed-out one beside a live Cancel is the
     // second control this spec removes. The busy VARIANT carries a
     // spinner, and the running phase chip already has the row's one;
     // two spinners read as two jobs (2026-08-19).
     expect(html).not.toMatch(/<button[^>]*form="rowrun/);
     expect(html).not.toContain(">Run<");
-    const cancel = html.match(/<button[^>]*>Cancel analyze<\/button>/)?.[0] ?? "";
+    const cancel = html.match(/<button[^>]*>Cancel<\/button>/)?.[0] ?? "";
     expect(cancel).not.toContain("busy");
   });
 
