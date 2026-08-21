@@ -76,15 +76,23 @@ Usage:
 6. Update 4-status.md
 7. Show a summary — ready for commit
 
-Then record the step on the line the dashboard reads, in Tracking info:
+Nothing in Tracking info records the step. Which steps a spec has had
+is read off the spec's own commits, and `aide-run-spec` writes the
+`Workflow steps completed:` line from them — leave that line exactly as
+you found it. The percentage above it is still yours: it says how far
+the TDD phases got, which is the field for partial work.
 
-```markdown
-- **Workflow steps completed:** create, analyze, review-plan, implement
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the work, and suggest this message so the step is
+recognised the same way:
+
+```text
+Run /aide-implement for <spec-folder>
 ```
 
-Add `implement` once and keep the values already there — the line is the
-whole record of how far the spec has got, and rewriting it loses the
-steps before this one. Do not record it until the verification in this phase has passed. A red suite, a failing build or a phase you could not finish leaves the line as it was — the percentage above it says how far the TDD phases got, and that is the field for partial work.
+Offer it only once the verification in this phase has passed. A red
+suite, a failing build or a phase you could not finish is not a step
+that completed.
 
 ### Reporting the phase
 

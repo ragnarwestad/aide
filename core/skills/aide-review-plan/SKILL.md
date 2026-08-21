@@ -67,15 +67,23 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
    are revised or explicitly declined with a reason.
 3. Add a review row to `4-status.md`.
 
-Then record the step on the line the dashboard reads, in Tracking info:
+Nothing in Tracking info records the step. Which steps a spec has had
+is read off the spec's own commits, and `aide-run-spec` writes the
+`Workflow steps completed:` line from them — leave that line exactly as
+you found it.
 
-```markdown
-- **Workflow steps completed:** create, analyze, review-plan
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the review, and suggest this message so the step is
+recognised the same way:
+
+```text
+Run /aide-review-plan for <spec-folder>
 ```
 
-Add `review-plan` once and keep the values already there — the line is the
-whole record of how far the spec has got, and rewriting it loses the
-steps before this one. A review with zero findings is a review that happened, so it records `review-plan` like any other. Do not record it when the review could not run at all — a `3-solution.md` that is still an empty template is nothing to review, and the step to offer next is analyze.
+A review with zero findings is a review that happened, and is offered
+like any other. A review that could not run at all is not — a
+`3-solution.md` that is still an empty template is nothing to review,
+and the step to offer next is analyze.
 
 A review with zero findings is possible and fine — say so plainly and
 record the verdict. Never invent findings to look thorough.

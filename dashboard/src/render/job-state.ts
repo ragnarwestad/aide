@@ -390,6 +390,12 @@ export interface PhaseWord {
   qualifier?: string;
 }
 
+/** The sentence for "these two records do not agree about this spec"
+ *  (spec 154). Deliberately the same words the job-history version
+ *  below uses — a reader has one thing to learn, and the file is the
+ *  half that is wrong in both cases. */
+const FILES_DISAGREE = "the files disagree with what has run";
+
 /** The one rule, applied by everything that words a phase.
  *
  *  A row for spec 81 once said three things at once: pips and phase
@@ -413,14 +419,25 @@ export function wordPhase(
   happened: boolean,
   heldBack: { reason: string } | undefined,
   attempt: QueueRowView | undefined,
+  /** What the spec's own git history says about this phase, beyond
+   *  whether it happened (spec 154). `stopped` is the reason the last
+   *  run for this phase gave for not finishing; `fileDisagrees` is
+   *  `4-status.md` claiming something the history does not show, or the
+   *  reverse. */
+  history: { stopped?: string; fileDisagrees?: boolean } = {},
 ): PhaseWord {
   const running = !!attempt && inFlight(attempt);
   const disagrees = !!attempt && !running && attempt.state !== "done";
+  // Said when the file and the history part company, and never over a
+  // qualifier that has something sharper to say: an attempt that ended
+  // badly is the more useful sentence, and two lines of small print
+  // under one badge is the row saying two things at once.
+  const filesDisagree = history.fileDisagrees ? FILES_DISAGREE : undefined;
   if (happened) {
     return {
       pip: running ? "now" : "past",
       badge: { variant: "done", label: "done" },
-      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : undefined,
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
     };
   }
   // Not while something is running: a note from an earlier decline must
@@ -438,10 +455,31 @@ export function wordPhase(
       // once for the whole row (spec 143). Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
       // 1-description.md reports.
-      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : undefined,
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
     };
   }
-  if (!attempt) return { pip: "todo" };
+  // A step that RAN and did not finish, with nothing live left to say
+  // so (spec 154). Spec 147's implement was killed by its own time
+  // limit with RED and GREEN committed on the branch, and by the time
+  // anyone read the row the queue's memory of that attempt was gone —
+  // so the row said "not run yet" about work that was on disk. The
+  // commit is what still knows, and it says why.
+  //
+  // Only without a live attempt: an attempt of its own has the fresher
+  // answer and the badge below already words it.
+  if (!attempt) {
+    if (history.stopped) {
+      return {
+        // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
+        // notice, not alarm: the work is committed and the step can be
+        // run again.
+        pip: "todo",
+        badge: { variant: "waiting", label: `stopped: ${history.stopped}` },
+        qualifier: filesDisagree,
+      };
+    }
+    return { pip: "todo", qualifier: filesDisagree };
+  }
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",

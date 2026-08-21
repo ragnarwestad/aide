@@ -19,7 +19,7 @@ import {
   type QueuePageOptions,
   type QueueRowView,
 } from "../src/render.ts";
-import { queueHarness, statusSaying } from "./helpers/queue-server.ts";
+import { queueHarness, ran, statusSaying } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
 
 const TOKEN = "s3cret-token";
@@ -447,7 +447,8 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
   // `Workflow steps completed: create` into 4-status.md, so a created
   // spec says so — and the line is a report, never a box to tick.
   test("a created spec reads create as done, and offers no box for it (spec 116)", async () => {
-    const { base } = start({ queueToken: TOKEN });
+    const { base, dir } = start({ queueToken: TOKEN });
+    ran(dir, ["create"]);
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     const create = html.match(/<tr class="subrow[^"]*"[^>]*data-step="create">.*?<\/tr>/)?.[0] ?? "";
     expect(create).toContain("b-done");
@@ -504,6 +505,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze"]);
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     // Said done by the phase line's own State column — the box beside
     // it carries no second mark (spec 124) — and still submittable.
@@ -801,6 +803,7 @@ describe("the step boxes on a row follow that spec", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    ran(dir, ["create", "analyze", "review-plan"]);
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     // analyze and review-plan are done; implement is what you came for.
@@ -826,12 +829,14 @@ describe("the step boxes on a row follow that spec", () => {
 
   test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    // Analysed by hand, never queued: the analysis wrote the record
-    // too, so the pair must not tick and mark the same box at once.
+    // Analysed by hand and committed with the subject the runner uses
+    // (spec 154), so the pair must not tick and mark the same box at
+    // once.
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
       statusSaying(["create", "analyze"]),
     );
+    ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
@@ -929,6 +934,7 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
   test("the recorded list is what the row marks done, and implement is next (criterion 3)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    ran(dir, ["create", "analyze", "review-plan"]);
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(true);
@@ -948,6 +954,7 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
       join(specDir(dir), "4-status.md"),
       statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `100% (22 of 22 completed)`\n"),
     );
+    ran(dir, ["create", "analyze", "review-plan"]);
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
@@ -962,16 +969,17 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
   });
 });
 
-describe("the files say what has happened, not the queue's history", () => {
-  test("a step the queue completed is NOT done while the files still say otherwise", async () => {
+describe("the spec's own history says what has happened, not the queue's", () => {
+  test("a step the queue completed is NOT done while the history says otherwise", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     // Analysed and reviewed already; the status says 95%, so implement
-    // is what the files say is still to do.
+    // is what is still to do.
     writeFileSync(
       join(spec, "4-status.md"),
       statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `95% (21 of 22 completed)`\n"),
     );
+    ran(dir, ["create", "analyze", "review-plan"]);
 
     let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
@@ -1012,7 +1020,7 @@ describe("the files say what has happened, not the queue's history", () => {
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(false);
   });
 
-  test("the same step IS done once the status file says 100%", async () => {
+  test("the same step IS done once the runner has committed it", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(
@@ -1022,6 +1030,7 @@ describe("the files say what has happened, not the queue's history", () => {
         "- **Total progress:** `100% (22 of 22 completed)`\n",
       ),
     );
+    ran(dir, ["create", "analyze", "review-plan", "implement"]);
 
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
@@ -2997,6 +3006,105 @@ describe("every step lands its own work (spec 149)", () => {
 
 });
 
+// Spec 154: the runner owns the record of what has run.
+//
+// Two incidents on 2026-08-21, in opposite directions. 147's implement
+// had RED and GREEN done and every test green, and was killed by the
+// step's own time limit before the model reached the part that writes
+// `4-status.md` — so the row read "implement not run" about a spec
+// whose code was committed on its branch. 153's four files were copied
+// from a sibling whose analyze had landed, so a brand-new spec claimed
+// three steps and the row offered implement first.
+//
+// The commits are the record now. The file's line is a claim, and a
+// claim the history does not support is said out loud on the row.
+describe("spec 154: what has run is what has been committed", () => {
+  const auth = { headers: { "x-aide-token": TOKEN } };
+  const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
+  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`, auth).then((r) => r.text());
+
+  // Criterion 1: the 153 incident.
+  test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    // The folder exists, and nothing has ever run in it.
+    ran(dir, []);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(false);
+    expect(phaseDone(line, "analyze")).toBe(false);
+    expect(phaseDone(line, "review-plan")).toBe(false);
+    // And the pair a spec nothing has run offers is what comes ticked,
+    // not implement.
+    expect(line).toMatch(/value="analyze" checked/);
+    expect(line).not.toMatch(/value="implement" checked/);
+  });
+
+  // Criterion 3, the same fixture: the row does not swallow it.
+  test("a file claiming a step the history does not have says so on the row", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    ran(dir, ["create"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(true);
+    expect(line).toContain("the files disagree with what has run");
+  });
+
+  test("and so does a file that has NOT caught up with a step that ran", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
+    ran(dir, ["create", "analyze"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "analyze")).toBe(true);
+    expect(line).toContain("the files disagree with what has run");
+  });
+
+  test("a file that agrees with the history says nothing at all", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(line).not.toContain("the files disagree with what has run");
+  });
+
+  // Criterion 2: the 147 incident. No job in the queue's memory at all
+  // — the row is built from the commit alone.
+  test("a step killed by the time limit reads as stopped, not as not-run", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    ran(dir, ["create", "analyze", "review-plan"]);
+    ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    const implement =
+      line.match(/<tr class="subrow[^"]*"[^>]*data-step="implement">[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(implement).toContain("stopped: timeout");
+    expect(implement).not.toContain("not run yet");
+    // Stopped is not done: implement is still what the row offers.
+    expect(phaseDone(line, "implement")).toBe(false);
+    expect(line).toMatch(/value="implement" checked/);
+  });
+
+  // Criterion 4.
+  test("a completed re-run supersedes the stop before it", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    ran(dir, ["create", "analyze", "review-plan"]);
+    ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
+    ran(dir, ["implement"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "implement")).toBe(true);
+    expect(line).not.toContain("stopped: timeout");
+    expect(line).toMatch(/value="archive" checked/);
+  });
+
+  // Criterion 5: a step run at somebody's keyboard, committed by hand
+  // with the subject the four skills now offer.
+  test("an interactive commit with no headless marker counts the same", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "analyze")).toBe(true);
+  });
+});
+
 // Spec 97: a description edited after the analyze ran leaves the plan
 // describing an older problem, and the row said nothing. The signal is
 // asked of git at render time and never stored, so a re-run clears it
@@ -3006,10 +3114,19 @@ describe("a description newer than the analysis is shown on the row", () => {
   const DESCRIPTION_EDITED = "2026-08-18T09:10:36+02:00";
   const SUBJECT = "Run /aide-analyze for 81-queue-and-runner (headless)";
 
-  /** The specs repo answering for one spec: when its description was
-   *  last committed, and what its analyze history looks like. */
+  /** The specs repo answering for one spec: which steps it has had
+   *  (spec 154), when its description was last committed, and what its
+   *  analyze history looks like. */
   const gitSaying = (descriptionAt: string, analyzeLog: string, differs = true) =>
     gitFake({
+      // The workflow history, first because its argv is the more
+      // specific one — the table's first matching prefix wins.
+      "log --all --format=%s": {
+        code: 0,
+        stdout: ["create", "analyze", "review-plan", "implement"]
+          .map((step) => `Run /aide-${step} for 81-queue-and-runner (headless)`)
+          .join("\n"),
+      },
       "log -1 --format=%H": { code: 0, stdout: `deadbee\t${descriptionAt}\n` },
       "log --format=%H%x09%aI%x09%s": { code: 0, stdout: analyzeLog },
       // `git diff --quiet`: 1 means the description says something the
@@ -3017,7 +3134,8 @@ describe("a description newer than the analysis is shown on the row", () => {
       "diff --quiet": { code: differs ? 1 : 0 },
     });
 
-  /** A spec whose files alone would mark analyze AND review-plan done. */
+  /** A spec whose files agree with the history `gitSaying` reports:
+   *  analyze AND review-plan done, and implement too. */
   const analysedSpec = (dir: string): void => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(
@@ -3117,10 +3235,16 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
   });
 
-  // A spec analysed by hand leaves no commit to compare against, and a
-  // git that cannot answer must not put a badge on the page that
+  // A git that cannot answer must not put a badge on the page that
   // nothing can ever clear.
-  test("git with no answer leaves the row exactly as it was (criteria 8, 10)", async () => {
+  //
+  // What it DOES do since spec 154 is leave the phase unmarked: the
+  // history is the record, and a history nothing can read proves
+  // nothing has run. That direction is deliberate — a spec reading as
+  // still having analyze ahead of it is visible, and running the step
+  // fixes it, where a mark nothing earned is neither. The file's own
+  // claim is still on the row, as the disagreement it now is.
+  test("git with no answer marks nothing, and still puts no stale badge up (criteria 8, 10)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
       gitRun: gitFake({}).run,
@@ -3128,7 +3252,9 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const html = await listPage(base);
     expect(html).not.toContain("description changed since");
-    expect(phaseDone(specControls(html, "81-queue-and-runner"), "analyze")).toBe(true);
+    const line = specControls(html, "81-queue-and-runner");
+    expect(phaseDone(line, "analyze")).toBe(false);
+    expect(line).toContain("the files disagree with what has run");
   });
 });
 

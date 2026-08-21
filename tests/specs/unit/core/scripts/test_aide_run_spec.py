@@ -2995,3 +2995,240 @@ def test_the_dry_run_shows_the_codex_argv(runner, workspace, fake_codex):
     assert out["argv"][0] == str(codex)
     assert out["argv"][1] == "exec"
     assert not fake_codex.calls.exists()
+
+
+# --- spec 154: the runner owns the record of what has run ---------------------
+#
+# The dashboard reads a spec's own commits to decide which steps it has
+# had. Everything that is not the dashboard reads `4-status.md`, so the
+# runner writes that file's one line from the same commits — and the two
+# agree by construction rather than because a model remembered to.
+#
+# The five histories below are the same five `dashboard/test/workflow-history.test.ts`
+# drives through the TypeScript derivation. That is the whole point of
+# having them here: two implementations of one rule, in two languages,
+# tested against the same scenarios, the way `WORKFLOW_STEPS` and
+# `DEPENDENCY_GATED_STEPS` are pinned to each other.
+
+
+def subject(step, folder="81-queue-and-runner", headless=True, stopped=None):
+    """The commit-subject grammar, spelled out rather than derived from
+    the script — a fixture that built it the same way the reader parses
+    it would prove only that the two agreed with each other."""
+    return (
+        f"Run /aide-{step} for {folder}"
+        + (" (headless)" if headless else "")
+        + (f" (stopped: {stopped})" if stopped else "")
+    )
+
+
+def with_status(workspace, claims=None):
+    """Give the spec a 4-status.md, committed, optionally CLAIMING steps
+    on the line this change takes over."""
+    line = f"- **Workflow steps completed:** {', '.join(claims)}\n" if claims else ""
+    (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        f"{line}"
+        "- **Total progress:** 0% (0 of 4 completed)\n"
+    )
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
+
+
+def already_ran(workspace, steps, **kw):
+    """Runner commits for steps that have already happened, on the specs
+    repo's default branch — where a landed step's commit lives."""
+    for step in steps:
+        subprocess.run(
+            ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
+             "-m", subject(step, workspace["folder"], **kw)],
+            check=True,
+        )
+
+
+def recorded_line(workspace, branch="aide/81-queue-and-runner", path=None):
+    """The Tracking info line as the branch's own commit has it — read
+    out of git, not off the disk, because what this change promises is
+    that the edit is IN the step's commit."""
+    path = path or f"{workspace['folder']}/4-status.md"
+    text = git(workspace["specs"], "show", f"{branch}:{path}")
+    for line in text.split("\n"):
+        if line.startswith("- **Workflow steps completed:**"):
+            return line.split(":**", 1)[1].strip()
+    return None
+
+
+def test_a_copied_status_line_is_corrected_by_the_first_step_that_runs(
+    runner, workspace, fake_claude
+):
+    """Spec 153: four files copied from a sibling whose analyze had
+    landed, so a folder minutes old claimed three steps. Nothing was
+    committed for any of them."""
+    with_status(workspace, ["create", "analyze", "review-plan"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert recorded_line(workspace) == "analyze"
+
+
+def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claude):
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="review-plan")
+    assert rc == 0, out
+    # Workflow order, not log order, and this run's own step included.
+    assert recorded_line(workspace) == "create, analyze, review-plan"
+
+
+def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
+    """Spec 147, from the other side: the step ran and did not finish.
+    The commit says so — the line, which is about what COMPLETED, does
+    not gain it."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "review-plan"])
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'echo "half-written" > "$PWD/half.txt"\n'
+        "trap '' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    assert recorded_line(workspace) == "create, analyze, review-plan"
+    # And the stop is on the record that DOES carry it.
+    assert "stopped: timeout" in git(
+        workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
+    )
+
+
+def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_claude):
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "review-plan"])
+    already_ran(workspace, ["implement"], stopped="timeout")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, review-plan, implement"
+
+
+def test_an_interactive_commit_without_the_headless_marker_counts(
+    runner, workspace, fake_claude
+):
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze"], headless=False)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="review-plan")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, review-plan"
+
+
+def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, fake_claude):
+    with_status(workspace)
+    for step in ["create", "analyze", "review-plan"]:
+        subprocess.run(
+            ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
+             "-m", subject(step, "99-somebody-else")],
+            check=True,
+        )
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert recorded_line(workspace) == "analyze"
+
+
+def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_claude):
+    """AC7. Not a second commit and not an amend: the edit goes in
+    BEFORE the commit loop, which is the only sequencing that makes
+    "in the same commit" true."""
+    with_status(workspace)
+    before = git(workspace["specs"], "rev-parse", "main")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    commits = git(workspace["specs"], "log", "--format=%s", f"{before}..{branch}").split("\n")
+    assert commits == [subject("analyze")], commits
+    assert recorded_line(workspace) == "analyze"
+
+
+def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, fake_claude):
+    """`/aide-archive` does a `git mv` of the whole folder into
+    `archive/` before the runner's commit loop ever runs, so the path
+    the line has to be written at is not the one the run started with."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "review-plan", "implement"])
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'mkdir -p "$specs/archive"\n'
+        + f'git -C "$specs" mv "{folder}" "archive/{folder}"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert (
+        recorded_line(workspace, path=f"archive/{folder}/4-status.md")
+        == "create, analyze, review-plan, implement, archive"
+    )
+
+
+def test_a_spec_with_no_status_file_is_not_a_failure(runner, workspace, fake_claude):
+    """The fixture's spec has no 4-status.md at all — every other test
+    in this file runs that way. Nothing to write is nothing to do."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert not out.get("error"), out["error"]
+
+
+def test_a_create_run_writes_the_line_into_the_folder_it_just_made(
+    runner, workspace, fake_claude
+):
+    """`create` is the one step whose spec folder is not the one the run
+    was started with — the commit names what it made, and so does the
+    file it writes into."""
+    made = "99-a-brand-new-spec"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'printf "%s\\n" "# New - Status" "" "## Tracking info" "" "- **Task:** \\`{made}/\\`" '
+        + f'> "$specs/{made}/4-status.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
+    assert rc == 0, out
+    assert out["specFolder"] == made
+    assert recorded_line(workspace, path=f"{made}/4-status.md") == "create"
+
+
+def test_a_step_outside_the_workflow_arc_leaves_the_line_alone(
+    runner, workspace, fake_claude
+):
+    """`explore` is not a stage a spec passes through, and it writes
+    nothing today. It must not start leaving a commit — and with it a
+    branch no step lands — for a line it has no news about."""
+    with_status(workspace, ["create", "analyze", "review-plan"])
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="explore")
+    assert rc == 0, out
+    assert git(workspace["specs"], "log", "-1", "--pretty=%s", "main") == "add status"
+    roots = {r["root"]: r for r in out["repos"]}
+    assert roots[str(workspace["specs"])]["changedFiles"] == 0
+
+
+def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_claude):
+    """The commit loop commits whatever it finds changed. A file
+    rewritten to exactly what it already said would put a step's name on
+    a commit carrying nothing."""
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze"])
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    roots = {r["root"]: r for r in out["repos"]}
+    assert roots[str(workspace["specs"])]["changedFiles"] == 0

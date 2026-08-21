@@ -17,6 +17,7 @@ import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
 import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
+import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { pullFastForward } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
@@ -643,7 +644,13 @@ export function createServer(opts: ServerOptions) {
             // 3-solution.md, the percentage here — each answered a
             // question next to the one being asked, and the first of
             // them marked spec 138 analysed before any analyze had run.
-            done: status?.workflowSteps ?? [],
+            //
+            // Since spec 154 the line is no longer the ANSWER, only a
+            // claim: a model has to reach its last instruction to write
+            // it and a copied folder brings a sibling's version along.
+            // `withFreshness` fills `done` in from the runner's own
+            // commits, and this is what it compares them against.
+            fileSteps: status?.workflowSteps ?? [],
             archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
           });
         }
@@ -702,6 +709,8 @@ export function createServer(opts: ServerOptions) {
   // A third user of the same runner: has the description moved on since
   // the plan was written?
   const freshness = new DescriptionFreshnessChecker({ run: gitRun });
+  // And a fourth: which steps this spec has actually had (spec 154).
+  const workflowHistory = new WorkflowHistoryChecker({ run: gitRun });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -1334,11 +1343,21 @@ export function createServer(opts: ServerOptions) {
     });
   }
 
-  /** Spec 97: what the files say a spec has had, corrected by what git
-   *  says about WHEN. A description committed after the last finished
-   *  analyze means the plan on disk answers an older question, so the
-   *  two phases that produced it stop counting as done and the row
-   *  pre-ticks `analyze` again.
+  /** Everything about a spec that only git can answer, asked once per
+   *  spec over the same checkout.
+   *
+   *  Spec 154: which steps it has HAD. The runner commits every step it
+   *  finishes, with the outcome in the subject, and that commit exists
+   *  whether or not the model reached the instruction that writes
+   *  `4-status.md` — which is what makes it the record and the file the
+   *  claim. The file is still read (`fileSteps`), for one purpose: a
+   *  row whose file and history disagree says so.
+   *
+   *  Spec 97: whether the plan is still about the problem the
+   *  description states. A description committed after the last
+   *  finished analyze means the plan on disk answers an older question,
+   *  so the two phases that produced it stop counting as done and the
+   *  row pre-ticks `analyze` again.
    *
    *  Applied here rather than inside `targets()` for two reasons: that
    *  scan is cached for five seconds and must stay a pure function of
@@ -1346,18 +1365,30 @@ export function createServer(opts: ServerOptions) {
    *  resolver — making it async to ask git would thread `await` through
    *  the enqueue path for a signal enqueueing has no use for.
    *
-   *  `implement` is deliberately untouched: it is earned from
-   *  4-status.md, and nothing here blocks running a spec whose
-   *  description change turns out to be cosmetic. */
+   *  A stale description takes back `analyze` and `review-plan` only.
+   *  `implement` is deliberately untouched: nothing here blocks running
+   *  a spec whose description change turns out to be cosmetic.
+   *
+   *  A spec with no `dir` — a create job's spec, which is the folder the
+   *  job is making — has no history to read and keeps the empty
+   *  done-set it arrived with. */
   async function withFreshness(list: QueueTarget[]): Promise<QueueTarget[]> {
     return Promise.all(
       list.map(async (t) => {
         if (!t.dir) return t;
-        if (!(await freshness.isStale(t.dir, t.specFolder))) return t;
-        return {
+        const history = await workflowHistory.read(t.dir, t.specFolder);
+        const fileSteps = t.fileSteps ?? [];
+        const withHistory: QueueTarget = {
           ...t,
+          done: history.done,
+          stopped: history.stopped,
+          fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
+        };
+        if (!(await freshness.isStale(t.dir, t.specFolder))) return withHistory;
+        return {
+          ...withHistory,
           analyzeStale: true,
-          done: (t.done ?? []).filter((s) => s !== "analyze" && s !== "review-plan"),
+          done: history.done.filter((s) => s !== "analyze" && s !== "review-plan"),
         };
       }),
     );
