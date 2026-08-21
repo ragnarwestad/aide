@@ -5098,3 +5098,122 @@ describe("spec 143: the Activity tab carries the message too", () => {
     expect(html).toContain("held back: depends on 80-dependency");
   });
 });
+
+// --- spec 152: a figure that was over-charged says so wherever it is summed ---
+//
+// A killed step is charged its whole budget, because a SIGKILLed run
+// prints no usage and the accounting must over-charge what it could not
+// measure. `costMeasured: false` records that, and the job page's Steps
+// table has marked it "est." per step since spec 118 — but the two
+// TOTALS built on top of those steps had no access to the flag, so
+// 149's spec total read "41.13 USD" as if it were money spent.
+describe("an unmeasured cost is marked where it is totalled", () => {
+  const marker = '<span class="muted small">est.</span>';
+
+  test("the job page's overview total is marked when a summed step was over-charged", () => {
+    const html = renderJobDetailPage(
+      detail({
+        steps: ["implement"],
+        stepIndex: 0,
+        state: "stopped",
+        stopReason: "timeout",
+        spentUsd: 35,
+        results: [
+          {
+            step: "implement", ok: false, costUsd: 35, costMeasured: false,
+            terminalReason: "timeout", at: "2026-08-21T07:58:00Z",
+          },
+        ],
+      }),
+      "2026-08-21T08:00:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).toContain("Cost so far");
+    expect(html).toContain(marker);
+  });
+
+  test("a job whose every step was measured carries no marker on its total", () => {
+    const html = renderJobDetailPage(
+      detail({
+        state: "done",
+        spentUsd: 0.42,
+        results: [
+          {
+            step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-21T10:01:00Z",
+          },
+        ],
+      }),
+      "2026-08-21T10:05:00Z",
+      NAV,
+      { tab: "overview" },
+    );
+    expect(html).toContain("Cost so far");
+    expect(html).not.toContain(marker);
+  });
+
+  // The row's own cell is a roll-up across every job the spec has had,
+  // which is the "41.13 USD for 149" figure the incident was about.
+  const spentRow = (extra: Partial<QueueRowView>): QueueRowView =>
+    row({ state: "done", ...extra });
+
+  test("the spec row's total is marked when any job under it was over-charged", () => {
+    const html = renderQueueRows(
+      [
+        spentRow({
+          id: "j1", steps: ["analyze"], spentUsd: 6.13,
+          results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
+        }),
+        spentRow({
+          id: "j2", steps: ["implement"], state: "stopped", stopReason: "timeout", spentUsd: 35,
+          results: [{ step: "implement", ok: false, costUsd: 35, costMeasured: false }],
+        }),
+      ],
+      { runnerAvailable: true, targets: [] },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+    expect(html).toContain("$41.13");
+    expect(html).toContain(marker);
+  });
+
+  test("a spec whose every step was measured renders no marker", () => {
+    const html = renderQueueRows(
+      [
+        spentRow({
+          id: "j1", steps: ["analyze"], spentUsd: 6.13,
+          results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
+        }),
+      ],
+      { runnerAvailable: true, targets: [] },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+    expect(html).toContain("$6.13");
+    expect(html).not.toContain(marker);
+  });
+
+  // The phase lines answer for their OWN attempt, so the marker has to
+  // be decided per line rather than inherited from the row above them.
+  test("an expanded phase line marks its own attempt, and a measured one beside it does not", () => {
+    const rows = [
+      spentRow({
+        id: "j1", steps: ["analyze"], spentUsd: 6.13,
+        results: [{ step: "analyze", ok: true, costUsd: 6.13, costMeasured: true }],
+      }),
+      spentRow({
+        id: "j2", steps: ["implement"], state: "stopped", stopReason: "timeout", spentUsd: 35,
+        results: [{ step: "implement", ok: false, costUsd: 35, costMeasured: false }],
+      }),
+    ];
+    const html = renderQueueRows(
+      rows,
+      { runnerAvailable: true, targets: [], filter: { open: "aide/81-queue-and-runner" } },
+      Date.parse("2026-08-21T12:00:00Z"),
+    );
+    const implementLine = html.slice(html.indexOf('data-step="implement"'));
+    const analyzeLine = html.slice(html.indexOf('data-step="analyze"'), html.indexOf('data-step="review-plan"'));
+    expect(implementLine.slice(0, implementLine.indexOf("</tr>"))).toContain(marker);
+    expect(analyzeLine).toContain("$6.13");
+    expect(analyzeLine).not.toContain(marker);
+  });
+});

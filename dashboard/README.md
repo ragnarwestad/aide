@@ -368,7 +368,7 @@ afterwards is a report, not a cap. They live in the queue config
   "budgetUsd": 3,
   "jobCapUsd": 10,
   "dailyCapUsd": 20,
-  "timeoutSec": 1200,
+  "timeoutSec": { "implement": 5400, "default": 1200 },
   "permissionMode": {
     "implement": "bypassPermissions",
     "default": "acceptEdits"
@@ -383,7 +383,20 @@ afterwards is a report, not a cap. They live in the queue config
 
 A job may only TIGHTEN a cap, and cannot set the permission mode at all.
 A timed-out step is charged its full budget: the accounting over-charges
-what it could not measure, never the other way round.
+what it could not measure, never the other way round. That over-charge is
+a ceiling, not a measurement, so every figure it is summed into carries
+an `est.` beside it — the step's own row, the job's total and the spec's.
+
+`timeoutSec` is a table per step, read the same way `permissionMode` and
+`model` below are: a step the table does not name falls to `default`. It
+is per step because an `analyze` is minutes and an `implement` on a
+twenty-file change is the better part of an hour, and one number for both
+stopped spec 149 with its tests already green. A tightening override is
+checked against each step's OWN ceiling, so a job holding both steps
+cannot buy `analyze` more time by naming `implement`. A file still
+carrying the old flat `"timeoutSec": 1200` is ignored and the built-in
+defaults stand, the same direction every other malformed key here fails
+in.
 
 `projects` is the odd one out in that file: it is the only key the
 server WRITES as well as reads. It is the queue's allowlist, and the

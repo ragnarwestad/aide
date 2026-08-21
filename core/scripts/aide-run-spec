@@ -1096,7 +1096,12 @@ if [ -n "$stopped" ]; then
   # because it must land somewhere; the token count has no such duty, so
   # it is dropped rather than half-reported.
   tokens_json=""
-  error_msg="killed after ${timeout_sec}s"
+  # A limit WE set, not something that happened to us — and spec 146's
+  # commit below has already put the work on the branch, so the step
+  # can be re-run from where it got to. The row says "press Run"
+  # separately (`nextActionHint`); this sentence only has to say why
+  # and that nothing was lost.
+  error_msg="stopped at its own ${timeout_sec}s time limit for this step — work up to that point is committed to the branch"
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.

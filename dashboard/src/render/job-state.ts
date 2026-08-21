@@ -84,6 +84,21 @@ export interface StepResultView {
    *  one. Per STEP, because a phase line speaks for its own attempt and
    *  not for the job's running total. */
   tokens?: number;
+  /** Whether `costUsd` was READ off the tool's own output or stood in
+   *  for it. A killed step is charged its whole budget, because a
+   *  SIGKILLed run prints no usage — a ceiling, not a measurement.
+   *  Absent means measured: every record written before the flag
+   *  existed came from a run that printed its own figure. */
+  costMeasured?: boolean;
+}
+
+/** Whether anything summed over these steps was a stand-in rather than a
+ *  measurement. The job page's Steps table marks each step for itself;
+ *  this is what the TOTALS built on top of them ask (spec 152), so a
+ *  spec total of "41.13" cannot read as money spent when 35 of it is a
+ *  ceiling nobody measured. */
+export function anyCostUnmeasured(results: StepResultView[] | undefined): boolean {
+  return (results ?? []).some((r) => r.costMeasured === false);
 }
 
 // A stopped job is NOT a failed one, and the two must never render as

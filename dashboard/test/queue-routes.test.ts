@@ -358,7 +358,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     budgetUsd: 3,
     jobCapUsd: 10,
     dailyCapUsd: 20,
-    timeoutSec: 1200,
+    timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
     modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
@@ -1061,7 +1061,7 @@ describe("picking a model for a job", () => {
     budgetUsd: 3,
     jobCapUsd: 10,
     dailyCapUsd: 20,
-    timeoutSec: 1200,
+    timeoutSec: { default: 1200 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
     model: { implement: "opus", default: "sonnet" },
     modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
@@ -4311,5 +4311,93 @@ describe("a model choice's tool reaches the runner", () => {
       push: "branch",
     });
     expect(argv).not.toContain("--tool");
+  });
+});
+
+// --- spec 152: the wall clock is per step, and a stand-in cost says so -------
+//
+// 149's implement was killed at its own 45-minute limit with its tests
+// already green, and was booked at the full budget because a SIGKILLed
+// run prints no usage. Two seams in this file carried that: the argv the
+// runner is started with (one number for every step), and the `Job` →
+// `QueueRowView` mapping, which dropped `costMeasured` on the floor so
+// the totals built on it could not tell a measurement from a ceiling.
+describe("a step's own time limit reaches the runner", () => {
+  const jobWith = (timeoutSec: unknown, steps: string[] = ["analyze", "implement"]) =>
+    ({
+      project: "aide", specFolder: "81-queue-and-runner", steps,
+      budgetUsd: 3, timeoutSec, permissionMode: {}, model: {}, extraProjects: [],
+    }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
+
+  const timeoutArg = (argv: string[]): string => argv[argv.indexOf("--timeout-sec") + 1]!;
+
+  test("an implement is spawned with implement's number, not default's", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const o = { runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch" };
+    const job = jobWith({ analyze: 1200, implement: 5400 });
+    expect(timeoutArg(runnerArgv(job, "implement", "/tmp/r.json", o))).toBe("5400");
+    expect(timeoutArg(runnerArgv(job, "analyze", "/tmp/r.json", o))).toBe("1200");
+  });
+
+  // A job created before the shape changed is still sitting in the
+  // store across the deploy. Read as an index it would give `undefined`
+  // and the runner would be handed the string "undefined" as its
+  // deadline — a crash-adjacent read, not a cosmetic one.
+  test("a job persisted with the old flat number is still given a real deadline", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const argv = runnerArgv(jobWith(2700), "implement", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+    });
+    expect(timeoutArg(argv)).toBe("2700");
+  });
+
+  test("a step the table does not name falls to its default", async () => {
+    const { runnerArgv } = await import("../src/serve.ts");
+    const argv = runnerArgv(jobWith({ default: 1200, implement: 5400 }, ["archive"]), "archive", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+    });
+    expect(timeoutArg(argv)).toBe("1200");
+  });
+});
+
+describe("an over-charged cost survives the row mapping", () => {
+  async function seeded(costMeasured: boolean): Promise<string> {
+    const { base, dir } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST", headers, body: JSON.stringify({ ...JOB, steps: ["implement"] }),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "stopped";
+    job.stopReason = "timeout";
+    job.spentUsd = 35;
+    job.results = [
+      {
+        step: "implement", ok: false, costUsd: 35, costMeasured,
+        terminalReason: "timeout", at: "2026-08-21T07:58:00Z",
+      },
+    ];
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return mirror;
+  }
+
+  const MARKER = '<span class="muted small">est.</span>';
+
+  test("the spec row marks a total it could not measure", async () => {
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(false) });
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(specHead(html, "81-queue-and-runner")).toContain(MARKER);
+  });
+
+  test("a measured total through the same seam carries no mark", async () => {
+    const { base } = start({ queueToken: TOKEN, queueMirrorPath: await seeded(true) });
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    const head = specHead(html, "81-queue-and-runner");
+    expect(head).toContain("$35.00");
+    expect(head).not.toContain(MARKER);
   });
 });

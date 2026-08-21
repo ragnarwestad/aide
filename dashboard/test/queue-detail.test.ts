@@ -468,7 +468,7 @@ describe("a Codex step's job page", () => {
     budgetUsd: 3,
     jobCapUsd: 10,
     dailyCapUsd: 20,
-    timeoutSec: 1200,
+    timeoutSec: { default: 1200 },
     permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
     modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },

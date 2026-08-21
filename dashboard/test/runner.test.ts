@@ -18,7 +18,7 @@ const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
   jobCapUsd: 10,
   dailyCapUsd: 20,
-  timeoutSec: 1200,
+  timeoutSec: { default: 1200 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
 };

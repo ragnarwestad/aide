@@ -37,6 +37,7 @@ import {
 } from "./components.ts";
 import {
   IN_FLIGHT,
+  anyCostUnmeasured,
   branchActivity,
   currentStep,
   inFlight,
@@ -305,6 +306,10 @@ interface SpecGroup {
    *  CSS suffix; the words the reader sees are "not started". */
   state: QueueRowView["state"] | "not-started";
   spentUsd: number;
+  /** Whether any step summed into `spentUsd` was over-charged rather
+   *  than measured (spec 152). Rolled up across every job the spec has
+   *  had, because the cell it marks is the same roll-up. */
+  costUnmeasured: boolean;
   /** The same roll-up in tokens, absent while no job under this spec has
    *  reported any (spec 118). */
   spentTokens?: number;
@@ -358,6 +363,7 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     specFolder: t.specFolder,
     state: "not-started",
     spentUsd: 0,
+    costUnmeasured: false,
     activityAt: 0,
     branches: [],
     phases: PHASE_LINES.map((step) => ({ step, attempts: [], ...heldBackFor(step, t) })),
@@ -449,6 +455,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     latest: recent[0]!,
     state: lead.state,
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
+    costUnmeasured: all.some((r) => anyCostUnmeasured(r.results)),
     // Summed over the jobs that HAVE a figure, and absent when none
     // does — so a spec whose runs all predate spec 118 shows a dash
     // rather than a total of nothing.
@@ -833,8 +840,20 @@ const phaseWordCell = (
 // distinction is the whole reason this takes a parameter the shared
 // formatter does not — everything else about the cell is `usdOrTokens`,
 // which is where the dollar/token pair is decided for the whole site.
-const costCell = (spentUsd: number, spentTokens: number | undefined, blank: string): string =>
-  spentUsd > 0 ? usdOrTokens(spentUsd, spentTokens) : blank;
+// `unmeasured` marks a figure that includes a stand-in: a stopped step
+// is charged its whole budget because a SIGKILLed run prints no usage,
+// and a total that says nothing about it reads as money spent (spec
+// 152). The same "est." the job page's Steps table has shown per step
+// since spec 118.
+const costCell = (
+  spentUsd: number,
+  spentTokens: number | undefined,
+  blank: string,
+  unmeasured?: boolean,
+): string =>
+  spentUsd > 0
+    ? usdOrTokens(spentUsd, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
+    : blank;
 
 /** Whether a job is in flight on this spec — queued, running, or parked
  *  at a gate. ONE rule for the whole row, read off the SPEC and not off
@@ -1144,7 +1163,7 @@ function specHeadRow(
       nextActionHint(g.lead),
     )}</div></td>` +
     `<td>${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
-    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–")}</td>` +
+    `<td class="num">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     // The action cell, LAST as before spec 124 — but only for a SHUT
     // row: an open row's actions live in the stack beside its phase
     // lines (the 14rem first column put every button in the page's
@@ -1398,7 +1417,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           `${name}${modelPicker(g, opts, p.step, busy, latest?.model)}</span></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td>${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
-          `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "") : ""}</td>` +
+          `<td class="num">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
           `<td></td>`,
       });
     });

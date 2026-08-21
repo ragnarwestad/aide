@@ -192,7 +192,18 @@ export function renderJobDetailPage(
       ["Spec", esc(job.specFolder)],
       ["Step", `${esc(stepLabel(step))}${progress}`],
       ["Model", esc(job.model ?? "as configured")],
-      [unitLabel("Cost so far", "Tokens so far"), usdOrTokens(job.spentUsd, job.spentTokens)],
+      // Marked when any step summed into it was over-charged, the same
+      // way the Steps table below already marks that step (spec 152).
+      // Not `anyCostUnmeasured`: this page's own `JobStepResultView` is
+      // a different interface, and a Codex step has no dollar figure to
+      // have estimated in the first place.
+      [
+        unitLabel("Cost so far", "Tokens so far"),
+        usdOrTokens(job.spentUsd, job.spentTokens) +
+          (job.results.some((r) => r.tool !== "codex" && r.costMeasured === false)
+            ? ' <span class="muted small">est.</span>'
+            : ""),
+      ],
       ["Started", relTime(job.startedAt ?? job.createdAt, now)],
       // One line per repo. A job that touched two repositories made a
       // branch of the same name in both, with different contents and

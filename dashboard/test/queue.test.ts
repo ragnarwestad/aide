@@ -16,7 +16,9 @@ const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
   jobCapUsd: 10,
   dailyCapUsd: 20,
-  timeoutSec: 1200,
+  // Per step since spec 152: an implement is not an analyze, and one
+  // number for both stopped 149 mid-sentence with its tests green.
+  timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   model: { implement: "opus", default: "sonnet" },
 };
@@ -53,7 +55,7 @@ describe("parseJobRequest", () => {
     expect(r.job.state).toBe("queued");
     expect(r.job.budgetUsd).toBe(3);
     expect(r.job.jobCapUsd).toBe(10);
-    expect(r.job.timeoutSec).toBe(1200);
+    expect(r.job.timeoutSec).toEqual({ analyze: 1200, implement: 5400 });
     expect(r.job.spentUsd).toBe(0);
     expect(r.job.stepIndex).toBe(0);
   });
@@ -106,12 +108,60 @@ describe("parseJobRequest", () => {
     expect(r.job.permissionMode.analyze).toBe("acceptEdits");
   });
 
+  // --- spec 152: the wall clock is per step -----------------------------
+  //
+  // One number covered analyze (minutes) and implement (the better part
+  // of an hour on a twenty-file change) alike, and the only place it
+  // could be changed was the config file on the serving host. It is a
+  // table now, resolved exactly as `permissionMode` and `model` are.
+  test("each step gets its own configured limit", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement", "archive"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.timeoutSec.implement).toBe(5400);
+    // Every step the config does not name falls to `default`, the same
+    // fallback the other two per-step tables have.
+    expect(r.job.timeoutSec.analyze).toBe(1200);
+    expect(r.job.timeoutSec.archive).toBe(1200);
+  });
+
+  test("an override tightens every step against that step's OWN ceiling", () => {
+    const r = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], timeoutSec: 600 },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.job.timeoutSec).toEqual({ analyze: 600, implement: 600 });
+
+    // 3000 is well inside implement's 5400 and well outside analyze's
+    // 1200. The job holds both steps, so it is refused: a request may
+    // only tighten, and it does not get to loosen one step by naming
+    // another that could have afforded it.
+    const mixed = parseJobRequest(
+      { ...REQ, steps: ["analyze", "implement"], timeoutSec: 3000 },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(mixed.ok).toBe(false);
+    if (!mixed.ok) expect(mixed.error).toContain("timeoutSec");
+
+    // The same number on an implement-only job is a tightening, and is
+    // taken.
+    const alone = parseJobRequest(
+      { ...REQ, steps: ["implement"], timeoutSec: 3000 },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(alone.ok && alone.job.timeoutSec).toEqual({ implement: 3000 });
+  });
+
   test("an override may tighten a cap but never loosen it", () => {
     const tighter = parseJobRequest({ ...REQ, budgetUsd: 1, timeoutSec: 60 }, { resolve, defaults: DEFAULTS });
     expect(tighter.ok).toBe(true);
     if (tighter.ok) {
       expect(tighter.job.budgetUsd).toBe(1);
-      expect(tighter.job.timeoutSec).toBe(60);
+      expect(tighter.job.timeoutSec).toEqual({ analyze: 60 });
     }
     const looser = parseJobRequest({ ...REQ, budgetUsd: 50 }, { resolve, defaults: DEFAULTS });
     expect(looser.ok).toBe(false);
@@ -269,9 +319,23 @@ describe("mergeQueueDefaults", () => {
     expect(merged.budgetUsd).toBe(15);
     expect(merged.jobCapUsd).toBe(50);
     expect(merged.dailyCapUsd).toBe(20); // untouched
-    expect(merged.timeoutSec).toBe(1200);
+    expect(merged.timeoutSec).toEqual(DEFAULTS.timeoutSec);
     expect(merged.model["review-plan"]).toBe("sonnet");
     expect(merged.permissionMode.implement).toBe("bypassPermissions");
+  });
+
+  test("a per-step timeoutSec table is merged like the other two (spec 152)", () => {
+    const merged = mergeQueueDefaults(DEFAULTS, { timeoutSec: { implement: 7200, archive: 900 } });
+    expect(merged.timeoutSec).toEqual({ default: 1200, implement: 7200, archive: 900 });
+  });
+
+  test("a config still carrying the old flat timeoutSec falls back rather than crashing", () => {
+    // The shape changed in spec 152 and the file is edited by hand on
+    // the serving host. A number where a table is expected is dropped,
+    // the same direction every other malformed key here fails in — the
+    // built-in per-step defaults stand until someone edits the file.
+    const merged = mergeQueueDefaults(DEFAULTS, { timeoutSec: 2700 });
+    expect(merged.timeoutSec).toEqual(DEFAULTS.timeoutSec);
   });
 
   test("nonsense is ignored rather than obeyed — failing towards spending less", () => {
@@ -850,7 +914,7 @@ describe("parseCreateRequest", () => {
     const r = parseCreateRequest(CREATE, { allow, defaults: DEFAULTS });
     expect(r.ok && r.job.budgetUsd).toBe(DEFAULTS.budgetUsd);
     expect(r.ok && r.job.jobCapUsd).toBe(DEFAULTS.jobCapUsd);
-    expect(r.ok && r.job.timeoutSec).toBe(DEFAULTS.timeoutSec);
+    expect(r.ok && r.job.timeoutSec).toEqual(DEFAULTS.timeoutSec);
   });
 });
 

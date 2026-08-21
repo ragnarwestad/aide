@@ -117,7 +117,10 @@ export interface Job {
   state: JobState;
   budgetUsd: number;
   jobCapUsd: number;
-  timeoutSec: number;
+  /** Per step, resolved at creation like `permissionMode`/`model` (spec
+   *  152). A job persisted before that change still holds a bare
+   *  number; `resolveTimeoutSec` in serve.ts is what reads either. */
+  timeoutSec: Record<string, number>;
   permissionMode: Record<string, string>;
   model: Record<string, string>;
   /** The model picked for this whole job, when one was picked. Absent
@@ -212,7 +215,11 @@ export interface QueueDefaults {
   budgetUsd: number;
   jobCapUsd: number;
   dailyCapUsd: number;
-  timeoutSec: number;
+  /** Per step, with a `default` fallback — the same shape as
+   *  `permissionMode`/`model`, because an implement is not an analyze
+   *  and one number for both stopped spec 149 mid-sentence with its
+   *  tests already green. Config-only — see the header. */
+  timeoutSec: Record<string, number>;
   /** Per step, with a `default` fallback. Config-only — see the header. */
   permissionMode: Record<string, string>;
   model: Record<string, string>;
@@ -365,8 +372,16 @@ export function parseJobRequest(
   if (budgetUsd instanceof Error) return { ok: false, error: budgetUsd.message };
   const jobCapUsd = tighten(r.jobCapUsd, choice?.jobCapUsd ?? defaults.jobCapUsd, "jobCapUsd");
   if (jobCapUsd instanceof Error) return { ok: false, error: jobCapUsd.message };
-  const timeoutSec = tighten(r.timeoutSec, defaults.timeoutSec, "timeoutSec");
-  if (timeoutSec instanceof Error) return { ok: false, error: timeoutSec.message };
+  // Per step, each against its OWN ceiling: an override that would be a
+  // tightening for implement can be a loosening for analyze, and the
+  // job holding both may not buy the one by naming the other.
+  const timeoutLimits = perStep(steps, defaults.timeoutSec);
+  const timeoutSec: Record<string, number> = {};
+  for (const s of steps) {
+    const t = tighten(r.timeoutSec, timeoutLimits[s]!, "timeoutSec");
+    if (t instanceof Error) return { ok: false, error: t.message };
+    timeoutSec[s] = t;
+  }
 
   return {
     ok: true,
@@ -617,6 +632,18 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
   const r = raw as Record<string, unknown>;
   const num = (v: unknown, fallback: number) =>
     typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback;
+  // The numeric sibling of `table` below: `timeoutSec` is per step since
+  // spec 152, and a file still carrying the old flat number is dropped
+  // in favour of the built-in defaults rather than crashing — the same
+  // direction every other malformed key here fails in.
+  const numTable = (v: unknown, fallback: Record<string, number>) => {
+    if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
+    const out: Record<string, number> = { ...fallback };
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (typeof val === "number" && Number.isFinite(val) && val > 0) out[k] = val;
+    }
+    return out;
+  };
   const table = (v: unknown, fallback: Record<string, string>) => {
     if (v === null || typeof v !== "object" || Array.isArray(v)) return fallback;
     const out: Record<string, string> = { ...fallback };
@@ -657,7 +684,7 @@ export function mergeQueueDefaults(base: QueueDefaults, raw: unknown): QueueDefa
     budgetUsd: num(r.budgetUsd, base.budgetUsd),
     jobCapUsd: num(r.jobCapUsd, base.jobCapUsd),
     dailyCapUsd: num(r.dailyCapUsd, base.dailyCapUsd),
-    timeoutSec: num(r.timeoutSec, base.timeoutSec),
+    timeoutSec: numTable(r.timeoutSec, base.timeoutSec),
     permissionMode: table(r.permissionMode, base.permissionMode),
     model: table(r.model, base.model),
     modelChoices: choices(r.modelChoices),

@@ -80,7 +80,13 @@ const QUEUE_DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
   jobCapUsd: 10,
   dailyCapUsd: 20,
-  timeoutSec: 1200,
+  // Per step since spec 152. 1200 is unchanged for everything else;
+  // `implement` gets 5400 because 149's was killed at the 45-minute
+  // mark with RED and GREEN done and its tests green, mid-way through
+  // writing documentation on a twenty-file change. A correction from
+  // two data points, not a measurement — it lives in `queue-config.json`
+  // on the serving host and should be revisited once more have run.
+  timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   // `resolve` would fall to `default` anyway; it is named because a
   // merge is not an implement and that is a decision, not an accident
@@ -424,6 +430,15 @@ function serveStatic(siteDir: string, pathname: string): Response {
   return new Response(readFileSync(target), { headers: { "content-type": type } });
 }
 
+/** This step's wall clock. The field is a per-step table since spec 152,
+ *  but a job created before that change is still in the store across the
+ *  deploy carrying a bare number — read as an index that would hand the
+ *  runner the string "undefined" as its deadline. A transitional read
+ *  for jobs already in flight, not a dual-format feature. */
+export function resolveTimeoutSec(t: Job["timeoutSec"], step: string): number {
+  return typeof t === "number" ? t : (t[step] ?? t.default!);
+}
+
 /** The argv `aide-run-spec` is started with. Extracted so it can be read
  *  in a test: an unattended run's arguments are the whole contract, and
  *  a missing `--extra-project-dir` loses half a job's work silently. */
@@ -456,7 +471,7 @@ export function runnerArgv(
     "--command", step,
     "--spec", job.specFolder,
     "--budget-usd", String(job.budgetUsd),
-    "--timeout-sec", String(job.timeoutSec),
+    "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step)),
     "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
     "--result-file", resultFile,
     "--push", o.push,
@@ -1009,7 +1024,10 @@ export function createServer(opts: ServerOptions) {
       // here, at the boundary, so no render file has to know what a
       // result file looks like (spec 118).
       spentTokens: job.spentTokens,
-      timeoutSec: job.timeoutSec,
+      // One number, for the step this row speaks for: `stateLabel` puts
+      // it into words ("stopped — 45 min") and has no step to resolve
+      // against of its own.
+      timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default"),
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       branchUrls,
@@ -1021,6 +1039,10 @@ export function createServer(opts: ServerOptions) {
       errorReason: job.errorReason,
       results: job.results.map((r) => ({
         step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
+        // Carried, not dropped: the totals the list and the overview tab
+        // build out of these results have no other way to know a figure
+        // they are summing was over-charged (spec 152).
+        costMeasured: r.costMeasured,
       })),
     };
   }
