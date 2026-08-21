@@ -1536,7 +1536,13 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(line).toContain('name="specFolder" value="90-never-run"');
     expect(line).toContain('name="steps" value="analyze"');
     expect(line).toContain(">Analyze</button>");
-    expect(line).not.toContain("disabled");
+    // Nothing an idle row can act on is disabled. `create`'s box is,
+    // always and by construction (2026-08-21), so the claim is made
+    // about the four runnable phases rather than the whole row.
+    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+      expect(subRow(html, step)).not.toContain("disabled");
+    }
+    expect(line).not.toContain("<button[^>]*disabled");
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
@@ -1821,9 +1827,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     const line = runLine(html, "97-stale");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
-    // Exactly one box, as `stepBoxes` has always ticked: the pair
-    // belongs to a spec nothing has ever run (spec 94).
-    expect([...line.matchAll(/value="[^"]*" checked/g)]).toHaveLength(1);
+    // Exactly one RUNNABLE box ticked, as `stepBoxes` has always
+    // ticked: the pair belongs to a spec nothing has ever run (spec
+    // 94). `create`'s box is ticked too and always is — it is the
+    // phase already behind you, not a phase a press would run — so it
+    // is counted out by its own lack of a field name.
+    expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(1);
   });
 });
 
@@ -3702,6 +3711,9 @@ describe("spec 116: create is the first phase line", () => {
   // --- criterion 2: no create job means an inert line, not a missing one -----
 
   test("a hand-made spec's create line reads done, with nothing to click (criterion 2)", () => {
+    // "Nothing to click" now includes a box that is ticked and
+    // disabled (2026-08-21): it is the line saying the phase is behind
+    // you, in the same shape the other four use, and it takes no click.
     const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
     const line = subRow(html, "create");
     expect(line).toContain("b-done");
@@ -3711,11 +3723,16 @@ describe("spec 116: create is the first phase line", () => {
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
     // its own, so the emptiness is inside that cell.
-    // The empty span before the name is the checkbox column's place,
-    // held so every phase name starts at the same x (spec 124) —
-    // `create` is history and has no box to put in it.
+    // The box before the name holds the checkbox column's place, so
+    // every phase name starts at the same x (spec 124). It was an
+    // EMPTY span until 2026-08-21 and the hole read as a different
+    // kind of line; the box is ticked, disabled and nameless instead.
     expect(line).toContain(
-      '<td class="phasecell"><span class="row"><span class="row"></span>' +
+      '<td class="phasecell"><span class="row"><span class="row">' +
+        '<label class="phase checked" data-phase="create">' +
+        '<input type="checkbox" value="create" checked disabled ' +
+        'aria-label="create — already done, and not a step you can run"> ' +
+        "<span></span></label></span>" +
         '<span class="muted">create</span></span></td>',
     );
     expect(line).toContain(
@@ -4359,10 +4376,14 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(order).toEqual(["analyze", "review-plan", "implement", "archive"]);
   });
 
-  test("create's line carries no box at all — it is history (criterion 15)", () => {
+  // It carried no box at all until 2026-08-21 and the hole read as a
+  // different kind of line. It has one now — ticked, disabled, nameless
+  // — and what criterion 15 was really about survives: create is
+  // history, and no press can run it again.
+  test("create's box is ticked, disabled and unpostable — it is history (criterion 15)", () => {
     const line = subRow(rows([]), "create");
-    expect(line).not.toContain("<input");
-    expect(line).not.toContain("data-phase");
+    expect(line).toMatch(/<input type="checkbox" value="create" checked disabled/);
+    expect(line).not.toContain('name="steps" value="create"');
   });
 
   test("no strip of phase boxes and no controls line survive (criterion 2)", () => {

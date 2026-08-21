@@ -1508,9 +1508,14 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // The picker directly after the name, so the two line up in the
       // caption's columns; what the last run used is not spelled out in
       // text any more — it IS the select's pre-filled value.
-      // `create` has no box, as it never had one: the folder being on
-      // disk IS its answer, and a spec that exists cannot be created
-      // again. Its line is history, and history is read-only.
+      // `create` gets a box that is ticked and cannot be untucked: the
+      // folder being on disk IS its answer, and a spec that exists
+      // cannot be created again. It had no box at all until
+      // 2026-08-21, and the hole where the other four have one made
+      // the line read as a different KIND of thing rather than as the
+      // one phase already behind you. It carries no `name`, so no
+      // press can ever post `steps=create` — a disabled input is not
+      // submitted either, and this is the belt as well as the braces.
       const box = QUEUE_STEPS.includes(p.step)
         ? phaseChip({
             // `data-phase`, not `data-step`: the line already carries
@@ -1537,7 +1542,21 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             plain: true,
             title: busy ? why : undefined,
           })
-        : "";
+        : phaseChip({
+            dataAttr: "data-phase",
+            value: p.step,
+            label: "",
+            ariaLabel: `${stepLabel(p.step)} — already done, and not a step you can run`,
+            // No name: nothing to post, whatever a browser decides to
+            // do with a disabled field.
+            name: "",
+            checked: true,
+            disabled: true,
+            // Inert, not padlocked — the same reason spec 145 gives for
+            // a phase queued behind the running one: the tick says what
+            // there is to say.
+            plain: true,
+          });
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
