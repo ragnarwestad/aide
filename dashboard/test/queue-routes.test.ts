@@ -2257,12 +2257,19 @@ describe("landing an archived spec (spec 136)", () => {
 
   /** A git that answers per repo. `conflicting` names the roots whose
    *  merge fails both ways; `needsRealMerge` names the ones where the
-   *  base has moved on — ff-only refuses, a real merge commit works. */
-  function gitFor({ conflicting = [] as string[], needsRealMerge = [] as string[] } = {}) {
+   *  base has moved on — ff-only refuses, a real merge commit works;
+   *  `gone` names the ones where origin has no such branch left, which
+   *  `ls-remote --exit-code` reports as code 2 (spec 153). */
+  function gitFor({
+    conflicting = [] as string[],
+    needsRealMerge = [] as string[],
+    gone = [] as string[],
+  } = {}) {
     const calls: { dir: string; args: string[] }[] = [];
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
+      if (a.startsWith("ls-remote") && gone.includes(dir)) return { code: 2, stdout: "" };
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
@@ -2411,6 +2418,68 @@ describe("landing an archived spec (spec 136)", () => {
     expect(done.error).toBeFalsy();
     expect(merges(git.calls)).toEqual([]);
   });
+
+  // --- spec 153: a branch that is already gone is not a failed landing ------
+  //
+  // The archive landing looks back through the whole history of branches
+  // this spec's steps pushed (`branchesFor`), because `implement` never
+  // lands its own and archive is what finally does. Since spec 149 a
+  // `resolve` step lands AND DELETES its own branch, so that history
+  // names a branch that is provably gone by the time archive reaches it.
+  // Job 15932abc (2026-08-21) was the first: `ok: true`, archived, and
+  // an error on the row saying "there is nothing left to merge".
+  test("a code branch already merged and deleted is nothing to land, not a failure", async () => {
+    const CODE_REPO = "/repos/aide";
+    const git = gitFor({ gone: [CODE_REPO] });
+    const { base, results } = serverWithRunner(git, { queueProjectRoot: "/repos" });
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+          { root: CODE_REPO, url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
+
+    expect(landed.error).toBeFalsy();
+    expect(landed.errorReason).toBeFalsy();
+    // The specs repo in the same landing still merges and pushes.
+    expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+    // And nothing was merged in the repo whose branch is gone.
+    expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(false);
+  });
+
+  // The guard against over-fixing: "gone" is excluded from the report,
+  // not every refusal beside it.
+  test("a gone branch beside a genuine conflict still reports the conflict", async () => {
+    const CODE_REPO = "/repos/aide";
+    const git = gitFor({ gone: [CODE_REPO], conflicting: [SPECS_REPO] });
+    const { base, results } = serverWithRunner(git, { queueProjectRoot: "/repos" });
+    const job = await runStep(base, "archive");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...ARCHIVE_RESULT,
+        branchUrls: [
+          { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+          { root: CODE_REPO, url: "https://example.test/aide" },
+        ],
+      }),
+    );
+    const failed = await settle(base, job.id, (j) => !!j.error);
+
+    expect(String(failed.error)).toContain(SPECS_REPO);
+    expect(String(failed.error)).toContain("conflict");
+    // The gone repo contributes nothing to the sentence a person reads.
+    expect(String(failed.error)).not.toContain("nothing left to merge");
+    expect(failed.errorReason).toBe("conflict");
+    // Two repos, each running the landing's three tries with a pause
+    // between them, so this one is genuinely slower than the default.
+  }, 20000);
 
   // Criterion 6. Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same

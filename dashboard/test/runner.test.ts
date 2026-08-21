@@ -261,6 +261,39 @@ describe("steps and cost", () => {
     expect(store.get(job.id)?.state).toBe("failed");
     expect(store.get(job.id)?.error).toContain("dirty");
   });
+
+  // Spec 153. A step refused at START for a conflict — the runner
+  // cannot bring the spec's branch up to date with the base — is the
+  // one failure a `resolve` step could finish. The row offers Resolve
+  // off `job.errorReason` alone (spec 149), so the reason has to
+  // survive the trip from the result file to the stored job; without
+  // it the row read "press Run to try again", which fails identically.
+  test("a refusal that names a conflict stores the reason on the job", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(0),
+        ok: false,
+        terminalReason: "refused",
+        error: "cannot bring aide/153-x up to date with origin/main in /repos/aide (conflict — merge it by hand)",
+        errorReason: "conflict",
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.state).toBe("failed");
+    expect(store.get(job.id)?.errorReason).toBe("conflict");
+  });
+
+  test("a refusal with no reason leaves the field unset", () => {
+    const job = enqueue();
+    const runner = makeRunner({
+      readResult: () => ({ ...okResult(0), ok: false, terminalReason: "refused", error: "missing --spec" }),
+    });
+    runner.tick();
+    runner.poll();
+    expect(store.get(job.id)?.errorReason).toBeUndefined();
+  });
 });
 
 // The result file is written by another process and read back as

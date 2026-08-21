@@ -16,6 +16,12 @@
 # appeared under the specs root — absent means the run would have had to
 # guess which, and it did not.
 #
+# A refusal adds `errorReason` when the reason is one a machine acts on
+# (spec 153): `"conflict"` says a `resolve` step is the way out, and the
+# dashboard row draws its Resolve button off that field alone. Same rule
+# as `specFolder` — the key is ABSENT, never null or empty, for every
+# refusal with nothing to say.
+#
 # A measured run adds `tokens` (spec 118): {input, output, cacheRead,
 # cacheCreation, total}, read off claude's own usage block. Same rule as
 # `specFolder` — absent, never zeroed, when there was nothing to
@@ -160,10 +166,11 @@ done
 # One place, one shape: a refusal is still a JSON line, so a caller never
 # has to parse two formats.
 refuse() {
-  local msg="$1"
+  local msg="$1" reason="${2:-}"
   local line
-  line="$(jq -cn --arg e "$msg" \
-    '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}')"
+  line="$(jq -cn --arg e "$msg" --arg r "$reason" \
+    '{ok:false, exitCode:2, terminalReason:"refused", costUsd:0, costMeasured:false, error:$e}
+     + (if $r == "" then {} else {errorReason:$r} end)')"
   printf '%s\n' "$line"
   [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
   exit 2
@@ -765,6 +772,44 @@ base_ref_for() {   # sets $base_ref
 # `resolve` and nothing else, never a denylist: a step this got backwards
 # would carry conflict markers into a commit, which is worse than the
 # refusal it replaced.
+# The branch is a shared thing, and this checkout holds one copy of it.
+# A resolve done anywhere else — another machine, or by hand and pushed
+# — leaves this ref at the old tip, and the reuse above then runs the
+# step against the code the conflict was already resolved away from.
+# Measured on spec 150 (2026-08-21): two Runs refused for a conflict
+# that had been fixed and pushed an hour earlier, because the serving
+# host's own ref had never moved. The refusal even recommended the thing
+# that produces this ("merge it by hand").
+#
+# Fast-forward only, and by name when it cannot: a local ref carrying
+# commits origin has not got is work this machine has not pushed, and
+# overwriting it would throw that away. A repo with no origin, or an
+# origin that cannot be reached, changes nothing — the local ref is then
+# the only copy there is.
+#
+# Safe to move the ref here because sweep_worktree has already removed
+# any worktree holding the branch, and the main checkout is on its
+# default branch by this point.
+sync_branch_with_origin() {
+  local root="$1" br="$2" tip="" here=""
+  git -C "$root" remote get-url origin >/dev/null 2>&1 || return 0
+  git -C "$root" fetch -q --force origin "refs/heads/$br:refs/aide-branch/tip" >/dev/null 2>&1 || return 0
+  tip="$(git -C "$root" rev-parse --verify -q refs/aide-branch/tip 2>/dev/null || true)"
+  here="$(git -C "$root" rev-parse --verify -q "refs/heads/$br" 2>/dev/null || true)"
+  git -C "$root" update-ref -d refs/aide-branch/tip >/dev/null 2>&1 || true
+  { [ -n "$tip" ] && [ -n "$here" ]; } || return 0
+  [ "$tip" = "$here" ] && return 0
+  # Origin is behind: this machine has commits it has not pushed yet,
+  # which the push step at the end of the run is what deals with.
+  git -C "$root" merge-base --is-ancestor "$tip" "$here" >/dev/null 2>&1 && return 0
+  if git -C "$root" merge-base --is-ancestor "$here" "$tip" >/dev/null 2>&1; then
+    git -C "$root" branch -f "$br" "$tip" >/dev/null 2>&1 \
+      || refuse "cannot fast-forward $br to origin's copy in $root"
+    return 0
+  fi
+  refuse "$br has diverged from origin's copy in $root (each has commits the other has not — reconcile them by hand)"
+}
+
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3"
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
@@ -773,7 +818,7 @@ update_branch_to_base() {
       return 0
     fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
-    refuse "cannot bring $branch up to date with $ref in $root (conflict — merge it by hand)"
+    refuse "cannot bring $branch up to date with $ref in $root (conflict — merge it by hand)" "conflict"
   fi
   return 0
 }
@@ -798,6 +843,7 @@ for root in "${roots[@]}"; do
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+    sync_branch_with_origin "$root" "$branch"
     git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
       || refuse "cannot check out $branch in a worktree of $root"
     created_wt+=("$wt"); created_wt_root+=("$root")

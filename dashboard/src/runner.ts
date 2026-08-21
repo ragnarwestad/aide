@@ -85,6 +85,14 @@ export interface StepOutcome {
    *  is for cost, so absent is the only other answer. */
   tokens?: TokenUsage;
   error?: string;
+  /** WHY it was refused, when the answer is one the page acts on (spec
+   *  153). `"conflict"` — the runner could not bring the spec's branch
+   *  up to date with the base before the step started — is the only one
+   *  today, and it is what makes the row offer Resolve. Same field, same
+   *  value, same button as a LANDING's conflict (`Job["errorReason"]`);
+   *  the two discovery points differ in nothing else. Absent for every
+   *  other refusal: there is no step to send at those. */
+  errorReason?: "conflict";
 }
 
 export interface RunnerOptions {
@@ -483,6 +491,13 @@ export class Runner {
         state: "failed",
         finishedAt: this.o.now(),
         error: outcome.error ?? outcome.terminalReason,
+        // The row draws Resolve off this and nothing else (spec 149), so
+        // a conflict found HERE — at step start, by the runner — has to
+        // reach the job the same way a landing's conflict does. Without
+        // it the row read "press Run to try again", which fails
+        // identically. Undefined for every other refusal, which is what
+        // clears a reason left by an earlier attempt.
+        errorReason: outcome.errorReason,
       });
       this.announce(failed ?? job, "failed", step, outcome.error ?? outcome.terminalReason);
       return;

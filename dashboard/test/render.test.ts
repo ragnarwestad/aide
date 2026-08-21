@@ -4461,6 +4461,28 @@ describe("spec 124: one phase list, and the actions in a stack of their own", ()
     expect(actionCell(group(rows(clean, [target("124-stack")]), "124-stack"))).not.toContain(">Resolve</button>");
   });
 
+  // Spec 153. The other place a conflict is found: not a landing, but
+  // the runner refusing a step at start because the spec's branch will
+  // not merge with the base. That job is `failed`, not `done`, and
+  // until 153 it carried no reason at all — the row read "press Run to
+  // try archive again", which would fail the same way. Nothing in the
+  // rendering changed for this; the field simply reaches the job now.
+  test("a step refused for a conflict offers Resolve too (spec 153)", () => {
+    const refused = [
+      row({
+        id: "j1",
+        specFolder: "124-stack",
+        state: "failed",
+        branchUrls: branch,
+        error: "cannot bring aide/124-stack up to date with origin/main in /repos/aide (conflict — merge it by hand)",
+        errorReason: "conflict",
+      }),
+    ];
+    const cell = actionCell(group(rows(refused, [target("124-stack")]), "124-stack"));
+    expect(cell).toContain(">Resolve</button>");
+    expect(cell).toContain('value="resolve"');
+  });
+
   test("the rarely-set fields end the stack, on no line of their own (criterion 11)", () => {
     const html = rows([], [target("124-stack")], { projects: ["aide", "paceup"] });
     const cell = actionCell(group(html, "124-stack"));

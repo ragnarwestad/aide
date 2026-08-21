@@ -1179,12 +1179,21 @@ export function createServer(opts: ServerOptions) {
           if (result.branchDeleteError) {
             console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.branchDeleteError}`);
           }
+        } else if (result.reason === "gone") {
+          // Nothing to land in this repo, and not a failure of this
+          // landing (spec 153). An archive looks back through every
+          // branch the spec's steps pushed, and since spec 149 a
+          // `resolve` lands AND DELETES its own — so by the time archive
+          // gets here, that branch is provably gone. Job 15932abc
+          // (2026-08-21) was the first: archived, `ok: true`, and an
+          // error on the row saying there was nothing left to merge.
+          //
+          // The refusal also disproves the cached answer from the other
+          // side: the branch is not on origin at all.
+          branchStatus.invalidate(repo.root, branch);
         } else {
           failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
           if (result.reason === "conflict") reason = "conflict";
-          // A "gone" refusal disproves the cached answer from the other
-          // side: the branch is not on origin at all.
-          if (result.reason === "gone") branchStatus.invalidate(repo.root, branch);
         }
       }
       if (failures.length > 0) {
