@@ -333,6 +333,7 @@ describe("the edit page", () => {
     specFolder: "150-one-page-shows-the-whole-spec",
     file: "1-description.md",
     text: "## Description\n\nThe dashboard never shows a spec.\n",
+    dependsOn: "",
     baseSha: "a3f9c21deadbeef",
     saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
     ...extra,

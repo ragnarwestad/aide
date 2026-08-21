@@ -379,3 +379,168 @@ describe("POST the Save action against an archived spec", () => {
     expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
   });
 });
+
+// --- spec 166: the dependency is a field on this page, not markdown ---------
+//
+// The `Depends on:` line was writable only at creation. It IS a line in
+// this very file, so the field belongs to the writer this file already
+// has — and it is the SOLE writer: the GET strips the raw line out of
+// the textarea, the POST always rebuilds it from the field. Two
+// controls for one fact can disagree; one cannot.
+
+describe("the Depends on field", () => {
+  const OTHER = "99-a-second-spec";
+  // Its own fixture: the suite's plain DESCRIPTION has no Tracking
+  // info, and `- **Created:**` is what the line is placed after.
+  const TRACKED = (line = "") =>
+    "# Queue and runner - Description\n\n## Tracking info\n\n" +
+    `- **Task:** \`${SPEC}/\`\n- **Created:** \`2026-08-21\`\n` +
+    (line ? `${line}\n` : "") +
+    "\n---\n\n## Description\n\nAs it was.\n";
+  const DEPENDS = (id: string) => `- **Depends on:** \`${id}\``;
+
+  /** The same savable checkout, plus a sibling spec to depend on and an
+   *  archived one — resolving both is the point of half these tests. */
+  const startTracked = (gitRun: GitRunner, description = TRACKED()) =>
+    harness.start({
+      description,
+      alsoSpecs: [OTHER],
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT } },
+      extra: { queueToken: TOKEN, gitRun },
+    });
+
+  /** `savable`, wrapped to count what it was asked to commit: "one
+   *  commit, the one saveSpecFile already makes" is the criterion, and
+   *  a second write would show up here and nowhere else. */
+  const counting = (commits: string[]): GitRunner => {
+    const inner = savable("/host");
+    return async (dir, args) => {
+      if (args[0] === "commit") commits.push(args.join(" "));
+      return inner(dir, args);
+    };
+  };
+
+  // --- criteria 1, 2: what the page opens with ------------------------------
+
+  test("a spec that depends on nothing opens with the field empty", async () => {
+    const { base } = startTracked(savable("/host"));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).toContain('name="dependsOn"');
+    expect(html).toContain('name="dependsOn" value=""');
+    expect(html).not.toContain("Depends on:**");
+  });
+
+  test("an existing line pre-fills the field and leaves the textarea", async () => {
+    const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).toContain(`name="dependsOn" value="${OTHER}"`);
+    // The raw markdown is gone from the box: one control for one fact.
+    expect(html).not.toContain("Depends on:**");
+    expect(html).toContain("As it was.");
+  });
+
+  // --- criterion 8: when the change takes effect ----------------------------
+
+  test("the page says the change applies from the next gated step", async () => {
+    const { base } = startTracked(savable("/host"));
+    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    expect(html).toContain("next gated step");
+    expect(html).toContain("already running");
+  });
+
+  // --- criteria 3, 4, 7: what a save writes ---------------------------------
+
+  test("a spec in the project is written into Tracking info, in one commit", async () => {
+    const commits: string[] = [];
+    const { base, dir } = startTracked(counting(commits));
+    const res = await post(base, { text: TRACKED(), dependsOn: OTHER, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+    expect(commits).toHaveLength(1);
+  });
+
+  // `blockedDependencies` says so itself: archiving only happens to
+  // finished work, so an archived dependency is a satisfied one.
+  test("an archived spec is a legitimate dependency, not an unknown one", async () => {
+    const { base, dir } = startTracked(savable("/host"));
+    const res = await post(base, { text: TRACKED(), dependsOn: ARCHIVED, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(ARCHIVED)));
+  });
+
+  // The bare number is what a person types, and it is what the runtime
+  // gate resolves — save-time validation has to accept the same shapes.
+  test("a bare number resolves the same way the gate resolves it", async () => {
+    const { base, dir } = startTracked(savable("/host"));
+    const res = await post(base, { text: TRACKED(), dependsOn: "99", baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS("99")));
+  });
+
+  test("emptying the field removes the line", async () => {
+    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const res = await post(base, { text: TRACKED(), dependsOn: "", baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+  });
+
+  // --- criteria 5, 6: what a save refuses -----------------------------------
+
+  test("a spec nobody has is refused by name, and nothing is written", async () => {
+    const { base, dir } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
+    const res = await post(base, { text: TRACKED(), dependsOn: "77-no-such-spec", baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location).toContain("77-no-such-spec");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+  });
+
+  test("a spec cannot depend on itself, by folder or by number", async () => {
+    for (const id of [SPEC, "81"]) {
+      const { base, dir } = startTracked(savable("/host"));
+      const res = await post(base, { text: TRACKED(), dependsOn: id, baseSha: FILE_SHA });
+      expect(res.status).toBe(303);
+      const location = decodeURIComponent(res.headers.get("location")!);
+      expect(location.startsWith(EDIT)).toBe(true);
+      expect(location).toContain("itself");
+      expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+    }
+  });
+
+  // One bad entry refuses the lot rather than being filtered out — the
+  // same discipline every other list-shaped field here keeps.
+  test("one unknown entry in a list refuses the whole save", async () => {
+    const { base, dir } = startTracked(savable("/host"));
+    const res = await post(base, { text: TRACKED(), dependsOn: `${OTHER}, 77-no-such`, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain("77-no-such");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
+  });
+
+  // Every template writes `Created:`; a description hand-edited past it
+  // has nowhere for the line to go, and a guess would be worse.
+  test("no Created line to place it after is refused, not guessed at", async () => {
+    const { base, dir } = startTracked(savable("/host"), DESCRIPTION);
+    const res = await post(base, { text: DESCRIPTION, dependsOn: OTHER, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    const location = decodeURIComponent(res.headers.get("location")!);
+    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location).toContain("Created");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+  });
+
+  // The field wins over whatever the textarea says about that one line,
+  // which is what "one writer" means when both arrive in one POST.
+  test("a line typed into the textarea does not survive the field", async () => {
+    const { base, dir } = startTracked(savable("/host"));
+    const res = await post(base, { text: TRACKED(DEPENDS("77-no-such")), dependsOn: OTHER, baseSha: FILE_SHA });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
+  });
+});

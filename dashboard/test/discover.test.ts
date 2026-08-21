@@ -9,7 +9,7 @@ import { join } from "node:path";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
   gitignoreCandidates, markdownSection, specDependsOn, specDescription, specFileText,
-  specArchivedDate, specPhaseFile,
+  specArchivedDate, specPhaseFile, stripDependsOnLine, withDependsOnLine,
 } from "../src/discover.ts";
 
 let root: string;
@@ -232,6 +232,68 @@ describe("specDependsOn", () => {
   test("discoverProjects carries it alongside the title and the description", () => {
     const a = discoverProjects(root).find((p) => p.name === "proj-a")!;
     expect(a.specs.find((s) => s.folder === "01-first-thing")!.dependsOn).toEqual([]);
+  });
+
+  // Spec 166: the same line gets a WRITER, so a dependency can be named
+  // after the spec exists. Pure string surgery, in the module that
+  // already owns the line's shape — the Edit page's Save is what calls
+  // it, and the runtime gate reads the result unchanged.
+  //
+  // Its own fixture rather than `TRACKING`: that one leaves a blank
+  // line where the dependency line would be, which is fine for a reader
+  // asserting a parsed list but would make every exact-text assertion
+  // here about the blank line instead of the write.
+  const DESC = (line = "") =>
+    `# X - Description\n\n## Tracking info\n\n- **Task:** \`09-x/\`\n- **Created:** \`2026-08-19\`\n` +
+    (line ? `${line}\n` : "") +
+    `\n---\n\n## Description\n\nprose\n`;
+
+  describe("stripDependsOnLine", () => {
+    test("takes the line out and leaves everything else where it was", () => {
+      expect(stripDependsOnLine(DESC("- **Depends on:** `105`"))).toBe(DESC());
+    });
+
+    test("a text with no line at all comes back as it went in", () => {
+      expect(stripDependsOnLine(DESC())).toBe(DESC());
+    });
+
+    // A textarea posts CRLF whatever the file had, and `asFileText`
+    // normalises the same way — the two passes have to agree, or a
+    // strip that missed the line would leave the write keeping it.
+    test("CRLF is normalised to LF, and the line goes either way", () => {
+      expect(stripDependsOnLine(DESC("- **Depends on:** `105`").replace(/\n/g, "\r\n"))).toBe(DESC());
+    });
+  });
+
+  describe("withDependsOnLine", () => {
+    test("inserts right after Created when there is no existing line", () => {
+      expect(withDependsOnLine(DESC(), ["164"])).toBe(DESC("- **Depends on:** `164`"));
+    });
+
+    test("replaces an existing line rather than writing a second one", () => {
+      const out = withDependsOnLine(DESC("- **Depends on:** `105`"), ["164", "92-a-spec"]);
+      expect(out).toBe(DESC("- **Depends on:** `164`, `92-a-spec`"));
+      expect(out!.match(/Depends on/g)).toHaveLength(1);
+    });
+
+    test("an empty list removes the line", () => {
+      expect(withDependsOnLine(DESC("- **Depends on:** `105`"), [])).toBe(DESC());
+    });
+
+    // Nowhere to put it is a refusal for the caller to make, not a
+    // guess about where Tracking info would have been.
+    test("no Created line to anchor on is a null, not a guess", () => {
+      expect(withDependsOnLine("# X\n\nprose\n", ["164"])).toBeNull();
+    });
+
+    test("but removing needs no anchor — an empty list is never a null", () => {
+      expect(withDependsOnLine("# X\n\nprose\n", [])).toBe("# X\n\nprose\n");
+    });
+
+    test("what it writes is what specDependsOn reads back", () => {
+      const d = spec("05-roundtrip", withDependsOnLine(DESC(), ["164", "165"])!);
+      expect(specDependsOn(d)).toEqual(["164", "165"]);
+    });
   });
 });
 

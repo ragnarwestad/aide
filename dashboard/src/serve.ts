@@ -23,8 +23,8 @@ import { pullFastForward, saveSpecFile } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, specArchivedDate, specFileText, specPhaseFile, type DiscoveredProject,
-  type SpecRef,
+  gitignoreCandidates, specArchivedDate, specDependsOn, specFileText, specPhaseFile,
+  stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
@@ -2191,7 +2191,11 @@ export function createServer(opts: ServerOptions) {
         project: project!,
         specFolder: specFolder!,
         file: EDITABLE_SPEC_FILE,
-        text: specFileText(dir, EDITABLE_SPEC_FILE) ?? "",
+        // Spec 166: the dependency line is lifted OUT of the box and
+        // into a field of its own. Left in both, a save could not tell
+        // which of the two the person meant.
+        text: stripDependsOnLine(specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
+        dependsOn: specDependsOn(dir).join(", "),
         baseSha: commit?.sha,
         saveAction: `/api/queue${specPagePath(project!, specFolder!)}/save`,
         token: queueToken,
@@ -2232,11 +2236,53 @@ export function createServer(opts: ServerOptions) {
       if (typeof body.text !== "string") {
         return specsRedirect({}, { error: "no text was submitted — nothing was saved" }, back);
       }
+      // Spec 166: the "Depends on" field, resolved the way the runtime
+      // gate will later resolve it (`resolveDependencyFolder`, which
+      // takes a bare number or a full folder and sees archived specs
+      // too) — so a dependency the page accepts is one the gate can
+      // read. Refused entry by entry, never filtered: a typo left to
+      // drop out silently is a dead gate nobody is told about.
+      //
+      // `bodyToObject` wraps a lone `dependsOn` value in an array for
+      // the New-spec form's chip set, so this field's one comma-
+      // separated string arrives as `["164, 165"]`. Both shapes are
+      // taken apart the same way rather than un-wrapping one of them.
+      const ids = (Array.isArray(body.dependsOn) ? body.dependsOn : [body.dependsOn])
+        .filter((v): v is string => typeof v === "string")
+        .flatMap((v) => v.split(","))
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (ids.length > 0) {
+        // `specDir` above already 404s a project that does not resolve,
+        // so this cannot actually be undefined — defence in depth, not
+        // a path a request can reach.
+        const discovered = opts.projectRoot
+          ? discoverProjects(opts.projectRoot).find((p) => p.name === project)
+          : undefined;
+        if (!discovered) return specsRedirect({}, { error: "unknown project — nothing was saved" }, back);
+        for (const id of ids) {
+          const dep = resolveDependencyFolder(discovered, id);
+          if (!dep) {
+            return specsRedirect({}, { error: `no such spec in this project: ${id} — nothing was saved` }, back);
+          }
+          if (dep.folder === specFolder) {
+            return specsRedirect({}, { error: `a spec cannot depend on itself: ${id} — nothing was saved` }, back);
+          }
+        }
+      }
+      const merged = withDependsOnLine(body.text, ids);
+      if (merged === null) {
+        return specsRedirect(
+          {},
+          { error: `nowhere to put "Depends on" — Tracking info has no Created line — nothing was saved` },
+          back,
+        );
+      }
       const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
       const result = await mergeLock.run(await specsRoot(dir), () =>
         saveSpecFile(gitRun, dir, (root) => branchStatus.defaultBranch(root), {
           file: EDITABLE_SPEC_FILE,
-          text: body.text as string,
+          text: merged,
           baseSha,
           specLabel: specFolder!,
         }),

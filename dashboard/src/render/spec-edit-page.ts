@@ -33,6 +33,11 @@ export interface SpecEditPageView {
   /** The file as it is on disk right now. Empty for a file that is not
    *  there yet — the editor is then how it gets written. */
   text: string;
+  /** What the spec depends on right now, comma-separated (spec 166).
+   *  Empty for a spec that depends on nothing. The line itself is never
+   *  in `text` — this field is its only writer, so the two cannot say
+   *  different things about it. */
+  dependsOn: string;
   /** The commit that text was read at, carried through the form so a
    *  save whose file has moved since can be refused. Absent for a file
    *  git has never committed, which is not a mismatch. */
@@ -67,6 +72,19 @@ export function renderSpecEditPage(
     // an absent field and an empty one say the same thing to the route,
     // and one of them is a field that cannot be there.
     `<input type="hidden" name="baseSha" value="${esc(view.baseSha ?? "")}">` +
+    // Spec 166: above the file, because a dependency is about the spec
+    // rather than about the prose — and because the line it writes is
+    // the one line the textarea below no longer shows.
+    `<span class="frow">` +
+    field(
+      "Depends on",
+      `<input type="text" name="dependsOn" value="${esc(view.dependsOn)}" ` +
+        `placeholder="another spec in this project, e.g. 164 — comma-separated for more">`,
+      { wide: true },
+    ) +
+    `</span>` +
+    `<p class="muted">A dependency applies from this spec's next gated step ` +
+    `(implement, resolve, archive) — never to a step already running.</p>` +
     `<span class="frow">` +
     field(
       view.file,
