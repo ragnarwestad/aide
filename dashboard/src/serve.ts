@@ -115,10 +115,10 @@ const QUEUE_DEFAULTS: QueueDefaults = {
   // on the serving host and should be revisited once more have run.
   timeoutSec: { default: 1200, implement: 5400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
-  // `resolve` would fall to `default` anyway; it is named because a
-  // merge is not an implement and that is a decision, not an accident
-  // of which key happens to be missing (spec 106).
-  model: { implement: "opus", resolve: "sonnet", default: "sonnet" },
+  // `archive` falls to `default`, and that is a decision rather than an
+  // accident of which key happens to be missing: it may now have a merge
+  // conflict to resolve (spec 171), and a merge is not an implement.
+  model: { implement: "opus", default: "sonnet" },
 };
 
 export interface ServerOptions {
@@ -576,7 +576,7 @@ export function parseQueueConcurrency(raw: unknown): number {
  *  shared source and no compiler between the two, and
  *  `test_the_two_copies_of_the_dependency_gate_agree` is what notices
  *  the drift — exactly as `WORKFLOW_STEPS` already does. */
-export const DEPENDENCY_GATED_STEPS = ["implement", "resolve", "archive"] as const;
+export const DEPENDENCY_GATED_STEPS = ["implement", "archive"] as const;
 
 const GATED = new Set<string>(DEPENDENCY_GATED_STEPS);
 
@@ -871,7 +871,7 @@ export function createServer(opts: ServerOptions) {
         onStepDone: (job, step, outcome) => {
           if (!outcome.ok) return undefined;
           if (step === "create") return landNewSpec(job, outcome);
-          if (step === "analyze" || step === "review-plan" || step === "resolve") {
+          if (step === "analyze" || step === "review-plan") {
             return landStepBranch(job, step, outcome);
           }
           if (step === "archive") return landArchivedSpec(job, outcome);
@@ -1403,22 +1403,19 @@ export function createServer(opts: ServerOptions) {
    *  and the row piled up a "ready to merge" button per step for work
    *  nobody had a reason to weigh.
    *
-   *  `resolve` lands what its OWN run reports and nothing else. A real
-   *  conflict forces a commit, so every root it genuinely fixed has
-   *  moved its HEAD and is in that outcome. Reading `branchesFor`
-   *  history instead would let a resolve of the specs repo drag an
+   *  Either one lands what its OWN run reports and nothing else — the
+   *  outcome's roots, never `branchesFor` history. Reading the history
+   *  instead would let a step that touched only the specs repo drag an
    *  unarchived `implement`'s code onto the default branch as a side
-   *  effect — which is exactly what "archive is the one step that sends
+   *  effect, which is exactly what "archive is the one step that sends
    *  code to the default branch" rules out. The residual gap is that a
-   *  resolve run whose own catch-up merge happens to move the project's
-   *  HEAD lands that code early; it is accepted and written down in
-   *  `.claude/rules/development.md`.
+   *  run whose own catch-up merge happens to move the project's HEAD
+   *  lands that code early; it is accepted, and it belonged to `resolve`
+   *  until spec 171 retired that step.
    *
    *  The install is neither asked for nor refused here: `landBranch`
    *  runs it for any CODE root that lands, whichever step landed it.
-   *  `analyze` and `review-plan` never have one; a `resolve` that fixed
-   *  the project's own checkout does, and merged is not deployed there
-   *  any more than it is after an archive (spec 92). */
+   *  `analyze` and `review-plan` never have one. */
   async function landStepBranch(
     job: Job,
     step: WorkflowStep,

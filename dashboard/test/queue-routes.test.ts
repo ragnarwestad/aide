@@ -396,20 +396,18 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
       body: new URLSearchParams(fields).toString(),
     });
 
-  // Spec 106: exactly what the Resolve form sends — a
-  // fixed `steps=resolve` and nothing to pick. The gate boxes and the
-  // model dropdown are not on that form, so this is the whole body.
-  test("the resolve form's own body queues a resolve job (spec 106)", async () => {
+  // Spec 171: there was a Resolve form here that posted a fixed
+  // `steps=resolve`. The step is retired, and the route is where that
+  // is enforced for anything still holding the old body — a bookmark,
+  // a script, a stale page left open in a tab.
+  test("a body still naming the retired resolve step is refused (spec 171)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
       steps: "resolve",
     });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { steps: string[]; model: Record<string, string> } };
-    expect(body.job.steps).toEqual(["resolve"]);
-    expect(body.job.model).toEqual({ resolve: "sonnet" });
+    expect(res.status).toBe(400);
   });
 
   test("the row's fields queue the step it ticked, on the model it picked (criteria 1-3)", async () => {
@@ -2978,20 +2976,21 @@ describe("every step lands its own work (spec 149)", () => {
     expect(specHead(html, SPEC)).not.toBe("");
   }, 20000);
 
-  // Criterion 6. `resolve` lands what its OWN run reports and nothing
-  // else. A real conflict forces a commit, so every root it genuinely
-  // fixed has moved its HEAD and is in that outcome; reading
-  // `branchesFor` history instead would let a resolve of the specs repo
-  // drag an unarchived implement's code onto the default branch as a
-  // side effect.
-  test("resolve lands the repos its own run reports, and installs a code root among them", async () => {
-    const dir = own("aide-149-resolve-");
+  // Criterion 6. A middle-of-the-workflow step lands what its OWN run
+  // reports and nothing else; reading `branchesFor` history instead
+  // would let a step that touched only the specs repo drag an
+  // unarchived implement's code onto the default branch as a side
+  // effect. (`resolve` was the step this was written for, until spec
+  // 171 retired it; the rule it proves belongs to `landStepBranch`,
+  // which still lands `analyze` and `review-plan`.)
+  test("review-plan lands the repos its own run reports, and installs a code root among them", async () => {
+    const dir = own("aide-149-reviewplan-");
     const paths = repos(dir);
     const git = gitFor();
     const { base } = serverWith(dir, paths, git);
     const marker = installs(paths.project);
 
-    const landed = await stepWithResult(base, dir, "resolve", {
+    const landed = await stepWithResult(base, dir, "review-plan", {
       branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
     });
 
@@ -3003,11 +3002,11 @@ describe("every step lands its own work (spec 149)", () => {
   });
 
   // The other half of criterion 6, and the whole of the risk this spec
-  // accepted knowingly: a resolve run that touched only the specs repo
-  // must not reach back into the queue's history and land the code an
+  // accepted knowingly: a step that touched only the specs repo must
+  // not reach back into the queue's history and land the code an
   // earlier implement left open.
-  test("resolve does not land an unarchived implement's code branch", async () => {
-    const dir = own("aide-149-resolve-scope-");
+  test("review-plan does not land an unarchived implement's code branch", async () => {
+    const dir = own("aide-149-reviewplan-scope-");
     const paths = repos(dir);
     const git = gitFor();
     const { base } = serverWith(dir, paths, git);
@@ -3019,7 +3018,7 @@ describe("every step lands its own work (spec 149)", () => {
       { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
-    await stepWithResult(base, dir, "resolve", {
+    await stepWithResult(base, dir, "review-plan", {
       branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
@@ -3027,12 +3026,13 @@ describe("every step lands its own work (spec 149)", () => {
     expect(merges(git.calls, paths.project)).toEqual([]);
   });
 
-  // Criterion 7. The Resolve control used to be drawn from a query
-  // string the Merge button's own 303 wrote — one page load, one
-  // browser. An automatic landing has neither, so the reason is stored
-  // on the job and the row reads it from there on any later request.
-  test("a stored conflict still offers Resolve on a fresh request with no query string", async () => {
-    const dir = own("aide-149-resolve-offer-");
+  // Criterion 7, as spec 171 leaves it. The reason is still stored on
+  // the job and still read from there on any later request — a landing
+  // has no browser to redirect a query string to. What is gone is the
+  // control it used to draw: `archive` resolves a conflict itself now,
+  // so a conflict that reaches the page is one no press would settle.
+  test("a stored conflict draws no control on a fresh request (spec 171)", async () => {
+    const dir = own("aide-171-conflict-offer-");
     const paths = repos(dir);
     const git = gitFor({ conflicting: [paths.specs] });
     const { base } = serverWith(dir, paths, git);
@@ -3047,8 +3047,11 @@ describe("every step lands its own work (spec 149)", () => {
 
     const url = `${base}/?${OPEN_81}`;
     const html = await (await fetch(url, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain("resolveform");
-    expect(specControls(html, SPEC)).toContain('value="resolve"');
+    expect(html).not.toContain("resolveform");
+    expect(specControls(html, SPEC)).not.toContain('value="resolve"');
+    // The failure itself is still on the row, and still names the repo
+    // the reader has to go and look at.
+    expect(specControls(html, SPEC)).not.toBe("");
   });
 
   // Criterion 8. Both routes are gone, not merely unreachable from the
@@ -3119,10 +3122,10 @@ describe("every step lands its own work (spec 149)", () => {
   });
 
   // Criteria 2, 5 and 7 at once. The step name is threaded through from
-  // the call site rather than stubbed — `resolve` says "resolve" — and
+  // the call site rather than stubbed — `archive` says "archive" — and
   // the specs repo is not a code root, so an event for it proves the
   // report is not gated the way the install is.
-  test.each(["analyze", "review-plan", "resolve", "archive"])(
+  test.each(["analyze", "review-plan", "archive"])(
     "a landed %s step reports the merge of a specs-only repo",
     async (step) => {
       const dir = own(`aide-158-${step}-`);
@@ -3164,7 +3167,7 @@ describe("every step lands its own work (spec 149)", () => {
     const sink = mergeEventSink();
     const { base } = serverWith(dir, paths, git, sink);
 
-    const landed = await stepWithResult(base, dir, "resolve", {
+    const landed = await stepWithResult(base, dir, "archive", {
       branchUrls: [
         { root: paths.project, url: "https://example.test/aide" },
         { root: paths.specs, url: "https://example.test/aide-specs" },
@@ -3173,7 +3176,7 @@ describe("every step lands its own work (spec 149)", () => {
 
     expect(landed.error).toBeFalsy();
     expect(sink.posted.map((e) => e.repoRoot).sort()).toEqual([paths.project, paths.specs].sort());
-    expect(sink.posted.every((e) => e.step === "resolve" && e.branch === BRANCH)).toBe(true);
+    expect(sink.posted.every((e) => e.step === "archive" && e.branch === BRANCH)).toBe(true);
   });
 
   // Criterion 3. The same rule `installAfterMerge` already keeps: the
@@ -3738,7 +3741,7 @@ describe("a refusal names its spec and reaches the log (criteria 8, 9, 11)", () 
   }
 
   // Spec 106's own chain — git says "conflict", and the row ends up
-  // offering a Resolve — used to run through this redirect, and was
+  // showing it — used to run through this redirect, and was
   // tested here. Since spec 149 the reason is stored on the JOB instead,
   // because a landing has no browser to redirect; the chain is covered
   // end to end in "every step lands its own work" above.

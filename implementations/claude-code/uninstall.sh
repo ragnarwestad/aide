@@ -56,7 +56,6 @@ SKILLS=(
   "aide-manifest"
   "aide-implement"
   "aide-create"
-  "aide-resolve"
   "aide-review-plan"
   "aide-to-pdf"
   "task-workflow-assistant"

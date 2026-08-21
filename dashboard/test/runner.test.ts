@@ -263,11 +263,13 @@ describe("steps and cost", () => {
   });
 
   // Spec 153. A step refused at START for a conflict — the runner
-  // cannot bring the spec's branch up to date with the base — is the
-  // one failure a `resolve` step could finish. The row offers Resolve
-  // off `job.errorReason` alone (spec 149), so the reason has to
-  // survive the trip from the result file to the stored job; without
-  // it the row read "press Run to try again", which fails identically.
+  // cannot bring the spec's branch up to date with the base. The row
+  // reads that off `job.errorReason` alone (spec 149), so the reason
+  // has to survive the trip from the result file to the stored job;
+  // without it the row read "press Run to try again", which fails
+  // identically. Since spec 171 the row shows it rather than acting on
+  // it: `archive` is handed the conflict open and resolves it itself,
+  // so one that reaches a reader is one no machine could settle.
   test("a refusal that names a conflict stores the reason on the job", () => {
     const job = enqueue();
     const runner = makeRunner({
@@ -824,46 +826,6 @@ describe("spec 93: the completion hook and the landing window", () => {
     store.update(job.id, { landing: true, state: "done" });
     const reloaded = new QueueStore({ mirrorPath: join(dir, "queue.json"), defaults: DEFAULTS, resolve });
     expect(reloaded.get(job.id)?.landing).toBeUndefined();
-  });
-});
-
-// --- spec 106: a resolve job is a job like any other -------------------------
-//
-// The Resolve control queues an ordinary job, so the two
-// guards that already exist have to hold for it: the scheduler never
-// starts two jobs for one spec, and the store refuses a second
-// unfinished job covering the same step. No third guard was built for
-// this step, so these are the tests that say so.
-
-describe("a resolve job in flight (spec 106)", () => {
-  test("it blocks a same-spec Run exactly like any other in-flight job", () => {
-    const resolving = enqueue({ steps: ["resolve"] });
-    const later = enqueue({ steps: ["implement"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(1);
-    expect(store.get(resolving.id)?.state).toBe("running");
-    expect(store.get(later.id)?.state).toBe("queued");
-  });
-
-  test("a second resolve for the same spec is refused before it is stored", () => {
-    enqueue({ steps: ["resolve"] });
-    const again = store.enqueue({
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: ["resolve"],
-      });
-    expect(again.ok).toBe(false);
-  });
-
-  test("another spec's resolve is not blocked by this one", () => {
-    const mine = enqueue({ steps: ["resolve"] });
-    const theirs = enqueue({ specFolder: "91-parallel-spec-runs", steps: ["resolve"] });
-    const runner = makeRunner({ maxConcurrent: 2 });
-    runner.tick();
-    expect(spawns.length).toBe(2);
-    expect(store.get(mine.id)?.state).toBe("running");
-    expect(store.get(theirs.id)?.state).toBe("running");
   });
 });
 

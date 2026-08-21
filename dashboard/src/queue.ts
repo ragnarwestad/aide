@@ -14,14 +14,15 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
+// `core/scripts/aide-run-spec` keeps the same list in a bash string with
+// no shared source between them; a python test (`test_aide_run_spec.py`)
+// compares the two.
+//
+// `resolve` was here until spec 171 and is deliberately gone: a merge
+// that fails is the merging step's problem, so `archive` resolves the
+// conflict itself rather than a sixth phase standing beside the five.
 export const WORKFLOW_STEPS = [
   "explore", "create", "analyze", "review-plan", "implement", "archive", "manifest",
-  // Spec 106: not part of the workflow's own order — it is the way out
-  // of a merge the Merge button refused, queued from the row that
-  // refused it. `core/scripts/aide-run-spec` keeps the same list in a
-  // bash string with no shared source between them; a python test
-  // (`test_aide_run_spec.py`) compares the two.
-  "resolve",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
@@ -29,8 +30,7 @@ export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
  *  so the steps a running job's tail may be given (spec 160). It is
  *  narrower than `WORKFLOW_STEPS` on purpose: `create` cannot be run
  *  for a spec that exists, `explore` is not a phase of the work, and
- *  `manifest` and `resolve` are not part of the workflow's order at
- *  all (the same reason `resolve`'s own comment above gives).
+ *  `manifest` is not part of the workflow's order at all.
  *
  *  `queue-list.ts` keeps the same list, because the render layer does
  *  not import this module; the two are hand-paired and compared by
@@ -216,13 +216,18 @@ export interface Job {
   branchUrls?: BranchRef[];
   stopReason?: StopReason;
   error?: string;
-  /** The one machine-readable class of refusal the page can act on: a
-   *  landing that failed on a real merge conflict, which a `resolve`
-   *  step could finish. Stored on the job since spec 149, and stored
-   *  rather than passed because a landing happens with nobody's browser
+  /** The one machine-readable class of refusal: a merge that failed on a
+   *  real conflict. Stored on the job since spec 149, and stored rather
+   *  than passed because a landing happens with nobody's browser
    *  attached — the one-shot redirect the Merge button used to carry it
    *  in has no equivalent here. Cleared, like `error`, the moment a
-   *  landing succeeds. */
+   *  landing succeeds.
+   *
+   *  It stopped being a thing the ROW acts on in spec 171. `archive`
+   *  resolves a conflict with the default branch itself, so a conflict
+   *  that survives to a reader is one no machine could settle: the row
+   *  shows it as the failure's own text, beside the ordinary re-run
+   *  control every other failed step already offers. */
   errorReason?: "conflict";
 }
 

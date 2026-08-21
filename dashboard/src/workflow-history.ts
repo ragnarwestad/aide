@@ -27,7 +27,7 @@ const DEFAULT_TTL_MS = 30_000;
 
 /** The five stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
- *  eight the runner will execute: `explore`, `manifest` and `resolve`
+ *  seven the runner will execute: `explore` and `manifest`
  *  are things you can queue, not places a spec gets to. */
 export const HISTORY_STEPS = ["create", "analyze", "review-plan", "implement", "archive"];
 

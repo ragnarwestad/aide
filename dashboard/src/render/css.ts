@@ -539,15 +539,15 @@ table.list tr.subrow .modelcell > .row > :first-child { min-width: 10rem; }
 }
 
 /* --- rows and forms ----------------------------------------------------- */
-/* "rowrun", "actionform", "resolveform", "newspecform", "refused" and
+/* "rowrun", "actionform", "newspecform", "refused" and
    "refusal" are what queue-client.ts selects on. They are
    laid out here and coloured nowhere: a rename breaks the browser code
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
 /* The row's one action keeps its place whatever it currently is. The
-   label changes with the state — Analyze, Implement, Cancel, Resolve —
-   and a box that grew with it moved the columns to its right on every
+   label changes with the state — Analyze, Implement, Cancel — and a
+   box that grew with it moved the columns to its right on every
    press. The width is the widest label ("Implement") plus the button's
    own padding; the slot is drawn empty rather than removed on a row
    with nothing to press, for the same reason. Deliberate movement —
@@ -586,12 +586,12 @@ td form { margin: 0; display: inline-block; }
    That container wraps, which is the whole width rule the pairing
    needs — the badge and the button drop to two lines rather than
    widening a column the whole table is aligned on. */
-/* No margin on the rule below, nor on "extra": the space between two
-   controls is declared once, by the "row" that holds them (spec 120). A
-   margin here would travel into every layout the form is put in next,
-   and a container gap does not absorb it. "actionform" has no rule left
-   at all — "td form" above gives it everything it had. */
-.resolveform { display: inline-block; }
+/* No margin on "extra" below: the space between two controls is
+   declared once, by the "row" that holds them (spec 120). A margin here
+   would travel into every layout the form is put in next, and a
+   container gap does not absorb it. "actionform" has no rule at all —
+   "td form" above gives it everything it had, and the conflict form's
+   rule went with the control it belonged to (spec 171). */
 /* The last thing in the State cell of an open row: "also touches" (the
    model left for the phase lines in spec 123). Small and
    bottom-aligned, so a labelled field and a bare checkbox share one

@@ -97,9 +97,10 @@ describe("readWorkflowSubjects", () => {
     expect(history.done).toEqual(["analyze"]);
   });
 
-  // The five the workflow arc is made of, and nothing else: explore,
-  // manifest and resolve are steps the runner will execute but not
-  // stages a spec passes through (`parse-status.ts`'s own list).
+  // The five the workflow arc is made of, and nothing else: explore and
+  // manifest are steps the runner will execute but not
+  // stages a spec passes through (`parse-status.ts`'s own list), and a
+  // word that was never a step at all is ignored the same way.
   test("a step outside the five tracked ones is ignored, not appended", () => {
     const history = readWorkflowSubjects(
       [subject("explore"), subject("manifest"), subject("resolve")],
