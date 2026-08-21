@@ -89,6 +89,68 @@ const checkboxKey = (el: HTMLInputElement): string =>
  *  only put back if the fresh markup still offers it and the filter has
  *  not hidden it — a value no visible option carries is not a choice
  *  the row can honour. */
+/** The row's button says what a press would run — and a press runs the
+ *  BOXES, so the label has to follow them as they are clicked.
+ *
+ *  The server names the button from `preTicked`, which is its own
+ *  suggestion (`queue-list.ts`). That is right for the row as drawn and
+ *  wrong the instant a reader ticks something else: on 2026-08-21 a spec
+ *  whose analyze was suggested, with only `archive` ticked by hand, went
+ *  on offering "Analyze". The press was correct — an open row posts its
+ *  boxes and no hidden steps — but the row said one thing and did
+ *  another, which is the whole thing naming the button was for.
+ *
+ *  The display name comes off the box's own `aria-label`, which the
+ *  server already sets to the phase's reader-facing name ("review" for
+ *  `review-plan`), so the step-label table is not spelled a second time
+ *  in the browser.
+ *
+ *  Nothing ticked hides the button, as the server's own render does: a
+ *  press that can do nothing must not be offered. Without this file the
+ *  label simply stays as rendered, which is the same honest fallback
+ *  every other thing here degrades to. */
+function relabelRunButton(body: Element, formId: string): void {
+  // Quoted, so only a quote or a backslash could break out — and a form
+  // id is `rowrun-<project>/<folder>`, both of which the route's own
+  // regex limits to letters, digits, dot, dash and underscore. Escaped
+  // anyway, and by hand: `CSS.escape` is a browser API the test harness
+  // does not have (`ReferenceError: CSS is not defined`), and this file
+  // is transpiled and run there.
+  const selector = `[form="${formId.replace(/["\\]/g, "\\$&")}"]`;
+  // `querySelectorAll`, not `querySelector`: the harness's `#jobrows`
+  // stub offers the plural and not the singular, and the two answer the
+  // same question here — a form id names one button.
+  const button = body.querySelectorAll(`button${selector}`)[0] as HTMLButtonElement | undefined;
+  if (!button) return;
+  // The BOXES and the BUTTON are tied by the form they name, not by the
+  // row they sit in: a phase box is on a sub-row of its own and the
+  // button is up in the head row's State cell, so no walk from one to
+  // the other is as reliable as the id both already carry.
+  const boxes = Array.from(body.querySelectorAll(`input[name="steps"]${selector}`)) as HTMLInputElement[];
+  const first = boxes.find((b) => b.checked);
+  if (!first) {
+    button.hidden = true;
+    return;
+  }
+  button.hidden = false;
+  const name = first.getAttribute("aria-label") ?? first.value;
+  button.textContent = `${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+}
+
+/** Every open row's button, after a redraw put the server's own label
+ *  back over a reader's ticks. A row with no phase boxes on the page —
+ *  every shut one — is left alone: its label is the server's and there
+ *  is nothing on screen to disagree with it. */
+function relabelAll(body: Element): void {
+  const seen = new Set<string>();
+  for (const el of body.querySelectorAll('input[name="steps"][form]')) {
+    const id = el.getAttribute("form");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    relabelRunButton(body, id);
+  }
+}
+
 function restoreChosen(body: Element): void {
   if (!chosen.size && !chosenSteps.size) return;
   for (const el of body.querySelectorAll("select[data-tool-picker]")) {
@@ -112,6 +174,8 @@ function restoreChosen(body: Element): void {
     if (want === undefined) continue;
     box.checked = want;
   }
+  // After the ticks, never before: the label is read off them.
+  relabelAll(body);
 }
 
 // The filter and the sort live in the address bar, so the refresh has
@@ -691,7 +755,12 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // what is remembered about a box is whether it is ticked, which is
   // not a value a select can be restored from (spec 141).
   const step = target?.closest?.('input[name="steps"]') as HTMLInputElement | null;
-  if (step) chosenSteps.set(checkboxKey(step), step.checked);
+  if (step) {
+    chosenSteps.set(checkboxKey(step), step.checked);
+    const rows = document.getElementById("jobrows");
+    const formId = step.getAttribute("form");
+    if (rows && formId) relabelRunButton(rows, formId);
+  }
   if (picker) syncToolFilter(picker);
 }) as EventListener);
 // The one listener that is NOT delegated: this form is the whole of its

@@ -115,6 +115,10 @@ function harness(
       className: `btn ${variant}`,
       classList: {} as ReturnType<typeof classes>,
       innerHTML: "",
+      // A button with nothing left to run is hidden rather than drawn
+      // dead, which is what the server does too — so the fake has to be
+      // able to hold the answer.
+      hidden: false,
       title: "",
       disabled: false,
       isConnected: true,
@@ -360,7 +364,12 @@ function harness(
       tagName: "INPUT",
       disabled: false,
       isConnected: true,
-      getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      // `aria-label` is the phase's reader-facing name, which the server
+      // sets on every box (`phaseChip`) and which the button's label is
+      // read off — "review" for `review-plan`, so the two differ and
+      // the test can tell which one the code used.
+      getAttribute: (n: string) =>
+        n === "form" ? ROW_FORM : n === "aria-label" ? (value === "review-plan" ? "review" : value) : null,
       // A tick lands on the input itself. It is not a select of any
       // kind, so it answers both select selectors with null and its
       // own with itself — otherwise the delegated listener would file
@@ -527,7 +536,9 @@ function harness(
           ? [...modelSelects, otherRowSelect]
           : sel.includes('name="steps"')
             ? stepBoxes
-            : [],
+            : sel.startsWith("button")
+              ? [runButton]
+              : [],
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
@@ -1648,6 +1659,29 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     h.tick();
     await flush();
   };
+
+  // The button says what a press would run, and a press runs the BOXES
+  // — so the label has to follow them as they are clicked. The server
+  // names it from `preTicked`, its own suggestion, which is right for
+  // the row as drawn and wrong the moment a reader ticks something
+  // else: on 2026-08-21 spec 162, with analyze suggested and only
+  // `archive` ticked by hand, went on offering "Analyze". The press was
+  // correct — an open row posts its boxes and no hidden steps — but the
+  // row said one thing and did another.
+  test("the button names the first ticked phase as the boxes are clicked", () => {
+    const h = harness(() => ({ ok: true }));
+    expect(h.runButton.textContent).toBe("Run");
+
+    h.changeStep(0, false); // analyze off — review-plan is first now
+    expect(h.runButton.textContent).toBe("Review");
+
+    h.changeStep(1, false); // and off — nothing ticked at all
+    expect(h.runButton.hidden).toBe(true);
+
+    h.changeStep(3, true); // archive alone
+    expect(h.runButton.hidden).toBe(false);
+    expect(h.runButton.textContent).toBe("Archive");
+  });
 
   test("a box the reader ticked is still ticked after the swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
