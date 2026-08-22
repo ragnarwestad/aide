@@ -745,7 +745,11 @@ candidates in a file the reader had to go and open. The field carries a
 checkout's `.gitignore`, deduped: a suggestion the reader may ignore,
 needing no script, like every other control on this page. Globs,
 negations, comments and nested paths are left out — they are not values
-`AIDE_WORKTREE_LINKS` can take.
+`AIDE_WORKTREE_LINKS` can take. A suggestion is not an endorsement
+either: a `.gitignore` routinely lists `build`, `dist` or `.gradle`
+beside `node_modules`, and those are refused — with the path named —
+because a link is one shared symlink, and a build writing through it
+would collide with every other run's.
 
 Remove takes the project off the allowlist and off this dashboard, and
 that is all it does: the checkout and the specs root stay on disk,
