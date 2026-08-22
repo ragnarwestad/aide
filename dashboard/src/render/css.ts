@@ -541,8 +541,13 @@ table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
    with it, which is better than clipping the name. It also holds the
    column still when the row's AI changes: a browser sizes a select by
    its widest OPTION, and the models one tool offers are not the width
-   of the other's. */
-table.list tr.subrow .modelcell > .row > :first-child { min-width: 10rem; }
+   of the other's.
+   6.25rem, not the 10rem it was: the list used to carry every model
+   under both tools, and now carries one tool's at a time (spec 179's
+   filter), so the floor no longer has to clear the widest name in the
+   whole configuration. Asked for 2026-08-22 — the reserved width was
+   pushing the phase, the AI and the model apart. */
+table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's

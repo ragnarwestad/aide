@@ -114,8 +114,8 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     );
   });
 
-  // 8rem for the AI column and 10rem inside the model's is 18rem of
-  // floor, in a screen that is 23rem wide. Held here, the table would
+  // 8rem for the AI column and 6.25rem inside the model's is over 14rem
+  // of floor, in a screen that is 23rem wide. Held here, the table would
   // scroll — which is the whole of what this block exists to prevent.
   // The stacking rule above needs them released just as badly: a
   // full-width block still honours a min-width.
