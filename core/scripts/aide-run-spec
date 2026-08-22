@@ -98,6 +98,15 @@ WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
 # dashboard/src/serve.ts) with no shared source between them, and
 # test_the_two_copies_of_the_dependency_gate_agree pins the two.
 DEPENDENCY_GATED_STEPS="implement archive"
+# Directory names a build WRITES into, or that a tool locks a cache in —
+# never a dependency cache a build only reads (spec 186). A link is one
+# symlink into the main checkout that every concurrent run shares, so two
+# runs building through it overwrite each other's output. Third list of
+# the same shape as the two above: the dashboard holds the second copy
+# (WORKTREE_LINK_DENYLIST in dashboard/src/project-admin.ts) with no
+# shared source, and
+# test_the_two_copies_of_the_worktree_link_denylist_agree pins them.
+WORKTREE_LINK_DENYLIST="build target dist .gradle"
 
 project_dir=""; command_name=""; spec_arg=""; budget_usd=""; timeout_sec=""
 permission_mode=""; result_file=""; model=""; session_id=""
@@ -631,6 +640,16 @@ for entry in $links_raw; do
     /*) refuse "$links_key must name repo-relative paths: $entry" ;;
     *..*) refuse "$links_key must not escape the root: $entry" ;;
   esac
+  # The BASENAME, so a nested module's output (`backend/build`) is the
+  # same answer as a top-level one — and asked BEFORE the existence
+  # check below, since a denied directory usually does exist: anyone who
+  # has run the build locally has one.
+  link_base="${entry##*/}"
+  for denied in $WORKTREE_LINK_DENYLIST; do
+    if [ "$link_base" = "$denied" ]; then
+      refuse "AIDE_WORKTREE_LINKS names a build output, not a dependency cache: $entry — such a directory is generated per worktree and wants no link at all"
+    fi
+  done
   # A named path with nothing to link is refused rather than skipped
   # (spec 138). Skipping it is how the step got blamed for the failure:
   # the worktree came up without the `node_modules` the project SAID its

@@ -56,6 +56,26 @@ export interface SpecEditPageView {
   /** Where Save posts. Built by the server, because only it knows the
    *  action's own path. */
   saveAction: string;
+  /** The checks that are still holding this spec back: the CURRENT
+   *  phase's open rows of `4-status.md`, and nothing else (spec 188).
+   *  A check already made, and a check nothing is waiting on, do not
+   *  belong on a form whose question is what has to be answered before
+   *  this spec moves on — the server has already left both out.
+   *
+   *  Absent, or with no rows, and the section is not drawn at all —
+   *  the same convention `dependsOnField` keeps for a project with
+   *  nothing to offer.
+   *
+   *  One `phase` for the whole set rather than one per row, which is
+   *  what makes each box's own value the row's verbatim line: a table
+   *  row contains `|` and cannot be packed into one field with its
+   *  phase beside it. `baseSha` is the file's own commit at read time,
+   *  the same guard the description above carries. */
+  checks?: {
+    phase: string;
+    baseSha?: string;
+    rows: { line: string; task: string }[];
+  };
   /** For a browser that got the page with the token in the address
    *  rather than in a cookie. */
   token?: string;
@@ -64,6 +84,40 @@ export interface SpecEditPageView {
    *  already uses. */
   error?: string;
   notice?: { note: string; ok: boolean };
+}
+
+/** The open checks, as boxes in the page's one form. Nothing at all
+ *  when the server offered none: a spec whose current phase is clear,
+ *  a fully done one, and one whose `4-status.md` has no phase sections
+ *  all reach this the same way. */
+function checkList(view: SpecEditPageView): string {
+  const checks = view.checks;
+  if (!checks || checks.rows.length === 0) return "";
+  return (
+    `<input type="hidden" name="checksPhase" value="${esc(checks.phase)}">` +
+    // Empty rather than absent for a file git has never committed —
+    // the same answer the description's own field gives.
+    `<input type="hidden" name="statusBaseSha" value="${esc(checks.baseSha ?? "")}">` +
+    `<span class="frow">` +
+    field(
+      "Checks",
+      `<ul class="checklist"><li class="checkphase">${esc(checks.phase)}</li>` +
+        checks.rows
+          .map(
+            (row) =>
+              `<li class="check">` +
+              // The row's verbatim line is the value: the server finds
+              // the row by it and refuses one that has moved, so a
+              // stale page can never flip the wrong line.
+              `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}"></label>` +
+              `<span class="checktask">${esc(row.task)}</span></li>`,
+          )
+          .join("") +
+        `</ul>`,
+      { group: true },
+    ) +
+    `</span>`
+  );
 }
 
 export function renderSpecEditPage(
@@ -107,6 +161,13 @@ export function renderSpecEditPage(
       { wide: true },
     ) +
     `</span>` +
+    // Spec 188: ticking a check is part of editing the spec. Under the
+    // textarea rather than above it — the description is what the page
+    // is for, and the checks are the short list beneath it — and inside
+    // the SAME form, so one Save posts both. The classes are the ones
+    // the spec page's own checklist already uses, so the two readings
+    // of a row look alike.
+    checkList(view) +
     `<span class="factions">` +
     btn({ label: "Save", variant: "primary", pending: "saving…" }) +
     // Out, having done nothing. A plain link: there is nothing for a

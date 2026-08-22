@@ -140,6 +140,9 @@ export interface SpecsSaveResult {
 }
 
 /** What a browser actually posts, made into what belongs in the file.
+ *  Exported because a caller deciding whether the text CHANGED has to
+ *  ask the same question this function answers (spec 188): a save that
+ *  only ticked a box must not record itself as an edit to the prose.
  *
  *  A textarea is submitted with CRLF line endings whatever the file
  *  had, so writing the value through would show every line of a
@@ -147,36 +150,53 @@ export interface SpecsSaveResult {
  *  commit. The trailing newline is the same kind of hygiene: a text
  *  file ends with one, and without this a save would strip the file's
  *  and the next one would put it back. */
-const asFileText = (text: string): string => {
+export const asFileText = (text: string): string => {
   const lf = text.replace(/\r\n/g, "\n");
   return lf === "" || lf.endsWith("\n") ? lf : `${lf}\n`;
 };
 
-/** Write one file in the specs checkout `dir` sits in, commit it and
- *  push it — or say why not, having changed nothing.
+/** One file's new text, and the commit the reader's copy of it was
+ *  read at. */
+export interface SpecFileEdit {
+  file: string;
+  text: string;
+  /** Carried through the form. The page is rendered once and a reader
+   *  may sit on it for minutes while an analyze step lands a new
+   *  version of the very file, so a save whose file has moved since is
+   *  refused — never merged, never clobbered. `null` is the ordinary
+   *  answer for a file git has never committed. */
+  baseSha: string | null;
+}
+
+/** Write a SET of files in the specs checkout `dir` sits in, commit
+ *  them as one commit and push it — or say why not, having changed
+ *  nothing.
  *
- *  `dir` is the SPEC folder, as it is for `pullFastForward`: the file
- *  is written there, and the questions about the repo are asked at the
+ *  `dir` is the SPEC folder, as it is for `pullFastForward`: the files
+ *  are written there, and the questions about the repo are asked at the
  *  top of the work tree.
  *
- *  `baseSha` is the commit the reader's copy of the text was read at,
- *  carried through the form. The page is rendered once and a reader may
- *  sit on it for minutes while an analyze step lands a new version of
- *  the very file, so a save whose file has moved since is refused —
- *  never merged, never clobbered. `null` is the ordinary answer for a
- *  description git has never committed.
+ *  `message` is the CALLER's, because a save records different things
+ *  depending on what was in it (specs 182, 188): a description edit, a
+ *  check a person made that no step could make, or both at once.
  *
- *  `message` is the CALLER's, because the two callers record two
- *  different things (spec 182): the description editor records an edit,
- *  and the tick on a spec's page records that a person made a check no
- *  step could make. */
-export async function saveSpecFile(
+ *  EVERY edit's `baseSha` is checked before ANY file is written (spec
+ *  188). A guard run file-by-file would leave the first file written
+ *  and staged while a later one's refusal aborts the commit — and a
+ *  dirty checkout is exactly what the next pull, this button's or the
+ *  cron's, refuses for every project sharing this root. "Nothing was
+ *  saved" is what every refusal here promises, so it has to be true of
+ *  the bytes and not only of the commit. */
+export async function saveSpecFiles(
   run: GitRunner,
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
-  edit: { file: string; text: string; baseSha: string | null; specLabel: string; message: string },
+  edits: SpecFileEdit[],
+  opts: { specLabel: string; message: string },
 ): Promise<SpecsSaveResult> {
-  const { file } = edit;
+  // Which file a refusal is ABOUT: one file names itself, several name
+  // the save. Computed once, because most of the refusals below say it.
+  const subject = edits.length === 1 ? edits[0]!.file : edits.map((e) => e.file).join(" and ");
   try {
     // A checkout that cannot be fast-forwarded cannot be pushed either,
     // and the four reasons it gives are the ones a reader needs. Run
@@ -188,31 +208,39 @@ export async function saveSpecFile(
     const top = await run(dir, ["rev-parse", "--show-toplevel"]);
     const root = top.stdout.trim();
 
-    const current = await lastCommitOf(run, dir, file);
-    if ((current?.sha ?? null) !== edit.baseSha) {
-      return {
-        ok: false,
-        note: `${file} has changed since you opened it for editing — nothing was saved, open it again`,
-        committed: false,
-      };
+    for (const edit of edits) {
+      const current = await lastCommitOf(run, dir, edit.file);
+      if ((current?.sha ?? null) !== edit.baseSha) {
+        return {
+          ok: false,
+          note: `${edit.file} has changed since you opened it for editing — nothing was saved, open it again`,
+          committed: false,
+        };
+      }
     }
 
-    // Captured BEFORE the write, so a rollback undoes exactly this
+    // Captured BEFORE the writes, so a rollback undoes exactly this
     // save's commit and nothing the pull above brought in.
     const before = await run(root, ["rev-parse", "HEAD"]);
-    const path = join(dir, file);
-    const previous = readFileSync(path, "utf-8");
-    writeFileSync(path, asFileText(edit.text));
+    const paths = edits.map((edit) => ({ edit, path: join(dir, edit.file), previous: readFileSync(join(dir, edit.file), "utf-8") }));
+    const rollback = (): void => {
+      for (const { path, previous } of paths) writeFileSync(path, previous);
+    };
+    for (const { edit, path } of paths) writeFileSync(path, asFileText(edit.text));
 
-    const added = await run(dir, ["add", "--", file]);
-    if (added.code !== 0) {
-      writeFileSync(path, previous);
-      return { ok: false, note: `${file} could not be staged — nothing was saved`, committed: false };
+    for (const { edit } of paths) {
+      const added = await run(dir, ["add", "--", edit.file]);
+      if (added.code !== 0) {
+        rollback();
+        return { ok: false, note: `${edit.file} could not be staged — nothing was saved`, committed: false };
+      }
     }
 
-    // Nothing staged means the text is what was already committed. No
-    // empty commit, no push, and the page must not stamp a new version
-    // onto a file that did not move.
+    // Nothing staged means every file's text is what was already
+    // committed. No empty commit, no push, and the page must not stamp
+    // a new version onto files that did not move. Asked over the whole
+    // SET: one unchanged file among several is not a reason to skip the
+    // commit.
     //
     // Asked from `dir`, NOT from `root`. `file` is a bare filename —
     // `1-description.md` — which names the file from the spec's own
@@ -224,18 +252,18 @@ export async function saveSpecFile(
     // uncommitted in the shared checkout — which is exactly what the
     // next pull, this button's or the cron's, refuses (2026-08-21, the
     // first real save anyone made).
-    const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", file]);
+    const staged = await run(dir, ["diff", "--cached", "--quiet", "HEAD", "--", ...edits.map((e) => e.file)]);
     if (staged.code === 0) {
-      return { ok: true, note: `${file} is unchanged — nothing was saved`, committed: false };
+      return { ok: true, note: `${subject} is unchanged — nothing was saved`, committed: false };
     }
 
-    const committed = await run(root, ["commit", "-q", "-m", edit.message]);
+    const committed = await run(root, ["commit", "-q", "-m", opts.message]);
     if (committed.code !== 0) {
-      // The write is staged at this point, so the shared checkout is
+      // The writes are staged at this point, so the shared checkout is
       // dirty — and a dirty checkout is what the next pull, this
       // button's or the cron's, refuses.
       await run(root, ["reset", "--hard", before.stdout.trim()]);
-      return { ok: false, note: `${file} could not be committed — nothing was saved`, committed: false };
+      return { ok: false, note: `${subject} could not be committed — nothing was saved`, committed: false };
     }
 
     const pushed = await run(root, ["push", "-q", "origin", "HEAD"]);
@@ -243,18 +271,30 @@ export async function saveSpecFile(
       await run(root, ["reset", "--hard", before.stdout.trim()]);
       return {
         ok: false,
-        note: `${file} was committed but the push to origin failed — nothing was kept, try again`,
+        note: `${subject} was committed but the push to origin failed — nothing was kept, try again`,
         committed: false,
       };
     }
-    return { ok: true, note: `saved ${file}`, committed: true };
+    return { ok: true, note: `saved ${subject}`, committed: true };
   } catch (err) {
     // A reader pressed a button: git that cannot be spawned, or a file
     // that cannot be written, is an answer on the page and never a 500.
     return {
       ok: false,
-      note: `${file} could not be saved: ${err instanceof Error ? err.message : String(err)}`,
+      note: `${subject} could not be saved: ${err instanceof Error ? err.message : String(err)}`,
       committed: false,
     };
   }
+}
+
+/** One file, which is `saveSpecFiles` with one edit in it. Kept as its
+ *  own name because two callers and two test suites say it, and because
+ *  a save of one file is what most saves still are. */
+export async function saveSpecFile(
+  run: GitRunner,
+  dir: string,
+  resolveBase: (root: string) => Promise<string | null>,
+  edit: { file: string; text: string; baseSha: string | null; specLabel: string; message: string },
+): Promise<SpecsSaveResult> {
+  return saveSpecFiles(run, dir, resolveBase, [{ file: edit.file, text: edit.text, baseSha: edit.baseSha }], edit);
 }

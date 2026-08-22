@@ -17,7 +17,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pullFastForward, saveSpecFile } from "../src/specs-pull.ts";
+import { pullFastForward, saveSpecFile, saveSpecFiles } from "../src/specs-pull.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const DIR = "/host/aide-specs/aide/150-one-page-shows-the-whole-spec";
@@ -375,5 +375,165 @@ describe("saveSpecFile", () => {
     );
     expect(result.ok).toBe(false);
     expect(result.note).toContain("git");
+  });
+});
+
+// --- spec 188: two files, one commit ----------------------------------------
+//
+// Ticking a check is part of editing the spec now: one Save can carry
+// both a new `1-description.md` and a `4-status.md` with a row flipped,
+// and "one action" means ONE commit. `saveSpecFile` above is the same
+// function with one edit in it, so everything it already proves still
+// holds; what is new is what happens when one of several edits refuses.
+//
+// The order is what decides it. Every edit's `baseSha` is checked
+// BEFORE any file is written — a guard run file-by-file would leave the
+// first file written and staged in the ONE shared specs checkout while
+// the second one's refusal aborts the commit, and a dirty checkout is
+// what the next pull, this button's or the cron's, refuses.
+
+describe("saveSpecFiles", () => {
+  const STATUS_FILE = "4-status.md";
+  const STATUS_SHA = FILE_SHA;
+  const STATUS_ORIGINAL = [
+    "# A spec - Status",
+    "",
+    "## Phase 4: REFACTOR - Test suite",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| Manual check at 375px | ⬜ | |",
+    "",
+  ].join("\n");
+  const STATUS_TICKED = STATUS_ORIGINAL.replace("| Manual check at 375px | ⬜ | |", "| Manual check at 375px | ✅ | |");
+
+  /** Both files on disk, so "nothing was written" is a claim about the
+   *  bytes of both. */
+  const twoFileCheckout = (): { root: string; dir: string } => {
+    const made = checkout();
+    writeFileSync(join(made.dir, STATUS_FILE), STATUS_ORIGINAL);
+    return made;
+  };
+
+  /** The same checkout `saveSpecFile` is tested against. Both files
+   *  last moved at the same commit, which is the ordinary case — a
+   *  step's own run writes them together — so a stale test says so by
+   *  posting the wrong sha, not by moving one file. */
+  const twoFileGit = (root: string, extra: Record<string, { code: number; stdout?: string }> = {}) =>
+    savable(root, extra);
+
+  const edits = (over: { text?: string; baseSha?: string | null; statusText?: string; statusBaseSha?: string | null } = {}) => [
+    { file: FILE, text: over.text ?? NEW_TEXT, baseSha: over.baseSha === undefined ? FILE_SHA : over.baseSha },
+    {
+      file: STATUS_FILE,
+      text: over.statusText ?? STATUS_TICKED,
+      baseSha: over.statusBaseSha === undefined ? STATUS_SHA : over.statusBaseSha,
+    },
+  ];
+
+  const OPTS = {
+    specLabel: "162-edit-a-spec-on-its-own-page",
+    message: "Edit 1-description.md and tick a check in 4-status.md",
+  };
+
+  test("two changed files land in ONE commit and one push", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    const result = await saveSpecFiles(git.run, dir, base, edits(), OPTS);
+    expect(result.ok).toBe(true);
+    expect(result.committed).toBe(true);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
+    expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_TICKED);
+    expect(git.calls.filter((c) => c.args[0] === "commit")).toHaveLength(1);
+    expect(git.calls.filter((c) => c.args[0] === "push")).toHaveLength(1);
+  });
+
+  // The staged question is asked over the SET, not once per file: one
+  // unchanged file among several is not a reason to skip the commit.
+  test("only one of the two actually changed: still one commit, the other file left as it was", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    const result = await saveSpecFiles(git.run, dir, base, edits({ text: ORIGINAL }), OPTS);
+    expect(result.ok).toBe(true);
+    expect(result.committed).toBe(true);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
+    expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_TICKED);
+    expect(git.calls.filter((c) => c.args[0] === "commit")).toHaveLength(1);
+  });
+
+  test("neither file changed is a success that commits nothing", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root, { "diff --cached --quiet HEAD": { code: 0 } });
+    const result = await saveSpecFiles(git.run, dir, base, edits({ text: ORIGINAL, statusText: STATUS_ORIGINAL }), OPTS);
+    expect(result.ok).toBe(true);
+    expect(result.committed).toBe(false);
+    expect(result.note).toContain("unchanged");
+    expect(git.calls.map((c) => c.args[0])).not.toContain("commit");
+    expect(git.calls.map((c) => c.args[0])).not.toContain("push");
+  });
+
+  // The risk this whole function was written carefully for.
+  test("one stale baseSha refuses the lot — NEITHER file is written", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    const result = await saveSpecFiles(git.run, dir, base, edits({ statusBaseSha: "0000000ffffff" }), OPTS);
+    expect(result.ok).toBe(false);
+    expect(result.note).toContain("changed since");
+    expect(result.note).toContain(STATUS_FILE);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
+    expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
+    expect(git.calls.map((c) => c.args[0])).not.toContain("commit");
+  });
+
+  // The description is the FIRST edit, so a refusal on it proves the
+  // guard runs over the whole set before the first write as much as the
+  // case above does — from the other end.
+  test("the first edit's stale sha refuses before the second is written either", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    const result = await saveSpecFiles(git.run, dir, base, edits({ baseSha: "0000000ffffff" }), OPTS);
+    expect(result.ok).toBe(false);
+    expect(result.note).toContain(FILE);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(ORIGINAL);
+    expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
+  });
+
+  test("a push that fails resets both writes away", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root, { push: { code: 1 } });
+    const result = await saveSpecFiles(git.run, dir, base, edits(), OPTS);
+    expect(result.ok).toBe(false);
+    expect(result.note).toContain("push");
+    const reset = git.calls.find((c) => c.args[0] === "reset");
+    expect(reset).toBeDefined();
+    expect(reset!.args).toContain("--hard");
+    expect(reset!.args).toContain(HEAD_SHA);
+  });
+
+  // Both files are staged from the SPEC folder, where a bare filename
+  // means something — the mistake that left the first real save
+  // uncommitted in the shared checkout (2026-08-21).
+  test("every file is staged, and the staged question is asked where the bare names mean something", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    await saveSpecFiles(git.run, dir, base, edits(), OPTS);
+    const added = git.calls.filter((c) => c.args[0] === "add");
+    expect(added.flatMap((c) => c.args)).toContain(FILE);
+    expect(added.flatMap((c) => c.args)).toContain(STATUS_FILE);
+    for (const call of added) expect(call.dir).toBe(dir);
+    const staged = git.calls.find((c) => c.args.join(" ").startsWith("diff --cached"))!;
+    expect(staged.dir).toBe(dir);
+    expect(staged.args).toContain(FILE);
+    expect(staged.args).toContain(STATUS_FILE);
+  });
+
+  test("one edit is exactly what saveSpecFile already did", async () => {
+    const { root, dir } = twoFileCheckout();
+    const git = twoFileGit(root);
+    const result = await saveSpecFiles(git.run, dir, base, [{ file: FILE, text: NEW_TEXT, baseSha: FILE_SHA }], OPTS);
+    expect(result.ok).toBe(true);
+    expect(result.committed).toBe(true);
+    expect(readFileSync(join(dir, FILE), "utf-8")).toBe(NEW_TEXT);
+    expect(readFileSync(join(dir, STATUS_FILE), "utf-8")).toBe(STATUS_ORIGINAL);
   });
 });

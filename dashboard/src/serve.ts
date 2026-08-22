@@ -19,7 +19,7 @@ import {
 import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
-import { pullFastForward, saveSpecFile } from "./specs-pull.ts";
+import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
@@ -27,6 +27,7 @@ import {
   stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
+import { projectSettings } from "./project-settings.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus, parseStatusChecks, tickStatusLine } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
@@ -65,6 +66,7 @@ import {
   navEntries,
   renderJobDetailPage,
   renderNewSpecPage,
+  renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
   renderProjectSettingsPage,
@@ -271,6 +273,24 @@ export function createRootLock() {
  *  that would have written the file both say it, and the page a reader
  *  lands on is the spec's own. */
 const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
+
+/** What one Save's commit RECORDS. Two different things can arrive in
+ *  it since spec 188 — an edit to the prose, and a check a person made
+ *  that no step could make — and a commit that carried both says so on
+ *  both counts. Neither half is dropped and no third, generic phrase is
+ *  invented; the description comes first, in the order the fields are
+ *  read.
+ *
+ *  Never the runner's grammar: `workflow-history.ts` counts a step by a
+ *  commit subject beginning "Run /aide-", and a hand edit is not a step
+ *  the spec has had. */
+const saveMessage = (specFolder: string, editedText: boolean, tickedChecks: boolean): string => {
+  if (tickedChecks && editedText) {
+    return `Edit ${EDITABLE_SPEC_FILE} and tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
+  }
+  if (tickedChecks) return `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
+  return `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`;
+};
 
 /** Where a form POST goes back to. Built from the five view keys the
  *  page's own forms send (`FILTER_KEYS`, under `FILTER_FIELD_PREFIX`),
@@ -943,16 +963,39 @@ export function createServer(opts: ServerOptions) {
         // The returned promise holds the queue for as long as the
         // landing takes; see `Runner.tick()`.
         onStepDone: (job, step, outcome) => {
-          if (!outcome.ok) return undefined;
-          if (step === "create") return landNewSpec(job, outcome);
-          if (step === "analyze" || step === "review-plan") {
-            return landStepBranch(job, step, outcome);
+          if (outcome.ok) {
+            if (step === "create") return landNewSpec(job, outcome);
+            if (step === "analyze" || step === "review-plan") {
+              return landStepBranch(job, step, outcome);
+            }
+            if (step === "archive") return landArchivedSpec(job, outcome);
+            // `implement`, `explore` and `manifest` fall through: the first
+            // by design, the other two because neither leaves a spec branch
+            // for anyone to land.
+            return undefined;
           }
-          if (step === "archive") return landArchivedSpec(job, outcome);
-          // `implement`, `explore` and `manifest` fall through: the first
-          // by design, the other two because neither leaves a spec branch
-          // for anyone to land.
-          return undefined;
+          // A step stopped by its own clock still committed and pushed
+          // whatever it had written before the deadline — `aide-run-spec`'s
+          // commit loop runs on every path and the push is gated on the
+          // push mode, not on `ok` (spec 187). Left on the branch, that
+          // work is readable only by checking it out by hand: spec 184
+          // stopped with a finished analysis nothing on this page
+          // mentioned.
+          //
+          // What decides is what the run TOUCHED, never which step it
+          // was. A run that moved a code root's HEAD is left exactly
+          // where a failed run is left — the code waits on its branch for
+          // `archive`, whether the step ran out of time or not — and there
+          // is no second list of "which steps are safe" to keep in step
+          // with the first.
+          //
+          // Only the wall clock. A cost cap stops mid-sentence with no
+          // boundary of its own, and a CLI error is not a stop at all.
+          if (!step || outcome.terminalReason !== "timeout") return undefined;
+          const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+          const pushed = outcome.branchUrls ?? [];
+          if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
+          return landStoppedStepBranch(job, step, outcome);
         },
         clearResult: (path) => {
           try {
@@ -1535,6 +1578,28 @@ export function createServer(opts: ServerOptions) {
     });
   }
 
+  /** Land what a step wrote when it did NOT finish, but ran out of time
+   *  having touched no code repo (spec 187).
+   *
+   *  The merge is `landBranch`, unchanged — the caller has already asked
+   *  the only question this case adds (did anything outside the specs
+   *  repo move?). What differs is one sentence a person reads: "the
+   *  analyze step finished, but landing it failed" would state as fact
+   *  the one thing that did not happen, which is exactly what a reader
+   *  needs to know. `nothingToLand` stays unset for the same reason `archive`
+   *  leaves it unset: a run with no branch is an ordinary outcome here,
+   *  and the caller returns before this is reached anyway. */
+  async function landStoppedStepBranch(
+    job: Job,
+    step: WorkflowStep,
+    outcome: Partial<StepOutcome>,
+  ): Promise<void> {
+    return landBranch(job, outcome, {
+      step,
+      failedNote: (why) => `the ${step} step stopped at its time limit, and landing what it wrote failed: ${why}`,
+    });
+  }
+
   /** Take an archived spec out of the list it has just left (spec 136).
    *
    *  The same argument as `landNewSpec`, at the other end of a spec's
@@ -1964,6 +2029,45 @@ export function createServer(opts: ServerOptions) {
         worktreeLinkCandidates: gitignoreCandidates(dir),
         error: url.searchParams.get("error") ?? undefined,
       });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    // A project's OWN page, served (spec 185). Below the Add and Remove
+    // pages on purpose: those are two-segment paths too, and a project
+    // may not shadow a control.
+    //
+    // The generated `<slug>.html` is still written and still reachable
+    // — a site rsynced behind a plain file server has no server to ask
+    // git anything, and that is the deployment it is for. What that
+    // page cannot say is what this one exists for: the config file is
+    // personal and gitignored, an operator edits it between merges, and
+    // the generator runs only after some unrelated merge lands in the
+    // queue.
+    const projectPage = path.match(/^\/projects\/([^/]+)$/);
+    if (projectPage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(projectPage[1]!);
+      if (!opts.projectRoot) return new Response("no such project\n", { status: 404 });
+      // Read fresh, uncached, exactly as `/projects` does: nothing polls
+      // this page, so a scan per request is the cost `make generate`
+      // already treats as cheap — and no invalidation to get wrong.
+      const view = buildProjectViews(opts.projectRoot).find((p) => p.name === name);
+      if (!view) return new Response("no such project\n", { status: 404 });
+      const dir = projectDir(name);
+      // Fail open, the way the drift check on `/projects` does. Every
+      // check inside `assessProjectReadiness` already treats a git that
+      // answers nothing as its own kind of failure rather than throwing,
+      // so this catches the case where git is not there to be run at
+      // all: the reader came for the project's page, and the half of it
+      // that needs no git is still worth serving.
+      const readiness = await assessProjectReadiness(gitRun, dir).catch(() => null);
+      const html = renderProjectPage(
+        view,
+        projectSettings(dir, readiness),
+        readiness,
+        new Date().toISOString(),
+        nav(),
+      );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
@@ -2429,6 +2533,25 @@ export function createServer(opts: ServerOptions) {
       // Overview tab's own panels are: the text in the box and the
       // commit it is compared against have to be the same instant.
       const commit = await lastCommitOf(gitRun, dir, EDITABLE_SPEC_FILE);
+      // Spec 188: the checks that are still holding this spec back come
+      // onto this form too, so one Save carries both. "Still holding it
+      // back" is a NARROWER list than "not done": the open rows of the
+      // CURRENT phase, which is the first phase section still carrying
+      // an open mark — the same phase the spec list's own column shows.
+      // A row already ticked is a check already made, and a row in a
+      // phase the workflow has not reached is a check nothing is
+      // waiting on; neither belongs on a form whose question is what
+      // has to be answered before this spec moves on.
+      //
+      // `phase` is `null` for a `4-status.md` with no phase sections at
+      // all (a LOW-complexity spec on the simple checklist layout, or
+      // one never analysed) and `"done"` when every section is clear —
+      // both leave the filter with nothing, and the section is then not
+      // drawn.
+      const statusText = specFileText(dir, STATUS_SPEC_FILE) ?? "";
+      const statusPhase = parseStatus(statusText).phase;
+      const openChecks = parseStatusChecks(statusText).filter((row) => !row.done && row.phase === statusPhase);
+      const statusCommit = openChecks.length > 0 ? await lastCommitOf(gitRun, dir, STATUS_SPEC_FILE) : null;
       const view: SpecEditPageView = {
         project: project!,
         specFolder: specFolder!,
@@ -2448,6 +2571,14 @@ export function createServer(opts: ServerOptions) {
         // the next Save would then silently drop it.
         dependsOnChecked: dependencyFolders(project!, dir),
         baseSha: commit?.sha,
+        checks:
+          openChecks.length > 0
+            ? {
+                phase: statusPhase!,
+                baseSha: statusCommit?.sha,
+                rows: openChecks.map((row) => ({ line: row.line, task: row.task })),
+              }
+            : undefined,
         saveAction: `/api/queue${specPagePath(project!, specFolder!)}/save`,
         token: queueToken,
         error: url.searchParams.get("error") ?? undefined,
@@ -2530,13 +2661,68 @@ export function createServer(opts: ServerOptions) {
         );
       }
       const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+      // Spec 188: the checks the form carried, ticked. `4-status.md` has
+      // been the runner's since spec 154 and this is the narrow
+      // exception a person is allowed: one existing row's Status mark
+      // and nothing else. The new text is computed HERE, from the rows
+      // the server itself verified against the file on disk, and never
+      // taken from the body — which is what makes "only checkbox lines
+      // can change" structural rather than a promise.
+      //
+      // `bodyToObject` wraps a lone value in an array for the New-spec
+      // form's chip set, exactly as it does for `dependsOn` above, so
+      // both shapes are taken apart the same way.
+      const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
+      let ticked: string | null = null;
+      if (ticks.length > 0) {
+        // Boxes with no phase to read them against is a request that
+        // never came from this form.
+        if (typeof body.checksPhase !== "string") {
+          return specsRedirect({}, { error: "no phase was submitted — nothing was saved" }, back);
+        }
+        // The row-level guard, on top of the file-level `baseSha` one
+        // below. A `null` is every way the page can be out of date at
+        // once: no such phase, no such row inside it, or a row someone
+        // has already ticked in the very commit the page was drawn from
+        // — which a sha alone cannot tell from a fresh render.
+        //
+        // Chained one row after another, which is safe because exactly
+        // one character moves per tick and the cell keeps its padding:
+        // a tick never reflows the table, so every other row's text is
+        // still what it was.
+        ticked = specFileText(dir, STATUS_SPEC_FILE) ?? "";
+        for (const line of ticks) {
+          const next = tickStatusLine(ticked, body.checksPhase, line);
+          // One row that is not there refuses the WHOLE save, the
+          // description edit included — never applied silently while
+          // the tick it came with is dropped.
+          if (next === null) {
+            return specsRedirect(
+              {},
+              { error: "that check is not there to tick any more — reload the page and look again" },
+              back,
+            );
+          }
+          ticked = next;
+        }
+      }
+      const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
+      const edits = [
+        { file: EDITABLE_SPEC_FILE, text: merged, baseSha },
+        ...(ticked === null ? [] : [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }]),
+      ];
       const result = await mergeLock.run(await specsRoot(dir), () =>
-        saveSpecFile(gitRun, dir, (root) => branchStatus.defaultBranch(root), {
-          file: EDITABLE_SPEC_FILE,
-          text: merged,
-          baseSha,
+        saveSpecFiles(gitRun, dir, (root) => branchStatus.defaultBranch(root), edits, {
           specLabel: specFolder!,
-          message: `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`,
+          // Asked through `asFileText`, the same normalization the save
+          // itself writes with: a browser posts a textarea with CRLF
+          // line endings whatever the file had, and comparing the raw
+          // strings would call every save an edit.
+          message: saveMessage(
+            specFolder!,
+            asFileText(merged) !== (specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
+            ticks.length > 0,
+          ),
         }),
       );
       if (!result.ok) {
@@ -2550,75 +2736,6 @@ export function createServer(opts: ServerOptions) {
         note: result.note,
         ok: true,
       });
-    }
-
-    // Spec 182: one of the spec's remaining checks, ticked off from its
-    // own page. `4-status.md` has been the runner's since spec 154 and
-    // this is the narrow exception: a person may flip one existing
-    // row's Status mark and nothing else. The new text is computed HERE
-    // from the row the server itself verified, never taken from the
-    // body — which is what makes "only checkbox lines can change"
-    // structural rather than a promise.
-    //
-    // The same shape as `/save` above, down to the order of the
-    // questions: archived before the body is read, one lock over the
-    // shared specs checkout, and a 303 back to the page carrying the
-    // reason either way.
-    const statusTick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/status\/tick$/);
-    if (statusTick) {
-      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-      const [, project, specFolder] = statusTick;
-      const dir = specDir(project!, specFolder!);
-      if (!dir) return new Response("not found", { status: 404 });
-      const back = specPagePath(project!, specFolder!);
-      if (specRef(project!, specFolder!)?.archived) {
-        logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, back);
-      }
-      // The shared 4096-byte cap, not the save route's own: the body is
-      // three short fields, and the longest of them is one table row.
-      const sent = await readBounded(req);
-      if ("refusal" in sent) return sent.refusal;
-      let body: Record<string, unknown> = {};
-      try {
-        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
-      } catch {
-        return json({ error: "malformed body" }, 400);
-      }
-      if (typeof body.phase !== "string" || typeof body.line !== "string") {
-        return specsRedirect({}, { error: "no row was submitted — nothing was ticked" }, back);
-      }
-      // The row-level guard, on top of `saveSpecFile`'s file-level one.
-      // A `null` here is every way the page can be out of date at once:
-      // no such phase, no such row inside it, or a row someone has
-      // already ticked in the very commit the page was drawn from —
-      // which a sha alone cannot tell from a fresh render.
-      const ticked = tickStatusLine(specFileText(dir, STATUS_SPEC_FILE) ?? "", body.phase, body.line);
-      if (ticked === null) {
-        return specsRedirect(
-          {},
-          { error: "that check is not there to tick any more — reload the page and look again" },
-          back,
-        );
-      }
-      const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-      const result = await mergeLock.run(await specsRoot(dir), () =>
-        saveSpecFile(gitRun, dir, (root) => branchStatus.defaultBranch(root), {
-          file: STATUS_SPEC_FILE,
-          text: ticked,
-          baseSha,
-          specLabel: specFolder!,
-          // What the commit is FOR: that a human, not a step, made a
-          // check no step could make. Deliberately not the description
-          // editor's sentence — the two records say different things.
-          message: `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`,
-        }),
-      );
-      if (!result.ok) {
-        logRefusal("tick", `${project}/${specFolder}`, result.note);
-        return specsRedirect({}, { error: result.note }, back);
-      }
-      return specsRedirect({}, undefined, back, { note: result.note, ok: true });
     }
 
     // One job, in full: what it IS (the spec's title and description),
@@ -2747,11 +2864,9 @@ export function createServer(opts: ServerOptions) {
       title: ref?.title ?? undefined,
       archived: ref?.archived ?? false,
       files,
-      checks: {
-        rows: parseStatusChecks(status?.text ?? ""),
-        action: `/api/queue${specPagePath(project, specFolder)}/status/tick`,
-        baseSha: status?.sha,
-      },
+      // Rows only: since spec 188 this banner is a summary, and the
+      // tick that used to post from it lives on the Edit form.
+      checks: { rows: parseStatusChecks(status?.text ?? "") },
       lead: lead ? await jobDetailView(lead) : undefined,
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
@@ -2897,7 +3012,12 @@ export function parseArgs(argv: string[]): ServerOptions {
       manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
       specs: [],
     }));
-    opts.navEntries = navEntries(projects);
+    // `live`: this server has a project root, so it serves each
+    // project's page itself (spec 185) — and that is the page carrying
+    // the settings and the readiness answer. `navFromSite()`, the
+    // no-`--root` fallback, still names the generated files, because a
+    // server with no project root cannot render one.
+    opts.navEntries = navEntries(projects, { live: true });
   }
   return opts;
 }

@@ -71,6 +71,21 @@ named anywhere in this repo.
   nav, labelled "Projects". Token required, like `/`: the panel is a
   mutating control, and a page carrying one needs a server to check the
   token per request.
+- `/projects/<name>` — one project's own page, served (spec 185): its
+  manifest and its specs, as the generated file has always shown, plus
+  the two things a file could not answer — what its `.aide/config` says,
+  and whether a run could start here at all. Each of the seven
+  recognized config keys is marked configured, worked out (naming the
+  lockfile that decided it, hedged as a default rather than a verified
+  command) or not set; a checkout with no `.aide/config` says so in as
+  many words, because "no file" and "a file setting nothing" are
+  different states and the first is what a project cloned onto a second
+  machine is in. Below that, the same checks `assessProjectReadiness`
+  runs at Add time — now on every load rather than once, in a notice
+  gone by the next page. Nothing is executed and nothing is moved: a git
+  that cannot answer leaves the manifest, the specs and the settings
+  standing, with no readiness section. Token required, like every other
+  `/projects` path.
 - `/archive` — every ARCHIVED spec in ONE table: Project, Title,
   Description and Date, each folder linking to its own
   `/specs/<project>/<spec>` page (specs 163, 170). It was a heading per
@@ -104,7 +119,12 @@ named anywhere in this repo.
   publish a site without it.
 - `/<slug>.html` — one page per project (slug = lowercased name,
   non-alphanumerics → hyphens; collisions get `-2`, `-3`, …; `index`,
-  `about` and `projects` are reserved)
+  `about` and `projects` are reserved). The manifest and the specs
+  only: it is generated after a merge lands somewhere in the queue, and
+  a config file an operator edits between merges would be described as
+  it stood days ago. A live server's nav links `/projects/<name>`
+  instead; this file is what a site published by `rsync-publish.sh`,
+  with no server behind it, still shows.
 - `/api/aide-runs` — aide runs in flight, as JSON; `POST /api/aide-run`
   receives one event. (The `/live` page that rendered them was dropped
   on 2026-08-18: the spec list shows every queued run per row, and
@@ -120,35 +140,49 @@ named anywhere in this repo.
   list. Since spec 163 it says it is archived and offers no Edit: the
   spec is a record.
 - `/specs/<project>/<spec>/edit` — `1-description.md` in a textarea, and
-  nothing else (spec 162). Refused for an ARCHIVED spec, here and at the
+  under it the checks that are still holding the spec back (spec 162,
+  narrowed by spec 188). Refused for an ARCHIVED spec, here and at the
   save route below: hiding the button would have left both reachable for
-  anyone holding the URL. It is the one of the four files a person
-  owns: the other three are written by a step and a hand edit there is
-  overwritten the next time that step runs. The page carries the commit
-  its text was read at and never refreshes itself.
+  anyone holding the URL. The description is the one of the four files a
+  person owns: the other three are written by a step and a hand edit
+  there is overwritten the next time that step runs. `4-status.md` is
+  the narrow exception, and only through these boxes — one existing
+  row's Status mark, never its prose. The checks offered are the OPEN
+  rows of the CURRENT phase alone (the first phase section still
+  carrying an open mark, the same one the spec list's column shows): a
+  row already ticked is a check already made, and a row in a phase the
+  workflow has not reached is a check nothing is waiting on. A spec with
+  neither — every phase clear, or a `4-status.md` with no phase sections
+  at all — draws no checks section. The page carries the commit each of
+  the two files was read at and never refreshes itself.
 - `POST /api/queue/specs/<project>/<spec>/save` — writes, commits and
-  pushes that one file on the specs repo's default branch, then returns
-  to the spec. Refused, with nothing written, when the checkout is
-  dirty, on another branch, diverged or unreachable, and when the file
-  has moved since the editor was opened; a commit whose push fails is
-  reset away, because an unpushed commit in the one shared specs
-  checkout breaks the next fast-forward for every project in it. It is
-  the only route that accepts a body over 4096 bytes — a description is
-  not an action post — and its own cap is 64 KiB.
-- `POST /api/queue/specs/<project>/<spec>/status/tick` — ticks ONE row
-  of `4-status.md`'s Tasks tables (spec 182), which is what a
-  "checkbox" is in a spec: the Status cell's mark becomes ✅ and no
-  other byte of the file changes, because the new text is computed here
-  from the row the server verified and never taken from the body. Two
-  guards, not one: `saveSpecFile`'s existing file-level `baseSha`, and
-  the row's own exact text posted back — a row that no longer reads as
-  it did is refused even when the sha still matches, which is what
-  tells a second press apart from a first inside one commit. Same
-  refusals as `/save` otherwise, same lock, same 303 back to the spec;
-  refused for an ARCHIVED spec, whose files are history. The rows are
-  drawn at the top of the spec's page, above the tab bar, so they are
-  on every tab — the reason they moved there is that the check holding
-  an archive back was a row near the bottom of the fourth file.
+  pushes what the Edit form carried, on the specs repo's default branch,
+  then returns to the spec. ONE commit, whatever was in it: the
+  description alone, one or more ticked checks alone, or both together
+  (spec 188 — before it, a check was ticked by pressing its box on the
+  spec's page, which wrote and committed on the spot, and a spec had two
+  ways of being changed). A tick's new text is computed HERE from the
+  row the server verified against the file on disk and never taken from
+  the body, so no byte of `4-status.md` outside a Status cell can move.
+  Two guards, not one: each file's `baseSha` as it was read at, and each
+  ticked row's own exact text posted back — a row that no longer reads
+  as it did is refused even when the sha still matches, which is what
+  tells a second press apart from a first inside one commit. Every
+  refusal discards the WHOLE save, both files: one file's stale sha, or
+  one row that is not there to tick, and nothing is written to either —
+  a description edit is never applied silently while the tick it came
+  with is dropped. Refused, with nothing written, when the checkout is
+  dirty, on another branch, diverged or unreachable; a commit whose push
+  fails is reset away, because an unpushed commit in the one shared
+  specs checkout breaks the next fast-forward for every project in it.
+  Refused for an ARCHIVED spec, whose files are history. It is the only
+  route that accepts a body over 4096 bytes — a description is not an
+  action post — and its own cap is 64 KiB. `POST
+  .../status/tick`, the route that ticked one row on its own, was
+  deleted with spec 188 and answers 404; the rows are still drawn at the
+  top of the spec's page, above the tab bar, as a read-only summary —
+  the reason they moved there is that the check holding an archive back
+  was a row near the bottom of the fourth file.
 - `/specs` and `/queue` — where the list used to live; both redirect to
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is
@@ -752,7 +786,11 @@ candidates in a file the reader had to go and open. The field carries a
 checkout's `.gitignore`, deduped: a suggestion the reader may ignore,
 needing no script, like every other control on this page. Globs,
 negations, comments and nested paths are left out — they are not values
-`worktreeLinks` can take.
+`worktreeLinks` can take. A suggestion is not an endorsement either: a
+`.gitignore` routinely lists `build`, `dist` or `.gradle` beside
+`node_modules`, and those are refused — with the path named — because a
+link is one shared symlink, and a build writing through it would
+collide with every other run's.
 
 **And both fields are PROPOSED where they can be worked out** (spec
 184). A checkout's own lockfile says which package manager owns its

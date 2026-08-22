@@ -148,6 +148,13 @@ read (`worktreeLinksSource` in the result, and a line on stderr), so a
 value shadowed in the other file is diagnosable rather than silently
 ignored.
 
+A link is a symlink into the one main checkout, and several runs share
+it — so it names what a build **reads**, never what a build writes. A
+name whose last segment is `build`, `target`, `dist` or `.gradle` is
+refused rather than linked, both when the project is configured and when
+a run starts: such a directory is generated per worktree, and two runs
+writing through one link overwrite each other.
+
 #### AIDE_INSTALLATION_PATH
 
 Points to the workspace root (for templates and configuration):

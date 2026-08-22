@@ -452,16 +452,105 @@ describe("the edit page", () => {
       expect(withOptions()).toContain("next gated step");
     });
   });
+
+  // --- spec 188: the checks that are still holding the spec back -----------
+  //
+  // Drawn in the SAME form as the textarea, so one Save posts both. The
+  // server has already decided WHICH rows belong here (the current
+  // phase's open ones); this page's job is that every one of them is a
+  // real checkbox sharing one hidden phase, and that a spec with none
+  // draws no section at all.
+
+  describe("the checks", () => {
+    const ROW = "| Manual check at 375px in a real browser | ⬜ | still outstanding |";
+    const SECOND = "| Read the whole diff once | ⬜ | |";
+    const withChecks = (rows = [{ line: ROW, task: "Manual check at 375px in a real browser" }]) =>
+      edit(
+        editView({
+          checks: { phase: "Phase 4: REFACTOR - Test suite", baseSha: "b7c40e2deadbeef", rows },
+        }),
+      );
+
+    test("one checkbox per row, inside the one form Save posts", () => {
+      const html = withChecks();
+      expect(html).toContain('name="tick"');
+      expect(html).toContain('type="checkbox"');
+      expect(html).toContain(`value="${ROW}"`);
+      expect(html).toContain("Manual check at 375px in a real browser");
+      // ONE posting form on the page: the boxes are Save's, not their
+      // own. (The shell's own `<form method="dialog">` posts nothing.)
+      expect(html.match(/<form method="post"/g)!).toHaveLength(1);
+    });
+
+    // ONE hidden phase for the whole set, not one per row: every row the
+    // server offers here belongs to the same phase by construction,
+    // which is what lets each box's own value be the row's verbatim line
+    // (a table row contains `|` and cannot be packed into one field with
+    // its phase).
+    test("the phase is one hidden field shared by every box", () => {
+      const html = withChecks([
+        { line: ROW, task: "Manual check at 375px in a real browser" },
+        { line: SECOND, task: "Read the whole diff once" },
+      ]);
+      expect(html.match(/name="checksPhase"/g)!).toHaveLength(1);
+      expect(html).toContain('value="Phase 4: REFACTOR - Test suite"');
+      expect(html.match(/name="tick"/g)!).toHaveLength(2);
+    });
+
+    // The same file-level guard the description carries, for the file
+    // the ticks are written into.
+    test("4-status.md's own commit travels with the form", () => {
+      expect(withChecks()).toContain('name="statusBaseSha"');
+      expect(withChecks()).toContain('value="b7c40e2deadbeef"');
+    });
+
+    test("nothing left to tick, no section", () => {
+      const html = edit(editView({ checks: { phase: "Phase 4: REFACTOR - Test suite", rows: [] } }));
+      expect(html).not.toContain('name="tick"');
+      expect(html).not.toContain('name="checksPhase"');
+    });
+
+    test("a view with no checks at all draws none", () => {
+      expect(edit()).not.toContain('name="tick"');
+    });
+
+    // A task cell is arbitrary text off disk, and so is the row it came
+    // from — both go into the document, one as text and one as an
+    // attribute value.
+    test("the row and its task are escaped", () => {
+      const html = withChecks([
+        { line: '| <img src=x onerror="alert(1)"> | ⬜ | |', task: '<img src=x onerror="alert(1)">' },
+      ]);
+      expect(html).not.toContain("<img src=x");
+      expect(html).toContain("&lt;img");
+    });
+
+    // A file git has never committed has no commit to carry, which is
+    // not a mismatch — the same convention the description's own field
+    // keeps.
+    test("a status file with no commit yet draws the boxes all the same", () => {
+      const html = edit(
+        editView({ checks: { phase: "Phase 4: REFACTOR - Test suite", rows: [{ line: ROW, task: "Manual check" }] } }),
+      );
+      expect(html).toContain('name="tick"');
+      expect(html).not.toContain("undefined");
+    });
+  });
 });
 
-// --- spec 182: the spec's remaining checks, at the top of its page ----------
+// --- spec 182, narrowed by spec 188: the spec's remaining checks -----------
 //
 // A check only a person can make — look at the page at 375px and say
 // whether it holds — was a row buried near the bottom of the fourth
-// file, and saying so meant a terminal. The rows come to the top of the
-// page instead, and each one that is not done carries a button.
+// file. The rows come to the top of the page instead, above the tab
+// bar, so they are on every tab.
+//
+// Since spec 188 the banner is a SUMMARY and nothing else: the box that
+// wrote and committed on its own press is gone, and a check is ticked
+// on the Edit form with the description, under one Save. Every row here
+// — open or done, archived or active — is an inert span.
 
-describe("the checks block (spec 182)", () => {
+describe("the checks block (specs 182, 188)", () => {
   const check = (extra: Partial<SpecCheckView> = {}): SpecCheckView => ({
     phase: "Phase 4: REFACTOR - Test suite",
     line: "| Manual check at 375px in a real browser | ⬜ | still outstanding |",
@@ -470,19 +559,26 @@ describe("the checks block (spec 182)", () => {
     ...extra,
   });
 
-  const TICK = "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/status/tick";
+  const DONE = check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true });
 
-  const withChecks = (rows = [check(), check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true })]) =>
-    view({ checks: { action: TICK, baseSha: "a3f9c21deadbeef", rows } });
+  const withChecks = (rows = [check(), DONE]) => view({ checks: { rows } });
 
-  test("an unticked row is on the page, with a control that posts the tick", () => {
+  /** The banner alone. The page has real forms on it — Update, for one
+   *  — so "no form" is a claim about this section and not about the
+   *  document. */
+  const banner = (html: string): string => {
+    const found = html.match(/<section class="checks">[\s\S]*?<\/section>/);
+    expect(found).not.toBeNull();
+    return found![0];
+  };
+
+  test("an unticked row is on the page, and carries no control that writes", () => {
     const html = page(withChecks());
     expect(html).toContain("Manual check at 375px in a real browser");
-    expect(html).toContain(`action="${TICK}"`);
-    expect(html).toContain('name="line"');
-    expect(html).toContain('name="phase"');
-    expect(html).toContain('name="baseSha"');
-    expect(html).toContain("a3f9c21deadbeef");
+    expect(banner(html)).not.toContain("<form");
+    expect(banner(html)).not.toContain("action=");
+    expect(banner(html)).not.toContain("<button");
+    expect(html).not.toContain("/status/tick");
   });
 
   // The banner, not the Overview panel: the description says the top of
@@ -496,9 +592,9 @@ describe("the checks block (spec 182)", () => {
   });
 
   test("a done row is shown too, marked as done and with no control of its own", () => {
-    const html = page(withChecks([check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true })]));
+    const html = page(withChecks([DONE]));
     expect(html).toContain("Run the full test suite");
-    expect(html).not.toContain(`action="${TICK}"`);
+    expect(banner(html)).not.toContain("<form");
   });
 
   test("the unticked ones are told apart from the done ones in the markup", () => {
@@ -514,7 +610,7 @@ describe("the checks block (spec 182)", () => {
   // A spec whose 4-status.md has no Phase section at all — never
   // analysed, or a LOW-complexity spec on the simple layout.
   test("a spec with no rows renders no block at all", () => {
-    const html = page(view({ checks: { action: TICK, baseSha: undefined, rows: [] } }));
+    const html = page(view({ checks: { rows: [] } }));
     expect(html).not.toContain('class="checklist"');
   });
 
@@ -523,7 +619,8 @@ describe("the checks block (spec 182)", () => {
   });
 
   test("an archived spec is a record — the rows are shown with no control", () => {
-    const html = page(view({ archived: true, checks: { action: TICK, baseSha: "a3f9c21deadbeef", rows: [check()] } }));
-    expect(html).not.toContain(`action="${TICK}"`);
+    const html = page(view({ archived: true, checks: { rows: [check()] } }));
+    expect(banner(html)).not.toContain("<form");
+    expect(banner(html)).not.toContain("<button");
   });
 });
