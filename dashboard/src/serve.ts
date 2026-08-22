@@ -937,16 +937,39 @@ export function createServer(opts: ServerOptions) {
         // The returned promise holds the queue for as long as the
         // landing takes; see `Runner.tick()`.
         onStepDone: (job, step, outcome) => {
-          if (!outcome.ok) return undefined;
-          if (step === "create") return landNewSpec(job, outcome);
-          if (step === "analyze" || step === "review-plan") {
-            return landStepBranch(job, step, outcome);
+          if (outcome.ok) {
+            if (step === "create") return landNewSpec(job, outcome);
+            if (step === "analyze" || step === "review-plan") {
+              return landStepBranch(job, step, outcome);
+            }
+            if (step === "archive") return landArchivedSpec(job, outcome);
+            // `implement`, `explore` and `manifest` fall through: the first
+            // by design, the other two because neither leaves a spec branch
+            // for anyone to land.
+            return undefined;
           }
-          if (step === "archive") return landArchivedSpec(job, outcome);
-          // `implement`, `explore` and `manifest` fall through: the first
-          // by design, the other two because neither leaves a spec branch
-          // for anyone to land.
-          return undefined;
+          // A step stopped by its own clock still committed and pushed
+          // whatever it had written before the deadline — `aide-run-spec`'s
+          // commit loop runs on every path and the push is gated on the
+          // push mode, not on `ok` (spec 187). Left on the branch, that
+          // work is readable only by checking it out by hand: spec 184
+          // stopped with a finished analysis nothing on this page
+          // mentioned.
+          //
+          // What decides is what the run TOUCHED, never which step it
+          // was. A run that moved a code root's HEAD is left exactly
+          // where a failed run is left — the code waits on its branch for
+          // `archive`, whether the step ran out of time or not — and there
+          // is no second list of "which steps are safe" to keep in step
+          // with the first.
+          //
+          // Only the wall clock. A cost cap stops mid-sentence with no
+          // boundary of its own, and a CLI error is not a stop at all.
+          if (!step || outcome.terminalReason !== "timeout") return undefined;
+          const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+          const pushed = outcome.branchUrls ?? [];
+          if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
+          return landStoppedStepBranch(job, step, outcome);
         },
         clearResult: (path) => {
           try {
@@ -1526,6 +1549,28 @@ export function createServer(opts: ServerOptions) {
     return landBranch(job, outcome, {
       step,
       failedNote: (why) => `the ${step} step finished, but landing it failed: ${why}`,
+    });
+  }
+
+  /** Land what a step wrote when it did NOT finish, but ran out of time
+   *  having touched no code repo (spec 187).
+   *
+   *  The merge is `landBranch`, unchanged — the caller has already asked
+   *  the only question this case adds (did anything outside the specs
+   *  repo move?). What differs is one sentence a person reads: "the
+   *  analyze step finished, but landing it failed" would state as fact
+   *  the one thing that did not happen, which is exactly what a reader
+   *  needs to know. `nothingToLand` stays unset for the same reason `archive`
+   *  leaves it unset: a run with no branch is an ordinary outcome here,
+   *  and the caller returns before this is reached anyway. */
+  async function landStoppedStepBranch(
+    job: Job,
+    step: WorkflowStep,
+    outcome: Partial<StepOutcome>,
+  ): Promise<void> {
+    return landBranch(job, outcome, {
+      step,
+      failedNote: (why) => `the ${step} step stopped at its time limit, and landing what it wrote failed: ${why}`,
     });
   }
 

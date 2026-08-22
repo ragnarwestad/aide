@@ -49,8 +49,18 @@ Usage:
    section: suggest running `/aide-review-plan` first (proceed if the
    user declines)
 4. Read the relevant coding standard (frontend or backend)
+5. Read `specs/XX-slug/4-status.md`'s phase table (spec 187). A step
+   stopped by its time limit commits what it wrote, and that work is
+   landed rather than left on a branch — so an earlier run may already
+   have finished some of the phases below. A phase whose tasks are all
+   ✅ is done: skip it. A phase marked 🔄, with some tasks ✅ and some
+   ⬜: keep the ✅ ones and resume at the first ⬜. Start at Phase 1
+   only when every phase is still ⬜ Not started.
 
 ### Phase 1: RED — Write failing tests
+
+Skip this phase entirely if Preparation step 5 found it already done;
+resume it at the first unticked task if it found it in progress.
 
 1. Read "Step 0" and the acceptance criteria from 3-solution.md
 2. Run `aide-emit-run --phase red --spec <ID>` (see [Reporting the phase](#reporting-the-phase))

@@ -290,6 +290,9 @@ class TestAnalyzeSkillFillsTheRightFiles:
 
     @staticmethod
     def _step(workspace_root, prefix):
+        # Named by number AND title. Inserting a step renumbers every one
+        # after it (spec 187 inserted Step 4), and a bare number would
+        # quietly start asserting against whichever step took the place.
         path = workspace_root / "core" / "skills" / "aide-analyze" / "SKILL.md"
         if not path.exists():
             pytest.skip("aide-analyze/SKILL.md not found")
@@ -303,19 +306,79 @@ class TestAnalyzeSkillFillsTheRightFiles:
         raise AssertionError(f"no '### {prefix}' step found")
 
     def test_analysis_step_asks_for_findings_only(self, workspace_root):
-        step = self._step(workspace_root, "Step 4")
+        step = self._step(workspace_root, "Step 5: Update 2-analysis.md")
         instruction = step.split("Include:", 1)[1].split("\n\n", 1)[0]
         for word in ("complexity", "risk analysis", "estimate"):
             assert word not in instruction.lower(), \
                 f"/aide-analyze must not ask for {word} in 2-analysis.md"
 
     def test_solution_step_asks_for_scope_and_risk(self, workspace_root):
-        step = self._step(workspace_root, "Step 5")
+        step = self._step(workspace_root, "Step 6: Create the implementation plan")
         for marker in ("**Scope:**", "**Risk analysis:**"):
             assert marker in step, \
                 f"/aide-analyze must ask for {marker} in 3-solution.md"
 
 
+@pytest.mark.validation
+class TestSkillsResumeWorkAlreadyBegun:
+    """A step stopped by its clock commits what it wrote and the branch is
+    landed (spec 187), so the NEXT run of that step opens files that are
+    already part-written. Both writing skills have to look before they
+    write, or the second run pays for the first run's work again.
+
+    Static assertions only: whether a live model actually obeys the
+    instruction is not something a test can execute — see the Manual
+    testing note in the spec's 3-solution.md.
+    """
+
+    @staticmethod
+    def _skill(workspace_root, name):
+        path = workspace_root / "core" / "skills" / name / "SKILL.md"
+        if not path.exists():
+            pytest.skip(f"{name}/SKILL.md not found")
+        return path.read_text()
+
+    def test_analyze_checks_for_work_already_begun_before_writing(self, workspace_root):
+        content = self._skill(workspace_root, "aide-analyze")
+        headings = [m.group(1) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+        assert headings, "aide-analyze/SKILL.md has no numbered workflow steps"
+        check = [h for h, title in
+                 [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+                 if "already begun" in title.lower()]
+        assert check, \
+            "/aide-analyze must have a step that checks for work already begun"
+        # Before the file-writing steps: checking afterwards is checking
+        # what this run just wrote.
+        order = headings.index(check[0])
+        for writes in ("2-analysis.md", "3-solution.md", "4-status.md"):
+            writing = [h for h, title in
+                       [(m.group(1), m.group(2)) for m in re.finditer(r"^### (Step \d+): (.*)$", content, re.M)]
+                       if writes in title]
+            assert writing, f"/aide-analyze must still have a step that writes {writes}"
+            assert order < headings.index(writing[0]), \
+                f"the already-begun check must come before the step writing {writes}"
+
+    def test_analyze_names_the_placeholder_rule_not_the_headings(self, workspace_root):
+        content = self._skill(workspace_root, "aide-analyze")
+        step = content.split("### Step 4: Check for work already begun", 1)[1].split("\n### ", 1)[0]
+        # The literal placeholder text is the signal, named outright.
+        assert "[not analyzed yet]" in step and "[not started]" in step, \
+            "the check must name the template's own placeholder text"
+        # And heading-counting is ruled out: a half-written section has
+        # its heading exactly as a finished one does.
+        assert "heading" in step.lower(), \
+            "the check must say that counting headings is not enough"
+
+    def test_implement_reads_the_phase_table_before_starting_red(self, workspace_root):
+        content = self._skill(workspace_root, "aide-implement")
+        prep = content.split("### Preparation", 1)[1].split("\n### ", 1)[0]
+        assert "4-status.md" in prep, \
+            "/aide-implement's Preparation must read 4-status.md"
+        assert "phase" in prep.lower(), \
+            "/aide-implement's Preparation must name the phase table it reads"
+        for symbol in ("✅", "⬜"):
+            assert symbol in prep, \
+                f"/aide-implement's Preparation must name the {symbol} status the table uses"
 @pytest.mark.validation
 class TestE2eSuiteExpectsTheNewAnalysisLayout:
     """The e2e suites assert which sections a real 2-analysis.md must have.
