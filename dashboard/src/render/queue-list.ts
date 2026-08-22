@@ -1353,6 +1353,51 @@ function specHeadRow(
 // phase that has run shows the model it last ran on, one that has not
 // shows what the configuration would give it. What is posted is always
 // a real name — the queue skips names for steps a job does not run.
+/** Which model a phase is actually ON, in one place (spec 179).
+ *
+ *  A phase that HAS run shows what it ran on; an admin's configured
+ *  default outranks the fallback beneath it; and the last resort is the
+ *  first entry `modelChoices` LISTS, in configuration order. That last
+ *  branch was the first entry of the row's own AI until spec 169 — spec
+ *  141 scoped it to a literal `"claude"` and spec 164 to the tool the
+ *  row's lead job ran on — but both were there to keep the select
+ *  agreeing with a row-wide AI picker, and there is no row-wide AI.
+ *
+ *  It is a function rather than three lines inside `modelPicker`
+ *  because `aiPicker` needs the same answer: the AI a line shows is the
+ *  tool of the model that line is on, and a second copy of this
+ *  reasoning is a second copy that can drift from it. */
+function resolveChosenModel(
+  models: NonNullable<QueuePageOptions["modelChoices"]>,
+  configured: string | undefined,
+  used: string | undefined,
+): string {
+  const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
+  return has(used) ? used! : has(configured) ? configured! : models[0]!.name;
+}
+
+/** The model an AI choice fills in for one step (spec 179).
+ *
+ *  The step's configured default when that default belongs to the tool
+ *  — "one the configuration names", and the same `defaultModels` table
+ *  `modelPicker` already reads — else the first entry `modelChoices`
+ *  lists for the tool, in configuration order, which is the fallback
+ *  this file already uses one scope wider.
+ *
+ *  Both are facts about the CONFIGURATION, worked out here and carried
+ *  into the markup on the option. The browser copies the value; it
+ *  never decides between a tool's models itself. */
+function defaultModelForTool(
+  models: NonNullable<QueuePageOptions["modelChoices"]>,
+  tool: string,
+  configured: string | undefined,
+): string | undefined {
+  if (configured && models.some((m) => m.name === configured && (m.tool ?? "claude") === tool)) {
+    return configured;
+  }
+  return models.find((m) => (m.tool ?? "claude") === tool)?.name;
+}
+
 function modelPicker(
   g: SpecGroup,
   opts: QueuePageOptions,
@@ -1364,23 +1409,14 @@ function modelPicker(
   if (!models.length) return "";
   const why = busy ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
-  const has = (name?: string) => name !== undefined && models.some((m) => m.name === name);
-  // The last resort is the first entry `modelChoices` LISTS, in
-  // configuration order. It was the first entry of the row's own AI
-  // until spec 169 — spec 141 scoped it to a literal `"claude"` and
-  // spec 164 to the tool the row's lead job ran on — but both were
-  // there to keep this select agreeing with a row-wide AI picker, and
-  // there is no row-wide AI any more. The two branches above it are
-  // untouched: a phase that HAS run still shows what it ran on, and an
-  // admin's configured default still outranks any of it.
-  const chosen = has(used) ? used : has(configured) ? configured : models[0]!.name;
+  const chosen = resolveChosenModel(models, configured, used);
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     // Whether this select is showing HISTORY or a suggestion, said to
-    // the browser (spec 169). "Set all" writes the phases still ahead
-    // and leaves a phase that has run at the model it really ran on;
-    // this is derived from the same `used` the pre-filled value is, so
-    // the two cannot disagree about where the tail starts.
+    // the browser (spec 169). It scoped the removed "set all" control
+    // to the phases still ahead; it stays because the server saying
+    // which phases have run — derived from the same `used` the
+    // pre-filled value is — is better than the browser re-deriving it.
     (used !== undefined ? ` data-ran="1"` : "") +
     (busy ? ` disabled title="${esc(why)}"` : "") +
     `>` +
@@ -1393,9 +1429,17 @@ function modelPicker(
  *
  *  The grouping is what carries the tool while the list is open, and
  *  the model's own name — `queue-config.json`'s own key — while it is
- *  closed. Nothing per-option says it any more: the `(codex)` suffix
- *  went in spec 167, and `data-tool` went with the row-wide AI filter
- *  that was the only thing reading it.
+ *  closed. The `(codex)` suffix went in spec 167 and is not coming
+ *  back.
+ *
+ *  `data-tool` is (spec 179). It went in spec 169 with the row-wide AI
+ *  filter that was the only thing reading it, and it is read for the
+ *  opposite reason now: the AI select beside this one has to say which
+ *  tool the model this select is on belongs to, and after a hand-picked
+ *  model survives the five-second swap this attribute is the only place
+ *  that fact lives in the browser. It is read to DISPLAY a tool, never
+ *  to hide an option — nothing here is hidden by it or by anything
+ *  else, which is the next paragraph's whole point.
  *
  *  Nothing is HIDDEN here either, which is the whole point. Every
  *  phase's select offers every model, so a row can be run analyze on
@@ -1416,7 +1460,7 @@ function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, cho
         group
           .map(
             (m) =>
-              `<option value="${esc(m.name)}" title="$${m.budgetUsd} per step"` +
+              `<option value="${esc(m.name)}" data-tool="${esc(tool)}" title="$${m.budgetUsd} per step"` +
               `${m.name === chosen ? " selected" : ""}>${esc(m.name)}</option>`,
           )
           .join("") +
@@ -1430,31 +1474,43 @@ function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, cho
 // enough to name, and the three were flex children of ONE cell until
 // spec 165 — pinned to fixed widths so every select started at the same
 // x, which is bookkeeping a real table column does for free. They are
-// real columns now: the phase's name, the row's set-all control, and
-// the model with the phase's box beside it.
+// real columns now: the phase's name, the phase's AI, and the model
+// with the phase's box beside it.
 //
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
 // sub-row itself, so the caption can lead whichever row comes first.
 //
-// The set-all column is the one it leaves EMPTY. That control is one
-// for the whole group and hangs in a spanning cell that starts on the
-// first phase line, so it sits at the height of the phases rather than
-// up on a heading — and this line still writes the cell, because a row
-// short of one shifts every column after it.
+// The AI column has a word of its own since spec 179. It was left
+// empty while the column held one set-all control for the whole group
+// — an action wants no heading — and it holds a picker per phase line
+// now, which is a column like the two beside it. The word is drawn
+// only when there are two tools to tell apart, exactly as the picker
+// itself is: a heading over an empty column is worse than no heading.
 //
-// The model column's word says "AI - Model" when two tools are
-// configured (spec 169): the select under it holds both now, grouped
-// by the CLI each model starts, so the column is about the tool as
-// much as about the model. With one tool there is nothing for "AI" to
-// tell apart, and it stays the one word — the same restraint the
-// removed AI picker drew itself under.
+// The model column is the single word "Model" again. It said
+// "AI - Model" from spec 169, when one select held both and there was
+// no AI column for the first half of that phrase to stand over; there
+// is one now, so each word stands over what it names.
+//
+// The no-JS floor for the AI picker is written HERE, once for the
+// group, rather than five times beside five selects: it is a style
+// rule, and one is as good as five. Filling a model in from an AI IS
+// the script — a picker that looked pressable and silently did nothing
+// would be worse than the removed AI filter's inert degradation ever
+// was — and the caption goes with it, since a column headed "AI" with
+// nothing under it reads as broken rather than as absent.
 function phaseCaptionCells(opts: QueuePageOptions): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
-    `<td class="toolcell"></td>` +
+    `<td class="toolcell">` +
+    (tools.size > 1
+      ? `<span class="muted small" data-ai-cap>AI</span>` +
+        `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
+      : "") +
+    `</td>` +
     `<td class="modelcell"><span class="row">` +
-    `<span class="muted small">${tools.size > 1 ? "AI - Model" : "Model"}</span>` +
+    `<span class="muted small">Model</span>` +
     `<span class="muted small">Select</span>` +
     `</span></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
@@ -1465,51 +1521,79 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
  *  short one the runner uses; this is the one a reader picks by. */
 const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
 
-// One action instead of five (spec 169): a control that SETS every
-// phase select on the row, in the browser, on change.
+// The AI a phase will run on, beside the model it will run (spec 179).
+// One per phase line, in the column between the phase's name and its
+// model — where spec 169's set-all control stood, and spec 127's
+// row-wide AI select before that.
 //
-// Its slot was the row's AI select's (spec 127), which posted nothing
-// and chose nothing — all it did was HIDE the other tool's models from
-// the five selects, and that is exactly what stopped anyone
-// discovering that a row can run analyze on one CLI and implement on
-// another. The convenience it was standing in for was real; this is
-// that convenience done the way round that takes nothing away.
+// Both of those were one control for the whole row, and that is what
+// was wrong with them. Spec 127's hid the other tool's models from the
+// five phase selects, which is exactly what stopped anyone discovering
+// that a row can run analyze on one CLI and implement on another.
+// Spec 169's set every phase at once, which is a bulk action and not a
+// statement about any line. A phase is where the choice actually lives:
+// the runner reads `job.model[step]` per step and derives `--tool` from
+// it, so every line gets its own picker and every line is set the same
+// way as every other.
 //
-// It POSTS NOTHING either — no `name`, so the request is still the
-// same five `model.<step>` fields it always was. The `form` attribute
-// is how it finds the selects it writes: they are written outside the
-// form's own tags and tied to it by that id alone.
+// It POSTS NOTHING — no `name` — so a press still sends the same five
+// `model.<step>` fields it always did. What a phase runs on stays ONE
+// value on the job, and the tool is derived from it; this select is
+// that derivation shown, never a second fact the job could disagree
+// with. It is READ on change, to fill the model select in, and WRITTEN
+// on redraw, to reflect whatever that select ended up on. Never the
+// reverse.
 //
-// Drawn only when there are two MODELS to choose between, not two
-// tools: two Claude entries and no Codex one is still a row worth
-// setting in one action, and one entry is nothing to set.
+// Drawn only when there are two TOOLS to choose between. The control it
+// replaced counted MODELS instead — two Claude entries and no Codex one
+// was still a row worth setting in one action — and that is the other
+// question: an AI picker offering one AI has nothing to offer. A
+// single-tool deployment with several models therefore loses the
+// one-action bulk set it had, which is what "'Set all' shall be removed"
+// asks for.
 //
-// The first option is a PLACEHOLDER, and the control goes back to it
-// after every write. It is an action, not a statement about the row:
-// left resting on the last model picked it would claim the row is on
-// that model, which is the claim the removed AI select made and could
-// not keep.
+// Each option carries the model that AI fills in, worked out by
+// `defaultModelForTool` HERE rather than in the browser: which model an
+// AI stands for is a configuration fact, and the page is where
+// configuration is read, not where it is decided.
 //
-// The `<noscript>` rule beside it is this page's no-JS floor. Every
-// other control here works without a script; this one cannot — writing
-// five selects IS the script — so with scripting off it must simply
-// not be there. It carries no resting value of its own to be
-// informative about, so a control that looks pressable and silently
-// does nothing would be worse than the AI select's inert degradation
-// ever was. The five phase selects underneath are untouched by any of
-// this and stay exactly as usable with a script as without one.
-function setAllControl(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
+// `data-ai` names the model select this one writes — the same `name`
+// that select posts under. That plus the shared `form` id is the whole
+// of the pairing, because both are written outside the run form's own
+// tags and tied to it by that attribute alone.
+function aiPicker(
+  g: SpecGroup,
+  opts: QueuePageOptions,
+  step: string,
+  busy: boolean,
+  used?: string,
+): string {
   const models = opts.modelChoices ?? [];
-  if (models.length < 2) return "";
+  // `TOOL_NAMES`'s own key order, like the option groups in
+  // `modelOptions`: which AI comes first is a fact about the page, not
+  // about whichever tool an admin happened to list first.
+  const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
+  if (tools.length < 2) return "";
   const why = busy ? busyReason(g) : "";
+  const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
+  // The same answer `modelPicker` pre-fills its select with, from the
+  // same helper: the AI shown is the tool of the model this line is on,
+  // so the two controls cannot disagree about it.
+  const on = resolveChosenModel(models, configured, used);
+  const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
-    `<select data-set-all form="${esc(runFormId(g))}"` +
+    `<select data-ai="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     (busy ? ` disabled title="${esc(why)}"` : "") +
     `>` +
-    `<option value="" selected disabled hidden>Set all…</option>` +
-    modelOptions(models) +
-    `</select>` +
-    `<noscript><style>[data-set-all]{display:none}</style></noscript>`
+    tools
+      .map(
+        (t) =>
+          `<option value="${esc(t)}"` +
+          ` data-default="${esc(defaultModelForTool(models, t, configured) ?? "")}"` +
+          `${t === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[t]!)}</option>`,
+      )
+      .join("") +
+    `</select>`
   );
 }
 
@@ -1560,7 +1644,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
     });
   }
   g.phases
-    .forEach((p, index) => {
+    .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
       const name = latest
@@ -1660,20 +1744,18 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // there is to say.
             plain: true,
           });
-      // The row's set-all control, in a column of its own between the
-      // name and the model, drawn ONCE and spanning every phase line
-      // (spec 165, spec 169).
-      // `g.phases.length`, never a literal five: a spec whose past
-      // jobs touched a step outside the usual set has that step
-      // appended as a line of its own (`jobGroup`), and a span short
-      // of the rows beneath it leaves a hole in the column.
+      // The phase's AI picker, in a column of its own between the name
+      // and the model (spec 165, spec 179). It was one control for the
+      // whole group in a cell spanning every phase line until spec 179
+      // — which needed the span kept level with `g.phases.length` and
+      // never a literal five, since a spec whose past jobs touched a
+      // step outside the usual set has that step appended as a line of
+      // its own. There is nothing to keep level any more: every line
+      // writes its own cell, whichever step it names.
       // The cell is written whether the control draws anything or not
-      // — one configured model is nothing to set, and a column that
-      // came and went would move every column after it.
-      const toolCell =
-        index === 0
-          ? `<td class="toolcell" rowspan="${g.phases.length}">${setAllControl(g, opts, busy)}</td>`
-          : "";
+      // — one configured AI is nothing to choose between, and a column
+      // that came and went would move every column after it.
+      const toolCell = `<td class="toolcell">${aiPicker(g, opts, p.step, busy, latest?.model)}</td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:

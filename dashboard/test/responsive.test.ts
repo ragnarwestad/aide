@@ -98,18 +98,27 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(CSS).not.toContain("stackcell");
   });
 
-  // Since spec 165 a phase line is real table columns, so only ONE
-  // pair can run out of room at this width: the model select and the
-  // phase's box, which share a cell. The name is a word in a column of
-  // its own and the AI picker's spanning cell is centred in whatever
-  // height the wrapped rows end up — neither needs an override.
+  // Since spec 165 a phase line is real table columns, and since spec
+  // 179 there are three of them on EVERY line — the name, the AI
+  // select, then the model with the phase's box beside it. Two selects
+  // and a name do not cross 375px, so each cell takes a line of its
+  // own, and the pair inside the model's cell wraps as it already did.
   test("the model and its box wrap inside their own cell", () => {
     expect(NARROW).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
+  });
+
+  test("a phase line's three cells each take a line of their own", () => {
+    expect(NARROW.replace(/\s+/g, " ")).toContain(
+      "table.list tr.subrow .phasecell, table.list tr.subrow td.toolcell, " +
+        "table.list tr.subrow .modelcell { display: block; width: 100%; }",
+    );
   });
 
   // 8rem for the AI column and 10rem inside the model's is 18rem of
   // floor, in a screen that is 23rem wide. Held here, the table would
   // scroll — which is the whole of what this block exists to prevent.
+  // The stacking rule above needs them released just as badly: a
+  // full-width block still honours a min-width.
   test("the widths the phase lines reserve on a desktop are given back", () => {
     expect(NARROW).toContain("table.list tr.subrow td.toolcell { min-width: 0; }");
     expect(NARROW).toContain(

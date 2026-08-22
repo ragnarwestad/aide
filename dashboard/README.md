@@ -543,19 +543,36 @@ on another; the runner has always allowed exactly that, reading
 and `--tool` from that one entry (`runnerArgv`, `src/serve.ts`). The
 row carried an AI select until spec 169 that posted nothing and hid the
 other tool's models from all five phase selects, which is what stopped
-anyone discovering it. The caption over the column reads `AI - Model`
-when two tools are configured, and `Model` when there is only one.
+anyone discovering it.
 
-**One action still sets the whole row.** Beside the phase lines, in the
-column the AI select used to stand in, is a `Set all…` control: pick a
-model in it and every phase that has NOT run yet is set to that model.
-A phase that HAS run is left alone — its select is showing the model it
-really ran on, which is history rather than a suggestion. The control
-posts nothing, carries no resting value of its own, and goes back to
-its placeholder as soon as it has written. Writing five selects is a
-script's job, so with scripting off the control is hidden outright
-(`<noscript>`) and the five selects underneath stay exactly as usable
-as they are with one.
+**Every phase line has an AI picker beside its model picker (spec
+179).** In the column between the phase's name and its model, on every
+line — where spec 169's one-per-row `Set all…` control stood, and spec
+127's row-wide AI select before that. Picking an AI fills in the model
+for THAT phase, and no other. The caption names the two columns
+separately, `AI` and `Model`; it read `AI - Model` over the model's
+column alone in between.
+
+Which model an AI fills in is worked out by the server and carried on
+the option: the step's own `model` default when that default belongs to
+the tool, else the first entry `modelChoices` lists for it. The browser
+copies the value and never chooses between a tool's models itself.
+
+The picker POSTS NOTHING — a press still sends the same five
+`model.<step>` fields it always did. What a phase runs on stays one
+value on the job and the tool is derived from it, so the picker is read
+on change (to fill the model in) and written on redraw (to reflect it),
+never the reverse. Change a model select by hand and the AI select
+beside it follows at once. It is drawn only when two tools are
+configured — one AI is nothing to choose between — and filling a model
+in is a script's job, so with scripting off the pickers and their
+caption are hidden outright (`<noscript>`) and the five model selects
+underneath stay exactly as usable as they are with one.
+
+The `Set all…` control is gone with this. A deployment with one tool
+and several models of it therefore has no one-action way to set every
+phase at once any more; each phase's model select is changed on its own
+line.
 
 The pre-filled model for a phase with no run behind it and no `model`
 default of its own is the first entry `modelChoices` lists. A phase

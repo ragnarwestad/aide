@@ -487,13 +487,16 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.body).toMatch(/padding-right:\s*\d+px/);
   });
 
-  test("the model select and the set-all control are ours too", () => {
+  test("the model select and the AI select are ours too", () => {
     // Neither has a `.field` ancestor, so `.field select` alone reaches
     // neither of them.
     const rule = oneRule((r) => r.body.includes("appearance: none"));
     expect(rule.selectors).toContain(".field select");
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-set-all]");
+    expect(rule.selectors).toContain("select[data-ai]");
+    // The control this one replaced (spec 179) is gone from the
+    // stylesheet as well as from the markup.
+    expect(CSS).not.toContain("data-set-all");
   });
 
   test("the two selects get the whole field look, not only the arrow", () => {
@@ -502,7 +505,7 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     // all — the base rule has to name them as well.
     const rule = oneRule((r) => r.selectors.includes(".field input,"));
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-set-all]");
+    expect(rule.selectors).toContain("select[data-ai]");
   });
 
   test("there is one focus rule, it is :focus-visible, and it is the accent", () => {
@@ -523,19 +526,26 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     expect(rule.selectors).toContain(".field select:disabled");
     expect(rule.selectors).toContain(".field textarea:disabled");
     expect(rule.selectors).toContain('select[name^="model."]:disabled');
-    expect(rule.selectors).toContain("select[data-set-all]:disabled");
+    expect(rule.selectors).toContain("select[data-ai]:disabled");
     // `background-color`, not the `background` shorthand: the shorthand
     // would drop the ground the base rule sets.
     expect(rule.body).toContain("background-color: var(--surface-2)");
     expect(rule.body).toContain("color: var(--muted)");
   });
 
+  // The AI select is deliberately NOT in this rule (spec 179). It is
+  // the one place the two controls beside each other differ, and the
+  // difference is what they hold: a model name is a value, like a spec
+  // id or a branch name; "Claude Code" is a thing's NAME, which the
+  // project and checkout pickers already keep in the sans face. The
+  // chrome — border, height, arrow, disabled look — is identical, and
+  // that is what makes the pair read as a pair.
   test("a model name is a value, so it is set in mono like every other one", () => {
     const rule = oneRule(
       (r) => r.body.includes("font-family: var(--mono)") && r.selectors.includes("select["),
     );
     expect(rule.selectors).toContain('select[name^="model."]');
-    expect(rule.selectors).toContain("select[data-set-all]");
+    expect(rule.selectors).not.toContain("select[data-ai]");
     // Mono runs wider at the same nominal size, and these sit in a
     // pinned table column.
     expect(rule.body).toContain("font-size: var(--fs-s)");

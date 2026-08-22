@@ -156,6 +156,11 @@ function restoreChosen(body: Element): void {
     for (const option of model.options) {
       if (option.value === want) model.value = want;
     }
+    // The AI select this swap just redrew was drawn for the model the
+    // SERVER chose, and the line above has put another one back over
+    // it. It carries no memory of its own — it is set from the model,
+    // every time, which is what stops the two disagreeing (spec 179).
+    syncAiToModel(model);
   }
   for (const el of body.querySelectorAll('input[name="steps"]')) {
     const box = el as HTMLInputElement;
@@ -266,7 +271,7 @@ const attrValue = (v: string): string => v.replace(/["\\]/g, "\\$&");
 
 /** Everything written OUTSIDE a form and tied to it by name alone. On
  *  a spec's row that is the Run button, the four phase boxes, the five
- *  model selects and the set-all control: the trick spec 123 introduced so
+ *  model selects and the five AI selects: the trick spec 123 introduced so
  *  the button could sit above the phase lines and the boxes on them,
  *  while the form itself carries nothing but hidden fields. */
 const namesForm = (id: string): Element[] =>
@@ -590,51 +595,74 @@ function syncDependsOn(): void {
   }
 }
 
-// The row's set-all control (spec 169): one action instead of five.
-// Picking a model writes it into every phase select on that row that
-// has not run yet.
+// The AI picked on ONE phase line, written into that line's own model
+// select (spec 179). One phase, never the row: the control it replaced
+// set every phase at once, and a picker that sits on a line is a
+// statement about that line.
 //
-// It replaced an AI select that did the opposite — hid the other
-// tool's models from all five — which is what stopped anyone
-// discovering that a row can run analyze on one CLI and implement on
-// another. Nothing is hidden here: every select goes on offering every
-// model, and this only moves the ones with nothing to lose.
+// Scoped by FORM ID and `data-ai` together, not by walking the row: the
+// model selects are written outside their form's own tags and tied to
+// it by that attribute alone, so the row is not a container that holds
+// them. `data-ai` carries the paired select's `name` — the same name it
+// posts under.
 //
-// `data-ran="1"` is the server's own word for "this select is showing
-// history" (`queue-list.ts`), derived from the same value that
-// pre-filled it. A phase that has run shows the model it really ran
-// on, and no single action may overwrite that; the phases still ahead
-// are showing a suggestion, and a suggestion is exactly what this
-// replaces.
+// The value written is the one the SERVER worked out and put on the
+// option. Which model an AI stands for is a configuration fact
+// (`defaultModelForTool`, `queue-list.ts`), so the browser copies it
+// and never chooses between a tool's models itself.
 //
-// Scoped by FORM ID, not by walking the row: the model selects are
-// written outside their form's own tags and tied to it by that
-// attribute alone, so the row is not a container that holds them.
-//
-// Each write is recorded in `chosen` as well. Setting `.value` from
+// The write is recorded in `chosen` as well. Setting `.value` from
 // script fires no `change` event, so the delegated listener that
 // normally remembers a hand-made choice never sees this one — and
-// without the record the five-second swap would put the server's
-// markup back over every phase this just set, with a press afterwards
-// starting the step on a model nobody chose.
+// without the record the five-second swap would put the server's markup
+// back over the phase this just set, with a press afterwards starting
+// the step on a model nobody chose.
 //
-// Finally the control goes back to its placeholder: it is an action,
-// not a statement about the row, and one left resting on the last
-// model picked would claim the row is on that model.
-function applySetAll(select: HTMLSelectElement): void {
-  const want = select.value;
+// Nothing is done to the AI select itself: the browser has already left
+// it on the option the reader picked, and a swap puts it back from the
+// model select rather than from a memory of its own (`syncAiToModel`).
+function applyAiPick(select: HTMLSelectElement): void {
   const form = select.getAttribute("form");
-  if (!want || !form) return;
-  for (const el of document.querySelectorAll(`select[name^="model."][form="${form}"]`)) {
-    const model = el as HTMLSelectElement;
-    if (model.dataset.ran === "1") continue;
-    for (const option of model.options) {
-      if (option.value !== want) continue;
-      model.value = want;
-      chosen.set(selectKey(model), want);
-    }
+  const name = select.getAttribute("data-ai");
+  const want = select.selectedOptions[0]?.dataset.default;
+  if (!form || !name || !want) return;
+  const model = document.querySelectorAll(
+    `select[name="${name}"][form="${form}"]`,
+  )[0] as HTMLSelectElement | undefined;
+  if (!model) return;
+  for (const option of model.options) {
+    if (option.value !== want) continue;
+    model.value = want;
+    chosen.set(selectKey(model), want);
   }
-  select.value = "";
+}
+
+// The other direction, and the only one the AI select is ever written
+// in (spec 179): what a phase runs on is one value on the job, and the
+// tool is DERIVED from it.
+//
+// Called from two places, for the two ways a model select can end up on
+// something the AI select beside it does not say. After a swap, because
+// `restoreChosen` puts a hand-picked model back over the server's fresh
+// markup and the AI select in that markup was drawn for the model the
+// server chose. And on a live change, because a reader may go straight
+// to the model select and ignore the picker beside it — leaving the
+// line reading "Claude Code" over a Codex model until the next swap
+// came round to fix it.
+//
+// The tool is read off the model option's own `data-tool`, which is the
+// only place that fact lives in the browser.
+function syncAiToModel(model: HTMLSelectElement): void {
+  const form = model.getAttribute("form");
+  const tool = model.selectedOptions[0]?.dataset.tool;
+  if (!form || !tool) return;
+  const ai = document.querySelectorAll(
+    `select[data-ai="${model.name}"][form="${form}"]`,
+  )[0] as HTMLSelectElement | undefined;
+  if (!ai) return;
+  for (const option of ai.options) {
+    if (option.value === tool) ai.value = tool;
+  }
 }
 
 // The one control in this file that deliberately NAVIGATES on success,
@@ -752,18 +780,26 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // and it is what lets the test wait for the request the tick makes.
   const tail = target?.closest?.("input[data-post-to]") as HTMLInputElement | null;
   if (tail) return postTailStep(tail);
-  // The set-all control is an action and nothing else (spec 169): it
-  // writes the row's phase selects and is done. Nothing about it is
-  // remembered for the next redraw — it has no value of its own to
-  // remember, and `applySetAll` records what it wrote under the
-  // selects it wrote it into.
-  const setAll = target?.closest?.("select[data-set-all]") as HTMLSelectElement | null;
-  if (setAll) return applySetAll(setAll);
+  // A phase's AI picker fills that phase's model in and is done (spec
+  // 179). It is intercepted BEFORE the branch below, and not only for
+  // tidiness: it has no `name`, so `selectKey` would file every AI
+  // select on the row under the same key — the form id and an empty
+  // string — and the last one touched would decide the lot. Nothing
+  // about it is remembered for the next redraw either; `applyAiPick`
+  // records what it wrote under the select it wrote it into, and the
+  // picker itself is set back from that select on the way out.
+  const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
+  if (ai) return applyAiPick(ai);
   // Every other select on the rows IS remembered: they are swapped
   // away every five seconds, and a model picked for the next run is a
   // promise the page has to keep.
   const select = target?.closest?.("select") as HTMLSelectElement | null;
-  if (select) chosen.set(selectKey(select), select.value);
+  if (select) {
+    chosen.set(selectKey(select), select.value);
+    // A model moved by hand, without the picker beside it: the AI that
+    // line shows has to follow it now, not at the next swap.
+    if (select.name?.startsWith("model.")) syncAiToModel(select);
+  }
   // And the phase boxes, for the same reason and in a map of their own:
   // what is remembered about a box is whether it is ticked, which is
   // not a value a select can be restored from (spec 141).

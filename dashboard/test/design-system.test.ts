@@ -274,9 +274,9 @@ describe("the spec column is capped, so the phases sit close", () => {
 
 // The three things a phase line offers used to be flex children of one
 // cell, pinned to fixed widths so every select started at the same x.
-// Since spec 165 each is a real table column — the name, the row's AI,
-// then the model with the phase's box beside it — and a real column
-// lines up on every row without a flex basis to keep it honest.
+// Since spec 165 each is a real table column — the name, the phase's
+// AI, then the model with the phase's box beside it — and a real
+// column lines up on every row without a flex basis to keep it honest.
 describe("the phase lines line up in columns", () => {
   test("the stylesheet declares the columns, not pinned flex children", async () => {
     const { CSS } = await import("../src/render/css.ts");
