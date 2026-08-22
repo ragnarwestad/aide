@@ -2505,12 +2505,17 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // test's own name claims. It passed only because the sentence never
   // read the files. Every phase is named here, so "nothing left out"
   // is what the fixture actually says.
+  //
+  // Spec 191 corrected what it expects: a spec on this list is one the
+  // archive has not moved, whatever its history says about the step
+  // having run. The badge says archive is what remains; the test's own
+  // point — that no merge is asked for — is untouched by that.
   test("a finished spec with nothing left out does not ask for a merge", () => {
     const html = rows(
       [row({ specFolder: "101-a", state: "done" })],
       [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("done — nothing waiting on you");
+    expect(chip(html)).toBe("ready for archive");
     expect(chip(html).toLowerCase()).not.toContain("merge");
     expect(hint(html)).toBe("");
   });
@@ -2567,12 +2572,16 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(hint(html)).toBe("");
   });
 
-  test("a spec with every phase behind it still says nothing is waiting", () => {
+  // Named "still says nothing is waiting" until spec 191, which is the
+  // string the fix removes: every phase behind it INCLUDES an archive
+  // that ran, and a spec still on this list is one the move did not
+  // happen for. Archive is the floor, so archive is what it says.
+  test("a spec with every phase behind it is ready for archive", () => {
     const html = rows(
       [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
       [target("101-a", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("done — nothing waiting on you");
+    expect(chip(html)).toBe("ready for archive");
     expect(hint(html)).toBe("");
   });
 
@@ -5681,6 +5690,34 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [target("161-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
     expect(labels(state(html))).toEqual(["Archive"]);
+  });
+
+  // Spec 191: the two halves of that same cell were worked out apart.
+  // The button read the rule above; the badge asked `g.done` raw, found
+  // every phase in it, and said "done — nothing waiting on you" beside
+  // a button reading "Archive". One row, two answers. Both are read
+  // here, off ONE render, so they cannot drift again without this
+  // failing.
+  test("the badge and the button name the same phase once archive has run and declined", () => {
+    const html = rows(
+      [],
+      [target("191-agree", { done: ["analyze", "review-plan", "implement", "archive"] })],
+    );
+    expect(state(html)).toContain("ready for archive");
+    expect(labels(state(html))).toEqual(["Archive"]);
+  });
+
+  // Spec 161's own scenario, asked of the BADGE this time: the
+  // held-back note cleared by hand while the history still lists
+  // archive. Clearing the reason archiving did not happen does not
+  // make it have happened.
+  test("a cleared held-back note leaves the badge saying archive is ready", () => {
+    const html = rows(
+      [],
+      [target("191-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
+    );
+    expect(state(html)).toContain("ready for archive");
+    expect(state(html)).not.toContain("nothing waiting on you");
   });
 
 });

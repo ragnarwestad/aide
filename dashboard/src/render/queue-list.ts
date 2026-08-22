@@ -879,6 +879,44 @@ const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
 const busyReason = (g: SpecGroup): string =>
   g.lead ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
 
+// THE phase a spec is still waiting on — one fact, read by both halves
+// of the State column, so the badge and the button beside it cannot
+// name different phases (spec 191). They used to work it out apart:
+// this rule lived in `preTicked` below for the button's sake, and
+// `specHeadRow` asked `g.done` raw for the badge's. A spec whose
+// history listed every step therefore got "done — nothing waiting on
+// you" beside a button reading "Archive", and the button was right.
+//
+// ARCHIVE IS NEVER DONE ON A ROW THAT EXISTS. Archived-ness is a
+// directory (`discover.ts`): a spec the list shows is a spec still in
+// the active root, so whatever the git history says about an archive
+// step having RUN, it did not finish the one thing archiving is.
+//
+// The history is the record of steps that ran (spec 154), and an
+// archive that ran and declined to move the folder leaves a commit
+// behind exactly like one that moved it. Counted as done it left spec
+// 159 with every phase ticked, no next phase to suggest and no button
+// at all — beside a badge reading "archive held back", which was the
+// one thing on that row needing a press. The first fix read the
+// held-back note and dropped that phase; too narrow, and spec 161
+// showed why hours later — with the note cleared the row went to
+// "done — nothing waiting on you" while the spec sat unarchived in
+// the list. The note is a REASON archiving did not happen, not the
+// only evidence that it did not (2026-08-21).
+//
+// So this never comes back empty for a spec on this page: `archive` is
+// a member of `QUEUE_STEPS` and is deleted before the search, and
+// archive is the floor every row still has ahead of it. Not exported,
+// and deliberately: a caller outside this page — a summary of specs
+// that really ARE archived, say — needs archive counted as done, and
+// would be wrong to read this. Anything wanting to export it has to
+// come back through this paragraph first.
+function nextPhase(done: readonly string[]): string | undefined {
+  const remaining = new Set(done);
+  remaining.delete("archive");
+  return QUEUE_STEPS.find((s) => !remaining.has(s));
+}
+
 // What a press would run, if nothing else is ticked. It depends on how
 // far the spec has got, and on nothing about which phase is asking.
 //
@@ -912,24 +950,10 @@ const busyReason = (g: SpecGroup): string =>
 // rule is read once per row and consulted per phase.
 function preTicked(g: SpecGroup): Set<string> {
   const done = new Set(g.done);
-  // ARCHIVE IS NEVER DONE ON A ROW THAT EXISTS. Archived-ness is a
-  // directory (`discover.ts`): a spec the list shows is a spec still in
-  // the active root, so whatever the git history says about an archive
-  // step having RUN, it did not finish the one thing archiving is.
-  //
-  // The history is the record of steps that ran (spec 154), and an
-  // archive that ran and declined to move the folder leaves a commit
-  // behind exactly like one that moved it. Counted as done it left spec
-  // 159 with every phase ticked, no next phase to suggest and no button
-  // at all — beside a badge reading "archive held back", which was the
-  // one thing on that row needing a press. The first fix read the
-  // held-back note and dropped that phase; too narrow, and spec 161
-  // showed why hours later — with the note cleared the row went to
-  // "done — nothing waiting on you" while the spec sat unarchived in
-  // the list. The note is a REASON archiving did not happen, not the
-  // only evidence that it did not (2026-08-21).
-  done.delete("archive");
-  const next = QUEUE_STEPS.find((s) => !done.has(s));
+  const next = nextPhase(g.done);
+  // The pair is filtered against the untouched done-set, and can be:
+  // it only ever tests `analyze` and `review-plan`, neither of which
+  // the archive rule above touches.
   const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
   return new Set(g.lead || pair.length === 0 ? single : pair);
@@ -1214,10 +1238,10 @@ function specHeadRow(
     })),
   );
   // The earliest phase the spec's own files say has not happened — the
-  // same one `preTicked` ticks a box for, asked once more for the
-  // sentence. Worded for a reader here, so `review-plan` reaches it as
-  // "review".
-  const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
+  // same one `preTicked` ticks a box for, from the same function, so
+  // the badge and the button cannot name different phases (spec 191).
+  // Worded for a reader here, so `review-plan` reaches it as "review".
+  const nextStep = nextPhase(g.done);
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   // The other thing the State column is built from: the archive that
   // declined to move.
