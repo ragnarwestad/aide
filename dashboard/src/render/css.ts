@@ -508,46 +508,41 @@ table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom:
    way for a spacing detail to degrade. */
 table.list tr.subrow:last-child td,
 table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
-/* The phase lines are REAL COLUMNS since spec 165 — the name, the
-   phase's AI, then the model with the phase's box beside it. They were three
-   flex children of one cell until then, each pinned to a fixed width
-   so every select started at the same x; a table column does that by
-   itself, and the bookkeeping is gone with the pinning.
+/* A phase line is TWO cells since spec 192 — the name, then the three
+   choices the line offers together. It was three real columns from spec
+   165 (the name, the phase's AI, the model with the box beside it), and
+   three flex children of one cell up to then, each pinned to a fixed
+   width so every select started at the same x.
+   A real column ended the hand-pinning, and charged a reserved width
+   and a cell's padding for it — three columns is two lots of both
+   between the name and the box, which is the gap that made the three
+   controls read as three separate things. They share a cell again, and
+   the pinned widths do NOT come back: the one width reserved below is
+   stated on the model select itself.
    The name stands hard left with nothing in front of it: it is what
    the eye lands on first, and it began 2.5rem in, behind the box. */
 table.list tr.subrow .phasecell { white-space: nowrap; }
-/* The phase's AI picker (spec 179), in the column to the LEFT of the
-   model (spec 165). It was one cell for the whole group, spanning
-   every phase line, while the control in it was the row's set-all —
-   hence vertical-align: middle, which sat that one control at the
-   height of the phases in the middle rather than up on the first.
-   There is a control on every line now and the alignment stays: it
-   centres the select against the phase's name and its model, where
-   every other cell on the page is top-aligned.
-   The min-width is the same promise .actionslot makes: the column
-   is as wide with one configured tool, where the picker draws
-   nothing, as with two. Nothing here may move because something
-   else was pressed. */
-table.list tr.subrow td.toolcell {
-  vertical-align: middle; min-width: 8rem; }
-/* The model select and the phase's box, in the column the head row's
-   pips leave empty on a phase line: they claim the width they need
-   rather than wrapping, or the column squeezes them into two. */
+/* The AI select, the model select and the phase's box, in the column
+   the head row's pips leave empty on a phase line: they claim the width
+   they need rather than wrapping, or the cell squeezes them into two
+   lines. */
 table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
-/* The one width this cell does reserve, and the caption line reserves
-   it too: it is what stands the word "Select" over the boxes and the
-   boxes over each other. A floor, not a fix — a model name longer
-   than any real configuration widens the select and takes the box
-   with it, which is better than clipping the name. It also holds the
-   column still when the row's AI changes: a browser sizes a select by
-   its widest OPTION, and the models one tool offers are not the width
-   of the other's.
+/* The one width this cell does reserve: it holds the column still when
+   the row's AI changes, since a browser sizes a select by its widest
+   OPTION and the models one tool offers are not the width of the
+   other's. A floor, not a fix — a model name longer than any real
+   configuration widens the select and takes the box with it, which is
+   better than clipping the name.
    6.25rem, not the 10rem it was: the list used to carry every model
    under both tools, and now carries one tool's at a time (spec 179's
    filter), so the floor no longer has to clear the widest name in the
    whole configuration. Asked for 2026-08-22 — the reserved width was
-   pushing the phase, the AI and the model apart. */
-table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; max-width: 100px; }
+   pushing the phase, the AI and the model apart.
+   Selected by the select's own NAME, never by its position: the AI
+   select sits in front of it whenever two tools are configured, so
+   a :first-child rule would cap that one instead and let the model select
+   regrow to its widest option — the exact crowding spec 192 removes. */
+table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
@@ -785,32 +780,28 @@ tr.spec-archived td { color: var(--muted); }
      hold two empty columns nothing lines up under. */
   table.list [data-col="started"], table.list [data-col="cost"] { display: none; }
 
-  /* An open row's phase line carries THREE real cells since spec 179 —
-     the name, the AI select, the model with the phase's box — where it
-     carried two on four lines out of five. Two selects and a name do
-     not cross 375px side by side, so each cell takes a line of its
-     own: a block-level child of a table row is wrapped in an anonymous
-     cell, and three of them in a row end up in the same one, stacked.
-     The cells after them (the phase's state word) stay real cells and
-     keep their column. */
+  /* An open row's phase line carries TWO real cells since spec 192 —
+     the name, then the AI select, the model select and the phase's box
+     together. Two selects and a name do not cross 375px side by side,
+     so each cell takes a line of its own: a block-level child of a
+     table row is wrapped in an anonymous cell, and two of them in a row
+     end up in the same one, stacked. The cells after them (the phase's
+     state word) stay real cells and keep their column. */
   table.list tr.subrow .phasecell,
-  table.list tr.subrow td.toolcell,
   table.list tr.subrow .modelcell { display: block; width: 100%; }
-  /* And the pair inside the model's own cell wraps as it already did:
-     the model select and the phase's box take a line each rather than
-     squeezing into the width the stacked cell gives them. */
+  /* And the three inside that one cell wrap as the model and the box
+     already did: each takes a line of its own rather than squeezing
+     into the width the stacked cell gives them. */
   table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }
-  /* And the two widths those cells reserve on a desktop are given
-     back. Reserving them here would put 18rem of floor into a 23rem
-     screen and the table would scroll — the one thing spec 155 exists
-     to prevent, and a full-width block honours a min-width exactly as
-     a table cell does. Neither is needed at this width: the pair has wrapped,
-     so there is no second column inside the cell to line a caption up
+  /* And the width the cell reserves on a desktop is given back.
+     Reserving it here would put a floor into a 23rem screen and the
+     table would scroll — the one thing spec 155 exists to prevent, and
+     a full-width block honours a min-width exactly as a table cell
+     does. It is not needed at this width: the controls have wrapped, so
+     there is no second column inside the cell to line a caption up
      with, and a column that closes when its control is absent is
-     better than a scrollbar. Dropping two whole columns is the same
-     trade this block already makes above. */
-  table.list tr.subrow td.toolcell { min-width: 0; }
-  table.list tr.subrow .modelcell > .row > :first-child { min-width: 0; }
+     better than a scrollbar. */
+  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }
 
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }
