@@ -5833,8 +5833,15 @@ describe("spec 192: the phase line's controls share one cell", () => {
     expect(merged).toContain(">Select<");
     expect(merged.indexOf(">AI<") < merged.indexOf(">Model<")).toBe(true);
     expect(merged.indexOf(">Model<") < merged.indexOf(">Select<")).toBe(true);
+    // `data-cap` is what pairs a caption with its control: the
+    // stylesheet gives the two the same width, so "AI" stands over the
+    // AI select instead of the three words running together at the
+    // left edge of the cell (2026-08-22).
+    expect(merged).toContain('data-cap="ai"');
+    expect(merged).toContain('data-cap="model"');
+    expect(merged).toContain('data-cap="box"');
     expect(caption(html)).toMatch(
-      /<td class="modelcell"><span class="row"><span class="muted small" data-ai-cap>AI<\/span>/,
+      /<td class="modelcell"><span class="row"><span class="muted small" data-cap="ai" data-ai-cap>AI<\/span>/,
     );
   });
 

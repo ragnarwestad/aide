@@ -543,6 +543,14 @@ table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
    a :first-child rule would cap that one instead and let the model select
    regrow to its widest option — the exact crowding spec 192 removes. */
 table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }
+/* A caption is as wide as the control under it, so "AI" stands over the
+   AI select and "Model" over the model select rather than the three
+   words running together at the left edge of the cell. Same numbers as
+   the controls themselves, one line apart, because a caption that
+   drifts from its control is worse than no caption. */
+table.list tr.subrow .modelcell > .row > [data-cap="ai"],
+table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
+table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem; max-width: 100px; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
@@ -802,6 +810,8 @@ tr.spec-archived td { color: var(--muted); }
      with, and a column that closes when its control is absent is
      better than a scrollbar. */
   table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }
+  table.list tr.subrow .modelcell > .row > [data-cap],
+  table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
 
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }

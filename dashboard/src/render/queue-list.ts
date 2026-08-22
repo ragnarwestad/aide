@@ -1465,13 +1465,18 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
+    // Each caption over the control it heads, not three words bunched
+    // at the left of the cell: `data-cap` pairs a caption with its
+    // control, and the stylesheet gives the two the same width. Spec
+    // 192 put the three controls in one cell and left the captions
+    // sitting where the text ended (2026-08-22).
     `<td class="modelcell"><span class="row">` +
     (tools.size > 1
-      ? `<span class="muted small" data-ai-cap>AI</span>` +
+      ? `<span class="muted small" data-cap="ai" data-ai-cap>AI</span>` +
         `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
       : "") +
-    `<span class="muted small">Model</span>` +
-    `<span class="muted small">Select</span>` +
+    `<span class="muted small" data-cap="model">Model</span>` +
+    `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td><td></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
   );
