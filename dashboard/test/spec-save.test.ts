@@ -657,6 +657,34 @@ describe("the checks on the Edit form", () => {
     phaseSection(LATER_PHASE, [LATER_ROW]),
   ].join("\n");
 
+  /** Spec 190: the same three phases, with every open mark spelled out
+   *  the way a step actually wrote one — `Waiting`, not `⬜`. Nothing
+   *  else differs. */
+  const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
+
+  /** A spec a headless archive run declined: the hold-back section it
+   *  wrote, and exactly one open row left anywhere in the file. */
+  const HELD_BACK_REASON = "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";
+  const heldBack = (rows: string[]) =>
+    [
+      "# Queue - Status",
+      "",
+      "## Tracking info",
+      "",
+      "- **Workflow steps completed:** create, analyze, implement",
+      "",
+      "---",
+      "",
+      "## Archive held back",
+      "",
+      HELD_BACK_REASON,
+      "",
+      "---",
+      "",
+      phaseSection(EARLIER_PHASE, [EARLIER_DONE_ROW]),
+      phaseSection(PHASE, rows),
+    ].join("\n");
+
   const startWithChecks = (gitRun: GitRunner, status = STATUS) =>
     harness.start({ description: DESCRIPTION, status, extra: { queueToken: TOKEN, gitRun } });
 
@@ -733,6 +761,19 @@ describe("the checks on the Edit form", () => {
       expect(html).not.toContain(LATER_PHASE);
     });
 
+    // Spec 190, criterion 1. With every open mark written in words the
+    // page used to render with NO boxes at all: phase detection found
+    // no `⬜` anywhere, called the whole file done, and the row filter
+    // then matched nothing.
+    test("an open row written in words is offered exactly as a symbol one is", async () => {
+      const { base } = startWithChecks(savable("/host"), WORDED);
+      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+      expect(html).toContain('name="tick"');
+      expect(html).toContain("Manual check at 375px in a real browser");
+      expect(html).toContain("Read the whole diff once");
+      expect(html).not.toContain("Watch the first real run");
+    });
+
     test("a spec whose every phase is done offers no checks at all", async () => {
       const done = [
         "# Queue - Status",
@@ -801,6 +842,51 @@ describe("the checks on the Edit form", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(
       STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)).replace(SECOND_OPEN_ROW, ticked(SECOND_OPEN_ROW)),
     );
+  });
+
+  // --- spec 190: the hold-back note a met check leaves behind ---------------
+
+  test("ticking a word-written row flips it to ✅ and commits like any other", async () => {
+    const { base, dir } = startWithChecks(savable("/host"), WORDED);
+    const row = "| Manual check at 375px in a real browser | Waiting | still outstanding |";
+    const res = await save(base, { ticks: [row] });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(WORDED.replace(row, ticked(OPEN_ROW)));
+  });
+
+  test("ticking the last open check anywhere in the file clears the hold-back section", async () => {
+    const status = heldBack([DONE_ROW, OPEN_ROW]);
+    const { base, dir } = startWithChecks(savable("/host"), status);
+    const res = await save(base, { ticks: [OPEN_ROW] });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    const written = readFileSync(statusPath(dir), "utf-8");
+    expect(written).toContain(ticked(OPEN_ROW));
+    expect(written).not.toContain("## Archive held back");
+    expect(written).not.toContain(HELD_BACK_REASON);
+    // Everything the section sat between is still there.
+    expect(written).toContain("- **Workflow steps completed:** create, analyze, implement");
+    expect(written).toContain(EARLIER_DONE_ROW);
+  });
+
+  test("a spec still carrying open work keeps its hold-back section", async () => {
+    const status = heldBack([DONE_ROW, OPEN_ROW, SECOND_OPEN_ROW]);
+    const { base, dir } = startWithChecks(savable("/host"), status);
+    const res = await save(base, { ticks: [OPEN_ROW] });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(status.replace(OPEN_ROW, ticked(OPEN_ROW)));
+  });
+
+  // The clearing is scoped to the tick path: a save that only edits the
+  // description must not go rewriting a section it never touched.
+  test("a description edit alone leaves the hold-back section where it is", async () => {
+    const status = heldBack([DONE_ROW, OPEN_ROW]);
+    const { base, dir } = startWithChecks(savable("/host"), status);
+    const res = await save(base, { text: NEW_TEXT });
+    expect(res.status).toBe(303);
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(status);
   });
 
   // --- what the commit records ----------------------------------------------

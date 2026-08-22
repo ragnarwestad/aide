@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   archiveHeldBackReason,
+  clearArchiveHeldBack,
   parseStatus,
   parseStatusChecks,
   tickStatusLine,
@@ -68,6 +69,22 @@ describe("phase (criterion 3)", () => {
 
   test("no phase sections means no phase", () => {
     expect(parseStatus("# X - Status\n\nProse only.\n").phase).toBeNull();
+  });
+
+  // Spec 190, criterion 2: a step wrote `Waiting` where the notation
+  // table asks for `⬜`. Phase detection used to search the section's
+  // raw text for the symbol, so a phase whose only open row is spelled
+  // out read as settled — and with no later symbol anywhere, the whole
+  // file read as `done` and the Edit page offered nothing to tick.
+  test("a phase whose only open row is written in words is still the current phase", () => {
+    expect(parseStatus(openPhase.replace("| c    | ⬜     |       |", "| c    | Waiting |       |")).phase).toBe(
+      "Phase 2: GREEN",
+    );
+  });
+
+  test("a word-written done row settles its phase exactly as ✅ does", () => {
+    const words = openPhase.replace("| c    | ⬜     |       |", "| c    | Completed |       |");
+    expect(parseStatus(words).phase).toBe("done");
   });
 });
 
@@ -330,6 +347,36 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(parseStatusChecks(bad).map((c) => c.task)).toEqual(["a good one"]);
   });
 
+  // Spec 190: the Status cell is free text, and a step wrote words into
+  // it. The old shape guard rejected anything over four characters, so
+  // the row was not merely read as open — it never reached this list.
+  test("an open row written in words is a check, exactly as a symbol one is", () => {
+    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | Waiting | |"]));
+    expect(checks).toEqual([
+      { phase: "Phase 1: RED", line: "| a task | Waiting | |", task: "a task", done: false },
+    ]);
+  });
+
+  // `Completed` is not an invented synonym: it is the word the file's
+  // own Notation table already gives for ✅.
+  test("`Completed`, written out, is done", () => {
+    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | Completed | |"]));
+    expect(checks).toHaveLength(1);
+    expect(checks[0]!.done).toBe(true);
+  });
+
+  test("the notation table's other spellings are read as open, not dropped", () => {
+    const checks = parseStatusChecks(
+      phase("Phase 1: RED", [
+        "| a | Not started | |",
+        "| b | In progress | |",
+        "| c | Awaiting clarification | |",
+      ]),
+    );
+    expect(checks.map((c) => c.task)).toEqual(["a", "b", "c"]);
+    expect(checks.every((c) => !c.done)).toBe(true);
+  });
+
   test("a file with no Phase or Fase heading has no checks at all", () => {
     expect(parseStatusChecks("# X - Status\n\n## Summary\n\n| a | ⬜ | |\n")).toEqual([]);
   });
@@ -395,5 +442,98 @@ describe("tickStatusLine (spec 182)", () => {
   test("the cell's padding survives — one character changes, not the table's shape", () => {
     const padded = "## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| A |   ⬜   | note |\n";
     expect(tickStatusLine(padded, "Phase 1: RED", "| A |   ⬜   | note |")).toContain("| A |   ✅   | note |");
+  });
+
+  // --- spec 190: a row a step spelled out in words --------------------------
+
+  const WORDS = [
+    "# X - Status",
+    "",
+    "## Phase 1: RED",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| Run the tests | Waiting | |",
+    "| Look at it | Completed | |",
+    "",
+  ].join("\n");
+
+  // Ticking normalises the file's own spelling on the way past: the
+  // page writes the mark the Notation table promises, never the word it
+  // found.
+  test("ticking a word-written row writes the canonical ✅", () => {
+    const out = tickStatusLine(WORDS, "Phase 1: RED", "| Run the tests | Waiting | |")!;
+    expect(out).not.toBeNull();
+    expect(out.split("\n")[6]).toBe("| Run the tests | ✅ | |");
+  });
+
+  test("a row already done in words is refused a second tick", () => {
+    expect(tickStatusLine(WORDS, "Phase 1: RED", "| Look at it | Completed | |")).toBeNull();
+  });
+});
+
+// --- spec 190: the hold-back note a met check leaves behind -------------------
+//
+// `archiveHeldBackReason` reads the section a declined archive run
+// writes. Nothing removed it, so a spec went on reporting "held back"
+// after the row it named was ticked. This is that function's removal
+// counterpart, and the two share one idea of where the section ends.
+
+describe("clearArchiveHeldBack (spec 190)", () => {
+  const withSection = (reason: string) =>
+    [
+      "# 190 - Status",
+      "",
+      "**Total progress:** `95% (21 of 22 completed)`",
+      "",
+      "---",
+      "",
+      "## Archive held back",
+      "",
+      reason,
+      "",
+      "---",
+      "",
+      "## Phase 4: Verify",
+      "",
+      "| Task | Status | Notes |",
+      "",
+    ].join("\n");
+
+  test("the section goes, and nothing around it does", () => {
+    const out = clearArchiveHeldBack(withSection("- the Slack webhook (Phase 4, still unchecked)"))!;
+    expect(out).not.toBeNull();
+    expect(out).not.toContain("## Archive held back");
+    expect(out).not.toContain("the Slack webhook");
+    expect(out).toContain("**Total progress:** `95% (21 of 22 completed)`");
+    expect(out).toContain("## Phase 4: Verify");
+    expect(archiveHeldBackReason(out)).toBeNull();
+  });
+
+  test("a file with no such section is left alone — `null`, not a rewrite", () => {
+    expect(clearArchiveHeldBack("# 190 - Status\n\nProse only.\n")).toBeNull();
+  });
+
+  // `archiveHeldBackReason` reads the LAST section when a spec was
+  // declined twice; clearing has to take BOTH, or the reader would find
+  // the earlier one and go on saying the spec is held back.
+  test("two declined runs leave two sections, and both go", () => {
+    const twice =
+      withSection("- the Slack webhook (Phase 4, still unchecked)") +
+      "\n" +
+      withSection("- the manual browser check (Phase 4, still unchecked)");
+    const out = clearArchiveHeldBack(twice)!;
+    expect(out).not.toContain("## Archive held back");
+    expect(archiveHeldBackReason(out)).toBeNull();
+  });
+
+  test("a section running to the end of the file goes with it", () => {
+    const trailing = ["# 190 - Status", "", "## Archive held back", "", "- the webhook", ""].join("\n");
+    expect(clearArchiveHeldBack(trailing)).toBe("# 190 - Status\n");
+  });
+
+  test("the divider that closed the section goes too — never two in a row", () => {
+    const out = clearArchiveHeldBack(withSection("- the webhook"))!;
+    expect(out).not.toContain("---\n\n---");
   });
 });
