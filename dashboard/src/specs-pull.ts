@@ -164,12 +164,17 @@ const asFileText = (text: string): string => {
  *  sit on it for minutes while an analyze step lands a new version of
  *  the very file, so a save whose file has moved since is refused —
  *  never merged, never clobbered. `null` is the ordinary answer for a
- *  description git has never committed. */
+ *  description git has never committed.
+ *
+ *  `message` is the CALLER's, because the two callers record two
+ *  different things (spec 182): the description editor records an edit,
+ *  and the tick on a spec's page records that a person made a check no
+ *  step could make. */
 export async function saveSpecFile(
   run: GitRunner,
   dir: string,
   resolveBase: (root: string) => Promise<string | null>,
-  edit: { file: string; text: string; baseSha: string | null; specLabel: string },
+  edit: { file: string; text: string; baseSha: string | null; specLabel: string; message: string },
 ): Promise<SpecsSaveResult> {
   const { file } = edit;
   try {
@@ -224,8 +229,7 @@ export async function saveSpecFile(
       return { ok: true, note: `${file} is unchanged — nothing was saved`, committed: false };
     }
 
-    const message = `Edit ${file} for ${edit.specLabel} from the dashboard`;
-    const committed = await run(root, ["commit", "-q", "-m", message]);
+    const committed = await run(root, ["commit", "-q", "-m", edit.message]);
     if (committed.code !== 0) {
       // The write is staged at this point, so the shared checkout is
       // dirty — and a dirty checkout is what the next pull, this

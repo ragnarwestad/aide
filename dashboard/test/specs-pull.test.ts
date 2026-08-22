@@ -218,11 +218,15 @@ const savable = (root: string, extra: Record<string, { code: number; stdout?: st
     ...extra,
   });
 
+// `message` became the caller's in spec 182, when the tick on a spec's
+// page needed to record something the description editor's sentence
+// does not say. Stated here exactly as the save route states it.
 const edit = (text: string, baseSha: string | null = FILE_SHA) => ({
   file: FILE,
   text,
   baseSha,
   specLabel: "162-edit-a-spec-on-its-own-page",
+  message: `Edit ${FILE} for 162-edit-a-spec-on-its-own-page from the dashboard`,
 });
 
 const NEW_TEXT = "# A spec - Description\n\n## Description\n\nAs it is now.\n";

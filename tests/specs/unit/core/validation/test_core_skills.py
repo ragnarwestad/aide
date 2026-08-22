@@ -396,3 +396,31 @@ class TestInstallRetiresTheRulesThatBecameSkills:
                      "markdown-linting"):
             assert (skills / name / "SKILL.md").is_file(), \
                 f"~/.claude/skills/{name}/SKILL.md was not installed"
+
+
+@pytest.mark.validation
+class TestArchiveHeldBackBulletSaysWhereToCloseIt:
+    """Spec 182: the held-back bullet is an instruction, not a report.
+
+    `## Archive held back` holds ONE bullet, and the dashboard echoes it
+    verbatim in three places — the spec's row, the row's badge and the
+    job page's Steps tab. "the manual 375px browser check (Phase 4,
+    still unchecked)" describes the app's state; the reader also needs
+    to know what to do about it, and since the boxes became clickable
+    the answer is a place on the dashboard. The example the skill gives
+    is what a run copies, so the example is where the instruction goes.
+    """
+
+    SKILL = CORE_SKILLS_DIR / "aide-archive" / "SKILL.md"
+
+    def test_the_example_bullet_names_where_a_person_closes_the_check_out(self):
+        text = self.SKILL.read_text(encoding="utf-8")
+        example = [
+            line for line in text.splitlines()
+            if line.lstrip().startswith("`- ") and "still unchecked" in line
+        ]
+        assert example, "the skill gives no `- ...(still unchecked)` example bullet"
+        assert any("spec's page" in line for line in example), (
+            "the example held-back bullet says what is open but not where to "
+            f"close it out: {example}"
+        )

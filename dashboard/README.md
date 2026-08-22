@@ -135,6 +135,20 @@ named anywhere in this repo.
   checkout breaks the next fast-forward for every project in it. It is
   the only route that accepts a body over 4096 bytes — a description is
   not an action post — and its own cap is 64 KiB.
+- `POST /api/queue/specs/<project>/<spec>/status/tick` — ticks ONE row
+  of `4-status.md`'s Tasks tables (spec 182), which is what a
+  "checkbox" is in a spec: the Status cell's mark becomes ✅ and no
+  other byte of the file changes, because the new text is computed here
+  from the row the server verified and never taken from the body. Two
+  guards, not one: `saveSpecFile`'s existing file-level `baseSha`, and
+  the row's own exact text posted back — a row that no longer reads as
+  it did is refused even when the sha still matches, which is what
+  tells a second press apart from a first inside one commit. Same
+  refusals as `/save` otherwise, same lock, same 303 back to the spec;
+  refused for an ARCHIVED spec, whose files are history. The rows are
+  drawn at the top of the spec's page, above the tab bar, so they are
+  on every tab — the reason they moved there is that the check holding
+  an archive back was a row near the bottom of the fourth file.
 - `/specs` and `/queue` — where the list used to live; both redirect to
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is

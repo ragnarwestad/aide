@@ -120,3 +120,111 @@ export function archiveHeldBackReason(content: string): string | null {
   const section = (end === -1 ? body : body.slice(0, end)).trim();
   return section.split("\n")[0]?.replace(/^[-*]\s*/, "").trim() || null;
 }
+
+// --- spec 182: the rows a person can tick off from the page -------------------
+
+/** One `| Task | Status | Notes |` row of a `## Phase`/`## Fase`
+ *  section, which is what a "checkbox" is in a `4-status.md`. No spec
+ *  has ever held a `- [ ]` line: the table is what the template has
+ *  written since it was written, and the Status cell's mark is the one
+ *  character that says whether the row is done. */
+export interface StatusCheck {
+  /** The phase section's heading, verbatim. Two phases can hold rows
+   *  with identical text, so this is half of a row's identity. */
+  phase: string;
+  /** The row's whole line, verbatim. The other half of its identity,
+   *  and the guard a tick posts back: a row that no longer reads as it
+   *  did is a row the page was not looking at. */
+  line: string;
+  /** The Task cell, trimmed — what a reader is being asked about. */
+  task: string;
+  done: boolean;
+}
+
+const DONE_MARK = "✅";
+
+/** A well-formed three-column row's cells, or `null`.
+ *
+ *  Conservative on purpose (spec 182's risk analysis): anything that is
+ *  not plainly one row of one three-column table is skipped rather than
+ *  guessed at, so a hand-formatted file loses a row from the list
+ *  instead of offering a tick that would land on the wrong line. The
+ *  Status cell has to look like a MARK — one short token, no spaces —
+ *  which is what keeps a header row (`| Task | Status | Notes |`) and a
+ *  separator out without naming either. The marks themselves are never
+ *  enumerated: "done" is `✅` and everything else is open, so a symbol
+ *  added to the file's own Notation legend needs no change here. */
+function tableCells(line: string): [string, string, string] | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return null;
+  const parts = trimmed.split("|");
+  if (parts.length !== 5) return null;
+  const [task, mark, notes] = [parts[1]!.trim(), parts[2]!.trim(), parts[3]!.trim()];
+  if (!task || /^-+$/.test(task)) return null;
+  if (!mark || /\s/.test(mark) || mark.length > 4) return null;
+  return [task, mark, notes];
+}
+
+/** Every phase section, as line-index ranges over `lines`. The heading
+ *  test is `parseStatus`'s own, so the two agree about what a phase is. */
+function phaseSections(lines: string[]): { heading: string; from: number; to: number }[] {
+  const sections: { heading: string; from: number; to: number }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    if (!line.startsWith("## ")) continue;
+    const last = sections[sections.length - 1];
+    if (last && last.to === -1) last.to = i;
+    const heading = line.slice(3).trim();
+    if (/^(phase|fase)\b/i.test(heading)) sections.push({ heading, from: i + 1, to: -1 });
+  }
+  const last = sections[sections.length - 1];
+  if (last && last.to === -1) last.to = lines.length;
+  return sections;
+}
+
+/** Every Tasks-table row of every phase section, in file order — done
+ *  and not. The page shows both: the description asks for the whole
+ *  list with the undone ones unmistakable, not for the undone ones
+ *  alone. */
+export function parseStatusChecks(content: string): StatusCheck[] {
+  const lines = content.split("\n");
+  const checks: StatusCheck[] = [];
+  for (const section of phaseSections(lines)) {
+    for (let i = section.from; i < section.to; i++) {
+      const cells = tableCells(lines[i]!);
+      if (!cells) continue;
+      checks.push({ phase: section.heading, line: lines[i]!, task: cells[0], done: cells[1] === DONE_MARK });
+    }
+  }
+  return checks;
+}
+
+/** `content` with one row's mark changed to `✅`, or `null` when that
+ *  row is not there to change.
+ *
+ *  The row is named by its phase heading AND its whole line, verbatim —
+ *  never by a line number, which shifts the moment a step rewrites the
+ *  file around it. `null` covers every way the page can be out of date:
+ *  no such phase, no such line inside it, a line that is not a row, and
+ *  a row someone has already ticked. Refusing is the point — this is
+ *  the row-level guard that sits on top of `saveSpecFile`'s file-level
+ *  one, and it is what tells a duplicate press apart from a fresh one
+ *  inside a single commit.
+ *
+ *  Exactly one character moves. The cell keeps its padding, so a tick
+ *  never reflows the table. */
+export function tickStatusLine(content: string, phase: string, line: string): string | null {
+  const lines = content.split("\n");
+  const section = phaseSections(lines).find((s) => s.heading === phase.trim());
+  if (!section) return null;
+  for (let i = section.from; i < section.to; i++) {
+    if (lines[i] !== line) continue;
+    const cells = tableCells(line);
+    if (!cells || cells[1] === DONE_MARK) return null;
+    const parts = line.split("|");
+    parts[2] = parts[2]!.replace(cells[1], DONE_MARK);
+    lines[i] = parts.join("|");
+    return lines.join("\n");
+  }
+  return null;
+}

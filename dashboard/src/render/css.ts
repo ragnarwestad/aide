@@ -295,6 +295,32 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
    "Depends on" (data-depends), frame something and keep their frame. */
 .phase[data-phase] { border-color: transparent; }
 
+/* --- a spec's remaining checks (spec 182) ---------------------------- */
+
+/* The list sits in the spec page's banner, above the tab bar. Its job
+   is that an OPEN row cannot be mistaken for a settled one at a glance:
+   the open rows keep the full text colour and a button, the done ones
+   go muted and struck through. Nothing here depends on the mark's
+   colour alone. */
+.checks { margin: var(--sp-4) 0 0; }
+.checkshead { margin: 0 0 var(--sp-2); }
+.checklist { list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--sp-1); }
+.checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
+  margin-top: var(--sp-2); }
+.checklist .checkphase:first-child { margin-top: 0; }
+.check { display: flex; align-items: baseline; gap: var(--sp-2); }
+.check.done .checktask { color: var(--muted); text-decoration: line-through; }
+/* The button IS the box: one press, no script, the same 303 round trip
+   Update and Save already make. Sized like a checkbox so the two kinds
+   of row line up whether or not the row has a control. */
+.checkbox { display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; min-width: 18px; height: 18px; padding: 0; flex: none;
+  font-size: var(--fs-m); line-height: 1; }
+button.checkbox { border: 1px solid var(--line-strong); border-radius: var(--r-s);
+  background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+button.checkbox:hover { border-color: var(--accent); color: var(--accent); }
+
 /* --- row-level message ---------------------------------------------- */
 
 .rowmsg { display: flex; align-items: center; gap: var(--sp-2);

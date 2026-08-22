@@ -79,9 +79,17 @@ checkboxes, no conclusion):
 - **Nobody is there (headless — the prompt said so, or `AIDE_HEADLESS`
   is set):** do NOT archive. Add — or replace, if one is already there —
   a `## Archive held back` section in `4-status.md` holding ONE bullet
-  that names what is still open, e.g.
-  `- the Slack webhook (Phase 4, still unchecked)`. Then report the
-  hold-back plainly and stop: do not continue to Step 4 or Step 5.
+  that names what is still open AND where a person closes it out — ONE
+  line, e.g.
+  `- the Slack webhook (Phase 4, still unchecked) — tick it on the spec's page`
+  Then report the hold-back plainly and stop: do not continue to Step 4
+  or Step 5.
+
+  The second half is not decoration. The bullet is the only thing the
+  reader is shown, in three places on the dashboard, and "still
+  unchecked" describes the app's state without saying what to do about
+  it. Since spec 182 the row is a real checkbox on the spec's own page:
+  one click writes the mark, commits it, and the hold-back is gone.
 
   One section, one bullet, replaced in place — a spec declined twice
   carries its CURRENT reason, not a growing list of stale ones. The

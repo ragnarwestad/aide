@@ -36,6 +36,27 @@ import {
   type SpecFileView,
 } from "./job-page.ts";
 
+/** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
+ *  182). `phase` and `line` are the row's identity and travel back with
+ *  a tick: the server finds the row by them and refuses if either has
+ *  moved, so a stale page can never flip the wrong line. */
+export interface SpecCheckView {
+  phase: string;
+  line: string;
+  task: string;
+  done: boolean;
+}
+
+/** The spec's remaining checks, and where a tick posts (spec 182). */
+export interface SpecChecksView {
+  rows: SpecCheckView[];
+  action: string;
+  /** The commit `4-status.md` was read at — `saveSpecFile`'s existing
+   *  file-level guard, carried through the form the way the description
+   *  editor already carries it. */
+  baseSha?: string;
+}
+
 export interface SpecPageView {
   project: string;
   specFolder: string;
@@ -56,6 +77,9 @@ export interface SpecPageView {
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
+  /** The spec's own checks, at the top of the page (spec 182). Absent
+   *  for a spec whose `4-status.md` has no phase section at all. */
+  checks?: SpecChecksView;
   /** Why the last pull changed nothing, and what it did when it did —
    *  both off the query string, the same round-trip Approve, Cancel and
    *  Merge already use. */
@@ -77,10 +101,69 @@ export const specPagePath = (project: string, specFolder: string): string =>
  *  file. */
 export const EDITABLE_SPEC_FILE = "1-description.md";
 
+/** The file whose Status marks a person may now flip, one row at a
+ *  time (spec 182). Named beside `EDITABLE_SPEC_FILE` and for the same
+ *  reason: this page decides which rows carry a button and the server
+ *  decides which file the tick route writes, and those two must be the
+ *  same file. It is NOT editable in the `EDITABLE_SPEC_FILE` sense —
+ *  there is no textarea and never will be, because a textarea cannot
+ *  structurally stop a person rewriting a step's own prose. */
+export const STATUS_SPEC_FILE = "4-status.md";
+
 /** Where Edit goes. Beside `specPagePath` for the same reason: the
  *  server routes on it and this page links to it. */
 export const specEditPath = (project: string, specFolder: string): string =>
   `${specPagePath(project, specFolder)}/edit`;
+
+/** The spec's remaining checks, above the tab bar (spec 182).
+ *
+ *  In the BANNER, not in the Overview panel: the description asks for
+ *  the top of the spec's page, and a reader on Activity or Steps is
+ *  reading the same spec. It is also where they stop being buried —
+ *  these rows live near the bottom of the fourth file, which is the
+ *  last place anyone looks.
+ *
+ *  Done rows are shown too, dimmed: the list is what is left AND what
+ *  has been settled, and a list that only ever shrinks says nothing
+ *  about how far the spec got. Each undone row is its own one-button
+ *  `<form>` — one click, no JavaScript, the shape every other action on
+ *  this dashboard already has. An archived spec's rows are a record and
+ *  carry no control at all.
+ *
+ *  The phase leads its own group heading rather than repeating on every
+ *  row: the rows under `Phase 4: REFACTOR` are all Phase 4's. */
+function checklist(view: SpecPageView): string {
+  const rows = view.checks?.rows ?? [];
+  if (rows.length === 0) return "";
+  const action = view.checks!.action;
+  const baseSha = view.checks!.baseSha ?? "";
+  const open = rows.filter((r) => !r.done).length;
+  const groups: { phase: string; rows: SpecCheckView[] }[] = [];
+  for (const row of rows) {
+    const last = groups[groups.length - 1];
+    if (last && last.phase === row.phase) last.rows.push(row);
+    else groups.push({ phase: row.phase, rows: [row] });
+  }
+  const control = (row: SpecCheckView): string =>
+    row.done || view.archived
+      ? `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`
+      : `<form class="actionform" method="post" action="${esc(action)}">` +
+        `<input type="hidden" name="phase" value="${esc(row.phase)}">` +
+        `<input type="hidden" name="line" value="${esc(row.line)}">` +
+        `<input type="hidden" name="baseSha" value="${esc(baseSha)}">` +
+        `<button class="checkbox" type="submit" title="tick this check off — it is committed as made by hand">` +
+        `☐</button></form>`;
+  const item = (row: SpecCheckView): string =>
+    `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
+    `<span class="checktask">${esc(row.task)}</span></li>`;
+  const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
+    `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
+  return (
+    `<section class="checks"><p class="checkshead"><strong>Checks</strong> ` +
+    `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>` +
+    `<ul class="checklist">${groups.map(group).join("")}</ul></section>`
+  );
+}
 
 export function renderSpecPage(
   view: SpecPageView,
@@ -113,7 +196,8 @@ export function renderSpecPage(
       ? rowMessage("info", "This spec is archived — a record, and read-only.", { tag: "p" })
       : "") +
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
-    (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
+    (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "") +
+    checklist(view);
 
   const panel =
     tab === "activity"
