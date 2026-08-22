@@ -2133,3 +2133,40 @@ describe("a tail box's tick posts itself (spec 160)", () => {
     expect(h.location.href).toBe("/");
   });
 });
+
+
+// The list redraws every five seconds, which makes the browser's own
+// tools useless on it: the ground moves while you read, so a row cannot
+// be inspected and an element cannot be watched while something changes
+// it. `?live=0` turns the timer off for one page load. Spec 189 is the
+// real answer — the server says when something changed — and this is
+// what makes the page inspectable until it lands.
+describe("?live=0 stops the refresh", () => {
+  test("an ordinary load polls on the tick", async () => {
+    const h = harness(() => ({ ok: true }));
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+    expect(swapUrl(h)).not.toBe("");
+  });
+
+  test("with live=0 the tick was never registered, so nothing polls", async () => {
+    const h = harness(() => ({ ok: true }), "actionform", "?live=0");
+    h.document.visibilityState = "visible";
+    h.tick();
+    await flush();
+    expect(swapUrl(h)).toBe("");
+  });
+
+  // Only that exact value, and only that page load: a reader who wants
+  // the page live again reloads without it.
+  test("any other query string leaves the refresh alone", async () => {
+    for (const search of ["?live=1", "?sort=spec", "?live=0x"]) {
+      const h = harness(() => ({ ok: true }), "actionform", search);
+      h.document.visibilityState = "visible";
+      h.tick();
+      await flush();
+      expect(swapUrl(h), search).not.toBe("");
+    }
+  });
+});

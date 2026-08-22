@@ -862,4 +862,13 @@ newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, eve
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 document.addEventListener("visibilitychange", tick);
-setInterval(tick, REFRESH_MS);
+// `?live=0` turns the refresh off for this page load, and nothing else
+// about it changes. The page redraws on a timer, so the browser's own
+// tools cannot be used on it: the ground moves every five seconds, and
+// reading the markup or watching one element while changing something
+// is impossible. Spec 189 is the real answer — the server says when
+// something changed and the page redraws then. This is the switch that
+// makes the page inspectable meanwhile, and it costs one condition.
+if (new URLSearchParams(location.search).get("live") !== "0") {
+  setInterval(tick, REFRESH_MS);
+}
