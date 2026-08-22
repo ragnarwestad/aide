@@ -68,6 +68,13 @@ function serve(root: string, git: ReturnType<typeof behindBy>): string {
 const load = async (base: string): Promise<string> =>
   await (await fetch(`${base}/projects`, { headers: AUTH })).text();
 
+/** The calls the DRIFT check makes, and only those. Since spec 184 the
+ *  page also asks each project whether a run could start there, which is
+ *  read-only git of its own — counting every call would make this suite
+ *  about that instead. */
+const driftCalls = (git: ReturnType<typeof behindBy>) =>
+  git.calls.filter((c) => c.args[0] === "fetch" || c.args.join(" ").startsWith("rev-list --count"));
+
 describe("GET /projects and a checkout that fell behind origin", () => {
   test("a project that expects an install and is behind says how far (criterion 2)", async () => {
     const git = behindBy(3);
@@ -89,14 +96,14 @@ describe("GET /projects and a checkout that fell behind origin", () => {
     const git = behindBy(9);
     const html = await load(serve(projectsRoot({ atlasaurus: null }), git));
     expect(html).not.toContain("behind origin");
-    expect(git.calls.length).toBe(0);
+    expect(driftCalls(git).length).toBe(0);
   });
 
   test("a config with other keys but no install command is the same as none (criterion 3)", async () => {
     const git = behindBy(9);
     const html = await load(serve(projectsRoot({ atlasaurus: "AIDE_SPECS_PATH=/tmp/specs\n" }), git));
     expect(html).not.toContain("behind origin");
-    expect(git.calls.length).toBe(0);
+    expect(driftCalls(git).length).toBe(0);
   });
 
   test("one project behind does not put a banner on the one beside it", async () => {

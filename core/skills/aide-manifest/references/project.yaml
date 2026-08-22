@@ -29,3 +29,13 @@ reports:                       # generated reports, uniform shape
     url: https://claude.ai/code/artifact/example
 docs:
   - README.md
+# Gitignored paths a headless run must symlink into its worktree, space
+# separated — a worktree carries TRACKED files only, so a project whose
+# test command lives behind one of these fails in every run for a reason
+# that has nothing to do with its change. Here rather than in
+# .aide/config because it is true of the project on ANY machine, and
+# .aide/config is not committed.
+#
+# WRITTEN BY THE DASHBOARD, not by /aide-manifest. Leave a worktreeLinks
+# key exactly as found: never propose one, never remove one.
+worktreeLinks: node_modules

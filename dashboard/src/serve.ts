@@ -23,7 +23,7 @@ import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, specArchivedDate, specDependsOn, specFileText, specPhaseFile,
+  gitignoreCandidates, resolveWorktreeLinks, specArchivedDate, specDependsOn, specFileText, specPhaseFile,
   stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
@@ -44,6 +44,9 @@ import {
   assessProjectReadiness,
   projectNameError,
   removeProject,
+  suggestSpecsPath,
+  suggestWorktreeLinksFromLockfile,
+  updateProjectSettings,
   type ProjectReadiness,
   type ProjectStep,
 } from "./project-admin.ts";
@@ -66,8 +69,10 @@ import {
   renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
+  renderProjectSettingsPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
+  projectSettingsRoute,
   renderArchivePage,
   renderQueuePage,
   renderQueueRows,
@@ -1788,7 +1793,11 @@ export function createServer(opts: ServerOptions) {
     // A refusal goes back to the page the FORM is on — the Add page or
     // the row's own Remove page (2026-08-19) — a success to the list.
     const formPage =
-      action === "add-project" ? ADD_PROJECT_ROUTE : `/projects/${encodeURIComponent(project)}/remove`;
+      action === "add-project"
+        ? ADD_PROJECT_ROUTE
+        : action === "project-settings"
+          ? projectSettingsRoute(project)
+          : `/projects/${encodeURIComponent(project)}/remove`;
     if (summary) return specsRedirect(sent, { error: summary }, formPage);
     // A browser with no script gets the readiness answer the only way a
     // redirect can carry one: in the query string of the page it lands
@@ -1958,6 +1967,26 @@ export function createServer(opts: ServerOptions) {
         worktreeLinkCandidates: [
           ...new Set(unclaimed.flatMap((d) => gitignoreCandidates(join(opts.projectRoot!, d)))),
         ].sort(),
+        // Spec 184: what each of them would be configured with, worked
+        // out rather than asked for — the checkout's own lockfile for
+        // the links, and how the projects already added lay their specs
+        // out for the specs root. Anything that cannot be worked out
+        // comes back empty and is rendered as a blank field.
+        proposalsByCheckout: Object.fromEntries(
+          unclaimed.map((d) => [
+            d,
+            {
+              specsPath: suggestSpecsPath(
+                d,
+                [...allowed].map((name) => ({
+                  name,
+                  specsPath: configValue(projectDir(name), "AIDE_SPECS_PATH"),
+                })),
+              ),
+              worktreeLinks: suggestWorktreeLinksFromLockfile(join(opts.projectRoot!, d)),
+            },
+          ]),
+        ),
         error: url.searchParams.get("error") ?? undefined,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -1974,6 +2003,30 @@ export function createServer(opts: ServerOptions) {
       const html = renderRemoveProjectPage(name, nav(), new Date().toISOString(), {
         token: queueToken,
         script: queueClientScript(),
+        error: url.searchParams.get("error") ?? undefined,
+      });
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
+    // The Settings page (spec 184), beside the two above and guarded the
+    // same way: only a project the allowlist knows has settings to
+    // change, and everything else is a mistyped address.
+    const settingsPage = path.match(/^\/projects\/([^/]+)\/settings$/);
+    if (settingsPage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(settingsPage[1]!);
+      if (!opts.projectRoot || !allowed.has(name)) {
+        return new Response("no such project\n", { status: 404 });
+      }
+      const dir = join(opts.projectRoot, name);
+      const html = renderProjectSettingsPage(name, nav(), new Date().toISOString(), {
+        token: queueToken,
+        script: queueClientScript(),
+        // Read off disk per request, so the form shows what the project
+        // IS rather than what it was when the page was last generated.
+        specsPath: configValue(dir, "AIDE_SPECS_PATH") ?? "",
+        worktreeLinks: resolveWorktreeLinks(dir).links,
+        worktreeLinkCandidates: gitignoreCandidates(dir),
         error: url.searchParams.get("error") ?? undefined,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -2055,12 +2108,35 @@ export function createServer(opts: ServerOptions) {
           if (behind && behind > 0) driftByProject[p.name] = behind;
         }),
       );
+      // Spec 184: whether a run could start in each project, asked on
+      // every visit. The Add flow answered this exactly once, in the
+      // query string of the redirect it landed on — so an operator who
+      // did not act on it there had no way to rediscover what was
+      // missing except by starting a run and having it refused. Now the
+      // row says it, and carries the Settings link that acts on it.
+      // Concurrent, like the drift check above, and read-only.
+      const readinessByProject: Record<string, { canRun: boolean; note: string }> = {};
+      await Promise.all(
+        projects.map(async (p) => {
+          try {
+            const { canRun, note } = await assessProjectReadiness(gitRun, projectDir(p.name));
+            readinessByProject[p.name] = { canRun, note };
+          } catch {
+            // A note is advice, and the listing is what the reader came
+            // for: a host with no `git` on PATH must still get the page,
+            // and a row with nothing to say about readiness is exactly
+            // the row the generated page has always drawn.
+            readinessByProject[p.name] = { canRun: true, note: "" };
+          }
+        }),
+      );
       const html = renderProjectsPage(
         projects,
         new Date().toISOString(),
         nav(),
         {
           driftByProject,
+          readinessByProject,
           token: queueToken,
           // The RAW allowlist, like the New-spec dropdown: a project
           // with no spec yet is exactly what this page is for.
@@ -2177,6 +2253,43 @@ export function createServer(opts: ServerOptions) {
       // readiness answer about a project that was not added would be an
       // answer about somebody else's directory.
       return answerProjectChange("add-project", name, steps, raw, wantsJson, result.readiness);
+    }
+
+    // Spec 184: the same two fields the Add form posts, for a project
+    // that already exists. Above the `<id>/<verb>` matches for the same
+    // reason the Add route is.
+    const settingsPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/settings$/);
+    if (settingsPost) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(settingsPost[1]!);
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      let raw: unknown;
+      try {
+        raw = bodyToObject(body.text, req.headers.get("content-type"));
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      if (!opts.projectRoot || !allowed.has(name)) {
+        return answerProjectChange(
+          "project-settings",
+          name,
+          [{ step: "name", ok: false, error: `"${name}" is not a project this dashboard knows` }],
+          raw,
+          wantsJson,
+        );
+      }
+      const asked = (raw ?? {}) as Record<string, unknown>;
+      const str = (v: unknown): string => (typeof v === "string" ? v : "");
+      const result = await updateProjectSettings(gitRun, join(opts.projectRoot, name), {
+        specsPath: str(asked.specsPath),
+        worktreeLinks: str(asked.worktreeLinks),
+      });
+      // The specs root a save just named is where the scan goes looking
+      // for this project's specs — without this the very next request
+      // would still read the old one.
+      if (result.ok) scan = null;
+      return answerProjectChange("project-settings", name, result.steps, raw, wantsJson, result.readiness);
     }
 
     const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);

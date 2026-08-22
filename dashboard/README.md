@@ -707,6 +707,13 @@ earlier is part of what the runner will see:
 | `defaultBranch` | the default branch is neither here nor on origin, or another worktree already has it checked out         |
 | `worktreeLinks` | a configured entry leaves the repository, or names a path that is not there                              |
 
+`worktreeLinks` is read from the project's committed `.aide/project.yaml`
+first and from `.aide/config`'s older `AIDE_WORKTREE_LINKS` second (spec
+184) — the same order, and the same winner, as `aide-run-spec` itself
+reads them in. `tests/fixtures/worktree-links-precedence.json` is the one
+table both sides are tested against, because the two are written
+independently and nothing else would stop them drifting.
+
 `defaultBranch` is asked of **every** repository a run touches — the
 project's, and the specs repo when the specs live elsewhere — because
 the runner refuses on it in any of them. A checkout on a feature branch
@@ -779,11 +786,42 @@ candidates in a file the reader had to go and open. The field carries a
 checkout's `.gitignore`, deduped: a suggestion the reader may ignore,
 needing no script, like every other control on this page. Globs,
 negations, comments and nested paths are left out — they are not values
-`AIDE_WORKTREE_LINKS` can take. A suggestion is not an endorsement
-either: a `.gitignore` routinely lists `build`, `dist` or `.gradle`
-beside `node_modules`, and those are refused — with the path named —
-because a link is one shared symlink, and a build writing through it
-would collide with every other run's.
+`worktreeLinks` can take. A suggestion is not an endorsement either: a
+`.gitignore` routinely lists `build`, `dist` or `.gradle` beside
+`node_modules`, and those are refused — with the path named — because a
+link is one shared symlink, and a build writing through it would
+collide with every other run's.
+
+**And both fields are PROPOSED where they can be worked out** (spec
+184). A checkout's own lockfile says which package manager owns its
+dependency tree, and each of those puts that tree in one well-known
+gitignored directory: `bun.lock`/`package.json` proposes `node_modules`,
+`pyproject.toml`/`requirements.txt` proposes `.venv`, both propose both.
+The Specs root is proposed from how the projects already added lay
+theirs out — at least two sharing a `<parent>/<projectName>` pattern
+proposes `<parent>/<newName>`, and fewer than two is an example rather
+than a pattern. Anything that cannot be worked out is left blank, never
+guessed. With exactly one checkout on offer the answer is unambiguous
+and goes straight into the fields, so a browser with no script gets the
+help too; with several, the proposals ride on the form and the pick
+fills them in.
+
+**A project's settings can be changed after it is added.** Each row on
+`/projects` carries a Settings link to `/projects/<name>/settings`: the
+same two fields, pre-filled with what the project is configured with,
+saving to the same two files the Add form writes (the specs path to
+`.aide/config`, the worktree links to `.aide/project.yaml`). A field
+submitted unchanged is not rewritten, so changing one leaves the other's
+file byte-identical. Until this page existed, a project added without
+either could only be fixed by removing and re-adding it, or by editing a
+file on the serving host.
+
+**And the readiness note is recomputed on every visit.** It used to be
+shown exactly once — in the query string of the redirect an Add landed
+on — so an operator who did not act on it there had no way to rediscover
+what was missing except by starting a run and having it refused. Each
+row that cannot run now carries its own note, beside the Settings link
+that acts on it.
 
 Remove takes the project off the allowlist and off this dashboard, and
 that is all it does: the checkout and the specs root stay on disk,

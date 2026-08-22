@@ -1,0 +1,45 @@
+{
+  "_comment": [
+    "Spec 184: where a project's worktree links are read from, as one table both",
+    "implementations are checked against. `aide-run-spec` (bash) and the dashboard's",
+    "assessProjectReadiness() (TypeScript) resolve this independently — the pair is",
+    "hand-kept, like WORKFLOW_STEPS and DEPENDENCY_GATED_STEPS, so the agreement is",
+    "asserted rather than assumed.",
+    "",
+    "`links` is what both sides must resolve to. `source` is what aide-run-spec must",
+    "REPORT — the dashboard's readiness check has no source field to report, so its",
+    "test reads the `links` column only.",
+    "",
+    "null means: the key is not written in that file at all."
+  ],
+  "cases": [
+    {
+      "name": "manifest-only",
+      "manifest": "deps",
+      "config": null,
+      "links": "deps",
+      "source": "project.yaml"
+    },
+    {
+      "name": "config-only",
+      "manifest": null,
+      "config": "deps",
+      "links": "deps",
+      "source": ".aide/config"
+    },
+    {
+      "name": "both-set-the-manifest-wins",
+      "manifest": "deps",
+      "config": "other-deps",
+      "links": "deps",
+      "source": "project.yaml"
+    },
+    {
+      "name": "neither",
+      "manifest": null,
+      "config": null,
+      "links": "",
+      "source": null
+    }
+  ]
+}

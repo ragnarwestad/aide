@@ -116,22 +116,37 @@ project's `.aide/config`. Add `.aide/config` to your global personal gitignore
 committed — the manifest `.aide/project.yaml` is team knowledge and
 belongs in git.
 
-#### AIDE_WORKTREE_LINKS (per project, in .aide/config)
+#### worktreeLinks (per project, in .aide/project.yaml)
 
 Only for machines that run headless steps through `aide-run-spec`. Each
 run gets a `git worktree` of its own, and a worktree carries **tracked
 files only** — so a gitignored directory the test command depends on is
 simply not there:
 
-```text
-# <project>/.aide/config
-AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+```yaml
+# <project>/.aide/project.yaml
+worktreeLinks: .venv dashboard/node_modules
 ```
 
 Those paths are symlinked in from the main checkout and excluded from the
 commit. Set it before the first headless run in a project, not after: the
 symptom of leaving it out is a step that fails on "command not found" for
 a reason that has nothing to do with its change.
+
+In the **manifest**, not in `.aide/config`, because it is true of the
+project on any machine — that a Vite project needs `node_modules` does
+not depend on whose laptop it is checked out on — and `.aide/config` is
+kept out of git, so a clone arrived on the next machine with the answer
+gone (spec 184). The dashboard's Add form and each project's Settings
+page write this key; `/aide-manifest` leaves it exactly as found.
+
+The older spelling — `AIDE_WORKTREE_LINKS=.venv dashboard/node_modules`
+in `.aide/config` — is still read, so a project migrated on one machine
+keeps running on the others. The manifest **wins** where both name
+something, and every run says in its own output which of the two files it
+read (`worktreeLinksSource` in the result, and a line on stderr), so a
+value shadowed in the other file is diagnosable rather than silently
+ignored.
 
 A link is a symlink into the one main checkout, and several runs share
 it — so it names what a build **reads**, never what a build writes. A

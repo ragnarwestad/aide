@@ -605,15 +605,40 @@ wt_dir="$worktree_base/$(basename "$project_root")/$spec_label"
 # without which pytest and bun both fail for a reason that has nothing to
 # do with the change. Which paths matter cannot be derived without
 # guessing, so the project states them.
+#
+# Two files can say, and the COMMITTED one wins (spec 184).
+# `.aide/project.yaml` travels with the repo, so a checkout that has
+# never been configured on this machine still knows which gitignored
+# paths its commands need; `.aide/config`'s older `AIDE_WORKTREE_LINKS`
+# is read when the manifest names none, so a project migrated on one
+# machine keeps running on the others. Which file was read is REPORTED —
+# to stderr for whoever is watching the run, and in the result blob for
+# whatever reads that — because a value shadowed in the other file is
+# otherwise ignored in silence. The refusals below name the source they
+# actually came from, which is the file to go and edit.
 link_paths=()
 links_raw=""
-if declare -f aide_config_get >/dev/null 2>&1; then
-  links_raw="$(aide_config_get AIDE_WORKTREE_LINKS "$project_root")"
+links_source=""
+links_key=""
+if declare -f aide_manifest_get >/dev/null 2>&1; then
+  links_raw="$(aide_manifest_get worktreeLinks "$project_root")"
+  if [ -n "$links_raw" ]; then
+    links_source="project.yaml"
+    links_key="worktreeLinks"
+  fi
 fi
+if [ -z "$links_raw" ] && declare -f aide_config_get >/dev/null 2>&1; then
+  links_raw="$(aide_config_get AIDE_WORKTREE_LINKS "$project_root")"
+  if [ -n "$links_raw" ]; then
+    links_source=".aide/config"
+    links_key="AIDE_WORKTREE_LINKS"
+  fi
+fi
+[ -n "$links_source" ] && echo "Worktree links: read from $links_source" >&2
 for entry in $links_raw; do
   case "$entry" in
-    /*) refuse "AIDE_WORKTREE_LINKS must name repo-relative paths: $entry" ;;
-    *..*) refuse "AIDE_WORKTREE_LINKS must not escape the root: $entry" ;;
+    /*) refuse "$links_key must name repo-relative paths: $entry" ;;
+    *..*) refuse "$links_key must not escape the root: $entry" ;;
   esac
   # The BASENAME, so a nested module's output (`backend/build`) is the
   # same answer as a top-level one — and asked BEFORE the existence
@@ -633,7 +658,7 @@ for entry in $links_raw; do
   # same entry as a reason the project cannot run — one rule, in two
   # places that have to agree about it.
   [ -e "$project_root/$entry" ] \
-    || refuse "AIDE_WORKTREE_LINKS names a path that is not in $project_root: $entry"
+    || refuse "$links_key names a path that is not in $project_root: $entry"
   link_paths+=("$entry")
 done
 # A `dir/` gitignore rule matches directories only, and a symlink is a
@@ -1513,6 +1538,7 @@ line="$(jq -cn \
   --arg prUrl "$pr_url" \
   --arg prError "$pr_error" --arg pushError "$push_error" \
   --arg pullError "$pull_error" --arg specFolder "$created_spec_folder" \
+  --arg worktreeLinksSource "$links_source" \
   --argjson tokens "${tokens_json:-null}" \
   '{ok:$ok, exitCode:$exitCode, sessionId:$sessionId, tool:$tool,
     costMeasured:$costMeasured, terminalReason:$terminalReason,
@@ -1537,7 +1563,11 @@ line="$(jq -cn \
    # And the same rule once more, for the dollar figure itself: a Codex
    # step reports none, and an absent field is the only shape that
    # cannot be added up as if it were a real zero.
-   + (if $costUsd == null then {} else {costUsd:$costUsd} end)')"
+   + (if $costUsd == null then {} else {costUsd:$costUsd} end)
+   # And once more for which of the two files the worktree links were
+   # read from (spec 184): absent means none were configured at all,
+   # which is not the same claim as either file naming an empty list.
+   + (if $worktreeLinksSource == "" then {} else {worktreeLinksSource:$worktreeLinksSource} end)')"
 
 # The result file is written LAST and by rename, so a reader never sees a
 # half-written one — and it is written on every path, including a stop:

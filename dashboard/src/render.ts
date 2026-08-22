@@ -37,8 +37,10 @@ export type { Page, ProjectView, SpecView } from "./render/site.ts";
 
 export { renderProjectsPage,
   renderAddProjectPage,
+  renderProjectSettingsPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
+  projectSettingsRoute,
   removeProjectRoute } from "./render/projects-page.ts";
 export type { ProjectsPageOptions } from "./render/projects-page.ts";
 

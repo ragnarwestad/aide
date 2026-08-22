@@ -10,6 +10,7 @@ import { describe, expect, test } from "bun:test";
 import {
   renderProjectsPage,
   renderAddProjectPage,
+  renderProjectSettingsPage,
   renderRemoveProjectPage,
   type ProjectView,
   type ProjectsPageOptions,
@@ -354,5 +355,139 @@ describe("the Add page helps with what it cannot decide (spec 140)", () => {
   // differs from the checkout they picked.
   test("the Name field says it only settles anything for a clone", () => {
     expect(add()).toContain("only when cloning from a Git URL");
+  });
+});
+
+// --- spec 184: the settings a project can be fixed with, after Add -----------
+describe("a project's Settings page (spec 184)", () => {
+  const settings = (opts: Partial<ProjectsPageOptions> = {}) =>
+    renderProjectSettingsPage("skjer", NAV, AT, opts);
+
+  // Criteria 4 and 8: the two fields the Add form had, and the reason
+  // this page exists — until it did, a project added with either left
+  // blank could only be fixed by removing and re-adding it.
+  test("both settings are on the form, posting to the project's own route", () => {
+    const html = settings();
+    expect(html).toContain('action="/api/queue/projects/skjer/settings"');
+    expect(html).toContain('name="specsPath"');
+    expect(html).toContain('name="worktreeLinks"');
+  });
+
+  test("the fields carry what the project is configured with today", () => {
+    const html = settings({ specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules .venv" });
+    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/aide-specs\/skjer"/);
+    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules \.venv"/);
+  });
+
+  test("a project configured with neither gets empty fields, not a guess", () => {
+    const html = settings();
+    expect(html).not.toMatch(/name="specsPath"[^>]*value="[^"]/);
+    expect(html).not.toMatch(/name="worktreeLinks"[^>]*value="[^"]/);
+  });
+
+  // The same help the Add form has: nothing can derive which gitignored
+  // paths a project's commands need, but its own .gitignore names them.
+  test("the checkout's gitignored paths are offered here too", () => {
+    const html = settings({ worktreeLinkCandidates: ["node_modules", ".venv"] });
+    expect(html).toContain('<option value="node_modules">');
+  });
+
+  test("a refusal is shown on the page the form is on", () => {
+    expect(settings({ error: "worktreeLinks must not escape the root: ../x" })).toContain("../x");
+  });
+});
+
+// Criterion 11: the readiness note is computed on every visit, not shown
+// once after Add and then lost. Without this, an operator who did not
+// act on it immediately had no way to rediscover what was missing short
+// of starting a run and having it refused.
+describe("the list says which projects cannot run yet (spec 184)", () => {
+  test("a project that cannot run carries its note and a link to Settings", () => {
+    const html = page([project("skjer")], {
+      createProjects: ["skjer"],
+      readinessByProject: {
+        skjer: { canRun: false, note: "skjer cannot run yet: no specs root at /repos/specs/skjer" },
+      },
+    });
+    expect(html).toContain("no specs root at /repos/specs/skjer");
+    expect(html).toContain('href="/projects/skjer/settings"');
+  });
+
+  test("a project that can run carries no note, and its Settings link all the same", () => {
+    const html = page([project("skjer")], {
+      createProjects: ["skjer"],
+      readinessByProject: { skjer: { canRun: true, note: "skjer is ready to run" } },
+    });
+    expect(html).not.toContain("ready to run");
+    expect(html).toContain('href="/projects/skjer/settings"');
+  });
+
+  // The generated site has no server behind it to check a token
+  // against, so it carries no controls at all — the same reason its rows
+  // have no Remove.
+  test("a project nothing was assessed for is drawn exactly as before", () => {
+    const html = page([project("skjer")], { createProjects: ["skjer"] });
+    expect(html).not.toContain("cannot run");
+  });
+});
+
+// --- spec 184: the Add form proposes rather than blanks ----------------------
+//
+// The fields were always blank, and the reader had to go and look up
+// both answers — a lockfile for one, the other projects' layout for the
+// other. Both are worked out by the server now and offered as the
+// field's own value, still fully editable.
+describe("the Add page proposes what it can work out (spec 184)", () => {
+  const add = (opts: Partial<ProjectsPageOptions> = {}) => renderAddProjectPage(NAV, AT, opts);
+
+  const value = (html: string, name: string): string | null =>
+    html.match(new RegExp(`name="${name}"[^>]*value="([^"]*)"`))?.[1] ?? null;
+
+  // Criteria 5 and 10. Exactly one checkout on offer is the only case
+  // the page can pre-fill for with no script: with several, nothing has
+  // been picked yet, and a value filled in for one of them would be a
+  // claim about which.
+  test("one offered checkout has its proposals filled in", () => {
+    const html = add({
+      existingCheckouts: ["skjer"],
+      proposalsByCheckout: { skjer: { specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules" } },
+    });
+    expect(value(html, "worktreeLinks")).toBe("node_modules");
+    expect(value(html, "specsPath")).toBe("/repos/aide-specs/skjer");
+  });
+
+  // Criterion 6, rendered: a proposal that could not be made is a blank
+  // field, never a guess.
+  test("a proposal that could not be made leaves the field empty", () => {
+    const html = add({
+      existingCheckouts: ["skjer"],
+      proposalsByCheckout: { skjer: { specsPath: "", worktreeLinks: "node_modules" } },
+    });
+    expect(value(html, "worktreeLinks")).toBe("node_modules");
+    expect(value(html, "specsPath")).toBeNull();
+  });
+
+  test("several checkouts on offer pre-fill nothing, because nothing is picked yet", () => {
+    const html = add({
+      existingCheckouts: ["skjer", "atlasaurus"],
+      proposalsByCheckout: {
+        skjer: { specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules" },
+        atlasaurus: { specsPath: "/repos/aide-specs/atlasaurus", worktreeLinks: ".venv" },
+      },
+    });
+    expect(value(html, "worktreeLinks")).toBeNull();
+    expect(value(html, "specsPath")).toBeNull();
+    // But the proposals ARE on the page, for the pick to fill in.
+    expect(html).toContain("data-proposals");
+    expect(html).toContain("atlasaurus");
+  });
+
+  // A project not on this host yet has no lockfile to read, so there is
+  // nothing to propose from — the clone has not happened.
+  test("a page with no checkouts on offer proposes nothing at all", () => {
+    const html = add();
+    expect(value(html, "worktreeLinks")).toBeNull();
+    expect(value(html, "specsPath")).toBeNull();
+    expect(html).not.toContain("data-proposals");
   });
 });

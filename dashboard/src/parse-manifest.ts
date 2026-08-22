@@ -19,6 +19,17 @@ export interface ManifestData {
   statistics?: string[];
   reports?: { title?: string; url?: string; recipe?: string }[];
   docs?: string[];
+  /** The gitignored paths a run has to symlink into its worktree, space
+   *  separated (spec 184). Here rather than in `.aide/config` because it
+   *  is true of the PROJECT on any machine — that a Vite project needs
+   *  `node_modules` does not depend on whose laptop it is checked out
+   *  on — and `.aide/config` is dropped by a global ignore rule, so a
+   *  clone arrived on the next machine with that knowledge gone.
+   *
+   *  A scalar, not a list, and the dashboard writes it: `aide-run-spec`
+   *  reads the same line with one anchored `sed`, and the run's own
+   *  refusal wording names this key when the value came from here. */
+  worktreeLinks?: string;
 }
 
 export type ManifestResult =
@@ -83,6 +94,7 @@ export function parseManifest(text: string): ManifestResult {
     });
   }
   if (r.docs != null) data.docs = toList(r.docs);
+  if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
 
   return { ok: true, data };
 }

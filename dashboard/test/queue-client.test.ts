@@ -514,6 +514,9 @@ function harness(
   // and a success written into it must not stay the colour of one.
   const addSlot = { textContent: "", className: "refused rowmsg err" };
   const addForm = {
+    // Every real form element has one; spec 184's proposal binding reads
+    // it, and an empty one is what a page with nothing to propose sends.
+    dataset: {} as Record<string, string>,
     action: "http://dash.test/api/queue/projects",
     fields: [["name", "skjer"], ["existingPath", "skjer"]] as [string, string][],
     querySelectorAll: () => [addButton],
@@ -529,6 +532,7 @@ function harness(
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`add:${type}`] = fn),
   };
   const removeForm = {
+    dataset: {} as Record<string, string>,
     action: "http://dash.test/api/queue/projects/atlasaurus/remove",
     fields: [["confirm", "atlasaurus"]] as [string, string][],
     querySelectorAll: () => [removeButton],
@@ -1539,6 +1543,7 @@ describe("on /projects, where there is no New-spec form", () => {
   test("the Add form is bound once — as a project change, not also as a create", () => {
     const bound: string[] = [];
     const addForm = {
+      dataset: {} as Record<string, string>,
       className: "newspecform addprojectform",
       querySelector: () => null,
       querySelectorAll: () => [],
@@ -1565,6 +1570,78 @@ describe("on /projects, where there is no New-spec form", () => {
       },
     );
     expect(bound).toEqual(["submit"]);
+  });
+
+  // Spec 184: the server works out a proposal per offered checkout,
+  // because nothing is picked at the moment the page is drawn. Picking
+  // one fills the two fields in — and never overwrites an answer the
+  // reader has typed, which would be help that undoes help.
+  test("picking a checkout fills in that checkout's proposed settings", () => {
+    const specs = { name: "specsPath", value: "", addEventListener: () => {} };
+    const linksTyped: (() => void)[] = [];
+    const links = {
+      name: "worktreeLinks",
+      value: "",
+      addEventListener: (_t: string, fn: () => void) => void linksTyped.push(fn),
+    };
+    let onChange = (): void => {};
+    const picker = {
+      name: "existingPath",
+      value: "",
+      addEventListener: (type: string, fn: () => void) => {
+        if (type === "change") onChange = fn;
+      },
+    };
+    const addForm = {
+      dataset: {
+        proposals: JSON.stringify({
+          skjer: { specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules" },
+          bare: { specsPath: "", worktreeLinks: "" },
+        }),
+      } as Record<string, string>,
+      className: "newspecform addprojectform",
+      querySelector: (sel: string) =>
+        sel.includes("existingPath") ? picker : sel.includes("specsPath") ? specs : sel.includes("worktreeLinks") ? links : null,
+      querySelectorAll: () => [],
+      addEventListener: () => {},
+    };
+    const document = {
+      getElementById: () => null,
+      querySelector: () => null,
+      querySelectorAll: (sel: string) =>
+        sel.includes("addprojectform") || sel.includes("removeform") ? [addForm] : [],
+      createElement: () => ({ id: "", className: "", textContent: "" }),
+      addEventListener: () => {},
+      visibilityState: "hidden",
+    };
+    // eslint-disable-next-line no-new-func -- the file under test IS a script
+    new Function("document", "location", "fetch", "setInterval", "history", "FormData", SOURCE)(
+      document,
+      { search: "", href: "http://dash.test/projects", pathname: "/projects" },
+      async () => ({ ok: true, json: async () => ({}), text: async () => "" }),
+      () => 0,
+      { replaceState: () => {} },
+      class {
+        forEach(): void {}
+      },
+    );
+    picker.value = "skjer";
+    onChange();
+    expect([specs.value, links.value]).toEqual(["/repos/aide-specs/skjer", "node_modules"]);
+
+    // A checkout with nothing to propose clears the fields, so the form
+    // never shows the previous pick's answer beside this one's name.
+    picker.value = "bare";
+    onChange();
+    expect([specs.value, links.value]).toEqual(["", ""]);
+
+    // And an answer the reader typed is theirs: the next pick fills the
+    // other field and leaves this one exactly as they left it.
+    links.value = "deps";
+    for (const fn of linksTyped) fn();
+    picker.value = "skjer";
+    onChange();
+    expect([specs.value, links.value]).toEqual(["/repos/aide-specs/skjer", "deps"]);
   });
 });
 

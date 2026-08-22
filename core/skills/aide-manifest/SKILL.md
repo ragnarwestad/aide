@@ -67,6 +67,13 @@ inventing values.
 - The file is committable: `git add .aide/project.yaml` (in a fresh
   project, verify `.aide/` is not swallowed by an ignore rule — only
   `.aide/config` should be ignored)
+- **Leave a `worktreeLinks:` key exactly as found — never propose one,
+  never remove one.** It is the dashboard's to write (spec 184), and it
+  names the gitignored paths a headless run symlinks into its worktree.
+  Dropping it on a refresh breaks every OTHER machine's runs the next
+  time they pull, while this one carries on working — a manifest is
+  committed, and this key is the one thing in it that a refresh has no
+  way to derive back
 
 ### Step 5: Confirm
 
