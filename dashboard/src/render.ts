@@ -1,6 +1,8 @@
 // The dashboard's rendering, one file per page:
 //
-//   render/site.ts        projects.html + one page per project (static)
+//   render/site.ts        projects.html + one page per project — the
+//                         generated file, and the served `/projects/<name>`
+//                         that carries the config and the readiness answer
 //   render/projects-page.ts  /projects — the listing, and the panel that
 //                            adds and removes projects
 //   render/queue-list.ts  / — the spec list
@@ -26,6 +28,10 @@
 export {
   ABOUT_PAGE, ARCHIVE_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
   navEntries,
+  // `/projects/<name>` — the project's own page, served (spec 185), so
+  // what it says about the config file is true when it is read rather
+  // than when the site was last generated.
+  projectPagePath, renderProjectPage,
 } from "./render/site.ts";
 export type { Page, ProjectView, SpecView } from "./render/site.ts";
 

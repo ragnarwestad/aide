@@ -27,6 +27,7 @@ import {
   stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
+import { projectSettings } from "./project-settings.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import { archiveHeldBackReason, parseStatus, parseStatusChecks, tickStatusLine } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
@@ -40,6 +41,7 @@ import {
 import {
   addProject,
   addProjectTarget,
+  assessProjectReadiness,
   projectNameError,
   removeProject,
   type ProjectReadiness,
@@ -61,6 +63,7 @@ import {
   navEntries,
   renderJobDetailPage,
   renderNewSpecPage,
+  renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
   renderRemoveProjectPage,
@@ -1913,6 +1916,45 @@ export function createServer(opts: ServerOptions) {
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
+    // A project's OWN page, served (spec 185). Below the Add and Remove
+    // pages on purpose: those are two-segment paths too, and a project
+    // may not shadow a control.
+    //
+    // The generated `<slug>.html` is still written and still reachable
+    // — a site rsynced behind a plain file server has no server to ask
+    // git anything, and that is the deployment it is for. What that
+    // page cannot say is what this one exists for: the config file is
+    // personal and gitignored, an operator edits it between merges, and
+    // the generator runs only after some unrelated merge lands in the
+    // queue.
+    const projectPage = path.match(/^\/projects\/([^/]+)$/);
+    if (projectPage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(projectPage[1]!);
+      if (!opts.projectRoot) return new Response("no such project\n", { status: 404 });
+      // Read fresh, uncached, exactly as `/projects` does: nothing polls
+      // this page, so a scan per request is the cost `make generate`
+      // already treats as cheap — and no invalidation to get wrong.
+      const view = buildProjectViews(opts.projectRoot).find((p) => p.name === name);
+      if (!view) return new Response("no such project\n", { status: 404 });
+      const dir = projectDir(name);
+      // Fail open, the way the drift check on `/projects` does. Every
+      // check inside `assessProjectReadiness` already treats a git that
+      // answers nothing as its own kind of failure rather than throwing,
+      // so this catches the case where git is not there to be run at
+      // all: the reader came for the project's page, and the half of it
+      // that needs no git is still worth serving.
+      const readiness = await assessProjectReadiness(gitRun, dir).catch(() => null);
+      const html = renderProjectPage(
+        view,
+        projectSettings(dir, readiness),
+        readiness,
+        new Date().toISOString(),
+        nav(),
+      );
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
     // The projects page (spec 115): the same listing the generator used
     // to write to projects.html, plus the panel that changes it. Beside
     // the `/` branch above on purpose — the full-page GET handlers
@@ -2783,7 +2825,12 @@ export function parseArgs(argv: string[]): ServerOptions {
       manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
       specs: [],
     }));
-    opts.navEntries = navEntries(projects);
+    // `live`: this server has a project root, so it serves each
+    // project's page itself (spec 185) — and that is the page carrying
+    // the settings and the readiness answer. `navFromSite()`, the
+    // no-`--root` fallback, still names the generated files, because a
+    // server with no project root cannot render one.
+    opts.navEntries = navEntries(projects, { live: true });
   }
   return opts;
 }
