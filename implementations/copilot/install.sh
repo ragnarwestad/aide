@@ -30,6 +30,7 @@ echo ""
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
+install_shell_path
 
 echo ""
 
@@ -62,11 +63,9 @@ echo "4️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
-  echo "   ⚠️  ~/.local/bin is NOT in PATH"
-  echo "   ℹ️  Add the following to ~/.zshrc or ~/.bashrc:"
-  echo ""
-  echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
-  echo ""
+  echo "   ⚠️  ~/.local/bin is NOT in PATH for this shell yet"
+  echo "   ℹ️  It was just added to ~/.zshenv and ~/.bashrc — open a new"
+  echo "      terminal or ssh session to pick it up"
 fi
 
 # 5. Check if the GitHub Copilot extension is installed

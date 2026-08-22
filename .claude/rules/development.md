@@ -192,6 +192,22 @@ and the cron job depend on them. The same goes for the skills in
 `core/scripts/_install-skills.sh`). Only `uninstall-all.sh` calls
 `uninstall_common_bin` and `uninstall_agents_skills` (as its final steps).
 
+**The PATH block in `~/.zshenv` and `~/.bashrc` follows that same contract
+(spec 175).** `install_shell_path` in `core/scripts/_install-bin.sh` writes
+a marked, idempotent block putting `/opt/homebrew/bin`, `/usr/local/bin`
+and `$HOME/.local/bin` on PATH; every installer calls it, and only
+`uninstall-all.sh` calls `uninstall_shell_path`. It exists because
+`ssh host 'command'` starts a NON-INTERACTIVE shell, which reads neither
+`.zprofile`, `.zshrc` nor `.bash_profile` — `tmux`, `claude` and
+`tailscale` were each "command not found" over ssh on the serving host
+while a person sitting at the machine found them. Two things not to
+change without knowing why: the block carries STABLE directories only (a
+versioned path such as mise's bun install dir rots at the next upgrade,
+which is why the deploy scripts name such tools by full path), and it is
+PREPENDED to `~/.bashrc` while appended to `~/.zshenv` — most `.bashrc`
+templates open with a non-interactive early return, so a block after it
+would never run for the exact case this fixes.
+
 ## Adding new functionality
 
 ### New skill

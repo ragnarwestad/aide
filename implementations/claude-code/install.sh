@@ -32,6 +32,7 @@ IMPL_DIR="$SCRIPT_DIR"
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
+install_shell_path
 # Claude Code has its own skills location and its own copy step below,
 # but the pruning half is shared with the other two installers — one
 # implementation, three call sites.
@@ -114,11 +115,9 @@ echo "3️⃣  Verifying PATH..."
 if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
   echo "   ✅ ~/.local/bin is in PATH"
 else
-  echo "   ⚠️  ~/.local/bin is NOT in PATH"
-  echo "   ℹ️  Add the following to ~/.zshrc or ~/.bashrc:"
-  echo ""
-  echo "      export PATH=\"\$HOME/.local/bin:\$PATH\""
-  echo ""
+  echo "   ⚠️  ~/.local/bin is NOT in PATH for this shell yet"
+  echo "   ℹ️  It was just added to ~/.zshenv and ~/.bashrc — open a new"
+  echo "      terminal or ssh session to pick it up"
 fi
 
 # 4. Install LSP plugins (native Claude Code)

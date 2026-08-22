@@ -31,6 +31,7 @@ echo "═══════ shared scripts ═══════"
 echo "Removing shared scripts from ~/.local/bin/..."
 source "$ROOT/core/scripts/_install-bin.sh"
 uninstall_common_bin
+uninstall_shell_path
 
 echo ""
 echo "═══════ shared skills ═══════"
