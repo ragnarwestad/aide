@@ -280,6 +280,9 @@ function harness(
       value,
       dataset: { tool },
       hidden: false,
+      // The client hides an option AND disables it: hidden so the list
+      // does not offer it, disabled so a post cannot carry it.
+      disabled: false,
       selected: value === chosen,
     }));
     const self = {
@@ -1695,11 +1698,40 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeAi(3, "claude"); // implement, drawn on codex-fast
     expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "sonnet", "sonnet"]);
-    // And nothing is hidden by any of it: every model stays on offer
-    // in every select, which is what spec 169 removed the filter for.
-    for (const select of h.modelSelects) {
-      expect([select.name, select.options.some((o) => o.hidden)]).toEqual([select.name, false]);
+  });
+
+  // What the picker is FOR, and what it did not do until now: the list
+  // beside it follows the tool. The models of the other CLI are still
+  // in the markup — the server draws them all, so a reader with no
+  // script keeps the whole list — but this select stops offering them,
+  // and disables them so a post cannot carry one either.
+  test("the phase's model list is narrowed to the AI that was picked", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    const implement = h.modelSelects.find((s) => s.name === "model.implement")!;
+    h.changeAi(3, "claude");
+    for (const o of implement.options) {
+      const claude = o.dataset.tool === "claude";
+      expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !claude, !claude]);
     }
+    // Back the other way, on the same line.
+    h.changeAi(3, "codex");
+    for (const o of implement.options) {
+      const codex = o.dataset.tool === "codex";
+      expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !codex, !codex]);
+    }
+  });
+
+  // Per PHASE LINE, never across the row: spec 169's filter was
+  // row-wide and hid that a spec can run analyze on one CLI and
+  // implement on another. Narrowing one line must leave the others as
+  // they were.
+  test("narrowing one phase leaves the other phases offering their own", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeAi(3, "codex");
+    const analyze = h.modelSelects.find((s) => s.name === "model.analyze")!;
+    expect(analyze.options.filter((o) => o.dataset.tool === "claude").every((o) => !o.hidden)).toBe(
+      true,
+    );
   });
 
   // The pairing is `data-ai` plus the shared form id, because the
