@@ -547,7 +547,7 @@ table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
    filter), so the floor no longer has to clear the widest name in the
    whole configuration. Asked for 2026-08-22 — the reserved width was
    pushing the phase, the AI and the model apart. */
-table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; }
+table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; max-width: 100px; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's

@@ -5887,7 +5887,7 @@ describe("spec 165: the phase lines read left to right", () => {
     // boxes read as a column with a heading.
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).toContain(
-      "table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; }",
+      "table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; max-width: 100px; }",
     );
     expect(caption(html)).toMatch(
       /<td class="modelcell"><span class="row"><span class="muted small">Model<\/span>/,
