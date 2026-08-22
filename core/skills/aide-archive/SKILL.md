@@ -71,11 +71,20 @@ repo has a branch of its own and can conflict the same way.
 
 ### Step 3: Check that the work is done
 
-Read `4-status.md`. If it does not clearly show finished work (open
-checkboxes, no conclusion):
+Read `4-status.md`. The decision reads one thing: the Status cell of
+every Tasks-table row in every `## Phase`/`## Fase` section — the same
+rows the dashboard's own `parseStatusChecks` reads. A row is done when
+its Status cell holds `✅` or the Notation table's own word for it
+(`Completed`, case-insensitive); anything else is open. The Notes cell
+beside it is prose for a reader, never an input to this decision — a
+Notes cell that still reads as unfinished next to a done Status mark
+changes nothing.
+
+Every row done: continue straight to Step 4, whatever any Notes cell
+says. Any row open, name it (its phase heading and Task cell) and:
 
 - **Someone is there (interactive):** show the status and ask whether to
-  archive anyway. Never archive silently past an unfinished status.
+  archive anyway. Never archive silently past an open row.
 - **Nobody is there (headless — the prompt said so, or `AIDE_HEADLESS`
   is set):** do NOT archive. Add — or replace, if one is already there —
   a `## Archive held back` section in `4-status.md` holding ONE bullet

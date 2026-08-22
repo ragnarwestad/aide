@@ -437,3 +437,52 @@ class TestArchiveHeldBackBulletSaysWhereToCloseIt:
             "the example held-back bullet says what is open but not where to "
             f"close it out: {example}"
         )
+
+
+class TestStep3DecidesOnMarksNotProse:
+    """Spec 194: Step 3's finish decision reads Status marks only.
+
+    Three specs refused to archive with every Tasks-table row ticked,
+    because a Notes cell beside a ticked row still read as unfinished
+    and Step 3 asked the session to judge whether the file "clearly
+    shows finished work". The dashboard already draws the line the
+    other way — `isDoneMark` in `dashboard/src/parse-status.ts` reads
+    one column and two literal values — so Step 3 has to state the same
+    rule for the session that reads it.
+    """
+
+    SKILL = CORE_SKILLS_DIR / "aide-archive" / "SKILL.md"
+
+    def _step_3_text(self) -> str:
+        text = self.SKILL.read_text(encoding="utf-8")
+        start = text.index("### Step 3: Check that the work is done")
+        end = text.index("### Step 4:", start)
+        return text[start:end]
+
+    def test_decision_names_the_status_cell_as_sole_input(self):
+        step3 = self._step_3_text()
+        assert "Status cell" in step3, (
+            "Step 3 never names the Status cell, so the finish decision is "
+            "still an open reading of the whole file"
+        )
+        assert "✅" in step3, (
+            "Step 3 does not say which mark counts as done"
+        )
+
+    def test_notes_cell_is_explicitly_ruled_out(self):
+        step3 = self._step_3_text()
+        assert "Notes cell" in step3, "Step 3 never mentions the Notes cell"
+        assert (
+            re.search(r"never\b.{0,60}\bNotes cell", step3, re.DOTALL)
+            or re.search(r"Notes cell\b.{0,60}\bnever\b", step3, re.DOTALL)
+        ), (
+            "Step 3 mentions the Notes cell but never rules it out as an "
+            "input to the decision"
+        )
+
+    def test_an_open_row_is_named_by_phase_and_task(self):
+        step3 = self._step_3_text()
+        assert "phase heading" in step3 and "Task cell" in step3, (
+            "Step 3 does not require the refusal to name the open row's "
+            "phase heading and Task cell"
+        )
