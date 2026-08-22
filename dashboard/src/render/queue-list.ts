@@ -29,10 +29,8 @@ import { specPagePath } from "./spec-page.ts";
 import {
   badge,
   btn,
-  field,
   filterPills,
   phaseChip,
-  phases,
   pips,
   rowMessage,
   stepLabel,
@@ -991,52 +989,6 @@ const refusalFor = (g: SpecGroup, opts: QueuePageOptions): string | undefined =>
 // "an id that names a spec" stays the one convention it already is.
 const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.specFolder)}`;
 
-// The one thing nobody sets every time — the other repos the job will
-// touch. Built here rather than inline in `stateAction` so the
-// `form` attribute it needs is written once, beside the id it has to
-// match.
-//
-// It used to have company. The model left for the phase lines in spec
-// 123: one shared dropdown could only ever set ONE model for every
-// phase a press ticked, and it landed beside the State column by
-// accident of content width, tied to nothing around it. The "stop for
-// approval between steps" box left altogether in spec 133: its two
-// states were "run straight through" and "stop after every step", and
-// a reader who wants the second ticks one phase at a time instead.
-function extraFields(g: SpecGroup, opts: QueuePageOptions, busy: boolean): string {
-  // A field that sets up a job, on a row where no job can be started:
-  // while the spec is busy it is disabled, and it carries the same
-  // sentence the phase boxes do.
-  const why = busy ? busyReason(g) : "";
-  const formId = runFormId(g);
-  // The row's own project is watched already, so offering it again is an
-  // error waiting to be submitted. The row knows which spec it is before
-  // it is drawn, so this is a filter at render time — the old shared
-  // form had to disable the box from script as the selection changed.
-  const others = (opts.projects ?? []).filter((p) => p !== g.project);
-  return others.length
-    ? field(
-        "Also touches",
-        phases(
-          others
-            .map((p) =>
-              phaseChip({
-                dataAttr: "data-project",
-                value: p,
-                label: p,
-                name: "extraProjects",
-                form: formId,
-                disabled: busy,
-                title: busy ? why : undefined,
-              }),
-            )
-            .join(""),
-        ),
-        { group: true },
-      )
-    : "";
-}
-
 // The one thing the row asks of the reader, beside the sentence that
 // says why (spec 157). Run or Cancel — never both, and nothing at all
 // when there is nothing to run: the two are never the right press at the
@@ -1113,10 +1065,13 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
     // reason `modelPicker` builds its own `<select>`.
     return `<button type="submit" form="${esc(runFormId(g))}" class="btn primary" data-pending="starting…">${esc(label)}</button>`;
   })();
-  // The one nobody sets every time, quiet and small-text after the
-  // button (spec 117's shape). Open rows only, as it has always been:
-  // a shut row is about what the spec IS, plus the one press it wants.
-  return runForm + primary + (open ? `<span class="row extra">${extraFields(g, opts, busy)}</span>` : "");
+  // "Also touches" stood here until nobody could point at a press it
+  // had ever served: 0 of the queue's 200 jobs named an extra repo, and
+  // it drew one tick box per OTHER project on every open row — so
+  // adding a project widened it and took the layout with it. A run that
+  // has to reach a third repository is named with --extra-project-dir,
+  // which the queue and the runner still take; it is not a box.
+  return runForm + primary;
 }
 
 // The one control on this page that is NOT about a spec that exists:

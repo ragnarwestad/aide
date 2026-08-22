@@ -1869,38 +1869,10 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
     expect(row([])).not.toContain("depends on");
   });
 });
+// The row asked which other repos a job would touch, with a tick box
+// per project. The queue and the runner still take extraProjects —
+// the box is what went, unused by all 200 jobs the queue held.
 
-describe("each row asks which other repos its job will touch (criterion 5)", () => {
-  const page = (projects: string[]) =>
-    renderQueuePage([], "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
-      runnerAvailable: true,
-      targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
-      filter: { open: "aide/81-queue-and-runner" },
-      projects,
-    });
-  // The chips are on the open row's controls line since spec 117.
-  const line = (projects: string[]) => specControls(page(projects), "81-queue-and-runner");
-
-  test("one checkbox per OTHER project, so a cross-repo job can say so up front", () => {
-    const html = line(["aide", "aide-dashboard"]);
-    expect(html).toContain('name="extraProjects"');
-    expect(html).toContain('value="aide-dashboard"');
-    // Never the row's own project: it is watched already, and offering
-    // it again is an error waiting to be submitted. No script needed —
-    // the row knows which spec it is before it is drawn.
-    expect(html).not.toContain('name="extraProjects" value="aide"');
-  });
-
-  test("with a single project there is nothing to add, and no field is shown", () => {
-    expect(line(["aide"])).not.toContain('name="extraProjects"');
-  });
-
-  test("none is ticked by default — a job watches only what it says it will", () => {
-    const html = line(["aide", "aide-dashboard"]);
-    const field = html.slice(html.indexOf('name="extraProjects"'));
-    expect(field.slice(0, 200)).not.toContain("checked");
-  });
-});
 
 // --- spec 89: merging a spec's branches from the page ------------------------
 

@@ -470,101 +470,11 @@ describe("refused and running are told apart by more than the word", () => {
     expect(html).toMatch(/class="refused rowmsg err">\s*<svg/);
   });
 });
+// "Also touches" had a group of its own here: it lived in the action
+// cell beside the button, and four tests pinned it there. The control
+// is gone — 0 of 200 jobs ever named an extra repo, and it drew a tick
+// box per project on every open row — so the tests went with it.
 
-// --- nothing is left behind a second click ------------------------------------
-
-describe("the row's rarely-set controls sit beside the row's action (item 4)", () => {
-  const html = () =>
-    rows([], {
-      targets: [target()],
-      projects: ["aide", "atlasaurus"],
-      modelChoices: [{ name: "opus", budgetUsd: 15 }],
-    });
-
-  /** The spec's action cell: the State column — the head row's third
-   *  — open or shut alike since spec 157. */
-  const controls = (h: string) => {
-    const head =
-      h.match(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="[^"]*">[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
-  };
-  /** The list itself. The "?" popover above it is a `<details>` too
-   *  (spec 113) and has nothing to do with a row. */
-  const list = (h: string) => h.match(/<table class="list">[\s\S]*<\/table>/)?.[0] ?? "";
-
-  test("no disclosure is left for the row to hide them behind", () => {
-    const table = list(html());
-    expect(table).not.toBe("");
-    expect(table).not.toContain('class="more"');
-    expect(table).not.toContain("<details");
-    expect(table).not.toContain("<summary");
-  });
-
-  // One of the three now: the model went to the phase line itself in
-  // spec 123, and the gate box went altogether in spec 133.
-  test("also-touches is in the action cell", () => {
-    const cell = controls(html());
-    expect(cell).toContain('name="extraProjects"');
-    expect(cell).not.toContain('name="model"');
-    expect(cell).not.toContain('name="gate"');
-  });
-
-  test("nothing of it is left anywhere else on the page", () => {
-    const h = html();
-    const outside = h.replace(controls(h), "");
-    expect(outside).not.toContain('name="extraProjects"');
-    expect(h).not.toContain('name="gate"');
-  });
-
-  test("it comes after the button, quietly", () => {
-    const cell = controls(html());
-    expect(cell.indexOf('name="extraProjects"')).toBeGreaterThan(cell.indexOf("</button>"));
-    expect(cell).toContain('<span class="row extra">');
-  });
-
-  // Spec 120: presence in the cell is not the same as SHARING it. Each
-  // form is its own block, so siblings glued straight into the `<td>`
-  // decide their own spacing — only a container around them declares
-  // it once. Spec 124 turned that container on its side; spec 157
-  // turns it back, and the badge joins it: the state and the one
-  // button read as one line, with the gap still the container's.
-  /** The State cell's own `<span class="row">`, with everything it
-   *  holds. */
-  const group = (h: string) => h.match(/<span class="row">[\s\S]*<\/span>/)?.[0] ?? "";
-
-  test("the badge, the action form and the extra fields are one row (spec 120)", () => {
-    const cell = controls(
-      rows([row()], {
-        targets: [target()],
-        projects: ["aide", "atlasaurus"],
-        modelChoices: [{ name: "opus", budgetUsd: 15 }],
-      }),
-    );
-    const outer = group(cell);
-    expect(outer).toContain('class="badge');
-    // The fixture's job is RUNNING, so the row's one control is Cancel
-    // — no run form beside it, which is the point of "one control".
-    expect(outer).toContain('class="actionform"');
-    expect(outer).toContain(">Cancel</button>");
-    expect(outer).toContain('<span class="row extra">');
-    // The run form is still there — it is the carrier the phase boxes
-    // name — but nothing submits it while a job is in flight.
-    expect(outer).not.toMatch(/<button[^>]*form="rowrun/);
-  });
-
-  test("the container is there with no job to cancel either (spec 120)", () => {
-    // The same cell with nothing ever run: there is nothing to cancel,
-    // so the row offers the phases a press would run instead — and
-    // what remains still shares the container rather than gaining one
-    // when a job arrives.
-    const outer = group(controls(html()));
-    expect(outer).toContain('class="badge');
-    expect(outer).toContain('id="rowrun-');
-    expect(outer).toContain('<span class="row extra">');
-    expect(outer).not.toContain('class="actionform"');
-  });
-});
 
 // --- the button says what pressing it does ------------------------------------
 
