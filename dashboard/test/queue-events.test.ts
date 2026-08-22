@@ -211,7 +211,7 @@ async function enqueueOther(base: string): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
     headers: postJson,
-    body: JSON.stringify({ ...JOB, steps: ["review-plan"] }),
+    body: JSON.stringify({ ...JOB, steps: ["implement"] }),
   });
   expect(res.status).toBe(200);
   return ((await res.json()) as { job: { id: string } }).job.id;

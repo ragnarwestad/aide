@@ -609,8 +609,8 @@ describe("whether a run could start there (spec 138)", () => {
   });
 
   // Criterion 4: the specs repo is a participating repository — it is
-  // where analyze and review-plan actually write — so it is checked for
-  // the same two things the project is.
+  // where analyze actually writes — so it is checked for the same two
+  // things the project is.
   test("a configured specs root brings its own repository under the same checks", async () => {
     const { projectsRoot, dir } = checkout("external", { specs: false });
     const specs = root();

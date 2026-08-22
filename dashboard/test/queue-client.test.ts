@@ -328,12 +328,11 @@ function harness(
     };
     return self;
   };
-  // Two phases with history and three still ahead — the mixed row
+  // One phase with history and three still ahead — the mixed row
   // "set all" is scoped against (spec 169).
   const modelSelects = [
     modelSelect("create", "sonnet"),
     modelSelect("analyze", "fable", true),
-    modelSelect("review-plan", "sonnet", true),
     modelSelect("implement", "codex-fast"),
     modelSelect("archive", "sonnet"),
   ];
@@ -391,15 +390,14 @@ function harness(
   const aiSelects = [
     aiSelect("create", "claude"),
     aiSelect("analyze", "claude"),
-    aiSelect("review-plan", "claude"),
     aiSelect("implement", "codex"),
     aiSelect("archive", "claude"),
   ];
   // Spec 141: the row's phase boxes. They share one `name` — the step
   // is in the VALUE — which is why what is remembered about them is
   // keyed on three parts and not the two a select needs. `create` has
-  // no box (a spec that exists cannot be created again), so the four
-  // that can be run are the four that are here.
+  // no box (a spec that exists cannot be created again), so the three
+  // that can be run are the three that are here.
   const stepCheckbox = (value: string, served: boolean) => {
     const self = {
       name: "steps",
@@ -410,10 +408,10 @@ function harness(
       isConnected: true,
       // `aria-label` is the phase's reader-facing name, which the server
       // sets on every box (`phaseChip`) and which the button's label is
-      // read off — "review" for `review-plan`, so the two differ and
-      // the test can tell which one the code used.
+      // read off. Since spec 181 no step is called anything other than
+      // its own value, so the two say the same thing.
       getAttribute: (n: string) =>
-        n === "form" ? ROW_FORM : n === "aria-label" ? (value === "review-plan" ? "review" : value) : null,
+        n === "form" ? ROW_FORM : n === "aria-label" ? value : null,
       // A tick lands on the input itself. It is not a select of any
       // kind, so it answers both select selectors with null and its
       // own with itself — otherwise the delegated listener would file
@@ -428,7 +426,6 @@ function harness(
   };
   const stepBoxes = [
     stepCheckbox("analyze", true),
-    stepCheckbox("review-plan", true),
     stepCheckbox("implement", false),
     stepCheckbox("archive", false),
   ];
@@ -1733,8 +1730,8 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
 
   test("nothing is written until the reader picks an AI", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
-    expect(tools(h)).toEqual(["claude", "claude", "claude", "codex", "claude"]);
+    expect(values(h)).toEqual(["sonnet", "fable", "codex-fast", "sonnet"]);
+    expect(tools(h)).toEqual(["claude", "claude", "codex", "claude"]);
   });
 
   // The value written is the one the SERVER worked out and put on the
@@ -1744,7 +1741,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   test("picking an AI writes that phase's model, and no other phase's", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeAi(1, "codex"); // analyze
-    expect(values(h)).toEqual(["sonnet", "codex-fast", "sonnet", "codex-fast", "sonnet"]);
+    expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
   });
 
   // A phase that has RUN is no exception. The removed set-all control
@@ -1759,8 +1756,8 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
 
   test("picking Claude Code fills a Claude model in just as well", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeAi(3, "claude"); // implement, drawn on codex-fast
-    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "sonnet", "sonnet"]);
+    h.changeAi(2, "claude"); // implement, drawn on codex-fast
+    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "sonnet"]);
   });
 
   // What the picker is FOR, and what it did not do until now: the list
@@ -1771,13 +1768,13 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   test("the phase's model list is narrowed to the AI that was picked", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     const implement = h.modelSelects.find((s) => s.name === "model.implement")!;
-    h.changeAi(3, "claude");
+    h.changeAi(2, "claude");
     for (const o of implement.options) {
       const claude = o.dataset.tool === "claude";
       expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !claude, !claude]);
     }
     // Back the other way, on the same line.
-    h.changeAi(3, "codex");
+    h.changeAi(2, "codex");
     for (const o of implement.options) {
       const codex = o.dataset.tool === "codex";
       expect([o.value, o.hidden, o.disabled]).toEqual([o.value, !codex, !codex]);
@@ -1790,7 +1787,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   // they were.
   test("narrowing one phase leaves the other phases offering their own", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
-    h.changeAi(3, "codex");
+    h.changeAi(2, "codex");
     const analyze = h.modelSelects.find((s) => s.name === "model.analyze")!;
     expect(analyze.options.filter((o) => o.dataset.tool === "claude").every((o) => !o.hidden)).toBe(
       true,
@@ -1812,7 +1809,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   test("it answers a change on the container, and ignores every other one", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeOther();
-    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
+    expect(values(h)).toEqual(["sonnet", "fable", "codex-fast", "sonnet"]);
     h.changeAi(0, "codex");
     expect(values(h)[0]).toBe("codex-fast");
   });
@@ -1831,12 +1828,12 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
     await flush();
 
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
-    expect(values(h)).toEqual(["sonnet", "codex-fast", "sonnet", "codex-fast", "sonnet"]);
+    expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
     // And the AI select the swap just redrew says the same thing the
     // model select does. It carries no memory of its own — it is set
     // from the model that was restored, which is what keeps the two
     // from ever disagreeing.
-    expect(tools(h)).toEqual(["claude", "codex", "claude", "codex", "claude"]);
+    expect(tools(h)).toEqual(["claude", "codex", "codex", "claude"]);
   });
 
   test("a chosen MODEL survives it too, and an untouched one is the server's", async () => {
@@ -1847,7 +1844,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
     h.tick();
     await flush();
 
-    expect(values(h)).toEqual(["sonnet", "sonnet", "sonnet", "codex-fast", "sonnet"]);
+    expect(values(h)).toEqual(["sonnet", "sonnet", "codex-fast", "sonnet"]);
   });
 
   // The tool is DERIVED from the model, in both directions of travel:
@@ -1857,9 +1854,9 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   test("changing the model by hand moves its own AI select at once", () => {
     const h = harness(() => ({ ok: true, body: { ok: true } }));
     h.changeModel(0, "codex-fast");
-    expect(tools(h)).toEqual(["codex", "claude", "claude", "codex", "claude"]);
-    h.changeModel(3, "fable");
-    expect(tools(h)).toEqual(["codex", "claude", "claude", "claude", "claude"]);
+    expect(tools(h)).toEqual(["codex", "claude", "codex", "claude"]);
+    h.changeModel(2, "fable");
+    expect(tools(h)).toEqual(["codex", "claude", "claude", "claude"]);
   });
 
   test("a swap nobody has touched a select on is left to the server", async () => {
@@ -1870,8 +1867,8 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
 
     // The point of restoring only what a hand moved: a phase that has
     // RUN shows the model it ran on, and the swap is what delivers it.
-    expect(values(h)).toEqual(["sonnet", "fable", "sonnet", "codex-fast", "sonnet"]);
-    expect(tools(h)).toEqual(["claude", "claude", "claude", "codex", "claude"]);
+    expect(values(h)).toEqual(["sonnet", "fable", "codex-fast", "sonnet"]);
+    expect(tools(h)).toEqual(["claude", "claude", "codex", "claude"]);
   });
 
   // The AI select has no `name`, so the generic "remember every select"
@@ -1888,7 +1885,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
 
     // Only analyze moved. Had the AI select been remembered under the
     // shared key, the restore would have written it across the row.
-    expect(values(h)).toEqual(["sonnet", "codex-fast", "sonnet", "codex-fast", "sonnet"]);
+    expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
   });
 });
 
@@ -1921,68 +1918,71 @@ describe("a hand-ticked phase box survives the five-second swap (spec 141)", () 
     const h = harness(() => ({ ok: true }));
     expect(h.runButton.textContent).toBe("Run");
 
-    h.changeStep(0, false); // analyze off — review-plan is first now
-    expect(h.runButton.textContent).toBe("Review");
+    h.changeStep(2, true); // archive on as well — analyze is still first
+    expect(h.runButton.textContent).toBe("Analyze");
 
-    h.changeStep(1, false); // and off — nothing ticked at all
+    h.changeStep(0, false); // analyze off — archive is first now
+    expect(h.runButton.textContent).toBe("Archive");
+
+    h.changeStep(2, false); // and off — nothing ticked at all
     expect(h.runButton.hidden).toBe(true);
 
-    h.changeStep(3, true); // archive alone
+    h.changeStep(1, true); // implement alone
     expect(h.runButton.hidden).toBe(false);
-    expect(h.runButton.textContent).toBe("Archive");
+    expect(h.runButton.textContent).toBe("Implement");
   });
 
   test("a box the reader ticked is still ticked after the swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeStep(2, true); // implement
-    h.changeStep(3, true); // archive
+    h.changeStep(1, true); // implement
+    h.changeStep(2, true); // archive
     await swap(h);
 
     expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
-    expect(ticks(h)).toEqual([true, true, true, true]);
+    expect(ticks(h)).toEqual([true, true, true]);
   });
 
   // A hand-made "off" is as much a choice as a hand-made "on": the
-  // server had these two ticked, and the reader said no to one.
+  // server had this one ticked, and the reader said no to it.
   test("a box the reader unticked stays unticked", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeStep(1, false); // review-plan, which the server pre-ticked
+    h.changeStep(0, false); // analyze, which the server pre-ticked
     await swap(h);
 
-    expect(ticks(h)).toEqual([true, false, false, false]);
+    expect(ticks(h)).toEqual([false, false, false]);
   });
 
   test("a row nobody has touched keeps the ticks the server drew", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     await swap(h);
 
-    expect(ticks(h)).toEqual([true, true, false, false]);
+    expect(ticks(h)).toEqual([true, false, false]);
   });
 
   // The boxes share one `name`, so a key built the way a select's is
-  // would file all four under `form|steps` and the last tick would
+  // would file all three under `form|steps` and the last tick would
   // decide the lot.
   test("each box is remembered on its own, not one answer for the row", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     h.changeStep(0, false); // analyze off
-    h.changeStep(3, true); // archive on
+    h.changeStep(2, true); // archive on
     await swap(h);
 
-    expect(ticks(h)).toEqual([false, true, false, true]);
+    expect(ticks(h)).toEqual([false, false, true]);
   });
 
   // The two maps must not spill into each other: a tick is not a value
   // the model selects can be restored from, and vice versa.
   test("ticking a box leaves the row's selects to the server", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeStep(2, true);
+    h.changeStep(1, true);
     await swap(h);
 
     expect(h.aiSelects.map((s) => s.value)).toEqual([
-      "claude", "claude", "claude", "codex", "claude",
+      "claude", "claude", "codex", "claude",
     ]);
     expect(h.modelSelects.map((s) => s.value)).toEqual([
-      "sonnet", "fable", "sonnet", "codex-fast", "sonnet",
+      "sonnet", "fable", "codex-fast", "sonnet",
     ]);
   });
 });

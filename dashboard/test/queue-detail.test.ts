@@ -50,8 +50,8 @@ describe("GET /specs/<id>", () => {
   test("shows what the job IS: its spec's title and its phase's file (criterion 1)", async () => {
     const { base, dir } = start();
     writeFileSync(
-      join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
-      "# Q - Analysis\n\n## Findings\n\nSeven files, one route.\n",
+      join(dir, "root", "aide", "specs", "81-queue-and-runner", "3-solution.md"),
+      "# Q - Solution\n\n## Steps\n\nSeven files, one route.\n",
     );
     const id = await enqueue(base);
     const res = await fetch(`${base}/specs/${id}`, auth);
@@ -123,7 +123,7 @@ describe("GET /api/queue/<id>", () => {
 describe("the finished steps a job table cannot show (criterion 2)", () => {
   test("every entry in results[] gets its own row", async () => {
     const { base, dir } = start();
-    const id = await enqueue(base, ["analyze", "review-plan", "implement"]);
+    const id = await enqueue(base, ["analyze", "implement", "archive"]);
     // Reach into the mirror the way a completed step would have: the
     // route's job here is to SHOW the history, not to produce it.
     const mirror = join(dir, "queue.json");
@@ -132,7 +132,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
     job.stepIndex = 2;
     job.results = [
       { step: "analyze", ok: true, costUsd: 0.42, costMeasured: true, terminalReason: "completed", at: "2026-08-16T10:01:00Z" },
-      { step: "review-plan", ok: true, costUsd: 1.07, costMeasured: true, terminalReason: "completed", at: "2026-08-16T10:03:00Z" },
+      { step: "implement", ok: true, costUsd: 1.07, costMeasured: true, terminalReason: "completed", at: "2026-08-16T10:03:00Z" },
     ];
     writeFileSync(mirror, JSON.stringify(jobs));
 
@@ -140,7 +140,7 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
     const { base: base2 } = start({ queueMirrorPath: mirror });
     const html = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
     expect(html).toContain("analyze");
-    expect(html).toContain("review");
+    expect(html).toContain("implement");
     expect(html).toContain("$0.42");
     expect(html).toContain("$1.07");
   });
@@ -640,8 +640,10 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect((await fetch(`${base}/specs/${id}`, auth)).status).toBe(200);
     expect((await fetch(`${base}${PATH}`, auth)).status).toBe(200);
     // The job page is about the run; the spec page is about the spec.
+    // An analyze job's page carries 3-solution.md, its own phase's
+    // file, and none of the other three the spec page lists.
     const job = await (await fetch(`${base}/specs/${id}`, auth)).text();
-    expect(job).not.toContain("3-solution.md");
+    expect(job).not.toContain("1-description.md");
   });
 
   test("it is behind the token like every other queue path", async () => {
@@ -677,24 +679,18 @@ describe("a phase job's page shows that phase's file", () => {
     );
   };
 
-  test("an analyze job shows 2-analysis.md and repeats nothing else", async () => {
+  // Spec 181: the plan and the review of it are one step's work, so
+  // the analyze job's page is 3-solution.md whole — both sections, and
+  // not the analysis the step wrote on the way there.
+  test("an analyze job shows 3-solution.md, review section and all", async () => {
     const { base, dir } = start();
     withFiles(dir);
     const id = await enqueue(base, ["analyze"]);
     const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
-    expect(html).toContain("Seven files.");
-    expect(html).not.toContain("One must-fix.");
-    expect(html).not.toContain("It shows nothing about what the job IS");
-  });
-
-  test("a review-plan job shows only the Plan review section", async () => {
-    const { base, dir } = start();
-    withFiles(dir);
-    const id = await enqueue(base, ["review-plan"]);
-    const html = await (await fetch(`${base}/specs/${id}`, auth)).text();
     expect(html).toContain("One must-fix.");
-    expect(html).not.toContain("Medium.");
+    expect(html).toContain("Medium.");
     expect(html).not.toContain("Seven files.");
+    expect(html).not.toContain("It shows nothing about what the job IS");
   });
 
   test("an implement job shows 4-status.md", async () => {

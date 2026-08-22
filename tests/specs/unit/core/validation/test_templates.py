@@ -538,18 +538,18 @@ class TestWorkflowStepRecord:
     brand-new spec claimed three steps it had never had.
 
     The commits are the record now. `core/scripts/aide-run-spec` writes
-    the line from them, and the four step-completing skills do not touch
+    the line from them, and the step-completing skills do not touch
     it at all — which is what this class pins, since a SKILL.md is an
     instruction to a model and there is nothing else a test can execute.
     """
 
     FIELD = "**Workflow steps completed:**"
 
-    # The four skills that used to write the line, and the value each
-    # one used to add.
+    # The three skills that used to write the line, and the value each
+    # one used to add. `aide-review-plan` was a fourth until spec 181
+    # folded the review back into analyze.
     WRITERS = {
         "aide-analyze": "analyze",
-        "aide-review-plan": "review-plan",
         "aide-implement": "implement",
         "aide-archive": "archive",
     }
@@ -569,7 +569,7 @@ class TestWorkflowStepRecord:
             pytest.skip(f"{path.name} not found")
         return path.read_text()
 
-    # Criterion 6: the grep. Not one skill of the four writes the line.
+    # Criterion 6: the grep. Not one of those skills writes the line.
     @pytest.mark.parametrize("skill", sorted(WRITERS))
     def test_the_skill_does_not_write_the_line_itself(self, workspace_root, skill):
         lowered = self._text(workspace_root, "core", "skills", skill, "SKILL.md").lower()
@@ -638,7 +638,7 @@ class TestWorkflowStepRecord:
         assert "Workflow steps completed" in rule, \
             "spec-structure.md must define the workflow-steps line"
         section = self._status_section(rule)
-        for step in ("create", "analyze", "review-plan", "implement", "archive"):
+        for step in ("create", "analyze", "implement", "archive"):
             assert step in section, \
                 f"spec-structure.md's 4-status section must name '{step}' as an allowed value"
 

@@ -166,7 +166,7 @@ function barBounds(svg: string): { x0: number; y0: number; x1: number; y1: numbe
   expect(g).not.toBeNull();
   const [tx, ty, scale] = [Number(g![1]), Number(g![2]), Number(g![3])];
   const rects = [...g![4]!.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)];
-  expect(rects.length).toBe(4);
+  expect(rects.length).toBe(3);
   return rects.map((m) => {
     const [x, y, w, h] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
     return { x0: x * scale + tx, y0: y * scale + ty, x1: (x + w) * scale + tx, y1: (y + h) * scale + ty };
@@ -215,7 +215,7 @@ describe("the maskable icon keeps the mark inside the safe zone (criterion 7)", 
   });
 
   test("the mark is centred on the canvas rather than left where the favicon has it", () => {
-    // The bars run x 10..61 on a 64 grid — 10 in from the left, 3 from
+    // The bars run x 14..59 on a 64 grid — 14 in from the left, 5 from
     // the right. Unnoticeable at favicon size; a visible lean at 512.
     const bars = barBounds(svg);
     const left = Math.min(...bars.map((b) => b.x0));

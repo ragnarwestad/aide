@@ -76,8 +76,8 @@ describe("Started and Cost fold away at phone width", () => {
       { modelChoices: [{ name: "opus", budgetUsd: 10 }] },
     );
     const subrows = [...html.matchAll(/<tr class="subrow[\s\S]*?<\/tr>/g)].map((m) => m[0]);
-    // Five phase lines plus the caption line above them.
-    expect(subrows.length).toBe(6);
+    // Four phase lines plus the caption line above them.
+    expect(subrows.length).toBe(5);
     for (const row of subrows) {
       expect(row).toContain('data-col="started"');
       expect(row).toContain('data-col="cost"');

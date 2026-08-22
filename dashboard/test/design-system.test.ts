@@ -65,7 +65,7 @@ const rows = (list: QueueRowView[], opts: Partial<QueuePageOptions> = {}) =>
 
 const detail = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
   ...row(),
-  steps: ["analyze", "review-plan", "implement", "archive"],
+  steps: ["analyze", "implement", "archive"],
   stepIndex: 1,
   results: [],
   ...extra,
@@ -400,35 +400,6 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   });
 });
 
-// --- the step's name is not the reader's word --------------------------------
-
-describe("review-plan is shown as review (description item 4)", () => {
-  test("the phase box is named for the reader and keeps the technical value", () => {
-    const html = rows([], { targets: [target()] });
-    // Since spec 124 the box carries no visible label of its own — the
-    // phase's name is the next thing on the line — so the word a
-    // reader hears is the one it is given outright.
-    expect(html).toMatch(/data-phase="review-plan"[\s\S]*?aria-label="review"/);
-    expect(html).toContain('value="review-plan"');
-    // The word only ever appears as an attribute, never as text a
-    // reader sees.
-    expect(html).not.toMatch(/>[^<]*review-plan[^<]*</);
-  });
-
-  test("the phase line under the row shows it too", () => {
-    const html = rows([], { targets: [target()] });
-    expect(html).toMatch(/data-step="review-plan"[\s\S]*?>review</);
-  });
-
-  test("the job page's step pips use the same word", () => {
-    // The facts table, where the pips live: a running job opens on its
-    // activity instead.
-    const html = renderJobDetailPage(detail(), AT, NAV, { tab: "overview" });
-    expect(html).toContain('title="review"');
-    expect(html).not.toContain('title="review-plan"');
-  });
-});
-
 // --- every state picks a badge -----------------------------------------------
 
 // Five of the ten had an example on the design sheet. These four did
@@ -503,8 +474,8 @@ describe("the primary button's label per row state (the design sheet's table)", 
   test("the button names the phase a press would run, whatever has already run", () => {
     for (const [done, label] of [
       [[], "Analyze"],
-      [["analyze", "review-plan"], "Implement"],
-      [["analyze", "review-plan", "implement"], "Archive"],
+      [["analyze"], "Implement"],
+      [["analyze", "implement"], "Archive"],
     ] as const) {
       const t = target({ done: [...done] });
       const b = buttons(rows([row({ state: "done" })], { targets: [t] }));

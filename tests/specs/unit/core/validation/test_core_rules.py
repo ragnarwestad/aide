@@ -67,11 +67,12 @@ class TestNoPhantomDocReferences:
 
 @pytest.mark.validation
 class TestPlanReviewIsWired:
-    """The plan review step (spec 77) must be part of the documented flow.
+    """The plan review (spec 77) must be part of the documented flow.
 
-    A step that exists only as a skill is invisible: the workflow rule
-    and the skills list are what tell the model (and the user) that the
-    step exists between analyze and implement.
+    Spec 181 took away the step of its own: the review runs inside
+    `/aide-analyze` now. A review nothing describes is a review nobody
+    knows happens, so the workflow rule and the skills list still have
+    to say it runs — and say it runs there.
     """
 
     @pytest.mark.parametrize("skill", ["workflows", "tools-and-scripts"])
@@ -80,16 +81,20 @@ class TestPlanReviewIsWired:
 
         The whole skill directory is searched, not just SKILL.md: a skill
         over the size guidance keeps its detail in references/, and the
-        review step may legitimately live there.
+        review may legitimately be described there.
         """
         directory = SKILLS_DIR / skill
         assert directory.is_dir(), f"core/skills/{skill}/ is missing"
         content = "\n".join(
             path.read_text(encoding="utf-8") for path in sorted(directory.rglob("*.md"))
         )
-        assert "aide-review-plan" in content, (
-            f"the {skill} skill does not mention aide-review-plan — the step "
-            "is not wired into the documented workflow"
+        assert "aide-review-plan" not in content, (
+            f"the {skill} skill still names aide-review-plan — the review "
+            "stopped being a step of its own in spec 181"
+        )
+        assert "aide-analyze" in content and "feasibility" in content, (
+            f"the {skill} skill does not describe the plan review as part of "
+            "/aide-analyze — the review is not wired into the documented workflow"
         )
 
 

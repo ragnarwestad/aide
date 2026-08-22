@@ -3,8 +3,8 @@
 // Every link on a spec's row went to one queue RUN, whose Overview
 // showed the `## Description` prose and then that run's own figures.
 // Nothing on the dashboard showed 2-analysis.md, 3-solution.md or
-// 4-status.md — the files the analyze, review-plan and implement steps
-// exist to write — so a reader who wanted to know what a phase produced
+// 4-status.md — the files the analyze and implement steps exist to
+// write — so a reader who wanted to know what a phase produced
 // left the dashboard for GitHub or the filesystem.
 //
 // The spec page is the whole spec as it stands now: four files, in
@@ -283,8 +283,8 @@ describe("the shared panels are the job page's own", () => {
 // --- spec 162: the Edit link, and the page it opens -------------------------
 //
 // One of the four files is a person's to write. `2-analysis.md` and
-// `3-solution.md` are the analyze and review-plan steps' output and a
-// hand edit there is overwritten the next time they run; `4-status.md`
+// `3-solution.md` are the analyze step's output and a hand edit there
+// is overwritten the next time it runs; `4-status.md`
 // has been the runner's since spec 154. So the link is on
 // `1-description.md` and on nothing else — including the phase file the
 // JOB page shows through the same `specFilePanel`.

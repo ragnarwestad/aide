@@ -457,11 +457,27 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(body.job.budgetUsd).toBe(3);
   });
 
-  test("every row offers all four steps — the row is the way a spec starts (criterion 11)", async () => {
+  // Spec 181, criterion 7: the review of the plan runs inside analyze
+  // now, so the step is two steps' worth of work. The shipped table
+  // gives it more clock than the fallback every unnamed step falls to
+  // — `archive` is not in the table, so its limit IS that fallback.
+  test("analyze's own time limit is longer than the default (spec 181)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze", "archive"] }),
+    });
+    expect(res.status).toBe(200);
+    const { job } = (await res.json()) as { job: { timeoutSec: Record<string, number> } };
+    expect(job.timeoutSec.analyze!).toBeGreaterThan(job.timeoutSec.archive!);
+  });
+
+  test("every row offers all three steps — the row is the way a spec starts (criterion 11)", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
     const line = specControls(html, "81-queue-and-runner");
-    for (const step of ["analyze", "review-plan", "implement", "archive"]) {
+    for (const step of ["analyze", "implement", "archive"]) {
       expect(line).toContain(`<input type="checkbox" name="steps" value="${step}"`);
     }
   });
@@ -565,10 +581,9 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(html).toContain('<tr class="spechead');
     expect(html).toContain('data-folder="81-queue-and-runner"');
     const line = specControls(html, "81-queue-and-runner");
-    // Nothing has ever run for it, so analyze and review-plan are ticked
-    // together — the pair every spec here is actually started as.
+    // Nothing has ever run for it, so analyze is ticked — the step
+    // every spec here is actually started as.
     expect(line).toContain('value="analyze" checked');
-    expect(line).toContain('value="review-plan" checked');
     // Spec 176: the State column says what the process says comes
     // next, on a row nothing has run as on one that has.
     expect(html).toContain('class="badge b-ready"');
@@ -747,7 +762,7 @@ describe("every row answers for itself", () => {
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
       statusSaying(
-        ["create", "analyze", "review-plan"],
+        ["create", "analyze"],
         "- **Total progress:** `64% (14 of 22 completed)`\n\n## Phase 2: GREEN\n\n| t | ⬜ |\n",
       ),
     );
@@ -756,8 +771,7 @@ describe("every row answers for itself", () => {
     // answer, and no data block for a script to answer it from.
     const line = specHead(html, "81-queue-and-runner");
     // The figure counted the checkbox rows implement ticks, so it was 0
-    // with analyze and review-plan both done and 90-something the moment
-    // implement ended. The pips say how far the spec has got and the
+    // with analyze done and 90-something the moment implement ended. The pips say how far the spec has got and the
     // State column says what is happening now.
     expect(line).not.toContain("% done");
     expect(line).not.toContain("64%");
@@ -858,17 +872,17 @@ describe("the step boxes on a row follow that spec", () => {
   test("a step the spec has already had is marked done and left unticked (criterion 1)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
-    ran(dir, ["create", "analyze", "review-plan"]);
+    writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze"]);
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
-    // analyze and review-plan are done; implement is what you came for.
+    // analyze is done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze"(?![^>]*checked)/);
     expect(line).toMatch(/data-phase="implement"[^]*?value="implement"[^>]*checked/);
     expect(phaseDone(line, "analyze")).toBe(true);
   });
 
-  test("a spec nothing has run yet offers the analyze/review-plan pair (criterion 1a)", async () => {
+  test("a spec nothing has run yet offers analyze (criterion 1a)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "2-analysis.md"),
@@ -879,14 +893,13 @@ describe("the step boxes on a row follow that spec", () => {
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     const line = specControls(html, "81-queue-and-runner");
     expect(line).toMatch(/value="analyze" checked/);
-    expect(line).toMatch(/value="review-plan" checked/);
     expect(phaseDone(line, "analyze")).toBe(false);
   });
 
-  test("with the analysis already on disk, only review-plan is pre-ticked (criterion 1b)", async () => {
+  test("with the analysis already on disk, implement is pre-ticked (criterion 1b)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     // Analysed by hand and committed with the subject the runner uses
-    // (spec 154), so the pair must not tick and mark the same box at
+    // (spec 154), so the row must not tick and mark the same box at
     // once.
     writeFileSync(
       join(dir, "root", "aide", "specs", "81-queue-and-runner", "4-status.md"),
@@ -897,7 +910,7 @@ describe("the step boxes on a row follow that spec", () => {
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(line).not.toMatch(/value="analyze" checked/);
-    expect(line).toMatch(/value="review-plan" checked/);
+    expect(line).toMatch(/value="implement" checked/);
   });
 });
 
@@ -974,27 +987,17 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
-    expect(phaseDone(line, "review-plan")).toBe(false);
     // And the box that comes pre-ticked is the one that has not run.
     expect(line).toMatch(/value="analyze" checked/);
   });
 
-  test("a Plan review heading with no record is not a reviewed plan (criterion 2)", async () => {
-    const { base, dir } = start({ queueToken: TOKEN });
-    writeFileSync(join(specDir(dir), "3-solution.md"), "# X - Solution\n\n## Plan review\n\n[not reviewed yet]\n");
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create"]));
-    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
-    expect(phaseDone(line, "review-plan")).toBe(false);
-  });
-
   test("the recorded list is what the row marks done, and implement is next (criterion 3)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
-    ran(dir, ["create", "analyze", "review-plan"]);
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze"]);
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(phaseDone(line, "review-plan")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
     expect(line).not.toMatch(/value="analyze" checked/);
@@ -1008,9 +1011,9 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     writeFileSync(
       join(specDir(dir), "4-status.md"),
-      statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `100% (22 of 22 completed)`\n"),
+      statusSaying(["create", "analyze"], "- **Total progress:** `100% (22 of 22 completed)`\n"),
     );
-    ran(dir, ["create", "analyze", "review-plan"]);
+    ran(dir, ["create", "analyze"]);
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
@@ -1033,13 +1036,13 @@ describe("the spec's own history says what has happened, not the queue's", () =>
   test("a step the queue completed is NOT done while the history says otherwise", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
-    // Analysed and reviewed already; the status says 95%, so implement
-    // is what is still to do.
+    // Analysed already; the status says 95%, so implement is what is
+    // still to do.
     writeFileSync(
       join(spec, "4-status.md"),
-      statusSaying(["create", "analyze", "review-plan"], "- **Total progress:** `95% (21 of 22 completed)`\n"),
+      statusSaying(["create", "analyze"], "- **Total progress:** `95% (21 of 22 completed)`\n"),
     );
-    ran(dir, ["create", "analyze", "review-plan"]);
+    ran(dir, ["create", "analyze"]);
 
     let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toMatch(/value="implement" checked/);
@@ -1086,11 +1089,11 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     writeFileSync(
       join(spec, "4-status.md"),
       statusSaying(
-        ["create", "analyze", "review-plan", "implement"],
+        ["create", "analyze", "implement"],
         "- **Total progress:** `100% (22 of 22 completed)`\n",
       ),
     );
-    ran(dir, ["create", "analyze", "review-plan", "implement"]);
+    ran(dir, ["create", "analyze", "implement"]);
 
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
@@ -1107,7 +1110,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     writeFileSync(
       join(spec, "4-status.md"),
       statusSaying(
-        ["create", "analyze", "review-plan", "implement"],
+        ["create", "analyze", "implement"],
         "- **Total progress:** `100% (22 of 22 completed)`\n\n" +
           "## Archive held back\n\n- the Slack webhook (Phase 4, still unchecked)\n",
       ),
@@ -1294,7 +1297,7 @@ describe("picking a model for a job", () => {
   });
 
   // Every select on the page posts, including the ones left alone —
-  // a browser sends `model.review-plan=` for a phase whose picker still
+  // a browser sends `model.implement=` for a phase whose picker still
   // reads "default". Passed through as an empty string it would be
   // refused as an invalid model name; it has to be dropped instead.
   test("a phase left on 'default' posts a blank that is dropped, not refused", async () => {
@@ -2599,7 +2602,7 @@ describe("landing an archived spec (spec 136)", () => {
     writeFileSync(
       join(specDir, "4-status.md"),
       statusSaying(
-        ["create", "analyze", "review-plan", "implement"],
+        ["create", "analyze", "implement"],
         "\n## Archive held back\n\n- the implementation was reverted\n",
       ),
     );
@@ -2612,10 +2615,10 @@ describe("landing an archived spec (spec 136)", () => {
     expect(html).toContain("archive held back — the implementation was reverted");
   });
 
-  // Criterion 5, as spec 149 leaves it. `analyze`, `review-plan` and
-  // `resolve` land themselves now too, so the steps that still land
-  // nothing are `implement` — whose pushed branch IS the place a person
-  // tests the code — and the two that belong to no spec's branch at all.
+  // Criterion 5, as spec 149 leaves it. `analyze` lands itself now too,
+  // so the steps that still land nothing are `implement` — whose pushed
+  // branch IS the place a person tests the code — and the two that
+  // belong to no spec's branch at all.
   test("no other step lands itself — implement's branch stays open", async () => {
     const steps = ["implement", "explore", "manifest"];
     const checked = await Promise.all(
@@ -2858,10 +2861,10 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
 
 // --- spec 149: merging happens inside the steps, never by hand --------------
 //
-// A queue job that ran analyze, review-plan, implement and archive in one
-// go ended with the spec archived and the code still on a branch, waiting
-// for someone to press Merge; the same four steps run one at a time piled
-// three "ready to merge" buttons on the row for the specs repo and one for
+// A queue job that ran analyze, implement and archive in one go ended
+// with the spec archived and the code still on a branch, waiting for
+// someone to press Merge; the same steps run one at a time piled
+// "ready to merge" buttons on the row for the specs repo and one for
 // the code. None of those buttons exist any more. Every step lands the work
 // it produced, and `implement` is the one exception ON PURPOSE: its branch
 // is where a person tests the code, by leaving `archive` unticked.
@@ -3013,10 +3016,10 @@ describe("every step lands its own work (spec 149)", () => {
   }
 
   // Criteria 1 and 2. The argument that made `create` and `archive` land
-  // themselves holds word for word here: analyze and review-plan write
-  // markdown in the specs repo and nothing else, so there is no diff for
-  // a person to weigh and nothing that reaches the serving host.
-  test.each(["analyze", "review-plan"])(
+  // themselves holds word for word here: analyze writes markdown in the
+  // specs repo and nothing else, so there is no diff for a person to
+  // weigh and nothing that reaches the serving host.
+  test.each(["analyze"])(
     "a finished %s step lands its own branch, with no press and no HTTP request",
     async (step) => {
       const dir = own(`aide-149-${step}-`);
@@ -3148,16 +3151,17 @@ describe("every step lands its own work (spec 149)", () => {
   // would let a step that touched only the specs repo drag an
   // unarchived implement's code onto the default branch as a side
   // effect. (`resolve` was the step this was written for, until spec
-  // 171 retired it; the rule it proves belongs to `landStepBranch`,
-  // which still lands `analyze` and `review-plan`.)
-  test("review-plan lands the repos its own run reports, and installs a code root among them", async () => {
-    const dir = own("aide-149-reviewplan-");
+  // 171 retired it, and `review-plan` was the other, until spec 181
+  // folded it into analyze; the rule it proves belongs to
+  // `landStepBranch`, which still lands `analyze`.)
+  test("analyze lands the repos its own run reports, and installs a code root among them", async () => {
+    const dir = own("aide-149-analyze-lands-");
     const paths = repos(dir);
     const git = gitFor();
     const { base } = serverWith(dir, paths, git);
     const marker = installs(paths.project);
 
-    const landed = await stepWithResult(base, dir, "review-plan", {
+    const landed = await stepWithResult(base, dir, "analyze", {
       branchUrls: [{ root: paths.project, url: "https://example.test/aide" }],
     });
 
@@ -3172,8 +3176,8 @@ describe("every step lands its own work (spec 149)", () => {
   // accepted knowingly: a step that touched only the specs repo must
   // not reach back into the queue's history and land the code an
   // earlier implement left open.
-  test("review-plan does not land an unarchived implement's code branch", async () => {
-    const dir = own("aide-149-reviewplan-scope-");
+  test("analyze does not land an unarchived implement's code branch", async () => {
+    const dir = own("aide-149-analyze-scope-");
     const paths = repos(dir);
     const git = gitFor();
     const { base } = serverWith(dir, paths, git);
@@ -3185,7 +3189,7 @@ describe("every step lands its own work (spec 149)", () => {
       { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
-    await stepWithResult(base, dir, "review-plan", {
+    await stepWithResult(base, dir, "analyze", {
       branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
     });
 
@@ -3267,7 +3271,7 @@ describe("every step lands its own work (spec 149)", () => {
   // transcript for claude-usage to read a merge out of. It has to say
   // what it did — for EVERY repo it lands, not only the code roots
   // `installAfterMerge` cares about, because the spec-markdown merges
-  // an `analyze` or `review-plan` makes are exactly the ones the ledger
+  // an `analyze` makes are exactly the ones the ledger
   // is missing today.
 
   // Criterion 1. Every other test in this file is the other half of this
@@ -3292,7 +3296,7 @@ describe("every step lands its own work (spec 149)", () => {
   // the call site rather than stubbed — `archive` says "archive" — and
   // the specs repo is not a code root, so an event for it proves the
   // report is not gated the way the install is.
-  test.each(["analyze", "review-plan", "archive"])(
+  test.each(["analyze", "archive"])(
     "a landed %s step reports the merge of a specs-only repo",
     async (step) => {
       const dir = own(`aide-158-${step}-`);
@@ -3430,17 +3434,17 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 1: the 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     // Spec 176: `create` is settled by the folder existing, so it is
     // done here and says nothing about the copy. What spec 153 is the
-    // guard for is the three below it.
+    // guard for is the two below it.
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(false);
-    expect(phaseDone(line, "review-plan")).toBe(false);
-    // And the pair a spec nothing has run offers is what comes ticked,
+    expect(phaseDone(line, "implement")).toBe(false);
+    // And the step a spec nothing has run offers is what comes ticked,
     // not implement.
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
@@ -3478,7 +3482,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 3, the same fixture: the row does not swallow it.
   test("a file claiming a step the history does not have says so on the row", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
     ran(dir, ["create"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
@@ -3506,8 +3510,8 @@ describe("spec 154: what has run is what has been committed", () => {
   // — the row is built from the commit alone.
   test("a step killed by the time limit reads as stopped, not as not-run", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "review-plan"]));
-    ran(dir, ["create", "analyze", "review-plan"]);
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
     const line = specControls(await listPage(base), "81-queue-and-runner");
     const implement =
@@ -3522,7 +3526,7 @@ describe("spec 154: what has run is what has been committed", () => {
   // Criterion 4.
   test("a completed re-run supersedes the stop before it", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
-    ran(dir, ["create", "analyze", "review-plan"]);
+    ran(dir, ["create", "analyze"]);
     ran(dir, ["implement"], "81-queue-and-runner", { stopped: "timeout" });
     ran(dir, ["implement"]);
     const line = specControls(await listPage(base), "81-queue-and-runner");
@@ -3559,7 +3563,7 @@ describe("a description newer than the analysis is shown on the row", () => {
       // specific one — the table's first matching prefix wins.
       "log --all --format=%s": {
         code: 0,
-        stdout: ["create", "analyze", "review-plan", "implement"]
+        stdout: ["create", "analyze", "implement"]
           .map((step) => `Run /aide-${step} for 81-queue-and-runner (headless)`)
           .join("\n"),
       },
@@ -3571,13 +3575,13 @@ describe("a description newer than the analysis is shown on the row", () => {
     });
 
   /** A spec whose files agree with the history `gitSaying` reports:
-   *  analyze AND review-plan done, and implement too. */
+   *  analyze done, and implement too. */
   const analysedSpec = (dir: string): void => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(
       join(spec, "4-status.md"),
       statusSaying(
-        ["create", "analyze", "review-plan", "implement"],
+        ["create", "analyze", "implement"],
         "- **Total progress:** `100% (4 of 4 completed)`\n",
       ),
     );
@@ -3604,7 +3608,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(subRow(html, "implement")).not.toContain("description changed since");
   });
 
-  test("analyze and review-plan stop counting as done (criteria 2, 3)", async () => {
+  test("analyze stops counting as done (criteria 2, 3)", async () => {
     const { base, dir } = start({
       queueToken: TOKEN,
       gitRun: gitSaying(DESCRIPTION_EDITED, `deadbee\t2026-08-18T08:57:16+02:00\t${SUBJECT}\n`).run,
@@ -3612,7 +3616,6 @@ describe("a description newer than the analysis is shown on the row", () => {
     analysedSpec(dir);
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
-    expect(phaseDone(line, "review-plan")).toBe(false);
     // implement is untouched by this check: its own done-mark comes
     // from 4-status.md, and nothing here blocks running it.
     expect(phaseDone(line, "implement")).toBe(true);
@@ -3636,7 +3639,7 @@ describe("a description newer than the analysis is shown on the row", () => {
     const line = specControls(await listPage(base), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(readFileSync(statusPath, "utf-8")).toBe(before);
-    expect(before).toContain("- **Workflow steps completed:** create, analyze, review-plan, implement");
+    expect(before).toContain("- **Workflow steps completed:** create, analyze, implement");
   });
 
   test("a re-analyzed spec is current again (criterion 5)", async () => {
@@ -3655,7 +3658,6 @@ describe("a description newer than the analysis is shown on the row", () => {
     expect(html).not.toContain("description changed since");
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(phaseDone(line, "review-plan")).toBe(true);
   });
 
   test("a description older than the analysis changes nothing (criterion 4)", async () => {
@@ -5312,9 +5314,9 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
   test("a not-yet-started step is removed (criterion 2)", async () => {
-    const { base, id } = await running(["analyze", "review-plan", "implement"]);
-    expect((await edit(base, id, "review-plan", false)).status).toBe(200);
-    expect(await stepsOf(base, id)).toEqual(["analyze", "implement"]);
+    const { base, id } = await running(["analyze", "implement", "archive"]);
+    expect((await edit(base, id, "implement", false)).status).toBe(200);
+    expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
   });
 
   test("the form encoding the page posts is understood too", async () => {
@@ -5328,11 +5330,11 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
   test("the running step is refused, by name (criterion 3)", async () => {
-    const { base, id } = await running(["analyze", "review-plan"], 1);
-    const res = await edit(base, id, "review-plan", false);
+    const { base, id } = await running(["analyze", "archive"], 1);
+    const res = await edit(base, id, "archive", false);
     expect(res.status).toBe(400);
-    expect(((await res.json()) as { error: string }).error).toContain("review-plan");
-    expect(await stepsOf(base, id)).toEqual(["analyze", "review-plan"]);
+    expect(((await res.json()) as { error: string }).error).toContain("archive");
+    expect(await stepsOf(base, id)).toEqual(["analyze", "archive"]);
   });
 
   // The page drew `implement` as a live box; by the time the tick
@@ -5357,11 +5359,11 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 
   test("a step earlier than the one running is refused (criterion 9)", async () => {
-    const { base, id } = await running(["review-plan", "archive"]);
+    const { base, id } = await running(["implement", "archive"]);
     const res = await edit(base, id, "analyze", true);
     expect(res.status).toBe(400);
     expect(((await res.json()) as { error: string }).error).toContain("analyze");
-    expect(await stepsOf(base, id)).toEqual(["review-plan", "archive"]);
+    expect(await stepsOf(base, id)).toEqual(["implement", "archive"]);
   });
 
   test("an unknown job is a 404, and GET is not a way in", async () => {

@@ -162,10 +162,10 @@ describe("spec 139: workflow steps completed", () => {
     ["# 139 - Status", "", "## Tracking info", "", `- **Workflow steps completed:** ${value}`, ""].join("\n");
 
   test("the canonical line comes back as its list (criterion 1)", () => {
-    expect(parseStatus(withField("create, analyze, review-plan")).workflowSteps).toEqual([
+    expect(parseStatus(withField("create, analyze, implement")).workflowSteps).toEqual([
       "create",
       "analyze",
-      "review-plan",
+      "implement",
     ]);
   });
 
@@ -189,6 +189,19 @@ describe("spec 139: workflow steps completed", () => {
     ]);
   });
 
+  // `review-plan` was a step until spec 181 folded the review into
+  // analyze. An archived spec's line still names it, and an unknown
+  // value is dropped rather than shown as a step the workflow no
+  // longer has.
+  test("a spec archived before spec 181 keeps the four steps that remain", () => {
+    expect(parseStatus(withField("create, analyze, review-plan, implement, archive")).workflowSteps).toEqual([
+      "create",
+      "analyze",
+      "implement",
+      "archive",
+    ]);
+  });
+
   test("duplicates collapse and the order is the workflow's, not the line's (criterion 4)", () => {
     expect(parseStatus(withField("implement, create, analyze, create")).workflowSteps).toEqual([
       "create",
@@ -198,18 +211,17 @@ describe("spec 139: workflow steps completed", () => {
   });
 
   test("backticks, case and stray spacing do not change the answer (criterion 4)", () => {
-    expect(parseStatus(withField("`Create`,  ANALYZE ,review-plan")).workflowSteps).toEqual([
+    expect(parseStatus(withField("`Create`,  ANALYZE ,implement")).workflowSteps).toEqual([
       "create",
       "analyze",
-      "review-plan",
+      "implement",
     ]);
   });
 
   test("archive is an allowed value — the archived file stays the whole record", () => {
-    expect(parseStatus(withField("create, analyze, review-plan, implement, archive")).workflowSteps).toEqual([
+    expect(parseStatus(withField("create, analyze, implement, archive")).workflowSteps).toEqual([
       "create",
       "analyze",
-      "review-plan",
       "implement",
       "archive",
     ]);

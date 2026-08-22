@@ -1466,8 +1466,8 @@ describe("a spec's row runs its own phases", () => {
 
   // The title and the phase came off the row on 2026-08-21, and the
   // percentage followed them in spec 167: it counted the checkbox rows
-  // the implement step ticks, so it read 0 with analyze and review-plan
-  // both finished and 90-something the moment implement ended, never
+  // the implement step ticks, so it read 0 with analyze finished and
+  // 90-something the moment implement ended, never
   // anything between — while the pips already say how far the spec has
   // got and the State column says what is happening now.
   // What is left of the spec's own files on this line is what it
@@ -6483,7 +6483,7 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
   const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
   const subRow = (html: string, phase: string) =>
     html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
-  const BUILT = ["analyze", "review-plan", "implement"];
+  const BUILT = ["analyze", "implement"];
 
   // Criterion 4: the ordinary case, and the one that must stay silent.
   // A phase whose file and history agree has nothing to say anywhere —
