@@ -64,10 +64,11 @@ export interface JobDetailView extends QueueRowView {
   title?: string;
   finishedAt?: string;
   results: JobStepResultView[];
-  /** What THIS job's step wrote (spec 150): analyze's 2-analysis.md,
-   *  review-plan's `## Plan review` section, implement's 4-status.md,
-   *  archive's one outcome. Absent for a step that writes no file of its
-   *  own — the page then shows its three facts and nothing else. */
+  /** What THIS job's step wrote (spec 150): analyze's 3-solution.md
+   *  (plan and, once the reviewer routine has run, its "Plan review"
+   *  section too — spec 181), implement's 4-status.md, archive's one
+   *  outcome. Absent for a step that writes no file of its own — the
+   *  page then shows its three facts and nothing else. */
   phase?: SpecFileView;
   /** Already-escaped lines from `parse-stream.ts`. */
   activity?: string[];

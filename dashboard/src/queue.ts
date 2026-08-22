@@ -22,7 +22,7 @@ import { dirname } from "node:path";
 // that fails is the merging step's problem, so `archive` resolves the
 // conflict itself rather than a sixth phase standing beside the five.
 export const WORKFLOW_STEPS = [
-  "explore", "create", "analyze", "review-plan", "implement", "archive", "manifest",
+  "explore", "create", "analyze", "implement", "archive", "manifest",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
@@ -36,7 +36,7 @@ export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
  *  not import this module; the two are hand-paired and compared by
  *  `queue.test.ts`, exactly as `WORKFLOW_STEPS` is compared with the
  *  bash copy in `aide-run-spec`. */
-export const PHASE_STEPS = ["analyze", "review-plan", "implement", "archive"] as const;
+export const PHASE_STEPS = ["analyze", "implement", "archive"] as const;
 
 /** Which steps a reader may still tick or untick on a job, in workflow
  *  order — the tail that has not started, plus every phase the job does

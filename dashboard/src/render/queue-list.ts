@@ -174,7 +174,7 @@ const CHEVRON =
 // `PHASE_STEPS` — it decides which steps a running job may still be
 // given — and the render layer does not import that module. A test
 // reads both and refuses to let them drift.
-export const QUEUE_STEPS = ["analyze", "review-plan", "implement", "archive"];
+export const QUEUE_STEPS = ["analyze", "implement", "archive"];
 
 // The phase LINES a spec's expanded row shows, in order. `create` is
 // history, not a control (spec 116): a spec that exists cannot be
@@ -246,8 +246,8 @@ function stateFilter(key: string | undefined): { key: string; states?: string[] 
 
 // --- one spec, however many jobs it took -------------------------------------
 
-// The list is about SPECS. A spec taken through analyze, review-plan,
-// implement and archive as four separate jobs is still one spec, and
+// The list is about SPECS. A spec taken through analyze,
+// implement and archive as three separate jobs is still one spec, and
 // how far it has got should read without counting rows.
 
 /** Every step this job has anything to say about: the ones it finished,
@@ -882,29 +882,31 @@ const busyReason = (g: SpecGroup): string =>
 // What a press would run, if nothing else is ticked. It depends on how
 // far the spec has got, and on nothing about which phase is asking.
 //
-// A spec nothing has ever run pre-ticks `analyze` AND `review-plan`
-// together — that pair as one gated job is what every spec here has
-// actually been started as, and the two belong together. Any other
-// spec pre-ticks the first phase it has not had, which is what you
-// almost always came to run.
+// A spec nothing has ever run pre-ticks `analyze` alone (spec 181: the
+// reviewer-perspectives routine that used to be its own `review-plan`
+// step now runs inside `analyze`, so there is no second box to tick
+// alongside it — a fresh spec used to pre-tick the two together as one
+// gated job). Any other spec pre-ticks the first phase it has not had,
+// which is what you almost always came to run.
 //
 // `g.lead` is the test for "nothing has ever run": it is absent only
 // for a spec `emptyGroup` built, which is a spec with no job row at
 // all. A spec whose only job ran `explore` has a lead, and keeps the
 // ordinary single pre-tick even though its done-set is still empty.
 //
-// The pair is filtered against the done-set, because the two answer
-// different questions. `done` is what the spec's own git history PROVES
-// (spec 154): the runner commits every step it finishes, and only such
-// a commit puts a step here — a `4-status.md` line naming a step is a
-// claim the row reports a disagreement about, never a source. A step
-// run at somebody's keyboard counts once it is committed with the same
-// subject, which is what the four skills now offer to do; declined,
-// the spec reads as still having that phase ahead of it. And a spec
-// that has both of them done already falls back to the ordinary rule
-// rather than to nothing: the pair exists to tick a spec's two
-// STARTING phases, not to leave a spec that is past them with no box
-// ticked at all.
+// `done` is what the spec's own git history PROVES (spec 154): the
+// runner commits every step it finishes, and only such a commit puts a
+// step here — a `4-status.md` line naming a step is a claim the row
+// reports a disagreement about, never a source. A step run at
+// somebody's keyboard counts once it is committed with the same
+// subject, which is what the skills now offer to do; declined, the
+// spec reads as still having that phase ahead of it.
+//
+// The `tick.length === 0` fallback below is not decorative: it is the
+// fix for spec 159/161 (a spec past its starting phases fell back to an
+// empty set and the row lost its button entirely). A spec whose
+// starting phase is somehow already done falls back to the ordinary
+// rule rather than to nothing.
 //
 // It used to live inside the strip of chips the controls line drew
 // (`stepBoxes`, retired with that line in spec 124). The boxes are on
@@ -930,9 +932,9 @@ function preTicked(g: SpecGroup): Set<string> {
   // only evidence that it did not (2026-08-21).
   done.delete("archive");
   const next = QUEUE_STEPS.find((s) => !done.has(s));
-  const pair = ["analyze", "review-plan"].filter((s) => !done.has(s));
+  const tick = ["analyze"].filter((s) => !done.has(s));
   const single = next ? [next] : [];
-  return new Set(g.lead || pair.length === 0 ? single : pair);
+  return new Set(g.lead || tick.length === 0 ? single : tick);
 }
 
 // What the row's one button SAYS, built from the same set the boxes are
@@ -949,11 +951,11 @@ function preTicked(g: SpecGroup): Set<string> {
 // so the button's own word is the only thing that says what it would
 // do.
 //
-// Several ticked phases name the first and count the rest — "Analyze +
-// 1", which is what a fresh spec's `analyze`+`review-plan` pair reads
-// as. Naming only the first would hide half of what a press does.
-// Nothing ticked names nothing: no button is drawn at all, because a
-// disabled one invites a press that cannot do anything.
+// `preTicked()` never ticks more than one phase since spec 181 (the
+// pair a fresh spec used to start with is one phase now), so naming the
+// first ticked phase is naming the whole of what a press does. Nothing
+// ticked names nothing: no button is drawn at all, because a disabled
+// one invites a press that cannot do anything.
 function actionLabel(g: SpecGroup): string | undefined {
   const ticked = [...preTicked(g)];
   if (ticked.length === 0) return undefined;
@@ -1216,8 +1218,8 @@ function specHeadRow(
   );
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, asked once more for the
-  // sentence. Worded for a reader here, so `review-plan` reaches it as
-  // "review".
+  // sentence. Worded for a reader here through `stepLabel`, so a phase
+  // added to `STEP_LABELS` later reaches this sentence too.
   const nextStep = QUEUE_STEPS.find((s) => !g.done.includes(s));
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   // The other thing the State column is built from: the archive that

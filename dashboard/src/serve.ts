@@ -128,7 +128,11 @@ const QUEUE_DEFAULTS: QueueDefaults = {
   // writing documentation on a twenty-file change. A correction from
   // two data points, not a measurement — it lives in `queue-config.json`
   // on the serving host and should be revisited once more have run.
-  timeoutSec: { default: 1200, implement: 5400 },
+  // `analyze` gets 2400 for the same reason (spec 181): the reviewer
+  // routine that used to be its own `review-plan` step now runs inside
+  // `analyze`, so one run does what used to be two, and the default
+  // budget for one step is no longer enough for both.
+  timeoutSec: { default: 1200, implement: 5400, analyze: 2400 },
   permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
   // `archive` falls to `default`, and that is a decision rather than an
   // accident of which key happens to be missing: it may now have a merge
@@ -629,7 +633,7 @@ export function parseQueueConcurrency(raw: unknown): number {
 }
 
 /** The steps a dependency actually holds back (spec 122): the ones that
- *  BUILD on merged code. `analyze`, `review-plan` and `create` write
+ *  BUILD on merged code. `analyze` and `create` write
  *  only the spec's own folder in the specs repo and conflict with
  *  nothing, so a chain of dependent specs can be analysed in parallel
  *  the moment it is queued.
@@ -982,9 +986,9 @@ export function createServer(opts: ServerOptions) {
         // the default branch of the checkout the page reads — so every
         // step lands the work it produced, and nobody merges by hand
         // (spec 149). `create` and `archive` already did (specs 93 and
-        // 136); `analyze`, `review-plan` and `resolve` write in the specs
-        // repo exactly as those two do, so the same argument covers them
-        // and they were simply never given it.
+        // 136); `analyze` writes in the specs
+        // repo exactly as those two do, so the same argument covers it
+        // and it was simply never given it.
         //
         // `implement` is the one exception, and it is deliberate: the
         // code stays on the pushed branch, which is where a person tests
@@ -997,7 +1001,7 @@ export function createServer(opts: ServerOptions) {
         onStepDone: (job, step, outcome) => {
           if (outcome.ok) {
             if (step === "create") return landNewSpec(job, outcome);
-            if (step === "analyze" || step === "review-plan") {
+            if (step === "analyze") {
               return landStepBranch(job, step, outcome);
             }
             if (step === "archive") return landArchivedSpec(job, outcome);
@@ -1599,9 +1603,9 @@ export function createServer(opts: ServerOptions) {
 
   /** Land the work a middle-of-the-workflow step produced (spec 149).
    *
-   *  `analyze` and `review-plan` write markdown in the specs repo and
+   *  `analyze` writes markdown in the specs repo and
    *  nothing else — the same argument that made `create` and `archive`
-   *  land themselves, word for word; they were simply never given it,
+   *  land themselves, word for word; it was simply never given it,
    *  and the row piled up a "ready to merge" button per step for work
    *  nobody had a reason to weigh.
    *
@@ -1617,7 +1621,7 @@ export function createServer(opts: ServerOptions) {
    *
    *  The install is neither asked for nor refused here: `landBranch`
    *  runs it for any CODE root that lands, whichever step landed it.
-   *  `analyze` and `review-plan` never have one. */
+   *  `analyze` never has one. */
   async function landStepBranch(
     job: Job,
     step: WorkflowStep,
@@ -1715,7 +1719,7 @@ export function createServer(opts: ServerOptions) {
    *  resolver — making it async to ask git would thread `await` through
    *  the enqueue path for a signal enqueueing has no use for.
    *
-   *  A stale description takes back `analyze` and `review-plan` only.
+   *  A stale description takes back `analyze` only.
    *  `implement` is deliberately untouched: nothing here blocks running
    *  a spec whose description change turns out to be cosmetic.
    *
@@ -1746,7 +1750,7 @@ export function createServer(opts: ServerOptions) {
         return {
           ...withHistory,
           analyzeStale: true,
-          done: done.filter((s) => s !== "analyze" && s !== "review-plan"),
+          done: done.filter((s) => s !== "analyze"),
         };
       }),
     );

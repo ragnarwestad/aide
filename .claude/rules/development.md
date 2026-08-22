@@ -128,8 +128,8 @@ reason on its row until the dependency merges); the script's copy is
 what decides whether a run started by hand is REFUSED.
 
 **No step's work is merged by hand (spec 149).** The dashboard lands
-each step's branch when the step reports success — `create`, `analyze`
-and `review-plan` merge into the repo's default branch and delete the
+each step's branch when the step reports success — `create` and
+`analyze` merge into the repo's default branch and delete the
 branch on origin; `implement` lands nothing, so code waits
 on its branch until `archive`, which merges every repo the spec's
 branch still exists in (specs first, code last), runs `AIDE_INSTALL_CMD`
@@ -155,6 +155,23 @@ commit, which is worse than the refusal it replaced. The gate that makes
 a machine resolving a conflict unattended defensible is the project's
 own test command: a resolution that does not pass it puts the branch
 back where it was found, and nothing lands.
+
+**Review is part of analyze, not a phase of its own (spec 181).**
+`review-plan` used to be a standalone workflow step
+(`core/skills/aide-review-plan/SKILL.md`) that ran the
+three-reviewer-perspective routine — feasibility, scope guardian,
+coherence — against `3-solution.md`. It is gone as a step; the routine
+now runs inline inside `core/skills/aide-analyze/SKILL.md`, between
+writing `3-solution.md` and writing `4-status.md`. The reviewer
+subagents are still separate Agent invocations blind to the analyst's
+own reasoning — that property doesn't depend on which skill file
+triggers the review. `WORKFLOW_STEPS` (the bash string in
+`core/scripts/aide-run-spec`, the TypeScript array in
+`dashboard/src/queue.ts`) lost `review-plan`, and so did the
+workflow arc it feeds — `WORKFLOW_ARC` in `core/scripts/aide-run-spec`,
+`HISTORY_STEPS` in `dashboard/src/workflow-history.ts`, `WORKFLOW_STEPS`
+in `dashboard/src/parse-status.ts` — all three trimmed from five stages
+to four: `create`, `analyze`, `implement`, `archive`.
 
 **`archive` is therefore the one step that can touch the worktree and
 fail to finish — the generic commit loop needed a guard for that.**

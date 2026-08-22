@@ -195,14 +195,15 @@ linear flow, and the phases are written out in full in
 [references/spec-workflows.md](./references/spec-workflows.md):
 
 ```text
-(Explore) - Create - Analyze - (Review) - Solve - Verify - Archive
+(Explore) - Create - Analyze - Solve - Verify - Archive
 ```
 
 **Explore is optional and has no stakes:** `/aide-explore` thinks the
 problem through with the user first — no files, no spec. Use it when the
 idea or scope is not ready for `/aide-create` yet. **Review is optional
-for LOW specs and expected for MEDIUM/HIGH:** `/aide-review-plan` attacks
-`3-solution.md` before the first test is written.
+for LOW specs and expected for MEDIUM/HIGH:** `/aide-analyze` attacks
+`3-solution.md` from three reviewer perspectives before the first test is
+written, as its own last step.
 
 The rest of the detail lives beside this file:
 

@@ -46,7 +46,7 @@ Usage:
 1. Read `specs/XX-slug/2-analysis.md` (affected files)
 2. Read `specs/XX-slug/3-solution.md` (implementation plan)
 3. If the spec is MEDIUM/HIGH and `3-solution.md` has no "Plan review"
-   section: suggest running `/aide-review-plan` first (proceed if the
+   section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)
 4. Read the relevant coding standard (frontend or backend)
 5. Read `specs/XX-slug/4-status.md`'s phase table (spec 187). A step

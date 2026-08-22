@@ -128,7 +128,19 @@ Structure the plan with TDD:
 - Step 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
 
-### Step 7: Update 4-status.md
+### Step 7: Review the plan
+
+Attack the plan while the mistake is still cheap, before any test is
+written: reviewers with distinct perspectives (feasibility, scope,
+coherence) attack `3-solution.md`, findings become must-fix/should-fix,
+and the plan is REVISED — not just annotated. See
+`references/plan-review.md` for the full routine (scaled to complexity,
+consolidation, and what gets written where).
+
+Skip this step only when `3-solution.md` is still an empty template —
+nothing was written in Step 6 to review.
+
+### Step 8: Update 4-status.md
 
 Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
@@ -152,9 +164,11 @@ Run /aide-analyze for <spec-folder>
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
-### Step 8: Confirm
+### Step 9: Confirm
 
-Show a summary with complexity, number of affected files, and the next step.
+Show a summary with complexity, number of affected files, the plan
+review's verdict (counts of must-fix/should-fix, what was revised), and
+the next step.
 
 IMPORTANT:
 - ALWAYS use the file:line format for references
@@ -167,6 +181,5 @@ IMPORTANT:
 ## Next step
 
 ```text
-/aide-review-plan 55      # MEDIUM/HIGH: review the plan first
-/aide-implement 55         # LOW: straight to implementation
+/aide-implement 55
 ```

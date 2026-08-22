@@ -30,18 +30,18 @@ const PROGRESS_RE =
 // a proxy for the question rather than an answer to it, and on
 // 2026-08-20 the first one broke — spec 138's untouched analysis
 // template is 693 bytes, so the row read `analyze ✓` before any analyze
-// had run and offered review-plan instead. Review-plan then ran three
-// times against an empty template.
+// had run and offered a second pass at the plan instead, which then ran
+// three times against an empty template.
 //
 // The steps say so themselves now, on one line of Tracking info:
 //
-//     - **Workflow steps completed:** create, analyze, review-plan
+//     - **Workflow steps completed:** create, analyze
 //
 // Written by the step that completed, read here, and nowhere else. The
 // percentage on the line below it keeps its own job: it says how far
 // the TDD phases INSIDE implement have got, which is a different
 // question from whether implement ran.
-const WORKFLOW_STEPS = ["create", "analyze", "review-plan", "implement", "archive"];
+const WORKFLOW_STEPS = ["create", "analyze", "implement", "archive"];
 
 const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 

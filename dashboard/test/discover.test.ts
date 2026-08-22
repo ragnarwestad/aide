@@ -479,9 +479,13 @@ describe("the four spec files, raw", () => {
   });
 });
 
-// The review-plan phase's page shows ONE section of 3-solution.md, and
-// the rule that finds it is the rule `specDescription` has always used:
-// to the next heading or the next `---`, and no markdown parser.
+// `markdownSection` is the rule `specDescription` has always used to
+// find one section of a file: to the next heading or the next `---`,
+// and no markdown parser. `specPhaseFile` no longer uses it for a
+// step's own page since spec 181 (the `review-plan` phase that used to
+// slice one section of 3-solution.md is gone — `analyze` shows the
+// whole file now), but the function itself is still exercised directly
+// here.
 describe("markdownSection", () => {
   const SOLUTION =
     "# S - Solution\n\n## Recommended solution\n\nApproach 1.\n\n## Plan review\n\n" +
@@ -513,9 +517,11 @@ describe("markdownSection", () => {
 // --- spec 150: what a phase MADE --------------------------------------------
 //
 // "A phase's page shows what that phase made": analyze wrote
-// 2-analysis.md, review-plan wrote one section of 3-solution.md,
-// implement wrote 4-status.md, and archive either moved the folder or
-// said why it did not. Nothing else of the spec is repeated there.
+// 3-solution.md (the plan, and since spec 181 the "Plan review" section
+// too — the reviewer-perspectives routine that used to be its own
+// `review-plan` step runs inside `analyze` now), implement wrote
+// 4-status.md, and archive either moved the folder or said why it did
+// not. Nothing else of the spec is repeated there.
 
 describe("specPhaseFile", () => {
   let dir: string;
@@ -544,20 +550,16 @@ describe("specPhaseFile", () => {
     });
   });
 
-  test("analyze shows 2-analysis.md (criterion 5)", () => {
-    expect(specPhaseFile(dir, "analyze")?.label).toBe("2-analysis.md");
-    expect(specPhaseFile(dir, "analyze")?.text).toContain("Seven files.");
-    // and nothing else of the spec
-    expect(specPhaseFile(dir, "analyze")?.text).not.toContain("Approach 1.");
-  });
-
-  test("review-plan shows only the Plan review section of 3-solution.md (criterion 6)", () => {
-    const phase = specPhaseFile(dir, "review-plan");
-    expect(phase?.label).toContain("3-solution.md");
-    expect(phase?.label).toContain("Plan review");
-    expect(phase?.text).toBe("One must-fix, five should-fix.");
-    expect(phase?.text).not.toContain("Approach 1.");
-    expect(phase?.text).not.toContain("Medium.");
+  // Spec 181, criterion 3: the reviewer-perspectives routine that used
+  // to be its own `review-plan` step runs inside `analyze` now, writing
+  // a "Plan review" section into 3-solution.md in the same run that
+  // writes the plan — so the job page shows the WHOLE file, plan and
+  // review together, not a slice of it.
+  test("analyze shows the whole 3-solution.md, plan and review together", () => {
+    expect(specPhaseFile(dir, "analyze")?.label).toBe("3-solution.md");
+    expect(specPhaseFile(dir, "analyze")?.text).toContain("Approach 1.");
+    expect(specPhaseFile(dir, "analyze")?.text).toContain("One must-fix, five should-fix.");
+    expect(specPhaseFile(dir, "analyze")?.text).toContain("Medium.");
   });
 
   test("implement shows 4-status.md (criterion 7)", () => {
@@ -572,7 +574,7 @@ describe("specPhaseFile", () => {
 
   test("a phase whose file is not written yet keeps its name and says nothing was written", () => {
     const empty = mkdtempSync(join(tmpdir(), "aide-phase-empty-"));
-    expect(specPhaseFile(empty, "analyze")).toEqual({ label: "2-analysis.md", text: null });
+    expect(specPhaseFile(empty, "analyze")).toEqual({ label: "3-solution.md", text: null });
     rmSync(empty, { recursive: true, force: true });
   });
 

@@ -21,7 +21,7 @@ export interface MergeEvent {
   branch: string;
   repoRoot: string;
   /** Which workflow step's landing this was: `create`, `analyze`,
-   *  `review-plan`, `resolve` or `archive`. Typed `string` rather than
+   *  `resolve` or `archive`. Typed `string` rather than
    *  `WorkflowStep`: it crosses into claude-usage's domain, where our
    *  union is not a type anyone can hold. */
   step: string;

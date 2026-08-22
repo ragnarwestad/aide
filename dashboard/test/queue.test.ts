@@ -319,13 +319,13 @@ describe("mergeQueueDefaults", () => {
     const merged = mergeQueueDefaults(DEFAULTS, {
       budgetUsd: 15,
       jobCapUsd: 50,
-      model: { implement: "opus", "review-plan": "sonnet" },
+      model: { implement: "opus", archive: "sonnet" },
     });
     expect(merged.budgetUsd).toBe(15);
     expect(merged.jobCapUsd).toBe(50);
     expect(merged.dailyCapUsd).toBe(20); // untouched
     expect(merged.timeoutSec).toEqual(DEFAULTS.timeoutSec);
-    expect(merged.model["review-plan"]).toBe("sonnet");
+    expect(merged.model.archive).toBe("sonnet");
     expect(merged.permissionMode.implement).toBe("bypassPermissions");
   });
 
@@ -614,7 +614,7 @@ describe("per-step model choice", () => {
   });
 
   // Skipped, not refused (2026-08-19): the phase lines' selects are
-  // always pre-filled, so every Run posts a name for all five steps —
+  // always pre-filled, so every Run posts a name for all four steps —
   // only the ticked ones may apply.
   test("a step outside this job's own steps is skipped, and the job runs", () => {
     const r = parseJobRequest(
@@ -1147,17 +1147,17 @@ describe("editing a running job's tail (spec 160)", () => {
   });
 
   test("a not-yet-started step can be removed (criterion 2)", () => {
-    const job = running(["analyze", "review-plan", "implement"]);
-    const answer = job.store.editTailStep(job.id, "review-plan", false);
+    const job = running(["analyze", "implement", "archive"]);
+    const answer = job.store.editTailStep(job.id, "implement", false);
     expect(answer.ok).toBe(true);
-    expect(job.steps()).toEqual(["analyze", "implement"]);
+    expect(job.steps()).toEqual(["analyze", "archive"]);
     expect(job.store.get(job.id)!.stepIndex).toBe(0);
   });
 
   test("the running step and everything behind it are closed (criterion 3)", () => {
-    const job = running(["analyze", "review-plan"], 1);
+    const job = running(["analyze", "implement"], 1);
     for (const [step, add] of [
-      ["review-plan", false], ["review-plan", true],
+      ["implement", false], ["implement", true],
       ["analyze", false], ["analyze", true],
     ] as const) {
       const answer = job.store.editTailStep(job.id, step, add);
@@ -1165,7 +1165,7 @@ describe("editing a running job's tail (spec 160)", () => {
       // Named, never a bare "no": the row has one line to say why.
       if (!answer.ok) expect(answer.error).toContain(step);
     }
-    expect(job.steps()).toEqual(["analyze", "review-plan"]);
+    expect(job.steps()).toEqual(["analyze", "implement"]);
   });
 
   // The step the reader is looking at may finish between the page
@@ -1203,11 +1203,11 @@ describe("editing a running job's tail (spec 160)", () => {
   // show the missing one as live, and adding it would run it AFTER the
   // step now running — out of the only order these steps have.
   test("a step that ranks earlier than the one running is refused (criterion 9)", () => {
-    const job = running(["review-plan", "archive"]);
+    const job = running(["implement", "archive"]);
     const answer = job.store.editTailStep(job.id, "analyze", true);
     expect(answer.ok).toBe(false);
     if (!answer.ok) expect(answer.error).toContain("analyze");
-    expect(job.steps()).toEqual(["review-plan", "archive"]);
+    expect(job.steps()).toEqual(["implement", "archive"]);
   });
 
   test("an unknown job is not found", () => {
@@ -1230,7 +1230,7 @@ describe("editing a running job's tail (spec 160)", () => {
   describe("tailEdits", () => {
     test("names the tail and every later step the job does not have, in workflow order", () => {
       const job = running(["analyze", "archive"]);
-      expect(tailEdits(job.store.get(job.id)!)).toEqual(["review-plan", "implement", "archive"]);
+      expect(tailEdits(job.store.get(job.id)!)).toEqual(["implement", "archive"]);
     });
 
     test("a job that is not running has nothing open (criterion 8)", () => {
@@ -1240,7 +1240,7 @@ describe("editing a running job's tail (spec 160)", () => {
     });
 
     test("nothing earlier than the running step is offered (criterion 9)", () => {
-      const job = running(["review-plan", "archive"]);
+      const job = running(["implement", "archive"]);
       expect(tailEdits(job.store.get(job.id)!)).not.toContain("analyze");
     });
   });

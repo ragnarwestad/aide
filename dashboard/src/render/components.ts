@@ -49,12 +49,14 @@ export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 
 // --- the step's name is not the reader's word --------------------------------
 
-/** What a phase is CALLED on the page. The queue step, the skill and
- *  every `data-` attribute keep `review-plan`; a reader is shown
- *  `review`, because the `-plan` half is an implementation detail of
- *  which skill runs. Written once so the row, the phase line, the pips
- *  and the job page cannot drift on it. */
-export const STEP_LABELS: Record<string, string> = { "review-plan": "review" };
+/** What a phase is CALLED on the page. Empty since spec 181: `review`
+ *  was the reader-facing word for the standalone `review-plan` step,
+ *  which folded into `analyze` and is no longer a step of its own. Kept
+ *  as a table (not deleted) so the row, the phase line, the pips and the
+ *  job page have one shared place to add a translation if a future step
+ *  needs one — `stepLabel` below falls back to the step's own name for
+ *  every entry not listed here. */
+export const STEP_LABELS: Record<string, string> = {};
 
 export const stepLabel = (step: string): string => STEP_LABELS[step] ?? step;
 

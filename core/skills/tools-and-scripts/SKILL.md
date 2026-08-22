@@ -30,8 +30,7 @@ Available skills:
 
 - `/aide-explore` - No-stakes thinking partner before a spec exists (creates nothing)
 - `/aide-create` - Create JIRA/TODO documentation
-- `/aide-analyze` - Analyze the codebase
-- `/aide-review-plan` - Review the plan before implementation (feasibility, scope, coherence)
+- `/aide-analyze` - Analyze the codebase, then review the plan (feasibility, scope, coherence)
 - `/aide-manifest` - Draft or refresh the project manifest (.aide/project.yaml)
 - `/aide-implement` - Implement with TDD
 - `/aide-archive` - Resolve any merge conflict on the branch, then archive the spec and feed durable knowledge back into the docs

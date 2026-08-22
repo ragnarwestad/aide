@@ -1007,10 +1007,11 @@ def is_ancestor(repo, a, b):
 
 
 def test_a_reused_branch_is_brought_up_to_the_default_branch(runner, workspace, fake_claude):
-    """A spec's branch survives between steps, so analyze, review-plan and
+    """A spec's branch survives between steps, so analyze and
     implement build on each other. But the default branch moves on, and a
     branch left over from the morning made the step read the morning's
-    code. Measured 2026-08-16: a review-plan reviewed a file whose bug had
+    code. Measured 2026-08-16, while review-plan was still a separate step
+    (spec 181 folded it into analyze): it reviewed a file whose bug had
     been fixed hours earlier."""
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
@@ -2203,7 +2204,7 @@ def test_a_specs_root_outside_any_git_repo_still_receives_the_work(
 # command explicitly: the default `analyze` no longer reaches the
 # guard at all, and a test left on the default would pass for the wrong
 # reason. The steps that write only the spec's own folder in the specs
-# repo (analyze, review-plan, create) have their own tests further down.
+# repo (analyze, create) have their own tests further down.
 
 
 @pytest.fixture
@@ -2448,7 +2449,7 @@ def test_a_stale_remote_tracking_ref_does_not_refuse_forever(
 
 
 # --- Spec 122: the guard holds back only the steps that build on code -------
-# analyze, review-plan and create write only the spec's own folder in the
+# analyze and create write only the spec's own folder in the
 # specs repo — nothing they touch conflicts with an unmerged dependency,
 # so refusing them cost a chain of dependent specs its whole parallelism
 # for nothing (2026-08-19). The honest trade-off, stated rather than
@@ -2470,26 +2471,24 @@ def test_analyze_proceeds_despite_an_unmerged_dependency(
     assert out["terminalReason"] == "completed"
 
 
-@pytest.mark.parametrize("command", ["review-plan", "create"])
-def test_review_plan_and_create_proceed_despite_an_unmerged_dependency(
-    runner, workspace, fake_claude, local_origins, command
+def test_create_proceeds_despite_an_unmerged_dependency(
+    runner, workspace, fake_claude, local_origins
 ):
-    """Criterion 2: what holds for analyze holds for the other two steps
-    that only write the spec's own folder."""
+    """Criterion 2: what holds for analyze holds for create, the other
+    step that only writes the spec's own folder."""
     add_spec(workspace, "80-dependency")
     leave_unmerged_branch_on_origin(workspace, "aide/80-dependency")
     set_depends_on(workspace, "80")
 
     rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command=command
+        runner, workspace, writing_claude(fake_claude, workspace), command="create"
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
 
-@pytest.mark.parametrize("command", ["review-plan", "create"])
-def test_review_plan_and_create_proceed_despite_an_unknown_or_self_dependency(
-    runner, workspace, fake_claude, local_origins, command
+def test_create_proceeds_despite_an_unknown_or_self_dependency(
+    runner, workspace, fake_claude, local_origins
 ):
     """The unknown and self cases are refusals for the gated steps only.
     A non-gated step never reaches the loop, so a typo is not its
@@ -2497,14 +2496,14 @@ def test_review_plan_and_create_proceed_despite_an_unknown_or_self_dependency(
     refusal belongs."""
     set_depends_on(workspace, "77")  # nothing resolves to it
     rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command=command
+        runner, workspace, writing_claude(fake_claude, workspace), command="create"
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
 
     set_depends_on(workspace, "81")  # the spec's own number
     rc, out, _ = run(
-        runner, workspace, writing_claude(fake_claude, workspace), command=command
+        runner, workspace, writing_claude(fake_claude, workspace), command="create"
     )
     assert rc == 0, out
     assert out["terminalReason"] == "completed"
@@ -2857,12 +2856,12 @@ def test_an_archive_that_walks_away_mid_merge_publishes_no_conflict_markers(
     assert git(origin["project"], "branch", "--list", branch) == ""
 
 
-@pytest.mark.parametrize("step", ["create", "analyze", "review-plan", "implement"])
+@pytest.mark.parametrize("step", ["create", "analyze", "implement"])
 def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claude, step):
     """Criterion 2 (spec 171). The fork is on the literal string
     `archive` and nothing else, so every step that refused yesterday
     refuses today — a step let past a conflict would commit the markers.
-    All four are named, not the two that happened to be here before."""
+    All three are named, not the two that happened to be here before."""
     project = workspace["project"]
     conflicting_branch(workspace)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
@@ -2905,6 +2904,20 @@ def test_resolve_is_no_longer_a_command_this_script_will_run(runner, workspace, 
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
+def test_review_plan_is_refused_as_a_command(runner, workspace, fake_claude):
+    """Criterion 1 (spec 181). `review-plan` folded into `analyze` and is
+    no longer a step of its own: a caller that still asks for it — an
+    old dashboard, a shell history entry, a queue-config left over from
+    before — is refused by the same --command check every other unknown
+    word meets, before any money is spent."""
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="review-plan")
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "invalid --command" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
 # --- the step vocabulary lives in two files (spec 91's open flaw) ------------
 # `WORKFLOW_STEPS` is a bash string here and a TypeScript array there,
 # with no shared source and no compiler between them. Adding a step to
@@ -2929,6 +2942,43 @@ def test_the_two_copies_of_the_step_vocabulary_agree(workspace_root):
         "the script and the dashboard disagree about which steps exist: "
         f"only in the script {sorted(from_bash - from_ts)}, "
         f"only in the dashboard {sorted(from_ts - from_bash)}"
+    )
+
+
+# --- the "workflow arc" is copied a THIRD time, with no test until now ------
+# `WORKFLOW_ARC` (bash, this script), `HISTORY_STEPS`
+# (dashboard/src/workflow-history.ts) and the plain `WORKFLOW_STEPS` array
+# in dashboard/src/parse-status.ts name the same four stages a spec passes
+# through. Unlike the seven/six-step vocabulary and the dependency-gate
+# list, nothing pinned these three together before spec 181 — three
+# hand-edits with no test net is exactly the drift risk this repo already
+# names for the other two lists. Added now, while all three are already
+# being hand-edited to drop `review-plan`, so it is cheap and it protects
+# this very change.
+
+def test_the_three_copies_of_the_workflow_arc_agree(workspace_root):
+    import re
+
+    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    m = re.search(r'^WORKFLOW_ARC="([^"]*)"', bash, re.M)
+    assert m, "aide-run-spec no longer declares WORKFLOW_ARC as a plain string"
+    from_bash = set(m.group(1).split())
+
+    history_ts = (workspace_root / "dashboard" / "src" / "workflow-history.ts").read_text()
+    m = re.search(r"export const HISTORY_STEPS = \[(.*?)\];", history_ts, re.S)
+    assert m, "workflow-history.ts no longer declares HISTORY_STEPS as a literal array"
+    from_history_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
+
+    parse_status_ts = (workspace_root / "dashboard" / "src" / "parse-status.ts").read_text()
+    m = re.search(r"const WORKFLOW_STEPS = \[(.*?)\];", parse_status_ts, re.S)
+    assert m, "parse-status.ts no longer declares WORKFLOW_STEPS as a literal array"
+    from_parse_status_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
+
+    assert from_bash == from_history_ts == from_parse_status_ts, (
+        "the three copies of the workflow arc disagree: "
+        f"aide-run-spec {sorted(from_bash)}, "
+        f"workflow-history.ts {sorted(from_history_ts)}, "
+        f"parse-status.ts {sorted(from_parse_status_ts)}"
     )
 
 
@@ -3189,7 +3239,7 @@ def test_a_copied_status_line_is_corrected_by_the_first_step_that_runs(
     """Spec 153: four files copied from a sibling whose analyze had
     landed, so a folder minutes old claimed three steps. Nothing was
     committed for any of them."""
-    with_status(workspace, ["create", "analyze", "review-plan"])
+    with_status(workspace, ["create", "analyze", "implement"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
@@ -3200,10 +3250,10 @@ def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claud
     with_status(workspace)
     already_ran(workspace, ["create", "analyze"])
     claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="review-plan")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     # Workflow order, not log order, and this run's own step included.
-    assert recorded_line(workspace) == "create, analyze, review-plan"
+    assert recorded_line(workspace) == "create, analyze, implement"
 
 
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
@@ -3211,7 +3261,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     The commit says so — the line, which is about what COMPLETED, does
     not gain it."""
     with_status(workspace)
-    already_ran(workspace, ["create", "analyze", "review-plan"])
+    already_ran(workspace, ["create", "analyze"])
     claude = fake_claude(
         "cat > /dev/null\n"
         'echo "half-written" > "$PWD/half.txt"\n'
@@ -3221,7 +3271,7 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     rc, out, _ = run(runner, workspace, claude, command="implement",
                      timeout_sec="2", kill_grace_sec="1")
     assert out["terminalReason"] == "timeout"
-    assert recorded_line(workspace) == "create, analyze, review-plan"
+    assert recorded_line(workspace) == "create, analyze"
     # And the stop is on the record that DOES carry it.
     assert "stopped: timeout" in git(
         workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
@@ -3230,12 +3280,12 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
 
 def test_a_completed_run_supersedes_the_stop_before_it(runner, workspace, fake_claude):
     with_status(workspace)
-    already_ran(workspace, ["create", "analyze", "review-plan"])
+    already_ran(workspace, ["create", "analyze"])
     already_ran(workspace, ["implement"], stopped="timeout")
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, review-plan, implement"
+    assert recorded_line(workspace) == "create, analyze, implement"
 
 
 def test_an_interactive_commit_without_the_headless_marker_counts(
@@ -3244,14 +3294,43 @@ def test_an_interactive_commit_without_the_headless_marker_counts(
     with_status(workspace)
     already_ran(workspace, ["create", "analyze"], headless=False)
     claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="review-plan")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, review-plan"
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_historical_review_plan_commit_still_counts_as_completed(
+    runner, workspace, fake_claude
+):
+    """Criterion 2, bash side, and description requirement 2 ("every
+    archived spec whose history contains a review-plan run still
+    displays that history"). `review-plan` folded into `analyze` (spec
+    181) and is no longer a step a NEW run may claim (WORKFLOW_STEPS
+    refuses it) or write as its own arc stage (WORKFLOW_ARC no longer
+    names it) — but an commit made before this change is still on disk,
+    and it must still be recognized: `WORKFLOW_ARC_RETIRED` is what
+    keeps `completed_steps_for` counting it.
+
+    Plan review labelled this a characterization test on the theory
+    that Phase 2 "never touches the commit-subject regex" — that framing
+    missed that WORKFLOW_ARC is also a FILTER on old commits, not just
+    a list of what a new run may write, and dropping review-plan from it
+    with nothing else changed made this go genuinely red (confirmed
+    empirically before WORKFLOW_ARC_RETIRED was added). It is a real RED
+    test, not a characterization one."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "review-plan"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    # Current arc order first, then retired steps: WORKFLOW_ARC_RETIRED
+    # is not woven back into its old position, only kept from vanishing.
+    assert recorded_line(workspace) == "create, analyze, implement, review-plan"
 
 
 def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, fake_claude):
     with_status(workspace)
-    for step in ["create", "analyze", "review-plan"]:
+    for step in ["create", "analyze", "implement"]:
         subprocess.run(
             ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
              "-m", subject(step, "99-somebody-else")],
@@ -3283,7 +3362,7 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
     `archive/` before the runner's commit loop ever runs, so the path
     the line has to be written at is not the one the run started with."""
     with_status(workspace)
-    already_ran(workspace, ["create", "analyze", "review-plan", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"])
     folder = workspace["folder"]
     claude = fake_claude(
         "cat > /dev/null\n"
@@ -3296,7 +3375,7 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
     assert rc == 0, out
     assert (
         recorded_line(workspace, path=f"archive/{folder}/4-status.md")
-        == "create, analyze, review-plan, implement, archive"
+        == "create, analyze, implement, archive"
     )
 
 
@@ -3336,7 +3415,7 @@ def test_a_step_outside_the_workflow_arc_leaves_the_line_alone(
     """`explore` is not a stage a spec passes through, and it writes
     nothing today. It must not start leaving a commit — and with it a
     branch no step lands — for a line it has no news about."""
-    with_status(workspace, ["create", "analyze", "review-plan"])
+    with_status(workspace, ["create", "analyze", "implement"])
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="explore")
     assert rc == 0, out

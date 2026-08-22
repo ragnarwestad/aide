@@ -168,20 +168,20 @@ export function specDescription(dir: string): string | null {
  *  file is not written yet keeps its NAME and answers `text: null`: the
  *  reader asked what analyze produced, and "nothing yet" is the answer.
  *
+ *  `analyze` shows `3-solution.md`, not `2-analysis.md` (spec 181): the
+ *  reviewer-perspectives routine that used to be its own `review-plan`
+ *  step now runs inside `analyze`, writing a "Plan review" section into
+ *  `3-solution.md` in the same run that writes the plan — so the plan
+ *  and its review are one file, read together, exactly as the run
+ *  produced them.
+ *
  *  `archive` is the one that is not a whole file. It either moved the
  *  folder or declined to, and the page must show exactly one of those:
  *  the stamp when it is there, because a folder that MOVED is archived
  *  whatever an earlier attempt wrote into the same file. */
 export function specPhaseFile(dir: string, step: string): { label: string; text: string | null } | null {
   if (step === "create") return { label: "1-description.md", text: specFileText(dir, "1-description.md") };
-  if (step === "analyze") return { label: "2-analysis.md", text: specFileText(dir, "2-analysis.md") };
-  if (step === "review-plan") {
-    const solution = specFileText(dir, "3-solution.md");
-    return {
-      label: "3-solution.md — Plan review",
-      text: solution === null ? null : markdownSection(solution, "Plan review"),
-    };
-  }
+  if (step === "analyze") return { label: "3-solution.md", text: specFileText(dir, "3-solution.md") };
   if (step === "implement") return { label: "4-status.md", text: specFileText(dir, "4-status.md") };
   if (step === "archive") {
     const status = specFileText(dir, "4-status.md");

@@ -96,9 +96,8 @@ const checkboxKey = (el: HTMLInputElement): string =>
  *  another, which is the whole thing naming the button was for.
  *
  *  The display name comes off the box's own `aria-label`, which the
- *  server already sets to the phase's reader-facing name ("review" for
- *  `review-plan`), so the step-label table is not spelled a second time
- *  in the browser.
+ *  server already sets to the phase's reader-facing name, so the
+ *  step-label table is not spelled a second time in the browser.
  *
  *  Nothing ticked hides the button, as the server's own render does: a
  *  press that can do nothing must not be offered. Without this file the

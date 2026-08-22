@@ -207,8 +207,10 @@ export function specStateChip(r: QueueRowView, resting: RestingState = {}): stri
   return stateChip(r);
 }
 
-/** "analyze" → "analyzing", "review" → "reviewing" — from the reader's
- *  word (`stepLabel`), so `review-plan` gerunds as "reviewing". */
+/** "analyze" → "analyzing", "implement" → "implementing" — from the
+ *  reader's word (`stepLabel`), so a future entry added to
+ *  `STEP_LABELS` gerunds through the same rule rather than a second
+ *  one. */
 function gerund(step: string): string {
   const label = stepLabel(step);
   return label.endsWith("e") ? `${label.slice(0, -1)}ing` : `${label}ing`;

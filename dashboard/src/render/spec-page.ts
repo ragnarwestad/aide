@@ -5,7 +5,7 @@
 // spec's row went to one queue RUN, whose Overview held the
 // `## Description` prose and then that run's own figures, and nothing
 // anywhere showed 2-analysis.md, 3-solution.md or 4-status.md: the
-// files the analyze, review-plan and implement steps exist to write. A
+// files the analyze and implement steps exist to write. A
 // reader who wanted to know what a phase produced left the dashboard
 // for GitHub or the filesystem.
 //
@@ -91,8 +91,8 @@ export const specPagePath = (project: string, specFolder: string): string =>
   `/specs/${encodeURIComponent(project)}/${encodeURIComponent(specFolder)}`;
 
 /** The one file of the four a person owns (spec 162). `2-analysis.md`
- *  and `3-solution.md` are the analyze and review-plan steps' output —
- *  a hand edit there is overwritten the next time they run — and
+ *  and `3-solution.md` are the analyze step's output —
+ *  a hand edit there is overwritten the next time it runs — and
  *  `4-status.md` has been the runner's since spec 154. Named here
  *  because the page decides which panel offers the link and the server
  *  decides which file the route writes, and those two must be the same

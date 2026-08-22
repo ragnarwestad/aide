@@ -88,9 +88,9 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-WORKFLOW_STEPS="explore create analyze review-plan implement archive manifest"
+WORKFLOW_STEPS="explore create analyze implement archive manifest"
 # The steps a dependency actually holds back (spec 122): the ones that
-# BUILD on merged code. analyze, review-plan and create write only the
+# BUILD on merged code. analyze and create write only the
 # spec's own folder in the specs repo and conflict with nothing, so
 # refusing them cost a chain of dependent specs its parallelism for
 # nothing. Kept as a plain string for the same reason WORKFLOW_STEPS is:
@@ -222,8 +222,8 @@ project_root="$(git -C "$project_dir" rev-parse --show-toplevel 2>/dev/null)" \
   || refuse "not a git repository: $project_dir"
 
 # The specs root is usually a DIFFERENT repository (AIDE_SPECS_PATH): it
-# is where analyze and review-plan actually write, so every check below
-# covers both roots, not just the project.
+# is where analyze actually writes, so every check below covers both
+# roots, not just the project.
 if declare -f aide_specs_root >/dev/null 2>&1; then
   specs_root="$(aide_specs_root "$project_root")"
 else
@@ -796,10 +796,11 @@ base_ref_for() {   # sets $base_ref
 }
 
 # The branch already exists, because the previous step for this spec made
-# it — and that reuse is deliberate: analyze, review-plan and implement
+# it — and that reuse is deliberate: analyze and implement
 # build on each other's work. But the default branch has moved on since,
 # and a branch left over from the morning made the step read the
-# morning's code. Measured 2026-08-16: a review-plan reviewed a file
+# morning's code. Measured 2026-08-16, while review-plan was still a
+# separate step (spec 181 folded it into analyze): it reviewed a file
 # whose bug had been fixed hours earlier.
 #
 # One step is the exception, and it is the exception on purpose: an
@@ -1286,7 +1287,7 @@ fi
 #
 #     Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
 #
-# - `<step>` is the step's own name, `review-plan` hyphen included.
+# - `<step>` is the step's own name, exactly as `--command` names it.
 # - `<spec-folder>` is the folder, never the numeric id: a `create` run
 #   names the folder it just made.
 # - ` (headless)` is present for a run `aide-run-spec` made and absent
@@ -1300,11 +1301,24 @@ fi
 #   subject with more after it — is not a step. The match is the whole
 #   subject or nothing.
 #
-# The five values the line may name are the workflow's own stages, and
-# deliberately not the seven steps this script will run: `explore` and
+# The four values the line may name are the workflow's own stages, and
+# deliberately not the six steps this script will run: `explore` and
 # `manifest` are things you can queue, not places a spec gets to. Same
 # list as `parse-status.ts` and `workflow-history.ts`.
-WORKFLOW_ARC="create analyze review-plan implement archive"
+WORKFLOW_ARC="create analyze implement archive"
+# A step name retired FROM the arc, kept recognized when READING old
+# commits (spec 181, description requirement 2: "every archived spec
+# whose history contains a review-plan run still displays that
+# history"). `review-plan` folded into `analyze` and is gone from
+# WORKFLOW_ARC and WORKFLOW_STEPS both — a NEW run can neither be asked
+# for it (WORKFLOW_STEPS refuses it) nor write it as its own step's
+# name (WORKFLOW_ARC no longer names it) — but a commit made before this
+# change is still on disk, and `completed_steps_for` below has to keep
+# recognizing it or an archived spec's history silently loses a step it
+# actually had. Never grows for a step retired WITHOUT that
+# requirement: spec 171's `resolve` was never part of this arc and
+# needed no such entry.
+WORKFLOW_ARC_RETIRED="review-plan"
 
 # Where the spec's `4-status.md` is in the specs worktree RIGHT NOW. An
 # archive step's own `git mv` has already moved the folder by the time
@@ -1346,7 +1360,7 @@ completed_steps_for() {   # sets $completed_steps
     [[ "$subject" =~ $re ]] || continue
     step="${BASH_REMATCH[1]}"
     reason="${BASH_REMATCH[4]}"
-    case " $WORKFLOW_ARC " in *" $step "*) ;; *) continue ;; esac
+    case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
     case "$seen" in *"|$step|"*) continue ;; esac
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
@@ -1354,7 +1368,7 @@ completed_steps_for() {   # sets $completed_steps
 $(git -C "$dir" log --all --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
-  for step in $WORKFLOW_ARC; do
+  for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
     case "$completed" in
       *"|$step|"*) completed_steps="${completed_steps:+$completed_steps, }$step" ;;
     esac

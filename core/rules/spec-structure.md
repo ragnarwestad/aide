@@ -101,11 +101,11 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
 - The line holds back only the steps that BUILD on merged code —
-  `implement`, `archive` (spec 122). `analyze`, `review-plan`
-  and `create` write only the spec's own folder in the specs repo, so a
-  whole chain of dependent specs can be analysed in parallel the moment
-  it is queued. The trade-off is stated rather than hidden: a plan
-  analysed before its dependency merged describes the code WITHOUT it
+  `implement`, `archive` (spec 122). `analyze` and `create` write only
+  the spec's own folder in the specs repo, so a whole chain of dependent
+  specs can be analysed in parallel the moment it is queued. The
+  trade-off is stated rather than hidden: a plan analysed before its
+  dependency merged describes the code WITHOUT it
 - Queued through the dashboard, such a step WAITS rather than fails: the
   job stays `queued` with the reason on its row and starts by itself
   when the dependency merges (the runner re-checks on every tick, and a
@@ -369,12 +369,12 @@ One line in Tracking info, saying how far a spec has got through the
 workflow:
 
 ```markdown
-- **Workflow steps completed:** create, analyze, review-plan
+- **Workflow steps completed:** create, analyze
 ```
 
-The allowed values, in workflow order, are `create`, `analyze`,
-`review-plan`, `implement` and `archive`. A missing line means nothing
-is known to have completed; an unknown value is ignored.
+The allowed values, in workflow order, are `create`, `analyze`, `implement`
+and `archive`. A missing line means nothing is known to have completed;
+an unknown value is ignored.
 
 **Do not edit this line. It is written by `aide-run-spec`, from the
 spec's own commits.** Every step the runner finishes leaves a commit

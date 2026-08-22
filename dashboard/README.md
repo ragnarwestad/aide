@@ -306,17 +306,15 @@ a time instead.
 disabled**, not merely the step it has reached, because the queue would
 refuse any of them anyway (see
 [the duplicate guard](#notifications)) — a job queued as
-`analyze` + `review-plan` left `review-plan` tickable until the moment
+`analyze` + `implement` left `implement` tickable until the moment
 it got there, and Run then answered "already running on this spec".
 The box says why on hover ("analyze is running"), in the same words the
 state chip uses.
 
 What is pre-ticked is what you almost always came to run: the first
-phase the spec has not had — except for a spec nothing has ever run at
-all, which gets `analyze` and `review-plan` ticked together, because
-that pair as one gated job is how a spec is actually started here. A
-phase already done is marked with a tick and left unticked; ticking it
-anyway is a rerun, and no rule stands in the way.
+phase the spec has not had. A phase already done is marked with a tick
+and left unticked; ticking it anyway is a rerun, and no rule stands in
+the way.
 
 **Which phases a spec has HAD is read off one line, and nothing else**
 (spec 139): `- **Workflow steps completed:** create, analyze` in the
@@ -520,7 +518,7 @@ afterwards is a report, not a cap. They live in the queue config
   "budgetUsd": 3,
   "jobCapUsd": 10,
   "dailyCapUsd": 20,
-  "timeoutSec": { "implement": 5400, "default": 1200 },
+  "timeoutSec": { "implement": 5400, "analyze": 2400, "default": 1200 },
   "permissionMode": {
     "implement": "bypassPermissions",
     "default": "acceptEdits"
@@ -542,9 +540,12 @@ an `est.` beside it — the step's own row, the job's total and the spec's.
 
 `timeoutSec` is a table per step, read the same way `permissionMode` and
 `model` below are: a step the table does not name falls to `default`. It
-is per step because an `analyze` is minutes and an `implement` on a
+is per step because a plain `analyze` is minutes and an `implement` on a
 twenty-file change is the better part of an hour, and one number for both
-stopped spec 149 with its tests already green. A tightening override is
+stopped spec 149 with its tests already green. `analyze` itself picked up
+a longer-than-default ceiling — 2400s — in spec 181, once the
+three-reviewer-perspective routine that used to be `review-plan`'s own
+step started running inside it. A tightening override is
 checked against each step's OWN ceiling, so a job holding both steps
 cannot buy `analyze` more time by naming `implement`. A file still
 carrying the old flat `"timeoutSec": 1200` is ignored and the built-in
@@ -901,7 +902,7 @@ aide · 81-queue-and-runner · analyze done · $2.1 · https://github.com/…/co
 
 claude-usage builds its shipping-pipeline ledger out of transcripts: a
 merge reaches it as a `gh pr merge` inside a Bash tool call, and a review
-as the prompt `/aide-review-plan` writes. The reviews already arrive with
+as the prompt `/aide-analyze`'s review step writes. The reviews already arrive with
 nothing configured. The merges never do — since spec 149 the dashboard
 merges in its own Bun process, so no session writes a transcript to read
 one out of, and a merge made by hand from a terminal is `git merge`
@@ -910,7 +911,7 @@ question it exists for, "was this merge reviewed?", about any of our
 work. So the dashboard says what it did.
 
 `mergeEventUrl` in the queue config is where it says it. Every repo a
-step successfully lands — `create`, `analyze`, `review-plan` and
+step successfully lands — `create`, `analyze` and
 `archive`, code roots and specs repos alike — sends one POST with a
 flat JSON body:
 
@@ -1122,12 +1123,12 @@ used to read "not merged" whatever was going on — a fact about the
 BRANCH that read as a verdict on the spec, shown in the same amber
 while the step writing that branch was still running. So while the
 spec's job is in flight the badge names what it is doing
-(`review-plan running`), and once nothing is running it says what is
+(`analyze running`), and once nothing is running it says what is
 open and why — the one window that still exists being the code after
 `implement` and before `archive`.
 
 **Nothing here is merged by hand (spec 149).** Every step lands its own
-work the moment it finishes: `create`, `analyze` and `review-plan`
+work the moment it finishes: `create` and `analyze`
 merge the branch they pushed into that repo's default branch
 and delete it on origin; `implement` lands nothing, so the code stays
 on the branch for anyone who wants to read or test it first; `archive`
@@ -1313,9 +1314,12 @@ it carries a `.rowmsg.err` with a warning mark beside the reason.
 | `field()`       | label above any control, one height and one radius                       |
 | `filterPills()` | "Label · count", the chosen one marked with `aria-current`               |
 
-`STEP_LABELS` lives there too: the `review-plan` step is SHOWN as
-`review` everywhere a reader sees it, while `data-phase`, the checkbox
-`value`, the queue step and the skill all keep the technical name.
+`STEP_LABELS` lives there too — a step's technical name mapped to a
+friendlier one shown to a reader, while `data-phase`, the checkbox
+`value`, the queue step and the skill all keep the technical name
+regardless. It is empty today: `review-plan` (once shown as `review`)
+folded into `analyze` in spec 181, and no other step needs the
+substitution.
 
 The brand is `src/render/brand.ts` — the mark, the wordmark and the
 favicons, all inline SVG and data URIs, because the generated site is

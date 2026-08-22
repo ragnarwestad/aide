@@ -91,7 +91,7 @@ prompt="$(printf '%s' "$input" | jq -r '.prompt // empty')"
 # Anchored: optional leading whitespace, then /aide-<command>, then an
 # optional argument. NEVER an unanchored search — prose that merely
 # mentions a command must not match.
-re='^[[:space:]]*/aide-(explore|create|analyze|review-plan|implement|archive|manifest|make-tests|to-pdf|to-html|react-class-to-func)([[:space:]]+([^[:space:]]+))?'
+re='^[[:space:]]*/aide-(explore|create|analyze|implement|archive|manifest|make-tests|to-pdf|to-html|react-class-to-func)([[:space:]]+([^[:space:]]+))?'
 [[ "$prompt" =~ $re ]] || exit 0
 cmd="${BASH_REMATCH[1]}"
 spec="${BASH_REMATCH[3]:-}"

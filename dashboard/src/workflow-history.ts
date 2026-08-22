@@ -25,11 +25,27 @@ import type { GitRunner } from "./branch-status.ts";
 
 const DEFAULT_TTL_MS = 30_000;
 
-/** The five stages a spec passes through, in workflow order — the same
+/** The four stages a spec passes through, in workflow order — the same
  *  list `parse-status.ts` reads off the file, and deliberately NOT the
- *  seven the runner will execute: `explore` and `manifest`
+ *  six the runner will execute: `explore` and `manifest`
  *  are things you can queue, not places a spec gets to. */
-export const HISTORY_STEPS = ["create", "analyze", "review-plan", "implement", "archive"];
+export const HISTORY_STEPS = ["create", "analyze", "implement", "archive"];
+
+/** A step name retired FROM the arc, kept recognized when READING old
+ *  commits (spec 181, description requirement 2: "every archived spec
+ *  whose history contains a review-plan run still displays that
+ *  history"). `review-plan` folded into `analyze` and is gone from
+ *  `HISTORY_STEPS` and `WORKFLOW_STEPS` (queue.ts) both — a NEW run can
+ *  neither be asked for it nor write it as its own step's name — but a
+ *  commit made before this change is still on disk, and
+ *  `readWorkflowSubjects` below has to keep recognizing it or an
+ *  archived spec's history silently loses a step it actually had.
+ *  Never grows for a step retired WITHOUT that requirement: spec 171's
+ *  `resolve` was never part of this arc and needed no such entry.
+ *
+ *  `core/scripts/aide-run-spec` keeps the bash twin of this,
+ *  `WORKFLOW_ARC_RETIRED`. */
+export const HISTORY_STEPS_RETIRED = ["review-plan"];
 
 // --- the commit-subject grammar ---------------------------------------------
 //
@@ -41,7 +57,7 @@ export const HISTORY_STEPS = ["create", "analyze", "review-plan", "implement", "
 //
 //     Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
 //
-// - `<step>` is the step's own name, `review-plan` hyphen included.
+// - `<step>` is the step's own name, exactly as `--command` names it.
 // - `<spec-folder>` is the folder, never the numeric id: a `create` run
 //   names the folder it just made.
 // - ` (headless)` is present for a run `aide-run-spec` made and absent
@@ -99,13 +115,16 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
     const m = line.trim().match(pattern);
     if (!m) continue;
     const step = m[1]!;
-    if (!HISTORY_STEPS.includes(step) || seen.has(step)) continue;
+    if ((!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) || seen.has(step)) continue;
     seen.set(step, m[2] ?? null);
   }
   const stopped: Record<string, string> = {};
   for (const [step, reason] of seen) if (reason !== null) stopped[step] = reason;
+  // Current arc order first, then retired steps: a retired step is not
+  // woven back into its old position in the arc, only kept from
+  // vanishing — the same order `aide-run-spec`'s bash twin produces.
   return {
-    done: HISTORY_STEPS.filter((step) => seen.get(step) === null),
+    done: [...HISTORY_STEPS, ...HISTORY_STEPS_RETIRED].filter((step) => seen.get(step) === null),
     stopped,
   };
 }

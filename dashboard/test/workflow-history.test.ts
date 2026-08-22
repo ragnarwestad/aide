@@ -54,9 +54,25 @@ describe("readWorkflowSubjects", () => {
 
   test("landed steps come back in workflow order, not log order", () => {
     const history = readWorkflowSubjects(
+      [subject("implement"), subject("analyze"), subject("create")],
+      FOLDER,
+    );
+    expect(history.done).toEqual(["create", "analyze", "implement"]);
+  });
+
+  // Criterion 2 (spec 181), description requirement 2: "every archived
+  // spec whose history contains a review-plan run still displays that
+  // history". `review-plan` folded into `analyze` and is gone from
+  // `HISTORY_STEPS` — a NEW run can neither be asked for it nor write
+  // it as its own step — but a commit made before the fold is still on
+  // disk, and `HISTORY_STEPS_RETIRED` is what keeps it recognized.
+  test("a historical review-plan commit still counts as completed", () => {
+    const history = readWorkflowSubjects(
       [subject("review-plan"), subject("analyze"), subject("create")],
       FOLDER,
     );
+    // Current arc order first, then retired steps: `review-plan` is not
+    // woven back into its old position, only kept from vanishing.
     expect(history.done).toEqual(["create", "analyze", "review-plan"]);
   });
 
@@ -97,11 +113,12 @@ describe("readWorkflowSubjects", () => {
     expect(history.done).toEqual(["analyze"]);
   });
 
-  // The five the workflow arc is made of, and nothing else: explore and
-  // manifest are steps the runner will execute but not
-  // stages a spec passes through (`parse-status.ts`'s own list), and a
-  // word that was never a step at all is ignored the same way.
-  test("a step outside the five tracked ones is ignored, not appended", () => {
+  // The four the workflow arc is made of, plus the retired ones kept
+  // for history (`HISTORY_STEPS_RETIRED`), and nothing else: explore
+  // and manifest are steps the runner will execute but not stages a
+  // spec passes through (`parse-status.ts`'s own list), and a word that
+  // was never a step at all is ignored the same way.
+  test("a step outside the tracked ones is ignored, not appended", () => {
     const history = readWorkflowSubjects(
       [subject("explore"), subject("manifest"), subject("resolve")],
       FOLDER,

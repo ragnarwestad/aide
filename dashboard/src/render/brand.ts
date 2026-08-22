@@ -1,6 +1,10 @@
-// The Aide mark: four bars, one tone, darkest to lightest — analyze,
-// review-plan, implement, archive. The order is carried by the colour,
-// so the mark reads as a direction and not just as four shapes.
+// The Aide mark: three bars, one tone, darkest to lightest — analyze,
+// implement, archive. The order is carried by the colour, so the mark
+// reads as a direction and not just as three shapes.
+//
+// Three bars, not four (spec 181): `review-plan` folded into `analyze`
+// and is no longer a phase of its own, so the mark that used to stand
+// for four workflow phases now stands for three.
 //
 // Everything here is a STRING, for the same reason css.ts is a string:
 // the generated site is published as plain files by rsync, and a page
@@ -8,18 +12,17 @@
 // opened from a folder. Inline SVG in the nav, data URIs for the icons,
 // no second request.
 
-const LIGHT = ["#6B1D0C", "#A8331A", "#D8492A", "#E8A491"];
-const DARK = ["#8E2A12", "#C33E1F", "#F0663F", "#F5B7A3"];
+const LIGHT = ["#6B1D0C", "#D8492A", "#E8A491"];
+const DARK = ["#8E2A12", "#F0663F", "#F5B7A3"];
 
 // Bars are 9px wide on the 64 grid, 10px below 32px — otherwise the
 // lightest one disappears. That is the only permitted deviation.
 function bars(c: string[], w: number): string {
   const r = w / 2;
   return (
-    `<rect x="10" y="26" width="${w}" height="12" rx="${r}" fill="${c[0]}"/>` +
-    `<rect x="24" y="20" width="${w}" height="24" rx="${r}" fill="${c[1]}"/>` +
-    `<rect x="38" y="14" width="${w}" height="36" rx="${r}" fill="${c[2]}"/>` +
-    `<rect x="52" y="26" width="${w}" height="12" rx="${r}" fill="${c[3]}"/>`
+    `<rect x="14" y="26" width="${w}" height="12" rx="${r}" fill="${c[0]}"/>` +
+    `<rect x="32" y="14" width="${w}" height="36" rx="${r}" fill="${c[1]}"/>` +
+    `<rect x="50" y="26" width="${w}" height="12" rx="${r}" fill="${c[2]}"/>`
   );
 }
 
@@ -61,14 +64,14 @@ export const WORDMARK =
   `<a class="brand" href="/">${MARK}` +
   `<span>a<i>i</i>de <span class="surface">-board</span></span></a>`;
 
-/** The bounding box `bars()` actually covers on the 64 grid: x 10 to
- *  61, y 14 to 50. Written down because the icons below centre the
- *  MARK on the canvas, not the grid — the bars sit 10 units in from
- *  the left and 3 from the right, which nobody can see at favicon size
+/** The bounding box `bars()` actually covers on the 64 grid: x 14 to
+ *  59, y 14 to 50. Written down because the icons below centre the
+ *  MARK on the canvas, not the grid — the bars sit 14 units in from
+ *  the left and 5 from the right, which nobody can see at favicon size
  *  and everybody can see at 512. */
-const BBOX = { x0: 10, x1: 61, y0: 14, y1: 50 };
+const BBOX = { x0: 14, x1: 59, y0: 14, y1: 50 };
 
-/** The mark as an app icon: the same four bars, centred on a filled
+/** The mark as an app icon: the same three bars, centred on a filled
  *  canvas, for a launcher rather than a tab.
  *
  *  `fit` is how much of the canvas the mark takes. The bars are not

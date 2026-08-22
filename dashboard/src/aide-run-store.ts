@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { dirname } from "node:path";
 
 export const AIDE_COMMANDS = [
-  "explore", "create", "analyze", "review-plan", "implement", "archive",
+  "explore", "create", "analyze", "implement", "archive",
   "manifest", "make-tests", "to-pdf", "to-html", "react-class-to-func",
 ] as const;
 export type AideCommand = (typeof AIDE_COMMANDS)[number];
