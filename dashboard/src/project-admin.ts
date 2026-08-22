@@ -214,6 +214,18 @@ export function writeAideConfig(projectDir: string, values: Record<string, strin
   writeFileSync(file, `${kept.join("\n")}\n`);
 }
 
+/** Directory names a build WRITES into, or that a tool locks a cache in
+ *  — never a dependency cache a build only reads (spec 186). A link is
+ *  one symlink into the main checkout that every concurrent run shares,
+ *  so two runs building through it overwrite each other's output, and a
+ *  tool that locks its own cache directory blocks or corrupts it. Kept
+ *  as a plain array for the same reason WORKFLOW_STEPS and
+ *  DEPENDENCY_GATED_STEPS are: `aide-run-spec` holds a second copy
+ *  (WORKTREE_LINK_DENYLIST, a bash string) with no shared source
+ *  between them, and
+ *  test_the_two_copies_of_the_worktree_link_denylist_agree pins the two. */
+export const WORKTREE_LINK_DENYLIST = ["build", "target", "dist", ".gradle"] as const;
+
 /** Why this `AIDE_WORKTREE_LINKS` value cannot be used, or `null`.
  *
  *  The same rule `aide-run-spec` refuses on, in the same words: a
@@ -230,6 +242,16 @@ export function worktreeLinksError(value: string): string | null {
     }
     if (entry.includes("..")) {
       return `AIDE_WORKTREE_LINKS must not escape the root: ${entry}`;
+    }
+    // The BASENAME, so a nested module's output (`backend/build`) is the
+    // same answer as a top-level one — and asked before existence, since
+    // a denied directory usually does exist: anyone who has run the
+    // build locally has one.
+    if ((WORKTREE_LINK_DENYLIST as readonly string[]).includes(entry.split("/").pop()!)) {
+      return (
+        `AIDE_WORKTREE_LINKS names a build output, not a dependency cache: ${entry} — ` +
+        `such a directory is generated per worktree and wants no link at all`
+      );
     }
   }
   return null;

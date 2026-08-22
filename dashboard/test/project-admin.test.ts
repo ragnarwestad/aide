@@ -672,6 +672,35 @@ describe("whether a run could start there (spec 138)", () => {
     },
   );
 
+  // Spec 186. A worktree link is a symlink into the ONE main checkout
+  // that every concurrent run shares — cheap for a dependency cache
+  // nobody writes to, ruinous for anything a build writes into. The
+  // source directory is created here on purpose, so the existence check
+  // above cannot be what refuses it: the name alone has to.
+  test.each([["build"], ["target"], ["dist"], [".gradle"], ["backend/build"]])(
+    "a worktree link naming a build output (%p) blocks, and says why",
+    async (entry) => {
+      const { projectsRoot, dir } = checkout("buildlink");
+      mkdirSync(join(dir, entry), { recursive: true });
+      mkdirSync(join(dir, ".aide"), { recursive: true });
+      writeFileSync(join(dir, ".aide", "config"), `AIDE_WORKTREE_LINKS=${entry}\n`);
+      const result = await assess(dir, projectsRoot);
+      expect(result.readiness!.canRun).toBe(false);
+      expect(blockers(result)).toContain(entry);
+      expect(blockers(result)).toContain("build output");
+    },
+  );
+
+  // Criterion 4: this repo's own setting, unaffected by the new check.
+  test("the dependency caches a build only reads are not refused", async () => {
+    const { projectsRoot, dir } = checkout("readonlylinks");
+    mkdirSync(join(dir, ".venv"), { recursive: true });
+    mkdirSync(join(dir, "dashboard", "node_modules"), { recursive: true });
+    const result = await assess(dir, projectsRoot, {}, { worktreeLinks: ".venv dashboard/node_modules" });
+    expect(result.readiness!.canRun).toBe(true);
+    expect(check(result, "worktreeLinks")[0]!.ok).toBe(true);
+  });
+
   test("a worktree link whose source is not there blocks, and is named", async () => {
     const { projectsRoot, dir } = checkout("missinglink");
     const result = await assess(dir, projectsRoot, {}, { worktreeLinks: "node_modules .venv" });
@@ -757,6 +786,23 @@ describe("writing .aide/config (spec 138)", () => {
     const step = result.steps.find((s) => s.step === "worktreeLinks")!;
     expect(step.ok).toBe(false);
     expect(step.error).toContain("/etc");
+    expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
+  });
+
+  test("a worktree-links value naming a build output is refused before it is written", async () => {
+    const projectsRoot = root();
+    const dir = join(projectsRoot, "buildrefused");
+    mkdirSync(join(dir, "build"), { recursive: true });
+    const result = await addProject(fakeGit({}).run, projectsRoot, {
+      name: "buildrefused",
+      existingPath: dir,
+      worktreeLinks: "build",
+    });
+    expect(result.ok).toBe(false);
+    const step = result.steps.find((s) => s.step === "worktreeLinks")!;
+    expect(step.ok).toBe(false);
+    expect(step.error).toContain("build");
+    expect(step.error).toContain("build output");
     expect(existsSync(join(dir, ".aide", "config"))).toBe(false);
   });
 

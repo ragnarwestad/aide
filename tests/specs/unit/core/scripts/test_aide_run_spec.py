@@ -1829,6 +1829,71 @@ def test_a_link_that_escapes_the_root_is_refused(runner, workspace, fake_claude,
     assert not fake_claude.calls.exists()
 
 
+# --- Spec 186: a link names what is read, never what is written --------------
+# The link is a symlink into the ONE main checkout every concurrent run
+# shares. A dependency cache a build only reads is what makes that cheap;
+# a directory the build WRITES into is two runs overwriting each other,
+# or a tool locking a cache the other is using. The source is created in
+# each case so the existence check above cannot be what refuses it.
+
+
+@pytest.mark.parametrize("entry", ["build", "target", "dist", ".gradle", "backend/build"])
+def test_a_link_naming_a_build_output_is_refused(runner, workspace, fake_claude, entry):
+    claude = fake_claude("exit 1")
+    (workspace["project"] / entry).mkdir(parents=True)
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS={entry}\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "a link into a build output")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert entry in out["error"], out
+    assert "build output" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_the_dependency_caches_a_build_only_reads_are_not_refused(runner, workspace, fake_claude):
+    """Criterion 4: this repo's own setting, unaffected by the denylist."""
+    claude = fake_claude("exit 0")
+    (workspace["project"] / ".venv").mkdir()
+    (workspace["project"] / "dashboard" / "node_modules").mkdir(parents=True)
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\n"
+        "AIDE_WORKTREE_LINKS=.venv dashboard/node_modules\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "the links this repo uses")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+
+
+# --- the build-output denylist lives in two files, like the two lists above --
+# Third of the same shape: a bash string in the script, a TypeScript
+# array in the dashboard, no shared source. Denying a name in one and not
+# the other gives a dashboard that accepts a link the run refuses.
+
+
+def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root):
+    import re
+
+    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    m = re.search(r'^WORKTREE_LINK_DENYLIST="([^"]*)"', bash, re.M)
+    assert m, "aide-run-spec no longer declares WORKTREE_LINK_DENYLIST as a plain string"
+    from_bash = set(m.group(1).split())
+
+    ts = (workspace_root / "dashboard" / "src" / "project-admin.ts").read_text()
+    m = re.search(r"export const WORKTREE_LINK_DENYLIST = \[(.*?)\] as const;", ts, re.S)
+    assert m, "project-admin.ts no longer declares WORKTREE_LINK_DENYLIST as a literal array"
+    from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
+
+    assert from_bash == from_ts, (
+        "the script and the dashboard disagree about which worktree links name "
+        f"a build output: only in the script {sorted(from_bash - from_ts)}, "
+        f"only in the dashboard {sorted(from_ts - from_bash)}"
+    )
+
+
 # --- Spec 138: a configured link whose source is not there -------------------
 
 def test_a_link_naming_a_path_that_is_not_there_is_refused(runner, workspace, fake_claude):
