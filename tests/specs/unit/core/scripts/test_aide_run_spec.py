@@ -1176,117 +1176,22 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert git(project, "status", "--porcelain") == ""
 
 
-# --- passenger projects (spec 83) --------------------------------------------
-# A job's work often spans more than the project and its specs repo: spec
-# 81's own implement step wrote to a third repository the run knew nothing
-# about, so half the work was left uncommitted on the machine while the
-# result reported success.
-
-@pytest.fixture
-def passenger(tmp_path):
-    return init_repo(tmp_path / "passenger")
+# --- passenger projects: removed -------------------------------------------
+# A run could be told about a third repository with --extra-project-dir, and
+# would watch, branch, commit and push it like any other root (spec 83, after
+# spec 81's implement wrote into a repo nobody had named). The dashboard's
+# tick box for it was used by none of the 200 jobs the queue held, so box,
+# field and flag went together. The flag is an unknown argument now, and the
+# test below is what says so.
 
 
-# A passenger repo is addressed by absolute path and nothing else, so
-# since spec 91 the PROMPT names its worktree — the same answer the
-# script already uses for a fact the step cannot infer (headlessness).
-# The fake claude reads the prompt off stdin and works where it is told,
-# exactly as a step would.
-PASSENGER_FROM_PROMPT = (
-    'prompt="$(cat)"\n'
-    'pwt="$(printf "%s\\n" "$prompt" | sed -n "s|^The repo passenger is checked out '
-    'for this run at \\(.*\\)\\.$|\\1|p" | head -1)"\n'
-)
-
-
-def test_a_passenger_repo_is_committed_on_the_branch_and_handed_back_clean(
-    runner, workspace, fake_claude, passenger
-):
-    claude = fake_claude(
-        PASSENGER_FROM_PROMPT
-        + READ_SPECS
-        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
-        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
-    assert rc == 0, out
-    branch = "aide/81-queue-and-runner"
-    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", branch)
-    assert git(passenger, "rev-parse", "--abbrev-ref", "HEAD") == "main"
-    assert git(passenger, "status", "--porcelain") == ""
-    roots = {r["root"]: r for r in out["repos"]}
-    assert roots[str(passenger)]["changedFiles"] == 1
-
-
-def test_a_dirty_passenger_repo_does_not_stop_the_run(
-    runner, workspace, fake_claude, passenger
-):
-    """A passenger is branched into a worktree like every other root, so
-    someone else's work-in-progress in its main checkout is theirs to
-    deal with and nobody else's problem (spec 144)."""
-    (passenger / "someone-elses-wip.txt").write_text("in progress\n")
-    claude = fake_claude(
-        PASSENGER_FROM_PROMPT
-        + READ_SPECS
-        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
-        + f'echo "analysis" > "$specs/{workspace["folder"]}/2-analysis.md"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
-    assert rc == 0, out
-    assert not out.get("error"), out["error"]
-    branch = "aide/81-queue-and-runner"
-    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", branch)
-    # The stray file stays untracked in the main checkout, and off the branch.
-    assert git(passenger, "status", "--porcelain") == "?? someone-elses-wip.txt"
-    assert "someone-elses-wip.txt" not in git(
-        passenger, "show", "--name-only", "--pretty=", branch
-    )
-
-
-def test_a_passenger_that_is_not_a_git_repo_refuses(runner, workspace, fake_claude, tmp_path):
-    plain = tmp_path / "not-a-repo"
-    plain.mkdir()
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(plain))
+def test_extra_project_dir_is_no_longer_an_argument(runner, workspace, fake_claude):
+    claude = fake_claude(f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, extra_project_dir="/tmp/whatever")
     assert rc == 2, out
     assert out["terminalReason"] == "refused"
-    assert str(plain) in out["error"]
-
-
-def test_a_passenger_that_does_not_exist_refuses(runner, workspace, fake_claude, tmp_path):
-    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(tmp_path / "nope"))
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-
-
-def test_a_passenger_repo_is_pushed_on_its_branch_not_its_main(
-    runner, workspace, fake_claude, passenger, tmp_path
-):
-    """The code half of a cross-repo job is the half that needs reviewing.
-    Publishing it straight to main is the one thing `--push branch` exists
-    to prevent."""
-    bare = tmp_path / "passenger-origin.git"
-    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(bare)], check=True)
-    git(passenger, "remote", "add", "origin", "git@github.com:ragnarwestad/passenger.git")
-    git(passenger, "remote", "set-url", "--push", "origin", str(bare))
-    git(passenger, "push", "-q", "origin", "main")
-    main_before = git(bare, "rev-parse", "main")
-
-    claude = fake_claude(
-        PASSENGER_FROM_PROMPT
-        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger), push="branch")
-    assert rc == 0, out
-    branch = "aide/81-queue-and-runner"
-    assert branch in git(bare, "branch", "--list", branch)
-    assert git(bare, "rev-parse", "main") == main_before, "main must not move"
-    urls = {e["url"] for e in out["branchUrls"]}
-    assert f"https://github.com/ragnarwestad/passenger/compare/main...{branch}" in urls
+    assert "unknown argument" in out["error"]
+    assert "--extra-project-dir" in out["error"]
 
 
 # --- Spec 02: keeping the stream ---------------------------------------------
@@ -2159,33 +2064,6 @@ def test_the_pull_advances_the_default_branch_not_whatever_was_checked_out(
     assert git(workspace["project"], "rev-parse", "--abbrev-ref", "HEAD") == "main"
     assert (workspace["project"] / "from-elsewhere.txt").exists(), \
         "the DEFAULT branch is what gets fast-forwarded"
-
-
-# --- Criterion 17: a passenger repo is named in the prompt ------------------
-
-def test_a_passenger_repo_is_worktreed_and_named_in_the_prompt(
-    runner, workspace, fake_claude, passenger
-):
-    """A passenger is addressed only by absolute path, and that path still
-    points at the main checkout. Nothing told the step its worktree
-    existed, so the step wrote into the main tree, the commit loop
-    committed nothing, and the run reported success — spec 83's failure
-    recreated."""
-    seen = workspace["project"].parent / "passenger-wt.txt"
-    claude = fake_claude(
-        PASSENGER_FROM_PROMPT
-        + f'printf "%s\\n" "$pwt" > {seen}\n'
-        + 'echo "written by the step" > "$pwt/new-code.txt"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, extra_project_dir=str(passenger))
-    assert rc == 0, out
-    named = seen.read_text().strip()
-    assert named.startswith(str(workspace["wtbase"])), named
-    assert named != str(passenger)
-    assert "new-code.txt" in git(passenger, "show", "--name-only", "--pretty=", BRANCH)
-    assert git(passenger, "rev-parse", "--abbrev-ref", "HEAD") == "main"
-    assert git(passenger, "status", "--porcelain") == "", "the main passenger tree stays clean"
 
 
 # --- Criterion 18: the re-point happens AFTER the branch is brought up to date

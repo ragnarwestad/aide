@@ -159,12 +159,6 @@ export interface Job {
   /** The model picked for this whole job, when one was picked. Absent
    *  means the per-step configuration decided. */
   modelChoice?: string;
-  /** Other allowlisted projects this job is expected to touch. They are
-   *  watched, branched, committed and pushed exactly like the primary —
-   *  spec 81's own implement step wrote to a third repository the run
-   *  knew nothing about, and that half sat uncommitted on the machine
-   *  while the result reported success. */
-  extraProjects: string[];
   /** What a `create` job is FOR: the spec it is about to make. Both are
    *  handed to `aide-run-spec` as `--title`/`--description`, and only a
    *  create job has them — every other job names a spec that already
@@ -328,24 +322,12 @@ export function parseJobRequest(
   // were posted as JSON by hand, and refusing the field would turn a
   // retired feature into a new error.
 
-  // Passenger projects: NAMES, resolved against the same allowlist as
-  // the primary. A request never carries a path.
-  const extraProjects: string[] = [];
-  if (r.extraProjects !== undefined && r.extraProjects !== null) {
-    if (!Array.isArray(r.extraProjects)) return { ok: false, error: "extraProjects must be a list" };
-    if (r.extraProjects.length > 4) return { ok: false, error: "extraProjects: at most 4" };
-    for (const p of r.extraProjects) {
-      if (typeof p !== "string" || !NAME_RE.test(p)) {
-        return { ok: false, error: `invalid entry in extraProjects: ${String(p)}` };
-      }
-      if (p === r.project) {
-        return { ok: false, error: `extraProjects repeats the job's own project: ${p}` };
-      }
-      if (extraProjects.includes(p)) return { ok: false, error: `extraProjects repeats ${p}` };
-      if (!opts.resolve(p)) return { ok: false, error: `unknown or not-allowed project in extraProjects: ${p}` };
-      extraProjects.push(p);
-    }
-  }
+  // `extraProjects` was parsed here — passenger repos a run would also
+  // branch, commit and push, named on the row by a tick box per project.
+  // The box went when 0 of the queue's 200 jobs turned out to have used
+  // one, and the field went with it. Like `gateAfter` above it is an
+  // unknown key now, ignored rather than refused, so the jobs that
+  // carry one still load.
 
   // A model may be picked for the whole job — that is how the heaviest
   // model is reserved for the heaviest work — or once per STEP, which
@@ -444,7 +426,6 @@ export function parseJobRequest(
       // Left unset for a per-step map: it means "one model for the
       // whole job", which is no longer true once the steps may differ.
       modelChoice,
-      extraProjects,
       createdAt: new Date().toISOString(),
       results: [],
       spentUsd: 0,
@@ -547,7 +528,6 @@ export function parseCreateRequest(
       timeoutSec: defaults.timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
       model: perStep(steps, defaults.model),
-      extraProjects: [],
       createTitle: title,
       createDescription: description,
       // Omitted entirely when nothing was chosen: "nothing chosen means
@@ -584,7 +564,6 @@ function parseStoredJob(raw: unknown): Job | null {
   return {
     ...(kept as unknown as Job),
     steps: r.steps as WorkflowStep[],
-    extraProjects: Array.isArray(r.extraProjects) ? (r.extraProjects as string[]) : [],
     results: Array.isArray(r.results) ? (r.results as StepResult[]) : [],
     spentUsd: typeof r.spentUsd === "number" ? r.spentUsd : 0,
     // Undefined, never 0, when the mirror has no figure: the page shows

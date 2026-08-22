@@ -1068,9 +1068,10 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
   // "Also touches" stood here until nobody could point at a press it
   // had ever served: 0 of the queue's 200 jobs named an extra repo, and
   // it drew one tick box per OTHER project on every open row — so
-  // adding a project widened it and took the layout with it. A run that
-  // has to reach a third repository is named with --extra-project-dir,
-  // which the queue and the runner still take; it is not a box.
+  // adding a project widened it and took the layout with it. The field
+  // and the runner's flag went with the box: a run reaches its project
+  // and its specs root, and a spec that must change two projects at
+  // once needs the naming built back, deliberately.
   return runForm + primary;
 }
 

@@ -1685,67 +1685,26 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
   });
 });
-
-// Spec 83: a job says up front which other repos it expects to touch, so
-// the run watches, commits and pushes them instead of leaving half the
-// work uncommitted on the machine.
-describe("passenger projects reach the runner", () => {
-  test("every named project becomes an --extra-project-dir", async () => {
+// Spec 83 let a job name other repos a run would also watch, commit and
+// push, and they reached the runner as --extra-project-dir. Both went
+// when the tick box that named them turned out never to have been used.
+// What a run touches is the project and its specs root, and nothing the
+// argv can add.
+describe("a run reaches its own project and no other", () => {
+  test("no --extra-project-dir is ever built, whatever the job carries", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const job = {
-      project: "aide",
-      specFolder: "81-queue-and-runner",
-      steps: ["implement"],
-      budgetUsd: 15,
-      timeoutSec: 2700,
-      permissionMode: { implement: "bypassPermissions" },
-      model: { implement: "opus" },
+      project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
+      // A job mirrored before the removal still has the key.
       extraProjects: ["aide-dashboard"],
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec",
-      projectRoot: "/home/dev",
-      push: "branch",
-    });
-    expect(argv).toContain("--extra-project-dir");
-    expect(argv[argv.indexOf("--extra-project-dir") + 1]).toBe("/home/dev/aide-dashboard");
-    // The primary is still the project dir, not a passenger.
-    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide");
-  });
-
-  test("a job that names none passes no such flag", async () => {
-    const { runnerArgv } = await import("../src/serve.ts");
-    const job = {
-      project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"],
-      budgetUsd: 3, timeoutSec: 1200, permissionMode: {}, model: {}, extraProjects: [],
-    } as unknown as Parameters<typeof runnerArgv>[0];
-    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
     });
     expect(argv).not.toContain("--extra-project-dir");
-  });
-
-  test("one ticked checkbox arrives as a list, not a bare string", async () => {
-    const { base } = start(
-      { queueToken: TOKEN, queueProjects: ["aide", "aide-dashboard"] },
-      ["aide-dashboard"],
-    );
-    const res = await fetch(`${base}/api/queue`, {
-      method: "POST",
-      headers: {
-        "x-aide-token": TOKEN,
-        "content-type": "application/x-www-form-urlencoded",
-        accept: "application/json",
-      },
-      body: new URLSearchParams({
-        target: "aide/81-queue-and-runner",
-        steps: "analyze",
-        extraProjects: "aide-dashboard",
-      }).toString(),
-    });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { job: { extraProjects: string[] } };
-    expect(body.job.extraProjects).toEqual(["aide-dashboard"]);
+    expect(argv).not.toContain("/home/dev/aide-dashboard");
+    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide");
   });
 });
 
@@ -1755,7 +1714,7 @@ describe("a chosen dependency reaches the runner and the page", () => {
   const createJob = (dependsOn?: string[]) =>
     ({
       project: "aide", specFolder: "new-abcd1234", steps: ["create"],
-      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {}, extraProjects: [],
+      budgetUsd: 15, timeoutSec: 2700, permissionMode: {}, model: {},
       createTitle: "A new spec", createDescription: "Do the thing",
       ...(dependsOn ? { createDependsOn: dependsOn } : {}),
     }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
@@ -1870,8 +1829,8 @@ describe("a spec's row says what it depends on (criterion 12)", () => {
   });
 });
 // The row asked which other repos a job would touch, with a tick box
-// per project. The queue and the runner still take extraProjects —
-// the box is what went, unused by all 200 jobs the queue held.
+// per project. Box, field and runner flag are all gone: no job the
+// queue ever held had named one.
 
 
 // --- spec 89: merging a spec's branches from the page ------------------------
@@ -5050,7 +5009,6 @@ describe("a model choice's tool reaches the runner", () => {
       timeoutSec: 2700,
       permissionMode: { implement: "bypassPermissions" },
       model,
-      extraProjects: [],
     }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
 
   test("a codex choice passes --tool and its own model name", async () => {
@@ -5114,7 +5072,7 @@ describe("a step's own time limit reaches the runner", () => {
   const jobWith = (timeoutSec: unknown, steps: string[] = ["analyze", "implement"]) =>
     ({
       project: "aide", specFolder: "81-queue-and-runner", steps,
-      budgetUsd: 3, timeoutSec, permissionMode: {}, model: {}, extraProjects: [],
+      budgetUsd: 3, timeoutSec, permissionMode: {}, model: {},
     }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
 
   const timeoutArg = (argv: string[]): string => argv[argv.indexOf("--timeout-sec") + 1]!;
@@ -5186,7 +5144,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
       project: "aide", specFolder: "81-queue-and-runner",
       steps: ["analyze", "implement"], budgetUsd: 3,
       timeoutSec: { analyze: 1200 }, permissionMode: { analyze: "acceptEdits" },
-      model: { analyze: "sonnet" }, extraProjects: [],
+      model: { analyze: "sonnet" },
       ...over,
     }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
 

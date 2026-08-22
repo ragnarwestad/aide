@@ -172,17 +172,17 @@ the skill behaves well. One consequence to keep in mind: `archive` used
 to be a short, cheap step, and a run that meets a conflict is now as big
 a piece of work as a resolution ever was.
 
-**A repo beyond the project and its specs root has to be NAMED**, with
-`--extra-project-dir` (repeatable; the queue's form calls it "Also
-touches"). The run only watches, commits and pushes the roots it knows
-about: spec 81's own implement step wrote to a third repository nobody
-had told it about, and that half was left uncommitted on the machine
-while the result reported success. A named repo gets exactly the same
-treatment as the others — branched, committed, pushed — and a name that
-is already a root is ignored rather than watched twice (spec 83). Since spec 91 the run also **names each
-passenger's worktree in the prompt**: a passenger is addressed by
-absolute path and nothing else, so a step that was not told would write
-into the main checkout and the commit loop would commit nothing.
+**A run reaches the project and its specs root, and nothing else.** A
+third repository could be named with `--extra-project-dir`, and got the
+same treatment as the other roots — branched, committed, pushed (spec
+83, after spec 81's implement wrote into a repository nobody had told
+the run about, leaving that half uncommitted while the result reported
+success). The dashboard offered it as a tick box per project on every
+open row, and none of the 200 jobs the queue held had ever used one, so
+the box, the `extraProjects` field and the flag went together. What
+stays is the half that mattered: a repo the run was not told about is
+not touched. A spec that has to change two projects at once needs the
+naming built back, deliberately.
 
 **`aide-run-spec` runs from a private copy of itself, and that is
 load-bearing:** an `implement` step reinstalls aide, which copies the script

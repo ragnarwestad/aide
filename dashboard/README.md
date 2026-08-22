@@ -1131,8 +1131,7 @@ and pushes, one repo at a time:
 - **The plan lands first, the code last.** A run records the project
   before its specs root, so the code used to merge before the plan
   describing it. The code is the one that matters, so it is the last
-  word — a passenger repo named with `--extra-project-dir` counts as
-  code too.
+  word.
 - **A code merge can install.** Merged is not deployed: for a project
   that installs itself somewhere, the default branch moving changes
   nothing on this machine. Set `AIDE_INSTALL_CMD` in that project's own

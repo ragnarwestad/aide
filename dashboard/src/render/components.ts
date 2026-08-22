@@ -138,8 +138,8 @@ export function phaseChip(o: {
   value: string;
   /** What the reader sees. */
   label: string;
-  /** The checkbox's field name: `steps` for a phase, `extraProjects`
-   *  for a repo the job should also watch. EMPTY for a box that must
+  /** The checkbox's field name: `steps` for a phase. EMPTY for a box
+   *  that must
    *  never be posted at all — the `create` line's, which is ticked and
    *  disabled because the spec exists and cannot be created again. The
    *  attribute is then left out rather than written empty: a field with

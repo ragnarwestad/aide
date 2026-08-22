@@ -414,7 +414,6 @@ function bodyToObject(text: string, contentType: string | null): unknown {
       delete out.target;
     }
     if (typeof out.steps === "string") out.steps = [out.steps];
-    if (typeof out.extraProjects === "string") out.extraProjects = [out.extraProjects];
     if (typeof out.dependsOn === "string") out.dependsOn = [out.dependsOn];
     // The model is picked on the PHASE line since spec 123, so a form
     // posts one field per phase — `model.<step>`. A urlencoded body
@@ -549,7 +548,7 @@ export function resolveStepModel(job: Job, step: string, live: Record<string, st
 
 /** The argv `aide-run-spec` is started with. Extracted so it can be read
  *  in a test: an unattended run's arguments are the whole contract, and
- *  a missing `--extra-project-dir` loses half a job's work silently. */
+ *  a wrong one is a job that does the wrong thing with nobody watching. */
 export function runnerArgv(
   job: Job,
   step: string,
@@ -610,9 +609,6 @@ export function runnerArgv(
     // that only exists once the step is over.
     ...(sessionId ? ["--session-id", sessionId] : []),
     ...(streamFile ? ["--stream-file", streamFile] : []),
-    // Every other repo this job said it would touch, by name, resolved
-    // against the same root the primary project comes from.
-    ...(job.extraProjects ?? []).flatMap((p) => ["--extra-project-dir", join(o.projectRoot, p)]),
   ];
 }
 
@@ -992,7 +988,7 @@ export function createServer(opts: ServerOptions) {
           // Only the wall clock. A cost cap stops mid-sentence with no
           // boundary of its own, and a CLI error is not a stop at all.
           if (!step || outcome.terminalReason !== "timeout") return undefined;
-          const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+          const codeRoots = new Set([projectDir(job.project)]);
           const pushed = outcome.branchUrls ?? [];
           if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
           return landStoppedStepBranch(job, step, outcome);
@@ -1388,9 +1384,8 @@ export function createServer(opts: ServerOptions) {
     try {
       const branch = outcome.branch;
       // Code roots last. `sort` is stable, so two repos of the same kind
-      // keep the order the run recorded them in. A passenger repo named
-      // with --extra-project-dir carries code too.
-      const codeRoots = new Set([projectDir(job.project), ...job.extraProjects.map(projectDir)]);
+      // keep the order the run recorded them in.
+      const codeRoots = new Set([projectDir(job.project)]);
       const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort(
         (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
       );

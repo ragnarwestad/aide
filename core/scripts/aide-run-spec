@@ -135,7 +135,6 @@ stream_file=""
 # to touch. Spec 81's own implement step wrote to a third repository
 # the run knew nothing about: that half was left uncommitted on the
 # machine while the result reported success.
-extra_dirs=()
 # Where the throwaway checkouts live. Outside every repo, keyed by
 # project AND spec: two projects can share one specs repo (aide-specs
 # holds both `aide/` and `aide-dashboard/`), and a path keyed by spec
@@ -165,7 +164,6 @@ while [ $# -gt 0 ]; do
     --stream-file) stream_file="${2:-}"; shift 2 ;;
     --kill-grace-sec) kill_grace_sec="${2:-}"; shift 2 ;;
     --push) push_mode="${2:-}"; shift 2 ;;
-    --extra-project-dir) extra_dirs+=("${2:-}"); shift 2 ;;
     --worktree-base) worktree_base="${2:-}"; shift 2 ;;
     --pull) do_pull="yes"; shift ;;
     --dry-run) dry_run="yes"; shift ;;
@@ -270,20 +268,13 @@ specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true
 roots=("$project_root")
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 
-# Passenger repos get exactly the same treatment as every other root:
-# checked, pulled, branched, committed and pushed. A name that is already
-# a root is ignored rather than watched twice.
-for extra in ${extra_dirs[@]+"${extra_dirs[@]}"}; do
-  [ -n "$extra" ] || refuse "empty --extra-project-dir"
-  [ -d "$extra" ] || refuse "no such --extra-project-dir: $extra"
-  extra_root="$(git -C "$extra" rev-parse --show-toplevel 2>/dev/null)" \
-    || refuse "not a git repository: $extra"
-  already="no"
-  for root in "${roots[@]}"; do
-    [ "$root" = "$extra_root" ] && already="yes"
-  done
-  [ "$already" = "yes" ] || roots+=("$extra_root")
-done
+# A run reaches its project and its specs root, and nothing else.
+# --extra-project-dir named a third repo to watch, branch, commit and
+# push alongside them (spec 83, after spec 81's implement wrote into a
+# repository nobody had told the run about). The dashboard's tick box
+# for it went unused by every one of the 200 jobs the queue held, so
+# box, field and flag are gone together. A spec that has to change two
+# projects needs the naming built back, deliberately.
 
 # --- refuse while a spec this one depends on is still unmerged ---------------
 # A spec can name the specs it builds on (a "Depends on:" line in its
