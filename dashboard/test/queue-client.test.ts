@@ -656,7 +656,10 @@ function harness(
                 ].filter((el) => sel.includes(`"${el.getAttribute("form")}"`))
               : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
-    addEventListener: () => {},
+    // Recorded since spec 189: `visibilitychange` is what opens and
+    // closes the page's connection now, so a fake that swallowed it
+    // could not tell a tab going quiet from one that never connected.
+    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`doc:${type}`] = fn),
     visibilityState: "hidden",
   };
   const fetchStub = async (url: unknown, init: Record<string, unknown> = {}) => {
@@ -681,19 +684,71 @@ function harness(
     }
   }
 
+  /** The connection the page keeps open (spec 189). Every one ever
+   *  constructed is kept, closed ones included: what a test about the
+   *  hidden tab has to be able to say is that the old one was CLOSED
+   *  and no new one was made in its place. */
+  class FakeEventSource {
+    static made: FakeEventSource[] = [];
+    readonly listeners: Record<string, ((e: unknown) => void)[]> = {};
+    closed = false;
+    constructor(readonly url: string) {
+      FakeEventSource.made.push(this);
+    }
+    addEventListener(type: string, fn: (e: unknown) => void): void {
+      (this.listeners[type] ??= []).push(fn);
+    }
+    close(): void {
+      this.closed = true;
+    }
+    /** What the browser would deliver. Synchronous, so a test says what
+     *  happened next without waiting on a real socket. */
+    emit(type: string): void {
+      for (const fn of this.listeners[type] ?? []) fn({ type });
+    }
+  }
+  FakeEventSource.made = [];
+  /** The one the page is listening on right now, if any. */
+  const live = () => FakeEventSource.made.filter((s) => !s.closed).at(-1) ?? null;
+
+  /** Every timer the page asks for. Spec 189 took the last one away —
+   *  the five-second poll — and an idle page that registers one again
+   *  is the regression this records. */
+  const intervals: number[] = [];
+
   // eslint-disable-next-line no-new-func -- the file under test IS a script
-  let tick: () => void = () => {};
-  new Function("document", "location", "fetch", "setInterval", "history", "FormData", SOURCE)(
+  new Function(
+    "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+    SOURCE,
+  )(
     document,
     location,
     fetchStub,
-    (fn: () => void) => {
-      tick = fn;
+    (_fn: () => void, ms: number) => {
+      intervals.push(ms);
       return 0;
     },
     history,
     FakeFormData,
+    FakeEventSource,
   );
+
+  /** The visibility change the browser fires when the tab is shown or
+   *  hidden. The state is set on the fake document first, exactly as
+   *  the browser sets it before it dispatches. */
+  const visibility = (state: "visible" | "hidden") => {
+    document.visibilityState = state;
+    on["doc:visibilitychange"]?.({});
+  };
+
+  /** What replaced the five-second timer: the server saying something
+   *  moved. Connecting first when the page has not yet — the tests that
+   *  used to call `tick()` set `visibilityState` by hand and expect the
+   *  swap to follow, and connecting is what a visible page does. */
+  const tick = () => {
+    if (!live()) visibility(document.visibilityState as "visible" | "hidden");
+    live()?.emit("changed");
+  };
 
   const fire = (
     listener: string,
@@ -744,7 +799,8 @@ function harness(
 
   return {
     submit, submitCreate, click, clickFold, button, createButton, requests, location, rows, inserted,
-    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick: () => tick(),
+    replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
+    sources: FakeEventSource.made, live, visibility, intervals,
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     addButton, addSlot,
@@ -1554,7 +1610,10 @@ describe("on /projects, where there is no New-spec form", () => {
       visibilityState: "hidden",
     };
     // eslint-disable-next-line no-new-func -- the file under test IS a script
-    new Function("document", "location", "fetch", "setInterval", "history", "FormData", SOURCE)(
+    new Function(
+      "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+      SOURCE,
+    )(
       document,
       { search: "", href: "http://dash.test/projects", pathname: "/projects" },
       async () => ({ ok: true, json: async () => ({}), text: async () => "" }),
@@ -1562,6 +1621,10 @@ describe("on /projects, where there is no New-spec form", () => {
       { replaceState: () => {} },
       class {
         forEach(): void {}
+      },
+      class {
+        addEventListener(): void {}
+        close(): void {}
       },
     );
     expect(bound).toEqual(["submit"]);
@@ -2054,5 +2117,144 @@ describe("a tail box's tick posts itself (spec 160)", () => {
     const h = harness(() => ({ ok: false, throws: true }));
     await h.changeTail(true);
     expect(h.location.href).toBe("/");
+  });
+});
+
+// --- spec 189: the page changes when something changes -----------------------
+
+// The five-second timer is gone. The page holds one connection open and
+// redraws when the server says something moved — so a reader with the
+// browser's own tools open can hold still on a row, and a step that
+// finishes shows up at once rather than up to five seconds later.
+describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
+  const rowFetches = (h: ReturnType<typeof harness>) =>
+    h.requests.filter((r) => r.url.includes("rows=1"));
+
+  const fresh = () => harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
+
+  test("the page registers no repeating timer at all (criterion 1)", () => {
+    const h = fresh();
+    h.visibility("visible");
+    expect(h.intervals).toEqual([]);
+  });
+
+  test("a visible page opens one connection to the event stream", () => {
+    const h = fresh();
+    h.visibility("visible");
+    expect(h.sources).toHaveLength(1);
+    expect(h.sources[0]!.url).toContain("/api/queue/events");
+  });
+
+  // The address bar carries the token on the first load of a bookmarked
+  // page, and `EventSource` has no other way to send one — it cannot set
+  // a header, and the cookie is not there yet.
+  test("the connection carries the page's own query string", () => {
+    const h = harness(() => ({ ok: true }), "actionform", "?token=abc&state=active");
+    h.visibility("visible");
+    expect(h.sources[0]!.url).toBe("/api/queue/events?token=abc&state=active");
+  });
+
+  // Criterion 1, said the only way it can be said: with the connection
+  // open and nobody sending anything, the page does not fetch rows.
+  test("an idle connected page fetches nothing and redraws nothing (criterion 1)", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(0);
+    expect(h.rows.innerHTML).toBe("");
+  });
+
+  test("a `changed` event redraws the rows (criterion 2)", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.live()!.emit("changed");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(1);
+    expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+  });
+
+  // `open` fires on the first connect AND on every reconnect the
+  // browser makes on its own — after a dropped network, after the
+  // server was restarted under the page. Resyncing there is what makes
+  // criteria 4 and 5 self-healing without anyone reloading.
+  test("`open` resyncs, so a reconnect picks up what was missed", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.live()!.emit("open");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(1);
+
+    // The same connection object, opened again: what the browser does
+    // after it has retried by itself.
+    h.live()!.emit("open");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(2);
+  });
+
+  // The guard the five-second tick had, for the reason it had it: the
+  // server still shows the OLD state until the press answers, so a swap
+  // in that window puts an untouched button back over the "cancelling…"
+  // the press just drew.
+  test("a `changed` event during a press does not swap the rows (criterion 6)", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    const h = harness((url) =>
+      url.includes("/cancel") ? { ok: true, body: OK_ACTION, hold: held } : { ok: true },
+    );
+    h.visibility("visible");
+    const pressed = h.submit();
+    await Promise.resolve();
+    h.live()!.emit("changed");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(0);
+    expect(h.button.classList.contains("busy")).toBe(true);
+    release();
+    await pressed;
+    // The press's own follow-up swap is what redraws the row.
+    expect(rowFetches(h)).toHaveLength(1);
+    // And a push after it is answered again.
+    h.live()!.emit("changed");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(2);
+  });
+
+  // Nobody is reading a hidden tab, and the mini has better things to do
+  // than hold a socket for a closed laptop — the same reason the timer
+  // used to skip while hidden, applied to the connection itself.
+  test("a hidden tab holds no connection and fetches nothing (criterion 7)", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    const first = h.live()!;
+    h.visibility("hidden");
+    expect(first.closed).toBe(true);
+    expect(h.live()).toBeNull();
+    await flush();
+    expect(rowFetches(h)).toHaveLength(0);
+  });
+
+  test("a page that loads hidden never opens one", () => {
+    const h = fresh();
+    expect(h.sources).toHaveLength(0);
+  });
+
+  test("becoming visible again opens a fresh connection and resyncs (criterion 8)", async () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.visibility("hidden");
+    h.visibility("visible");
+    expect(h.sources).toHaveLength(2);
+    expect(h.live()).not.toBeNull();
+    // The resync is the `open` the fresh connection reports.
+    h.live()!.emit("open");
+    await flush();
+    expect(rowFetches(h)).toHaveLength(1);
+    expect(h.rows.innerHTML).toBe("<tr>fresh</tr>");
+  });
+
+  test("a visible page told it is visible again does not stack connections", () => {
+    const h = fresh();
+    h.visibility("visible");
+    h.visibility("visible");
+    expect(h.sources).toHaveLength(1);
   });
 });

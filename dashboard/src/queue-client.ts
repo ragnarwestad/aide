@@ -15,14 +15,13 @@
 // own row-scoped control now, rendered by the server, so there is no
 // selection left to react to and none of that code has a caller.
 
-const REFRESH_MS = 5000;
 /** The New-spec form, and never the Add-project one. Both wear
  *  `newspecform` — the Add form borrows the look — and the two live on
  *  different pages: the real one is the whole of `/new` (spec 121),
  *  and `/projects` has only the Add form, which would otherwise answer
  *  in its place — bound twice, two POSTs for one press. */
 const NEW_SPEC_FORM = "form.newspecform:not(.addprojectform)";
-/** Presses whose request has not answered yet. The tick waits for zero. */
+/** Presses whose request has not answered yet. A push waits for zero. */
 let inFlight = 0;
 /** Bumped the instant a press BEGINS. `swapRows` reads it before its own
  *  fetch and again after, and drops the answer if it moved.
@@ -43,7 +42,7 @@ let pressGen = 0;
  *  names and its own name. Reported 2026-08-20: pick Codex on a row,
  *  and five seconds later the select is back on Claude Code.
  *
- *  The rows are replaced wholesale on every tick, and the fresh markup
+ *  The rows are replaced wholesale on every redraw, and the fresh markup
  *  is the server's answer: every phase select back on the CONFIGURED
  *  model rather than the one just picked. Nothing about that is
  *  visible in the moment it happens. The cost is the press afterwards:
@@ -188,7 +187,7 @@ async function swapRows(): Promise<void> {
     const html = await res.text();
     // A press began while this was in the air, so this answer predates
     // it and is not the page's current one. The press's own follow-up
-    // swap, or the next tick, supplies that within five seconds; what
+    // swap, or the next thing the server pushes, supplies that; what
     // must not happen is this one landing on top of what the press just
     // drew.
     if (pressGen !== gen) return;
@@ -753,24 +752,64 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 
-// Pause while the tab is hidden: nobody is reading, and the mini has
-// better things to do than answer a closed laptop. And pause while a
-// press is in flight: the server still shows the OLD state until it
-// answers, so a swap in that window would put an untouched button back
-// over the "merging…" the press just showed — the click looked
-// unregistered, and then the row jumped.
-function tick(): void {
-  if (document.visibilityState === "visible" && inFlight === 0) void swapRows();
+// --- spec 189: the server says when, and the page listens ------------------
+//
+// This used to be a five-second timer that fetched the rows whether
+// anything had happened or not. Two costs came out of that: a reader
+// with the browser's own tools open had the ground move under them
+// twelve times a minute, and a step that finished waited up to five
+// seconds to show. The connection below replaces both — the page draws
+// when the server says something moved, and holds perfectly still
+// otherwise.
+let source: EventSource | null = null;
+
+// Pause while a press is in flight: the server still shows the OLD
+// state until it answers, so a swap in that window would put an
+// untouched button back over the "merging…" the press just showed —
+// the click looked unregistered, and then the row jumped.
+function onChanged(): void {
+  if (inFlight === 0) void swapRows();
+}
+
+// The page's own query string goes with it. On the first load of a
+// bookmarked page the token is in the address bar and nowhere else,
+// and `EventSource` has no other way to carry one: it cannot set a
+// header, and the cookie the page is about to be given is not there
+// yet. Afterwards the cookie answers for it, same-origin, by itself.
+function connect(): void {
+  if (source || document.visibilityState !== "visible") return;
+  source = new EventSource(`/api/queue/events${location.search}`);
+  // `open` fires on the first connect AND on every reconnect the
+  // browser makes on its own — after a dropped network, after the
+  // server was restarted under the page. Redrawing here is what picks
+  // up whatever changed while the connection was down, so nobody has
+  // to reload.
+  source.addEventListener("open", () => void swapRows());
+  source.addEventListener("changed", onChanged);
+}
+
+function disconnect(): void {
+  source?.close();
+  source = null;
+}
+
+// Let go while the tab is hidden: nobody is reading, and the mini has
+// better things to do than hold a socket open for a closed laptop —
+// the same reason the timer used to skip while hidden, applied to the
+// connection itself.
+function onVisibility(): void {
+  if (document.visibilityState === "visible") connect();
+  else disconnect();
 }
 
 // Delegated from the container, because the controls are replaced along
-// with the rows on every tick — a listener on the links themselves
-// would last five seconds.
+// with the rows on every redraw — a listener on the links themselves
+// would last until the next one.
 document.getElementById("jobrows")?.addEventListener("click", navigate as EventListener);
 document.getElementById("jobrows")?.addEventListener("submit", submitAction as EventListener);
 // And the row's selects and boxes, for the same reason: the rows are
-// replaced wholesale on every tick, so a listener bound to a control
-// itself would last five seconds.
+// replaced wholesale on every redraw, so a listener bound to a control
+// itself would last until the next one.
 document.getElementById("jobrows")?.addEventListener("change", ((event: Event) => {
   const target = event.target as Element | null;
   // A tail box's tick is a press, not something to remember for the
@@ -791,7 +830,7 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
   // Every other select on the rows IS remembered: they are swapped
-  // away every five seconds, and a model picked for the next run is a
+  // away by every redraw, and a model picked for the next run is a
   // promise the page has to keep.
   const select = target?.closest?.("select") as HTMLSelectElement | null;
   if (select) {
@@ -820,5 +859,5 @@ const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
-document.addEventListener("visibilitychange", tick);
-setInterval(tick, REFRESH_MS);
+document.addEventListener("visibilitychange", onVisibility);
+connect();

@@ -106,6 +106,10 @@ describe("no token configured", () => {
       ["/api/queue", {}],
       ["/api/queue/abc/approve", { method: "POST" }],
       ["/api/queue/abc/cancel", { method: "POST" }],
+      // Spec 189's stream is on the same surface and behind the same
+      // guard — a held-open connection outside it would be a bypass
+      // that told anyone who could reach the port when work moved.
+      ["/api/queue/events", {}],
     ] as const) {
       const res = await fetch(`${base}${path}`, init);
       expect(res.status).toBe(503);
@@ -134,6 +138,10 @@ describe("token configured", () => {
     expect((await fetch(`${base}/?token=wrong`)).status).toBe(401);
     expect((await fetch(`${base}/queue?token=wrong`)).status).toBe(401);
     expect((await fetch(`${base}/specs?token=wrong`)).status).toBe(401);
+    // Spec 189: and the event stream, which `EventSource` reaches with
+    // the page's cookie and nothing else.
+    expect((await fetch(`${base}/api/queue/events`)).status).toBe(401);
+    expect((await fetch(`${base}/api/queue/events?token=wrong`)).status).toBe(401);
   });
 
   test("the spec 80 emitter route stays open — a 401 there would empty /api/aide-runs silently", async () => {

@@ -20,6 +20,7 @@
   - [What a finished step publishes](#what-a-finished-step-publishes)
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
+  - [The page changes when something changes (spec 189)](#the-page-changes-when-something-changes-spec-189)
   - [Branches, and merging them](#branches-and-merging-them)
     - [Archive resolves the conflict itself (spec 171)](#archive-resolves-the-conflict-itself-spec-171)
 - [How it looks (spec 102)](#how-it-looks-spec-102)
@@ -177,6 +178,13 @@ named anywhere in this repo.
   own name: it is a contract, not a page anyone reads. `approve` and
   `merge` were routes here until spec 149 and are gone: there is no stop
   between steps to approve, and every step lands its own work.
+- `GET /api/queue/events` — held open, `text/event-stream`, and silent
+  until something changes (spec 189). Writes a bare `changed` event
+  when a job is written or `POST /api/aide-run` reports progress, plus
+  a keep-alive comment every 45 seconds. The event carries no payload:
+  the page answers it by re-fetching `/?rows=1`, which it already knows
+  how to do. Token required like the rest of `/api/queue*`, and
+  `EventSource` sends the page's cookie for it — it cannot set a header.
 - `POST /api/queue/<id>/steps` — edit a RUNNING job's tail (spec 160):
   `step` plus a `checked` flag adds a phase the run has not reached yet,
   or removes one it has not started. The running step and everything
@@ -358,7 +366,7 @@ spends money" must not need a click.
 There used to be a form above the table as well, with a spec dropdown
 of its own. It was the only way to queue several steps as one job, and
 it read as the way you were meant to start anything — while the
-five-second refresh could not keep its dropdown current, because that
+row refresh could not keep its dropdown current, because that
 refresh deliberately replaces the ROWS alone so a half-set control is
 never wiped. A spec created since the page loaded was in the list and
 not in the dropdown. The row does everything the form did, so the form
@@ -424,7 +432,7 @@ and every control — phase checkboxes, model dropdown, the also-touches
 field, Run, Cancel — sit behind the same chevron in front
 of the name (spec 103). Expanding is a link and lives in the query
 string (`?open=<project>/<folder>,…`), which is what makes it survive
-the table's own five-second refresh, what makes it work with JavaScript
+the table's own row refresh, what makes it work with JavaScript
 switched off, and what keeps the row a person just acted on open across
 the swap/redirect that follows their own submit.
 
@@ -982,8 +990,8 @@ intercepts.
   filter, the sort and the fold ride along in that query, which is why
   a refusal cannot throw the reader back to the default list.
 - **The New-spec form answers for itself.** It sits outside `#jobrows`
-  on purpose (a half-typed description must survive the five-second
-  swap), so it is bound directly rather than by delegation, and a
+  on purpose (a half-typed description must survive the row swap), so
+  it is bound directly rather than by delegation, and a
   refused create has no row to land on — the spec it named was never
   made. Its reason is written beside the form; on success the form
   empties and shuts, and the new row arrives with the swap.
@@ -991,6 +999,59 @@ intercepts.
 Without the script every one of those falls back to a form post and a
 303 to the list: slower, and one full page load, but functionally
 complete.
+
+### The page changes when something changes (spec 189)
+
+The list used to re-ask the server every five seconds and redraw
+whether anything had happened or not. Two costs came out of that: a
+reader with the browser's own tools open had the ground move under
+them twelve times a minute, and a step that finished waited up to five
+seconds to show. The server says when instead.
+
+`GET /api/queue/events` is held open and answers `text/event-stream`.
+It is behind the queue token like every other route on this surface,
+and `EventSource` reaches it with the cookie the page was given on
+load — it cannot set a header, so the cookie is the whole of its auth.
+The event it writes is a bare `changed` signal with no payload: the
+browser already knows how to fetch a fresh `#jobrows`, so
+`renderQueueRows` stays the one place a row is described and there is
+no second format to keep in step with it.
+
+Two things broadcast, because two independent stores feed a row.
+`QueueStore`'s `onChange` hook covers every write to a job — the
+runner's step transitions, the page's presses, the API's enqueues —
+because `insert`, `editTailStep` and `update` are the only three ways
+in. `POST /api/aide-run` broadcasts separately: cost, subagent count
+and live state arrive there and are invisible to the queue's store, so
+a push driven by the store alone would let those numbers sit still for
+the whole of a long step. A write that was REFUSED broadcasts nothing.
+
+On the browser's side the timer is gone entirely. A `changed` event
+redraws the rows unless a press is in flight — the same `inFlight`
+guard the tick had, for the same reason: the server still shows the
+pre-press state until the press answers. The `open` event redraws too,
+and that is what makes a dropped network or a restarted server heal
+itself: `EventSource` reconnects on its own, `open` fires again, and
+the resync picks up whatever was missed. A hidden tab closes its
+connection and opens a fresh one when it comes back, which is the
+"the timer already stops for a hidden tab" behaviour applied to a
+socket.
+
+Two things this deliberately does NOT do. There is no periodic
+server-side broadcast to reconcile drift — an idle page must issue no
+requests and redraw not at all, which is the whole point — so a spec
+file hand-edited outside the dashboard leaves its staleness badge
+behind until some real change happens nearby. And the runner's own
+two-second poll is untouched: "about a second" means about a second
+after the SERVER notices, not after the step really moved.
+
+The one server-side timer this adds is a `: ping\n\n` comment every 45
+seconds. `Bun.serve` cuts a connection quiet for `idleTimeout` (120
+seconds here, set for slow git work), and a page watching a quiet
+queue is exactly that. It is `.unref()`'d like the runner's timer and
+cleared in `stop()` besides — `bun test` runs many suites in one
+process, and a timer from a stopped test's server would fire into the
+next one.
 
 ### Branches, and merging them
 

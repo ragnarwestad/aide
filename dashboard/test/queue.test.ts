@@ -1309,3 +1309,103 @@ describe("PHASE_STEPS", () => {
     expect(ranks).not.toContain(-1);
   });
 });
+
+// --- spec 189: the store says when it changed --------------------------------
+
+// The page used to ask every five seconds whether anything had moved.
+// It asks nothing now: the server tells it. Every write to a job goes
+// through one of three methods here, so one hook on the three of them
+// is the whole of the server's half of "something changed" — and a
+// write that was REFUSED changed nothing, so it must stay silent, or
+// the page redraws for a clash it already has the refusal for.
+describe("QueueStore.onChange (spec 189)", () => {
+  /** A store that counts the changes it announces. Its own mirror per
+   *  call, for the reason the tail-edit fixture gives: a second store
+   *  on one file loads the first one's job and calls the enqueue a
+   *  clash. */
+  let made_ = 0;
+  const counting = () => {
+    const mirror = join(dir, `queue-onchange-${(made_ += 1)}.json`);
+    let fired = 0;
+    const store = new QueueStore({
+      defaults: DEFAULTS,
+      resolve,
+      mirrorPath: mirror,
+      allowCreateProject: (project) => project === "aide",
+      onChange: () => void (fired += 1),
+    });
+    return { store, fired: () => fired };
+  };
+
+  test("fires after a successful enqueue", () => {
+    const c = counting();
+    expect(c.store.enqueue(REQ).ok).toBe(true);
+    expect(c.fired()).toBe(1);
+  });
+
+  test("fires after a successful enqueueCreate", () => {
+    const c = counting();
+    const made = c.store.enqueueCreate({ project: "aide", title: "A new thing", description: "why" });
+    expect(made.ok).toBe(true);
+    expect(c.fired()).toBe(1);
+  });
+
+  test("fires after update — the runner's every step transition", () => {
+    const c = counting();
+    const made = c.store.enqueue(REQ);
+    if (!made.ok) throw new Error(made.error);
+    expect(c.store.update(made.job.id, { state: "running" })).toBeDefined();
+    expect(c.store.update(made.job.id, { state: "done" })).toBeDefined();
+    expect(c.fired()).toBe(3); // the enqueue and the two updates
+  });
+
+  test("fires after a successful editTailStep", () => {
+    const c = counting();
+    const made = c.store.enqueue({ ...REQ, steps: ["analyze"] });
+    if (!made.ok) throw new Error(made.error);
+    c.store.update(made.job.id, { state: "running", stepIndex: 0 });
+    expect(c.store.editTailStep(made.job.id, "implement", true).ok).toBe(true);
+    expect(c.fired()).toBe(3); // the enqueue, the update, the edit
+  });
+
+  test("stays silent when an enqueue is refused as a clash", () => {
+    const c = counting();
+    expect(c.store.enqueue(REQ).ok).toBe(true);
+    const before = c.fired();
+    expect(c.store.enqueue(REQ).ok).toBe(false);
+    expect(c.fired()).toBe(before);
+  });
+
+  test("stays silent when the request never parsed", () => {
+    const c = counting();
+    expect(c.store.enqueue({ project: "nope", specFolder: "x", steps: ["analyze"] }).ok).toBe(false);
+    expect(c.fired()).toBe(0);
+  });
+
+  test("stays silent when update names a job that does not exist", () => {
+    const c = counting();
+    expect(c.store.update("no-such-job", { state: "done" })).toBeUndefined();
+    expect(c.fired()).toBe(0);
+  });
+
+  test("stays silent when editTailStep is refused", () => {
+    const c = counting();
+    const made = c.store.enqueue({ ...REQ, steps: ["analyze"] });
+    if (!made.ok) throw new Error(made.error);
+    c.store.update(made.job.id, { state: "running", stepIndex: 0 });
+    const before = c.fired();
+    // The running step itself, an unknown job, and a step name that is
+    // not a step at all: three refusals, no announcement.
+    expect(c.store.editTailStep(made.job.id, "analyze", false).ok).toBe(false);
+    expect(c.store.editTailStep("no-such-job", "implement", true).ok).toBe(false);
+    expect(c.store.editTailStep(made.job.id, "not-a-step", true).ok).toBe(false);
+    expect(c.fired()).toBe(before);
+  });
+
+  // Every other store in the tests is built without the hook, and a
+  // store that required one would be a change to every caller.
+  test("a store built without the hook still works", () => {
+    const store = new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath });
+    expect(store.enqueue(REQ).ok).toBe(true);
+  });
+});

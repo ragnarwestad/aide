@@ -738,6 +738,13 @@ export interface QueueOptions {
    *  means none: creating is off unless the server says otherwise, like
    *  every other capability here. */
   allowCreateProject?: CreateProjectAllower;
+  /** Something in here moved (spec 189). Called after the write has
+   *  landed and been mirrored, and only when one really landed — a
+   *  refused enqueue or an unknown id changed nothing, and a page told
+   *  otherwise would redraw for news it does not have. Absent means
+   *  nobody is listening, which is what every test and every other
+   *  caller of this class is. */
+  onChange?: () => void;
 }
 
 export class QueueStore {
@@ -747,6 +754,7 @@ export class QueueStore {
   readonly defaults: QueueDefaults;
   private readonly resolve: ProjectResolver;
   private readonly allowCreateProject: CreateProjectAllower;
+  private readonly onChange: () => void;
 
   constructor(opts: QueueOptions) {
     this.cap = opts.cap ?? 200;
@@ -754,6 +762,10 @@ export class QueueStore {
     this.defaults = opts.defaults;
     this.resolve = opts.resolve;
     this.allowCreateProject = opts.allowCreateProject ?? (() => false);
+    this.onChange = opts.onChange ?? (() => {});
+    // Before `load()`, which is not a change: nothing is listening yet
+    // on the first construction, and a mirror read back at boot is the
+    // store finding out what it already was.
     this.load();
   }
 
@@ -809,7 +821,20 @@ export class QueueStore {
       this.jobs.delete(this.jobs.keys().next().value as string);
     }
     this.mirror();
+    this.changed();
     return parsed;
+  }
+
+  /** One place the three writers announce themselves from, so a fourth
+   *  one added later has an obvious thing to call. Fail-open like every
+   *  other side channel on this surface: a listener that throws must
+   *  not turn a stored job into a refused one. */
+  private changed(): void {
+    try {
+      this.onChange();
+    } catch {
+      // telling the pages is best effort; the write already happened
+    }
   }
 
   list(): Job[] {
@@ -892,6 +917,7 @@ export class QueueStore {
     const next = { ...job, steps: [...head, ...tail] };
     this.jobs.set(id, next);
     this.mirror();
+    this.changed();
     return { ok: true, job: next };
   }
 
@@ -901,6 +927,7 @@ export class QueueStore {
     const next = { ...job, ...patch };
     this.jobs.set(id, next);
     this.mirror();
+    this.changed();
     return next;
   }
 
