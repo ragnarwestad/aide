@@ -71,6 +71,21 @@ named anywhere in this repo.
   nav, labelled "Projects". Token required, like `/`: the panel is a
   mutating control, and a page carrying one needs a server to check the
   token per request.
+- `/projects/<name>` — one project's own page, served (spec 185): its
+  manifest and its specs, as the generated file has always shown, plus
+  the two things a file could not answer — what its `.aide/config` says,
+  and whether a run could start here at all. Each of the seven
+  recognized config keys is marked configured, worked out (naming the
+  lockfile that decided it, hedged as a default rather than a verified
+  command) or not set; a checkout with no `.aide/config` says so in as
+  many words, because "no file" and "a file setting nothing" are
+  different states and the first is what a project cloned onto a second
+  machine is in. Below that, the same checks `assessProjectReadiness`
+  runs at Add time — now on every load rather than once, in a notice
+  gone by the next page. Nothing is executed and nothing is moved: a git
+  that cannot answer leaves the manifest, the specs and the settings
+  standing, with no readiness section. Token required, like every other
+  `/projects` path.
 - `/archive` — every ARCHIVED spec in ONE table: Project, Title,
   Description and Date, each folder linking to its own
   `/specs/<project>/<spec>` page (specs 163, 170). It was a heading per
@@ -104,7 +119,12 @@ named anywhere in this repo.
   publish a site without it.
 - `/<slug>.html` — one page per project (slug = lowercased name,
   non-alphanumerics → hyphens; collisions get `-2`, `-3`, …; `index`,
-  `about` and `projects` are reserved)
+  `about` and `projects` are reserved). The manifest and the specs
+  only: it is generated after a merge lands somewhere in the queue, and
+  a config file an operator edits between merges would be described as
+  it stood days ago. A live server's nav links `/projects/<name>`
+  instead; this file is what a site published by `rsync-publish.sh`,
+  with no server behind it, still shows.
 - `/api/aide-runs` — aide runs in flight, as JSON; `POST /api/aide-run`
   receives one event. (The `/live` page that rendered them was dropped
   on 2026-08-18: the spec list shows every queued run per row, and

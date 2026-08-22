@@ -2,10 +2,19 @@
 // page per project. Every populated manifest key is shown on the
 // project page; a project whose manifest failed to parse gets an error
 // page and an error row on the overview.
+//
+// Since spec 185 the project's page has a SERVED variant too
+// (`renderProjectPage`, `/projects/<name>`), which is the same body
+// plus what the config file and a live readiness check say. The static
+// page keeps exactly what it always had: the generator runs only after
+// a merge lands somewhere in the queue, and a settings section written
+// then would be describing a config file as it stood days ago.
 
 import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
 import type { ManifestData, ManifestResult } from "../parse-manifest.ts";
+import type { ProjectReadiness } from "../project-admin.ts";
+import type { ProjectSettingsView, SettingRow } from "../project-settings.ts";
 import { rowMessage } from "./components.ts";
 import { esc, linkOrText } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
@@ -134,7 +143,16 @@ function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
 // in serve.ts is the no-`--root` fallback and deliberately still names
 // the file — it has no project set to link the served page's contents
 // from.
-export function navEntries(projects: ProjectView[]): NavEntry[] {
+export function navEntries(
+  projects: ProjectView[],
+  opts: {
+    /** A server with a project root of its own serves each project's
+     *  page itself (spec 185), and that page is the one with the
+     *  settings and the readiness answer on it. The generator has no
+     *  such server behind it and keeps naming the file it writes. */
+    live?: boolean;
+  } = {},
+): NavEntry[] {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return [
@@ -144,7 +162,10 @@ export function navEntries(projects: ProjectView[]): NavEntry[] {
     // Projects tab; what makes it a tab of its own instead of a project
     // is its absolute path, which no project page has.
     { label: "Archive", path: ARCHIVE_ROUTE },
-    ...ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` })),
+    ...ordered.map((p) => ({
+      label: p.name,
+      path: opts.live ? projectPagePath(p.name) : `${slugs.get(p)!}.html`,
+    })),
   ];
 }
 
@@ -218,6 +239,100 @@ function projectBody(p: ProjectView): string {
     return `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>`;
   }
   return manifestBlock(p.manifest.data) + `<h3>Specs</h3>` + specTable(p.specs);
+}
+
+/** Where a setting's value came from, in the words the page uses (spec
+ *  185). The derived case carries a hedge on purpose: the table in
+ *  `core/skills/tools-and-scripts/SKILL.md` calls its commands "the
+ *  usual defaults, not a promise" — a project whose `package.json`
+ *  names its scripts differently would be shown a command that does not
+ *  work, and a reader has to be able to see that it was worked out
+ *  rather than checked. Nothing on this page is ever executed. */
+function originText(r: SettingRow): string {
+  if (r.origin === "configured") return "configured";
+  if (r.origin === "unset") return "not set";
+  return `worked out from ${esc(r.source ?? "")} — the usual ${esc(r.toolchain ?? "")} default, not a verified command`;
+}
+
+function settingsTable(settings: ProjectSettingsView): string {
+  const rows = settings.rows.map((r) => {
+    // A value that does not resolve is marked where it is shown, in
+    // readiness's own sentence — never a second wording of the same
+    // fact (`project-settings.ts` reads it verbatim).
+    const problem = r.problem ? rowMessage("warn", r.problem) : "";
+    return (
+      `<tr><td>${esc(r.key)} <span class="muted">${esc(r.purpose)}</span></td>` +
+      `<td>${r.value === null ? `<span class="muted">–</span>` : esc(r.value)}</td>` +
+      `<td>${originText(r)}${problem}</td></tr>`
+    );
+  });
+  return (
+    `<div class="tablewrap"><table class="list"><thead><tr><th>Setting</th><th>Value</th>` +
+    `<th>Where from</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`
+  );
+}
+
+/** The settings the config file decides, and whether a run could start
+ *  here at all — the two things a project's page never said (spec 185).
+ *
+ *  `readiness` is `null` where git could not be asked. The section then
+ *  says nothing rather than guessing: the reader came for the project's
+ *  page, and an unreachable git is no reason to withhold the half of it
+ *  that needs no git. */
+function runConfigurationBlock(
+  settings: ProjectSettingsView,
+  readiness: ProjectReadiness | null,
+): string {
+  // "No file" and "a file that sets nothing" are different states, and
+  // the first is the ordinary one for a project cloned onto a second
+  // machine — said plainly, above the rows, so seven "not set" lines
+  // have an explanation rather than reading as seven separate
+  // omissions.
+  const noFile = settings.hasConfigFile
+    ? ""
+    : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
+  const checks = !readiness
+    ? ""
+    : `<h3>Can a run start here?</h3>` +
+      rowMessage(
+        readiness.canRun ? "info" : "err",
+        readiness.canRun
+          ? "Nothing stops a run: this checkout is ready to run."
+          : "A run cannot run here yet.",
+      ) +
+      readiness.checks
+        .map((c) =>
+          c.blocking
+            ? rowMessage("err", c.detail)
+            : c.ok
+              ? `<p class="muted">${esc(c.detail)}</p>`
+              : rowMessage("warn", c.detail),
+        )
+        .join("");
+  return `<h3>Settings</h3>` + noFile + settingsTable(settings) + checks;
+}
+
+/** Where a project's own page is SERVED (spec 185). The generated
+ *  `<slug>.html` is still written and still reachable; this is the one
+ *  a live server links to, because it is the one that can answer what
+ *  the config file says right now. */
+export const projectPagePath = (name: string): string => `/projects/${encodeURIComponent(name)}`;
+
+/** The served project page: the static body, plus the settings and the
+ *  readiness answer. */
+export function renderProjectPage(
+  p: ProjectView,
+  settings: ProjectSettingsView,
+  readiness: ProjectReadiness | null,
+  generatedAt: string,
+  nav: NavEntry[],
+): string {
+  // The settings are added to `projectBody` rather than replacing any
+  // of it, and that holds for a project whose manifest will not parse
+  // too: `projectBody` is then a single error paragraph, and the
+  // config is the rest of what the page has to say.
+  const body = projectBody(p) + runConfigurationBlock(settings, readiness);
+  return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt);
 }
 
 /** The listing itself: the counts, then one row per project, linking to
