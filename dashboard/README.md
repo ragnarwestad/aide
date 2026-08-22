@@ -435,6 +435,19 @@ they carry nothing that needs the token. The token is read from a file
 (`--token-file`), never an argument: `ps` shows arguments to every user
 on the machine.
 
+**The cookie is `SameSite=Lax`, and it has to be.** A `Strict` cookie is
+withheld on a top-level navigation that STARTED somewhere else, and an
+installed app launched from the home screen is exactly that — so with
+`Strict` the dashboard installed on a phone opened on "unauthorized"
+while the same browser was signed in (measured 2026-08-22, a Samsung
+S23+, the day the app became installable). `Lax` is still withheld from
+a cross-site POST, which is what `Strict` was guarding here, and every
+form on this page posts same-site. Tightening it again breaks the
+installed app and nothing will say so until someone opens it.
+
+A cookie already in a browser is NOT rewritten by this change: a reader
+who signed in before it has to open `/?token=<the token>` once more.
+
 **With no token configured every queue route answers 503** — off loudly,
 rather than open quietly. `/live`, `POST /api/aide-run` and the static
 site are unaffected: spec 80's emitter sends no credential and swallows
