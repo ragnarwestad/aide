@@ -254,10 +254,13 @@ const STRUCTURE = [
   "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
   "tablewrap",
   // the spec list
-  // "toolcell" and "modelcell" are the two columns spec 165 gave the
-  // phase lines: the row's AI, once, spanning them all, and the model
-  // select with the phase's own box beside it.
-  "list", "spechead", "subrow", "phasecell", "toolcell", "modelcell",
+  // "modelcell" is where a phase line's three choices sit: the AI, the
+  // model, and the phase's own box. Spec 165 gave the AI a column of
+  // its own ("toolcell") and spec 192 took it back out again — a
+  // column boundary is a reserved width and two lots of cell padding,
+  // and the three read as three separate things with that between
+  // them.
+  "list", "spechead", "subrow", "phasecell", "modelcell",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead

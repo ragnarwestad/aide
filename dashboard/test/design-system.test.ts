@@ -274,15 +274,21 @@ describe("the spec column is capped, so the phases sit close", () => {
 
 // The three things a phase line offers used to be flex children of one
 // cell, pinned to fixed widths so every select started at the same x.
-// Since spec 165 each is a real table column — the name, the phase's
-// AI, then the model with the phase's box beside it — and a real
-// column lines up on every row without a flex basis to keep it honest.
+// Spec 165 made each a real table column, and spec 192 put the AI, the
+// model and the phase's box back into one cell — the name in a column
+// of its own, the three choices in the column beside it. What must not
+// come back with them is the hand-pinned width: the one width the merged
+// cell reserves is stated on the model select itself, by name, and every
+// other width the row takes is the width its controls happen to need.
 describe("the phase lines line up in columns", () => {
   test("the stylesheet declares the columns, not pinned flex children", async () => {
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).not.toContain(".phasecell > .row");
-    expect(CSS).toContain("table.list tr.subrow td.toolcell {");
+    expect(CSS).not.toContain("td.toolcell");
     expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
+    expect(CSS).toContain(
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }',
+    );
   });
 });
 

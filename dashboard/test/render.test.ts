@@ -5627,14 +5627,16 @@ describe("spec 157: the row's one action sits in the State column", () => {
   test("the phase's state word stays in the State column", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: true });
     const analyze = html.match(/<tr class="subrow[^"]*" data-step="analyze">[\s\S]*?<\/tr>/)![0];
-    // The fourth cell: name, AI, model+box, then the state word. It
-    // was the third until spec 179 gave every line its own AI cell.
+    // The fourth cell: name, the three choices, the Progress column,
+    // then the state word. It was the third until spec 179 gave every
+    // line its own AI cell, and the count has not moved since.
     expect(cells(analyze)[3]).toContain('class="badge b-done"');
-    // The cell before it is the model column since spec 165 — the
-    // Progress cell a phase line had nothing to put in is what the
-    // model select and the phase's box moved into. It is the third
-    // since spec 179 put the AI select between it and the name.
-    expect(cells(analyze)[2]).toContain('data-phase="analyze"');
+    // The cell before it is the head row's Progress column, and a
+    // phase line has nothing to put there — the model select and the
+    // phase's box stood in it from spec 165 until spec 192 moved them
+    // in beside the AI, one cell further left.
+    expect(cells(analyze)[2]).toBe("");
+    expect(cells(analyze)[1]).toContain('data-phase="analyze"');
   });
 
   // The last column is blank on every row now — a shut row's action
@@ -5740,23 +5742,32 @@ describe("spec 161: the row's one action is primary", () => {
   });
 });
 
-// --- spec 165: the phase lines read left to right ---------------------------
+// --- spec 192: the phase line's controls share one cell ---------------------
 //
-// The phase lines grew by addition and stopped reading in the order the
-// choices are made in. The name started 2.5rem in, behind an unlabelled
-// box; the row's AI select sat at the far end of the caption line,
-// pressed against "Model", so it read as part of the model choice
-// rather than as the choice that decides which models there ARE; and
-// the Progress column, which a phase line has nothing to put in, left a
-// hand's width of nothing between the model select and the State word.
+// Spec 165 made the phase lines REAL COLUMNS — the name, the phase's
+// AI, then the model with the phase's box beside it. They had been
+// three flex children of one cell until then, each pinned to a fixed
+// width by hand so every select started at the same x, and a table
+// column does that bookkeeping for free.
 //
-// So: the name hard left in a column of its own, then the AI — one
-// control for the whole group, in a real column of its own, spanning
-// every phase line and centred in them — then the model select with the
-// phase's box beside it, in the column the pips leave empty. Three
-// choices in the order they are made, and no gap left to close.
-describe("spec 165: the phase lines read left to right", () => {
-  const target = (specFolder = "165-left-to-right"): QueueTarget => ({
+// It charges for it too. A column reserves a width of its own and
+// carries its own cell padding, so three columns in a row is three
+// reserved widths and two lots of padding between the name and the
+// box — far enough apart that the three read as three separate things
+// rather than as one line's worth of choice. Narrowing the model
+// column's reserved width twice on 2026-08-22 closed part of the gap
+// and left the column boundary itself standing, which is the half that
+// mattered.
+//
+// So the AI select, the model select and the phase's box share ONE
+// cell now — the cell the model select and the box already shared —
+// and the three captions share the caption row's. The name keeps a
+// cell of its own, hard left, untouched. The column the merge vacates
+// is the one the head row's own pips occupy, and it goes back to being
+// empty on a phase line, exactly as it was before spec 165. Seven
+// columns either way.
+describe("spec 192: the phase line's controls share one cell", () => {
+  const target = (specFolder = "192-one-cell"): QueueTarget => ({
     project: "aide",
     specFolder,
   });
@@ -5803,9 +5814,9 @@ describe("spec 165: the phase lines read left to right", () => {
     ...html.matchAll(/<tr class="subrow[^"]*"[^>]*data-step="[^"]*">[\s\S]*?<\/tr>/g),
   ].map((m) => m[0]);
 
-  // --- criterion 1: the name is what the eye lands on -----------------------
+  // --- criterion 2: the name is what the eye lands on -----------------------
 
-  test("the phase's name has its own cell, alone and hard left (criterion 1)", async () => {
+  test("the phase's name has its own cell, alone and hard left (criterion 2)", async () => {
     const html = rows();
     for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
       const first = cells(subRow(html, step))[0] ?? "";
@@ -5818,108 +5829,132 @@ describe("spec 165: the phase lines read left to right", () => {
       // as "review", so the cell is checked for text and not for the
       // step's own word.
       expect([step, /^<(a|span)[^>]*>[a-z-]+<\/(a|span)>$/.test(first)]).toEqual([step, true]);
+      // And it is still a cell of its own: the merge is behind it, not
+      // around it.
+      expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
     }
     // And the indent that used to hold the box's place goes with it.
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });
 
-  // --- criterion 2: a control, in the column before Model ------------------
+  // --- criterion 1: three controls, one cell, no column between them --------
 
-  // The AI picker stood here until spec 169 replaced it with a set-all
-  // control, and spec 179 put a picker back — one per phase line this
-  // time, and no set-all at all. The CELL is what this criterion is
-  // about, and it has not moved: between the phase's name and its
-  // model.
-  test("every phase line carries its own control, between name and model (criterion 2)", () => {
+  test("the AI select, the model select and the box share one cell (criterion 1)", () => {
     const html = rows();
     for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
       const line = subRow(html, step);
-      expect([step, cellTags(line)[1]]).toEqual([step, '<td class="toolcell">']);
-      expect([step, cells(line)[1]!.includes(`data-ai="model.${step}"`)]).toEqual([step, true]);
-      // Between the name and the model, in that order: the control the
-      // model is filled in from comes before the model it fills.
-      expect([step, cellTags(line)[0]!.includes("phasecell")]).toEqual([step, true]);
-      expect([step, cellTags(line)[2]!.includes("modelcell")]).toEqual([step, true]);
+      // One cell, directly after the name's, and no separate AI column
+      // anywhere on the page.
+      expect([step, cellTags(line)[1]]).toEqual([step, '<td class="modelcell">']);
+      const merged = cells(line)[1] ?? "";
+      expect([step, merged.includes(`data-ai="model.${step}"`)]).toEqual([step, true]);
+      expect([step, merged.includes(`<select name="model.${step}"`)]).toEqual([step, true]);
+      expect([step, merged.includes(`data-phase="${step}"`)]).toEqual([step, true]);
+      // In the order the choices are made in: the AI decides which
+      // models there are, so it comes before the model it fills in.
+      expect([step, merged.indexOf("data-ai=") < merged.indexOf(`<select name="model.${step}"`)]).toEqual([
+        step,
+        true,
+      ]);
     }
-    // Nothing spans anything any more. One control down five rows was
-    // what the rowspan carried, and there is no such control left.
+    expect(html).not.toContain("toolcell");
+    // Nothing spans anything. One control down five rows was what the
+    // rowspan carried, and there is no such control left.
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
-    // The caption line carries the column's WORD, never a control.
+    // The caption line carries the words, never a control.
     expect(caption(html)).not.toContain("<select");
   });
 
-  test("a step outside the usual five gets a control of its own too (criterion 3)", () => {
+  test("a step outside the usual five shares its cell the same way (criterion 1)", () => {
     const html = rows([
-      row({ id: "j1", specFolder: "165-left-to-right", steps: ["manifest"], stepIndex: 0, state: "done" }),
+      row({ id: "j1", specFolder: "192-one-cell", steps: ["manifest"], stepIndex: 0, state: "done" }),
     ]);
     expect(subRows(html)).toHaveLength(6);
-    // Every line, whichever step it names — there is no span to keep
-    // level with the rows beneath it any more.
-    expect(subRow(html, "manifest")).toContain('<td class="toolcell"><select');
+    const line = subRow(html, "manifest");
+    expect(cellTags(line)[1]).toBe('<td class="modelcell">');
+    expect(cells(line)[1]).toContain('data-ai="model.manifest"');
+    expect(cells(line)[1]).toContain('<select name="model.manifest"');
   });
 
-  // --- criterion 4: the box moves in beside the model -----------------------
+  // --- criterion 3: the captions move with the controls they head -----------
 
-  test("the box shares the model's cell, and the caption names both (criterion 4)", async () => {
+  test("all three captions sit in the merged cell (criterion 3)", () => {
     const html = rows();
-    for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
-      const line = subRow(html, step);
-      // Every line carries the AI column's own cell since spec 179, so
-      // the model is the THIRD on all five and not only on the first.
-      const modelCell = cells(line)[2] ?? "";
-      expect([step, modelCell.includes(`<select name="model.${step}"`)]).toEqual([step, true]);
-      expect([step, modelCell.includes(`data-phase="${step}"`)]).toEqual([step, true]);
-    }
-    // The caption line says what the three columns under it are.
     const capCells = cells(caption(html));
     expect(capCells[0]).toContain(">Phase<");
-    // Two tools configured, so the AI column has a word of its own
-    // (spec 179) and the model column is the single word it names — a
-    // single-tool config drops the first and keeps the second, which
-    // is asserted where that case is set up.
-    expect(capCells[1]).toContain(">AI<");
-    expect(capCells[2]).toContain(">Model<");
-    expect(capCells[2]).toContain(">Select<");
-    // And "Select" stands OVER the boxes rather than beside the word
-    // before it: the caption's first item and the model select
-    // reserve the same width, which is the whole of what makes the
-    // boxes read as a column with a heading.
-    const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).toContain(
-      "table.list tr.subrow .modelcell > .row > :first-child { min-width: 6.25rem; max-width: 100px; }",
-    );
+    // Two tools configured, so the AI has a word (spec 179) — and it
+    // stands in the same cell as the two it now sits beside, in the
+    // order the controls under it are drawn.
+    const merged = capCells[1] ?? "";
+    expect(merged).toContain(">AI<");
+    expect(merged).toContain(">Model<");
+    expect(merged).toContain(">Select<");
+    expect(merged.indexOf(">AI<") < merged.indexOf(">Model<")).toBe(true);
+    expect(merged.indexOf(">Model<") < merged.indexOf(">Select<")).toBe(true);
     expect(caption(html)).toMatch(
-      /<td class="modelcell"><span class="row"><span class="muted small">Model<\/span>/,
+      /<td class="modelcell"><span class="row"><span class="muted small" data-ai-cap>AI<\/span>/,
     );
   });
 
-  // --- criterion 5: the column is reserved whether it draws or not ----------
+  // --- criterion 4: one configured tool draws no AI at all ------------------
 
-  test("one configured tool still reserves the AI column (criterion 5)", async () => {
+  test("one configured tool leaves the merged cell to the model and the box (criterion 4)", () => {
     const html = rows([], { modelChoices: ONE });
-    // One AI is nothing to choose between, so nothing is drawn — and
-    // the column is there all the same, at a width the stylesheet
-    // states.
+    // One AI is nothing to choose between, so neither the picker nor
+    // its caption is drawn — and no empty cell is left standing where
+    // the AI column used to be.
     expect(html).not.toContain("data-ai");
+    expect(html).not.toContain("toolcell");
+    expect(cells(caption(html))[1]).not.toContain(">AI<");
     for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
-      expect([step, subRow(html, step).includes('<td class="toolcell"></td>')]).toEqual([step, true]);
+      const line = subRow(html, step);
+      expect([step, cellTags(line)[1]]).toEqual([step, '<td class="modelcell">']);
+      const merged = cells(line)[1] ?? "";
+      expect([step, merged.includes(`<select name="model.${step}"`)]).toEqual([step, true]);
+      expect([step, merged.includes(`data-phase="${step}"`)]).toEqual([step, true]);
+      expect([step, merged.includes("<select data-ai")]).toEqual([step, false]);
     }
-    const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).toMatch(/td\.toolcell \{[^}]*min-width: [\d.]+rem/);
-    expect(CSS).toMatch(/td\.toolcell \{[^}]*vertical-align: middle/);
   });
 
-  // --- criterion 6: seven columns, and the span accounts for the seventh ----
+  // --- criterion 6: the model select keeps its cap, wherever it sits --------
 
-  test("the seventh column is a real one on every line (criterion 6)", () => {
+  test("the model select's width is capped by what it IS, not where it sits (criterion 6)", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    // The floor and the cap the caption line and the boxes are lined
+    // up by, unchanged in value from before the merge.
+    expect(CSS).toContain(
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }',
+    );
+    // And selected by the select's own name, never by its position: an
+    // AI select sits in front of it on a two-tool line, so a
+    // `:first-child` rule would cap that one instead and let the model
+    // select regrow to its widest option — the exact crowding this
+    // spec removes.
+    expect(CSS).not.toMatch(/\.modelcell > \.row > :first-child \{[^}]*min-width: 6\.25rem/);
+    // The two-tool line really does put something else first, which is
+    // what makes the sentence above more than a style preference.
+    const both = cells(subRow(rows(), "analyze"))[1] ?? "";
+    expect(both.indexOf("<select")).toBe(both.indexOf("<select data-ai"));
+    // And the one-tool line puts the model select first, so the cap
+    // has to hold in both arrangements.
+    const one = cells(subRow(rows([], { modelChoices: ONE }), "analyze"))[1] ?? "";
+    expect(one.indexOf("<select")).toBe(one.indexOf('<select name="model.analyze"'));
+  });
+
+  // --- criterion 9: seven columns, on every line -----------------------------
+
+  test("the merge leaves seven columns, with the vacated one empty (criterion 9)", () => {
     const html = rows();
-    // The caption line and every phase line write all seven: the AI
-    // column is a cell of each line's own since spec 179, so no line
-    // is one short and nothing is filled in by a span.
+    // The caption line and every phase line still write all seven: the
+    // AI's cell and the model's became one, and the column the head
+    // row's pips occupy went back to being empty on a phase line,
+    // which is what it was before spec 165.
     expect(cells(caption(html))).toHaveLength(7);
+    expect(cells(caption(html))[2]).toBe("");
     for (const step of ["create", "analyze", "review-plan", "implement", "archive"]) {
       expect([step, cells(subRow(html, step)).length]).toEqual([step, 7]);
+      expect([step, cells(subRow(html, step))[2]]).toEqual([step, ""]);
     }
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
   });
@@ -5929,9 +5964,9 @@ describe("spec 165: the phase lines read left to right", () => {
   // The control posts nothing and finds the select it writes through
   // the `form` id and `data-ai` together (`applyAiPick`,
   // `queue-client.ts`). Neither depends on which `<td>` it sits in —
-  // but both are markup this file writes, and moving the control from
-  // a spanning cell to a per-line one is exactly the edit that could
-  // drop one without a type error to say so.
+  // but both are markup this file writes, and moving the control into
+  // the cell beside it is exactly the edit that could drop one without
+  // a type error to say so.
   test("each line's control names its own form and its own model (criterion 8)", () => {
     const html = rows();
     const formId = html.match(/<form id="([^"]+)"/)![1];
@@ -5945,22 +5980,30 @@ describe("spec 165: the phase lines read left to right", () => {
     }
   });
 
-  // --- the narrow layout has an answer too (criterion 7) --------------------
+  // --- criterion 5: one control per line at phone width ---------------------
 
-  test("at phone width the phase line's three cells stack (criterion 7)", async () => {
+  test("at phone width the merged cell's controls stack one per line (criterion 5)", async () => {
     const { CSS } = await import("../src/render/css.ts");
     const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
+    // Three controls in one cell now, and the wrap that took the model
+    // select and the box onto a line each takes all three.
     expect(narrow).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
-    // Three real cells on every line since spec 179, where there were
-    // two on four lines out of five. Three selects and a name do not
-    // fit across 375px, so each cell takes a line of its own.
+    // Two real cells on a phase line, not three: the name, then the
+    // cell that holds the choices. Each takes a full line of its own.
     expect(narrow.replace(/\s+/g, " ")).toContain(
-      "table.list tr.subrow .phasecell, table.list tr.subrow td.toolcell, " +
-        "table.list tr.subrow .modelcell { display: block; width: 100%; }",
+      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell " +
+        "{ display: block; width: 100%; }",
     );
-    // The pinned flex bases the three-in-one cell needed are gone from
-    // both halves of the cascade — real columns line up by themselves.
+    // And the width the model select reserves on a desktop is given
+    // back, by the same attribute selector that reserves it.
+    expect(narrow).toContain(
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }',
+    );
+    // The pinned flex bases the three-in-one cell needed before spec
+    // 165 stay gone: one cell again, but the widths are not pinned by
+    // hand this time.
     expect(CSS).not.toContain(".phasecell > .row");
+    expect(CSS).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
   });
 });
 

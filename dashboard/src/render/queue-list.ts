@@ -1425,27 +1425,34 @@ function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, cho
     .join("");
 }
 
-// What the phase columns under this line are. Three of them mattered
-// enough to name, and the three were flex children of ONE cell until
-// spec 165 — pinned to fixed widths so every select started at the same
-// x, which is bookkeeping a real table column does for free. They are
-// real columns now: the phase's name, the phase's AI, and the model
-// with the phase's box beside it.
+// What the phase columns under this line are. TWO of them: the phase's
+// name, hard left in a cell of its own, and the three choices a line
+// offers — the AI, the model, the phase's box — together in the cell
+// beside it.
+//
+// They were flex children of ONE cell until spec 165, pinned to fixed
+// widths by hand so every select started at the same x, and spec 165
+// made each a real table column to stop the hand-pinning. A column
+// reserves a width of its own and carries its own cell padding, though,
+// so three of them in a row put two lots of padding and two reserved
+// widths between the name and the box — far enough apart that the three
+// read as three separate things. Spec 192 puts the AI and the model
+// back in one cell for that reason, and the pinned widths do NOT come
+// back with them: the one width the cell reserves is stated on the
+// model select itself, by name.
+//
+// The column the merge vacates is the head row's own Progress column.
+// A phase line has nothing to put there — it is empty on these lines
+// again, exactly as it was before spec 165 moved the model into it.
 //
 // The caption's cells, WITHOUT the row tag: `phaseSubRows` opens each
 // sub-row itself, so the caption can lead whichever row comes first.
 //
-// The AI column has a word of its own since spec 179. It was left
-// empty while the column held one set-all control for the whole group
-// — an action wants no heading — and it holds a picker per phase line
-// now, which is a column like the two beside it. The word is drawn
-// only when there are two tools to tell apart, exactly as the picker
-// itself is: a heading over an empty column is worse than no heading.
-//
-// The model column is the single word "Model" again. It said
-// "AI - Model" from spec 169, when one select held both and there was
-// no AI column for the first half of that phrase to stand over; there
-// is one now, so each word stands over what it names.
+// The three captions sit in the merged cell together, in the order the
+// controls under them are drawn. "AI" is drawn only when there are two
+// tools to tell apart, exactly as the picker itself is: a word over
+// nothing is worse than no word. "Model" is the single word again — it
+// said "AI - Model" from spec 169, when one select held both.
 //
 // The no-JS floor for the AI picker is written HERE, once for the
 // group, rather than five times beside five selects: it is a style
@@ -1458,16 +1465,14 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
   const tools = new Set((opts.modelChoices ?? []).map((m) => m.tool ?? "claude"));
   return (
     `<td class="phasecell"><span class="muted small">Phase</span></td>` +
-    `<td class="toolcell">` +
+    `<td class="modelcell"><span class="row">` +
     (tools.size > 1
       ? `<span class="muted small" data-ai-cap>AI</span>` +
         `<noscript><style>[data-ai],[data-ai-cap]{display:none}</style></noscript>`
       : "") +
-    `</td>` +
-    `<td class="modelcell"><span class="row">` +
     `<span class="muted small">Model</span>` +
     `<span class="muted small">Select</span>` +
-    `</span></td><td></td><td data-col="started"></td>` +
+    `</span></td><td></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
   );
 }
@@ -1699,33 +1704,38 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
             // there is to say.
             plain: true,
           });
-      // The phase's AI picker, in a column of its own between the name
-      // and the model (spec 165, spec 179). It was one control for the
-      // whole group in a cell spanning every phase line until spec 179
-      // — which needed the span kept level with `g.phases.length` and
-      // never a literal five, since a spec whose past jobs touched a
-      // step outside the usual set has that step appended as a line of
-      // its own. There is nothing to keep level any more: every line
-      // writes its own cell, whichever step it names.
-      // The cell is written whether the control draws anything or not
-      // — one configured AI is nothing to choose between, and a column
-      // that came and went would move every column after it.
-      const toolCell = `<td class="toolcell">${aiPicker(g, opts, p.step, busy, latest?.model)}</td>`;
+      // The three choices this line offers, in one cell (spec 192): the
+      // AI, then the model it fills in, then the phase's box. In the
+      // order they are made in — which AI a phase runs on decides which
+      // models there ARE to pick from, so it comes first.
+      //
+      // The AI had a column of its own from spec 165 to spec 192, and
+      // one cell for the whole group before that — a span that had to
+      // be kept level with `g.phases.length` and never a literal five,
+      // since a spec whose past jobs touched a step outside the usual
+      // set has that step appended as a line of its own. Neither is
+      // needed now: every line writes this cell, whichever step it
+      // names, and `aiPicker` simply draws nothing when there is one
+      // configured AI and nothing to choose between.
+      const pickCell =
+        `<td class="modelcell"><span class="row">` +
+        `${aiPicker(g, opts, p.step, busy, latest?.model)}` +
+        `${modelPicker(g, opts, p.step, busy, latest?.model)}${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
           // The name alone, hard left: it is what the eye lands on
           // first, and it started 2.5rem in behind the box until spec
-          // 165 moved the box to the model's column.
+          // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
-          toolCell +
+          pickCell +
           // The Progress column is the head row's pips, and a phase
-          // line had nothing to say there — a hand's width of nothing
-          // between the model select and the state word. The model
-          // select and the phase's box live in it now, so the line has
-          // real content all the way across.
-          `<td class="modelcell"><span class="row">` +
-          `${modelPicker(g, opts, p.step, busy, latest?.model)}${box}</span></td>` +
+          // line has nothing to say there. It held the model select
+          // and the box from spec 165 until spec 192 put those in the
+          // cell before it; it is empty on a phase line again, and the
+          // cell is still written so the seven columns line up with the
+          // head row's.
+          `<td></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
