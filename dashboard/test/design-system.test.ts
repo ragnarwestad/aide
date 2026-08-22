@@ -246,7 +246,9 @@ describe("the row's one action rides beside the state, not in a column of its ow
     const html = rows([], { targets: [target()] });
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    expect(cells[2]).toContain("</button>");
+    // The SECOND cell: name, then state. The Progress column stood
+    // between them until the pips moved in beside the name (2026-08-22).
+    expect(cells[1]).toContain("</button>");
     // The guard is about THIS button, not about the string: spec 165
     // gave the row's AI select a legitimate spanning cell of its own,
     // so a blanket ban would now fail for the wrong reason. What must
@@ -697,12 +699,12 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target()],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(panel).toContain('<td colspan="7">');
+    expect(panel).toContain('<td colspan="6">');
     expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
     const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
-    expect(empty).toContain('colspan="7"');
+    expect(empty).toContain('colspan="6"');
   });
 
   test("a held-back note is amber, like the badge that announces it", async () => {

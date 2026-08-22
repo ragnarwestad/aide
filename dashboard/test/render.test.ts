@@ -2352,9 +2352,9 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // div is not there.
   const stateCell = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    // The THIRD cell: name, progress, state (the action cell went back
-    // to the end of the row, 2026-08-19).
-    return head.split("<td")[3] ?? "";
+    // The SECOND cell: name, then state. Progress went into the name
+    // cell with the pips (2026-08-22).
+    return head.split("<td")[2] ?? "";
   };
   const hint = (html: string) =>
     stateCell(html).match(/<div class="muted small">([\s\S]*?)<\/div>\s*<\/td>/)?.[1] ?? "";
@@ -2363,7 +2363,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
    *  The dot comes off first: it is the badge's live mark, not a word. */
   const chip = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = (head.split("<td")[3] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    const state = (head.split("<td")[2] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
 
@@ -2628,7 +2628,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     );
   const chip = (html: string) => {
     const head = html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
-    const state = (head.split("<td")[3] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
+    const state = (head.split("<td")[2] ?? "").replace(/<span class="dot"[^>]*><\/span>/g, "");
     return state.match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
   };
   const actionCell = (html: string) => {
@@ -2717,7 +2717,7 @@ describe("spec 103: a collapsed row shows status only", () => {
   const actionCell = (chunk: string) => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
+    return cells[1] ?? "";
   };
 
   const open = (folder: string) => ({ filter: { open: `aide/${folder}` } });
@@ -2965,7 +2965,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   const actionCell = (chunk: string) => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
+    return cells[1] ?? "";
   };
   const box = (line: string, step: string) =>
     line.match(new RegExp(`<label class="phase[^"]*" data-phase="${step}"[^>]*>.*?</label>`))?.[0] ?? "";
@@ -3199,7 +3199,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   const actionCell = (chunk: string) => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
     const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
-    return cells[2] ?? "";
+    return cells[1] ?? "";
   };
 
   const branch = [{ label: "aide", url: "https://example.test/c" }];
@@ -4414,7 +4414,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
    *  header's LAST cell for a shut row all along. */
   const actionCell = (chunk: string): string => {
     const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
-    return cells(headRow)[2] ?? "";
+    return cells(headRow)[1] ?? "";
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
@@ -4447,12 +4447,12 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     // Seven since spec 165, which gave the row's AI a column of its
     // own between the phase name and the model.
     for (const tr of [thead, spechead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 7]);
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
     }
     // And seven on every phase line after the first as well, since
     // spec 179: the AI column is a cell of each line's own, so no line
     // borrows its seventh slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(7);
+    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
     // The spare cell is at the END, and blank on every row now: the
     // one action a shut row drew there moved beside the state.
     expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
@@ -4556,9 +4556,10 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // The header row is the six cells it always was, cost second to
-    // last and the now-always-blank spare cell after it.
-    expect(cells(head(html, "124-stack"))).toHaveLength(6);
+    // Five cells since the Progress column went into the name cell with
+    // the pips (2026-08-22): name, state, started, cost, and the
+    // now-always-blank spare after it.
+    expect(cells(head(html, "124-stack"))).toHaveLength(5);
     expect(head(html, "124-stack")).toMatch(
       /<td class="num" data-col="cost">[^<]*<\/td><td><\/td><\/tr>$/,
     );
@@ -4831,7 +4832,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   const headRow = (html: string) => html.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? "";
   /** The State column: third cell of the head row. */
   const stateCell = (html: string) =>
-    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[2] ?? "";
+    [...headRow(html).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "")[1] ?? "";
   /** The Spec column: first cell of the head row, and the one the
    *  queue's refusal used to be written into (spec 151). */
   const nameCell = (html: string) =>
@@ -4872,7 +4873,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    expect(panel(html)).toContain('colspan="7"');
+    expect(panel(html)).toContain('colspan="6"');
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.
@@ -5410,7 +5411,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
     [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
   /** The State column: the head row's third cell, which is where spec
    *  143 pinned it and where the action now joins the badge. */
-  const state = (html: string) => cells(headRow(html))[2] ?? "";
+  const state = (html: string) => cells(headRow(html))[1] ?? "";
   /** What the row's one control SAYS. `<button>` for Run, and the
    *  component-built one for Cancel, whose label sits
    *  after a `<span class="lbl">`-free plain text node. */
@@ -5548,7 +5549,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       // seven on EVERY phase line since spec 179 put a picker on each
       // of them: no line borrows its seventh slot from a `rowspan` on
       // the line above it any more.
-      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 7]);
+      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 6]);
     }
   });
 
@@ -5557,15 +5558,11 @@ describe("spec 157: the row's one action sits in the State column", () => {
   test("the phase's state word stays in the State column", () => {
     const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open: true });
     const analyze = html.match(/<tr class="subrow[^"]*" data-step="analyze">[\s\S]*?<\/tr>/)![0];
-    // The fourth cell: name, the three choices, the Progress column,
-    // then the state word. It was the third until spec 179 gave every
-    // line its own AI cell, and the count has not moved since.
-    expect(cells(analyze)[3]).toContain('class="badge b-done"');
-    // The cell before it is the head row's Progress column, and a
-    // phase line has nothing to put there — the model select and the
-    // phase's box stood in it from spec 165 until spec 192 moved them
-    // in beside the AI, one cell further left.
-    expect(cells(analyze)[2]).toBe("");
+    // The third cell: the phase's name, the cell holding its three
+    // controls, then the state word. The Progress column stood between
+    // them until 2026-08-22, when the pips moved in beside the spec's
+    // name and the column went.
+    expect(cells(analyze)[2]).toContain('class="badge b-done"');
     expect(cells(analyze)[1]).toContain('data-phase="analyze"');
   });
 
@@ -5574,7 +5571,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   test("the head row's last cell is empty whatever the state", () => {
     for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
       const c = cells(headRow(rows(r as QueueRowView[])));
-      expect([c.length, c[c.length - 1]]).toEqual([6, ""]);
+      expect([c.length, c[c.length - 1]]).toEqual([5, ""]);
     }
   });
 
@@ -5881,17 +5878,21 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   // --- criterion 9: seven columns, on every line -----------------------------
 
-  test("the merge leaves seven columns, with the vacated one empty (criterion 9)", () => {
+  test("the merge leaves six columns, and the caption matches them", () => {
     const html = rows();
-    // The caption line and every phase line still write all seven: the
-    // AI's cell and the model's became one, and the column the head
-    // row's pips occupy went back to being empty on a phase line,
-    // which is what it was before spec 165.
-    expect(cells(caption(html))).toHaveLength(7);
-    expect(cells(caption(html))[2]).toBe("");
+    // Six since the pips moved in beside the spec's name and the
+    // Progress column went with them (2026-08-22). The caption line and
+    // every phase line write the same number, or the table stops
+    // lining up with its own head row.
+    expect(cells(caption(html))).toHaveLength(6);
     for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, cells(subRow(html, step)).length]).toEqual([step, 7]);
-      expect([step, cells(subRow(html, step))[2]]).toEqual([step, ""]);
+      expect([step, cells(subRow(html, step)).length]).toEqual([step, 6]);
+      // The third cell is the phase's own state now, not the empty one
+      // the Progress column left behind.
+      expect([step, cells(subRow(html, step))[2]]).toEqual([
+        step,
+        '<span class="muted small">not run yet</span>',
+      ]);
     }
     expect([...html.matchAll(/rowspan="/g)]).toHaveLength(0);
   });

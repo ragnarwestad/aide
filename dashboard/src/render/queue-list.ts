@@ -727,7 +727,7 @@ function sortableHead(f: QueueFilter): string {
     // would take its width from the spec NAME — leaving the phase
     // names, which are short, floating in a cell as wide as a folder
     // name. Spanning lets the phase names size their own column.
-    `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}<th>Progress</th>${th("state", "State")}` +
+    `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}${th("state", "State")}` +
     `${th("started", "Started", "", undefined, ' data-col="started"')}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
     `<th></th></tr></thead>`
@@ -1242,17 +1242,20 @@ function specHeadRow(
     // Two columns wide, like its heading: the second is the AI
     // column the phase lines below open up (spec 165), and this row
     // has nothing to say in it.
-    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}</div>` +
+    // The pips ride with the name, on the same line and after it: the
+    // column they had was empty on every phase line under this one, a
+    // hand's width of nothing all the way down the table, and they are
+    // narrow enough to sit beside a name that is already clamped
+    // (2026-08-22). A "N runs" count under them said less than they do
+    // and went in spec 165.
+    `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}` +
+    `<span class="pipslot">${progress}</span></div>` +
     `<div class="spec-title">${specSummary(g)}</div>` +
     // The repo marks on a line of their own: beside the name they took
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
     diff +
     `</td>` +
-    // The pips alone: a "N runs" count under them said less than they
-    // do (it counted phase-runs, not jobs, and the phase lines already
-    // say "N attempts" on a re-run). Removed 2026-08-19.
-    `<td>${progress}</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
     // under it said what to press until spec 174: the button beside it
@@ -1488,7 +1491,7 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
       : "") +
     `<span class="muted small" data-cap="model">Model</span>` +
     `<span class="muted small" data-cap="box">Select</span>` +
-    `</span></td><td></td><td></td><td data-col="started"></td>` +
+    `</span></td><td></td><td data-col="started"></td>` +
     `<td class="num" data-col="cost"></td><td></td>`
   );
 }
@@ -1745,13 +1748,6 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          // The Progress column is the head row's pips, and a phase
-          // line has nothing to say there. It held the model select
-          // and the box from spec 165 until spec 192 put those in the
-          // cell before it; it is empty on a phase line again, and the
-          // cell is still written so the seven columns line up with the
-          // head row's.
-          `<td></td>` +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
           `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
@@ -1764,7 +1760,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
-const LIST_COLUMNS = 7;
+const LIST_COLUMNS = 6;
 
 // The panel a row's long messages go into (spec 143): a row of its own,
 // spanning the table, wrapping rather than overflowing. Everything the

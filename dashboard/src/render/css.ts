@@ -457,9 +457,14 @@ table.list thead a { color: var(--muted); }
 /* One line, always: the name is clamped with an ellipsis rather than
    wrapped — a wrapped tail landed in front of the branch marks and
    read as one of them (2026-08-19). The full name is in the title. */
+.pipslot { margin-left: var(--sp-2); }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
-  max-width: 18rem; }
+  /* 36rem since the pips joined this line and the Progress column went
+     with them (2026-08-22): the row is one column shorter, and 18rem
+     clamped a name to "194-archive-decides-on-th…" with the width
+     standing empty to the right of it. */
+  max-width: 27rem; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
@@ -467,7 +472,7 @@ table.list thead a { color: var(--muted); }
    an un-capped line of text put a hand's width of nothing between the
    buttons and the phases (2026-08-19). */
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
-  max-width: 18rem; }
+  max-width: 27rem; }
 /* The archive's Description column (spec 170). A spec's Description
    section runs to several paragraphs — the whole of it is in the cell, because
    the search reads the whole of it — so the cell is bounded here rather
