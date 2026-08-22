@@ -46,8 +46,10 @@ describe("the listing on /projects", () => {
     expect(html).not.toContain("<h2>Projects</h2>");
     expect(html).toContain('class="summary"');
     expect(html).toContain('class="proj-row"');
-    expect(html).toContain('href="alpha.html"');
-    expect(html).toContain('href="beta.html"');
+    // The served page links the page it serves. The generated site
+    // still links its own files — `projectListBody` without `pageHref`.
+    expect(html).toContain('href="/projects/alpha"');
+    expect(html).toContain('href="/projects/beta"');
     expect(html).toContain("the first one");
     expect(html).toContain("1 active · 1 archived");
     expect(html).toContain("2 projects · 1 active · 1 archived");

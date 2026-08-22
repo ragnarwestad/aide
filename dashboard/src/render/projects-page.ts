@@ -23,7 +23,7 @@ import {
 } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { projectListBody, projectSummary, type ProjectView } from "./site.ts";
+import { projectListBody, projectPagePath, projectSummary, type ProjectView } from "./site.ts";
 
 /** Where a project is added (its own page, like `/new`), and where one
  *  is removed — the confirm page each row's Remove links to. */
@@ -140,6 +140,7 @@ export function renderProjectsPage(
     // Remove rides on each row the allowlist knows — a discovered
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
+      pageHref: (name) => projectPagePath(name),
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
       // Settings on every row the served page draws, whether or not
       // anything is wrong: it is where the two fields live now, and a

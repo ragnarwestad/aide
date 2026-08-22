@@ -162,10 +162,16 @@ export function navEntries(
     // Projects tab; what makes it a tab of its own instead of a project
     // is its absolute path, which no project page has.
     { label: "Archive", path: ARCHIVE_ROUTE },
-    ...ordered.map((p) => ({
-      label: p.name,
-      path: opts.live ? projectPagePath(p.name) : `${slugs.get(p)!}.html`,
-    })),
+    // The generated site has no server, so its nav is the only way
+    // between its pages and every project has to be in it. The served
+    // one does not: a project is reached from the Projects page, which
+    // lists every one of them with its counts, its warnings and its
+    // controls. Repeating them as top-level tabs put each project in
+    // the bar twice over — asked for by nobody, and it grows with the
+    // machine's project count (2026-08-22).
+    ...(opts.live
+      ? []
+      : ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` }))),
   ];
 }
 
@@ -367,6 +373,12 @@ export function projectSummary(projects: ProjectView[]): string {
 export function projectListBody(
   projects: ProjectView[],
   opts: {
+    /** Where a project's NAME goes. The generated site links the file
+     *  it writes; a server links the page it serves, which is the one
+     *  carrying the settings and the readiness answer (spec 185). Two
+     *  links reading "woodstack" on one page, going to two different
+     *  pages, is what this replaced (2026-08-22). */
+    pageHref?: (name: string) => string | undefined;
     removeHref?: (name: string) => string | undefined;
     /** Spec 142: what to say on a project's row about its checkout, if
      *  anything. A callback like `removeHref`, and for the same reason:
@@ -387,7 +399,7 @@ export function projectListBody(
       .map((p) =>
         overviewRow(
           p,
-          `${slugs.get(p)!}.html`,
+          opts.pageHref?.(p.name) ?? `${slugs.get(p)!}.html`,
           opts.removeHref?.(p.name),
           opts.note?.(p.name),
           opts.settingsHref?.(p.name),

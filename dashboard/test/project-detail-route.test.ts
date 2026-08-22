@@ -239,24 +239,32 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 });
 
-describe("a live server's nav leads to the served page, not the generated file", () => {
+// The served nav is Specs, Projects and Archive. A project is reached
+// from the Projects page, which lists every one of them with its
+// counts, its warnings and its controls — so naming them in the tab bar
+// as well put each project there twice, and the bar grew with the
+// machine's project count. The GENERATED site keeps them: it has no
+// server, and its nav is the only way between its pages.
+describe("the served nav does not name the projects; the generated one must", () => {
   const views = (...names: string[]): ProjectView[] =>
     names.map((name) => ({ name, manifest: { ok: true, data: {} }, specs: [] }));
 
-  test("the live nav points a project at its route", () => {
-    const entry = navEntries(views("aide"), { live: true }).find((e) => e.label === "aide");
-    expect(entry?.path).toBe("/projects/aide");
+  test("a live nav is the three tabs and nothing per project", () => {
+    const entries = navEntries(views("aide", "woodstack"), { live: true });
+    expect(entries.map((e) => e.label)).toEqual(["Projects", "Archive"]);
   });
 
-  test("the generator's nav still names the file it writes", () => {
-    expect(navEntries(views("aide")).find((e) => e.label === "aide")?.path).toBe("aide.html");
+  test("the generator's nav still names every project, and the file it writes", () => {
+    const entries = navEntries(views("aide", "woodstack"));
+    expect(entries.find((e) => e.label === "aide")?.path).toBe("aide.html");
+    expect(entries.find((e) => e.label === "woodstack")?.path).toBe("woodstack.html");
   });
 
-  test("a server started with --root builds the live nav", () => {
+  test("a server started with --root builds a nav with no project in it", () => {
     const root = projectsRoot({ aide: null });
     const site = mkdtempSync(join(tmpdir(), "aide-detail-site-"));
     ownDirs.push(site);
     const opts = parseArgs(["--site", site, "--root", root]);
-    expect(opts.navEntries?.find((e) => e.label === "aide")?.path).toBe("/projects/aide");
+    expect(opts.navEntries?.some((e) => e.label === "aide")).toBe(false);
   });
 });
