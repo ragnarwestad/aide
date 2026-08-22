@@ -260,10 +260,29 @@ export interface RowNotice {
   hook?: string;
 }
 
-/** Which of the three applies, if any. The order is the row's own: the
+/** Which of the four applies, if any. The order is the row's own: the
  *  queue's refusal of the press just made comes first, then a job that
- *  failed saying why it failed, and the spec's standing note about an
- *  archive that declined is what is left when no job is complaining.
+ *  failed saying why it failed, then the spec's standing note about an
+ *  archive that declined, and last a phase whose own record disagrees
+ *  with the files.
+ *
+ *  That fourth one is the newest (spec 195) and ranks lowest because it
+ *  is the least specific: a refusal answers a button the reader just
+ *  pressed, an error says why the row is not moving, and a held-back
+ *  note names a decision — a disagreement is a standing condition that
+ *  was true before any of them and will still be true after. It reaches
+ *  this function already worded with its phase's name (`analyze: …`),
+ *  because it used to be drawn beneath that phase's own badge and a
+ *  sentence moved out of the line it belonged to must say which line
+ *  that was. `phaseWordCell` drew it in a `<div>` of its own until spec
+ *  195, which made a phase line with something to say taller than the
+ *  ones beside it — the same symptom, and the same cause, spec 176
+ *  fixed for the stale mark and the tries count.
+ *
+ *  `archiveHeldBack` and the disagreement are the one PAIR that can
+ *  both be true of the same phase: archive is held back and its own
+ *  last re-run failed. First-match-wins would drop one of two true
+ *  things silently, so that pair is joined into one message instead.
  *
  *  The refusal is the third producer, added by spec 151 and the only
  *  one that belongs to no job: the queue returns it at enqueue time,
@@ -301,13 +320,26 @@ export function specNotice(
   lead: QueueRowView | undefined,
   archiveHeldBack?: string,
   refusal?: string,
+  /** A phase's own qualifier, worded with that phase's name by the
+   *  caller — this file knows nothing about a spec's phase list. */
+  disagreement?: string,
 ): RowNotice | undefined {
   if (refusal) return { variant: "err", text: refusal, hook: "refused" };
   if (lead?.error) return { variant: "err", text: lead.error };
   if (lead && inFlight(lead)) return undefined;
   // The same amber the badge takes, and for the same reason: a held-back
-  // archive is a common, healthy outcome — notice, not alarm.
+  // archive is a common, healthy outcome — notice, not alarm. A
+  // disagreement takes the same amber for the same reason.
+  if (archiveHeldBack && disagreement) {
+    // Both true at once, and both said. The prefix below already names
+    // archive, and a disagreement competing with a held-back note is
+    // archive's own by construction — so the phase name it arrived with
+    // comes off rather than being written twice in one sentence.
+    const detail = disagreement.replace(/^archive: /, "");
+    return { variant: "warn", text: `archive held back — ${archiveHeldBack} · ${detail}` };
+  }
   if (archiveHeldBack) return { variant: "warn", text: `archive held back — ${archiveHeldBack}` };
+  if (disagreement) return { variant: "warn", text: disagreement };
   return undefined;
 }
 
@@ -315,14 +347,19 @@ export function specNotice(
 
 /** What one phase reads as, in the three parts a row and a job page
  *  both need: the pip, the word in the badge, and — only when the last
- *  attempt disagrees with the file — a qualifier beneath it. */
+ *  attempt disagrees with the file — a qualifier. */
 export interface PhaseWord {
   pip: PipKind;
   /** Absent means "nothing has happened and nothing was attempted" —
    *  the row's "not run yet". */
   badge?: { variant: BadgeVariant; label: string };
   /** Said only when the last attempt disagrees with the truth above.
-   *  Never repeats what the badge already says. */
+   *  Never repeats what the badge already says.
+   *
+   *  A sentence, not a word — so the phase LINE never draws it. The
+   *  caller hands it to the row's panel instead, named for its phase
+   *  (`specNotice`, spec 195); on the queue list a phase line is the
+   *  badge and nothing else, whatever has happened to that phase. */
   qualifier?: string;
 }
 
@@ -366,8 +403,8 @@ export function wordPhase(
   const disagrees = !!attempt && !running && attempt.state !== "done";
   // Said when the file and the history part company, and never over a
   // qualifier that has something sharper to say: an attempt that ended
-  // badly is the more useful sentence, and two lines of small print
-  // under one badge is the row saying two things at once.
+  // badly is the more useful sentence, and two sentences about one
+  // phase is the row saying two things at once.
   const filesDisagree = history.fileDisagrees ? FILES_DISAGREE : undefined;
   if (happened) {
     return {

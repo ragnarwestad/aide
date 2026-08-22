@@ -758,7 +758,8 @@ export function createServer(opts: ServerOptions) {
             // archive job that finished without moving anything counted
             // as an archived spec, and how a phase could read "done" on
             // a row whose files said otherwise. What a job reported is
-            // still shown, as a qualifier on the phase's line.
+            // still shown, as a qualifier — in the row's own panel since
+            // spec 195, not on the phase's line.
             //
             // One line of that file, and no inference from any other
             // (spec 139): each step writes its own name into
