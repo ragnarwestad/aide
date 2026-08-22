@@ -157,6 +157,37 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
   });
 });
 
+// --- spec 177: a job already carrying more steps than settings --------------
+//
+// The literal shape spec 176's own job was found in: started with two
+// steps, ticked up to four while it ran (spec 160), and its three
+// per-step tables still naming only the two it was created with. The
+// page reads those tables for whichever step is current, so a job in
+// this state shows a model it is not running on and a limit that is
+// not a number.
+describe("the page resolves a step its job's tables never named", () => {
+  test("the model and the limit shown are the live config's, not blank", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["analyze"]);
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === id)!;
+    // Ticked on afterwards: `job.steps` grows, the settings tables do not.
+    job.steps = ["analyze", "implement"];
+    job.stepIndex = 1;
+    job.state = "stopped";
+    job.stopReason = "timeout";
+    writeFileSync(mirror, JSON.stringify(jobs));
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}/specs/${id}`, auth)).text();
+    // `implement`'s own configured model and its own 90-minute limit —
+    // not "as configured" and not "NaN min".
+    expect(html).toContain("opus");
+    expect(html).toContain("stopped — 90 min");
+  });
+});
+
 // --- spec 04: a finished job does not say its work is unmerged ---------------
 
 // The badge is derived from git at render time, not stored on the job,

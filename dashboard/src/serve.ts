@@ -487,9 +487,37 @@ function serveStatic(siteDir: string, pathname: string): Response {
  *  but a job created before that change is still in the store across the
  *  deploy carrying a bare number — read as an index that would hand the
  *  runner the string "undefined" as its deadline. A transitional read
- *  for jobs already in flight, not a dual-format feature. */
-export function resolveTimeoutSec(t: Job["timeoutSec"], step: string): number {
-  return typeof t === "number" ? t : (t[step] ?? t.default!);
+ *  for jobs already in flight, not a dual-format feature.
+ *
+ *  `live` is the config's own table, and it is what actually answers for
+ *  a step ticked onto a running job's tail (spec 160): `parseJobRequest`
+ *  resolves the config's `default` into a concrete entry for each step
+ *  the request named, so a job's own table carries no `default` key of
+ *  its own and a step added afterwards has no entry in it at all. The
+ *  `t.default` branch below is kept for a job hand-written with one, not
+ *  because any job the queue produces has it (spec 177). */
+export function resolveTimeoutSec(t: Job["timeoutSec"], step: string, live: Record<string, number>): number {
+  if (typeof t === "number") return t;
+  return t[step] ?? t.default ?? live[step] ?? live.default!;
+}
+
+/** The same read for the other two per-step tables (spec 177). Named
+ *  and exported rather than inlined at each site, so the argv the runner
+ *  is started with and the values the row and the job page SHOW cannot
+ *  answer the question differently. */
+export function resolveStepPermissionMode(job: Job, step: string, live: Record<string, string>): string {
+  // The `acceptEdits` literal stays last, so the function is total
+  // without asserting on config shape — unreachable in practice, since
+  // every path that builds a `QueueDefaults` carries a `default`.
+  return job.permissionMode[step] ?? live[step] ?? live.default ?? "acceptEdits";
+}
+
+/** A whole-job model pick wins over the config's per-step default: at
+ *  creation `parseJobRequest` copies `modelChoice` into EVERY step's own
+ *  entry, so a step added later has to match its siblings rather than
+ *  fall through to whatever the config says for that step alone. */
+export function resolveStepModel(job: Job, step: string, live: Record<string, string>): string | undefined {
+  return job.model[step] ?? job.modelChoice ?? live[step] ?? live.default;
 }
 
 /** The argv `aide-run-spec` is started with. Extracted so it can be read
@@ -508,11 +536,17 @@ export function runnerArgv(
      *  which model string — is looked up here, where the grants
      *  already live. */
     modelChoices?: Record<string, ModelChoice>;
+    /** The config's three per-step tables, live (spec 177). What answers
+     *  for a step the job's own tables never named — a phase ticked onto
+     *  a running job's tail after the job was created. */
+    timeoutSec?: Record<string, number>;
+    permissionMode?: Record<string, string>;
+    model?: Record<string, string>;
   },
   sessionId?: string,
   streamFile?: string,
 ): string[] {
-  const choiceName = job.model[step];
+  const choiceName = resolveStepModel(job, step, o.model ?? {});
   const choice = choiceName ? o.modelChoices?.[choiceName] : undefined;
   // The entry's own key stays the model unless the entry says otherwise
   // — which is exactly what every config written before this spec did.
@@ -524,8 +558,8 @@ export function runnerArgv(
     "--command", step,
     "--spec", job.specFolder,
     "--budget-usd", String(job.budgetUsd),
-    "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step)),
-    "--permission-mode", job.permissionMode[step] ?? "acceptEdits",
+    "--timeout-sec", String(resolveTimeoutSec(job.timeoutSec, step, o.timeoutSec ?? {})),
+    "--permission-mode", resolveStepPermissionMode(job, step, o.permissionMode ?? {}),
     "--result-file", resultFile,
     "--push", o.push,
     "--pull",
@@ -853,6 +887,9 @@ export function createServer(opts: ServerOptions) {
                 projectRoot: opts.queueProjectRoot ?? "",
                 push: opts.queuePush ?? "branch",
                 modelChoices: queue.defaults.modelChoices,
+                timeoutSec: queue.defaults.timeoutSec,
+                permissionMode: queue.defaults.permissionMode,
+                model: queue.defaults.model,
               },
               sessionId,
               streamFile,
@@ -1215,7 +1252,7 @@ export function createServer(opts: ServerOptions) {
       // starts.
       editableSteps: tailEdits(job),
       state: job.state,
-      model: job.modelChoice ?? (step ? job.model[step] : undefined),
+      model: step ? resolveStepModel(job, step, queue.defaults.model) : job.modelChoice,
       spentUsd: job.spentUsd,
       // The stored split is five numbers; the page shows one. Flattened
       // here, at the boundary, so no render file has to know what a
@@ -1224,7 +1261,7 @@ export function createServer(opts: ServerOptions) {
       // One number, for the step this row speaks for: `stateLabel` puts
       // it into words ("stopped — 45 min") and has no step to resolve
       // against of its own.
-      timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default"),
+      timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default", queue.defaults.timeoutSec),
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       branchUrls,
@@ -2534,7 +2571,7 @@ export function createServer(opts: ServerOptions) {
     const step = job.steps[job.stepIndex];
     const running = job.state === "running";
     const named = running
-      ? queue.defaults.modelChoices?.[job.model[step ?? ""] ?? ""]?.tool
+      ? queue.defaults.modelChoices?.[resolveStepModel(job, step ?? "", queue.defaults.model) ?? ""]?.tool
       : job.results[job.results.length - 1]?.tool;
     const tool = named ?? "claude";
     // What this job's step WROTE (spec 150). The step running now, or
