@@ -56,8 +56,10 @@ Examples:
 
 ### Step 2: Detect complexity
 
-Classify as LOW/MEDIUM/HIGH based on the number of files, operation type,
-and API impact. See `references/complexity-and-analysis.md` for the criteria.
+Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the
+grade, and the grade is the highest band any of them reaches. The number of
+files is a signal read last — it never raises a grade the other three read
+as LOW. See `references/complexity-and-analysis.md` for the criteria.
 
 ### Step 3: Analyze the codebase
 

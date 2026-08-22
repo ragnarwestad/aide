@@ -2,12 +2,21 @@
 
 ## Classification
 
-| Factor          | LOW                     | MEDIUM               | HIGH                       |
-|-----------------|-------------------------|----------------------|----------------------------|
-| Number of files | 1-2                     | 3-10                 | 10+                        |
-| Operation       | remove/replace/fix      | refactor/improve     | migrate/upgrade            |
-| Keywords        | specific file mentioned | one component/module | "all", "migrate", "entire" |
-| API impact      | none                    | minor changes        | new/changed contracts      |
+**Grading rule:** The grade is the highest band Operation, Keywords or
+API impact reaches; Number of files is read last, as a signal, never a
+fourth vote, and never enough by itself to move a spec the other three
+read as LOW. Worked example: a wording fix replacing one string across
+an implementation file and its test — Operation is fix/replace (LOW),
+Keywords name the specific files (LOW), API impact is none (LOW).
+Touching four files sits inside the MEDIUM file-count range, but that
+range is not a vote, so the grade stays LOW.
+
+| Factor                               | LOW                     | MEDIUM               | HIGH                       |
+|--------------------------------------|-------------------------|----------------------|----------------------------|
+| Operation                            | remove/replace/fix      | refactor/improve     | migrate/upgrade            |
+| Keywords                             | specific file mentioned | one component/module | "all", "migrate", "entire" |
+| API impact                           | none                    | minor changes        | new/changed contracts      |
+| Number of files (signal, not a vote) | typically 1-5           | typically 5-15       | typically 15+              |
 
 See the workflows rules § Complexity detection for details.
 

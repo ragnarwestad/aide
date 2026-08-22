@@ -123,21 +123,9 @@ Use the API mapping to identify:
 
 ### Complexity
 
-**Simple:**
-- 1-2 files affected
-- No API changes
-- < 2 hours of estimated work
-
-**Medium:**
-- 3-5 files affected
-- Minor API changes
-- 2-8 hours of estimated work
-
-**Complex:**
-- > 5 files affected
-- Major API changes or new endpoints
-- > 8 hours of estimated work
-- Requires deeper reasoning (Extended Thinking)
+See the workflows rules § Complexity detection for the grading criteria:
+Operation, Keywords and API impact decide the grade; Number of files is
+a signal, read last, never a floor by itself.
 
 ---
 

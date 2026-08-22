@@ -36,12 +36,21 @@ effort: medium
 
 **Principle:** Match the scope of the documentation to the complexity of the task.
 
+**Grading rule:** The grade is the highest band Operation, Keywords or
+API impact reaches; Number of files is read last, as a signal, never a
+fourth vote, and never enough by itself to move a spec the other three
+read as LOW. Worked example: a wording fix replacing one string across
+an implementation file and its test — Operation is fix/replace (LOW),
+Keywords name the specific files (LOW), API impact is none (LOW).
+Touching four files sits inside the MEDIUM file-count range, but that
+range is not a vote, so the grade stays LOW.
+
 ### LOW complexity (Quick Fix)
 
 **Characteristics:**
 - The description mentions **one specific file**
 - Simple operations: "remove", "replace", "correct", "update", "fix"
-- Affects 1-2 files in total
+- Typically touches 1-5 files — the file itself, plus its own test
 
 **Analysis scope:**
 - Read ONLY the mentioned file
@@ -61,7 +70,7 @@ effort: medium
 **Characteristics:**
 - The description mentions **one component/module**
 - Operations: "refactor", "improve", "modernize", "extend"
-- May affect 3-10 files
+- Typically touches 5-15 files
 
 **Analysis scope:**
 - Find files related to the component/module
@@ -82,7 +91,7 @@ effort: medium
 **Characteristics:**
 - The description uses **patterns** ("all", "migrate X to Y", "upgrade")
 - Large refactorings or architecture changes
-- Affects 10+ files
+- Typically touches 15+ files
 
 **Analysis scope:**
 - Search the codebase broadly for patterns

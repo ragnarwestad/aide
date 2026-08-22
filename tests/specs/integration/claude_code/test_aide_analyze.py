@@ -97,43 +97,6 @@ Grepped for the validation helpers, then read each caller.
         assert "### Backend" in content
 
 
-class TestAideAnalyserComplexity:
-    """Tests for complexity assessment."""
-
-    def test_complexity_simple(self):
-        """Verify simple complexity criteria."""
-        # Simple: 1-2 files, no API changes, < 2 hours
-        affected_files = 2
-        has_api_changes = False
-        estimated_hours = 1.5
-
-        complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
-
-        assert complexity == "Simple"
-
-    def test_complexity_medium(self):
-        """Verify medium complexity criteria."""
-        # Medium: 3-5 files, minor API changes, 2-8 hours
-        affected_files = 4
-        has_api_changes = True
-        estimated_hours = 5
-
-        complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
-
-        assert complexity == "Medium"
-
-    def test_complexity_complex(self):
-        """Verify complex complexity criteria."""
-        # Complex: > 5 files, major API changes, > 8 hours
-        affected_files = 8
-        has_api_changes = True
-        estimated_hours = 12
-
-        complexity = _assess_complexity(affected_files, has_api_changes, estimated_hours)
-
-        assert complexity == "Complex"
-
-
 class TestAideAnalyserTodo:
     """Tests for TODO analysis."""
 
@@ -163,22 +126,3 @@ Read the component and its single test.
         assert "## Affected files" in content
         assert "## Complexity" not in content
         assert "## Risk analysis" not in content
-
-
-def _assess_complexity(affected_files: int, has_api_changes: bool, estimated_hours: float) -> str:
-    """Helper function to assess complexity based on criteria.
-
-    Args:
-        affected_files: Number of files affected
-        has_api_changes: Whether API changes are involved
-        estimated_hours: Estimated hours to complete
-
-    Returns:
-        Complexity level: "Simple", "Medium", or "Complex"
-    """
-    if affected_files > 5 or estimated_hours > 8:
-        return "Complex"
-    elif affected_files >= 3 or has_api_changes or estimated_hours >= 2:
-        return "Medium"
-    else:
-        return "Simple"
