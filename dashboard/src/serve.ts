@@ -28,7 +28,7 @@ import {
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { previewUrlFor } from "./preview-url.ts";
-import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
+import { archiveHeldBackReason, parseStatus, parseStatusChecks, tickStatusLine } from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
@@ -75,6 +75,7 @@ import {
   specEditPath,
   specPagePath,
   EDITABLE_SPEC_FILE,
+  STATUS_SPEC_FILE,
   type ArchiveFilter,
   type ArchivePageView,
   type ArchivedSpecView,
@@ -2422,6 +2423,7 @@ export function createServer(opts: ServerOptions) {
           text: merged,
           baseSha,
           specLabel: specFolder!,
+          message: `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`,
         }),
       );
       if (!result.ok) {
@@ -2435,6 +2437,75 @@ export function createServer(opts: ServerOptions) {
         note: result.note,
         ok: true,
       });
+    }
+
+    // Spec 182: one of the spec's remaining checks, ticked off from its
+    // own page. `4-status.md` has been the runner's since spec 154 and
+    // this is the narrow exception: a person may flip one existing
+    // row's Status mark and nothing else. The new text is computed HERE
+    // from the row the server itself verified, never taken from the
+    // body — which is what makes "only checkbox lines can change"
+    // structural rather than a promise.
+    //
+    // The same shape as `/save` above, down to the order of the
+    // questions: archived before the body is read, one lock over the
+    // shared specs checkout, and a 303 back to the page carrying the
+    // reason either way.
+    const statusTick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/status\/tick$/);
+    if (statusTick) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = statusTick;
+      const dir = specDir(project!, specFolder!);
+      if (!dir) return new Response("not found", { status: 404 });
+      const back = specPagePath(project!, specFolder!);
+      if (specRef(project!, specFolder!)?.archived) {
+        logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, back);
+      }
+      // The shared 4096-byte cap, not the save route's own: the body is
+      // three short fields, and the longest of them is one table row.
+      const sent = await readBounded(req);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      if (typeof body.phase !== "string" || typeof body.line !== "string") {
+        return specsRedirect({}, { error: "no row was submitted — nothing was ticked" }, back);
+      }
+      // The row-level guard, on top of `saveSpecFile`'s file-level one.
+      // A `null` here is every way the page can be out of date at once:
+      // no such phase, no such row inside it, or a row someone has
+      // already ticked in the very commit the page was drawn from —
+      // which a sha alone cannot tell from a fresh render.
+      const ticked = tickStatusLine(specFileText(dir, STATUS_SPEC_FILE) ?? "", body.phase, body.line);
+      if (ticked === null) {
+        return specsRedirect(
+          {},
+          { error: "that check is not there to tick any more — reload the page and look again" },
+          back,
+        );
+      }
+      const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
+      const result = await mergeLock.run(await specsRoot(dir), () =>
+        saveSpecFile(gitRun, dir, (root) => branchStatus.defaultBranch(root), {
+          file: STATUS_SPEC_FILE,
+          text: ticked,
+          baseSha,
+          specLabel: specFolder!,
+          // What the commit is FOR: that a human, not a step, made a
+          // check no step could make. Deliberately not the description
+          // editor's sentence — the two records say different things.
+          message: `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`,
+        }),
+      );
+      if (!result.ok) {
+        logRefusal("tick", `${project}/${specFolder}`, result.note);
+        return specsRedirect({}, { error: result.note }, back);
+      }
+      return specsRedirect({}, undefined, back, { note: result.note, ok: true });
     }
 
     // One job, in full: what it IS (the spec's title and description),
@@ -2553,12 +2624,21 @@ export function createServer(opts: ServerOptions) {
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
     const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
     const lead = jobs.find(inFlight) ?? jobs[0];
+    const files = await specFileViews(dir);
+    // Off the text `specFileViews` has already read, so the page makes
+    // no second git or disk read for the same file.
+    const status = files.find((f) => f.label === STATUS_SPEC_FILE);
     return {
       project,
       specFolder,
       title: ref?.title ?? undefined,
       archived: ref?.archived ?? false,
-      files: await specFileViews(dir),
+      files,
+      checks: {
+        rows: parseStatusChecks(status?.text ?? ""),
+        action: `/api/queue${specPagePath(project, specFolder)}/status/tick`,
+        baseSha: status?.sha,
+      },
       lead: lead ? await jobDetailView(lead) : undefined,
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.

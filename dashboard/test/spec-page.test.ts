@@ -15,6 +15,7 @@ import {
   renderJobDetailPage,
   renderSpecEditPage,
   renderSpecPage,
+  type SpecCheckView,
   type SpecEditPageView,
   type SpecPageView,
 } from "../src/render.ts";
@@ -450,5 +451,79 @@ describe("the edit page", () => {
     test("the note about when it takes effect stays beside the picker", () => {
       expect(withOptions()).toContain("next gated step");
     });
+  });
+});
+
+// --- spec 182: the spec's remaining checks, at the top of its page ----------
+//
+// A check only a person can make — look at the page at 375px and say
+// whether it holds — was a row buried near the bottom of the fourth
+// file, and saying so meant a terminal. The rows come to the top of the
+// page instead, and each one that is not done carries a button.
+
+describe("the checks block (spec 182)", () => {
+  const check = (extra: Partial<SpecCheckView> = {}): SpecCheckView => ({
+    phase: "Phase 4: REFACTOR - Test suite",
+    line: "| Manual check at 375px in a real browser | ⬜ | still outstanding |",
+    task: "Manual check at 375px in a real browser",
+    done: false,
+    ...extra,
+  });
+
+  const TICK = "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/status/tick";
+
+  const withChecks = (rows = [check(), check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true })]) =>
+    view({ checks: { action: TICK, baseSha: "a3f9c21deadbeef", rows } });
+
+  test("an unticked row is on the page, with a control that posts the tick", () => {
+    const html = page(withChecks());
+    expect(html).toContain("Manual check at 375px in a real browser");
+    expect(html).toContain(`action="${TICK}"`);
+    expect(html).toContain('name="line"');
+    expect(html).toContain('name="phase"');
+    expect(html).toContain('name="baseSha"');
+    expect(html).toContain("a3f9c21deadbeef");
+  });
+
+  // The banner, not the Overview panel: the description says the top of
+  // the SPEC's page, and a reader on Activity is reading the same spec.
+  test("it is above the tab bar, so every tab shows it", () => {
+    for (const tab of ["overview", "activity", "steps"]) {
+      const html = page(withChecks(), tab);
+      expect([tab, html.includes("Manual check at 375px in a real browser")]).toEqual([tab, true]);
+      expect([tab, html.indexOf("375px") < html.indexOf('class="tabbar"')]).toEqual([tab, true]);
+    }
+  });
+
+  test("a done row is shown too, marked as done and with no control of its own", () => {
+    const html = page(withChecks([check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true })]));
+    expect(html).toContain("Run the full test suite");
+    expect(html).not.toContain(`action="${TICK}"`);
+  });
+
+  test("the unticked ones are told apart from the done ones in the markup", () => {
+    const html = page(withChecks());
+    expect(html).toContain("check open");
+    expect(html).toContain("check done");
+  });
+
+  test("the phase a row belongs to travels with it", () => {
+    expect(page(withChecks())).toContain("Phase 4");
+  });
+
+  // A spec whose 4-status.md has no Phase section at all — never
+  // analysed, or a LOW-complexity spec on the simple layout.
+  test("a spec with no rows renders no block at all", () => {
+    const html = page(view({ checks: { action: TICK, baseSha: undefined, rows: [] } }));
+    expect(html).not.toContain('class="checklist"');
+  });
+
+  test("a spec whose view carries no checks renders no block at all", () => {
+    expect(page(view())).not.toContain('class="checklist"');
+  });
+
+  test("an archived spec is a record — the rows are shown with no control", () => {
+    const html = page(view({ archived: true, checks: { action: TICK, baseSha: "a3f9c21deadbeef", rows: [check()] } }));
+    expect(html).not.toContain(`action="${TICK}"`);
   });
 });

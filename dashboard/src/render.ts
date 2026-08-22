@@ -73,8 +73,14 @@ export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./r
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
 // 150). It shares the job page's tab bar, activity block and steps
 // table rather than carrying copies of them.
-export { EDITABLE_SPEC_FILE, renderSpecPage, specEditPath, specPagePath } from "./render/spec-page.ts";
-export type { SpecPageView } from "./render/spec-page.ts";
+export {
+  EDITABLE_SPEC_FILE,
+  STATUS_SPEC_FILE,
+  renderSpecPage,
+  specEditPath,
+  specPagePath,
+} from "./render/spec-page.ts";
+export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
 
 // `/archive` — every archived spec, grouped by project (spec 163). The
 // pages it links to are the spec page's; what was missing was the way
