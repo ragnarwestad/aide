@@ -311,15 +311,15 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .checklist .checkphase:first-child { margin-top: 0; }
 .check { display: flex; align-items: baseline; gap: var(--sp-2); }
 .check.done .checktask { color: var(--muted); text-decoration: line-through; }
-/* The button IS the box: one press, no script, the same 303 round trip
-   Update and Save already make. Sized like a checkbox so the two kinds
-   of row line up whether or not the row has a control. */
+/* One box-sized slot, whichever of the two things is in it: the mark a
+   row on the spec page shows, and the real checkbox the Edit form draws
+   for a row that is still open (spec 188). Fixed width so every row
+   lines up whether it is a mark or a control. */
 .checkbox { display: inline-flex; align-items: center; justify-content: center;
   width: 18px; min-width: 18px; height: 18px; padding: 0; flex: none;
   font-size: var(--fs-m); line-height: 1; }
-button.checkbox { border: 1px solid var(--line-strong); border-radius: var(--r-s);
-  background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
-button.checkbox:hover { border-color: var(--accent); color: var(--accent); }
+label.checkbox { cursor: pointer; }
+label.checkbox input { margin: 0; cursor: pointer; }
 
 /* --- row-level message ---------------------------------------------- */
 

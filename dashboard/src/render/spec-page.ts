@@ -37,9 +37,9 @@ import {
 } from "./job-page.ts";
 
 /** One row of `4-status.md`'s Tasks tables, as the page shows it (spec
- *  182). `phase` and `line` are the row's identity and travel back with
- *  a tick: the server finds the row by them and refuses if either has
- *  moved, so a stale page can never flip the wrong line. */
+ *  182). `phase` and `line` are the row's identity: the Edit form is
+ *  where a row is ticked since spec 188, and it names the row by them
+ *  so the server can refuse a row that has moved. */
 export interface SpecCheckView {
   phase: string;
   line: string;
@@ -47,14 +47,12 @@ export interface SpecCheckView {
   done: boolean;
 }
 
-/** The spec's remaining checks, and where a tick posts (spec 182). */
+/** The spec's remaining checks, as a summary (specs 182, 188). Rows and
+ *  nothing else: this banner has not written to `4-status.md` since the
+ *  tick moved onto the Edit form, so it needs neither an action to post
+ *  to nor a sha to guard with. */
 export interface SpecChecksView {
   rows: SpecCheckView[];
-  action: string;
-  /** The commit `4-status.md` was read at — `saveSpecFile`'s existing
-   *  file-level guard, carried through the form the way the description
-   *  editor already carries it. */
-  baseSha?: string;
 }
 
 export interface SpecPageView {
@@ -125,18 +123,21 @@ export const specEditPath = (project: string, specFolder: string): string =>
  *
  *  Done rows are shown too, dimmed: the list is what is left AND what
  *  has been settled, and a list that only ever shrinks says nothing
- *  about how far the spec got. Each undone row is its own one-button
- *  `<form>` — one click, no JavaScript, the shape every other action on
- *  this dashboard already has. An archived spec's rows are a record and
- *  carry no control at all.
+ *  about how far the spec got.
+ *
+ *  Every row is INERT (spec 188). A check used to be ticked by pressing
+ *  its box here, which wrote and committed on the spot — a second way
+ *  of changing a spec beside the description's Edit and Save, and a
+ *  reader had to learn both. The tick is part of editing now: the Edit
+ *  form carries the checks that are still holding the spec back, and
+ *  one Save commits them with whatever the description text changed to.
+ *  What is left here is the summary, in the place spec 182 put it.
  *
  *  The phase leads its own group heading rather than repeating on every
  *  row: the rows under `Phase 4: REFACTOR` are all Phase 4's. */
 function checklist(view: SpecPageView): string {
   const rows = view.checks?.rows ?? [];
   if (rows.length === 0) return "";
-  const action = view.checks!.action;
-  const baseSha = view.checks!.baseSha ?? "";
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
   for (const row of rows) {
@@ -145,14 +146,7 @@ function checklist(view: SpecPageView): string {
     else groups.push({ phase: row.phase, rows: [row] });
   }
   const control = (row: SpecCheckView): string =>
-    row.done || view.archived
-      ? `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`
-      : `<form class="actionform" method="post" action="${esc(action)}">` +
-        `<input type="hidden" name="phase" value="${esc(row.phase)}">` +
-        `<input type="hidden" name="line" value="${esc(row.line)}">` +
-        `<input type="hidden" name="baseSha" value="${esc(baseSha)}">` +
-        `<button class="checkbox" type="submit" title="tick this check off — it is committed as made by hand">` +
-        `☐</button></form>`;
+    `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`;
   const item = (row: SpecCheckView): string =>
     `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
     `<span class="checktask">${esc(row.task)}</span></li>`;
