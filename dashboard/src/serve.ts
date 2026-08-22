@@ -1779,9 +1779,18 @@ export function createServer(opts: ServerOptions) {
       const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
       // Hand the token over ONCE, as an HttpOnly cookie, so the forms
       // never have to carry it in their markup.
+      //
+      // `Lax`, not `Strict` (2026-08-22). A Strict cookie is withheld on
+      // a top-level navigation that STARTED somewhere else, and an
+      // installed app launched from the home screen is exactly that — so
+      // the dashboard installed on a phone opened on "unauthorized"
+      // while the same browser was signed in. Lax is sent on an ordinary
+      // top-level navigation and still withheld from a cross-site POST,
+      // which is what Strict was guarding here; every form on this page
+      // posts same-site and is unaffected.
       if (url.searchParams.get("token") && queueToken) {
         headers["set-cookie"] =
-          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
     }
@@ -1810,7 +1819,7 @@ export function createServer(opts: ServerOptions) {
       // who arrived with the token in the address.
       if (url.searchParams.get("token") && queueToken) {
         headers["set-cookie"] =
-          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
     }
@@ -1921,7 +1930,7 @@ export function createServer(opts: ServerOptions) {
       // here.
       if (url.searchParams.get("token") && queueToken) {
         headers["set-cookie"] =
-          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=31536000`;
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
     }

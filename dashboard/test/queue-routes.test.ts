@@ -152,7 +152,13 @@ describe("token configured", () => {
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("HttpOnly");
-    expect(cookie).toContain("SameSite=Strict");
+    // Lax, never Strict: a Strict cookie is withheld on a top-level
+    // navigation that started somewhere else, and an installed app
+    // launched from the home screen is one — the dashboard opened on
+    // "unauthorized" on a phone whose browser was signed in
+    // (2026-08-22). Lax still keeps it off a cross-site POST.
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).not.toContain("SameSite=Strict");
     const jar = cookie.split(";")[0];
     expect((await fetch(`${base}/`, { headers: { cookie: jar } })).status).toBe(200);
   });
