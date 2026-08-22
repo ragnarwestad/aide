@@ -849,6 +849,37 @@ export function createServer(opts: ServerOptions) {
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
     return folders.length > 0 ? { specFolders: folders } : null;
   };
+  // --- spec 189: the pages that are watching --------------------------------
+  //
+  // One held-open response per open tab. The event is a SIGNAL and
+  // carries nothing: the browser already knows how to fetch a fresh
+  // `#jobrows`, so `renderQueueRows` stays the one place a row is
+  // described and there is no second format to keep in step with it.
+  // What travels the wire is "go and look".
+  const encoder = new TextEncoder();
+  const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
+
+  /** Write to one watcher, and forget it the moment it refuses. A tab
+   *  that has gone away throws on enqueue, and a broadcast that let
+   *  that through would stop at the first dead page and leave every
+   *  live one unaware — the same fail-open the rest of this surface
+   *  keeps (`LiveEnricher`, `branch-status`). */
+  const writeTo = (c: ReadableStreamDefaultController<Uint8Array>, text: string): void => {
+    try {
+      c.enqueue(encoder.encode(text));
+    } catch {
+      watchers.delete(c);
+    }
+  };
+
+  /** Something a row is drawn from moved. Called from the queue's own
+   *  write hook below and from `POST /api/aide-run` — the two sources a
+   *  row reads, and the second is invisible to the first. A copy of the
+   *  set is walked because `writeTo` removes from it. */
+  const notifyQueueChanged = (): void => {
+    for (const c of [...watchers]) writeTo(c, "event: changed\ndata: {}\n\n");
+  };
+
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // spec 108 made the spec's own files the only answer to that.
@@ -862,6 +893,10 @@ export function createServer(opts: ServerOptions) {
     // requirement is right for every other route, so it is left exactly
     // as it is rather than widened for all of them.
     allowCreateProject: (project) => allowed.has(project),
+    // Every write to a job passes through this store, so one hook here
+    // covers the runner's step transitions, the page's own presses and
+    // the API's alike (spec 189).
+    onChange: notifyQueueChanged,
   });
 
   // The runner exists only when a binary is configured. Spawned
@@ -1089,6 +1124,21 @@ export function createServer(opts: ServerOptions) {
     : null;
   timer?.unref?.();
 
+  // Bun cuts a connection that has said nothing for `idleTimeout` (120
+  // seconds, set on `Bun.serve` below for slow git work), and a page
+  // watching a quiet queue is exactly such a connection. A comment
+  // every 45 seconds keeps it open and costs the page nothing: an SSE
+  // client ignores a line that starts with a colon.
+  //
+  // `.unref()` like the runner's timer, so it never holds the process
+  // up — and cleared in `stop()` besides, because `bun test` runs many
+  // suites in one process and a timer from a stopped test's server
+  // would go on firing into the next one.
+  const keepAlive = setInterval(() => {
+    for (const c of [...watchers]) writeTo(c, ": ping\n\n");
+  }, 45_000);
+  keepAlive.unref?.();
+
   const queueToken = opts.queueToken;
   // `/specs/<id>` joins the guarded set HERE, never as a special case
   // further down: a read route outside the guard is exactly the silent
@@ -1177,6 +1227,11 @@ export function createServer(opts: ServerOptions) {
         const parsed = parseAideRun(raw);
         if (!parsed.ok) return json({ error: parsed.error }, 400);
         const stored = store.put(parsed.run, new Date().toISOString());
+        // The second source a row reads (spec 189). Cost, subagent
+        // count and live state arrive here and nowhere near the queue's
+        // own store, so a push driven by that store alone would let
+        // them sit still for the whole of a long step.
+        notifyQueueChanged();
         return json({ ok: true, sessionId: stored.sessionId });
       }
 
@@ -1818,6 +1873,41 @@ export function createServer(opts: ServerOptions) {
     // and is deliberately not matched.
     if (path === "/queue" || path === "/specs") {
       return new Response(null, { status: 302, headers: { location: `/${url.search}` } });
+    }
+
+    // Spec 189: the page's own connection. Answered HERE, near the top,
+    // and deliberately not further down beside the other `/api/queue`
+    // routes: the `/(api\/queue|specs)/<id>` match at the end of this
+    // function would read "events" as a job id and answer 404 for a
+    // route that exists.
+    if (path === "/api/queue/events") {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      let mine: ReadableStreamDefaultController<Uint8Array> | null = null;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          mine = controller;
+          watchers.add(controller);
+          // The subscriber is registered — say so. A caller that acts
+          // the instant its `fetch` resolves would otherwise race the
+          // registration and wait for an event that was broadcast
+          // before it was listening. A comment, so no client sees it.
+          writeTo(controller, ": open\n\n");
+        },
+        cancel() {
+          if (mine) watchers.delete(mine);
+        },
+      });
+      return new Response(body, {
+        headers: {
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+          // Nothing serves this through a proxy today, but one that
+          // buffered would hold every event back until the connection
+          // closed — which is the whole of what this route is for.
+          "x-accel-buffering": "no",
+        },
+      });
     }
 
     // The DETAIL page did not move with the list: what sits at the end
@@ -2935,6 +3025,18 @@ export function createServer(opts: ServerOptions) {
     // is dropped on purpose rather than by accident.
     stop: () => {
       if (timer) clearInterval(timer);
+      clearInterval(keepAlive);
+      // Every watching page, let go of deliberately: `server.stop(true)`
+      // cuts the sockets, and a controller left in the set would be
+      // written to by nothing but would still be held.
+      for (const c of [...watchers]) {
+        try {
+          c.close();
+        } catch {
+          // already gone, which is the outcome either way
+        }
+      }
+      watchers.clear();
       void server.stop(true);
     },
   };
