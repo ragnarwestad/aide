@@ -32,6 +32,16 @@ PORT ?= 8788
 # else sets this instead. A variable rather than a literal because every
 # other network value in install-serve is one.
 TS_PORT ?= 443
+# WHERE tailscale is, not whether the shell can find it. `ssh host 'cmd'`
+# runs a NON-INTERACTIVE shell, which on macOS reads none of the login
+# files that put /usr/local/bin on PATH — so `command -v tailscale` said
+# "no" on a host that has it, the guard below took its absent-branch, and
+# `install-serve` reported the plain deploy while quietly setting up no
+# TLS at all (measured 2026-08-22, one deploy after spec 172 landed). The
+# same trap caught `tmux` and `claude` over ssh the day before. A path
+# rather than a lookup, and a variable so a host that keeps it elsewhere
+# can say so.
+TAILSCALE ?= /usr/local/bin/tailscale
 
 # Generate and serve on THIS machine: no ssh, no rsync, no launchd.
 # ROOT is optional — serve.ts only needs it to build the project nav,
@@ -130,20 +140,20 @@ install-serve: require-host
 	@# -n` expands variables but never runs a shell, so a shell `if` would
 	@# leave both branches in the dry run and the guard would be untestable.
 ifeq ($(BIND),127.0.0.1)
-	@if ssh $(MINI) 'command -v tailscale >/dev/null 2>&1'; then \
-		ssh $(MINI) 'tailscale serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT)'; \
+	@if ssh $(MINI) 'test -x $(TAILSCALE)'; then \
+		ssh $(MINI) '$(TAILSCALE) serve --bg --https $(TS_PORT) http://127.0.0.1:$(PORT)'; \
 	else \
-		echo "tailscale not found on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
+		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
 	fi
 else
-	@if ssh $(MINI) 'command -v tailscale >/dev/null 2>&1'; then \
-		echo "tailscale is on $(MINI), but BIND is '$(BIND)', not 127.0.0.1 —" >&2; \
+	@if ssh $(MINI) 'test -x $(TAILSCALE)'; then \
+		echo "tailscale is at $(TAILSCALE) on $(MINI), but BIND is '$(BIND)', not 127.0.0.1 —" >&2; \
 		echo "tailscaled will not proxy to the host's own tailnet address" >&2; \
 		echo "(measured 2026-08-21: a 75s hang, then a 502)." >&2; \
 		echo "Set BIND=127.0.0.1 in .env.deploy and run this again." >&2; \
 		exit 1; \
 	else \
-		echo "tailscale not found on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
+		echo "no tailscale at $(TAILSCALE) on $(MINI) — the dashboard answers on http://127.0.0.1:$(PORT) there, and nowhere else" >&2; \
 	fi
 endif
 

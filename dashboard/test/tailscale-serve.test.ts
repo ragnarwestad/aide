@@ -61,8 +61,25 @@ describe("install-serve puts TLS in front of the dashboard", () => {
 
     // Absence is informational, never fatal: the probe decides, and the
     // step that runs when it finds nothing is an echo, not an exit.
-    expect(recipe).toContain("command -v tailscale");
-    expect(recipe).toContain("tailscale not found on example-host");
+    //
+    // The probe is `test -x <path>`, NOT `command -v` (2026-08-22).
+    // `ssh host 'cmd'` runs a non-interactive shell, which on macOS
+    // reads none of the login files that put /usr/local/bin on PATH —
+    // so the lookup answered "no" on the host this was written for, the
+    // deploy reported the plain install, and no TLS was set up at all.
+    expect(recipe).toContain("test -x /usr/local/bin/tailscale");
+    expect(recipe).not.toContain("command -v tailscale");
+    expect(recipe).toContain("no tailscale at /usr/local/bin/tailscale on example-host");
+  });
+
+  // A host that keeps the binary elsewhere says so rather than being
+  // told it has none.
+  test("the path is a variable, and the probe and the call use the same one", () => {
+    const recipe = dryRunInstallServe({ BIND: "127.0.0.1", TAILSCALE: "/opt/homebrew/bin/tailscale" });
+
+    expect(recipe).toContain("test -x /opt/homebrew/bin/tailscale");
+    expect(recipe).toContain("/opt/homebrew/bin/tailscale serve --bg");
+    expect(recipe).not.toContain("/usr/local/bin/tailscale");
   });
 });
 
