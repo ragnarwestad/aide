@@ -467,7 +467,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
   // names and read as one of them (2026-08-19).
   test("the marks say what they are, and the stylesheet clamps the name", async () => {
     const html = renderQueueRows(
-      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
+      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare" }] })],
       { runnerAvailable: true, targets: [] },
     );
     expect(html).toContain('<span class="branchlist"><span class="lbl">Repos:</span>');
@@ -480,7 +480,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
 
   test("an existing branch link stays beside it, never replaced by it", () => {
     const html = renderQueueRows(
-      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }] })],
+      [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare" }] })],
       { runnerAvailable: true, targets: [] },
     );
     expect(html).toContain(
@@ -497,143 +497,86 @@ describe("the queue row links to the spec (criterion 12)", () => {
 // whether it landed. A reader who sees only the link reads a finished
 // job as a delivered one.
 //
-// Spec 96 (criteria 1, 3, 9): "not merged" was a fact about the BRANCH
-// that read as a verdict on the spec — shown in the same amber whether
-// the job that made the branch had finished or was still writing to it.
-// A branch whose job is still going said what that job was DOING; one
-// whose job had stopped said the work was ready.
-//
-// Spec 174 took the verb back off: the State column beside the list
-// already gerunds the same job once, so a two-repo row said it three
-// times. The repo mark answers WHERE the work is and whether it landed
-// — "waiting for archive" whatever the job is doing.
-describe("the unmerged badge (criteria 1-4)", () => {
+// The repo list is about WHERE the work is. It carried a mark beside
+// every unlanded branch — "waiting for archive", once per repo — until
+// nobody could say who had asked for it: the State column says what the
+// spec waits for, and a two-repo row said it three times. The rule that
+// replaces four specs' worth of wording is a flat one, asserted below:
+// links, and nothing else.
+describe("the repo list says where the work is, and nothing more", () => {
   const BRANCH = "https://example.test/compare";
-  // Spec 89: one entry per repo. A one-repo spec — `paceup`,
-  // `atlasaurus`, and every job before this field existed — is a list
-  // of one, through the same code a two-repo spec uses.
-  const at = (merged: boolean) => [{ label: "aide", url: BRANCH, merged }];
+  // Spec 89: one entry per repo. A one-repo spec is a list of one,
+  // through the same code a two-repo spec uses.
+  const at = () => [{ label: "aide", url: BRANCH }];
   const queueRows = (extra: Partial<QueueRowView>) =>
     renderQueueRows([row(extra)], { runnerAvailable: true, targets: [] });
-  /** The badge BESIDE THE BRANCH LINK, and no other badge on the row.
-   *  The State column already gerunds (spec 132), so a bare
-   *  `toContain("analyzing")` would pass off that one and prove
-   *  nothing about this one. */
-  const branchBadge = (html: string): string => {
-    const list = html.slice(html.indexOf('class="branchlist"'));
-    return list.match(/<span class="badge b-\w+"[^>]*>(?:<span class="dot"[^>]*><\/span>)?([^<]*)</)?.[1] ?? "";
-  };
   /** The repo list and NOTHING after it: it sits in the name cell,
    *  which the State cell follows — so a slice to the end of the row
-   *  would carry the very chip these tests prove it does not repeat
-   *  (spec 174). */
+   *  would carry the very chip these tests prove it does not repeat. */
   const branchArea = (html: string): string => {
     const from = html.slice(html.indexOf('class="branchlist"'));
     return from.slice(0, from.indexOf("</td>"));
   };
-  const jobPage = (extra: Partial<JobDetailView>) =>
-    renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
 
-  // Spec 174, criterion 3: the mark does not echo the job's verb any
-  // more. The State chip is asserted here too, because it is the one
-  // that must go on carrying the verb — the removal is of the SECOND
-  // telling, not of the word.
-  test("a branch whose job is still going is still waiting for archive (spec 174)", () => {
-    const html = queueRows({ branchUrls: at(false), state: "running" });
-    expect(branchBadge(html)).toBe("waiting for archive");
-    // Once, in the State column, and nowhere near the repo list.
-    expect(html).toContain(">analyzing<");
-    expect(branchArea(html)).not.toContain("analyzing");
-    // The link a reader already uses is untouched beside it.
-    expect(html).toContain(`href="${BRANCH}"`);
-  });
+  // The whole point: no badge, in any job state, landed or not.
+  test.each(["running", "queued", "done", "failed", "stopped"] as const)(
+    "a %s job's repo list carries no state of any kind",
+    (state) => {
+      const html = queueRows({ branchUrls: at(), state });
+      expect(html).not.toContain("waiting for archive");
+      expect(branchArea(html)).not.toContain('class="badge');
+      // The link a reader actually uses is untouched.
+      expect(html).toContain(`href="${BRANCH}"`);
+    },
+  );
 
-  // Spec 161 gave a queued job its own phrasing here — "queued to
-  // analyze" — because the bare gerund would have said it had started.
-  // Spec 174: the repo mark says neither. The State chip still does.
-  test("a queued job's repo mark says nothing about the queue either (spec 174)", () => {
-    const html = queueRows({ branchUrls: at(false), state: "queued", steps: ["analyze"] });
-    expect(branchBadge(html)).toBe("waiting for archive");
-    expect(branchArea(html)).not.toContain("queued to");
-    // Spec 161's wording lives on where it belongs.
-    expect(html).toContain(">analyzing queued<");
-  });
-
-  // Spec 161, criterion 4 moved to the State chip alone: `review-plan`
-  // is the one step that cannot be gerunded off its step name — it
-  // reads as the reader's word, "reviewing", not "review-planing".
-  // Spec 174 keeps that coverage and asserts the repo mark stays out of
-  // it, for every step and both in-flight states.
+  // The verb was never the problem — saying it a second and third time
+  // was. It must go on being said ONCE, in the State column.
   test.each([
     ["create", "creating"],
     ["analyze", "analyzing"],
     ["review-plan", "reviewing"],
     ["implement", "implementing"],
     ["archive", "archiving"],
-  ])("a %s job's repo mark says 'waiting for archive', and the chip says %s", (step, running) => {
+  ])("a %s job still says %s in the State column, and never in the repo list", (step, running) => {
     for (const state of ["running", "queued"] as const) {
-      const html = queueRows({ branchUrls: at(false), state, steps: [step], stepIndex: 0 });
-      expect(branchBadge(html)).toBe("waiting for archive");
+      const html = queueRows({ branchUrls: at(), state, steps: [step], stepIndex: 0 });
       expect(html).toContain(state === "running" ? `>${running}<` : `>${running} queued<`);
       expect(branchArea(html)).not.toContain(running);
     }
   });
 
-  test("a branch whose job has stopped is waiting for archive (criterion 3)", () => {
-    const html = queueRows({ branchUrls: at(false), state: "done" });
-    expect(html).toContain("waiting for archive");
-    expect(html).not.toContain('class="chip running"');
-    expect(html).toContain(`href="${BRANCH}"`);
+  // Spec 89: the two branches share a NAME and nothing else, so each
+  // gets its own link. That survives; only the mark beside it went.
+  test("two repos get two links", () => {
+    const html = queueRows({
+      state: "done",
+      branchUrls: [
+        { label: "aide", url: "https://example.test/aide" },
+        { label: "aide-specs", url: "https://example.test/aide-specs" },
+      ],
+    });
+    expect(html).toContain("https://example.test/aide-specs");
+    expect(html).toContain("aide-specs");
+    expect(html).not.toContain("waiting for archive");
   });
 
-  test("once the branch lands the caveat goes, and the link stays (criterion 2)", () => {
+  // Spec 150 took the Work line off the job page; the row carries the
+  // branch. Neither page may bring the mark back.
+  test("the job page carries no branch and no mark (spec 150)", () => {
     for (const state of ["running", "done"] as const) {
-      const html = queueRows({ branchUrls: at(true), state });
-      expect(html).not.toContain("waiting for archive");
-      expect(html).not.toContain('class="chip running"');
-      expect(html).toContain(`href="${BRANCH}"`);
-    }
-  });
-
-  // Criterion 9: the two pages sharing one word choice is the whole
-  // reason job-state.ts exists, and until spec 96 it was not exercised
-  // for this particular piece of wording.
-  // The Work row left the job page with spec 150: the branch, its
-  // compare link and its badge are all on the row this page is opened
-  // from, and the Overview is now what is said nowhere else. The badge
-  // itself is unchanged — it is asserted on the row above.
-  test("the job page no longer carries the branch at all (spec 150)", () => {
-    for (const state of ["running", "done"] as const) {
-      const html = jobPage({ branchUrls: at(false), state });
+      const html = renderJobDetailPage(
+        detail({ branchUrls: at(), state }),
+        "2026-08-17T10:00:00Z",
+        NAV,
+        { tab: "overview" },
+      );
       expect(html).not.toContain(BRANCH);
       expect(html).not.toContain("waiting for archive");
     }
   });
-
-  test("no branch, no badge — on either page (criterion 4)", () => {
-    for (const html of [queueRows({ branchUrls: [] }), queueRows({})]) {
-      expect(html).not.toContain("waiting for archive");
-      expect(html).not.toContain('class="chip running"');
-    }
-  });
-
-  // Spec 89: the two branches share a NAME and nothing else. One badge
-  // over both was the blind spot — the project's landed, the specs
-  // repo's did not, and the page said nothing.
-  test("two repos get two links and two independent badges", () => {
-    const html = queueRows({
-      state: "done",
-      branchUrls: [
-        { label: "aide", url: "https://example.test/aide", merged: true },
-        { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
-      ],
-    });
-    // One badge per REPO, and only for the one still open.
-    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
-    expect(html).toContain("https://example.test/aide-specs");
-    expect(html).toContain("aide-specs");
-  });
 });
+
 
 // --- spec 95: where the branch can be TRIED ----------------------------------
 
@@ -648,7 +591,7 @@ describe("the preview link beside the compare link (criteria 1-4)", () => {
   const jobPage = (extra: Partial<JobDetailView>) =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab: "overview" });
   const withPreview = [
-    { label: "aide", url: "https://example.test/aide", merged: false, previewUrl: PREVIEW },
+    { label: "aide", url: "https://example.test/aide", previewUrl: PREVIEW },
   ];
 
   test("the row shows it next to the compare link, never instead of it (criterion 1)", () => {
@@ -669,7 +612,7 @@ describe("the preview link beside the compare link (criteria 1-4)", () => {
   // A project with no `deployment.preview` — aide itself, PaceUp — must
   // render exactly as it did before this field existed.
   test("no previewUrl, nothing new on either page (criterion 3)", () => {
-    const bare = [{ label: "aide", url: "https://example.test/aide", merged: false }];
+    const bare = [{ label: "aide", url: "https://example.test/aide" }];
     const html = queueRows({ branchUrls: bare });
     expect(html).not.toContain(">preview</a>");
     expect(html).toContain('href="https://example.test/aide"');
@@ -681,8 +624,8 @@ describe("the preview link beside the compare link (criteria 1-4)", () => {
     const html = queueRows({
       state: "done",
       branchUrls: [
-        { label: "aide", url: "https://example.test/aide", merged: false, previewUrl: PREVIEW },
-        { label: "aide-specs", url: "https://example.test/aide-specs", merged: false },
+        { label: "aide", url: "https://example.test/aide", previewUrl: PREVIEW },
+        { label: "aide-specs", url: "https://example.test/aide-specs" },
       ],
     });
     expect(html.match(/>preview<\/a>/g)).toHaveLength(1);
@@ -1041,24 +984,24 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(head).toContain("$2.00");
   });
 
-  test("the unmerged badge appears once, on the header (criterion 7)", () => {
+  test("the repo list appears once, on the header (criterion 7)", () => {
     const html = rows([
       job("j1", "analyze", {
         startedAt: "2026-08-16T09:00:00Z",
-        branchUrls: [{ label: "aide", url: "https://example.test/old", merged: false }],
+        branchUrls: [{ label: "aide", url: "https://example.test/old" }],
       }),
       job("j2", "implement", {
         startedAt: "2026-08-16T11:00:00Z",
-        branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
+        branchUrls: [{ label: "aide", url: "https://example.test/compare" }],
       }),
     ]);
-    // One badge per REPO, and only for the one still open.
-    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
+    // One entry per REPO, on the spec's header and not on each job.
+    expect(html.split('class="branch"').length - 1).toBe(1);
     // The link comes from the most recently active job, not an older one.
     expect(html).toContain("https://example.test/compare");
     expect(html).not.toContain("https://example.test/old");
     const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain("waiting for archive");
+    expect(head).toContain('class="branchlist"');
   });
 
   test("the action sits once on the header, never on a phase line (criterion 12)", () => {
@@ -2558,7 +2501,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
         row({
           specFolder: "101-a",
           state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
         }),
       ],
       [target("101-a")],
@@ -2625,7 +2568,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
           specFolder: "101-a",
           steps: ["review-plan"],
           state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
         }),
       ],
       [target("101-a", { done: ["analyze", "review-plan"] })],
@@ -2653,7 +2596,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
           specFolder: "101-a",
           steps: ["review-plan"],
           state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: true }],
+          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
         }),
       ],
       [target("101-a", { done: ["analyze", "review-plan"] })],
@@ -2779,19 +2722,18 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
   };
-  const at = (label: string) => ({ label, url: `https://example.test/${label}`, merged: false });
-  const done = (branchUrls: { label: string; url: string; merged: boolean }[]) =>
+  const at = (label: string) => ({ label, url: `https://example.test/${label}` });
+  const done = (branchUrls: { label: string; url: string }[]) =>
     row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done", branchUrls });
 
-  // Criterion 10: the per-repo badge in the Affected-repos line is a
-  // different piece of markup with the same three words in it. The two
-  // must not be conflated — this reads the branch line, not the State
-  // cell.
-  test("the per-repo badge in the branch line keeps its own bare wording", () => {
+  // Criterion 10 was about telling the per-repo badge apart from the
+  // State chip, which had the same three words in it. The badge is
+  // gone; the branch line carries links only.
+  test("the branch line carries no badge at all", () => {
     const html = rows([done([at("aide")])], [target("132-a")]);
     const branchLine = html.match(/<span class="branchlist">[\s\S]*?<\/span><\/span>/)?.[0] ?? "";
-    expect(branchLine).toContain(">waiting for archive<");
-    expect(branchLine).not.toContain("ready to merge the code");
+    expect(branchLine).not.toContain('class="badge');
+    expect(branchLine).toContain("aide");
   });
 
   // Criteria 8, 9: a queued row said one word and nothing else, while
@@ -2922,7 +2864,7 @@ describe("spec 103: a collapsed row shows status only", () => {
       controlsLine(
         rows(
           [row({ id: "j1", specFolder: "103-merge", state: "done",
-                 branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
+                 branchUrls: [{ label: "aide", url: "https://example.test/c" }] })],
           [target("103-merge")],
         ),
         "103-merge",
@@ -2959,7 +2901,7 @@ describe("spec 103: a collapsed row shows status only", () => {
         controlsLine(
           rows(
             [row({ id: "j1", specFolder: "103-busy-branch", state,
-                   branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }] })],
+                   branchUrls: [{ label: "aide", url: "https://example.test/c" }] })],
             [target("103-busy-branch")],
           ),
           "103-busy-branch",
@@ -3184,7 +3126,7 @@ describe("spec 105: a busy row offers only what its state allows", () => {
       steps: ["implement"],
       stepIndex: 0,
       state,
-      branchUrls: [{ label: "aide", url: "https://example.test/c", merged: false }],
+      branchUrls: [{ label: "aide", url: "https://example.test/c" }],
     });
 
   /** The same open row's controls line — where every lockable control
@@ -3410,7 +3352,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
     return cells[2] ?? "";
   };
 
-  const branch = [{ label: "aide", url: "https://example.test/c", merged: false }];
+  const branch = [{ label: "aide", url: "https://example.test/c" }];
 
   /** The two things a header row is ALLOWED to differ by, removed before
    *  the two renders are compared:
@@ -3811,7 +3753,7 @@ describe("a dependency is named once, on the title line, and not in the state ce
     row({
       specFolder,
       state: "done",
-      branchUrls: [{ label: "aide", url: "https://example.test/aide", merged: false }],
+      branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
     });
 
   test("an unmerged dependency puts nothing in the state cell", () => {
@@ -4636,7 +4578,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
-  const branch = [{ label: "aide", url: "https://example.test/c", merged: false }];
+  const branch = [{ label: "aide", url: "https://example.test/c" }];
 
   // --- the structural invariant, before any behaviour ------------------------
 
@@ -5369,7 +5311,7 @@ describe("the Overview's facts table (criterion 10)", () => {
     const html = renderJobDetailPage(
       detail({
         state: "done",
-        branchUrls: [{ label: "aide", url: "https://example.test/compare", merged: false }],
+        branchUrls: [{ label: "aide", url: "https://example.test/compare" }],
       }),
       "2026-08-21T10:05:00Z",
       NAV,

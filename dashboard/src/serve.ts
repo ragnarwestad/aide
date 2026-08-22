@@ -1233,7 +1233,6 @@ export function createServer(opts: ServerOptions) {
       jobBranches(job).map(async (b) => ({
         label: repoLabel(b.root),
         url: b.url,
-        merged: await branchStatus.isMerged(b.root, branch),
         ...(b.root === codeRoot && { previewUrl: previewUrlFor(preview, branch) }),
       })),
     );

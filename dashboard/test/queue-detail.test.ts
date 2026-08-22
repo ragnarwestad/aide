@@ -219,10 +219,12 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
   // Spec 150 took the branch off the job page — it is on the row the
   // page is opened from, and the Overview is now what is said nowhere
   // else — so the list is where the caveat is asserted.
-  test("an unmerged branch is called out on the row (criteria 1, 3)", async () => {
+  test("the row carries the branch link, and says nothing about landing", async () => {
     const { mirror } = await seeded();
     const { base } = start({ queueMirrorPath: mirror, gitRun: gitAnswering(1) });
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("waiting for archive");
+    const html = await (await fetch(`${base}/`, auth)).text();
+    expect(html).toContain(BRANCH);
+    expect(html).not.toContain("waiting for archive");
   });
 
   test("once the branch has landed the caveat is gone (criterion 2)", async () => {
@@ -236,10 +238,11 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
     expect(await (await fetch(`${base}/specs/${id}`, auth)).text()).not.toContain("waiting for archive");
   });
 
-  // Criterion 5: uncertainty never hides the caveat. A git that cannot
-  // answer at all — no checkout, an offline remote, a timeout — must
-  // leave the page saying what it said before the check existed.
-  test("a git that cannot answer still shows the caveat (criterion 5)", async () => {
+  // Criterion 5 was about uncertainty never hiding the caveat. There is
+  // no caveat now, and the rule underneath it is the stronger one: a
+  // git that cannot answer at all — no checkout, an offline remote, a
+  // timeout — must not cost the reader the link.
+  test("a git that cannot answer still shows the branch link (criterion 5)", async () => {
     const { mirror } = await seeded();
     const { base } = start({
       queueMirrorPath: mirror,
@@ -247,7 +250,7 @@ describe("a job's branch says whether it landed (criteria 1-3, 5)", () => {
         throw new Error("not a git repository");
       },
     });
-    expect(await (await fetch(`${base}/`, auth)).text()).toContain("waiting for archive");
+    expect(await (await fetch(`${base}/`, auth)).text()).toContain(BRANCH);
   });
 });
 
@@ -299,28 +302,16 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     expect(html).toContain(SPECS_URL);
     // Each repo is named, so a reader knows WHICH branch is which.
     expect(html).toContain("aide-specs");
-    expect(count(html, ">waiting for archive<")).toBe(2);
+    expect(html).not.toContain("waiting for archive");
     const job = await (await fetch(`${base}/specs/${id}`, auth)).text();
     expect(job).not.toContain(PROJECT_URL);
     expect(job).not.toContain(SPECS_URL);
   });
 
-  // The bug in four lines (2-analysis.md, finding 1): `isMerged` was
-  // always asked about `projectDir(job.project)`, so a specs repo left
-  // unmerged was invisible — and could even be answered confidently and
-  // wrongly by a stale ref of the same name in the project.
-  test("a merged repo loses its caveat while the other keeps it (criterion 2)", async () => {
-    const { mirror } = await seededWith([
-      { root: PROJECT_REPO, url: PROJECT_URL },
-      { root: SPECS_REPO, url: SPECS_URL },
-    ]);
-    const { base } = start({ queueMirrorPath: mirror, gitRun: gitMergedIn([PROJECT_REPO]) });
-    const html = await (await fetch(`${base}/`, auth)).text();
-    expect(count(html, ">waiting for archive<")).toBe(1);
-    // The caveat belongs to the specs repo, and to it alone.
-    const specsPart = html.slice(html.indexOf(SPECS_URL));
-    expect(specsPart.slice(0, 300)).toContain("waiting for archive");
-  });
+  // Criterion 2 was the per-repo merge caveat — one repo landed, the
+  // other not, said separately. The row does not carry merge state at
+  // all now, so what remains to protect is the link per repo, which the
+  // test above asserts.
 
   // `paceup` and `atlasaurus` keep their specs inside the project repo,
   // so a job there touches one repo and makes one branch. That is the
@@ -360,7 +351,6 @@ describe("every branch a spec made, with its own merge state (criteria 1, 2, 9)"
     const html = await (await fetch(`${base2}/`, auth)).text();
     expect(count(html, `class="branch"`)).toBe(1);
     expect(html).toContain(PROJECT_URL);
-    expect(html).toContain("waiting for archive");
   });
 });
 
@@ -411,25 +401,21 @@ describe("what an open branch says about itself (criteria 1-8)", () => {
   // own checkout — its basename is the project's name, by construction —
   // and `aide-specs` is not a project on this machine at all, which is
   // exactly what makes it the specs repo.
+  const count = (html: string, needle: string): number => html.split(needle).length - 1;
   const BOTH = [
     { root: PROJECT_REPO, url: "https://example.test/aide" },
     { root: SPECS_REPO, url: "https://example.test/aide-specs" },
   ];
 
-  // One badge per open branch, and the row says nothing at all about a
+  // One link per open branch, and the row says nothing at all about a
   // merge: naming which repo a press would land was the press's own
   // sentence, and there is no press (spec 149).
-  test("each open branch carries its own badge, and no row asks for a merge", async () => {
+  test("each open branch gets its own link, and no row asks for a merge", async () => {
     const html = await listWith(await seededWith(BOTH));
-    expect(html.match(/>waiting for archive</g)).toHaveLength(2);
+    expect(count(html, `class="branch"`)).toBe(2);
+    expect(html).not.toContain("waiting for archive");
     expect(html).not.toContain("ready to merge");
     expect(html).not.toContain("/merge");
-  });
-
-  test("a repo that has landed loses its badge; the other keeps it", async () => {
-    const html = await listWith(await seededWith(BOTH), [PROJECT_REPO]);
-    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
-    expect(html).not.toContain("ready to merge");
   });
 
   // `paceup` and `atlasaurus` keep their specs INSIDE the project repo,
@@ -438,7 +424,7 @@ describe("what an open branch says about itself (criteria 1-8)", () => {
   // stopped being something the row has to say.
   test("a spec whose only repo is the project itself reads the same way", async () => {
     const html = await listWith(await seededWith([{ root: PROJECT_REPO, url: "https://example.test/aide" }]));
-    expect(html.match(/>waiting for archive</g)).toHaveLength(1);
+    expect(count(html, `class="branch"`)).toBe(1);
     expect(html).not.toContain("ready to merge");
   });
 
@@ -451,10 +437,6 @@ describe("what an open branch says about itself (criteria 1-8)", () => {
     const html = await listWith(await seededWith(BOTH, "running"));
     expect(html).not.toContain('class="mergeform"');
     expect(html).not.toContain("/merge");
-    // Spec 174: the repo mark reads the same while a step runs as after
-    // it — the branch is open either way, and the State column is where
-    // the running step's verb is said.
-    expect(html).toContain("waiting for archive");
   });
 
   // Gone since 2026-08-19: the small "merge anyway" behind a confirm was

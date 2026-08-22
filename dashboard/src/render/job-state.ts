@@ -11,10 +11,6 @@ export interface BranchView {
   /** The repo's directory basename — `aide`, `aide-specs`. */
   label: string;
   url: string;
-  /** Whether THAT repo's branch has landed on THAT repo's default
-   *  branch. One flag per repo: a spec whose project branch merged and
-   *  whose specs branch did not is the case this exists for. */
-  merged: boolean;
   /** Where this branch can be TRIED, when the project's host builds a
    *  preview per branch (`.aide/project.yaml`'s `deployment.preview`).
    *  Set only on the repo that IS the project's own code — a repo
@@ -239,33 +235,13 @@ export function currentStep(r: QueueRowView): string {
   return r.steps[r.stepIndex] ?? r.steps[r.steps.length - 1] ?? "–";
 }
 
-// A branch link says where the work IS, never whether it landed, so a
-// finished job reads as a delivered one. The caveat sits beside the link
-// on both pages, and disappears the moment the branch is an ancestor of
-// the default branch — which is the whole point of asking git live.
-// Anything unproven keeps the caveat: uncertainty must not read as done.
-//
-// Per REPO, not per job: one badge over two repos cannot say that the
-// project's branch landed and the specs repo's did not, and that is
-// exactly the state that went unnoticed three times on 2026-08-17.
-//
-// It said "ready to merge" until spec 149, which was an instruction:
-// press the button. There is no button — every step lands its own work
-// — so the one window a branch can legitimately sit open in is after
-// `implement` and before `archive`, and the badge states that rather
-// than asking for anything.
-//
-// Between spec 96 and spec 174 it was handed the job's own verb while
-// one was in flight ("archiving"), on the reasoning that a branch a
-// step is still writing to is a different thing from one left behind.
-// The State column beside it gerunds the same job already, so a row
-// with two repos said the verb three times. The branch is unmerged
-// either way and `archive` is what lands it: one answer, whatever the
-// job is doing.
-export function unmergedBadge(b: BranchView): string {
-  if (b.merged) return "";
-  return ` ${badge("ready", "waiting for archive")}`;
-}
+// The repo list said "waiting for archive" beside every unlanded
+// branch, once per repo. Nobody asked for it: the State column already
+// says what the spec is waiting for, so a two-repo row said the same
+// thing three times, and the mark named a phase in a place that is
+// otherwise about WHERE the work is. The list carries links now and
+// nothing else. The flag it read cost an `isMerged` git call per repo
+// per row, on every render, and went with it.
 
 // --- spec 143: the one long message a row has to say -------------------------
 

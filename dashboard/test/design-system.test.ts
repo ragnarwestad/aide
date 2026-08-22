@@ -613,21 +613,21 @@ describe("the primary button's label per row state (the design sheet's table)", 
 
   // Spec 149: there is no Merge button at all any more, and the State
   // line stopped naming what one would land. A finished spec with a
-  // branch still open says which PHASE is next, and the branch's own
-  // badge says what it is waiting for.
+  // branch still open says which PHASE is next, in the State column and
+  // there alone — the repo list carries links and nothing else.
   test("a finished spec with an open branch offers no merge, and asks for none", () => {
     const html = rows(
       [
         row({
           state: "done",
-          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
         }),
       ],
       { targets: [target()] },
     );
     expect(buttons(html)).not.toContain("Merge");
     expect(html).not.toContain("ready to merge");
-    expect(html).toContain(">waiting for archive<");
+    expect(html).not.toContain("waiting for archive");
   });
 
 });
@@ -658,7 +658,7 @@ describe("no Resolve control (spec 171)", () => {
       [
         row({
           state: "done",
-          branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+          branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
           ...CONFLICT,
         }),
       ],
@@ -695,7 +695,7 @@ describe("no Resolve control (spec 171)", () => {
         [
           row({
             state: "done",
-            branchUrls: [{ label: "aide-specs", url: "https://example.test/c", merged: false }],
+            branchUrls: [{ label: "aide-specs", url: "https://example.test/c" }],
             error,
           }),
         ],

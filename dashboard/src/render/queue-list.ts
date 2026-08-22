@@ -48,7 +48,6 @@ import {
   restingChip,
   specStateChip,
   stateLabel,
-  unmergedBadge,
   wordPhase,
   type BranchView,
   type PhaseWord,
@@ -801,7 +800,7 @@ function branchList(branches: BranchView[]): string {
             ? ` <a class="small" href="${esc(b.previewUrl)}" ` +
               `title="open this branch's own build">preview</a>`
             : "") +
-          `${unmergedBadge(b)}</span>`,
+          `</span>`,
       )
       .join("") +
     `</span>`
