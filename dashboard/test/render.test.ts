@@ -1627,9 +1627,13 @@ describe("a spec's row runs its own phases", () => {
     expect(line).not.toContain("Phase 1: RED");
   });
 
-  test("a spec with no recorded status says so rather than showing a blank", () => {
+  // Spec 176 overturned this: no phase status belongs on the title
+  // line at all. The markers and the State column say how far a spec
+  // has got, and a line with nothing to say says nothing.
+  test("a spec with no recorded status leaves the line blank (spec 176, criterion 2)", () => {
     const line = head(rows([], [target("94-never-run")]), "94-never-run");
-    expect(line).toContain("no status recorded yet");
+    expect(line).not.toContain("no status recorded yet");
+    expect(line).toContain('<div class="spec-title"></div>');
   });
 
   test("the top form is gone from the page, not merely hidden (criterion 7)", () => {
@@ -1733,12 +1737,16 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(subRow(html, "analyze")).not.toContain("<form");
   });
 
-  test("a never-run spec reads 'not started' and links to its SPEC (criterion 3)", () => {
+  test("a never-run spec reads what comes next and links to its SPEC (criterion 3)", () => {
     const html = rows([], [target("90-never-run")]);
     const line = head(html, "90-never-run");
-    // Hyphen in the class, space in the text: one is the filter key, the
-    // other is what the reader sees.
-    expect(line).toContain('<span class="badge b-idle">not started</span>');
+    // Spec 176: "not started" and "ready for implement" describe the
+    // same kind of situation — nothing running, and here is what could
+    // — so the column says what comes next on both. Nothing has run
+    // here, so the next phase is analyze.
+    expect(line).toContain('class="badge b-ready"');
+    expect(line).toContain("ready for analyze");
+    expect(line).not.toContain("not started");
     // It used to link to nothing — "a link to nothing is worse than no
     // link". Spec 150 gave every spec somewhere to point, so what must
     // NOT be there is a JOB link: a spec that has never run has no job.
@@ -2494,7 +2502,9 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     // row draws and can never fill.
     expect(cell).not.toContain('<div class="muted small">');
     // The badge and the button are untouched — they are what says it.
-    expect(cell).toContain("not started");
+    // Spec 176 changed the words on a never-run row from "not started"
+    // to what comes next; the badge itself is still what says it.
+    expect(cell).toContain("ready for analyze");
   });
 
   // In flight the sentence says nothing (asked for 2026-08-19): the
@@ -4475,6 +4485,26 @@ describe("spec 123: each phase line picks its own model", () => {
     expect(line).toContain('<select name="model.analyze"');
   });
 
+  // Spec 176, criterion 4: the note used to sit in a `<div>` of its
+  // own under the badge, so a phase line that had one was taller than
+  // a phase line that had not — and everything beside it moved. It
+  // rides on the badge's own line now.
+  test("the attempt count rides beside the badge, not on a line of its own (spec 176)", () => {
+    const html = rows(
+      [
+        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
+      ],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).not.toMatch(/<div class="muted small">\s*<span class="muted small">2 attempts<\/span><\/div>/);
+    expect(line).not.toContain('<div class="muted small">2 attempts</div>');
+    // The note is still there, and now sits in the same flow as the
+    // badge — no block-level wrapper between the two.
+    expect(line).toMatch(/<\/span>\s*<span class="muted small">2 attempts<\/span>/);
+  });
+
   // --- the gap the description asked to close --------------------------------
 
   test("nothing sits between the phase name and its picker", () => {
@@ -5622,8 +5652,24 @@ describe("spec 157: the row's one action sits in the State column", () => {
 
   test("two pre-ticked phases name the first and count the rest (criterion 2)", () => {
     const html = rows([]);
-    expect(state(html)).toContain("not started");
+    // Spec 176: the badge names the next phase here as it does on a
+    // row that has run something, so it agrees with the button beside
+    // it rather than saying nothing.
+    expect(state(html)).toContain("ready for analyze");
     expect(labels(state(html))).toEqual(["Analyze"]);
+  });
+
+  // Spec 176, criterion 5: the case a hardcoded "not started" got
+  // wrong. A spec whose analyze ran long enough ago that its job
+  // record has aged out of the queue is `g.lead === undefined` with
+  // `analyze` and `review-plan` already in `g.done` from git — and the
+  // button beside the badge already read "Implement".
+  test("a spec with no job left in memory still says what comes next (spec 176)", () => {
+    const html = rows([], [target("157-one-action", { done: BUILT })]);
+    expect(state(html)).toContain('class="badge b-ready"');
+    expect(state(html)).toContain("ready for implement");
+    expect(state(html)).not.toContain("not started");
+    expect(labels(state(html))).toEqual(["Implement"]);
   });
 
   // Criterion 3 said a spec with nothing ticked draws no button. Since
@@ -6382,5 +6428,29 @@ describe("spec 173: every page says how it is installed", () => {
       expect(scripts).toHaveLength(1);
       expect(scripts[0]![1]).toContain("/sw.js");
     }
+  });
+});
+
+// Spec 176: four things the row still said wrong. Three of them are
+// about what a cell SAYS; this block holds the two that a rendered
+// string can be asked about directly — the chip's border, and where a
+// phase line's aside note goes.
+describe("spec 176: the phase chip frames nothing", () => {
+  test("a phase line's label-less chip draws no border (criterion 1)", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS).toContain(".phase[data-phase] { border-color: transparent; }");
+  });
+
+  // The second half of the criterion, and the reason the selector names
+  // `data-phase` rather than `.phase`: a chip written with a label of
+  // its own — the "Also touches" repo chips (`data-project`) and the
+  // new-spec form's "Depends on" (`data-depends`) — frames something,
+  // and keeps its frame.
+  test("the transparent border reaches no chip that has a label (criterion 1)", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("border: 1px solid var(--line)");
+    expect(CSS.match(/^[^\n]*border-color: transparent[^\n]*$/gm)).toEqual([
+      ".phase[data-phase] { border-color: transparent; }",
+    ]);
   });
 });

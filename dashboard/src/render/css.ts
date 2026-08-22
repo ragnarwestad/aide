@@ -287,6 +287,13 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
    the row's own Progress marker. */
 .phase.off input { display: none; }
 .phase.off .box { color: var(--muted); }
+/* A phase LINE's box has no label of its own — the phase's name leads
+   the line, and the chip holds the checkbox and nothing else — so the
+   frame outlined nothing (spec 176). Selected on the data attribute
+   rather than on .phase itself: the chips that DO carry a label, the
+   "Also touches" repos (data-project) and the new-spec form's
+   "Depends on" (data-depends), frame something and keep their frame. */
+.phase[data-phase] { border-color: transparent; }
 
 /* --- row-level message ---------------------------------------------- */
 

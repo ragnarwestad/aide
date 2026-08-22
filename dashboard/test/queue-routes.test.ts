@@ -561,7 +561,11 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     // together — the pair every spec here is actually started as.
     expect(line).toContain('value="analyze" checked');
     expect(line).toContain('value="review-plan" checked');
-    expect(html).toContain('<span class="badge b-idle">not started</span>');
+    // Spec 176: the State column says what the process says comes
+    // next, on a row nothing has run as on one that has.
+    expect(html).toContain('class="badge b-ready"');
+    expect(html).toContain("ready for analyze");
+    expect(html).not.toContain("not started");
   });
 
   test("the fold survives the refresh the page performs on itself (spec 90, criterion 17)", async () => {
@@ -1008,7 +1012,11 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     rmSync(join(specDir(dir), "4-status.md"));
     const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
-    expect(phaseDone(line, "create")).toBe(false);
+    // Spec 176: the folder is on disk, so `create` happened — whatever
+    // git records. The steps this test is the guard for are the other
+    // four, which stay correctly not done.
+    expect(phaseDone(line, "create")).toBe(true);
+    expect(phaseDone(line, "analyze")).toBe(false);
     expect(line).toMatch(/value="analyze" checked/);
   });
 });
@@ -3273,13 +3281,45 @@ describe("spec 154: what has run is what has been committed", () => {
     // The folder exists, and nothing has ever run in it.
     ran(dir, []);
     const line = specControls(await listPage(base), "81-queue-and-runner");
-    expect(phaseDone(line, "create")).toBe(false);
+    // Spec 176: `create` is settled by the folder existing, so it is
+    // done here and says nothing about the copy. What spec 153 is the
+    // guard for is the three below it.
+    expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(phaseDone(line, "review-plan")).toBe(false);
     // And the pair a spec nothing has run offers is what comes ticked,
     // not implement.
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
+  });
+
+  // Spec 176, criterion 3: a spec that appears on the dashboard has
+  // been created, so "create not run yet" cannot be true. The folder
+  // being on disk is a stronger source than the commit log — a spec
+  // written by hand has no `Run /aide-create` commit at all — and the
+  // pip has read it that way since spec 167. The phase LINE agrees now.
+  test("a spec whose folder exists has had create, whatever git records", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    // Analyze has a commit; create never did.
+    ran(dir, ["analyze"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(true);
+    // The create line itself, not the group: the three phases below it
+    // genuinely have not run, and say so.
+    const createLine = line.match(/<tr class="subrow[^"]*"[^>]*data-step="create">[\s\S]*?<\/tr>/)![0];
+    expect(createLine).not.toContain("not run yet");
+  });
+
+  // And the claim carries no qualifier of its own: the status file
+  // here does not name `create`, which before spec 176 would have been
+  // a disagreement the moment `create` was forced into `done`.
+  test("forcing create into done invents no disagreement", async () => {
+    const { base, dir } = start({ queueToken: TOKEN });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["analyze"]));
+    ran(dir, ["analyze"]);
+    const line = specControls(await listPage(base), "81-queue-and-runner");
+    expect(phaseDone(line, "create")).toBe(true);
+    expect(line).not.toContain("the files disagree with what has run");
   });
 
   // Criterion 3, the same fixture: the row does not swallow it.

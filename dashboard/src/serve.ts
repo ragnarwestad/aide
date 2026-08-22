@@ -1569,9 +1569,17 @@ export function createServer(opts: ServerOptions) {
         if (!t.dir) return t;
         const history = await workflowHistory.read(t.dir, t.specFolder);
         const fileSteps = t.fileSteps ?? [];
+        // `create` is settled by the folder being on disk, which is
+        // what `t.dir` being set already proves — a stronger source
+        // than the commit log, since a spec written by hand has no
+        // `Run /aide-create` commit at all. Whenever the row is drawn
+        // the spec exists, so "create not run yet" cannot be true
+        // (spec 176). The pip has read it this way since spec 167; the
+        // phase LINE reads the same set now, one layer down.
+        const done = history.done.includes("create") ? history.done : ["create", ...history.done];
         const withHistory: QueueTarget = {
           ...t,
-          done: history.done,
+          done,
           stopped: history.stopped,
           fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
         };
@@ -1579,7 +1587,7 @@ export function createServer(opts: ServerOptions) {
         return {
           ...withHistory,
           analyzeStale: true,
-          done: history.done.filter((s) => s !== "analyze" && s !== "review-plan"),
+          done: done.filter((s) => s !== "analyze" && s !== "review-plan"),
         };
       }),
     );

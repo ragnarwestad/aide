@@ -183,18 +183,31 @@ export interface RestingState {
  *  sat one line lower. The order of the resting cases came from the
  *  sentence this badge replaced: a branch to merge outranks a phase to
  *  run, and a held-back archive outranks both. */
+/** What a row says when nothing is running on it: the resting state,
+ *  and what comes next.
+ *
+ *  The WORD only. The reason is a sentence out of `4-status.md` — 130
+ *  characters on spec 141 — and a badge is `nowrap`, so it ran off the
+ *  right edge of the table. It is said in full in the row's own panel
+ *  instead (`specNotice`), once (spec 143).
+ *
+ *  Its own function since spec 176, because a spec with no job in the
+ *  queue's memory needs the same sentence and had a hardcoded "not
+ *  started" instead. That row's `readyPhase` was already computed and
+ *  sitting unused, and the Run button beside the badge was already
+ *  named from it — so the two could disagree on the very same row
+ *  ("not started · Implement"). Sharing this makes them agree by
+ *  construction. */
+export function restingChip(resting: RestingState = {}): string {
+  if (resting.archiveHeldBack) return badge("waiting", "archive held back");
+  if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
+  return badge("done", "done — nothing waiting on you");
+}
+
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
   if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
-  if (r.state === "done") {
-    // The WORD only. The reason is a sentence out of `4-status.md` —
-    // 130 characters on spec 141 — and a badge is `nowrap`, so it ran
-    // off the right edge of the table. It is said in full in the row's
-    // own panel instead (`specNotice`), once (spec 143).
-    if (resting.archiveHeldBack) return badge("waiting", "archive held back");
-    if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
-    return badge("done", "done — nothing waiting on you");
-  }
+  if (r.state === "done") return restingChip(resting);
   return stateChip(r);
 }
 

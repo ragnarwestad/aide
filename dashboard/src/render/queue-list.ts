@@ -45,7 +45,7 @@ import {
   inFlight,
   specNotice,
   type RestingState,
-  notStartedChip,
+  restingChip,
   specStateChip,
   stateLabel,
   unmergedBadge,
@@ -830,14 +830,20 @@ const phaseWordCell = (
    *  its name cell, beside the model picker: the stale-description
    *  badge and the attempt count. Out there they had no width of their
    *  own, so two lines of free text stretched the name column and took
-   *  the whole table sideways with it (seen 2026-08-20). Here they sit
-   *  under the badge, which is where every other qualifier already
-   *  goes. Whether the State cell is their long-term home is still
-   *  open; not stretching the table is not. */
+   *  the whole table sideways with it (seen 2026-08-20). Whether the
+   *  State cell is their long-term home is still open; not stretching
+   *  the table is not.
+   *
+   *  BESIDE the badge, not under it (spec 176). A `<div>` of its own
+   *  made a phase line carrying a note taller than one without, so
+   *  everything down the row moved the moment a second attempt
+   *  started — and the page's own rule is that nothing moves because
+   *  something else changed. The mark brings its own `<span>`, so it
+   *  needs no wrapper of ours. */
   aside = "",
 ): string =>
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
-  (aside ? `<div class="muted small">${aside}</div>` : "") +
+  (aside ? ` ${aside}` : "") +
   (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "");
 // `blank` because a header with nothing spent still owes the reader a
 // dash, while an empty phase line should simply be empty. That
@@ -1129,9 +1135,12 @@ function newSpecLink(opts: QueuePageOptions): string {
   return `<a class="btn primary" href="${NEW_SPEC_ROUTE}">New spec</a>`;
 }
 
-// One line about the spec: what it is, and how far it has got. It has to
-// SAY something even when there is nothing recorded — a line that is
-// blank on half the rows reads as a page that failed to load.
+// One line about the spec: what NOTHING ELSE on the row says. It used
+// to fall back to "no status recorded yet" rather than go blank, on the
+// grounds that a line blank on half the rows reads as a page that failed
+// to load; spec 176 overturned that outright. No phase status belongs in
+// this column at all — the markers and the State column are where a
+// spec's progress is said — and a line with nothing to say says nothing.
 function specSummary(g: SpecGroup): string {
   const bits: string[] = [];
   // NOT the title, and NOT the phase (2026-08-21), and NOT the
@@ -1155,7 +1164,7 @@ function specSummary(g: SpecGroup): string {
   // unambiguous because a number is never reused, and the folder name
   // made the line longer than the row it sits in.
   if (g.dependsOn.length) bits.push(`depends on: ${g.dependsOn.map((d) => esc(specNumber(d))).join(", ")}`);
-  return bits.length ? bits.join(" · ") : `<span class="muted">no status recorded yet</span>`;
+  return bits.join(" · ");
 }
 
 /** The leading number of a spec folder — `92-a-spec-can-depend` is 92.
@@ -1216,14 +1225,16 @@ function specHeadRow(
   // behind you — the same reason the phase line got a box of its own on
   // 2026-08-21 — so it is a pip like the other four now.
   //
-  // It cannot go through `wordPhase` with them, though. `g.done` comes
-  // from the git history, which counts only the runner's own
-  // `Run /aide-<step> for <folder>` commits, and a spec written by hand
-  // has no create commit — every one of those would show a grey pip
-  // saying the spec had not been made yet. Create gets the BOX's rule
-  // instead, and it has only two states: a spec that exists was
-  // created, so the pip is past unless a create job is running right
-  // now, in which case it is the running one.
+  // It does not go through `wordPhase` with them, though: create has
+  // only two states, past and running. A spec that exists was created,
+  // so the pip is past unless a create job is in flight right now.
+  // `g.done` used to be the reason — it comes from the git history,
+  // which counts only the runner's own `Run /aide-<step> for <folder>`
+  // commits, and a spec written by hand has no create commit, so every
+  // one of those showed a grey pip saying the spec had not been made
+  // yet. Spec 176 closed that gap one layer down (`withFreshness` puts
+  // create into the set for any spec whose folder is on disk), so the
+  // phase LINE agrees now; the two states above are what is left.
   const createRunning = g.phases
     .find((p) => p.step === "create")
     ?.attempts.some(inFlight);
@@ -1296,7 +1307,15 @@ function specHeadRow(
             archiveHeldBack: heldBack,
             readyPhase,
           })
-        : notStartedChip()
+        // A spec with no job in the queue's memory reads the same way
+        // (spec 176). It used to say "not started", which describes
+        // the same kind of situation — nothing running, and here is
+        // what could — while saying nothing useful, and could
+        // contradict the button beside it: a spec whose analyze ran
+        // long enough ago that its job record has aged out still has
+        // its commits, so `readyPhase` is "implement" and the badge
+        // read "not started".
+        : restingChip({ archiveHeldBack: heldBack, readyPhase })
     }<span class="actionslot">${stateAction(
       g,
       opts,

@@ -171,5 +171,11 @@ export class WorkflowHistoryChecker {
  *  spec 143 already took off this page once. */
 export function stepsFileDisagreesOn(fileSteps: string[], history: WorkflowHistory): string[] {
   const claimed = new Set(fileSteps);
-  return HISTORY_STEPS.filter((step) => claimed.has(step) !== history.done.includes(step));
+  // `create` is left out of the comparison since spec 176: the queue
+  // takes it as done for every spec whose folder exists, whatever git
+  // holds, so comparing it against a status file would report a
+  // disagreement about a step nothing disagrees on.
+  return HISTORY_STEPS.filter(
+    (step) => step !== "create" && claimed.has(step) !== history.done.includes(step),
+  );
 }
