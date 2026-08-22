@@ -313,16 +313,21 @@ p.rowmsg { margin: 0 0 var(--sp-3); }
 
 .field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
 .field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
-/* The two selects on a spec row are named here alongside the fields
+/* The two selects on a phase line are named here alongside the fields
    because neither one is inside a field: modelPicker renders into a
-   span.row and setAllControl straight into the AI column's own cell
+   span.row and aiPicker straight into the AI column's own cell
    (queue-list.ts), so the .field selector reached neither, and both
    carried no height, border, background or colour from the design
    system at all. Attribute selectors rather than a wrapper — both
    attributes are already in the markup, so this stays a stylesheet
-   change. */
+   change.
+   The pair sits side by side since spec 179, and the four rules below
+   are what makes them read as a pair: same height, same border, same
+   arrow, same disabled look. The one thing that differs is the face
+   the text is set in, further down, and that is about what they HOLD
+   — a model name is a value, an AI is a thing's name. */
 .field input, .field select, .field textarea,
-select[name^="model."], select[data-set-all] {
+select[name^="model."], select[data-ai] {
   height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
   border: 1px solid var(--line-strong); background: var(--surface);
   color: var(--text); font: var(--fs-m)/1 var(--sans); }
@@ -334,7 +339,7 @@ select[name^="model."], select[data-set-all] {
    claude-sonnet-4-6, instead of over the end of it. The background is
    set piece by piece: the shorthand would drop the var(--surface)
    ground the rule above gives it. */
-.field select, select[name^="model."], select[data-set-all] {
+.field select, select[name^="model."], select[data-ai] {
   appearance: none; -webkit-appearance: none;
   padding-right: 26px;
   background-image: var(--chevron);
@@ -349,18 +354,23 @@ select[name^="model."], select[data-set-all] {
    background-color rather than the shorthand, for the same reason as
    above. */
 .field input:disabled, .field select:disabled, .field textarea:disabled,
-select[name^="model."]:disabled, select[data-set-all]:disabled {
+select[name^="model."]:disabled, select[data-ai]:disabled {
   background-color: var(--surface-2); color: var(--muted);
   border-color: var(--line); cursor: default; }
-.field select:disabled, select[name^="model."]:disabled, select[data-set-all]:disabled {
+.field select:disabled, select[name^="model."]:disabled, select[data-ai]:disabled {
   background-image: none; }
 /* A model name is a value, like a spec id, a duration or a branch name,
    and its version digits are what a reader is actually comparing. The
    project and checkout pickers name a thing rather than a value and
    stay in the sans face. --fs-s because mono runs wider at the same
    nominal size, and these sit in a table column whose width is argued
-   over in the comments around .phasecell. */
-select[name^="model."], select[data-set-all] {
+   over in the comments around .phasecell.
+   select[data-ai] is deliberately NOT here (spec 179), although it
+   stands right beside the model select and shares every other rule
+   above with it: "Claude Code" is a thing's NAME, which is the case
+   the sentence above already carves out for the project and checkout
+   pickers. */
+select[name^="model."] {
   font-family: var(--mono); font-size: var(--fs-s); }
 /* border-box, or width:100% means "100% plus padding and border" and
    the box sticks 18px out of its own field — which is exactly the gap
@@ -472,23 +482,25 @@ table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom:
    way for a spacing detail to degrade. */
 table.list tr.subrow:last-child td,
 table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
-/* The phase lines are REAL COLUMNS since spec 165 — the name, the row's
-   AI, then the model with the phase's box beside it. They were three
+/* The phase lines are REAL COLUMNS since spec 165 — the name, the
+   phase's AI, then the model with the phase's box beside it. They were three
    flex children of one cell until then, each pinned to a fixed width
    so every select started at the same x; a table column does that by
    itself, and the bookkeeping is gone with the pinning.
    The name stands hard left with nothing in front of it: it is what
    the eye lands on first, and it began 2.5rem in, behind the box. */
 table.list tr.subrow .phasecell { white-space: nowrap; }
-/* The row's set-all control (spec 169), in the column to the LEFT of
-   the model (spec 165), where the AI select it replaced stood. One
-   cell for the whole group, spanning
-   every phase line, so vertical-align: middle sits it at the height of
-   the phases in the middle rather than up on the first one — every
-   other cell on the page is top-aligned.
+/* The phase's AI picker (spec 179), in the column to the LEFT of the
+   model (spec 165). It was one cell for the whole group, spanning
+   every phase line, while the control in it was the row's set-all —
+   hence vertical-align: middle, which sat that one control at the
+   height of the phases in the middle rather than up on the first.
+   There is a control on every line now and the alignment stays: it
+   centres the select against the phase's name and its model, where
+   every other cell on the page is top-aligned.
    The min-width is the same promise .actionslot makes: the column
-   is as wide with one configured model, where the control draws
-   nothing, as with several. Nothing here may move because something
+   is as wide with one configured tool, where the picker draws
+   nothing, as with two. Nothing here may move because something
    else was pressed. */
 table.list tr.subrow td.toolcell {
   vertical-align: middle; min-width: 8rem; }
@@ -742,17 +754,26 @@ tr.spec-archived td { color: var(--muted); }
      hold two empty columns nothing lines up under. */
   table.list [data-col="started"], table.list [data-col="cost"] { display: none; }
 
-  /* One pair on an open row's phase line can run out of room at this
-     width: the model select and the phase's box, which share a cell.
-     They take a line each instead. The name is one word in a column of
-     its own, and the AI picker's spanning cell is centred in whatever
-     height the wrapped lines come to — neither has anything to give up
-     here. */
+  /* An open row's phase line carries THREE real cells since spec 179 —
+     the name, the AI select, the model with the phase's box — where it
+     carried two on four lines out of five. Two selects and a name do
+     not cross 375px side by side, so each cell takes a line of its
+     own: a block-level child of a table row is wrapped in an anonymous
+     cell, and three of them in a row end up in the same one, stacked.
+     The cells after them (the phase's state word) stay real cells and
+     keep their column. */
+  table.list tr.subrow .phasecell,
+  table.list tr.subrow td.toolcell,
+  table.list tr.subrow .modelcell { display: block; width: 100%; }
+  /* And the pair inside the model's own cell wraps as it already did:
+     the model select and the phase's box take a line each rather than
+     squeezing into the width the stacked cell gives them. */
   table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }
   /* And the two widths those cells reserve on a desktop are given
      back. Reserving them here would put 18rem of floor into a 23rem
      screen and the table would scroll — the one thing spec 155 exists
-     to prevent. Neither is needed at this width: the pair has wrapped,
+     to prevent, and a full-width block honours a min-width exactly as
+     a table cell does. Neither is needed at this width: the pair has wrapped,
      so there is no second column inside the cell to line a caption up
      with, and a column that closes when its control is absent is
      better than a scrollbar. Dropping two whole columns is the same
