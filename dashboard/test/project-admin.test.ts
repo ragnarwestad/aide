@@ -45,8 +45,9 @@ function cloningGit(projectsRoot: string, files: Record<string, string> = {}) {
     calls,
     run: async (dir: string, args: string[]) => {
       calls.push({ dir, args });
-      if (args[0] === "clone") {
-        const dest = join(projectsRoot, args[2]!);
+      const clone = args.indexOf("clone");
+      if (clone !== -1) {
+        const dest = join(projectsRoot, args[clone + 2]!);
         mkdirSync(dest, { recursive: true });
         for (const [path, text] of Object.entries(files)) {
           mkdirSync(join(dest, path).replace(/\/[^/]+$/, ""), { recursive: true });
@@ -116,8 +117,11 @@ describe("adding a project by cloning it", () => {
     // every other git call in the codebase. The CLONE calls alone —
     // since spec 138 the same runner is asked the readiness questions
     // too, and those are that spec's to assert.
-    expect(git.calls.filter((c) => c.args[0] === "clone")).toEqual([
-      { dir: projectsRoot, args: ["clone", "https://example.com/newproj.git", "newproj"] },
+    expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([
+      {
+        dir: projectsRoot,
+        args: ["-c", "credential.helper=", "clone", "https://example.com/newproj.git", "newproj"],
+      },
     ]);
     const manifest = join(projectsRoot, "newproj", ".aide", "project.yaml");
     expect(existsSync(manifest)).toBe(true);
@@ -143,7 +147,7 @@ describe("adding a project by cloning it", () => {
 
   test("a clone that fails is reported with what git said, and nothing else runs", async () => {
     const projectsRoot = root();
-    const git = fakeGit({ clone: { code: 128, stderr: "repository not found" } });
+    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: "repository not found" } });
     const result = await addProject(git.run, projectsRoot, {
       name: "nope",
       gitUrl: "https://example.com/nope.git",
@@ -151,6 +155,88 @@ describe("adding a project by cloning it", () => {
     expect(result.ok).toBe(false);
     expect(result.steps.map((s) => s.step)).toEqual(["name", "clone"]);
     expect(result.steps[1]!.error).toContain("repository not found");
+  });
+});
+
+// Spec 183: a clone of a private HTTPS repository hung for eleven
+// minutes on the serving host, because git handed the question to the
+// machine's credential helper and a background service has nobody to
+// answer it. The clone now runs with the helper list cleared for that
+// one invocation, so git gives up in seconds instead — and the answer
+// has to say what to do about it, since the reader is looking at the
+// HTTPS address they just pasted.
+describe("a clone that cannot authenticate", () => {
+  const PROMPTS_DISABLED =
+    "fatal: could not read Username for 'https://example.com/owner/private.git': terminal prompts disabled";
+
+  // Criterion 2: the override rides on the clone call's own args, not
+  // on the shared runner — every OTHER git call this dashboard makes
+  // still consults the helper, which is what an already-added project
+  // holding an HTTPS token depends on.
+  test("the clone clears the credential helper for that one call", async () => {
+    const projectsRoot = root();
+    const git = cloningGit(projectsRoot);
+    await addProject(git.run, projectsRoot, {
+      name: "newproj",
+      gitUrl: "https://example.com/newproj.git",
+    });
+    const clone = git.calls.find((c) => c.args.includes("clone"))!;
+    expect(clone.args.slice(0, 3)).toEqual(["-c", "credential.helper=", "clone"]);
+  });
+
+  // Criterion 1.
+  test("names the credentials problem and suggests the SSH address", async () => {
+    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
+    const result = await addProject(git.run, root(), {
+      name: "private",
+      gitUrl: "https://example.com/owner/private.git",
+    });
+    const clone = result.steps.find((s) => s.step === "clone")!;
+    expect(clone.ok).toBe(false);
+    expect(clone.error).toContain("credentials");
+    expect(clone.error).toContain("git@example.com:owner/private.git");
+  });
+
+  // Criterion 5: the address is derived, not echoed — an HTTPS one
+  // without the suffix still gets an SSH one with it.
+  test("an address with no .git suffix still gets one in the suggestion", async () => {
+    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: PROMPTS_DISABLED } });
+    const result = await addProject(git.run, root(), {
+      name: "private",
+      gitUrl: "https://example.com/owner/private",
+    });
+    expect(result.steps.find((s) => s.step === "clone")!.error).toContain(
+      "git@example.com:owner/private.git",
+    );
+  });
+
+  // Criterion 3: every other reason a clone fails keeps its own words.
+  // The classifier reads git's stderr, so an over-matching one would
+  // fold "no such repository" into a message about credentials.
+  test("an unrelated failure keeps today's plain message", async () => {
+    const git = fakeGit({ "-c credential.helper= clone": { code: 128, stderr: "repository not found" } });
+    const result = await addProject(git.run, root(), {
+      name: "nope",
+      gitUrl: "https://example.com/nope.git",
+    });
+    const clone = result.steps.find((s) => s.step === "clone")!;
+    expect(clone.error).toContain("repository not found");
+    expect(clone.error).not.toContain("credentials");
+    expect(clone.error).not.toContain("git@");
+  });
+
+  // Criterion 7: an SSH address authenticates by key, never through
+  // `credential.helper`, so clearing the helper changes nothing for it.
+  test("an SSH address still clones", async () => {
+    const projectsRoot = root();
+    const git = cloningGit(projectsRoot);
+    const result = await addProject(git.run, projectsRoot, {
+      name: "bykey",
+      gitUrl: "git@example.com:owner/bykey.git",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.steps.map((s) => s.step)).toEqual(["name", "clone", "manifest"]);
+    expect(existsSync(join(projectsRoot, "bykey", ".aide", "project.yaml"))).toBe(true);
   });
 });
 
@@ -171,7 +257,7 @@ describe("adding a checkout that is already on the host", () => {
     expect(result.ok).toBe(true);
     // Nothing was CLONED: the checkout was already there. (Readiness
     // asks the same runner its own read-only questions afterwards.)
-    expect(git.calls.filter((c) => c.args[0] === "clone")).toEqual([]);
+    expect(git.calls.filter((c) => c.args.includes("clone"))).toEqual([]);
     expect(readFileSync(manifest, "utf-8")).toContain("api: Go");
     expect(readFileSync(manifest, "utf-8")).not.toContain("ignored");
   });

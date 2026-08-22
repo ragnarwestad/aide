@@ -4009,8 +4009,11 @@ interface StepBody {
  *  step after the clone reads that directory, so a fake leaving nothing
  *  behind would exercise only the first one. */
 const cloningGit = (): ServerOptions["gitRun"] => async (dir, args) => {
-  if (args[0] === "clone") {
-    mkdirSync(join(dir, args[2]!), { recursive: true });
+  // Located, not assumed at index 0: since spec 183 the real clone
+  // carries a `-c credential.helper=` prefix ahead of the subcommand.
+  const clone = args.indexOf("clone");
+  if (clone !== -1) {
+    mkdirSync(join(dir, args[clone + 2]!), { recursive: true });
     return { code: 0, stdout: "" };
   }
   return { code: 1, stdout: "" };
@@ -4229,8 +4232,9 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       for (const [prefix, a] of Object.entries(answers)) {
         if (joined.startsWith(prefix)) return { code: a.code, stdout: a.stdout ?? "" };
       }
-      if (joined.startsWith("clone")) {
-        mkdirSync(join(at, args[2]!), { recursive: true });
+      const clone = args.indexOf("clone");
+      if (clone !== -1) {
+        mkdirSync(join(at, args[clone + 2]!), { recursive: true });
         return { code: 0, stdout: "" };
       }
       if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };

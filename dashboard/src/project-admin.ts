@@ -235,6 +235,46 @@ export function worktreeLinksError(value: string): string | null {
   return null;
 }
 
+/** Whether a failed clone's stderr is git giving up on a login nobody
+ *  was going to answer, rather than any other reason a clone fails.
+ *
+ *  Spec 183: `-c credential.helper=` on the clone call, plus the
+ *  `GIT_TERMINAL_PROMPT=0` `createGitRunner` already sets, leave git no
+ *  way at all to get credentials — so it fails in seconds with its own
+ *  wording rather than handing the question to a helper that waits for
+ *  a person who is not there. Several phrasings are read because the
+ *  remote gets a say too (GitLab answers a bad token in its own words);
+ *  one that is missed degrades to the generic message below, which is
+ *  what every non-credentials failure gets anyway. */
+function needsAuthentication(stderr: string): boolean {
+  const said = stderr.toLowerCase();
+  return (
+    said.includes("terminal prompts disabled") ||
+    said.includes("could not read username") ||
+    said.includes("could not read password") ||
+    said.includes("authentication failed") ||
+    said.includes("http basic: access denied")
+  );
+}
+
+/** The SSH form of an HTTPS clone address, for the reader to copy — the
+ *  request's own address is never rewritten (spec 183: someone using
+ *  HTTPS with a token is doing it on purpose). `null` when there is
+ *  nothing to derive it from, and the message then names the problem
+ *  without an example rather than guessing at one. */
+function sshEquivalent(gitUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(gitUrl);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:") return null;
+  const path = parsed.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+  if (!path) return null;
+  return `git@${parsed.host}:${path}${path.endsWith(".git") ? "" : ".git"}`;
+}
+
 // --- whether a run could start there (spec 138) -------------------------------
 //
 // Adding a project said "added" and nothing more, and the things that
@@ -550,9 +590,22 @@ export async function addProject(
     if (existsSync(dir)) {
       return stop("clone", `"${name}" is already a directory under the projects root`);
     }
-    const cloned = await run(projectsRoot, ["clone", gitUrl, name]);
+    // `-c credential.helper=` on THIS call only, never on the runner:
+    // the same runner polls, pulls and merges every already-added
+    // project, and one holding an HTTPS token needs its helper for all
+    // of those. Here there is nobody to ask, so git must fail instead.
+    const cloned = await run(projectsRoot, ["-c", "credential.helper=", "clone", gitUrl, name]);
     if (cloned.code !== 0) {
       const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
+      if (needsAuthentication(said)) {
+        const ssh = sshEquivalent(gitUrl);
+        return stop(
+          "clone",
+          "the repository needs credentials this machine cannot supply without being asked — " +
+            "use its SSH address instead, which a key answers with nobody there" +
+            (ssh ? `: ${ssh}` : ""),
+        );
+      }
       return stop("clone", `the clone failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`);
     }
     steps.push({ step: "clone", ok: true });
