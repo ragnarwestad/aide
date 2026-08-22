@@ -79,60 +79,12 @@ function manifestBlock(data: ManifestData): string {
   return parts.filter(Boolean).join("\n");
 }
 
-function specTable(specs: SpecView[]): string {
-  if (specs.length === 0) return `<p class="muted">No specs found.</p>`;
-  const rows = specs.map((s) => {
-    const progress = s.status?.progress
-      ? `${s.status.progress.percent}% (${s.status.progress.done} of ${s.status.progress.total})`
-      : "–";
-    const phase = s.status?.phase ?? "–";
-    // Whether the spec's FOLDER has been archived on disk. It used to
-    // be `archived`/`active` — the same two words the spec list uses
-    // for the unrelated question of whether a job is in flight, which
-    // meant one class name stood for two things. Named for the question
-    // it answers now.
-    const state = s.archived ? "archived" : "active";
-    return (
-      `<tr class="${s.archived ? "spec-archived" : "spec-open"}"><td>${esc(s.folder)}</td>` +
-      `<td>${esc(s.title ?? "")}</td>` +
-      `<td>${esc(phase)}</td><td>${esc(progress)}</td><td>${state}</td></tr>`
-    );
-  });
-  // Five columns, one of them a whole title: the box scrolls rather
-  // than the page (spec 155).
-  return (
-    `<div class="tablewrap"><table class="list"><thead><tr><th>Spec</th><th>Title</th><th>Phase</th>` +
-    `<th>Progress</th><th>State</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`
-  );
-}
 
 // Slug assignment: lowercase, non-alphanumeric runs -> one hyphen,
 // trimmed. `projects` is pre-reserved (the overview owns
 // projects.html); a taken or empty slug gets -2, -3, ... — never a
 // silent overwrite.
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
-function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
-  // `projects` and `about` are ours: a project called either would
-  // otherwise overwrite a page the nav links to by name. `index` stays
-  // reserved too, defensively — the overview moved off it (spec 100),
-  // and nothing should quietly move back in.
-  const used = new Set(["index", "about", "projects"]);
-  const slugs = new Map<ProjectView, string>();
-  for (const p of [...projects].sort((a, b) => a.name.localeCompare(b.name))) {
-    const base = slugify(p.name) || "project";
-    let slug = base;
-    for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
-    used.add(slug);
-    slugs.set(p, slug);
-  }
-  return slugs;
-}
 
 // The nav entries for a project set — shared by the generator and the
 // live server when it was started with a `--root` of its own.
@@ -143,18 +95,7 @@ function assignSlugs(projects: ProjectView[]): Map<ProjectView, string> {
 // in serve.ts is the no-`--root` fallback and deliberately still names
 // the file — it has no project set to link the served page's contents
 // from.
-export function navEntries(
-  projects: ProjectView[],
-  opts: {
-    /** A server with a project root of its own serves each project's
-     *  page itself (spec 185), and that page is the one with the
-     *  settings and the readiness answer on it. The generator has no
-     *  such server behind it and keeps naming the file it writes. */
-    live?: boolean;
-  } = {},
-): NavEntry[] {
-  const slugs = assignSlugs(projects);
-  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
+export function navEntries(): NavEntry[] {
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
     // Spec 163. It sits among the project pages rather than beside
@@ -162,16 +103,12 @@ export function navEntries(
     // Projects tab; what makes it a tab of its own instead of a project
     // is its absolute path, which no project page has.
     { label: "Archive", path: ARCHIVE_ROUTE },
-    // The generated site has no server, so its nav is the only way
-    // between its pages and every project has to be in it. The served
-    // one does not: a project is reached from the Projects page, which
-    // lists every one of them with its counts, its warnings and its
-    // controls. Repeating them as top-level tabs put each project in
-    // the bar twice over — asked for by nobody, and it grows with the
-    // machine's project count (2026-08-22).
-    ...(opts.live
-      ? []
-      : ordered.map((p) => ({ label: p.name, path: `${slugs.get(p)!}.html` }))),
+    // A tab per project stood here, from the days this was a generated
+    // site with a page per project and no server (aide-dashboard spec
+    // 01). A project is reached from the Projects page now, which lists
+    // every one with its counts, its warnings and its controls, so the
+    // tabs said each project twice and the bar grew with the machine's
+    // project count (2026-08-22).
   ];
 }
 
@@ -251,7 +188,10 @@ function projectBody(p: ProjectView): string {
   if (!p.manifest.ok) {
     return `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>`;
   }
-  return manifestBlock(p.manifest.data) + `<h3>Specs</h3>` + specTable(p.specs);
+  // A frozen spec table stood here. The list one tab away is the live
+  // one — filterable, sortable, with the controls — and a copy of it
+  // under the manifest said nothing that page did not (2026-08-22).
+  return manifestBlock(p.manifest.data);
 }
 
 /** Where a setting's value came from, in the words the page uses (spec
@@ -373,12 +313,11 @@ export function projectSummary(projects: ProjectView[]): string {
 export function projectListBody(
   projects: ProjectView[],
   opts: {
-    /** Where a project's NAME goes. The generated site links the file
-     *  it writes; a server links the page it serves, which is the one
-     *  carrying the settings and the readiness answer (spec 185). Two
-     *  links reading "woodstack" on one page, going to two different
-     *  pages, is what this replaced (2026-08-22). */
-    pageHref?: (name: string) => string | undefined;
+    /** Where a project's NAME goes: the page the server serves for it,
+     *  which is the one carrying the settings and the readiness answer
+     *  (spec 185). There is no other project page to link — the
+     *  generated per-project files went on 2026-08-22. */
+    pageHref: (name: string) => string;
     removeHref?: (name: string) => string | undefined;
     /** Spec 142: what to say on a project's row about its checkout, if
      *  anything. A callback like `removeHref`, and for the same reason:
@@ -390,16 +329,15 @@ export function projectListBody(
      *  has no server behind it to check a token against, so it carries
      *  no control at all. */
     settingsHref?: (name: string) => string | undefined;
-  } = {},
+  },
 ): string {
-  const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return (
     ordered
       .map((p) =>
         overviewRow(
           p,
-          opts.pageHref?.(p.name) ?? `${slugs.get(p)!}.html`,
+          opts.pageHref(p.name),
           opts.removeHref?.(p.name),
           opts.note?.(p.name),
           opts.settingsHref?.(p.name),
@@ -409,10 +347,8 @@ export function projectListBody(
   );
 }
 
-export function renderSite(projects: ProjectView[], generatedAt: string): Page[] {
-  const slugs = assignSlugs(projects);
-  const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
-  const entries = navEntries(projects);
+export function renderSite(_projects: ProjectView[], generatedAt: string): Page[] {
+  const entries = navEntries();
 
   // The overview is served now (spec 115), because the controls that
   // change the project list need a token checked per request and a file
@@ -441,12 +377,11 @@ export function renderSite(projects: ProjectView[], generatedAt: string): Page[]
       buildStamp: generatedAt,
     }),
   });
-  for (const p of ordered) {
-    const path = `${slugs.get(p)!}.html`;
-    pages.push({
-      path,
-      html: pageShell(p.name, entries, path, projectBody(p), generatedAt),
-    });
-  }
+  // A page per project was written here until 2026-08-22. The server
+  // serves one now (spec 185) — the one with the settings and the
+  // readiness answer on it, reached from the Projects page — and a
+  // frozen copy beside it was a second page with the same name, one
+  // tab away from the live one and always a little out of date. The
+  // overview above went the same way at spec 115 and is a redirect.
   return pages;
 }

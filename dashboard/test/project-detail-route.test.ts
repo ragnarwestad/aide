@@ -17,7 +17,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { navEntries, type ProjectView } from "../src/render.ts";
+import { navEntries } from "../src/render.ts";
 import { parseArgs } from "../src/serve.ts";
 import type { GitRunner } from "../src/branch-status.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
@@ -84,13 +84,17 @@ const get = (base: string, name: string) =>
   fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
 
 describe("GET /projects/<name> — the project's own page, served", () => {
-  test("a known project answers 200 with its manifest and its specs", async () => {
+  test("a known project answers 200 with its manifest, and no spec list", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("the aide project");
-    expect(html).toContain("01-first");
+    // The spec list is the Specs tab — live, filterable, with the
+    // controls. A frozen copy of it under the manifest said nothing
+    // that page did not (2026-08-22).
+    expect(html).not.toContain("<h3>Specs</h3>");
+    expect(html).not.toContain("01-first");
   });
 
   test("a project nobody has is 404, not an empty page", async () => {
@@ -245,19 +249,13 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
 // as well put each project there twice, and the bar grew with the
 // machine's project count. The GENERATED site keeps them: it has no
 // server, and its nav is the only way between its pages.
-describe("the served nav does not name the projects; the generated one must", () => {
-  const views = (...names: string[]): ProjectView[] =>
-    names.map((name) => ({ name, manifest: { ok: true, data: {} }, specs: [] }));
-
-  test("a live nav is the three tabs and nothing per project", () => {
-    const entries = navEntries(views("aide", "woodstack"), { live: true });
-    expect(entries.map((e) => e.label)).toEqual(["Projects", "Archive"]);
-  });
-
-  test("the generator's nav still names every project, and the file it writes", () => {
-    const entries = navEntries(views("aide", "woodstack"));
-    expect(entries.find((e) => e.label === "aide")?.path).toBe("aide.html");
-    expect(entries.find((e) => e.label === "woodstack")?.path).toBe("woodstack.html");
+// A tab per project came from the days this was a generated site with
+// a page per project and no server (aide-dashboard spec 01). Both went
+// on 2026-08-22: a project is reached from the Projects page, which
+// lists every one with its counts, its warnings and its controls.
+describe("the nav does not name the projects", () => {
+  test("it is the three tabs, whatever projects the machine has", () => {
+    expect(navEntries().map((e) => e.label)).toEqual(["Projects", "Archive"]);
   });
 
   test("a server started with --root builds a nav with no project in it", () => {
@@ -266,5 +264,6 @@ describe("the served nav does not name the projects; the generated one must", ()
     ownDirs.push(site);
     const opts = parseArgs(["--site", site, "--root", root]);
     expect(opts.navEntries?.some((e) => e.label === "aide")).toBe(false);
+    expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects", "Archive"]);
   });
 });

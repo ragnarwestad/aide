@@ -94,7 +94,6 @@ import {
   type SpecFileView,
   type SpecPageView,
   type NavEntry,
-  type ProjectView,
   type QueueRowView,
   type QueueTarget,
 } from "./render.ts";
@@ -3018,19 +3017,11 @@ export function parseArgs(argv: string[]): ServerOptions {
     // The checkouts and the manifests live under the same root here.
     opts.queueProjectRoot = root;
   }
-  if (root) {
-    const projects: ProjectView[] = discoverProjects(root).map((p) => ({
-      name: p.name,
-      manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
-      specs: [],
-    }));
-    // `live`: this server has a project root, so it serves each
-    // project's page itself (spec 185) — and that is the page carrying
-    // the settings and the readiness answer. `navFromSite()`, the
-    // no-`--root` fallback, still names the generated files, because a
-    // server with no project root cannot render one.
-    opts.navEntries = navEntries(projects, { live: true });
-  }
+  // The nav is the same three tabs whatever the projects are — a
+  // project is reached from the Projects page, not from the bar. The
+  // `navFromSite()` fallback below is what a server with no project
+  // root uses, and it reads the site directory instead.
+  if (root) opts.navEntries = navEntries();
   return opts;
 }
 

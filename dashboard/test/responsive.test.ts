@@ -12,8 +12,6 @@ import { describe, expect, test } from "bun:test";
 import { CSS } from "../src/render/css.ts";
 import {
   renderQueueRows,
-  renderSite,
-  type ProjectView,
   type QueuePageOptions,
   type QueueTarget,
 } from "../src/render.ts";
@@ -170,26 +168,9 @@ describe("every wide table scrolls inside its own box", () => {
     expect(html.endsWith("</table></div>")).toBe(true);
   });
 
-  test("the project page's spec table is wrapped", () => {
-    const project: ProjectView = {
-      name: "aide",
-      manifest: { ok: true, data: { name: "aide" } },
-      specs: [
-        {
-          folder: "155-x",
-          dir: "/x/155-x",
-          archived: false,
-          title: "X",
-          description: null,
-          dependsOn: [],
-          status: null,
-        },
-      ],
-    };
-    const html = renderSite([project], "2026-08-21T12:00:00Z").find((p) => p.path === "aide.html")!
-      .html;
-    expect(html).toContain('<div class="tablewrap"><table class="list">');
-  });
+  // A generated page per project carried a spec table and it was
+  // wrapped here. Both went on 2026-08-22: the server serves the one
+  // project page there is, and the spec list is the Specs tab.
 });
 
 // --- criterion 5: two fields side by side become two lines ------------------

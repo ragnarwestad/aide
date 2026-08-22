@@ -94,51 +94,11 @@ const generatedAt = "2026-08-16T12:00:00+02:00";
 
 const site = renderSite([healthy, broken], generatedAt);
 const byPath = new Map(site.map((p: Page) => [p.path, p.html]));
+// A per-project file needed a filename, so a project's name was
+// slugged and collisions numbered. There are no per-project files any
+// more — the server serves the one project page there is — so the
+// slugs went with them (2026-08-22).
 
-describe("slugs and filenames (criterion 1)", () => {
-  test("collisions and the reserved names get numeric suffixes", () => {
-    const tricky = renderSite(
-      [project("My Proj"), project("my-proj"), project("index"), project("About"),
-       project("Claude Certified Architect")],
-      generatedAt,
-    );
-    // `about` and `projects` are reserved like `index`: each names a
-    // page the nav links to, so a project called any of them gets
-    // suffixed instead of overwriting it.
-    expect(tricky.map((p) => p.path).sort()).toEqual([
-      "about-2.html",
-      "about.html",
-      "claude-certified-architect.html",
-      "index-2.html",
-      "my-proj-2.html",
-      "my-proj.html",
-      "projects.html",
-    ]);
-  });
-
-  // Spec 100 criterion 8: the overview moved off `/` and needs a real
-  // filename of its own, so `projects` joins the reserved set — a
-  // project literally called that must not overwrite the overview.
-  test("the overview is projects.html; no index.html is produced", () => {
-    expect(site.map((p) => p.path)).toContain("projects.html");
-    expect(site.map((p) => p.path)).not.toContain("index.html");
-  });
-
-  test("a project named Projects is suffixed, not allowed over the overview", () => {
-    const pages = renderSite([project("Projects")], generatedAt);
-    const overview = pages.find((p) => p.path === "projects.html")!;
-    // Still the overview's file, whatever it holds — since spec 115 the
-    // way on to the served page.
-    expect(overview.html).toContain('<a href="/projects">');
-    expect(pages.map((p) => p.path)).toContain("projects-2.html");
-  });
-
-  test("normal names slug to lowercase hyphenated filenames", () => {
-    expect(byPath.has("goodproj.html")).toBe(true);
-    expect(byPath.has("brokenproj.html")).toBe(true);
-    expect(byPath.has("projects.html")).toBe(true);
-  });
-});
 
 describe("nav (criterion 2)", () => {
   // The project pages are reached from the Projects page, not from the
@@ -157,14 +117,14 @@ describe("nav (criterion 2)", () => {
   // deliberately still answers `projects.html` — serve.test.ts holds
   // that half.
   test("the Projects entry points at the served page", () => {
-    expect(navEntries([healthy, broken])[0]).toEqual({ label: "Projects", path: "/projects" });
+    expect(navEntries()[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
   // Criterion 4 (spec 163): the archive's pages have worked since spec
   // 150 and nothing linked to one, so they existed and could not be
   // found. The nav is the way in.
   test("the Archive entry is there, pointing at the served page", () => {
-    expect(navEntries([healthy, broken])).toContainEqual({ label: "Archive", path: "/archive" });
+    expect(navEntries()).toContainEqual({ label: "Archive", path: "/archive" });
   });
 
   // Two tabs since spec 119, three since spec 163: the site has a Specs
@@ -329,30 +289,11 @@ describe("the About page", () => {
     expect(projects).not.toContain('href="about.html"');
   });
 });
+// The generator wrote a page per project: the manifest and a frozen
+// spec table. Both are gone (2026-08-22). The manifest is on the
+// SERVED project page, tested in project-detail-route.test.ts, and the
+// spec table's live original is the list itself.
 
-describe("project pages (criterion 4)", () => {
-  test("every populated manifest key of the fixture appears", () => {
-    const page = byPath.get("goodproj.html")!;
-    expect(page).toContain("A healthy project");
-    expect(page).toContain("TypeScript");
-    expect(page).toContain("https://goodproj.example.com");
-    expect(page).toContain("https://stats.example.com");
-    expect(page).toContain("README.md");
-  });
-
-  test("spec table with phase, progress and archived row", () => {
-    const page = byPath.get("goodproj.html")!;
-    expect(page).toContain("<table");
-    expect(page).toContain("Active spec");
-    expect(page).toContain("Archived spec");
-    expect(page).toContain("Phase 2: GREEN");
-    expect(page).toContain("50%");
-  });
-
-  test("broken project's page shows the parse error", () => {
-    expect(byPath.get("brokenproj.html")!).toContain("YAML parse error at line 3");
-  });
-});
 
 describe("self-contained (criterion 5)", () => {
   test("no external references on any page", () => {

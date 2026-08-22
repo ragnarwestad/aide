@@ -130,7 +130,7 @@ describe("the header and the two tabs (spec 119)", () => {
   // The entries the SERVER passes — `navEntries` is what `serve.ts`
   // calls, and the Projects entry it builds is the served route, which
   // is what decides whether that tab reads as current on `/projects`.
-  const entries = navEntries([project]);
+  const entries = navEntries();
   const served = {
     "/": renderQueuePage([], AT, entries, { runnerAvailable: true, targets: [] }),
     "/specs/job-1": renderJobDetailPage(detail(), AT, entries),
@@ -197,8 +197,10 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  test("Projects is current on the projects page and on a project's own page", () => {
-    for (const html of [served["/projects"], site.get("projects.html")!, site.get("aide.html")!]) {
+  // A project's own generated page went on 2026-08-22 — the server
+  // serves the one project page there is.
+  test("Projects is current on the projects page", () => {
+    for (const html of [served["/projects"], site.get("projects.html")!]) {
       expect(tab(html, "Projects")).toContain('aria-current="page"');
       expect(tab(html, "Specs")).not.toContain("aria-current");
     }
@@ -703,22 +705,10 @@ describe("the two row-state vocabularies are distinct (acceptance criterion 9)",
     );
   });
 
-  test("a project page says whether the spec folder is archived on disk", () => {
-    const project: ProjectView = {
-      name: "aide",
-      manifest: { ok: true, data: { name: "aide" } },
-      specs: [
-        { folder: "101-x", dir: "/x/101-x", archived: false, title: "Open", description: null, dependsOn: [], status: null },
-        { folder: "99-y", dir: "/x/archive/99-y", archived: true, title: "Done", description: null, dependsOn: [], status: null },
-      ],
-    };
-    const html = renderSite([project], AT).find((p) => p.path === "aide.html")!.html;
-    expect(html).toContain('<tr class="spec-open">');
-    expect(html).toContain('<tr class="spec-archived">');
-    // Neither vocabulary borrows the other's words.
-    expect(html).not.toContain('<tr class="archived">');
-    expect(html).not.toContain('<tr class="active">');
-  });
+  // The generated project page had two spec-row classes of its own,
+  // `spec-open` and `spec-archived`, kept distinct from the queue's
+  // `active`/`archived`. That page went on 2026-08-22 and the classes
+  // with it; the queue's vocabulary is the only one left.
 });
 
 // Spec 143: the panel a row's long message goes into is the message
