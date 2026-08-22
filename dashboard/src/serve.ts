@@ -29,7 +29,9 @@ import {
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { projectSettings } from "./project-settings.ts";
 import { previewUrlFor } from "./preview-url.ts";
-import { archiveHeldBackReason, parseStatus, parseStatusChecks, tickStatusLine } from "./parse-status.ts";
+import {
+  archiveHeldBackReason, clearArchiveHeldBack, parseStatus, parseStatusChecks, tickStatusLine,
+} from "./parse-status.ts";
 import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
@@ -2699,6 +2701,21 @@ export function createServer(opts: ServerOptions) {
             );
           }
           ticked = next;
+        }
+        // Spec 190: the hold-back note goes with the last check it was
+        // waiting on. A declined archive run writes `## Archive held
+        // back` naming one open row and where to close it out; ticking
+        // that row IS closing it out, so leaving the section behind
+        // makes the page go on reporting a spec held back after the
+        // reason is gone.
+        //
+        // The whole file's checks, not the ticked phase's — a spec with
+        // open work in another phase is still held back. And only on
+        // the tick path: a save that just edits the description must
+        // never rewrite a section it never touched.
+        if (!parseStatusChecks(ticked).some((check) => !check.done)) {
+          const cleared = clearArchiveHeldBack(ticked);
+          if (cleared !== null) ticked = cleared;
         }
       }
       const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
