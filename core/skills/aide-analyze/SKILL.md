@@ -70,18 +70,44 @@ Scale the analysis to the complexity:
 
 See `references/complexity-and-analysis.md` for detailed steps per level.
 
-### Step 4: Update 2-analysis.md
+### Step 4: Check for work already begun
+
+A step stopped by its own time limit still commits what it wrote, and
+that work is landed on the default branch rather than left on a branch
+nobody can see (spec 187) — so the three files may already hold an
+earlier run's answers. Read `specs/XX-slug/2-analysis.md`,
+`3-solution.md` and `4-status.md` as they stand before writing anything.
+
+A section is UNWRITTEN when it still holds its template's bracketed
+placeholder text: `[not analyzed yet]`, `[filled in by analysis]`,
+`[How the analysis was performed...]`, `[not started]`, and any other
+bracketed stand-in the templates put there. Anything else is written,
+whether an earlier run wrote it or this one did.
+
+Counting headings is not enough. A half-written section carries its
+heading exactly as a finished one does, so the heading says nothing
+about whether the section was ever filled in — the bracketed
+placeholder is the signal, and it is the only one.
+
+Fill in the sections that still hold their placeholder. Leave every
+section that already has real content exactly as it stands.
+
+### Step 5: Update 2-analysis.md
 
 Write to `specs/XX-slug/2-analysis.md`. Follow the spec structure § 2-analysis.
 Include: Tracking info, mapping, affected files with file:line, API impact,
 test coverage.
 
+Sections already filled in per Step 4 are left untouched.
+
 Nothing that judges the solution goes here — complexity, estimate and risk
 analysis belong to 3-solution.md (spec structure § Separation of content).
 
-### Step 5: Create the implementation plan (3-solution.md)
+### Step 6: Create the implementation plan (3-solution.md)
 
 Write to `specs/XX-slug/3-solution.md`. Follow the spec structure § 3-solution.
+
+Sections already filled in per Step 4 are left untouched.
 
 **Scope:** the files to change, the complexity grade with the factors behind
 it, and the estimate for manual and AI-assisted development.
@@ -102,11 +128,13 @@ Structure the plan with TDD:
 - Step 1-N: Implementation (GREEN phase)
 - Testing strategy (REFACTOR phase)
 
-### Step 6: Update 4-status.md
+### Step 7: Update 4-status.md
 
 Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
+
+Sections already filled in per Step 4 are left untouched.
 
 Nothing in Tracking info records the step. Which steps a spec has had
 is read off the spec's own commits, and `aide-run-spec` writes the
@@ -124,7 +152,7 @@ Run /aide-analyze for <spec-folder>
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
 
-### Step 7: Confirm
+### Step 8: Confirm
 
 Show a summary with complexity, number of affected files, and the next step.
 
