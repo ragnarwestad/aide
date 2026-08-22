@@ -839,9 +839,18 @@ const phaseWordCell = (
    *  needs no wrapper of ours. */
   aside = "",
 ): string =>
+  // `w.qualifier` is NOT drawn here, and there is nowhere in this cell
+  // it could be (spec 195). It is a sentence, and spec 176's "beside
+  // the badge" trick is only open to marks a word wide: a badge is
+  // `nowrap`, so a sentence beside one runs off the right edge of the
+  // table. Under the badge it made this line taller than the phase
+  // lines around it — the last place on the page where something moved
+  // because something else changed, reported four times. The row's
+  // panel says it instead (`phaseDisagreement`/`specNoticeRow`), once
+  // for the whole spec and named for the phase it is about, so a phase
+  // line is one line in every state a phase can be in.
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
-  (aside ? ` ${aside}` : "") +
-  (w.qualifier ? `<div class="muted small">${esc(w.qualifier)}</div>` : "");
+  (aside ? ` ${aside}` : "");
 // `blank` because a header with nothing spent still owes the reader a
 // dash, while an empty phase line should simply be empty. That
 // distinction is the whole reason this takes a parameter the shared
@@ -1763,11 +1772,34 @@ const LIST_COLUMNS = 7;
 //
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
+/** The one phase whose own record disagrees with the files, worded for
+ *  the panel (spec 195). The sentence used to be drawn under that
+ *  phase's badge, where it was the last thing on this page that could
+ *  make one line taller than another.
+ *
+ *  The EARLIEST phase in workflow order, and only that one: the panel
+ *  holds one message, and three disagreements listed in it would be the
+ *  same growing block of text in a new place. It carries the phase's
+ *  own name because a sentence moved out of the line it belonged to
+ *  must say which line that was.
+ *
+ *  `p.attempts[0]`, not the in-flight-first pick the pips use: this is
+ *  a RELOCATION of what `phaseSubRows` computes for that same phase's
+ *  badge, so it has to read the same attempt that function does. */
+function phaseDisagreement(g: SpecGroup): string | undefined {
+  for (const p of g.phases) {
+    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], p.history);
+    if (word.qualifier) return `${stepLabel(p.step)}: ${word.qualifier}`;
+  }
+  return undefined;
+}
+
 function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {
   const notice = specNotice(
     g.lead,
     g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
     refusal,
+    phaseDisagreement(g),
   );
   if (!notice) return "";
   return (
