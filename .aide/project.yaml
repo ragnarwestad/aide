@@ -20,6 +20,15 @@ deployment:
   url: dashboard — https://<serving-host>.<tailnet>.ts.net/ (tailscale serve terminates TLS in front of the server, which binds 127.0.0.1:8788; PORT= and TS_PORT= to change either)
 logging:
   where: dashboard — ~/Library/Logs/aide-dashboard/serve.log on the serving host (launchd job com.aide-dashboard.serve)
+# Gitignored paths a headless run must symlink into its worktree — a
+# worktree carries TRACKED files only, and both of this repo's test
+# commands live behind one of these: pytest is in .venv, and the
+# dashboard's suite needs dashboard/node_modules. Here rather than in
+# .aide/config (spec 184) because it is true of this repo on any
+# machine, and .aide/config does not travel with a clone.
+#
+# Written by the dashboard. /aide-manifest leaves it exactly as found.
+worktreeLinks: .venv dashboard/node_modules
 docs:
   - README.md
   - docs/ROADMAP.md

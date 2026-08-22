@@ -689,10 +689,14 @@ async function submitCreate(form: HTMLFormElement, event: Event): Promise<void> 
 // for the same reason the New-spec form is — the panel sits OUTSIDE
 // #jobrows so a half-typed git URL survives the five-second swap.
 //
-// Neither refusal has a row to land on: an Add names a project that was
-// never added, and a Remove that failed leaves the project exactly
-// where the reader can already see it. Both go into the form's own
-// `.refused` slot, like New spec's.
+// No refusal here has a row to land on: an Add names a project that was
+// never added, a Remove that failed leaves the project exactly where the
+// reader can already see it, and a Settings save that was refused wrote
+// nothing. All go into the form's own `.refused` slot, like New spec's.
+//
+// The Settings page (spec 184) rides on this unchanged: it posts the
+// same two fields and gets the same readiness answer back, so saving
+// again re-assesses on the page the reader is already standing on.
 async function submitProjectChange(form: HTMLFormElement, event: Event): Promise<void> {
   if (event.defaultPrevented) return;
   event.preventDefault();
@@ -747,9 +751,46 @@ function bindTypedConfirm(form: HTMLFormElement): void {
   input.addEventListener("input", sync);
 }
 
+/** Spec 184: the Add form's two settings, proposed for whichever
+ *  checkout is picked. The server works one proposal out per offered
+ *  checkout and puts them all on the form, because nothing is picked at
+ *  the moment the page is drawn.
+ *
+ *  Only ever fills a field the reader has not typed in, and never
+ *  overwrites what they did type: a proposal is help, and help that
+ *  undoes an answer is not help. A checkout with nothing to propose
+ *  clears the field back to blank, so the form never shows the previous
+ *  pick's answer beside this one's name. */
+function bindProposals(form: HTMLFormElement): void {
+  const raw = form.dataset.proposals;
+  if (!raw) return;
+  let proposals: Record<string, { specsPath: string; worktreeLinks: string }>;
+  try {
+    proposals = JSON.parse(raw);
+  } catch {
+    return; // nothing to propose beats a page whose script died
+  }
+  const picker = form.querySelector('[name="existingPath"]') as HTMLSelectElement | null;
+  if (!picker) return;
+  const typed = new Set<string>();
+  const fields = (["specsPath", "worktreeLinks"] as const).map((name) => {
+    const input = form.querySelector(`[name="${name}"]`) as HTMLInputElement | null;
+    input?.addEventListener("input", () => void typed.add(name));
+    return { name, input };
+  });
+  picker.addEventListener("change", () => {
+    const proposed = proposals[picker.value];
+    for (const { name, input } of fields) {
+      if (!input || typed.has(name)) continue;
+      input.value = proposed?.[name] ?? "";
+    }
+  });
+}
+
 for (const el of document.querySelectorAll("form.addprojectform, form.removeform")) {
   const form = el as HTMLFormElement;
   bindTypedConfirm(form);
+  bindProposals(form);
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 

@@ -30,6 +30,12 @@ import { projectListBody, projectSummary, type ProjectView } from "./site.ts";
 export const ADD_PROJECT_ROUTE = "/projects/new";
 export const removeProjectRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/remove`;
+/** And where its two settings are CHANGED (spec 184). Until this page
+ *  existed the fields were on the Add form and nowhere else, so a
+ *  project added without them could only be fixed by removing it and
+ *  adding it again, or by editing a file in a terminal. */
+export const projectSettingsRoute = (name: string): string =>
+  `/projects/${encodeURIComponent(name)}/settings`;
 
 export interface ProjectsPageOptions {
   /** Carried into every form on the page, for a browser that got here
@@ -75,6 +81,31 @@ export interface ProjectsPageOptions {
    *  so, nothing did. Absent, empty, or naming a project by no key at
    *  all all mean the same thing: no banner. */
   driftByProject?: Record<string, number>;
+  /** Whether a run could start in each project, recomputed per request
+   *  (spec 184). The Add flow used to say this exactly once, in the
+   *  query string of the redirect it landed on, and never again — so an
+   *  operator who did not act on it there had no way to rediscover what
+   *  was missing except by starting a run and having it refused. A
+   *  project named by no key here gets no note, which is what the
+   *  generated page (no server, no git) shows. */
+  readinessByProject?: Record<string, { canRun: boolean; note: string }>;
+  /** What the project is configured with today — the Settings page's
+   *  two fields, pre-filled. Empty means empty: this page never guesses
+   *  on a configured project's behalf. */
+  specsPath?: string;
+  worktreeLinks?: string;
+  /** What each offered checkout's two fields would be, worked out by the
+   *  server (spec 184): its own lockfile for the links, the other
+   *  projects' layout for the specs root. An empty string is a proposal
+   *  that could not be made, and is rendered as a blank field rather
+   *  than a guess.
+   *
+   *  Keyed by checkout because nothing is picked at the moment this page
+   *  is drawn. With exactly one on offer the answer is unambiguous and
+   *  goes straight into the fields, which is what makes the help work
+   *  with no script at all; with several, the map rides on the form and
+   *  the pick fills them in. */
+  proposalsByCheckout?: Record<string, { specsPath: string; worktreeLinks: string }>;
 }
 
 /** What the row says. Spelled out here rather than at the call site so
@@ -110,9 +141,17 @@ export function renderProjectsPage(
     // project that was never allowlisted has nothing to be removed FROM.
     projectListBody(projects, {
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
+      // Settings on every row the served page draws, whether or not
+      // anything is wrong: it is where the two fields live now, and a
+      // control that appears only on a broken project is one nobody
+      // knows is there.
+      settingsHref: (name) => (opts.readinessByProject ? projectSettingsRoute(name) : undefined),
       note: (name) => {
         const behind = opts.driftByProject?.[name];
-        return behind ? driftNote(behind) : undefined;
+        const readiness = opts.readinessByProject?.[name];
+        return [readiness && !readiness.canRun ? readiness.note : undefined, behind ? driftNote(behind) : undefined]
+          .filter(Boolean)
+          .join(" — ") || undefined;
       },
     });
   // No meta refresh: a served page a reader may leave mid-thought needs
@@ -138,6 +177,17 @@ export function renderAddProjectPage(
   generatedAt: string,
   opts: ProjectsPageOptions,
 ): string {
+  // With exactly one checkout on offer the proposals are unambiguous and
+  // go into the fields themselves — the one case a browser with no
+  // script gets the help too. With several, nothing has been picked yet
+  // and a value filled in for one of them would be a claim about which.
+  const offered = opts.existingCheckouts ?? [];
+  const proposals = opts.proposalsByCheckout ?? {};
+  const only = offered.length === 1 ? proposals[offered[0]!] : undefined;
+  const prefill = (field: "specsPath" | "worktreeLinks"): string => {
+    const proposed = only?.[field] ?? "";
+    return proposed ? `value="${esc(proposed)}" ` : "";
+  };
   const body =
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // The copy 1-description.md asks for, before the form rather than
@@ -149,7 +199,9 @@ export function renderAddProjectPage(
         "Run /aide-manifest in the project afterwards to fill in the stack, deployment and docs.",
       { tag: "p" },
     ) +
-    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform">` +
+    `<form method="post" action="/api/queue/projects" class="newspecform addprojectform"` +
+    (Object.keys(proposals).length ? ` data-proposals="${esc(JSON.stringify(proposals))}"` : "") +
+    `>` +
     tokenField(opts.token) +
     `<span class="frow">` +
     field(
@@ -191,6 +243,7 @@ export function renderAddProjectPage(
     field(
       "Specs root",
       `<input type="text" name="specsPath" maxlength="300" ` +
+        prefill("specsPath") +
         `placeholder="optional — its own specs/ otherwise">`,
     ) +
     `</span>` +
@@ -203,6 +256,7 @@ export function renderAddProjectPage(
       // paths those are, so the form asks.
       "Worktree links",
       `<input type="text" name="worktreeLinks" maxlength="300" ` +
+        prefill("worktreeLinks") +
         // Spec 140: nothing can derive WHICH gitignored paths a project's
         // commands need — but the checkout's own `.gitignore` names the
         // candidates, and the reader had to go and open it. A
@@ -235,6 +289,69 @@ export function renderAddProjectPage(
     `</form>`;
   return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
     docTitle: "aide -board — add project",
+    script: opts.script,
+  });
+}
+
+/** The Settings page (spec 184): the same two fields the Add form has,
+ *  pre-filled with what the project is configured with, on a page a
+ *  reader can reach at any time rather than only in the seconds after
+ *  Add.
+ *
+ *  Deliberately the Add page's own shape — the same `field()` calls, the
+ *  same `<datalist>` help, the same Save/Cancel pair — because it is
+ *  literally the same two questions, asked of a project that already
+ *  exists. Every control works with no script, as everything on these
+ *  pages does. */
+export function renderProjectSettingsPage(
+  name: string,
+  entries: NavEntry[],
+  generatedAt: string,
+  opts: ProjectsPageOptions,
+): string {
+  const body =
+    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
+    rowMessage(
+      "info",
+      "The specs root is this machine's own and stays in .aide/config. The worktree links are the " +
+        "project's, on any machine, and are written to .aide/project.yaml — which is committed, so a " +
+        "clone on the next machine arrives already knowing them.",
+      { tag: "p" },
+    ) +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" ` +
+    `class="newspecform addprojectform">` +
+    tokenField(opts.token) +
+    `<span class="frow">` +
+    field(
+      "Specs root",
+      `<input type="text" name="specsPath" maxlength="300" ` +
+        `value="${esc(opts.specsPath ?? "")}" ` +
+        `placeholder="its own specs/ when empty">`,
+      { wide: true },
+    ) +
+    `</span>` +
+    `<span class="frow">` +
+    field(
+      "Worktree links",
+      `<input type="text" name="worktreeLinks" maxlength="300" ` +
+        `value="${esc(opts.worktreeLinks ?? "")}" ` +
+        (opts.worktreeLinkCandidates?.length ? `list="wtlinks" ` : "") +
+        `placeholder="gitignored paths a run must link in: node_modules .venv">` +
+        (opts.worktreeLinkCandidates?.length
+          ? `<datalist id="wtlinks">` +
+            opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("") +
+            `</datalist>`
+          : ""),
+      { wide: true },
+    ) +
+    `<span class="factions">` +
+    btn({ label: "Save", variant: "primary", pending: "saving…" }) +
+    `<a class="btn" href="/projects">Cancel</a>` +
+    `</span></span>` +
+    messageSlot("refused") +
+    `</form>`;
+  return pageShell(`${name} settings`, entries, "/projects", body, generatedAt, undefined, {
+    docTitle: `aide -board — ${name} settings`,
     script: opts.script,
   });
 }

@@ -169,15 +169,20 @@ when the run ends, and one left behind by a killed run is swept by the
 next run for that spec.
 
 A worktree carries tracked files only, so anything gitignored that the
-step needs has to be named in the project's `.aide/config`:
+step needs has to be named in the project's committed manifest:
 
-```text
-AIDE_WORKTREE_LINKS=.venv dashboard/node_modules
+```yaml
+# <project>/.aide/project.yaml
+worktreeLinks: .venv dashboard/node_modules
 ```
 
 Those paths are symlinked in from the main checkout and kept out of the
 commit. Without them, a test command living behind one of them fails for
-a reason that has nothing to do with the change.
+a reason that has nothing to do with the change. In the manifest because
+it is true of the project on any machine, and `.aide/config` is kept out
+of git — the older `AIDE_WORKTREE_LINKS=` spelling there is still read
+when the manifest names none, and every run says which of the two it
+read.
 
 **Installing aide gives nobody a queue.** The script does nothing until
 it is invoked, and it is what a scheduler drives (the aide-dashboard

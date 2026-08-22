@@ -232,6 +232,58 @@ class TestConfigGet:
 
 
 @pytest.mark.validation
+class TestManifestGet:
+    """aide_manifest_get reads a top-level scalar out of .aide/project.yaml.
+
+    Spec 184: what travels with the repo lives in the manifest, so the
+    runner has to be able to read the manifest — and the manifest is the
+    COMMITTED file, unlike .aide/config, which the global ignore drops.
+    Deliberately a sibling of aide_config_get rather than a YAML parser:
+    a top-level scalar is one anchored sed away, and this machine's
+    /bin/bash is 3.2, where collecting a nested block means a hand-written
+    read loop with far more room for a silent misparse.
+    """
+
+    def _manifest(self, tmp_path, text):
+        (tmp_path / ".aide").mkdir(exist_ok=True)
+        (tmp_path / ".aide" / "project.yaml").write_text(text)
+
+    def test_reads_a_scalar_value(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "name: aide\nworktreeLinks: .venv dashboard/node_modules\n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ".venv dashboard/node_modules"
+
+    def test_missing_file_is_empty_not_error(self, workspace_root, tmp_path):
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ""
+
+    def test_missing_key_is_empty(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "name: aide\ndescription: something\n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ""
+
+    def test_extra_whitespace_around_the_value_is_trimmed(self, workspace_root, tmp_path):
+        self._manifest(tmp_path, "worktreeLinks:    deps   \n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == "deps"
+
+    def test_a_nested_key_of_the_same_name_is_not_read(self, workspace_root, tmp_path):
+        """Only TOP-LEVEL keys. An indented `worktreeLinks:` belongs to
+        whatever block it sits in, and reading it would hand the runner a
+        value nobody wrote for it."""
+        self._manifest(tmp_path, "stack:\n  worktreeLinks: not-this\n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ""
+
+    def test_a_key_with_no_value_is_empty(self, workspace_root, tmp_path):
+        """`worktreeLinks:` with nothing after it is not a link named
+        `""` — it is a key that says nothing, same as an absent one."""
+        self._manifest(tmp_path, "worktreeLinks:\n")
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{tmp_path}"')
+        assert out == ""
+
+
+@pytest.mark.validation
 class TestSpecDependencies:
     """aide_spec_dependencies reads the optional `Depends on:` line from a
     spec's OWN 1-description.md and echoes one identifier per line.
@@ -313,3 +365,30 @@ class TestSpecDependencies:
             f'aide_spec_dependencies "{tmp_path}" "{folder.name}"',
         )
         assert out == ""
+
+
+@pytest.mark.validation
+class TestAidesOwnWorktreeLinksTravelWithTheRepo:
+    """Spec 184: aide's own migration, kept proven rather than done once.
+
+    The links were in `.aide/config`, which a global ignore rule drops —
+    so the two paths both of this repo's test commands live behind
+    (`.venv` for pytest, `dashboard/node_modules` for the dashboard's
+    suite) were lost every time the repo met a new machine, silently,
+    because git says nothing about a file it ignores. They are in the
+    committed manifest now.
+    """
+
+    def test_the_manifest_names_both_paths(self, workspace_root):
+        out = _call(workspace_root, f'aide_manifest_get "worktreeLinks" "{workspace_root}"')
+        assert out.split() == [".venv", "dashboard/node_modules"], (
+            "aide's own .aide/project.yaml must name the two gitignored paths its "
+            "test commands live behind — read by the same function aide-run-spec uses"
+        )
+
+    def test_the_manifest_is_what_a_run_would_read(self, workspace_root):
+        """Not just present: WINNING. `.aide/config` may still carry the
+        old spelling on a machine that has not been migrated, and the
+        manifest is the file that has to decide."""
+        manifest = (workspace_root / ".aide" / "project.yaml").read_text(encoding="utf-8")
+        assert "worktreeLinks: .venv dashboard/node_modules" in manifest

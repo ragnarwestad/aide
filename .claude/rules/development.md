@@ -75,9 +75,21 @@ changing anything here:
   after the run is over, and a worktree path is deleted when the run
   ends. `repos[].worktree` carries the throwaway one.
 - A worktree carries tracked files only, so `.venv` and
-  `dashboard/node_modules` reach it through `AIDE_WORKTREE_LINKS` in
-  `.aide/config` — symlinked in, and excluded from `git add -A` by
+  `dashboard/node_modules` reach it through `worktreeLinks:` in
+  `.aide/project.yaml` — symlinked in, and excluded from `git add -A` by
   pathspec, because a `dir/` gitignore rule does not match a symlink.
+  In the COMMITTED manifest since spec 184: `.aide/config` is dropped by
+  a global ignore rule, so the shareable half of it was lost every time
+  the project met a new machine. `.aide/config`'s `AIDE_WORKTREE_LINKS`
+  is still read when the manifest names none — the manifest wins where
+  both do, and the run reports which file it read (`worktreeLinksSource`
+  in the result blob, and a line on stderr). This is a FOURTH hand-paired
+  bash/TypeScript pair after `WORKFLOW_STEPS`, `DEPENDENCY_GATED_STEPS`
+  and project readiness: `aide_manifest_get` + `aide-run-spec` on one
+  side, `resolveWorktreeLinks` in `dashboard/src/discover.ts` on the
+  other, pinned to each other by
+  `tests/fixtures/worktree-links-precedence.json` — one table, four
+  combinations, read by a test on each side.
 
 **`WORKFLOW_STEPS` is duplicated with no shared source — a new step
 needs both copies.** `core/scripts/aide-run-spec`'s bash list and

@@ -4215,6 +4215,109 @@ describe("POST /api/queue/projects (spec 112)", () => {
   });
 });
 
+// --- spec 184: settings that can be changed after Add -------------------------
+//
+// The two fields lived on the Add form and nowhere else, so a project
+// added without them could only be fixed by removing and re-adding it,
+// or by editing a file on the serving host.
+describe("a project's settings route (spec 184)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  const settled = async (
+    extra: Record<string, unknown> = {},
+  ): Promise<{ base: string; dir: string; project: string }> => {
+    const { base, dir } = start({ queueToken: TOKEN, ...extra });
+    return { base, dir, project: join(dir, "root", "aide") };
+  };
+
+  test("the form is served, pre-filled with what the project has today", async () => {
+    const { base, project } = await settled();
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\nworktreeLinks: node_modules\n");
+    writeFileSync(join(project, ".aide", "config"), "AIDE_SPECS_PATH=/repos/aide-specs/aide\n");
+    const res = await fetch(`${base}/projects/aide/settings`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
+    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/aide-specs\/aide"/);
+  });
+
+  test("a project the allowlist does not know is a mistyped address", async () => {
+    const { base } = await settled();
+    const res = await fetch(`${base}/projects/nosuch/settings`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(404);
+  });
+
+  // Criterion 4: the whole point — a project brought to runnable without
+  // leaving the dashboard.
+  test("a save writes the links to the manifest and answers with the new readiness", async () => {
+    const { base, project } = await settled();
+    mkdirSync(join(project, "node_modules"), { recursive: true });
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ worktreeLinks: "node_modules", specsPath: "" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(true);
+    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).toContain(
+      "worktreeLinks: node_modules",
+    );
+    expect(body.readiness!.checks.find((c) => c.check === "worktreeLinks")!.ok).toBe(true);
+  });
+
+  test("an unusable value is refused, and nothing is written", async () => {
+    const { base, project } = await settled();
+    const before = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ worktreeLinks: "../escape" }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as StepBody;
+    expect(body.ok).toBe(false);
+    expect(body.results.find((r) => r.step === "worktreeLinks")!.error).toContain("../escape");
+    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).toBe(before);
+  });
+
+  test("posting at a project nobody added is refused", async () => {
+    const { base } = await settled();
+    const res = await fetch(`${base}/api/queue/projects/nosuch/settings`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ worktreeLinks: "node_modules" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // A browser with no script gets its answer the only way a redirect
+  // can carry one — the same handover the Add form has had since spec
+  // 138, back to the page the form is ON when it was refused.
+  test("a no-script save lands back on the list, and a refusal on the form", async () => {
+    const { base, project } = await settled();
+    mkdirSync(join(project, "node_modules"), { recursive: true });
+    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const ok = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ worktreeLinks: "node_modules", specsPath: "" }),
+    });
+    expect(ok.status).toBe(303);
+    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects");
+    const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ worktreeLinks: "/etc" }),
+    });
+    expect(refused.status).toBe(303);
+    expect(refused.headers.get("location")!.startsWith("/projects/aide/settings?error=")).toBe(true);
+  });
+});
+
 // --- spec 138: the Add says whether a run can start ---------------------------
 //
 // Adding a project answered "added" and left the operator to press Run to
@@ -4330,7 +4433,10 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
 
   // Criterion 7, at the route: the field is new, and an unusable value is
   // a refusal of the add rather than a readiness note.
-  test("worktree links are written to the project's own .aide/config", async () => {
+  // Spec 184 moved this key: it is true of the project on any machine,
+  // and `.aide/config` is dropped by a global ignore rule, so a clone
+  // arrived on the next machine with the answer gone.
+  test("worktree links are written to the project's own committed manifest", async () => {
     const { base, dir } = start({ queueToken: TOKEN, gitRun: readyGit() });
     const path = join(dir, "root", "withlinks");
     mkdirSync(join(path, "node_modules"), { recursive: true });
@@ -4340,9 +4446,10 @@ describe("POST /api/queue/projects reports readiness (spec 138)", () => {
       body: JSON.stringify({ name: "withlinks", existingPath: path, worktreeLinks: "node_modules" }),
     });
     expect(res.status).toBe(200);
-    expect(readFileSync(join(path, ".aide", "config"), "utf-8")).toContain(
-      "AIDE_WORKTREE_LINKS=node_modules",
+    expect(readFileSync(join(path, ".aide", "project.yaml"), "utf-8")).toContain(
+      "worktreeLinks: node_modules",
     );
+    expect(existsSync(join(path, ".aide", "config"))).toBe(false);
   });
 
   test("a worktree link that would leave the repository is refused", async () => {

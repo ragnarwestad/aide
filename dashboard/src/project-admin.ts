@@ -17,10 +17,11 @@
 // manifest at all.
 
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { stringify } from "yaml";
 import type { GitRunner } from "./branch-status.ts";
-import { configValue } from "./discover.ts";
+import { configValue, resolveWorktreeLinks } from "./discover.ts";
+import { parseManifest } from "./parse-manifest.ts";
 
 /** The steps an add or a remove is made of. `name` is the request
  *  itself: a project name becomes a directory under the projects root
@@ -111,7 +112,7 @@ export interface AddProjectRequest {
    *  means the config is not written at all — `<project>/specs` is the
    *  fallback both readers already implement. */
   specsPath?: string;
-  /** `AIDE_WORKTREE_LINKS`: the space-separated, repo-relative paths a
+  /** `worktreeLinks`: the space-separated, repo-relative paths a
    *  run has to link into its worktree because git does not carry them
    *  — `node_modules`, `.venv`. Omitted means the key is not written:
    *  the dashboard cannot infer which gitignored paths a project's own
@@ -187,6 +188,57 @@ export function minimalManifest(name: string, description?: string): string {
   return stringify({ name, ...(description ? { description } : {}) });
 }
 
+/** Set (or clear) ONE top-level scalar in a `.aide/project.yaml`,
+ *  touching nothing else in the file (spec 184).
+ *
+ *  The same discipline `writeAideConfig` applies to `.aide/config`, and
+ *  for a sharper reason: a manifest is a file a person wrote through
+ *  `/aide-manifest`, with comments, key order and multi-line blocks that
+ *  a parse-mutate-`stringify()` round trip promises nothing about. Only
+ *  the one anchored line is ever touched.
+ *
+ *  The line is written PLAIN and unquoted, because the reader on the
+ *  other side is one anchored `sed` in `aide-run-spec` and not a YAML
+ *  parser — a quoted value would read back there as empty, which is
+ *  indistinguishable from "no links configured".
+ *
+ *  An empty value REMOVES the key: a manifest carrying `worktreeLinks:`
+ *  with nothing after it says something no reader agrees about.
+ *
+ *  Throws when the key is already list-shaped. Replacing the first line
+ *  of a list leaves its `- ` children orphaned under whatever key came
+ *  before — invalid YAML, written silently — and nothing in this
+ *  codebase writes that shape, so it is a file somebody hand-edited and
+ *  a guess is the wrong answer to it. */
+export function upsertManifestScalar(file: string, key: string, value: string): void {
+  const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
+  const lines = text.split("\n");
+  // A trailing newline splits into a final empty element; it is put back
+  // by the join, so the file's shape survives a no-op.
+  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
+  const at = lines.findIndex((line) => line.startsWith(`${key}:`));
+  if (at !== -1) {
+    const next = lines[at + 1];
+    if (next !== undefined && /^\s+-\s/.test(next)) {
+      throw new Error(
+        `${key} in ${file} is a YAML list, and this writes a single line — edit it by hand or make it a scalar first`,
+      );
+    }
+    if (value) lines[at] = `${key}: ${value}`;
+    else lines.splice(at, 1);
+  } else if (value) {
+    // Appended at the end rather than slotted in: a manifest's key order
+    // is its author's, and there is no position here that is more
+    // correct than the one after everything they wrote.
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    lines.push(`${key}: ${value}`);
+  } else {
+    return; // nothing to clear, and nothing to write
+  }
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : ""));
+}
+
 /** Keys into the project's own `.aide/config`, in the plain `KEY=value`
  *  form every reader expects (`discover.ts`'s `configValue` and the
  *  shell's `aide_specs_root` and `aide_config_get`). The file is
@@ -214,7 +266,7 @@ export function writeAideConfig(projectDir: string, values: Record<string, strin
   writeFileSync(file, `${kept.join("\n")}\n`);
 }
 
-/** Why this `AIDE_WORKTREE_LINKS` value cannot be used, or `null`.
+/** Why this worktree-links value cannot be used, or `null`.
  *
  *  The same rule `aide-run-spec` refuses on, in the same words: a
  *  worktree carries TRACKED files only, so each entry is a path
@@ -222,17 +274,77 @@ export function writeAideConfig(projectDir: string, values: Record<string, strin
  *  main checkout. An absolute path or one containing `..` names
  *  something outside the repo, which the run refuses by name rather
  *  than link. Exported because the readiness check and the write path
- *  ask the same question. */
-export function worktreeLinksError(value: string): string | null {
+ *  ask the same question.
+ *
+ *  `key` names the SETTING the value came out of, because there are two
+ *  spellings of it since spec 184 and a refusal is read as an
+ *  instruction to go and edit one of them. Defaults to the manifest's,
+ *  which is where everything this dashboard writes goes; the readiness
+ *  check passes `AIDE_WORKTREE_LINKS` when it read the legacy file. The
+ *  runner does exactly the same, with the same two strings. */
+export function worktreeLinksError(value: string, key = "worktreeLinks"): string | null {
   for (const entry of value.split(/\s+/).filter(Boolean)) {
     if (entry.startsWith("/")) {
-      return `AIDE_WORKTREE_LINKS must name repo-relative paths: ${entry}`;
+      return `${key} must name repo-relative paths: ${entry}`;
     }
     if (entry.includes("..")) {
-      return `AIDE_WORKTREE_LINKS must not escape the root: ${entry}`;
+      return `${key} must not escape the root: ${entry}`;
     }
   }
   return null;
+}
+
+/** What a lockfile at the root says about the gitignored directory the
+ *  project's own commands need (spec 184).
+ *
+ *  Not a guess and not a scan: a lockfile IS the project stating which
+ *  package manager owns its dependency tree, and each of these puts that
+ *  tree in one well-known gitignored directory beside it. The Add form
+ *  offered the checkout's `.gitignore` entries as autocomplete before
+ *  this — help a reader still had to act on. Anything this cannot work
+ *  out is left EMPTY: a wrong pre-filled answer is worse than a blank
+ *  field, because it is one the reader has to notice to undo.
+ *
+ *  The result is the space-separated shape `worktreeLinks` takes, in a
+ *  stable order, so two toolchains in one checkout propose both. */
+export function suggestWorktreeLinksFromLockfile(dir: string): string {
+  const rules: { files: string[]; link: string }[] = [
+    { files: ["bun.lock", "bun.lockb", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "package.json"], link: "node_modules" },
+    { files: ["requirements.txt", "pyproject.toml", "Pipfile", "setup.py"], link: ".venv" },
+  ];
+  return rules
+    .filter((r) => r.files.some((f) => existsSync(join(dir, f))))
+    .map((r) => r.link)
+    .join(" ");
+}
+
+/** Where a new project's specs would go, read off where the already-added
+ *  ones keep theirs (spec 184).
+ *
+ *  The pattern this looks for is the one the projects on this host
+ *  actually follow: one shared specs repository with a directory per
+ *  project, `<parent>/<projectName>`. At least TWO projects have to
+ *  agree before it counts — one is an example, not a pattern — and a
+ *  project whose specs root is not named after it says nothing about
+ *  where a differently-named one would go.
+ *
+ *  Proposes nothing where there is no pattern, rather than a guess. */
+export function suggestSpecsPath(
+  newName: string,
+  projects: { name: string; specsPath: string | null }[],
+): string {
+  const byParent = new Map<string, number>();
+  for (const p of projects) {
+    if (!p.specsPath) continue;
+    const parent = dirname(p.specsPath);
+    if (basename(p.specsPath) !== p.name) continue;
+    byParent.set(parent, (byParent.get(parent) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  for (const [parent, count] of byParent) {
+    if (count >= 2 && count > (best === null ? 0 : byParent.get(best)!)) best = parent;
+  }
+  return best === null ? "" : join(best, newName);
 }
 
 /** Whether a failed clone's stderr is git giving up on a login nobody
@@ -503,8 +615,14 @@ export async function assessProjectReadiness(
   //    no source is a test command that will fail for a reason that has
   //    nothing to do with the change — the runner refuses it, and so
   //    does this.
-  const links = configValue(projectDir, "AIDE_WORKTREE_LINKS") ?? "";
-  const linkError = links ? worktreeLinksError(links) : null;
+  //    Read from the COMMITTED manifest first and `.aide/config` second
+  //    (spec 184), which is the order `aide-run-spec` itself reads them
+  //    in — a check that looked at only one of the two would report a
+  //    project unconfigured that a run links perfectly well.
+  const { links, source } = resolveWorktreeLinks(projectDir);
+  const linkError = links
+    ? worktreeLinksError(links, source === ".aide/config" ? "AIDE_WORKTREE_LINKS" : "worktreeLinks")
+    : null;
   const missing = links
     ? links.split(/\s+/).filter(Boolean).filter((e) => !existsSync(join(projectRoot, e)))
     : [];
@@ -675,19 +793,25 @@ export async function addProject(
       specsNote = `could not make ${req.specsPath}: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
-  if (req.specsPath || links) {
+  // The two keys part company here (spec 184). The specs path names a
+  // directory on THIS machine and stays in the personal, gitignored
+  // `.aide/config`; the worktree links are true of the project wherever
+  // it is checked out, so they go in the manifest, which is committed
+  // and arrives with the clone.
+  if (req.specsPath) {
     try {
-      writeAideConfig(dir, {
-        ...(req.specsPath ? { AIDE_SPECS_PATH: req.specsPath } : {}),
-        ...(links ? { AIDE_WORKTREE_LINKS: links } : {}),
-      });
-      if (req.specsPath) steps.push({ step: "specsConfig", ok: true, ...(specsNote ? { note: specsNote } : {}) });
-      if (links) steps.push({ step: "worktreeLinks", ok: true });
+      writeAideConfig(dir, { AIDE_SPECS_PATH: req.specsPath });
+      steps.push({ step: "specsConfig", ok: true, ...(specsNote ? { note: specsNote } : {}) });
     } catch (err) {
-      return stop(
-        req.specsPath ? "specsConfig" : "worktreeLinks",
-        `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      return stop("specsConfig", `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  if (links) {
+    try {
+      upsertManifestScalar(manifest, "worktreeLinks", links);
+      steps.push({ step: "worktreeLinks", ok: true });
+    } catch (err) {
+      return stop("worktreeLinks", `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -697,6 +821,100 @@ export async function addProject(
   // would report a project unable to run over a path this very call
   // had just configured.
   return { ...done(), readiness: await assessProjectReadiness(run, dir) };
+}
+
+/** Change a project's two settings after it was added (spec 184).
+ *
+ *  Until this existed, the fields lived on the Add form and nowhere
+ *  else: a project added with either left blank could only be fixed by
+ *  taking it off the dashboard and adding it again, or by opening a
+ *  terminal on the serving host and editing a file. The readiness check
+ *  already named what was missing; this is the place to act on it.
+ *
+ *  The two settings go to two different files, and that split is the
+ *  point of the spec: the specs path names a directory on THIS machine
+ *  and stays in the gitignored `.aide/config`, while the worktree links
+ *  are true of the project on any machine and go in the committed
+ *  manifest.
+ *
+ *  A field whose submitted value MATCHES what is already stored is not
+ *  written at all — that is what makes "change the specs path and leave
+ *  the links alone" leave the manifest byte-identical, rather than
+ *  rewriting both files on every save. An empty value is a real answer
+ *  and clears the setting; it is not the same as "not submitted".
+ *
+ *  Refuses an unusable links value before EITHER file is opened, through
+ *  the same `worktreeLinksError` the Add form and the readiness check
+ *  ask — one rule, asked in one place. */
+export async function updateProjectSettings(
+  run: GitRunner,
+  projectDir: string,
+  req: { specsPath?: string; worktreeLinks?: string },
+): Promise<ProjectAdminResult> {
+  const links = (req.worktreeLinks ?? "").trim();
+  if (links) {
+    const linkError = worktreeLinksError(links);
+    if (linkError) return fail("worktreeLinks", linkError);
+  }
+  const steps: ProjectStep[] = [];
+  const done = async (): Promise<ProjectAdminResult> => ({
+    ok: steps.every((s) => s.ok),
+    steps,
+    readiness: await assessProjectReadiness(run, projectDir),
+  });
+
+  const specsPath = (req.specsPath ?? "").trim();
+  if (specsPath !== (configValue(projectDir, "AIDE_SPECS_PATH") ?? "")) {
+    // Made where it is not there yet, `archive/` and all — the same
+    // thing Add does, for the same reason: a path configured and absent
+    // is a refusal over something known the moment it was written.
+    let note: string | undefined;
+    if (specsPath && !existsSync(specsPath)) {
+      try {
+        mkdirSync(join(specsPath, "archive"), { recursive: true });
+        note = `made the specs root at ${specsPath}, with its archive/`;
+      } catch (err) {
+        note = `could not make ${specsPath}: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    }
+    try {
+      writeAideConfig(projectDir, { AIDE_SPECS_PATH: specsPath });
+      steps.push({ step: "specsConfig", ok: true, ...(note ? { note } : {}) });
+    } catch (err) {
+      steps.push({
+        step: "specsConfig",
+        ok: false,
+        error: `could not write .aide/config: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      return done();
+    }
+  }
+
+  // Against the MANIFEST'S own value, never the resolved one: a project
+  // still carrying its links in `.aide/config` shows them on the form,
+  // and saving is what brings them across to the file that travels with
+  // the repo. Compared against the resolved value, that save would find
+  // nothing changed and the migration would never happen.
+  const manifest = join(projectDir, ".aide", "project.yaml");
+  const stored = existsSync(manifest)
+    ? (() => {
+        const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+        return parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
+      })()
+    : "";
+  if (links !== stored) {
+    try {
+      upsertManifestScalar(manifest, "worktreeLinks", links);
+      steps.push({ step: "worktreeLinks", ok: true });
+    } catch (err) {
+      steps.push({
+        step: "worktreeLinks",
+        ok: false,
+        error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+  return done();
 }
 
 /** Take a project off the allowlist, and do nothing else at all.

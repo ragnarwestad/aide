@@ -186,7 +186,14 @@ function aboutBody(generatedAt: string): string {
 // `removeHref` only on the served page: a generated file has no token
 // behind it, so its rows carry no control (asked for 2026-08-19 —
 // Remove lives ON the row, at the right of the description).
-function overviewRow(p: ProjectView, path: string, removeHref?: string, note?: string): string {
+function overviewRow(
+  p: ProjectView,
+  path: string,
+  removeHref?: string,
+  note?: string,
+  settingsHref?: string,
+): string {
+  const settings = settingsHref ? `<a class="btn small" href="${esc(settingsHref)}">Settings</a>` : "";
   const remove = removeHref ? `<a class="btn small" href="${esc(removeHref)}">Remove</a>` : "";
   // Spec 142: on the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
@@ -196,7 +203,7 @@ function overviewRow(p: ProjectView, path: string, removeHref?: string, note?: s
   if (!p.manifest.ok) {
     return (
       `<div class="proj-row error"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${remove}</div>`
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${settings}${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -209,7 +216,7 @@ function overviewRow(p: ProjectView, path: string, removeHref?: string, note?: s
     `<span class="counts">${active} active · ${archived} archived</span>` +
     desc +
     drift +
-    `</div>${remove}</div>`
+    `</div>${settings}${remove}</div>`
   );
 }
 
@@ -251,13 +258,26 @@ export function projectListBody(
      *  `ProjectView` is a pure disk scan the static generator shares,
      *  and a live git answer does not belong on it. */
     note?: (name: string) => string | undefined;
+    /** Where the project's own settings are changed (spec 184).
+     *  Alongside `removeHref` and for the same reason: a generated page
+     *  has no server behind it to check a token against, so it carries
+     *  no control at all. */
+    settingsHref?: (name: string) => string | undefined;
   } = {},
 ): string {
   const slugs = assignSlugs(projects);
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
   return (
     ordered
-      .map((p) => overviewRow(p, `${slugs.get(p)!}.html`, opts.removeHref?.(p.name), opts.note?.(p.name)))
+      .map((p) =>
+        overviewRow(
+          p,
+          `${slugs.get(p)!}.html`,
+          opts.removeHref?.(p.name),
+          opts.note?.(p.name),
+          opts.settingsHref?.(p.name),
+        ),
+      )
       .join("\n")
   );
 }

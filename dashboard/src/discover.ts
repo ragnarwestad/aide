@@ -54,6 +54,39 @@ export function configValue(projectDir: string, key: string): string | null {
 
 const configSpecsPath = (projectDir: string): string | null => configValue(projectDir, "AIDE_SPECS_PATH");
 
+/** Which of the two files a project's worktree links came out of.
+ *  `null` when neither names any. */
+export type WorktreeLinksSource = "project.yaml" | ".aide/config";
+
+/** The gitignored paths a run must symlink into its worktree, and where
+ *  they were read from (spec 184).
+ *
+ *  `.aide/project.yaml` first: it is COMMITTED, so a checkout that has
+ *  never been configured on this machine still knows what its own
+ *  commands need. `.aide/config`'s older `AIDE_WORKTREE_LINKS` is the
+ *  fallback, so a project migrated on one machine keeps running on the
+ *  others while both spellings exist.
+ *
+ *  This is one half of a hand-kept pair: `core/scripts/aide-run-spec`
+ *  resolves the same two files in the same order with one anchored
+ *  `sed`, and a divergence here would report a project as unconfigured
+ *  that a run links perfectly well, or the reverse.
+ *  `tests/fixtures/worktree-links-precedence.json` is the table both
+ *  sides are checked against. */
+export function resolveWorktreeLinks(
+  projectDir: string,
+): { links: string; source: WorktreeLinksSource | null } {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (existsSync(manifestFile)) {
+    const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+    const fromManifest = parsed.ok ? (parsed.data.worktreeLinks ?? "").trim() : "";
+    if (fromManifest) return { links: fromManifest, source: "project.yaml" };
+  }
+  const fromConfig = configValue(projectDir, "AIDE_WORKTREE_LINKS");
+  if (fromConfig) return { links: fromConfig, source: ".aide/config" };
+  return { links: "", source: null };
+}
+
 function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");
   if (!existsSync(desc)) return null;
@@ -322,7 +355,7 @@ export function discoverUnclaimedDirectories(root: string): string[] {
  *  Nothing can DERIVE which of them a project's test command actually
  *  needs, which is why the Add form asks; this only stops the reader
  *  having to go and open the file. So it offers exactly what
- *  `AIDE_WORKTREE_LINKS` can take and no more: literal, top-level
+ *  `worktreeLinks` can take and no more: literal, top-level
  *  entries. A glob names no one path, a negation is not an ignore, a
  *  comment is not an entry, and a nested path is a link `aide-run-spec`
  *  would have to make a directory for. A trailing slash is dropped —

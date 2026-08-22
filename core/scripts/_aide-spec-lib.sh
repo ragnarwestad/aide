@@ -94,6 +94,30 @@ aide_config_get() {
   sed -n "s/^${key}=//p" "$file" | head -1
 }
 
+# Read a TOP-LEVEL scalar key from the project's manifest
+# <project-root>/.aide/project.yaml. Echoes the value, or nothing if the
+# file or the key is missing. Usage: aide_manifest_get KEY [project-root]
+#
+# The manifest is where a setting that travels with the REPO belongs
+# (spec 184): .aide/config is dropped by a global ignore rule, so
+# anything written there is lost the moment the project meets a new
+# machine, while .aide/project.yaml is committed.
+#
+# Deliberately a sibling of aide_config_get rather than a YAML parser.
+# A top-level scalar is one anchored sed away, and that is the whole
+# shape this reads: `^key: value`. An indented key belongs to whatever
+# block it sits under and is not this one, so the anchor is load-bearing
+# rather than incidental. Nesting would need a hand-written collector —
+# /bin/bash here is 3.2, with no mapfile — and a silent misparse of a
+# gitignored-path list is a worktree that comes up missing what the
+# project's own commands need, with nothing said about it.
+aide_manifest_get() {
+  local key="$1" root="${2:-.}" file
+  file="$root/.aide/project.yaml"
+  [ -f "$file" ] || return 0
+  sed -n "s/^${key}:[[:space:]]*//p" "$file" | head -1 | sed 's/[[:space:]]*$//'
+}
+
 # Readable name from folder ID (NN-slug → Title Case)
 get_display_name() {
   local id="$1" slug

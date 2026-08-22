@@ -224,12 +224,19 @@ def fake_codex(tmp_path):
     return make
 
 
-def run(runner, ws, claude=None, codex=None, **kwargs):
+def run(runner, ws, claude=None, codex=None, return_stderr=False, **kwargs):
     """Invoke the runner; return (returncode, parsed json line, stdout).
 
     `codex=` is the sibling of `claude=` and exists for the same reason
     (spec 125): the helper has no generic `env=` kwarg, so a Codex test
     would otherwise have no way to point the runner at its fake binary.
+
+    `return_stderr=True` appends `proc.stderr` and makes it a 4-tuple.
+    An OPT-IN rather than a fourth element for everybody (spec 184):
+    this helper is called well over a hundred times in this file, almost
+    all of them unpacking exactly three values, and widening the return
+    shape would break every one of them to serve the handful of tests
+    that read the runner's live diagnostics.
     """
     args = [str(kwargs.pop("runner_path", runner))]
     defaults = {
@@ -263,6 +270,8 @@ def run(runner, ws, claude=None, codex=None, **kwargs):
         env["AIDE_CODEX_BIN"] = str(codex)
     proc = subprocess.run(args, capture_output=True, text=True, env=env)
     line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    if return_stderr:
+        return proc.returncode, json.loads(line), proc.stdout, proc.stderr
     return proc.returncode, json.loads(line), proc.stdout
 
 
@@ -1860,6 +1869,160 @@ def test_links_that_are_all_there_still_run(runner, workspace, fake_claude):
     claude, _ = probing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
+
+
+# --- Spec 184: where the worktree links are READ from ------------------------
+#
+# `.aide/config` is gitignored, so the links a project's own commands
+# need — true on every machine that checks the repo out — were lost every
+# time the project met a new one. They live in the committed
+# `.aide/project.yaml` now, with the old spelling still read as a
+# fallback so a project migrated on one machine keeps running on the
+# others. The two files and the four ways they can be filled in are one
+# table, shared with the dashboard's own test of the same rule:
+# tests/fixtures/worktree-links-precedence.json.
+
+PRECEDENCE = json.loads(
+    (pathlib.Path(__file__).resolve().parents[4] / "fixtures" / "worktree-links-precedence.json")
+    .read_text()
+)["cases"]
+
+
+def configure_links(workspace, manifest, config):
+    """Write a precedence case's two files, and make sure every path
+    either of them names is actually there — a link with no source is a
+    refusal of its own (spec 138), and it is not what these tests are
+    about."""
+    project = workspace["project"]
+    for value in (manifest, config):
+        for entry in (value or "").split():
+            (project / entry).mkdir(parents=True, exist_ok=True)
+            (project / entry / "marker.txt").write_text("a dependency tree\n")
+    (project / ".gitignore").write_text("/deps/\n/other-deps/\n")
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\n"
+        + (f"AIDE_WORKTREE_LINKS={config}\n" if config else "")
+    )
+    (project / ".aide" / "project.yaml").write_text(
+        "name: proj\n" + (f"worktreeLinks: {manifest}\n" if manifest else "")
+    )
+    git(project, "add", "-f", ".aide/config", ".aide/project.yaml", ".gitignore")
+    git(project, "commit", "-q", "-m", "configure the links")
+
+
+def linking_claude(fake_claude, workspace, candidates):
+    """A claude that records which of `candidates` was symlinked into the
+    worktree it is standing in — the only moment the question can be
+    asked, since the worktree goes with the run."""
+    log = workspace["project"].parent / "links-seen.txt"
+    body = "cat > /dev/null\n" + READ_SPECS
+    for entry in candidates:
+        body += f'if [ -L "$PWD/{entry}" ]; then echo "{entry}" >> {log}; fi\n'
+    body += f"echo '{json.dumps(RESULT_OK)}'"
+    return fake_claude(body), log
+
+
+@pytest.mark.parametrize("case", PRECEDENCE, ids=[c["name"] for c in PRECEDENCE])
+def test_the_worktree_links_are_read_from_the_documented_source(
+    runner, workspace, fake_claude, case
+):
+    """Both columns of the shared table at once: WHICH paths end up
+    linked into the worktree, and which file the run says it read them
+    from. The manifest wins where both are written — the committed file
+    is the one that travels with the repo — and the run naming its source
+    is what makes a value shadowed in the other file diagnosable rather
+    than silently ignored."""
+    configure_links(workspace, case["manifest"], case["config"])
+    claude, log = linking_claude(fake_claude, workspace, ["deps", "other-deps"])
+    rc, out, _, err = run(runner, workspace, claude, return_stderr=True)
+    assert rc == 0, out
+    linked = log.read_text().split() if log.exists() else []
+    assert sorted(linked) == sorted(case["links"].split()), (
+        f"{case['name']}: linked {linked}, expected {case['links'].split()}"
+    )
+    if case["source"]:
+        assert f"read from {case['source']}" in err, err
+        assert out["worktreeLinksSource"] == case["source"], out
+    else:
+        assert "read from" not in err, err
+        assert "worktreeLinksSource" not in out, out
+
+
+def test_a_manifest_link_that_escapes_the_root_is_refused_in_the_manifests_own_words(
+    runner, workspace, fake_claude
+):
+    """The refusal named `AIDE_WORKTREE_LINKS` unconditionally, which is
+    the wrong file to go and edit once the value came from the manifest."""
+    claude = fake_claude("exit 1")
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "name: proj\nworktreeLinks: ../escape\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
+    git(workspace["project"], "commit", "-q", "-m", "a bad manifest link")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert "../escape" in out["error"], out
+    assert "worktreeLinks" in out["error"], out
+    assert "AIDE_WORKTREE_LINKS" not in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_a_manifest_link_with_no_source_is_refused_in_the_manifests_own_words(
+    runner, workspace, fake_claude
+):
+    claude = fake_claude("exit 1")
+    (workspace["project"] / ".aide" / "project.yaml").write_text(
+        "name: proj\nworktreeLinks: deps node_modules\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/project.yaml")
+    git(workspace["project"], "commit", "-q", "-m", "a manifest link with no source")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert "node_modules" in out["error"], out
+    assert "worktreeLinks" in out["error"], out
+    assert "AIDE_WORKTREE_LINKS" not in out["error"], out
+
+
+def test_aides_own_two_paths_are_both_linked_from_the_manifest(runner, workspace, fake_claude):
+    """Spec 184, requirement 3: aide's own settings survive the move,
+    including that its links name TWO paths — one of them nested.
+
+    The exact value aide's `.aide/project.yaml` now carries, run against
+    a scratch project through the same harness every other case here
+    uses. `dashboard/node_modules` is the interesting half: a nested link
+    needs its parent directory made in the worktree before the symlink
+    can go in, and a reader of a space-separated scalar has to split it
+    into two entries rather than one path with a space in it."""
+    project = workspace["project"]
+    (project / ".venv").mkdir()
+    (project / ".venv" / "marker.txt").write_text("the virtualenv\n")
+    (project / "dashboard" / "node_modules").mkdir(parents=True)
+    (project / "dashboard" / "node_modules" / "marker.txt").write_text("the dep tree\n")
+    (project / ".gitignore").write_text("/deps/\n/.venv/\ndashboard/node_modules/\n")
+    (project / ".aide" / "project.yaml").write_text(
+        "name: aide\nworktreeLinks: .venv dashboard/node_modules\n"
+    )
+    git(project, "add", "-f", ".aide/project.yaml", ".gitignore")
+    git(project, "commit", "-q", "-m", "aide's own links, in the manifest")
+    claude, log = linking_claude(fake_claude, workspace, [".venv", "dashboard/node_modules"])
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert sorted(log.read_text().split()) == [".venv", "dashboard/node_modules"], log.read_text()
+    assert out["worktreeLinksSource"] == "project.yaml", out
+
+
+def test_a_config_link_is_still_refused_in_the_configs_own_words(runner, workspace, fake_claude):
+    """The fallback keeps its own wording: a project not yet migrated has
+    nothing in the manifest to go and edit."""
+    claude = fake_claude("exit 1")
+    (workspace["project"] / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\nAIDE_WORKTREE_LINKS=deps node_modules\n"
+    )
+    git(workspace["project"], "add", "-f", ".aide/config")
+    git(workspace["project"], "commit", "-q", "-m", "a config link with no source")
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 2, out
+    assert "AIDE_WORKTREE_LINKS" in out["error"], out
 
 
 # --- Criterion 15: a main checkout on the spec branch is healed --------------
