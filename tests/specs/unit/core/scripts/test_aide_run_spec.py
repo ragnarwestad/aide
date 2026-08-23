@@ -990,6 +990,75 @@ def test_a_repo_the_step_committed_itself_gets_its_compare_link(
     assert out["branchUrl"] == url
 
 
+def partially_committing_claude(fake_claude, workspace, then=""):
+    """A step that commits PART of its own work and leaves the rest on
+    disk — spec 142's actual shape, and what the global git rules
+    produce headlessly: new files may be added by name, modified
+    tracked files are left for a user in an IDE who is not there.
+
+    The committed message has a body on purpose: a stop reason appended
+    to it must land on its own line, not glued to the last body line.
+    """
+    return fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "committed by the step" > "$PWD/self-committed.txt"\n'
+        + "git add self-committed.txt\n"
+        + "git commit -q -m 'The step wrote this itself' "
+        + "-m 'And explained why, the way a written message does.'\n"
+        + 'echo "left behind by the step" > "$PWD/left-behind.txt"\n'
+        + then
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_step_that_commits_part_of_its_own_work_gets_one_commit_not_two(
+    runner, workspace, fake_claude
+):
+    """Spec 146: the step committed one file under its own message and
+    left another on disk, so the run's loop opened a SECOND commit under
+    the generic subject and the change arrived split down a line no
+    reader can use. The leftover belongs in the commit the step already
+    made."""
+    rc, out, _ = run(runner, workspace, partially_committing_claude(fake_claude, workspace))
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]
+
+    count = git(workspace["project"], "rev-list", "--count", f"{project['headBefore']}..{branch}")
+    assert count == "1", "one step, one commit"
+    subject = git(workspace["project"], "log", "-1", "--pretty=%s", branch)
+    assert subject == "The step wrote this itself", "the step's own message survives"
+    assert "Run /aide-" not in subject
+
+    # Both halves are in that one commit.
+    for name in ("self-committed.txt", "left-behind.txt"):
+        assert git(workspace["project"], "show", f"{branch}:{name}"), name
+    assert git(workspace["project"], "status", "--porcelain") == ""
+
+
+def test_a_stopped_run_still_folds_into_the_step_s_own_commit(runner, workspace, fake_claude):
+    """The stop reason is the whole point of the fallback commit's
+    message. Folding the leftover into the step's own commit must not
+    drop it — and it belongs on its own line, below a body that is the
+    step's."""
+    claude = partially_committing_claude(
+        fake_claude, workspace, then="trap '' TERM\nwhile true; do sleep 0.2; done\n"
+    )
+    rc, out, _ = run(runner, workspace, claude, timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    branch = "aide/81-queue-and-runner"
+    project = {r["root"]: r for r in out["repos"]}[str(workspace["project"])]
+
+    count = git(workspace["project"], "rev-list", "--count", f"{project['headBefore']}..{branch}")
+    assert count == "1", "a stopped run does not get an extra commit either"
+    message = git(workspace["project"], "log", "-1", "--pretty=%B", branch)
+    assert message.startswith("The step wrote this itself"), message
+    assert "And explained why" in message
+    assert message.rstrip().endswith("(stopped: timeout)"), message
+    assert git(workspace["project"], "show", f"{branch}:left-behind.txt")
+    assert git(workspace["project"], "status", "--porcelain") == ""
+
+
 def test_an_unknown_push_mode_is_refused_before_anything_starts(runner, workspace, fake_claude):
     claude = fake_claude("exit 1")
     rc, out, _ = run(runner, workspace, claude, push="everywhere")

@@ -1237,6 +1237,14 @@ commit_label="${created_spec_folder:-$spec_label}"
 # Whatever the step managed to write is committed, with the reason in the
 # message. Leaving it uncommitted is not the safe option it looks like:
 # the dirty-tree refusal above would block every later run.
+# WHERE it is committed depends on what the step already did (spec 146).
+# A step may commit some of its own work and leave the rest — the global
+# git rules let it stage new files by name but leave modified tracked
+# ones to a user in an IDE, and headlessly there is none. Committing the
+# leftover afresh then split one step's change across two commits, one
+# of them carrying only the generic subject below. So the loop amends
+# the step's own commit when HEAD has moved since the run started, and
+# only opens a commit of its own when the step made none.
 suffix=""
 [ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
 
@@ -1427,7 +1435,25 @@ for root in "${roots[@]}"; do
   changed="$(git -C "$wt" status --porcelain -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
   if [ "$changed" -gt 0 ]; then
     git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
-    git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$suffix" >/dev/null 2>&1 || true
+    head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
+    if [ -n "$head_now" ] && [ "$head_now" != "${head_before[$i]}" ]; then
+      # The step already committed part of its own work under a written
+      # message (spec 146) — fold the leftover into THAT commit rather
+      # than opening a second one under the generic subject.
+      if [ -n "$suffix" ]; then
+        # $suffix carries a leading space because the generic subject
+        # below is one line. The step's own message can have a body, so
+        # gluing $suffix onto the raw %B would land it mid-paragraph:
+        # give it a line of its own and drop the space that only made
+        # sense inline.
+        existing_message="$(git -C "$wt" log -1 --pretty=%B)"
+        git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${suffix# }" >/dev/null 2>&1 || true
+      else
+        git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
+      fi
+    else
+      git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$suffix" >/dev/null 2>&1 || true
+    fi
   fi
   head_after="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
   head_after_per_root+=("$head_after")
