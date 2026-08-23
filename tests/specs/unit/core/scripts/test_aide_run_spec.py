@@ -778,6 +778,19 @@ def writing_claude(fake_claude, workspace):
     )
 
 
+def project_only_claude(fake_claude, workspace):
+    """A claude that writes to the project and nowhere else — the shape
+    of a real `implement` step, which changes code and leaves the specs
+    root with nothing of its own to commit.
+    """
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
 def run_with_gh(runner, workspace, claude, gh, **kwargs):
     env_gh = str(gh) if gh else None
     old = os.environ.get("AIDE_GH_BIN")
@@ -3524,6 +3537,31 @@ def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claud
     assert rc == 0, out
     # Workflow order, not log order, and this run's own step included.
     assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
+    runner, workspace, fake_claude
+):
+    """Spec 206: `implement` changes code and nothing under the specs
+    root, so the commit loop there has nothing of the step's own to
+    commit. The line rewrite is what gives it something — without it
+    the step leaves no trace in either the file or the history, which
+    is how a finished implement came to be missing from the line.
+
+    The stopped-step half of this is
+    `test_a_step_that_was_stopped_is_not_written_as_completed`; this is
+    the same proof for a step that COMPLETES.
+    """
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze"])
+    claude = project_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+    branch_log = git(
+        workspace["specs"], "log", "--format=%s", "aide/81-queue-and-runner"
+    ).split("\n")
+    assert subject("implement") in branch_log, branch_log
 
 
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
