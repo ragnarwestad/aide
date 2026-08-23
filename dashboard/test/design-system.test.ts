@@ -235,11 +235,14 @@ describe("the header and the two tabs (spec 119)", () => {
 // the spec column spanning the phase lines (2026-08-19). The left edge
 // belongs to the phase lines now.
 describe("the row's one action rides beside the state, not in a column of its own", () => {
-  test("the header declares its blank cell last, and no row leads with one", async () => {
+  test("the header declares no blank cell, at either end", async () => {
     const html = rows([], { targets: [target()] });
     const thead = html.match(/<thead><tr>[\s\S]*?<\/tr><\/thead>/)?.[0] ?? "";
-    expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
-    expect(thead).not.toMatch(/^<thead><tr><th><\/th>/);
+    // Blank at the END until 2026-08-23, heading the cell a shut row's
+    // action sat in before spec 157 moved it beside the state. Every
+    // row drew an empty `<td>` under it for as long as it stood.
+    expect(thead).not.toMatch(/<th><\/th>/);
+    expect(thead).toMatch(/<\/a><\/th><\/tr><\/thead>$/);
   });
 
   test("the button is in the head row's State cell, and spans no rows", () => {
@@ -701,12 +704,12 @@ describe("the row's message panel is the component, not new markup", () => {
       targets: [target()],
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
-    expect(panel).toContain('<td colspan="6">');
+    expect(panel).toContain(`<td colspan="5">`);
     expect(panel).toMatch(/class="rowmsg err">\s*<svg/);
     // The same colspan the "no spec matches" row uses — one column
     // count for the table, not two that can drift apart.
     const empty = renderQueueRows([], { runnerAvailable: true, targets: [] });
-    expect(empty).toContain('colspan="6"');
+    expect(empty).toContain(`colspan="5"`);
   });
 
   test("a held-back note is amber, like the badge that announces it", async () => {

@@ -914,10 +914,14 @@ function sortableHead(f: QueueFilter): string {
     // moment the list became one line per spec. It holds the whole
     // workflow as pips on a header line, and how many attempts a phase
     // took on the lines beneath.
-    // The blank one LAST: it heads the cell a shut row's one action
-    // sits in, and a heading over a control would be a word about the
-    // reader rather than the spec. (Spec 124 put it first, for a
-    // button COLUMN that pushed the whole table sideways — 2026-08-19.)
+    // There were FIVE headings until 2026-08-23, the last one blank:
+    // it headed a cell that held a shut row's one action until spec
+    // 157 moved that beside the state, and every row had drawn an
+    // empty `<td>` under it since. Dropping it from the header and
+    // from both row types together is what keeps the columns lined up
+    // — a row short of a cell the header still declares is what shifts
+    // them. (Spec 124 put that column first, for a button COLUMN that
+    // pushed the whole table sideways — 2026-08-19.)
     // "Spec" spans TWO columns since spec 165, which gave the row's AI
     // select a column of its own between the phase name and the model.
     // Spanning rather than a blank heading beside it: this row has
@@ -928,7 +932,7 @@ function sortableHead(f: QueueFilter): string {
     `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}${th("state", "State")}` +
     `${th("started", "Started", "", undefined, ' data-col="started"')}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
-    `<th></th></tr></thead>`
+    `</tr></thead>`
   );
 }
 
@@ -1563,12 +1567,7 @@ function specHeadRow(
     // removes.
     `<td data-col="started">${startedCell(g, now)}</td>` +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
-    // The spare cell, blank on every row since spec 157: the one
-    // action a shut row used to offer here is beside the state now,
-    // where the words explaining it already are. Kept rather than
-    // removed, because the header declares six columns and a row short
-    // of one shifts every column after it.
-    `<td></td></tr>`
+    `</tr>`
   );
 }
 
@@ -1762,7 +1761,7 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
     `<span class="muted small" data-cap="model">Model</span>` +
     `<span class="muted small" data-cap="box">Select</span>` +
     `</span></td><td></td><td data-col="started"></td>` +
-    `<td class="num" data-col="cost"></td><td></td>`
+    `<td class="num" data-col="cost"></td>`
   );
 }
 
@@ -2025,8 +2024,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           // makes "how long did this take?" readable without a column
           // of its own.
           `<td data-col="started">${phaseDurationCell(latest, p.step, now)}</td>` +
-          `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
-          `<td></td>`,
+          `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>`,
       });
     });
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");
@@ -2035,7 +2033,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count
  *  written twice is a count that drifts the next time a column moves. */
-const LIST_COLUMNS = 6;
+const LIST_COLUMNS = 5;
 
 // The panel a row's long messages go into (spec 143): a row of its own,
 // spanning the table, wrapping rather than overflowing. Everything the

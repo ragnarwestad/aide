@@ -4479,7 +4479,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // `phaseCaptionRow`, `phaseSubRows`) and nothing in the type system
   // makes them agree. A row short of a column does not fail loudly —
   // it shifts every column after it, on some rows and not others.
-  test("every row kind declares the same seven columns, action last", () => {
+  test("every row kind declares the same five columns, and none is blank", () => {
     const html = renderQueuePage(
       [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })],
       "2026-08-19T00:00:00Z",
@@ -4497,19 +4497,24 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     const firstSub = html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
     const firstPhase = subRow(html, "create");
     expect([thead, spechead, firstSub, firstPhase, subRow(html, "analyze")].every(Boolean)).toBe(true);
-    // Seven since spec 165, which gave the row's AI a column of its
-    // own between the phase name and the model.
+    // Five since the blank trailing column went on 2026-08-23. It was
+    // seven under spec 165, which gave the row's AI a column of its
+    // own between the phase name and the model; six when the pips
+    // moved in beside the name and the Progress column went.
     for (const tr of [thead, spechead, firstSub, firstPhase]) {
-      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 6]);
+      expect([tr.slice(0, 40), columnUnits(tr)]).toEqual([tr.slice(0, 40), 5]);
     }
-    // And seven on every phase line after the first as well, since
+    // And the same on every phase line after the first as well, since
     // spec 179: the AI column is a cell of each line's own, so no line
-    // borrows its seventh slot from a `rowspan` on the one above it.
-    expect(columnUnits(subRow(html, "analyze"))).toBe(6);
-    // The spare cell is at the END, and blank on every row now: the
-    // one action a shut row drew there moved beside the state.
-    expect(thead).toMatch(/<th><\/th><\/tr><\/thead>$/);
-    expect(spechead).toMatch(/<td><\/td><\/tr>$/);
+    // borrows a slot from a `rowspan` on the one above it.
+    expect(columnUnits(subRow(html, "analyze"))).toBe(5);
+    // No spare cell at either end since 2026-08-23: the one action a
+    // shut row drew in the last column moved beside the state in spec
+    // 157, and the column stood blank until it went. The header and
+    // both row types end on Cost.
+    expect(thead).toMatch(/data-col="cost"[\s\S]*<\/th><\/tr><\/thead>$/);
+    expect(thead).not.toMatch(/<th><\/th>/);
+    expect(spechead).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     // And the phase lines lead with their own cell, hard left.
     expect(firstSub).toMatch(/^<tr class="subrow" data-caption="1"><td class="phasecell">/);
   });
@@ -4609,12 +4614,12 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("the button sits beside the state; the header keeps its own cells (criterion 6)", () => {
     const html = rows([]);
     expect(actionCell(group(html, "124-stack"))).toContain(">Analyze</button>");
-    // Five cells since the Progress column went into the name cell with
-    // the pips (2026-08-22): name, state, started, cost, and the
-    // now-always-blank spare after it.
-    expect(cells(head(html, "124-stack"))).toHaveLength(5);
+    // Four cells: name, state, started, cost. The Progress column went
+    // into the name cell with the pips (2026-08-22), and the blank
+    // spare after Cost went on 2026-08-23 — the row ends on the money.
+    expect(cells(head(html, "124-stack"))).toHaveLength(4);
     expect(head(html, "124-stack")).toMatch(
-      /<td class="num" data-col="cost">[^<]*<\/td><td><\/td><\/tr>$/,
+      /<td class="num" data-col="cost">[^<]*<\/td><\/tr>$/,
     );
   });
 
@@ -4926,7 +4931,7 @@ describe("spec 143: a long message gets a panel row of its own", () => {
       [target("141-says-what", { done: BUILT, archiveHeldBack: { reason: REASON } })],
     );
     expect(panel(html)).toContain('data-folder="141-says-what"');
-    expect(panel(html)).toContain('colspan="6"');
+    expect(panel(html)).toContain(`colspan="5"`);
     expect(panel(html)).toContain("rowmsg");
     expect(panel(html)).toContain("hand ticks survive");
     // Under the head row, not above it.
@@ -5601,11 +5606,10 @@ describe("spec 157: the row's one action sits in the State column", () => {
         sub.slice(0, 60),
         sub.indexOf("<td"),
       ]);
-      // Seven since spec 165 gave the AI a column of its own, and
-      // seven on EVERY phase line since spec 179 put a picker on each
-      // of them: no line borrows its seventh slot from a `rowspan` on
+      // The same count on EVERY phase line since spec 179 put a picker
+      // on each of them: no line borrows a slot from a `rowspan` on
       // the line above it any more.
-      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 6]);
+      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 5]);
     }
   });
 
@@ -5622,12 +5626,15 @@ describe("spec 157: the row's one action sits in the State column", () => {
     expect(cells(analyze)[1]).toContain('data-phase="analyze"');
   });
 
-  // The last column is blank on every row now — a shut row's action
-  // left it for the State column, and nothing took its place.
-  test("the head row's last cell is empty whatever the state", () => {
+  // A shut row's action left the last column for the State column in
+  // spec 157, and nothing took its place: the column stood blank on
+  // every row for as long as the header declared it, and went on
+  // 2026-08-23. The row ends on Cost now, whatever the state.
+  test("the head row ends on the cost cell whatever the state", () => {
     for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
-      const c = cells(headRow(rows(r as QueueRowView[])));
-      expect([c.length, c[c.length - 1]]).toEqual([5, ""]);
+      const row = headRow(rows(r as QueueRowView[]));
+      expect(cells(row)).toHaveLength(4);
+      expect(row).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     }
   });
 
@@ -5962,15 +5969,16 @@ describe("spec 192: the phase line's controls share one cell", () => {
 
   // --- criterion 9: seven columns, on every line -----------------------------
 
-  test("the merge leaves six columns, and the caption matches them", () => {
+  test("the merge leaves five columns, and the caption matches them", () => {
     const html = rows();
-    // Six since the pips moved in beside the spec's name and the
-    // Progress column went with them (2026-08-22). The caption line and
-    // every phase line write the same number, or the table stops
-    // lining up with its own head row.
-    expect(cells(caption(html))).toHaveLength(6);
+    // Five since the blank trailing column went (2026-08-23); six
+    // before that, when the pips moved in beside the spec's name and
+    // the Progress column went with them. The caption line and every
+    // phase line write the same number, or the table stops lining up
+    // with its own head row.
+    expect(cells(caption(html))).toHaveLength(5);
     for (const step of ["create", "analyze", "implement", "archive"]) {
-      expect([step, cells(subRow(html, step)).length]).toEqual([step, 6]);
+      expect([step, cells(subRow(html, step)).length]).toEqual([step, 5]);
       // The third cell is the phase's own state now, not the empty one
       // the Progress column left behind.
       expect([step, cells(subRow(html, step))[2]]).toEqual([
