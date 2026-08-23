@@ -231,6 +231,15 @@ else
 fi
 [ -d "$specs_root" ] || refuse "no specs root at $specs_root"
 
+# Computed here rather than after the resolver below: the archive
+# fallback in it asks origin, in every root, whether a spec's branch is
+# still open. Neither line reads $spec_folder or $spec_arg, so the move
+# is an ordering change and nothing else.
+specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true)"
+
+roots=("$project_root")
+[ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
+
 spec_folder=""
 if [ -d "$specs_root/$spec_arg" ]; then
   spec_folder="$spec_arg"
@@ -239,6 +248,48 @@ else
     base="$(basename "$candidate")"
     case "$base" in "$spec_arg"-*) spec_folder="$base"; break ;; esac
   done
+fi
+
+# The way out of an unlanded spec (spec 202). An `archive` step whose
+# landing never finished leaves the folder under `archive/` — its own
+# Step 5 moved it — with the branch still on origin, and the dashboard
+# offers Archive again for exactly that row. Resolved here, that row is
+# recoverable without anything typed in a terminal.
+#
+# Gated twice, and both gates matter. On the literal string `archive`,
+# like every other archive-only exception in this script: an archived
+# spec is finished work, and no other step may resolve one. And on the
+# branch still being on origin: a spec that DID land is finished for
+# `archive` too, and falls through to the same "unknown spec" refusal
+# below that it got before this block existed — before any money is
+# spent, which is what "refuses like any other archived spec" means.
+#
+# The fourth "try the active folder, then try archive/" in this codebase
+# (aide_resolve_spec, resolve_dependency_folder, status_file_for), and
+# duplicated rather than shared for the same reason those three are.
+if [ -z "$spec_folder" ] && [ "$command_name" = "archive" ] && [ -d "$specs_root/archive" ]; then
+  archived_candidate=""
+  if [ -d "$specs_root/archive/$spec_arg" ]; then
+    archived_candidate="$spec_arg"
+  else
+    for candidate in "$specs_root/archive"/*/; do
+      base="$(basename "$candidate")"
+      case "$base" in "$spec_arg"-*) archived_candidate="$base"; break ;; esac
+    done
+  fi
+  if [ -n "$archived_candidate" ]; then
+    # ls-remote, not the remote-tracking refs: same reason
+    # dependency_branch_unmerged_on_origin gives below — a merged-and-
+    # deleted branch leaves a stale ref behind in every checkout that
+    # ever fetched it, and believing one here would re-open a spec that
+    # is genuinely done.
+    for root in "${roots[@]}"; do
+      if [ -n "$(git -C "$root" ls-remote --heads origin "refs/heads/aide/$archived_candidate" 2>/dev/null)" ]; then
+        spec_folder="$archived_candidate"
+        break
+      fi
+    done
+  fi
 fi
 # A `create` step is the one that MAKES the folder, so it is the one
 # step for which "no such folder" is the normal case rather than a
@@ -262,11 +313,6 @@ spec_id="${spec_folder%%-*}"
 # What the branch, the worktree and the commit message are named after:
 # the real folder when there is one, the tracking key while there is not.
 spec_label="${spec_folder:-$spec_arg}"
-
-specs_repo="$(git -C "$specs_root" rev-parse --show-toplevel 2>/dev/null || true)"
-
-roots=("$project_root")
-[ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 
 # A run reaches its project and its specs root, and nothing else.
 # --extra-project-dir named a third repo to watch, branch, commit and

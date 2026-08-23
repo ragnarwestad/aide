@@ -2595,6 +2595,106 @@ def test_the_other_gated_steps_still_refuse_an_unmerged_dependency(
     assert not fake_claude.calls.exists(), "the refusal must precede the money"
 
 
+# --- Spec 202: the way out of an unlanded spec ------------------------------
+# A landing that never finished leaves the folder under archive/ with its
+# branch still on origin, and the dashboard offers Archive again for
+# exactly that row. The runner refused it: --spec was resolved against
+# the ACTIVE specs only, and the folder had already moved. The fallback
+# below is the fourth "check archive/ too" in this codebase, and the
+# narrowest: `archive` alone, and only while origin still holds the
+# branch.
+
+
+def test_archive_recovers_an_already_archived_spec_whose_branch_is_still_open(
+    runner, workspace, fake_claude, local_origins
+):
+    """Criterion 1. Pressing Archive again on an unlanded row must reach
+    the skill, not refuse "unknown spec"."""
+    add_spec(workspace, "77-recovered", archived=True)
+    leave_branch_on_origin(workspace, "aide/77-recovered")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command="archive", spec="77-recovered")
+
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+    assert fake_claude.calls.exists(), "the step must have been invoked at all"
+
+
+def test_archive_recovers_an_already_archived_spec_by_its_number(
+    runner, workspace, fake_claude, local_origins
+):
+    """The fallback mirrors the resolver above it: a bare id resolves to
+    <id>-* under archive/ exactly as it does among the active specs."""
+    add_spec(workspace, "77-recovered", archived=True)
+    leave_branch_on_origin(workspace, "aide/77-recovered")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command="archive", spec="77")
+
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed"
+
+
+def test_archive_still_refuses_an_already_archived_spec_whose_branch_is_gone(
+    runner, workspace, fake_claude, local_origins
+):
+    """Criterion 2. An archived spec with nothing left on origin is
+    finished, and is refused exactly as it was before the fallback
+    existed — before any money is spent."""
+    add_spec(workspace, "77-recovered", archived=True)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command="archive", spec="77-recovered")
+
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "unknown spec" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+@pytest.mark.parametrize("step", ["analyze", "implement"])
+def test_every_other_step_still_refuses_an_archived_spec_with_an_open_branch(
+    runner, workspace, fake_claude, local_origins, step
+):
+    """Criterion 3. The fork is on the literal string `archive`: an
+    archived spec is finished work for every other step, whatever its
+    branch looks like."""
+    add_spec(workspace, "77-recovered", archived=True)
+    leave_branch_on_origin(workspace, "aide/77-recovered")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command=step, spec="77-recovered")
+
+    assert rc == 2, out
+    assert out["terminalReason"] == "refused"
+    assert "unknown spec" in out["error"], out
+    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+
+
+def test_create_does_not_resolve_an_archived_spec_with_an_open_branch(
+    runner, workspace, fake_claude, local_origins
+):
+    """Criterion 3, for the one step that has no "unknown spec" refusal
+    to give: `create` MAKES the folder, so a name it cannot resolve is
+    its normal case. What it must not do is resolve the archived folder
+    and archive-step its way past its own required arguments — so the
+    proof is the missing-title refusal, which only happens when the
+    folder stayed unresolved."""
+    add_spec(workspace, "77-recovered", archived=True)
+    leave_branch_on_origin(workspace, "aide/77-recovered")
+    claude = fake_claude("exit 1")
+
+    rc, out, _ = run(
+        runner, workspace, claude, command="create", spec="77-recovered",
+        description="Do the thing that was asked for",
+    )
+
+    assert rc == 2, out
+    assert "title" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
 # --- the gated-step list lives in two files, like the step vocabulary -------
 # Same shape of duplication as WORKFLOW_STEPS, and the same treatment: a
 # bash string here, a TypeScript array there, no shared source and no
