@@ -27,6 +27,7 @@ import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
 import {
+  CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   dashboardCheckoutRoot,
   dashboardSpecDir,
@@ -1309,17 +1310,6 @@ export function createServer(opts: ServerOptions) {
     targets();
     return scan?.specsRoots.get(project);
   };
-  /** Make the dashboard's own checkout if it is not there, and answer
-   *  where it is. One promise per project at a time: two requests
-   *  arriving together must not run two `git clone`s into one directory.
-   *
-   *  A project whose clone CANNOT be made — no origin, an unreachable
-   *  one — answers `undefined`, and every caller falls back to the
-   *  checkout it used before this spec. That keeps a project the
-   *  dashboard cannot clone working exactly as it always did instead of
-   *  losing Save and Update outright; the readiness check is where that
-   *  state is reported, by name, on the project's own page. */
-  const ensuring = new Map<string, Promise<DashboardCheckout | undefined>>();
   /** The last thing said about each project, so a refusal that has not
    *  changed is not said again. Every tick asks, and a project whose
    *  origin is unreachable would otherwise fill the log with one line
@@ -1330,10 +1320,8 @@ export function createServer(opts: ServerOptions) {
     saidAbout.set(project, said);
     console.error(`queue: the dashboard's own checkout of ${project} — ${said}`);
   };
-  const ensureCheckout = (project: string): Promise<DashboardCheckout | undefined> => {
-    const running = ensuring.get(project);
-    if (running) return running;
-    const started = ensureDashboardCheckout(gitRun, {
+  const checkoutEnsurer = new CheckoutEnsurer((project) =>
+    ensureDashboardCheckout(gitRun, {
       base: checkoutBase,
       project,
       personDir: displayProjectDir(project),
@@ -1347,11 +1335,19 @@ export function createServer(opts: ServerOptions) {
       .catch((err) => {
         complain(project, String(err));
         return undefined;
-      })
-      .finally(() => ensuring.delete(project));
-    ensuring.set(project, started);
-    return started;
-  };
+      }),
+  );
+  /** Make the dashboard's own checkout if it is not there, and answer
+   *  where it is. One promise per project at a time: two requests
+   *  arriving together must not run two `git clone`s into one directory.
+   *
+   *  A project whose clone CANNOT be made — no origin, an unreachable
+   *  one — answers `undefined`, and every caller falls back to the
+   *  checkout it used before this spec. That keeps a project the
+   *  dashboard cannot clone working exactly as it always did instead of
+   *  losing Save and Update outright; the readiness check is where that
+   *  state is reported, by name, on the project's own page. */
+  const ensureCheckout = (project: string): Promise<DashboardCheckout | undefined> => checkoutEnsurer.get(project);
   // One runner, two users now: the read path asks whether a branch
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
@@ -1717,8 +1713,14 @@ export function createServer(opts: ServerOptions) {
     // Every project with a job waiting, and only those — a clone is
     // made once and the call is a map lookup ever after, so this costs
     // one `existsSync` per waiting project per tick.
+    //
+    // Spec 216: `fresh`, not `get`. This is the one caller that may not
+    // be handed a bring-up-to-date that was already running when it
+    // asked — such a fetch took its picture of origin before this job
+    // was queued, and a spec pushed in between is one the step will
+    // refuse as unknown. `CheckoutEnsurer` explains what that costs.
     await Promise.all([...new Set(queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
-      .map((project) => ensureCheckout(project)));
+      .map((project) => checkoutEnsurer.fresh(project)));
     runner.tick(await blockedDependencies());
   }
 
