@@ -950,6 +950,45 @@ const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
+// --- spec 199: a running phase counts up while the reader watches ---------
+//
+// The one timer on this page, and deliberately the narrowest one there
+// can be. Spec 189 took the five-second POLL away so a reader with the
+// browser's own tools open could hold still on a row; that rule stands
+// — this fetches nothing, swaps no rows, and touches no attribute that
+// could move anything. It rewrites the TEXT of the marks that carry
+// their own start, and nothing else on the page.
+//
+// The marks are looked up fresh on every tick rather than bound once,
+// which is what lets it survive `swapRows()` replacing `#jobrows`
+// underneath it with no rebinding at all.
+//
+// HAND-PAIRED with `durationLabel` in `src/render/job-state.ts`. This
+// file can neither import nor export anything — the server transpiles
+// it into an inline classic <script> — so the wording rule exists
+// twice, and the two are pinned by a test rather than trusted:
+// `test/queue-client.test.ts`'s "the page words a duration exactly as
+// the server does" runs a tick against the imported `durationLabel`
+// over a table of spans. Change one and change the other.
+function formatElapsed(ms: number): string {
+  const secs = Math.max(0, Math.round(ms / 1000));
+  if (secs < 60) return `${secs}s`;
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  if (secs < 3600) return `${Math.floor(secs / 60)}m${pad(secs % 60)}s`;
+  return `${Math.floor(secs / 3600)}h${pad(Math.floor((secs % 3600) / 60))}m`;
+}
+
+setInterval(() => {
+  // A stamp it cannot read is left exactly as the server drew it:
+  // "NaN" in a cell is worse than a figure that stopped moving.
+  for (const el of document.querySelectorAll("[data-elapsed]")) {
+    const mark = el as HTMLElement;
+    const since = Date.parse(mark.dataset.elapsed ?? "");
+    if (Number.isNaN(since)) continue;
+    mark.textContent = formatElapsed(Date.now() - since);
+  }
+}, 1000);
+
 document.addEventListener("visibilitychange", onVisibility);
 // The first paint: the server draws every model, and each select is
 // narrowed to the tool its own value belongs to.

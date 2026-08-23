@@ -15,9 +15,11 @@ import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../sr
 import {
   renderNewSpecPage,
   renderQueuePage,
+  renderQueueRows,
   type NewSpecPageOptions,
   type QueuePageOptions,
   type QueueRowView,
+  type QueueTarget,
 } from "../src/render.ts";
 import { queueHarness, ran, statusSaying } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
@@ -1419,10 +1421,37 @@ describe("the job list sorts and filters", () => {
     ...extra,
   });
 
-  const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
+  /** A spec on disk, as the server hands it to the page. `createdAt` is
+   *  what git answered for the folder's first commit (spec 199). */
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  /** The specs down the page, in the order they are drawn — off the
+   *  header rows alone: `data-folder` is written more than once per
+   *  spec, and a bare match counts a row twice. */
+  const specOrder = (html: string): (string | undefined)[] =>
+    [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
+
+  /** One spec's own Started cell, off its header row. */
+  const startedCell = (html: string, folder: string): string =>
+    html
+      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
+      .match(/<td data-col="started">.*?<\/td>/)?.[0] ?? "";
+
+  const page = (
+    rows: QueueRowView[],
+    filter?: QueuePageOptions["filter"],
+    // Spec 199: "Started" is the spec's own creation date, and a
+    // creation date comes off the TARGET (git), never off a job — so a
+    // test about that column has to be able to give one.
+    targets: QueueTarget[] = [],
+  ) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
-      targets: [],
+      targets,
       filter,
     });
 
@@ -1482,12 +1511,66 @@ describe("the job list sorts and filters", () => {
     );
   });
 
-  test("sorting by started puts the most recent activity first", () => {
+  // Spec 199: it used to put the most recent ACTIVITY first, so a spec
+  // made months ago and re-run an hour ago outranked one made this
+  // morning. The column and the sort hold when the spec was MADE now,
+  // and a run does not move it.
+  test("sorting by started puts the most recently CREATED spec first", () => {
     const html = page(
-      [row("old", { startedAt: "2026-08-16T09:00:00Z" }), row("new", { startedAt: "2026-08-16T11:00:00Z" })],
+      // The older spec has the NEWER run, which is what used to decide
+      // this order and no longer does.
+      [row("old", { startedAt: "2026-08-16T11:00:00Z" }), row("new", { startedAt: "2026-08-16T09:00:00Z" })],
       { sort: "started" },
+      [
+        target("old-spec", { createdAt: "2026-08-10T09:00:00Z" }),
+        target("new-spec", { createdAt: "2026-08-14T09:00:00Z" }),
+      ],
     );
-    expect(html.indexOf("new-spec")).toBeLessThan(html.indexOf("old-spec"));
+    expect(specOrder(html)).toEqual(["new-spec", "old-spec"]);
+  });
+
+  // The literal requirement: a phase being started, finished or run
+  // again must not move the row. The older spec has the newer run.
+  test("a run on an older spec does not move it up the started sort (criterion 1)", () => {
+    const targets = [
+      target("old-spec", { createdAt: "2026-08-10T09:00:00Z" }),
+      target("new-spec", { createdAt: "2026-08-14T09:00:00Z" }),
+    ];
+    const before = page([row("old"), row("new")], { sort: "started" }, targets);
+    const after = page(
+      [
+        row("old", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
+        row("new", { startedAt: "2026-08-11T09:00:00Z" }),
+      ],
+      { sort: "started" },
+      targets,
+    );
+    expect(specOrder(after)).toEqual(specOrder(before));
+    expect(specOrder(after)).toEqual(["new-spec", "old-spec"]);
+  });
+
+  // The 200-job cap is what makes git the only possible source: a spec
+  // older than two hundred jobs has no `Job` record left to read a date
+  // off. `createdAt` comes off the target and touches no job at all, so
+  // a target with NO rows is, for this code, exactly a spec whose job
+  // was evicted (criterion 2).
+  test("a spec with no job rows at all still shows its Started date (criterion 2)", () => {
+    const html = page([], { sort: "started" }, [
+      target("77-evicted", { createdAt: "2026-03-01T09:00:00Z" }),
+    ]);
+    expect(html).toContain("77-evicted");
+    expect(html).toContain('title="2026-03-01T09:00:00Z"');
+    expect(startedCell(html, "77-evicted")).not.toContain("–");
+  });
+
+  // Neither spec can be dated and neither has ever run: the same
+  // folder-name-descending fallback the old `activityAt === 0`
+  // tie-break gave, and no throw (criterion 8). It passes before the
+  // change as well as after — deliberately: the criterion is that this
+  // order is PRESERVED while the field the tie-break reads is replaced.
+  test("two specs git cannot date fall back to folder order (criterion 8)", () => {
+    const html = page([], { sort: "started" }, [target("88-undatable"), target("89-undatable")]);
+    expect(specOrder(html)).toEqual(["89-undatable", "88-undatable"]);
   });
 
   test("sorting by cost puts the expensive job on top", () => {
@@ -1600,12 +1683,23 @@ describe("filtering and sorting work on specs, not jobs", () => {
   // `open` names the specs whose phase lines are drawn: this block
   // asserts that a filtered spec keeps every job it has had, and those
   // are read off the lines an open row draws.
-  const page = (rows: QueueRowView[], filter?: QueuePageOptions["filter"]) =>
+  const page = (
+    rows: QueueRowView[],
+    filter?: QueuePageOptions["filter"],
+    targets: QueueTarget[] = [],
+  ) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
-      targets: [],
+      targets,
       filter: { open: "aide/aa-spec", ...filter },
     });
+
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
 
   test("a spec with one job in flight is active, one with only finished jobs is not (criterion 8)", () => {
     const html = page(
@@ -1676,7 +1770,10 @@ describe("filtering and sorting work on specs, not jobs", () => {
   const specOrder = (html: string) =>
     [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
-  test("sorting by started uses the spec's most recent activity (criterion 13)", () => {
+  // Spec 199: the group's place is its spec's CREATION date. `aa-spec`
+  // has the newest run of the three jobs here and is still second,
+  // because it was made first.
+  test("sorting by started uses the spec's creation date, not its jobs (criterion 13)", () => {
     const html = page(
       [
         job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
@@ -1684,8 +1781,12 @@ describe("filtering and sorting work on specs, not jobs", () => {
         job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
       ],
       { sort: "started" },
+      [
+        target("aa-spec", { createdAt: "2026-08-01T09:00:00Z" }),
+        target("bb-spec", { createdAt: "2026-08-05T09:00:00Z" }),
+      ],
     );
-    expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
+    expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
   });
 
   test("sorting by state uses the spec's representative state (criterion 13)", () => {
@@ -1700,6 +1801,196 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
   });
 });
+// --- spec 199: time becomes something worth reading -------------------------
+//
+// A phase says how long it TOOK. Nothing stores a per-step duration —
+// a job has one `startedAt` however many steps it ran — so a step's
+// own span is sliced out of the boundaries that do exist: the previous
+// step's end, or the job's own start for the first one. Getting that
+// wrong by reaching for the job's whole span instead is the one
+// mistake this block exists to catch.
+describe("a phase says how long it took", () => {
+  const NOW = "2026-08-16T12:00:00Z";
+
+  const job = (id: string, spec: string, extra: Partial<QueueRowView> = {}): QueueRowView => ({
+    id,
+    project: "aide",
+    specFolder: spec,
+    steps: ["analyze"],
+    stepIndex: 0,
+    state: "done",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-16T08:00:00Z",
+    ...extra,
+  });
+
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  // `renderQueueRows`, not `renderQueuePage`: the page reads the clock
+  // itself and takes no `now`, and every figure in this block is
+  // measured against one.
+  const page = (rows: QueueRowView[], targets: QueueTarget[] = [], spec = "aa-spec") =>
+    renderQueueRows(
+      rows,
+      { runnerAvailable: true, targets, filter: { open: `aide/${spec}` } },
+      Date.parse(NOW),
+    );
+
+  /** One phase line's Started cell — which since spec 199 holds that
+   *  phase's own duration, not when it began. */
+  const phaseCell = (html: string, step: string): string =>
+    html
+      .match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${step}">.*?</tr>`))?.[0]
+      ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
+
+  /** The spec header row's own Started cell. */
+  const headCell = (html: string, folder: string): string =>
+    html
+      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0]
+      ?.match(/<td data-col="started">(.*?)<\/td>/)?.[1] ?? "";
+
+  test("a finished single-step phase shows its own span (criterion 3)", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        steps: ["analyze"],
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
+      }),
+    ]);
+    expect(phaseCell(html, "analyze")).toContain("4m12s");
+  });
+
+  // The trap: a job that ran two steps has ONE `startedAt`, and the
+  // whole job's span belongs to neither step. The second step's own
+  // duration runs from where the first one ended.
+  test("a two-step job's second phase shows its own slice, not the job's span (criterion 7)", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        steps: ["analyze", "implement"],
+        stepIndex: 1,
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [
+          { step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:10:00Z" },
+          { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:40:00Z" },
+        ],
+      }),
+    ]);
+    expect(phaseCell(html, "analyze")).toContain("10m00s");
+    expect(phaseCell(html, "implement")).toContain("30m00s");
+    // 40 minutes is the whole job — the answer a reach for
+    // `finishedAt - startedAt` would have given.
+    expect(phaseCell(html, "implement")).not.toContain("40m");
+  });
+
+  test("a phase nobody has run shows nothing at all", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:04:12Z" }],
+      }),
+    ]);
+    expect(phaseCell(html, "archive")).toBe("");
+  });
+
+  // A running phase carries the instant it began, so the browser can
+  // count up from it without waiting for the server to redraw
+  // (criterion 4). The server still writes a readable figure into the
+  // cell, so the page says something with script switched off.
+  test("a running phase carries its start for the page's own clock (criterion 4)", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        steps: ["analyze", "implement"],
+        stepIndex: 1,
+        state: "running",
+        startedAt: "2026-08-16T11:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T11:30:00Z" }],
+      }),
+    ]);
+    const cell = phaseCell(html, "implement");
+    expect(cell).toContain('data-elapsed="2026-08-16T11:30:00Z"');
+    expect(cell).toContain("30m00s");
+  });
+
+  test("a running FIRST step counts from the job's own start (criterion 4)", () => {
+    const html = page([
+      job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T11:45:00Z" }),
+    ]);
+    expect(phaseCell(html, "analyze")).toContain('data-elapsed="2026-08-16T11:45:00Z"');
+    expect(phaseCell(html, "analyze")).toContain("15m00s");
+  });
+
+  // The work, not the calendar. These two jobs are three days apart and
+  // the spec took twenty minutes (criteria 5 and 6).
+  test("a finished spec's total is the sum of its phases, not the calendar span", () => {
+    const html = page(
+      [
+        job("a1", "aa-spec", {
+          steps: ["analyze"],
+          startedAt: "2026-08-13T09:00:00Z",
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-13T09:05:00Z" }],
+        }),
+        job("a2", "aa-spec", {
+          steps: ["implement", "archive"],
+          stepIndex: 1,
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [
+            { step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:10:00Z" },
+            { step: "archive", ok: true, costUsd: 1, at: "2026-08-16T09:15:00Z" },
+          ],
+        }),
+      ],
+      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze", "implement", "archive"] })],
+    );
+    // 5 + 10 + 5 minutes of work; three days of waiting in between.
+    // The total is the work. (The date beside it still reads "3 d ago"
+    // — that is when the spec was made, and it is the other half of
+    // this cell.)
+    const total = headCell(html, "aa-spec").match(/data-total="1"[^>]*>([^<]+)</)?.[1];
+    expect(total).toBe("20m00s");
+    // And it is exactly what the phase lines add up to.
+    expect(phaseCell(html, "analyze")).toContain("5m00s");
+    expect(phaseCell(html, "implement")).toContain("10m00s");
+    expect(phaseCell(html, "archive")).toContain("5m00s");
+  });
+
+  test("a spec with a phase still ahead of it shows no total", () => {
+    const html = page(
+      [
+        job("a1", "aa-spec", {
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
+        }),
+      ],
+      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] })],
+    );
+    expect(headCell(html, "aa-spec")).not.toContain("data-total");
+  });
+
+  // The header row's own cell is the spec's date, and it does not move
+  // because a phase ran.
+  test("the header row shows the spec's creation date, whatever its jobs did", () => {
+    const html = page(
+      [job("a1", "aa-spec", { startedAt: "2026-08-16T11:59:00Z" })],
+      [target("aa-spec", { createdAt: "2026-06-01T09:00:00Z" })],
+    );
+    expect(headCell(html, "aa-spec")).toContain('title="2026-06-01T09:00:00Z"');
+  });
+
+  test("a spec git could not date shows a dash rather than a job's time", () => {
+    const html = page(
+      [job("a1", "aa-spec", { startedAt: "2026-08-16T11:59:00Z" })],
+      [target("aa-spec")],
+    );
+    expect(headCell(html, "aa-spec")).toContain("–");
+    expect(headCell(html, "aa-spec")).not.toContain("2026-08-16T11:59:00Z");
+  });
+});
+
 // Spec 83 let a job name other repos a run would also watch, commit and
 // push, and they reached the runner as --extra-project-dir. Both went
 // when the tick box that named them turned out never to have been used.

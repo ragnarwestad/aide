@@ -52,6 +52,33 @@ export async function lastCommitOf(
   return sha && at ? { sha, at } : null;
 }
 
+/** When the FIRST commit touching `pathspec` was authored — when the
+ *  spec began (spec 199).
+ *
+ *  The Started column used to hold the most recent run's own start, so
+ *  a spec jumped to the top of a list sorted by it every time a phase
+ *  ran. The date it holds instead cannot come from the queue: the job
+ *  store is an LRU of 200, so a spec older than that has no record of
+ *  its own beginning left. Git keeps one for years.
+ *
+ *  **Not `-1 --reverse`.** `-1` limits the commit SELECTION, which runs
+ *  newest-first, and `--reverse` only turns the already-limited output
+ *  round — so the two together still answer with the newest commit. The
+ *  oldest is the last line of the unlimited log, which is why this one
+ *  reads the whole list where `lastCommitOf` above takes `-1`. Reading
+ *  a full history without `-1` is not a new cost shape here:
+ *  `lastAnalyzeCommit` already does it. */
+export async function firstCommitAt(
+  run: GitRunner,
+  dir: string,
+  pathspec: string,
+): Promise<string | null> {
+  const out = await run(dir, ["log", "--format=%aI", "--", pathspec]);
+  if (out.code !== 0) return null;
+  const lines = out.stdout.trim().split("\n").filter(Boolean);
+  return lines.length ? lines[lines.length - 1]!.trim() : null;
+}
+
 /** When the last commit touching `pathspec` was authored. */
 export async function lastCommitAt(
   run: GitRunner,
@@ -187,5 +214,54 @@ export class DescriptionFreshnessChecker {
 
     this.cache.set(key, { at, stale });
     return stale;
+  }
+}
+
+export interface SpecCreatedAtOptions {
+  run: GitRunner;
+  ttlMs?: number;
+  now?: () => number;
+}
+
+/** When each spec was made, cached, shaped exactly like the checker
+ *  above it (spec 199) — same TTL, same key, same fail-to-nothing.
+ *
+ *  It fails to `null`, and deliberately never to a `Job` date. A
+ *  job-backed fallback would put back the very thing this change
+ *  removes: a job's own start moves every time a phase runs, so a spec
+ *  git could not date would go back to jumping up the list. A spec with
+ *  no answer shows a dash instead, which is what the page did before
+ *  the column meant anything. */
+export class SpecCreatedAtChecker {
+  private readonly run: GitRunner;
+  private readonly ttlMs: number;
+  private readonly now: () => number;
+  private readonly cache = new Map<string, { at: number; createdAt: string | null }>();
+
+  constructor(opts: SpecCreatedAtOptions) {
+    this.run = opts.run;
+    this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
+    this.now = opts.now ?? Date.now;
+  }
+
+  async createdAt(dir: string, specFolder: string): Promise<string | null> {
+    // JSON, for the reason the checker above gives: a NUL in a source
+    // file makes git treat that file as binary from then on.
+    const key = JSON.stringify([dir, specFolder]);
+    const hit = this.cache.get(key);
+    const at = this.now();
+    if (hit && at - hit.at < this.ttlMs) return hit.createdAt;
+
+    let createdAt: string | null = null;
+    try {
+      // `.` is the spec's OWN folder: `dir` already points at it, the
+      // same pairing `archivedAt()` uses for the symmetric question.
+      createdAt = await firstCommitAt(this.run, dir, ".");
+    } catch {
+      createdAt = null;
+    }
+
+    this.cache.set(key, { at, createdAt });
+    return createdAt;
   }
 }

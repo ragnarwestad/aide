@@ -11,6 +11,8 @@
 import { describe, expect, test } from "bun:test";
 import {
   DescriptionFreshnessChecker,
+  SpecCreatedAtChecker,
+  firstCommitAt,
   isAnalyzeStale,
   descriptionDiffers,
   lastAnalyzeCommit,
@@ -284,5 +286,116 @@ describe("lastCommitOf", () => {
       "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
     });
     expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-21T09:14:00+02:00");
+  });
+});
+
+// --- spec 199: when was this spec MADE? -------------------------------------
+//
+// The Started column used to hold the most recent run's own start, so a
+// spec jumped to the top of the list every time a phase was started.
+// The date it should hold instead cannot come from the queue — the job
+// store is an LRU of 200, so a spec older than that has no record of
+// its own beginning left. Git has one, and keeps it for years: the
+// FIRST commit that touched the folder.
+describe("firstCommitAt", () => {
+  // `git log` prints newest first and `-1 --reverse` still answers with
+  // the NEWEST commit — the limit is applied before the reversal. The
+  // oldest is the last line of the unlimited log, and this is the test
+  // that says so.
+  test("returns the OLDEST commit's date, not the newest", async () => {
+    const git = fakeGit({
+      "log --format=%aI": {
+        code: 0,
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-19T14:30:00+02:00\n2026-08-17T09:00:00+02:00\n",
+      },
+    });
+    expect(await firstCommitAt(git.run, DIR, ".")).toBe("2026-08-17T09:00:00+02:00");
+  });
+
+  test("the whole folder is the pathspec, and `--` guards it", async () => {
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" } });
+    await firstCommitAt(git.run, DIR, ".");
+    expect(git.calls[0]!.args).toEqual(["log", "--format=%aI", "--", "."]);
+    expect(git.calls[0]!.dir).toBe(DIR);
+  });
+
+  test("one commit is both the first and the last", async () => {
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" } });
+    expect(await firstCommitAt(git.run, DIR, ".")).toBe("2026-08-17T09:00:00+02:00");
+  });
+
+  test("a folder git has never seen is null, not an invented date", async () => {
+    const git = fakeGit({ "log --format=%aI": { code: 0, stdout: "\n" } });
+    expect(await firstCommitAt(git.run, DIR, ".")).toBeNull();
+  });
+
+  test("git failing at all is null — a spec outside git still renders", async () => {
+    expect(await firstCommitAt(fakeGit({}).run, DIR, ".")).toBeNull();
+  });
+});
+
+describe("SpecCreatedAtChecker", () => {
+  const dated = () =>
+    fakeGit({
+      "log --format=%aI": {
+        code: 0,
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-17T09:00:00+02:00\n",
+      },
+    });
+
+  test("answers with the folder's first commit", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run });
+    expect(await checker.createdAt(DIR, FOLDER)).toBe("2026-08-17T09:00:00+02:00");
+  });
+
+  // One answer stands for its TTL. Without it the list would spawn a
+  // git process per spec on every redraw, exactly as the other two
+  // checkers beside it already refuse to.
+  test("a second ask inside the TTL runs no git at all", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAt(DIR, FOLDER);
+    clock += 29_000;
+    await checker.createdAt(DIR, FOLDER);
+    expect(git.calls).toHaveLength(1);
+  });
+
+  test("past the TTL it asks again", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAt(DIR, FOLDER);
+    clock += 31_000;
+    await checker.createdAt(DIR, FOLDER);
+    expect(git.calls).toHaveLength(2);
+  });
+
+  // Two specs are two questions. A cache keyed on one of them would
+  // give every spec on the page the first one's date.
+  test("each spec is cached on its own", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run });
+    await checker.createdAt(DIR, FOLDER);
+    await checker.createdAt("/specs/aide/97-other", "97-other");
+    expect(git.calls).toHaveLength(2);
+  });
+
+  // Fails to `null`, never to a `Job` date: a job-backed fallback would
+  // put back the very thing this change removes, since a job's own
+  // start moves every time a phase runs.
+  test("git failing leaves the answer null", async () => {
+    const checker = new SpecCreatedAtChecker({ run: fakeGit({}).run });
+    expect(await checker.createdAt(DIR, FOLDER)).toBeNull();
+  });
+
+  test("a runner that throws is null too, not an exception on the page", async () => {
+    const checker = new SpecCreatedAtChecker({
+      run: async () => {
+        throw new Error("no such directory");
+      },
+    });
+    expect(await checker.createdAt(DIR, FOLDER)).toBeNull();
   });
 });

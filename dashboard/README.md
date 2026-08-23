@@ -21,6 +21,7 @@
   - [How the list reads](#how-the-list-reads)
   - [What the script adds (specs 96 and 101)](#what-the-script-adds-specs-96-and-101)
   - [The page changes when something changes (spec 189)](#the-page-changes-when-something-changes-spec-189)
+  - [A spec's date does not move, and a phase says how long it took (spec 199)](#a-specs-date-does-not-move-and-a-phase-says-how-long-it-took-spec-199)
   - [Branches, and merging them](#branches-and-merging-them)
     - [Archive resolves the conflict itself (spec 171)](#archive-resolves-the-conflict-itself-spec-171)
     - [Origin decides whether a landing finished (spec 193)](#origin-decides-whether-a-landing-finished-spec-193)
@@ -1085,8 +1086,13 @@ and live state arrive there and are invisible to the queue's store, so
 a push driven by the store alone would let those numbers sit still for
 the whole of a long step. A write that was REFUSED broadcasts nothing.
 
-On the browser's side the timer is gone entirely. A `changed` event
-redraws the rows unless a press is in flight — the same `inFlight`
+On the browser's side the polling timer is gone entirely. (Spec 199
+added one back, and only one: a one-second tick that rewrites the TEXT
+of the running-phase elapsed marks — see "A spec's date does not move"
+below. It fetches nothing, swaps no rows and touches nothing that
+could move the page, so the rule this section states is unchanged: the
+rows redraw when the server says something moved, and at no other
+time.) A `changed` event redraws the rows unless a press is in flight — the same `inFlight`
 guard the tick had, for the same reason: the server still shows the
 pre-press state until the press answers. The `open` event redraws too,
 and that is what makes a dropped network or a restarted server heal
@@ -1111,6 +1117,72 @@ queue is exactly that. It is `.unref()`'d like the runner's timer and
 cleared in `stop()` besides — `bun test` runs many suites in one
 process, and a timer from a stopped test's server would fire into the
 next one.
+
+### A spec's date does not move, and a phase says how long it took (spec 199)
+
+The "Started" column used to hold the most recently active job's own
+start, so every phase started threw the row to the top of a list sorted
+by it, and a spec made months ago and re-run an hour ago outranked one
+made this morning. It holds **when the spec was made** now, and a run
+does not move it.
+
+The date comes from **git, never from the queue**. `QueueStore` is an
+LRU of 200 jobs, so a spec older than that has no `Job` record of its
+own beginning left; the specs repo still has the first commit that
+touched the folder, years on. `firstCommitAt` in
+`src/description-freshness.ts` asks for it and
+`SpecCreatedAtChecker` caches the answer, both shaped exactly like
+`DescriptionFreshnessChecker` beside them — same TTL, same key, same
+fail-to-nothing. `withFreshness` attaches it to each `QueueTarget`.
+
+Two traps worth knowing before touching this:
+
+- **The oldest commit is not `git log -1 --reverse`.** `-1` limits the
+  commit SELECTION, which runs newest-first, and `--reverse` only turns
+  the already-limited output round — the two together still answer with
+  the newest. The oldest is the last line of the unlimited log.
+- **A spec git cannot date shows a dash, and deliberately no fallback
+  to a job's own time.** A `Job`-backed fallback would put the jumping
+  straight back for exactly the specs that cannot be dated. The
+  never-run tie-break in `sortGroups` therefore asks two things now,
+  not one: neither spec has a job AND neither has a date.
+
+The other half is duration. **Nothing stores one.** A job carries a
+single `startedAt` however many steps it ran, so `finishedAt -
+startedAt` is the whole job's span and belongs to no one step of it —
+reaching for that is the mistake `phaseDuration` exists to prevent.
+What does exist is an end per finished step (`StepResult.at`), so a
+step's own span runs from where the step before it ended, or from the
+job's own start for the first one.
+
+Three things the column then says, by row type:
+
+- A finished phase: its own settled duration, in the phase line's own
+  time cell.
+- A running phase: the same cell, carrying `data-elapsed` — the instant
+  to count up from. The server writes a readable figure into it too, so
+  the cell says something with script switched off.
+- A spec with nothing left to run: its phases' durations **added
+  together**, beside the creation date on the header row. A sum, never
+  a span — a spec that waited three days between two phases did not
+  take three days.
+
+The live count is the one timer on this page, and it is deliberately the
+narrowest one there can be: a one-second `setInterval` in
+`src/queue-client.ts` that re-queries `[data-elapsed]` fresh each tick
+and rewrites `textContent`. Re-querying is what lets it survive
+`swapRows()` replacing `#jobrows` with no rebinding. It fetches
+nothing and touches no layout-affecting attribute, so spec 189's rule
+holds unchanged.
+
+**`formatElapsed` there is HAND-PAIRED with `durationLabel` in
+`src/render/job-state.ts`** — the client file is transpiled into an
+inline `<script>` and can neither import nor export, so the wording
+rule exists twice. `test/queue-client.test.ts`'s "the page words a
+duration exactly as the server does" runs a tick against the imported
+`durationLabel` over a table of spans and pins them; change one and
+change the other, or a phase changes its wording the first time the
+clock ticks over the figure the server drew.
 
 ### Branches, and merging them
 

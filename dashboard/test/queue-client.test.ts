@@ -21,6 +21,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SPINNER } from "../src/render/components.ts";
+import { durationLabel } from "../src/render/job-state.ts";
 
 const RAW = readFileSync(join(import.meta.dir, "..", "src", "queue-client.ts"), "utf-8");
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(RAW);
@@ -603,6 +604,12 @@ function harness(
     },
   };
 
+  /** The running-phase marks the page's own clock rewrites (spec 199).
+   *  Re-queried on every tick by the code under test, so a test can add
+   *  or remove one between ticks and see the difference — which is what
+   *  proves the clock survives `#jobrows` being swapped out under it. */
+  const elapsed: { dataset: { elapsed: string }; textContent: string }[] = [];
+
   const document = {
     getElementById: (id: string) => (id === "jobrows" ? rows : null),
     // `.phases` answers with ANOTHER row's boxes on purpose: a press
@@ -629,7 +636,11 @@ function harness(
     // `select[data-ai="model.analyze"]` contains "model." too and the
     // branch below would answer it with the model selects.
     querySelectorAll: (sel: string) =>
-      sel.includes("removeform")
+      // Asked FIRST: it names no form and no class, so every branch
+      // below would answer it with the empty list.
+      sel.includes("data-elapsed")
+        ? elapsed
+        : sel.includes("removeform")
         ? [addForm, removeForm]
         : sel.includes("data-ai=")
           ? aiSelects.filter(
@@ -715,26 +726,38 @@ function harness(
   /** The one the page is listening on right now, if any. */
   const live = () => FakeEventSource.made.filter((s) => !s.closed).at(-1) ?? null;
 
-  /** Every timer the page asks for. Spec 189 took the last one away —
-   *  the five-second poll — and an idle page that registers one again
-   *  is the regression this records. */
+  /** Every timer the page asks for, with the work it would do. Spec 189
+   *  took the five-second POLL away and nothing may put it back; spec
+   *  199 adds one that touches nothing but the text of the marks it
+   *  owns, so what is recorded is both the cadence and the callback —
+   *  a test can then run a tick by hand and say what it did. */
   const intervals: number[] = [];
+  const ticks: (() => void)[] = [];
+
+  /** The wall clock the page reads, so a tick's answer is a stated
+   *  fact rather than whatever the machine's own clock said. `Date` is
+   *  a global in the browser, which is exactly what makes it injectable
+   *  here — the same trick `EventSource` and `FormData` already use. */
+  const clock = { at: Date.parse("2026-08-23T12:00:00Z") };
+  const FakeDate = { now: () => clock.at, parse: (iso: string) => Date.parse(iso) };
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
   new Function(
-    "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource",
+    "document", "location", "fetch", "setInterval", "history", "FormData", "EventSource", "Date",
     SOURCE,
   )(
     document,
     location,
     fetchStub,
-    (_fn: () => void, ms: number) => {
+    (fn: () => void, ms: number) => {
       intervals.push(ms);
+      ticks.push(fn);
       return 0;
     },
     history,
     FakeFormData,
     FakeEventSource,
+    FakeDate,
   );
 
   /** The visibility change the browser fires when the tab is shown or
@@ -804,7 +827,7 @@ function harness(
   return {
     submit, submitCreate, click, clickFold, button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
-    sources: FakeEventSource.made, live, visibility, intervals,
+    sources: FakeEventSource.made, live, visibility, intervals, ticks, elapsed, clock,
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     addButton, addSlot,
@@ -2241,10 +2264,95 @@ describe("the rows are redrawn on a push, not on a timer (spec 189)", () => {
 
   const fresh = () => harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
 
-  test("the page registers no repeating timer at all (criterion 1)", () => {
+  // It registered NO timer at all until spec 199, which added one that
+  // rewrites the text of running-phase marks and does nothing else. The
+  // rule spec 189 laid down survives that: no timer FETCHES, so the
+  // rows still change only when the server says something moved.
+  test("the page's one timer never fetches (criterion 1)", () => {
     const h = fresh();
     h.visibility("visible");
-    expect(h.intervals).toEqual([]);
+    expect(h.intervals).toEqual([1000]);
+    const before = h.requests.length;
+    h.ticks.forEach((t) => t());
+    expect(h.requests).toHaveLength(before);
+  });
+
+  // --- spec 199: a running phase counts up while the reader watches ---
+  //
+  // Nothing on this page redraws because time passed — that is spec
+  // 189's whole point, and it is why an elapsed figure the server drew
+  // would sit still until something else happened. The clock below is
+  // the exception, and it is deliberately the narrowest one there can
+  // be: it rewrites the text of the marks that carry their own start,
+  // and touches nothing else on the page.
+  describe("the elapsed mark on a running phase", () => {
+    const started = "2026-08-23T11:58:00Z";
+
+    test("a tick advances the mark's own text (criterion 4)", () => {
+      const h = fresh();
+      h.visibility("visible");
+      h.elapsed.push({ dataset: { elapsed: started }, textContent: "2m00s" });
+      h.ticks.forEach((t) => t());
+      expect(h.elapsed[0]!.textContent).toBe("2m00s");
+      h.clock.at += 61_000;
+      h.ticks.forEach((t) => t());
+      expect(h.elapsed[0]!.textContent).toBe("3m01s");
+    });
+
+    // The requirement in full: nothing else on the page has changed —
+    // no "changed" event, no row swap, no request at all.
+    test("it advances with no server round trip of any kind (criterion 4)", () => {
+      const h = fresh();
+      h.visibility("visible");
+      h.elapsed.push({ dataset: { elapsed: started }, textContent: "" });
+      const before = h.requests.length;
+      h.clock.at += 30_000;
+      h.ticks.forEach((t) => t());
+      expect(h.elapsed[0]!.textContent).toBe("2m30s");
+      expect(h.requests).toHaveLength(before);
+      expect(h.live()!.listeners.changed).toBeDefined();
+    });
+
+    // The marks are looked up fresh on every tick, so a row swapped in
+    // by the server is counted by the same timer with nothing rebound.
+    test("a mark that arrives after the timer started is counted too", () => {
+      const h = fresh();
+      h.visibility("visible");
+      h.ticks.forEach((t) => t());
+      h.elapsed.push({ dataset: { elapsed: started }, textContent: "" });
+      h.clock.at += 120_000;
+      h.ticks.forEach((t) => t());
+      expect(h.elapsed[0]!.textContent).toBe("4m00s");
+    });
+
+    // The page words a duration in its own copy of the rule, because
+    // this file can neither import nor export anything — the server
+    // transpiles it into an inline <script>. Two copies of one rule is
+    // the shape this repo pins rather than trusts: the moment they
+    // disagree, a phase changes its wording the first time the clock
+    // ticks over the figure the server drew.
+    test("the page words a duration exactly as the server does", () => {
+      const h = fresh();
+      h.visibility("visible");
+      const mark = { dataset: { elapsed: started }, textContent: "" };
+      h.elapsed.push(mark);
+      const base = Date.parse(started);
+      for (const secs of [0, 1, 45, 59, 60, 61, 125, 3599, 3600, 3661, 7325, 86_400]) {
+        h.clock.at = base + secs * 1000;
+        h.ticks.forEach((t) => t());
+        expect(mark.textContent).toBe(durationLabel(secs * 1000));
+      }
+    });
+
+    // A mark whose stamp says nothing is left exactly as the server
+    // drew it, rather than being overwritten with "NaN".
+    test("an unreadable stamp is left alone", () => {
+      const h = fresh();
+      h.visibility("visible");
+      h.elapsed.push({ dataset: { elapsed: "not a date" }, textContent: "–" });
+      h.ticks.forEach((t) => t());
+      expect(h.elapsed[0]!.textContent).toBe("–");
+    });
   });
 
   test("a visible page opens one connection to the event stream", () => {
