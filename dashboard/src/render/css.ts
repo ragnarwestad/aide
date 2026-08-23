@@ -526,8 +526,16 @@ table.list thead a { color: var(--muted); }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
-table.list tr.spechead td { border-bottom: none; border-top: 1px solid var(--line);
+table.list tr.spechead td { border-bottom: none; border-top: 2px solid var(--line-strong);
   padding-top: var(--sp-3); }
+/* An OPEN spec is one thing, not a header and some loose lines under it:
+   its own faint ground holds the phase lines and the button together, so
+   a reader can see which group a control belongs to (asked for
+   2026-08-23). Faint on purpose — the separator above is what divides
+   the specs; this only gathers what is already inside one. */
+table.list tr.spechead:has(+ tr.subrow) td,
+table.list tr.subrow td,
+table.list tr.specnotice:has(+ tr.subrow) td { background: var(--surface-2); }
 table.list tbody tr.spechead:first-child td { border-top: none; }
 /* The row's message panel (spec 143): part of the row above it, not a
    row of its own. It draws no rule and adds no padding the message's
