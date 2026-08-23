@@ -179,6 +179,21 @@ resurrect a row for a spec that is genuinely finished. The way out is
 the step that already exists — `archive` can be enqueued again for such
 a spec, and `resolveProject` admits it only while its branch is open.
 
+**That way out did not work until spec 202.** The dashboard's half was
+real — `resolveProject` admitted the job — but `core/scripts/aide-run-spec`
+resolved `--spec` against the active folder only, so a re-run refused
+with `unknown spec: ... (not under $specs_root)` the moment `archive`'s
+own Step 5 had already `git mv`'d the folder into `archive/`. The fix is
+a fourth instance of the "try the active folder, then try `archive/`"
+pattern already used by `aide_resolve_spec`, `resolve_dependency_folder`
+and `status_file_for` (all in `core/scripts/_aide-spec-lib.sh` and
+`core/scripts/aide-run-spec`) — gated on `command_name = archive` and on
+the candidate's branch still being on origin, via the same `git
+ls-remote --heads origin` primitive `dependency_branch_unmerged_on_origin`
+already uses. Not found → falls through to the same, unmodified "unknown
+spec" refusal, so a genuinely finished spec still refuses a further
+`archive` exactly as before.
+
 **A merge that fails is the merging step's problem, not a phase of its
 own (spec 171).** There was a sixth step, `resolve`, that a conflicted
 row offered a button for; it is gone from `WORKFLOW_STEPS`,
