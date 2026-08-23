@@ -2324,8 +2324,10 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
         targets: [],
       }),
     );
-    expect(bar).toContain("Project");
-    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf("Project"));
+    // "Show" is the only chip group left: the project filter went on
+    // 2026-08-23, and the explanation still comes after what remains.
+    expect(bar).toContain("Show");
+    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf("Show"));
   });
 
   test("the copy still says what happens to a job that hits a cap", () => {
