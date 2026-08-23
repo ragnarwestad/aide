@@ -952,20 +952,11 @@ function nextPhase(done: readonly string[]): string | undefined {
   return QUEUE_STEPS.find((s) => !remaining.has(s));
 }
 
-// What a press would run, if nothing else is ticked. It depends on how
-// far the spec has got, and on nothing about which phase is asking.
-//
-// A spec nothing has ever run pre-ticks `analyze` alone (spec 181: the
-// reviewer-perspectives routine that used to be its own `review-plan`
-// step now runs inside `analyze`, so there is no second box to tick
-// alongside it — a fresh spec used to pre-tick the two together as one
-// gated job). Any other spec pre-ticks the first phase it has not had,
-// which is what you almost always came to run.
-//
-// `g.lead` is the test for "nothing has ever run": it is absent only
-// for a spec `emptyGroup` built, which is a spec with no job row at
-// all. A spec whose only job ran `explore` has a lead, and keeps the
-// ordinary single pre-tick even though its done-set is still empty.
+// What a press would run, if nothing else is ticked: EVERY phase the
+// spec has not had (spec 200). A press takes the spec as far as it can
+// go, and unticking a box is how a reader says to stop somewhere. It
+// depends on how far the spec has got, and on nothing about which
+// phase is asking.
 //
 // `done` is what the spec's own git history PROVES (spec 154): the
 // runner commits every step it finishes, and only such a commit puts a
@@ -975,29 +966,28 @@ function nextPhase(done: readonly string[]): string | undefined {
 // subject, which is what the skills now offer to do; declined, the
 // spec reads as still having that phase ahead of it.
 //
-// The `tick.length === 0` fallback below is not decorative: it is the
-// fix for spec 159/161 (a spec past its starting phases fell back to an
-// empty set and the row lost its button entirely). A spec whose
-// starting phase is somehow already done falls back to the ordinary
-// rule rather than to nothing.
+// `archive` is deleted from that set for the same reason `nextPhase`
+// deletes it: a spec on this list is by definition not archived,
+// however its history reads. That is also what keeps the result from
+// ever being empty, so the row always has a button — the bug spec
+// 159/161 each patched with a fallback of its own, structurally gone
+// rather than guarded against a third time. Two branches went with
+// those fallbacks: whether the spec has ever had a job at all
+// (`g.lead`) made no difference to the answer once every remaining
+// phase is ticked, so it is not asked any more.
+//
+// The first member of this set is `nextPhase(g.done)` — both walk
+// `QUEUE_STEPS` in order with the same archive rule — which is what
+// keeps the button and the badge naming the same phase (spec 191).
 //
 // It used to live inside the strip of chips the controls line drew
 // (`stepBoxes`, retired with that line in spec 124). The boxes are on
 // the phase lines now and each asks this the same question, so the
 // rule is read once per row and consulted per phase.
 function preTicked(g: SpecGroup): Set<string> {
-  const done = new Set(g.done);
-  // Both the badge and the button ask `nextPhase`, so they cannot name
-  // different phases (spec 191). The archive rule lives in there: an
-  // archive that ran and declined to move the folder leaves a commit
-  // behind exactly like one that moved it, and a spec on this list is
-  // by definition not archived.
-  const next = nextPhase(g.done);
-  // Filtered against the untouched done-set: it only tests `analyze`,
-  // which the archive rule does not touch.
-  const tick = ["analyze"].filter((s) => !done.has(s));
-  const single = next ? [next] : [];
-  return new Set(g.lead || tick.length === 0 ? single : tick);
+  const remaining = new Set(g.done);
+  remaining.delete("archive");
+  return new Set(QUEUE_STEPS.filter((s) => !remaining.has(s)));
 }
 
 // What the row's one button SAYS, built from the same set the boxes are
@@ -1014,11 +1004,11 @@ function preTicked(g: SpecGroup): Set<string> {
 // so the button's own word is the only thing that says what it would
 // do.
 //
-// `preTicked()` never ticks more than one phase since spec 181 (the
-// pair a fresh spec used to start with is one phase now), so naming the
-// first ticked phase is naming the whole of what a press does. Nothing
-// ticked names nothing: no button is drawn at all, because a disabled
-// one invites a press that cannot do anything.
+// `preTicked()` ticks every phase the spec has left since spec 200, so
+// the button names the first of them and not the whole of what a press
+// does — deliberately, and the boxes right there on the row say the
+// rest. Nothing ticked names nothing: no button is drawn at all,
+// because a disabled one invites a press that cannot do anything.
 function actionLabel(g: SpecGroup): string | undefined {
   const ticked = [...preTicked(g)];
   if (ticked.length === 0) return undefined;
