@@ -364,7 +364,22 @@ export function filterPills(
  *  same three-way answer independently until this existed. */
 export type PipKind = "past" | "now" | "todo";
 
-export const pips = (items: { kind: PipKind; title: string }[]): string =>
+/** `third` (spec 210): how many of a running implement's three parts
+ *  are behind it — 1 or 2, never 0 (zero thirds complete is what an
+ *  unmarked pip already says) and never 3 (a step that finished is
+ *  `past`). The pip's own box does not change: the mark drives a fill
+ *  drawn INSIDE it, so nothing on the line beside it moves.
+ *
+ *  Only ever on the pip that is running. A `past` or `todo` pip handed
+ *  one is the mark answering a question nobody asked of it, so it is
+ *  dropped here rather than trusted from each call site. */
+export const pips = (items: { kind: PipKind; title: string; third?: 1 | 2 }[]): string =>
   `<div class="pips">` +
-  items.map((p) => `<span class="pip ${p.kind}" title="${esc(p.title)}"></span>`).join("") +
+  items
+    .map(
+      (p) =>
+        `<span class="pip ${p.kind}"${p.kind === "now" && p.third ? ` data-third="${p.third}"` : ""}` +
+        ` title="${esc(p.title)}"></span>`,
+    )
+    .join("") +
   `</div>`;

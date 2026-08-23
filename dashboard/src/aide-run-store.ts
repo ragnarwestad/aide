@@ -116,6 +116,14 @@ export class AideRunStore {
     return stored;
   }
 
+  /** One session's row, for a page that has the id in hand (spec 210).
+   *  A running implement's row asks this and nothing else: `list()`
+   *  hands back every run there is, which is the wrong question and the
+   *  wrong cost to pay per row. */
+  get(sessionId: string): StoredRun | undefined {
+    return this.runs.get(sessionId);
+  }
+
   list(): StoredRun[] {
     return [...this.runs.values()].reverse(); // newest first
   }

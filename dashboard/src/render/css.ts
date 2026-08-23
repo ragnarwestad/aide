@@ -618,7 +618,14 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
   font-weight: 400; font-family: var(--sans); }
 .branch { white-space: nowrap; }
 .pips { display: flex; gap: 3px; }
-.pip { width: 14px; height: 4px; border-radius: 2px; background: var(--line-strong); }
+/* 21px, not 14: a third of the bar has to be a thing a reader can see,
+   and 21 is the smallest width divisible by three that stays a mark
+   rather than a bar (spec 210). Widened ONCE, for every pip, rather
+   than while a run is going — a pip that grew mid-run would move
+   everything on the line beside it. The position and overflow are what
+   the fill below is drawn inside. */
+.pip { width: 21px; height: 4px; border-radius: 2px; background: var(--line-strong);
+  position: relative; overflow: hidden; }
 .pip.past { background: var(--ok); }
 /* The one moving thing on the page that says a phase is RUNNING (spec
    168). It was a spinner on that phase's checkbox, which only exists
@@ -642,6 +649,20 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 @media (prefers-reduced-motion: reduce) {
   .pip.now { animation: none; background: var(--accent); }
 }
+/* Which THIRD of a running implement is behind it (spec 210). The parts
+   already done stand still in solid --accent; the rest goes on
+   shimmering underneath, so the pip says "this much is finished, and it
+   is still working" in the one glyph. Inside the pip, never around it:
+   the box is the same 21x4 whatever the fill.
+   The colour keeps its one meaning — blue for running — and the fill is
+   what says how far. A second colour here would make one pip answer two
+   questions.
+   Keyed off the running pip and not off every pip: a third belongs to
+   the phase that is running, and only a running phase has one. */
+.pip.now[data-third]::after { content: ""; position: absolute; inset: 0 auto 0 0;
+  background: var(--accent); }
+.pip.now[data-third="1"]::after { width: 33%; }
+.pip.now[data-third="2"]::after { width: 67%; }
 
 /* --- rows and forms ----------------------------------------------------- */
 /* "rowrun", "actionform", "newspecform", "refused" and

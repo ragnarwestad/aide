@@ -40,6 +40,7 @@ import {
 import {
   IN_FLIGHT,
   anyCostUnmeasured,
+  completedThirds,
   currentStep,
   inFlight,
   specNotice,
@@ -1472,25 +1473,29 @@ function specHeadRow(
     .find((p) => p.step === "create")
     ?.attempts.some(inFlight);
   const progress = pips(
-    g.phases.map((p) => ({
+    g.phases.map((p) => {
       // One rule, one function: what the FILES say, qualified by the
       // most relevant attempt (whatever is in flight, else the latest).
       // The pips used to read the job history alone, so a spec analysed
       // by hand showed four grey pips and a cancelled re-run turned a
       // finished phase grey again.
-      kind:
-        p.step === "create"
-          ? createRunning
-            ? "now"
-            : "past"
-          : wordPhase(
-              g.done.includes(p.step),
-              p.heldBack,
-              p.attempts.find(inFlight) ?? p.attempts[0],
-              p.history,
-            ).pip,
-      title: stepLabel(p.step),
-    })),
+      const attempt = p.attempts.find(inFlight) ?? p.attempts[0];
+      return {
+        kind:
+          p.step === "create"
+            ? createRunning
+              ? "now"
+              : "past"
+            : wordPhase(g.done.includes(p.step), p.heldBack, attempt, p.history).pip,
+        title: stepLabel(p.step),
+        // How much of a running implement is behind it (spec 210). The
+        // fallback above is the latest attempt whatever became of it,
+        // so the "only while it runs" half of the rule is what keeps a
+        // stale phase from filling a pip for work that has stopped —
+        // and that half lives in `completedThirds`, once.
+        third: completedThirds(attempt),
+      };
+    }),
   );
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, from the same function, so

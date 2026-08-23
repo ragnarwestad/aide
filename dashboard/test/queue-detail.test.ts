@@ -810,3 +810,87 @@ describe("POST the Update action", () => {
     expect(res.status).toBe(200);
   });
 });
+
+// --- spec 210: the phase report reaches the row that is running -------------
+//
+// `wordPhase` and `pips()` can be asked about a `tddPhase` in a fixture;
+// nothing but a running server can say whether the JOIN is wired — the
+// lookup lives in `jobRow`, a closure inside `createServer`, and the key
+// is the job's own live `sessionId` against the store's row.
+describe("a running implement's TDD phase reaches the page", () => {
+  const seedRunning = (dir: string, id: string, sessionId: string): string => {
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === id)!;
+    job.state = "running";
+    job.startedAt = "2026-08-23T10:00:00Z";
+    job.sessionId = sessionId;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return mirror;
+  };
+
+  const report = (base: string, sessionId: string, phase: string) =>
+    fetch(`${base}/api/aide-run`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ host: "laptop", sessionId, command: "implement", phase }),
+    });
+
+  // Criterion 2 and criterion 8 in one: the fetch happens IMMEDIATELY
+  // after the report, with no wait. The store write and the row's lookup
+  // are both synchronous, so nothing in this feature adds a delay of its
+  // own on top of whatever already carries a queue change to a reader.
+  test("a phase reported a moment ago is on the very next render", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const mirror = seedRunning(dir, id, "sess-210-green");
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    expect((await report(base2, "sess-210-green", "green")).status).toBe(200);
+    const html = await (
+      await fetch(`${base2}/?open=aide/81-queue-and-runner`, auth)
+    ).text();
+    expect(html).toContain("running (green)");
+    expect(html).toContain('data-third="1"');
+  });
+
+  // Criterion 6: no report ever arrived. The row is exactly what it was
+  // before this feature existed.
+  //
+  // `?rows=1` is the ROWS alone, without the page's inlined stylesheet —
+  // which names `data-third` in its own selectors, and would answer an
+  // absence assertion about the markup with a rule about how to draw it.
+  test("a running implement nobody reported on is unchanged", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["implement"]);
+    const mirror = seedRunning(dir, id, "sess-210-silent");
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const rows = await (
+      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`, auth)
+    ).text();
+    expect(rows).toContain("running");
+    expect(rows).not.toContain("running (");
+    expect(rows).not.toContain("data-third");
+  });
+
+  // Criterion 5, where the rule that decides it actually lives: only
+  // `implement` reports its thirds, and only `implement` is looked up.
+  // An analyze step running in a session the store HAS an answer for is
+  // the case that would go wrong quietly — the join key is the session,
+  // and a session runs one step after another.
+  test("a running analyze is not given a phase, even when its session reported one", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base, ["analyze"]);
+    const mirror = seedRunning(dir, id, "sess-210-analyze");
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    expect((await report(base2, "sess-210-analyze", "green")).status).toBe(200);
+    const rows = await (
+      await fetch(`${base2}/?rows=1&open=aide/81-queue-and-runner`, auth)
+    ).text();
+    expect(rows).toContain("running");
+    expect(rows).not.toContain("running (");
+    expect(rows).not.toContain("data-third");
+  });
+});

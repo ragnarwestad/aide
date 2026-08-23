@@ -12,7 +12,7 @@
 
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { stateChip, type QueueRowView } from "./job-state.ts";
+import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
 import { CHECKING, filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
@@ -299,6 +299,11 @@ export function renderJobDetailPage(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
       title: stepLabel(s),
+      // The same fill the spec list's row shows (spec 210), off the
+      // same field: this page and that row are two views of one job,
+      // and a reader who opens the row must not find it saying less.
+      // Only the step the job is ON, and only while it runs.
+      third: i === job.stepIndex ? completedThirds(job) : undefined,
     })),
   );
 
