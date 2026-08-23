@@ -16,7 +16,11 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
-import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
+import {
+  DescriptionFreshnessChecker,
+  SpecCreatedAtChecker,
+  lastCommitOf,
+} from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
@@ -1023,6 +1027,10 @@ export function createServer(opts: ServerOptions) {
   const freshness = new DescriptionFreshnessChecker({ run: gitRun });
   // And a fourth: which steps this spec has actually had (spec 154).
   const workflowHistory = new WorkflowHistoryChecker({ run: gitRun });
+  // A fifth: when the spec was MADE (spec 199). Git rather than the
+  // queue, because the job store forgets a job once two hundred newer
+  // ones exist and the folder's first commit is still there years on.
+  const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -1472,6 +1480,10 @@ export function createServer(opts: ServerOptions) {
       errorReason: job.errorReason,
       results: job.results.map((r) => ({
         step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
+        // When the step ENDED (spec 199). The only per-step instant
+        // there is — a job has one `startedAt` however many steps it
+        // ran — so it is what a phase's own duration is sliced out of.
+        at: r.at,
         // Carried, not dropped: the totals the list and the overview tab
         // build out of these results have no other way to know a figure
         // they are summing was over-charged (spec 152).
@@ -1886,6 +1898,11 @@ export function createServer(opts: ServerOptions) {
           done,
           stopped: history.stopped,
           fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
+          // What the "Started" column holds (spec 199). Null when git
+          // could not answer — a shallow clone, a folder moved without
+          // `git mv` — and then the cell shows a dash rather than a
+          // job's own time, which is the field this replaces.
+          createdAt: (await specCreatedAt.createdAt(t.dir, t.specFolder)) ?? undefined,
         };
         if (!(await freshness.isStale(t.dir, t.specFolder))) return withHistory;
         return {
