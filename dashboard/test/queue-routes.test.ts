@@ -219,6 +219,59 @@ describe("token configured", () => {
     expect((await fetch(`${base}/`, { headers: { cookie: jar } })).status).toBe(200);
   });
 
+  // The sort lived in the query string alone, and every plain link to
+  // `/` there is threw it away: the Specs tab, the redirect after
+  // Create, a bookmark, the installed app's launch. The reader picked
+  // Started, went to a spec, came back, and was on the default again
+  // (asked for 2026-08-23).
+  describe("the column the reader sorted by is remembered", () => {
+    /** The `Set-Cookie` this route writes for the sort, if any. */
+    const sortCookie = (res: Response): string =>
+      res.headers.getSetCookie().find((c) => c.startsWith("aide_sort=")) ?? "";
+    /** Which column the rendered table says it is sorted by. */
+    const sortedBy = (html: string): string =>
+      /<a class="sortlink on[^"]*"[^>]*>([A-Za-z]+)</.exec(html)?.[1] ?? "";
+
+    test("choosing one writes it down, and a bare / gets it back", async () => {
+      const { base } = start({ queueToken: TOKEN });
+      const chosen = await fetch(`${base}/?token=${TOKEN}&sort=started`);
+      expect(sortCookie(chosen)).toContain("aide_sort=started");
+      expect(sortedBy(await chosen.text())).toBe("Started");
+      const jar = sortCookie(chosen).split(";")[0]!;
+      // The Specs tab: `/` with nothing on it. The token rides along
+      // because every request needs it, not because the sort does.
+      const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
+      expect(sortedBy(await plain.text())).toBe("Started");
+    });
+
+    // Pressing a heading never reloads the page — the script rewrites
+    // the address and fetches the rows alone. A cookie written only on
+    // the whole page would never be written by the act of choosing.
+    test("the rows-only fetch writes it too", async () => {
+      const { base } = start({ queueToken: TOKEN });
+      const res = await fetch(`${base}/?token=${TOKEN}&sort=cost&rows=1`);
+      expect(sortCookie(res)).toContain("aide_sort=cost");
+    });
+
+    test("a link that names a sort still wins over what is remembered", async () => {
+      const { base } = start({ queueToken: TOKEN });
+      const res = await fetch(`${base}/?sort=state`, {
+        headers: { cookie: `aide_token=${TOKEN}; aide_sort=started|desc` },
+      });
+      expect(sortedBy(await res.text())).toBe("State");
+      // And it becomes the new memory, so the next bare `/` agrees with
+      // what the reader is looking at.
+      expect(sortCookie(res)).toContain("aide_sort=state");
+    });
+
+    test("with nothing remembered the default stands", async () => {
+      const { base } = start({ queueToken: TOKEN });
+      const res = await fetch(`${base}/?token=${TOKEN}`);
+      expect(sortedBy(await res.text())).toBe("Spec");
+      expect(sortCookie(res)).toBe("");
+    });
+  });
+
   test("the header works for API callers", async () => {
     const { base } = start({ queueToken: TOKEN });
     const res = await fetch(`${base}/api/queue`, { headers: { "x-aide-token": TOKEN } });

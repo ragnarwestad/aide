@@ -439,6 +439,45 @@ function cookieValue(header: string | null, name: string): string | null {
   return null;
 }
 
+/** Which column the list is sorted by, and which way.
+ *
+ *  It lives in the query string, so a link can carry it to someone
+ *  else. That alone was not enough to keep it: the Specs tab is a plain
+ *  `/`, so is the redirect after Create, and so is a bookmark or the
+ *  installed app's own launch — every one of them threw the reader's
+ *  choice away and went back to the default (asked for 2026-08-23,
+ *  "jeg klikker på Started for å få det rett og så er det endret igjen").
+ *
+ *  So the choice is remembered in a cookie, the way the theme and the
+ *  unit are remembered in storage: an explicit `?sort=` still wins and
+ *  is what UPDATES the memory, and a request that names no sort gets
+ *  the last one the reader picked. It is a cookie rather than
+ *  `localStorage` because the sort is applied where the rows are built
+ *  — on the server — so a script could only fix it after the fact, with
+ *  a visible jump on every load.
+ *
+ *  Nothing here is trusted: the renderer falls back to its own defaults
+ *  for a column name it does not know. */
+const SORT_COOKIE = "aide_sort";
+
+function sortChoice(url: URL, req: Request): { sort?: string; dir?: string; setCookie?: string } {
+  const sort = url.searchParams.get("sort");
+  if (sort) {
+    const dir = url.searchParams.get("dir") ?? "";
+    return {
+      sort,
+      dir: dir || undefined,
+      setCookie:
+        `${SORT_COOKIE}=${encodeURIComponent(`${sort}|${dir}`)}` +
+        `; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+    };
+  }
+  const stored = cookieValue(req.headers.get("cookie"), SORT_COOKIE);
+  if (!stored) return {};
+  const [remembered, dir] = stored.split("|");
+  return { sort: remembered || undefined, dir: dir || undefined };
+}
+
 // A body may arrive as JSON (API) or urlencoded (a no-JS form).
 function bodyToObject(text: string, contentType: string | null): unknown {
   if ((contentType ?? "").includes("application/x-www-form-urlencoded")) {
@@ -2696,6 +2735,9 @@ export function createServer(opts: ServerOptions) {
       // Read, never taken (spec 208). `refreshSpecCaches` is what asks
       // origin; this route reads whatever it last found.
       const unlandedKeys = peekUnlanded();
+      // The reader's own choice of column, from the address or from the
+      // cookie it was last written into.
+      const chosenSort = sortChoice(url, req);
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: liveTargets,
@@ -2731,11 +2773,17 @@ export function createServer(opts: ServerOptions) {
         // ordered lives in the URL, so it survives a reload and can be
         // sent to someone else. Nothing here is trusted — the renderer
         // falls back to its defaults for anything it does not know.
+        //
+        // The SORT alone falls back to what the reader last chose
+        // (`sortChoice`) rather than to the renderer's default: every
+        // other part of the filter is set from a control on this page
+        // and read back off the same address, but the sort is thrown
+        // away by every plain link to `/` there is.
         filter: {
           state: url.searchParams.get("state") ?? undefined,
           project: url.searchParams.get("project") ?? undefined,
-          sort: url.searchParams.get("sort") ?? undefined,
-          dir: url.searchParams.get("dir") ?? undefined,
+          sort: chosenSort.sort,
+          dir: chosenSort.dir,
           open: url.searchParams.get("open") ?? undefined,
         },
       };
@@ -2746,8 +2794,15 @@ export function createServer(opts: ServerOptions) {
       // a row for it could only offer a Run that would be refused.
       const listed = queue.list().filter((j) => allowed.has(j.project));
       if (url.searchParams.get("rows")) {
+        // The sort cookie is written HERE as well as on the whole page,
+        // and this is the one that matters: pressing a column heading
+        // never reloads the page. The script rewrites the address and
+        // fetches these rows alone, so a cookie set only on the full
+        // page would never be written by the very act of choosing.
+        const rowHeaders = new Headers({ "content-type": "text/html; charset=utf-8" });
+        if (chosenSort.setCookie) rowHeaders.append("set-cookie", chosenSort.setCookie);
         return new Response(renderQueueRows(await Promise.all(listed.map(jobRow)), view), {
-          headers: { "content-type": "text/html; charset=utf-8" },
+          headers: rowHeaders,
         });
       }
       const html = renderQueuePage(
@@ -2768,11 +2823,19 @@ export function createServer(opts: ServerOptions) {
       // top-level navigation and still withheld from a cross-site POST,
       // which is what Strict was guarding here; every form on this page
       // posts same-site and is unaffected.
+      // A `Headers` rather than the record it was built from: two
+      // cookies can be handed over on one response — the token on the
+      // first visit and the sort a shared link carried — and a record
+      // has room for one `set-cookie`.
+      const pageHeaders = new Headers(headers);
       if (url.searchParams.get("token") && queueToken) {
-        headers["set-cookie"] =
-          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
+        pageHeaders.append(
+          "set-cookie",
+          `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`,
+        );
       }
-      return new Response(html, { headers });
+      if (chosenSort.setCookie) pageHeaders.append("set-cookie", chosenSort.setCookie);
+      return new Response(html, { headers: pageHeaders });
     }
 
     // The New-spec form's own page (spec 121). It was a disclosure on

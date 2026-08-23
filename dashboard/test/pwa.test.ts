@@ -166,7 +166,7 @@ function barBounds(svg: string): { x0: number; y0: number; x1: number; y1: numbe
   expect(g).not.toBeNull();
   const [tx, ty, scale] = [Number(g![1]), Number(g![2]), Number(g![3])];
   const rects = [...g![4]!.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)];
-  expect(rects.length).toBe(3);
+  expect(rects.length).toBe(4);
   return rects.map((m) => {
     const [x, y, w, h] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
     return { x0: x * scale + tx, y0: y * scale + ty, x1: (x + w) * scale + tx, y1: (y + h) * scale + ty };
