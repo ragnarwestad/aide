@@ -812,9 +812,11 @@ describe("the job page is split into tabs", () => {
   // reading the wrong list, which is exactly what sharing it risks.
   test("a job has three tabs and only three, whatever the spec page offers", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    const bar = html.match(/<span class="filters" data-filter="tab">[\s\S]*?<\/a><\/span>/)?.[0] ?? "";
-    expect(bar).toContain('<span class="lbl">Job</span>');
-    expect(bar.match(/<a data-nav/g)).toHaveLength(3);
+    const bar = html.match(/<nav class="tabbar subtabs">[\s\S]*?<\/nav>/)?.[0] ?? "";
+    // No caption beside them since 2026-08-23: these are tabs, and the
+    // page they sit on already says what it is about.
+    expect(bar).not.toContain('class="lbl"');
+    expect(bar.match(/<a class="tab" data-nav/g)).toHaveLength(3);
     for (const gone of ["tab=description", "tab=analysis", "tab=solution", "tab=status"]) {
       expect([gone, bar.includes(gone)]).toEqual([gone, false]);
     }

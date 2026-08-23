@@ -448,7 +448,6 @@ export function renderSpecPage(
       specPagePath(view.project, view.specFolder),
       tab,
       { activity: lead?.activity?.length ?? 0, steps: lead?.results.length ?? 0 },
-      "Spec",
     ),
     panel,
   );

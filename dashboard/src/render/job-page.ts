@@ -13,7 +13,7 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
-import { CHECKING, filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
+import { CHECKING, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -187,24 +187,32 @@ export function tabBar<T extends string>(
    *  its label with no `· N` suffix — exactly as Activity already does
    *  for a job that has captured nothing. */
   counts: Partial<Record<T, number>>,
-  /** What the group of pills is OF. "Job" on a job's page; the spec
-   *  page says "Spec", because a caption naming the wrong thing is the
-   *  one part of a shared component that cannot be shared. */
-  caption = "Job",
 ): string {
-  // The same pill the list's filters are: one control, one look. The
-  // count rides in the label — "Activity · 12" — rather than in a badge
-  // sitting on it, because it is part of the sentence.
-  return filterPills(
-    "tab",
-    caption,
-    tabs.map((t) => ({
-      label: t[0]!.toUpperCase() + t.slice(1),
-      count: counts[t] || undefined,
-      on: t === current,
-      href: `${esc(basePath)}?tab=${t}`,
-    })),
-    "page",
+  // A real tab bar, the same one the site's own two tabs are: the row
+  // sits ON a hairline and the open tab is marked by an underline in
+  // the accent colour, PaceUp's tab bar being the reference. It was a
+  // row of filter pills with a caption — "Spec" — beside it until
+  // 2026-08-23: these are pages, not a filter over one page, and a
+  // caption saying which kind of thing you are already looking at said
+  // nothing. Chips are for choosing among values; tabs are for moving
+  // between views, and the page has both.
+  //
+  // The count rides in the label — "Activity · 12" — rather than in a
+  // badge sitting on it, because it is part of the sentence.
+  return (
+    `<nav class="tabbar subtabs">` +
+    tabs
+      .map((t) => {
+        const label = t[0]!.toUpperCase() + t.slice(1);
+        const n = counts[t] || undefined;
+        return (
+          `<a class="tab" data-nav href="${esc(basePath)}?tab=${t}"` +
+          `${t === current ? ` aria-current="page"` : ""}>` +
+          `${esc(label)}${n === undefined ? "" : ` · ${n}`}</a>`
+        );
+      })
+      .join("") +
+    `</nav>`
   );
 }
 

@@ -157,6 +157,18 @@ header .brand { margin: 0; padding: 0; }
    tab bar being the reference (2026-08-19). */
 body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
   border-bottom: 1px solid var(--line); }
+/* The SAME bar one level in: a spec's own seven tabs, and a job's
+   three. They were filter pills with a caption beside them until
+   2026-08-23 — chips choose among values, tabs move between views, and
+   these are views. Inside main, so the row takes the page's width
+   rather than the frame's, which is why it is a rule of its own and
+   not the body-child one above. */
+nav.tabbar.subtabs { display: flex; flex-wrap: wrap; gap: var(--sp-4);
+  border-bottom: 1px solid var(--line); }
+/* Narrower than the site's two: seven tabs at 7rem each do not fit a
+   laptop, and these labels are one word. They keep the row's own
+   rhythm by their padding instead. */
+nav.tabbar.subtabs .tab { min-width: 0; }
 .tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
   min-width: 7rem; text-align: center;
   color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }

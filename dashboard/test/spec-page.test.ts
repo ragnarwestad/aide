@@ -329,9 +329,18 @@ describe("the spec page is a page of this site like any other", () => {
     expect(body).toMatch(/aria-current="page"[^>]*>Steps/);
   });
 
-  test("the tab group is captioned for the spec, not for a job", () => {
-    expect(page()).toContain('<span class="lbl">Spec</span>');
-    expect(page()).not.toContain('<span class="lbl">Job</span>');
+  // Real tabs, not chips with a caption beside them (2026-08-23): the
+  // same bar the site's own two tabs are, one level in. The caption
+  // said "Spec" above a page that says nothing else, and a chip is for
+  // choosing among values while these move between views.
+  test("the tabs are a tab bar, with no caption beside them", () => {
+    const html = page();
+    expect(html).toContain('<nav class="tabbar subtabs">');
+    expect(html).not.toContain('<span class="lbl">Spec</span>');
+    expect(html).not.toContain('<span class="lbl">Job</span>');
+    expect(html).not.toContain('data-filter="tab"');
+    // The open one is marked the way the site's tabs mark theirs.
+    expect(html).toMatch(/<a class="tab" data-nav href="[^"]*\?tab=overview" aria-current="page">Overview<\/a>/);
   });
 
   test("no Live right now panel exists here either", () => {
