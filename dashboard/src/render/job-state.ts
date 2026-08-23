@@ -439,6 +439,19 @@ export function wordPhase(
   // badly is the more useful sentence, and two sentences about one
   // phase is the row saying two things at once.
   const filesDisagree = history.fileDisagrees ? FILES_DISAGREE : undefined;
+  // A phase that is running says so, whatever happened the last time it
+  // ran. The history's "done" is about a previous attempt; this one is
+  // in flight, and a line reading "done · 2 attempts" over a spec the
+  // State column says is archiving is the row saying two things at once
+  // (reported 2026-08-23). Only the pip moved before, and a pip is not
+  // a word.
+  if (running) {
+    return {
+      pip: "now",
+      badge: { variant: BADGE_VARIANT[attempt!.state], label: stateLabel(attempt!) },
+      qualifier: filesDisagree,
+    };
+  }
   if (happened) {
     return {
       pip: running ? "now" : "past",
