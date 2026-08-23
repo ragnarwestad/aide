@@ -80,6 +80,119 @@ function classes(el: { className: string }) {
   };
 }
 
+/** One `<tr>` of the fake `#jobrows` (spec 204). Only the surface the
+ *  per-group diff actually calls — an anchor's id, the class that says
+ *  where a group ends, the walk to the next row, and the two mutations
+ *  that replace a group's range. */
+interface FakeRow {
+  html: string;
+  readonly id: string;
+  readonly className: string;
+  readonly nextElementSibling: FakeRow | null;
+  readonly parentNode: { insertAdjacentHTML(where: string, html: string): void };
+  remove(): void;
+  insertAdjacentHTML(where: string, html: string): void;
+}
+
+/** The rows of `#jobrows` as OBJECTS, beside the string they came from.
+ *  A row the redraw left alone is the same object afterwards, which is
+ *  what a test asserts with `toBe` — the property that decides whether a
+ *  reader's press survives a redraw, and the one thing a string could
+ *  never carry.
+ *
+ *  `onMutate` is what a browser does for free: the selects in a replaced
+ *  row are new elements drawn from the server's answer, so the fake's
+ *  own selects go back to what the server would have rendered. */
+function fakeTbody(onMutate: () => void) {
+  let prefix = "";
+  let suffix = "";
+  let list: FakeRow[] = [];
+
+  const attr = (html: string, name: string): string =>
+    new RegExp(`\\b${name}="([^"]*)"`).exec(html)?.[1] ?? "";
+
+  const make = (html: string): FakeRow => {
+    const row: FakeRow = {
+      html,
+      get id(): string {
+        return attr(row.html, "id");
+      },
+      get className(): string {
+        return attr(row.html, "class");
+      },
+      get nextElementSibling(): FakeRow | null {
+        const at = list.indexOf(row);
+        return at === -1 ? null : (list[at + 1] ?? null);
+      },
+      get parentNode() {
+        return body;
+      },
+      remove(): void {
+        const at = list.indexOf(row);
+        if (at !== -1) list.splice(at, 1);
+        onMutate();
+      },
+      insertAdjacentHTML(where: string, fragment: string): void {
+        const at = list.indexOf(row);
+        if (at === -1) return;
+        list.splice(where === "beforebegin" ? at : at + 1, 0, ...cut(fragment));
+        onMutate();
+      },
+    };
+    return row;
+  };
+
+  /** A fragment of markup into rows, one per `</tr>`. */
+  const cut = (html: string): FakeRow[] => {
+    const out: FakeRow[] = [];
+    let at = 0;
+    for (;;) {
+      const end = html.indexOf("</tr>", at);
+      if (end === -1) break;
+      out.push(make(html.slice(at, end + "</tr>".length)));
+      at = end + "</tr>".length;
+    }
+    return out;
+  };
+
+  const body = {
+    insertAdjacentHTML(where: string, fragment: string): void {
+      const made = cut(fragment);
+      if (where === "beforeend") list.push(...made);
+      else list.unshift(...made);
+      onMutate();
+    },
+  };
+
+  return {
+    /** The string `innerHTML` hands back — the one it was given, unless
+     *  something has since moved a row. */
+    html: (): string => prefix + list.map((r) => r.html).join("") + suffix,
+    parse(html: string): void {
+      const open = html.indexOf("<tbody>");
+      const close = html.lastIndexOf("</tbody>");
+      if (open === -1 || close === -1 || close < open) {
+        // No table in it: the markup most of this file's tests use.
+        // Kept whole, so they see the string they always saw.
+        prefix = html;
+        suffix = "";
+        list = [];
+        return;
+      }
+      const start = open + "<tbody>".length;
+      prefix = html.slice(0, start);
+      const content = html.slice(start, close);
+      list = cut(content);
+      // Whatever the split could not account for travels with the
+      // suffix, so nothing is lost on the way back out.
+      suffix = content.slice(list.map((r) => r.html).join("").length) + html.slice(close);
+    },
+    /** The FIRST row wearing this id, the way `getElementById` answers. */
+    byId: (id: string): FakeRow | null => list.find((r) => r.id === id) ?? null,
+    ids: (): string[] => list.map((r) => r.id),
+  };
+}
+
 /** One button in one form in `#jobrows`, the New-spec form beside it,
  *  and the globals the file actually touches. Nothing here pretends to
  *  be a browser: it answers the handful of questions the code asks, and
@@ -562,18 +675,33 @@ function harness(
   // answer. The fake says so — every select goes back to what the
   // server would have rendered — because a fake that kept the reader's
   // choice by doing nothing could not tell a fix from its absence.
-  let rowsHtml = "";
+  const redrawControls = (): void => {
+    for (const a of aiSelects) a.redraw();
+    for (const m of modelSelects) m.redraw();
+    otherRowSelect.redraw();
+    for (const b of stepBoxes) b.redraw();
+    tailBox.redraw();
+  };
+  // Spec 204: `#jobrows` is a STRING here and a tree of nodes in the
+  // browser, and the difference is the whole of what this spec has to
+  // prove — a row nobody's redraw touched is the same object before and
+  // after, which is why the click a reader made on it is delivered. A
+  // string has no identity to keep or lose, so the fake grows one:
+  // every `<tr>` inside the fetched markup's `<tbody>` becomes an object
+  // that survives until something removes it.
+  //
+  // Additive, deliberately. `innerHTML` still reads and writes the whole
+  // string byte for byte (the parse below puts every character back
+  // where it found it), so every assertion in this file that reads
+  // `h.rows.innerHTML` keeps seeing exactly what it saw before.
+  const table = fakeTbody(redrawControls);
   const rows = {
     get innerHTML(): string {
-      return rowsHtml;
+      return table.html();
     },
     set innerHTML(html: string) {
-      rowsHtml = html;
-      for (const a of aiSelects) a.redraw();
-      for (const m of modelSelects) m.redraw();
-      otherRowSelect.redraw();
-      for (const b of stepBoxes) b.redraw();
-      tailBox.redraw();
+      table.parse(html);
+      redrawControls();
     },
     querySelectorAll: (sel: string) =>
       sel.includes("model.")
@@ -611,7 +739,12 @@ function harness(
   const elapsed: { dataset: { elapsed: string }; textContent: string }[] = [];
 
   const document = {
-    getElementById: (id: string) => (id === "jobrows" ? rows : null),
+    // Spec 204: a row's own anchor id resolves too. `rowAnchorId()` is
+    // already on every head row for the sake of `href="#..."`, and the
+    // per-group diff reaches a group through it — so a fake that
+    // answered only `"jobrows"` could not run the code under test at
+    // all.
+    getElementById: (id: string) => (id === "jobrows" ? rows : table.byId(id)),
     // `.phases` answers with ANOTHER row's boxes on purpose: a press
     // must reach its own row's boxes and no others, so a document-wide
     // lookup has to be visibly wrong rather than accidentally right.
@@ -825,6 +958,12 @@ function harness(
   const clickFold = () => fire("click", foldLink);
 
   return {
+    /** The row node wearing that anchor id, right now (spec 204). The
+     *  same object across a redraw is what proves the redraw left it
+     *  alone; a different one proves it was replaced. */
+    rowFor: (id: string) => table.byId(id),
+    /** Every row's anchor id in the order they stand in. */
+    rowIds: () => table.ids(),
     submit, submitCreate, click, clickFold, button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
     sources: FakeEventSource.made, live, visibility, intervals, ticks, elapsed, clock,
@@ -2511,5 +2650,145 @@ describe("?live=0 declines the live connection", () => {
       h.visibility("visible");
       expect(h.sources.length, search).toBe(1);
     }
+  });
+});
+
+// --- spec 204: a redraw never takes a press with it -------------------------
+//
+// Reported 2026-08-23: come back to the tab, click a row, and nothing
+// opens — the third press works. Coming back reconnects, the reconnect
+// redraws, and the redraw used to replace every `<tr>` in `#jobrows` in
+// one step. A browser only synthesizes `click` when `mousedown` and
+// `mouseup` land on the SAME element, so a row torn out between the two
+// swallows the press whole.
+//
+// What is asserted here is therefore node identity, not markup: a row
+// the redraw had no reason to touch must be the same object afterwards.
+// That is the fix, and everything else about it is scaffolding.
+describe("a redraw touches only the specs that changed (spec 204)", () => {
+  /** The shape the server actually sends: a filter bar, one table, and
+   *  one `<tr class="spechead" id="spec-...">` per spec with its own
+   *  rows beneath it. */
+  const page = (...groups: string[]): string =>
+    `<div class="row"></div><div class="tablewrap"><table class="list"><thead></thead><tbody>` +
+    groups.join("") +
+    `</tbody></table></div>`;
+
+  const group = (key: string, state: string): string =>
+    `<tr class="spechead open" id="spec-${key}" data-folder="${key.split("/")[1]}"><td>${key}</td></tr>` +
+    `<tr class="subrow" data-of="${key}"><td>${state}</td></tr>`;
+
+  const A = "aide/204-coming-back";
+  const B = "aide/203-the-projects-page";
+
+  /** A page whose row fetches answer with each text in turn, the last
+   *  one repeating for good. */
+  const pages = (...texts: string[]) => {
+    let at = 0;
+    return harness((url) =>
+      url.includes("rows=1") ? { ok: true, text: texts[Math.min(at++, texts.length - 1)]! } : { ok: true },
+    );
+  };
+
+  /** The tab becoming visible and its connection opening — the first
+   *  swap, which is what establishes what is on screen. */
+  const settle = async (h: ReturnType<typeof harness>) => {
+    h.visibility("visible");
+    h.live()!.emit("open");
+    await flush();
+  };
+
+  test("an unchanged spec keeps its own row nodes across a redraw (criteria 1, 3)", async () => {
+    const same = page(group(A, "queued"), group(B, "queued"));
+    const h = pages(same, same);
+    await settle(h);
+    const head = h.rowFor(`spec-${A}`);
+    const sub = head!.nextElementSibling;
+    expect(head).not.toBeNull();
+
+    h.live()!.emit("open");
+    await flush();
+
+    // The same objects, not merely the same markup: `toBe`, never
+    // `toEqual`. A reader pressing this row between `mousedown` and
+    // `mouseup` is pressing something that is still there.
+    expect(h.rowFor(`spec-${A}`)).toBe(head);
+    expect(h.rowFor(`spec-${A}`)!.nextElementSibling).toBe(sub);
+    expect(h.rowFor(`spec-${B}`)).not.toBeNull();
+  });
+
+  test("a spec whose state moved IS replaced, and no other is (criterion 2)", async () => {
+    const h = pages(
+      page(group(A, "queued"), group(B, "queued")),
+      page(group(A, "running"), group(B, "queued")),
+    );
+    await settle(h);
+    const moved = h.rowFor(`spec-${A}`);
+    const still = h.rowFor(`spec-${B}`);
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rowFor(`spec-${A}`)).not.toBe(moved);
+    expect(h.rows.innerHTML).toContain("running");
+    // The other spec had no reason to move and did not.
+    expect(h.rowFor(`spec-${B}`)).toBe(still);
+  });
+
+  test("what the diff leaves behind is what the server sent (criterion 5)", async () => {
+    // An hour on a hidden tab: the queue moved several times and the
+    // page saw none of it, because a hidden tab holds no connection.
+    // One reconnect has to be enough to catch up on all of it.
+    const end = page(group(A, "done"), group(B, "running"));
+    const h = pages(page(group(A, "queued"), group(B, "queued")), end);
+    await settle(h);
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rows.innerHTML).toBe(end);
+  });
+
+  test("a spec that appeared while the tab was hidden is drawn in (criterion 4)", async () => {
+    const h = pages(page(group(A, "queued")), page(group(A, "queued"), group(B, "queued")));
+    await settle(h);
+    const kept = h.rowFor(`spec-${A}`);
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rowIds()).toEqual([`spec-${A}`, "", `spec-${B}`, ""]);
+    expect(h.rowFor(`spec-${A}`)).toBe(kept);
+  });
+
+  test("a spec that went away takes its own rows and no others", async () => {
+    const h = pages(page(group(A, "queued"), group(B, "queued")), page(group(B, "queued")));
+    await settle(h);
+    const kept = h.rowFor(`spec-${B}`);
+
+    h.live()!.emit("open");
+    await flush();
+
+    expect(h.rowFor(`spec-${A}`)).toBeNull();
+    expect(h.rowFor(`spec-${B}`)).toBe(kept);
+  });
+
+  // The mitigation the risk analysis asks for: markup the split cannot
+  // account for row by row is redrawn wholesale, exactly as it was
+  // before this spec. Failing open to shipped behaviour beats a clever
+  // diff that might be wrong.
+  test("markup with no keyed groups falls back to the wholesale replace", async () => {
+    const empty = `<div class="tablewrap"><table class="list"><tbody><tr><td class="empty">No spec.</td></tr></tbody></table></div>`;
+    const h = pages(page(group(A, "queued")), empty, page(group(A, "queued")));
+    await settle(h);
+
+    h.live()!.emit("open");
+    await flush();
+    expect(h.rows.innerHTML).toBe(empty);
+
+    // And back again, from a state the diff has no memory of.
+    h.live()!.emit("open");
+    await flush();
+    expect(h.rows.innerHTML).toBe(page(group(A, "queued")));
   });
 });

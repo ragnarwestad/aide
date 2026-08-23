@@ -8,7 +8,7 @@
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import {
-  closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync,
+  closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, watch,
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
@@ -1014,6 +1014,70 @@ export function createServer(opts: ServerOptions) {
    *  set is walked because `writeTo` removes from it. */
   const notifyQueueChanged = (): void => {
     for (const c of [...watchers]) writeTo(c, "event: changed\ndata: {}\n\n");
+  };
+
+  // --- spec 204: a spec is a folder, and a folder changes no job -----------
+  //
+  // The two callers above are both the queue's own: a job moving, and
+  // `POST /api/aide-run`. A spec created any other way — a `git pull`,
+  // a hand-run `/aide-create`, a headless run's commit landing — writes
+  // a directory and touches no job at all, so nothing was told and the
+  // page stayed as it was until somebody reloaded it. Four specs added
+  // on 2026-08-23 spent the day invisible that way.
+  //
+  // Each allowed project's specs root, and nothing wider: a recursive
+  // watch on the projects root would fire on every `.git` internal,
+  // `node_modules` entry and build artefact in every checked-out
+  // project — the ground moving under the reader constantly, which is
+  // the cost spec 189 already removed once.
+  //
+  // One echo comes with it, and is deliberately left alone: FSEvents
+  // hands a fresh recursive watcher the changes made in the
+  // milliseconds before it opened, so a server started right after
+  // something wrote in a specs root broadcasts once at start-up. A page
+  // open at that moment redraws once — which a reconnect already does —
+  // and a page opened afterwards never hears it.
+  const specWatchers = new Map<string, ReturnType<typeof watch>>();
+  let notifySoon: ReturnType<typeof setTimeout> | null = null;
+  /** A `git pull` writes a hundred files; the page needs telling once. */
+  const scheduleNotify = (): void => {
+    if (notifySoon) clearTimeout(notifySoon);
+    notifySoon = setTimeout(() => {
+      notifySoon = null;
+      // Before the event, never after: the page answers by asking for
+      // the rows, and those come off a scan cached for five seconds.
+      // Told to redraw and handed the same list it already had, it
+      // would sit there with nothing further coming.
+      scan = null;
+      notifyQueueChanged();
+    }, 300);
+  };
+  if (opts.projectRoot) {
+    for (const p of discoverProjects(opts.projectRoot)) {
+      if (!allowed.has(p.name)) continue;
+      try {
+        specWatchers.set(p.name, watch(p.specsRoot, { recursive: true }, scheduleNotify));
+      } catch {
+        // A specs root that is missing or cannot be watched: the same
+        // fail-open the git checks in this file already keep. The
+        // five-second scan still catches up on the next redraw anything
+        // else causes — only the "no reload needed" promise degrades.
+      }
+    }
+  }
+  /** Every watcher opened above, closed. Called by `stop()`, which runs
+   *  before a test removes the directories they point at. */
+  const closeSpecWatchers = (): void => {
+    if (notifySoon) clearTimeout(notifySoon);
+    notifySoon = null;
+    for (const w of specWatchers.values()) {
+      try {
+        w.close();
+      } catch {
+        // already gone, which is the outcome either way
+      }
+    }
+    specWatchers.clear();
   };
 
   // Built after `resolveProject`, which it takes. Nothing above it reads
@@ -3300,6 +3364,12 @@ export function createServer(opts: ServerOptions) {
 
   return {
     port: server.port,
+    /** How many specs roots are being watched right now (spec 204).
+     *  Here for one question nothing else can answer: that `stop()` let
+     *  the handles go. A watcher nobody closes outlives the server for
+     *  the life of the process, and the directories it points at are
+     *  removed underneath it. */
+    specWatchCount: () => specWatchers.size,
     // `server.stop` resolves once the last connection is closed. Nothing
     // here waits for that — the caller is shutting down — so the promise
     // is dropped on purpose rather than by accident.
@@ -3307,6 +3377,7 @@ export function createServer(opts: ServerOptions) {
       if (timer) clearInterval(timer);
       if (driftTimer) clearInterval(driftTimer);
       clearInterval(keepAlive);
+      closeSpecWatchers();
       // Every watching page, let go of deliberately: `server.stop(true)`
       // cuts the sockets, and a controller left in the set would be
       // written to by nothing but would still be held.

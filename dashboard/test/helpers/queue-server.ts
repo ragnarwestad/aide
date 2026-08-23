@@ -39,7 +39,11 @@ export interface StartOptions {
 }
 
 export interface QueueHarness {
-  start(opts?: StartOptions): { base: string; dir: string };
+  /** `server` is handed back for the one question the base URL cannot
+   *  answer: what `stop()` let go of (spec 204's filesystem watchers).
+   *  `cleanup()` still stops it, so a suite that takes it does not have
+   *  to. */
+  start(opts?: StartOptions): { base: string; dir: string; server: ReturnType<typeof createServer> };
   /** For afterEach: stops every server and removes every directory. */
   cleanup(): void;
 }
@@ -89,7 +93,7 @@ export function queueHarness(prefix: string): QueueHarness {
         ...extra,
       });
       servers.push(server);
-      return { base: `http://127.0.0.1:${server.port}`, dir };
+      return { base: `http://127.0.0.1:${server.port}`, dir, server };
     },
 
     cleanup() {

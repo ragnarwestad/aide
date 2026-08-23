@@ -170,6 +170,188 @@ function restoreChosen(body: Element): void {
   relabelAll(body);
 }
 
+// --- spec 204: a redraw never takes a press with it ------------------------
+//
+// Reported 2026-08-23: come back to the tab, click a row, nothing
+// opens; the third press works. Coming back reconnects, the reconnect
+// redraws, and the redraw used to be `body.innerHTML = html` — every
+// `<tr>` on the page destroyed and rebuilt in one step, whether it had
+// changed or not.
+//
+// A press is two events with human time between them. The browser
+// synthesizes `click` only when `mousedown` and `mouseup` land on the
+// SAME element, so a row torn out between the two swallows the press
+// whole — nothing is broken, the click is simply never delivered. The
+// existing guards do not reach this: `inFlight` and `pressGen` protect
+// a press that has ALREADY fired, and there is no event at all for one
+// that has begun.
+//
+// So the fix is to stop tearing out rows that did not change. A row
+// this never touches cannot lose a click to it, however the timing
+// falls.
+
+/** One spec's rows, keyed by the anchor id the server already puts on
+ *  its head row (`rowAnchorId`, `render/queue-list.ts`). */
+interface RowGroup {
+  key: string;
+  html: string;
+}
+
+/** The fetched row list, cut where the diff can work on it: everything
+ *  up to and including `<tbody>`, one entry per spec, and everything
+ *  from `</tbody>` on. Concatenating the three gives back the string it
+ *  was cut from, character for character. */
+interface RowSplit {
+  prefix: string;
+  groups: RowGroup[];
+  suffix: string;
+}
+
+/** The class the renderer puts on a spec's first row, and the only
+ *  thing that says where one spec's rows end and the next spec's begin.
+ *  Named once, and used both to cut the fetched markup up and to walk
+ *  the page's own rows — two answers to that question could disagree. */
+const SPEC_HEAD_CLASS = "spechead";
+
+/** Where each spec's rows begin. Built from the constant rather than
+ *  written out, so the class vocabulary has one spelling here. */
+const SPEC_HEAD = new RegExp(`<tr class="${SPEC_HEAD_CLASS}\\b[^>]*?\\bid="([^"]+)"`, "g");
+
+const OPEN_TBODY = "<tbody>";
+const CLOSE_TBODY = "</tbody>";
+
+/** The fetched markup as groups, or `null` when it cannot be accounted
+ *  for exactly — no table, more than one, a row before the first spec
+ *  (the empty and no-match states are one such row), or two specs
+ *  wearing one id. `null` means "redraw the old way": failing open to
+ *  the behaviour that has shipped for a year beats a diff that might be
+ *  wrong about which rows are whose. */
+function splitGroups(html: string): RowSplit | null {
+  const open = html.indexOf(OPEN_TBODY);
+  const close = html.lastIndexOf(CLOSE_TBODY);
+  if (open === -1 || close === -1 || close < open) return null;
+  const start = open + OPEN_TBODY.length;
+  // A second table would put rows outside the range walked below.
+  if (html.indexOf(OPEN_TBODY, start) !== -1) return null;
+  const content = html.slice(start, close);
+  const at: { key: string; index: number }[] = [];
+  SPEC_HEAD.lastIndex = 0;
+  for (let m = SPEC_HEAD.exec(content); m; m = SPEC_HEAD.exec(content)) {
+    at.push({ key: m[1]!, index: m.index });
+  }
+  // The invariant: every row inside the table belongs to exactly one
+  // spec. The first spec starting anywhere but the very beginning means
+  // something else is in there.
+  if (!at.length || at[0]!.index !== 0) return null;
+  const groups: RowGroup[] = [];
+  const seen: Record<string, true> = {};
+  for (let i = 0; i < at.length; i++) {
+    const key = at[i]!.key;
+    if (seen[key]) return null; // no unique anchor to reach it by
+    seen[key] = true;
+    groups.push({ key, html: content.slice(at[i]!.index, at[i + 1]?.index ?? content.length) });
+  }
+  return { prefix: html.slice(0, start), groups, suffix: html.slice(close) };
+}
+
+const isSpecHead = (el: Element): boolean =>
+  ` ${el.className} `.indexOf(` ${SPEC_HEAD_CLASS} `) !== -1;
+
+/** A group's rows on the page: its head row and everything under it up
+ *  to the next spec. `null` when the anchor is not there, which is the
+ *  diff giving up and letting the caller redraw wholesale. */
+function groupRange(key: string): Element[] | null {
+  const head = document.getElementById(key);
+  if (!head || !isSpecHead(head)) return null;
+  const range: Element[] = [head];
+  for (let el = head.nextElementSibling; el && !isSpecHead(el); el = el.nextElementSibling) range.push(el);
+  return range;
+}
+
+/** Put a group's fresh markup where its old rows are, then take the old
+ *  ones away. Collected BEFORE the insert on purpose: the new head row
+ *  wears the same id, and `getElementById` would answer with it. */
+function replaceGroup(g: RowGroup): boolean {
+  const range = groupRange(g.key);
+  if (!range) return false;
+  range[0]!.insertAdjacentHTML("beforebegin", g.html);
+  for (const el of range) el.remove();
+  return true;
+}
+
+/** A spec that was not on the page a moment ago, put in its place:
+ *  before whichever group now follows it, or at the end when none
+ *  does. */
+function insertGroup(groups: RowGroup[], at: number, held: Record<string, true>): boolean {
+  for (let i = at + 1; i < groups.length; i++) {
+    if (!held[groups[i]!.key]) continue;
+    const next = groupRange(groups[i]!.key);
+    if (!next) return false;
+    next[0]!.insertAdjacentHTML("beforebegin", groups[at]!.html);
+    return true;
+  }
+  // Nothing after it, so the table's own end. Reached through a row
+  // that is already there rather than by looking the table up, which
+  // keeps this to the one element the anchor already gives us.
+  for (const g of groups) {
+    const range = held[g.key] ? groupRange(g.key) : null;
+    if (!range) continue;
+    const table = range[0]!.parentNode as Element | null;
+    if (!table) return false;
+    table.insertAdjacentHTML("beforeend", groups[at]!.html);
+    return true;
+  }
+  return false;
+}
+
+/** The redraw itself: only the specs whose rows actually differ are
+ *  touched. `false` means it declined or could not finish, and the
+ *  caller falls back to replacing the lot — which is also the repair
+ *  for a diff that stopped half way.
+ *
+ *  It declines on anything outside the table changing (the filter bar's
+ *  own counts, the "N older specs not shown" line) and on the specs
+ *  being reordered, because both move rows the reader is looking at
+ *  whatever this does. */
+function applyGroupDiff(prev: RowSplit, next: RowSplit): boolean {
+  if (prev.prefix !== next.prefix || prev.suffix !== next.suffix) return false;
+  const was: Record<string, string> = {};
+  for (const g of prev.groups) was[g.key] = g.html;
+  const now: Record<string, true> = {};
+  for (const g of next.groups) now[g.key] = true;
+  const kept = (list: RowGroup[], other: Record<string, unknown>): string =>
+    list.filter((g) => other[g.key] !== undefined).map((g) => g.key).join("\n");
+  if (kept(prev.groups, now) !== kept(next.groups, was)) return false;
+  // The ones that are gone go first, so the anchors the inserts below
+  // reach for are rows that are actually staying.
+  const held: Record<string, true> = {};
+  for (const g of prev.groups) {
+    if (now[g.key]) held[g.key] = true;
+    else if (!removeGroup(g.key)) return false;
+  }
+  for (let i = 0; i < next.groups.length; i++) {
+    const g = next.groups[i]!;
+    if (was[g.key] === g.html) continue; // untouched, and that is the point
+    if (was[g.key] === undefined) {
+      if (!insertGroup(next.groups, i, held)) return false;
+      held[g.key] = true;
+    } else if (!replaceGroup(g)) return false;
+  }
+  return true;
+}
+
+function removeGroup(key: string): boolean {
+  const range = groupRange(key);
+  if (!range) return false;
+  for (const el of range) el.remove();
+  return true;
+}
+
+/** What the last swap put on the page, kept here rather than read back
+ *  off the DOM: the reader's own restored picks are written into those
+ *  rows afterwards, so the DOM is no longer what the server sent. */
+let lastRows: RowSplit | null = null;
+
 // The filter and the sort live in the address bar, so the refresh has
 // to ask for the same list the reader is looking at — otherwise every
 // tick would quietly throw the filter away.
@@ -190,7 +372,12 @@ async function swapRows(): Promise<void> {
     // must not happen is this one landing on top of what the press just
     // drew.
     if (pressGen !== gen) return;
-    body.innerHTML = html;
+    // Spec 204. The first paint has nothing to diff against, markup the
+    // split cannot account for is redrawn the old way, and a diff that
+    // could not finish is repaired by the same line.
+    const next = splitGroups(html);
+    if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
+    lastRows = next;
     restoreChosen(body);
     // After the restore, never before: a model put back by hand may
     // belong to the other tool, and the list has to follow the value
