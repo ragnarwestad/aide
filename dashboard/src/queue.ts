@@ -221,8 +221,16 @@ export interface Job {
    *  resolves a conflict with the default branch itself, so a conflict
    *  that survives to a reader is one no machine could settle: the row
    *  shows it as the failure's own text, beside the ordinary re-run
-   *  control every other failed step already offers. */
-  errorReason?: "conflict";
+   *  control every other failed step already offers.
+   *
+   *  `"unlanded"` is spec 193's: the archive step succeeded and a
+   *  branch of the spec's own is still on origin. It is the CLASS the
+   *  refusal carries beside the sentence a person reads — the sentence
+   *  is joined across repos before any page sees it, so nothing may
+   *  match on it. Paired by hand with the same union in
+   *  `render/job-state.ts`, which does not import this module; the two
+   *  are read side by side by `queue.test.ts`. */
+  errorReason?: "conflict" | "unlanded";
 }
 
 /** What one pickable model is granted. The budget lives HERE, not in

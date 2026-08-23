@@ -424,3 +424,60 @@ describe("an archived spec's own page", () => {
     expect(html).toContain("/specs/aide/81-queue-and-runner/edit");
   });
 });
+
+// --- spec 193, criterion 7: archived is not the same as landed --------------
+//
+// Three specs reached the archive with their code still on a branch,
+// and every row said done. The archive page is the half that reaches a
+// spec whose job the queue's LRU cap has long since evicted — 146's
+// case — so the mark is derived from origin, not from the job.
+
+describe("an archived spec whose branch is still on origin", () => {
+  /** The dating runner every test here needs, plus origin's answer for
+   *  "which spec branches are still open". `open` names the folders. */
+  const gitWithBranches = (open: string[]): GitRunner =>
+    async (dir, args) => {
+      const a = args.join(" ");
+      if (a.startsWith("ls-remote")) {
+        return {
+          code: 0,
+          stdout: open.map((f) => `a3f9c21deadbeef\trefs/heads/aide/${f}\n`).join(""),
+        };
+      }
+      return gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
+    };
+
+  /** The Title cell of one row — where the mark sits, beside the link a
+   *  reader would follow. Read per row, because "not landed" appearing
+   *  anywhere on the page says nothing about WHICH spec it belongs to. */
+  const titleCell = (html: string, folder: string): string => {
+    const at = html.indexOf(`href="/specs/`);
+    expect(at).toBeGreaterThan(-1);
+    const rows = html.split("<tr>").filter((r) => r.includes(`/${folder}"`));
+    expect(rows.length).toBe(1);
+    return rows[0]!;
+  };
+
+  test("carries the not-landed mark", async () => {
+    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
+    const html = await archivePage(base);
+    expect(titleCell(html, STAMPED).toLowerCase()).toContain("not landed");
+  });
+
+  test("and one whose branch is gone carries none", async () => {
+    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
+    const html = await archivePage(base);
+    expect(titleCell(html, SAME_DAY).toLowerCase()).not.toContain("not landed");
+  });
+
+  test("a repo origin cannot be asked about marks nothing", async () => {
+    // An unanswerable question is not evidence: a network blip must not
+    // stamp the whole archive as unlanded.
+    const unreachable: GitRunner = async (dir, args) =>
+      args.join(" ").startsWith("ls-remote")
+        ? { code: 128, stdout: "" }
+        : gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
+    const { base } = start({ gitRun: unreachable });
+    expect((await archivePage(base)).toLowerCase()).not.toContain("not landed");
+  });
+});

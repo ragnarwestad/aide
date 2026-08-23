@@ -22,6 +22,7 @@
 // would add page state and boundary rules to solve nothing, and every
 // row being present is what keeps the browser's own find useful.
 
+import { badge } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { ARCHIVE_ROUTE } from "./site.ts";
@@ -46,6 +47,12 @@ export interface ArchivedSpecView {
   /** Where the page that already worked lives. Built by the server from
    *  the same function the spec list links through. */
   href: string;
+  /** Its own `aide/<folder>` is STILL on origin (spec 193): the spec
+   *  was archived and its work never landed. Derived from origin rather
+   *  than from the job, because this is the half that reaches a spec
+   *  whose job the queue's LRU cap evicted long ago — 146's case, which
+   *  carried no failure reason at all. */
+  notLanded?: boolean;
 }
 
 /** How the table is cut and ordered, straight off the query string.
@@ -71,6 +78,13 @@ export interface ArchivePageView {
  *  committed. Spelled out here so the listing and its test cannot word
  *  the same absence differently. */
 export const NO_DATE = "date unknown";
+
+/** The mark an archived row carries when its branch is still open.
+ *  Spelled out here so the listing and its test cannot word the same
+ *  fact differently, and drawn with the same `refused` badge the spec
+ *  list gives a failed row — one archive is not a different kind of
+ *  problem from the other. */
+export const NOT_LANDED = "not landed";
 
 /** What the description cell says when `1-description.md` has no
  *  `## Description` section. A dash, not a blank cell: the same reason
@@ -224,9 +238,14 @@ function head(r: Resolved): string {
 
 function specRow(s: ArchivedSpecView): string {
   const title = s.title ? `<p class="spec-title">${esc(s.title)}</p>` : "";
+  // Beside the link a reader would follow, because the mark is a reason
+  // to follow it: the spec needs its `archive` run again.
+  const mark = s.notLanded
+    ? ` ${badge("refused", NOT_LANDED, "its branch is still on origin — re-run archive")}`
+    : "";
   return (
     `<tr><td>${esc(s.project)}</td>` +
-    `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${title}</td>` +
+    `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +
     `<td><div class="archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
     `<td>${esc(s.archivedAt ?? NO_DATE)}</td></tr>`
   );

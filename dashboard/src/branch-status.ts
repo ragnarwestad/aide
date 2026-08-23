@@ -47,6 +47,20 @@ export function lsRemoteBranch(branch: string): string[] {
   return ["ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${branch}`];
 }
 
+/** The same question about EVERY spec branch at once (spec 193), which
+ *  is what both of `openSpecBranches`'s readers actually want: the
+ *  landing checks one branch but the two pages check every archived
+ *  spec, and one call per spec would be a page load per spec.
+ *
+ *  Deliberately WITHOUT `--exit-code`, unlike `lsRemoteBranch`: that
+ *  flag makes "this repo has no open spec branch" an error, and that is
+ *  the ordinary answer for a healthy repo. Absence is read off the
+ *  output here, and only a nonzero exit means the question could not be
+ *  answered at all. */
+export function lsRemoteSpecBranches(): string[] {
+  return ["ls-remote", "--heads", "origin", `refs/heads/${specBranch("*")}`];
+}
+
 /** The real runner. `Bun.spawn` does NOT reject on a nonzero exit — a
  *  fetch for a branch the remote does not have, and a merge-base against
  *  an unfetched ref, both exit 128 quietly — so the code is read and
@@ -96,6 +110,11 @@ export class BranchStatusChecker {
    *  one a number-or-null: widening the existing field's type would let
    *  either question be answered with the other's answer. */
   private readonly driftCache = new Map<string, { at: number; behind: number | null }>();
+  /** Spec 193's answer, in a map of its own for the same reason
+   *  `driftCache` has one: a set-or-null is not a boolean, and one
+   *  field holding both would let either question be answered with the
+   *  other's answer. */
+  private readonly openCache = new Map<string, { at: number; open: Set<string> | null }>();
 
   constructor(opts: BranchStatusOptions) {
     this.run = opts.run;
@@ -209,6 +228,49 @@ export class BranchStatusChecker {
 
     this.driftCache.set(projectDir, { at, behind });
     return behind;
+  }
+
+  /** Every `aide/*` branch origin still has in this root — the question
+   *  "is anything of this spec still open" asked once per ROOT rather
+   *  than once per branch (spec 193).
+   *
+   *  `null` means the question could not be ANSWERED: a transport
+   *  failure, a timeout, no git. Every caller treats it as "do not
+   *  claim anything", the same fail-open rule `isMerged` keeps — a
+   *  network blip must not report every archived spec as unlanded, nor
+   *  every unlanded one as finished. An empty set is the opposite: a
+   *  real answer, and the ordinary one for a healthy repo.
+   *
+   *  `fresh` bypasses the cache AND replaces the entry. The landing
+   *  needs it: it asks immediately after `mergeBranchIntoDefault` has
+   *  deleted the branch on origin, so an answer cached up to 30 seconds
+   *  earlier would report every successful landing as unlanded. */
+  async openSpecBranches(root: string, fresh = false): Promise<Set<string> | null> {
+    const at = this.now();
+    const hit = this.openCache.get(root);
+    if (!fresh && hit && at - hit.at < this.ttlMs) return hit.open;
+
+    let open: Set<string> | null = null;
+    try {
+      const listed = await this.run(root, lsRemoteSpecBranches());
+      if (listed.code === 0) {
+        // `<sha>\t<full ref>` per line. The ref is taken whole and the
+        // prefix stripped, so a branch whose name contains a tab in some
+        // future world still parses as one field.
+        open = new Set(
+          listed.stdout
+            .split("\n")
+            .map((line) => line.slice(line.indexOf("\t") + 1).trim())
+            .filter((ref) => ref.startsWith("refs/heads/"))
+            .map((ref) => ref.slice("refs/heads/".length)),
+        );
+      }
+    } catch {
+      open = null;
+    }
+
+    this.openCache.set(root, { at, open });
+    return open;
   }
 
   /** Drop one cached answer. A merge performed by this process changes

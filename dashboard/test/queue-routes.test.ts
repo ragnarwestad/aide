@@ -8,7 +8,7 @@
 // a form, and a meta refresh every ten seconds would wipe whatever
 // someone was half-way through filling in.
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
@@ -2890,20 +2890,44 @@ describe("every step lands its own work (spec 149)", () => {
 
   /** A git that answers per repo. `conflicting` names the roots whose
    *  merge fails both ways. `slow` delays the ff-only merge, so two
-   *  landings on one root can be caught overlapping. */
-  function gitFor({ conflicting = [] as string[], slow = null as null | (() => Promise<void>) } = {}) {
+   *  landings on one root can be caught overlapping.
+   *
+   *  `openOn` (spec 193) names the roots whose ORIGIN still has the
+   *  spec branch, and a merge that succeeds in a root takes it out of
+   *  that set — which is what `mergeBranchIntoDefault` really does, by
+   *  deleting the branch on origin once it has landed. `lsRemoteCode`
+   *  is what a root that cannot be asked answers: an unreachable host,
+   *  not an empty list. */
+  function gitFor({
+    conflicting = [] as string[],
+    slow = null as null | (() => Promise<void>),
+    openOn = [] as string[],
+    lsRemoteCode = 0,
+  } = {}) {
     const calls: { dir: string; args: string[] }[] = [];
+    const open = new Set(openOn);
+    const merged = (dir: string): { code: number; stdout: string } => {
+      if (conflicting.includes(dir)) return { code: 1, stdout: "" };
+      open.delete(dir);
+      return { code: 0, stdout: "" };
+    };
     const run = async (dir: string, args: string[]) => {
       calls.push({ dir, args });
       const a = args.join(" ");
       if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
       if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
       if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("ls-remote --heads origin refs/heads/aide/*")) {
+        return {
+          code: lsRemoteCode,
+          stdout: lsRemoteCode === 0 && open.has(dir) ? `a3f9c21\trefs/heads/${BRANCH}\n` : "",
+        };
+      }
       if (a.startsWith("merge -q --ff-only")) {
         if (slow) await slow();
-        return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+        return merged(dir);
       }
-      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+      if (a.startsWith("merge -q --no-edit")) return merged(dir);
       if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
       return { code: 0, stdout: "" };
     };
@@ -2911,8 +2935,19 @@ describe("every step lands its own work (spec 149)", () => {
   }
 
   /** A discoverable project root with a real directory for the project's
-   *  own checkout, plus the specs repo the run pushes to. */
-  function repos(dir: string): { root: string; project: string; specs: string } {
+   *  own checkout, plus the specs repo the run pushes to.
+   *
+   *  `archiveSpec` is what the specs-root merge brings into the main
+   *  checkout (spec 193): the folder move the archive run committed on
+   *  its branch. Until it is called the spec is LIVE on disk, which is
+   *  why an archive-landing test that never calls it steps straight
+   *  past the archived filter and can assert nothing about it. */
+  function repos(dir: string): {
+    root: string;
+    project: string;
+    specs: string;
+    archiveSpec: () => void;
+  } {
     const projectsRoot = join(dir, "root");
     const project = join(projectsRoot, "aide");
     const specs = join(dir, "aide-specs");
@@ -2922,7 +2957,15 @@ describe("every step lands its own work (spec 149)", () => {
     writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
     writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
     mkdirSync(specs, { recursive: true });
-    return { root: projectsRoot, project, specs };
+    return {
+      root: projectsRoot,
+      project,
+      specs,
+      archiveSpec: () => {
+        mkdirSync(join(project, "specs", "archive"), { recursive: true });
+        renameSync(join(project, "specs", SPEC), join(project, "specs", "archive", SPEC));
+      },
+    };
   }
 
   /** The install the project runs once its code has landed — a `touch`,
@@ -3114,7 +3157,11 @@ describe("every step lands its own work (spec 149)", () => {
   test("an archive landing that conflicts records errorReason and archives nothing", async () => {
     const dir = own("aide-149-archive-conflict-");
     const paths = repos(dir);
-    const git = gitFor({ conflicting: [paths.project] });
+    // Plan first, code last: the specs merge lands the folder move, and
+    // only then does the code merge conflict. So the spec IS archived on
+    // disk by the time the row is asked for — which is the whole reason
+    // the row needed spec 193 to survive at all.
+    const git = gitFor({ conflicting: [paths.project], openOn: [paths.project] });
     const { base } = serverWith(dir, paths, git);
     const marker = installs(paths.project);
 
@@ -3125,13 +3172,13 @@ describe("every step lands its own work (spec 149)", () => {
       { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
       (j) => j.state === "done",
     );
-    const failed = await stepWithResult(
-      base,
-      dir,
-      "archive",
-      { branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] },
-      (j) => !!j.error,
+    const archiving = await runStep(base, "archive");
+    paths.archiveSpec();
+    writeFileSync(
+      join(resultDir(dir), `${archiving.id}.json`),
+      JSON.stringify(result({ branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }] })),
     );
+    const failed = await settle(base, archiving.id, (j) => !!j.error);
 
     expect(String(failed.error)).toContain(paths.project);
     expect(String(failed.error)).toContain("conflict");
@@ -3412,6 +3459,166 @@ describe("every step lands its own work (spec 149)", () => {
     expect(String(failed.error)).toContain(paths.specs);
     expect(sink.posted).toEqual([]);
   }, 20000);
+
+  // --- spec 193: a landing that failed is not a spec that is done ----------
+  //
+  // Three specs reached the archive with their code still on a branch,
+  // and every row said done: the archive STEP succeeded, so the job
+  // stayed `done`, and the landing after it wrote only a sentence
+  // nothing was drawing. The queue's memory of its own pushes is not
+  // the answer to "does this spec still have a branch open" — origin
+  // is.
+  describe("an archive landing asks origin whether anything stayed open", () => {
+    /** Spec 146's shape: the implement was run BY HAND, so the queue
+     *  holds no job carrying the project root and archive's own run
+     *  reports the specs repo alone. Nothing in the merge loop ever
+     *  mentions the code branch, and it is still on origin. */
+    const onlyTheSpecsRepo = (paths: { specs: string }) => ({
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    // Criterion 2.
+    test("a branch left on origin in a repo the loop never saw is a failed job", async () => {
+      const dir = own("aide-193-unlanded-");
+      const paths = repos(dir);
+      const git = gitFor({ openOn: [paths.project] });
+      const { base } = serverWith(dir, paths, git);
+
+      const failed = await stepWithResult(
+        base,
+        dir,
+        "archive",
+        onlyTheSpecsRepo(paths),
+        (j) => !!j.error,
+      );
+
+      expect(failed.state).toBe("failed");
+      expect(failed.errorReason).toBe("unlanded");
+      expect(String(failed.error)).toContain(paths.project);
+      expect(String(failed.error)).toContain(BRANCH);
+    }, 20000);
+
+    // Criterion 3. The happy path is the one this whole change must not
+    // break: a landing that merged everything leaves no branch behind,
+    // so origin agrees and the job stays exactly as it was.
+    test("a landing that left nothing on origin stays done, with no error", async () => {
+      const dir = own("aide-193-clean-");
+      const paths = repos(dir);
+      const git = gitFor({ openOn: [paths.project, paths.specs] });
+      const { base } = serverWith(dir, paths, git);
+
+      await stepWithResult(
+        base,
+        dir,
+        "implement",
+        { branchUrls: [{ root: paths.project, url: "https://example.test/aide" }] },
+        (j) => j.state === "done",
+      );
+      const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
+
+      expect(landed.state).toBe("done");
+      expect(landed.error).toBeFalsy();
+      expect(landed.errorReason).toBeFalsy();
+    });
+
+    // Criterion 4. An unanswerable question is not evidence. Same
+    // fixture as criterion 2 — the branch really is still open — with
+    // an origin that cannot be reached.
+    test("a question origin cannot answer invents no failure", async () => {
+      const dir = own("aide-193-unanswerable-");
+      const paths = repos(dir);
+      const git = gitFor({ openOn: [paths.project], lsRemoteCode: 128 });
+      const { base } = serverWith(dir, paths, git);
+
+      const landed = await stepWithResult(base, dir, "archive", onlyTheSpecsRepo(paths));
+
+      expect(landed.state).toBe("done");
+      expect(landed.error).toBeFalsy();
+    });
+
+    // Criterion 9. The verification is ARCHIVE's alone. An analyze runs
+    // while implement's code branch is legitimately open, and the same
+    // check there would call a healthy landing failed.
+    test("an analyze landing is not asked, and stays done beside an open code branch", async () => {
+      const dir = own("aide-193-analyze-");
+      const paths = repos(dir);
+      const git = gitFor({ openOn: [paths.project] });
+      const { base } = serverWith(dir, paths, git);
+
+      const landed = await stepWithResult(base, dir, "analyze", onlyTheSpecsRepo(paths));
+
+      expect(landed.state).toBe("done");
+      expect(landed.error).toBeFalsy();
+      // The SWEEP, not `isMerged`'s per-branch question: that one runs
+      // on every page load and says nothing about the landing.
+      expect(git.calls.some((c) => c.args.includes("refs/heads/aide/*"))).toBe(false);
+    });
+
+    // Criterion 10. `complete()` may already have queued the job's NEXT
+    // step by the time the landing's promise settles, and a landing
+    // must not overwrite a job that has moved on.
+    test("a failed landing does not overwrite a job whose next step is queued", async () => {
+      const dir = own("aide-193-moved-on-");
+      const paths = repos(dir);
+      const git = gitFor({ conflicting: [paths.specs] });
+      const { base } = serverWith(dir, paths, git);
+
+      const made = (await (
+        await fetch(`${base}/api/queue`, {
+          method: "POST",
+          headers: AUTH,
+          body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["analyze", "implement"] }),
+        })
+      ).json()) as { job: { id: string } };
+      writeFileSync(
+        join(resultDir(dir), `${made.job.id}.json`),
+        JSON.stringify(result(onlyTheSpecsRepo(paths))),
+      );
+      const after = await settle(base, made.job.id, (j) => !!j.error || j.state === "failed");
+
+      // Queued for implement, with the analyze landing's refusal on the
+      // row beside it — not stranded as a failed job.
+      expect(after.state).toBe("queued");
+      expect(String(after.error)).toContain(paths.specs);
+    }, 20000);
+
+    // Criterion 8. The way out. A re-run of `archive` needs no new step:
+    // the runner hands archive the open merge, the skill resolves it,
+    // and the landing that follows merges cleanly.
+    describe("archive can be enqueued again for such a spec", () => {
+      /** A server whose spec is ALREADY in `archive/` on disk — the
+       *  state the three stranded specs are in — with `GET /` run once,
+       *  because that is where the archived-with-an-open-branch set is
+       *  refreshed. An un-refreshed set is empty, so the enqueue fails
+       *  closed. */
+      async function archivedServer(name: string, branchStillOpen: boolean) {
+        const dir = own(name);
+        const paths = repos(dir);
+        paths.archiveSpec();
+        const git = gitFor({ openOn: branchStillOpen ? [paths.project] : [] });
+        const { base } = serverWith(dir, paths, git);
+        await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } });
+        return { base, paths };
+      }
+
+      const enqueue = (base: string) =>
+        fetch(`${base}/api/queue`, {
+          method: "POST",
+          headers: AUTH,
+          body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["archive"] }),
+        });
+
+      test("while its branch is still on origin", async () => {
+        const { base } = await archivedServer("aide-193-rerun-open-", true);
+        expect((await enqueue(base)).status).toBe(200);
+      });
+
+      test("and not once the branch is gone", async () => {
+        const { base } = await archivedServer("aide-193-rerun-closed-", false);
+        expect((await enqueue(base)).status).toBeGreaterThan(399);
+      });
+    });
+  });
 });
 
 // Spec 154: the runner owns the record of what has run.

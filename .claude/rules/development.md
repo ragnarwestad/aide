@@ -131,13 +131,53 @@ what decides whether a run started by hand is REFUSED.
 each step's branch when the step reports success — `create` and
 `analyze` merge into the repo's default branch and delete the
 branch on origin; `implement` lands nothing, so code waits
-on its branch until `archive`, which merges every repo the spec's
-branch still exists in (specs first, code last), runs `AIDE_INSTALL_CMD`
+on its branch until `archive`, which merges every repo it was TOLD
+about (specs first, code last), runs `AIDE_INSTALL_CMD`
 after a code root, and then archives. There is no Merge or Approve button, no `gateAfter` and
 no `awaiting-approval` state; a landing refused for a conflict leaves
 the branch and records `errorReason: "conflict"` on the job.
 `landBranch` in `dashboard/src/serve.ts` is the one place all of this
 happens, under `mergeLock` per repo root.
+
+**"Every repo the spec's branch still exists in" was the intent, never
+the code — so origin is asked (spec 193).** The merge loop can only
+merge repos it was told about: its own run's `branchUrls`, plus what
+`queue.branchesFor` remembers. A step run BY HAND, a job the LRU cap
+has evicted, a push that half-succeeded — each leaves a branch no entry
+ever mentioned, and three specs reached the archive that way with their
+code unmerged and every row saying done. `archive`'s landing therefore
+ends by asking origin, fresh, whether `aide/<folder>` is still in the
+project root or the specs root
+(`BranchStatusChecker.openSpecBranches`), and a root that still holds
+it is a landing that did not finish. Four things not to get backwards:
+
+- **The check is `archive`'s alone, by the literal step name.** An
+  `analyze` landing runs while implement's code branch is legitimately
+  open, and the same check there would call a healthy landing failed —
+  constantly, which is worse than the bug it fixes.
+- **A failed landing moves the job from `done` to `failed`, and only
+  from `done`.** The step succeeded, so `complete()` has already
+  written `done`; this promise settles afterwards. The runner may have
+  queued the job's NEXT step in between, and a landing must not
+  overwrite a job that has moved on.
+- **An unanswerable `ls-remote` is `null`, and `null` claims nothing.**
+  The same fail-open rule `isMerged` keeps.
+- **`errorReason` is a FIFTH hand-paired pair** after `WORKFLOW_STEPS`,
+  `DEPENDENCY_GATED_STEPS`, project readiness and `worktreeLinks`:
+  `"conflict" | "unlanded"` is declared in `dashboard/src/queue.ts` and
+  again in `dashboard/src/render/job-state.ts`, which do not import each
+  other. `dashboard/test/queue.test.ts` reads both declarations as text
+  and asserts they name the same members.
+
+The visible half is one set — archived specs whose own branch is still
+on origin — with two readers: `groupBySpec` in
+`dashboard/src/render/queue-list.ts` keeps such a row on the specs list,
+and `dashboard/src/render/archive-page.ts` marks it "not landed". It is
+filtered on the BRANCH and never on the job's `errorReason`: spec 146
+carried no reason at all, and a stale reason on an old job would
+resurrect a row for a spec that is genuinely finished. The way out is
+the step that already exists — `archive` can be enqueued again for such
+a spec, and `resolveProject` admits it only while its branch is open.
 
 **A merge that fails is the merging step's problem, not a phase of its
 own (spec 171).** There was a sixth step, `resolve`, that a conflicted

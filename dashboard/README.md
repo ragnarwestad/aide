@@ -23,6 +23,7 @@
   - [The page changes when something changes (spec 189)](#the-page-changes-when-something-changes-spec-189)
   - [Branches, and merging them](#branches-and-merging-them)
     - [Archive resolves the conflict itself (spec 171)](#archive-resolves-the-conflict-itself-spec-171)
+    - [Origin decides whether a landing finished (spec 193)](#origin-decides-whether-a-landing-finished-spec-193)
 - [How it looks (spec 102)](#how-it-looks-spec-102)
   - [Tokens](#tokens)
   - [Components](#components)
@@ -1132,10 +1133,15 @@ work the moment it finishes: `create` and `analyze`
 merge the branch they pushed into that repo's default branch
 and delete it on origin; `implement` lands nothing, so the code stays
 on the branch for anyone who wants to read or test it first; `archive`
-merges every repo the spec's branch still exists in — the specs repo
-first, the code last, so the code is the last word — runs
+merges every repo it was TOLD about — the roots its own run reported,
+plus the ones the queue's own history recorded for the spec — the specs
+repo first, the code last, so the code is the last word — runs
 `AIDE_INSTALL_CMD` after a code root exactly as the old Merge route did,
-and then archives. Leaving `archive` unticked IS the inspection
+and then archives. It is not "every repo the spec's branch exists in":
+the loop can only merge what it knows about, which is why it ASKS ORIGIN
+afterwards, see
+[Origin decides whether a landing finished](#origin-decides-whether-a-landing-finished-spec-193).
+Leaving `archive` unticked IS the inspection
 point. A landing that cannot be made (a conflict with the default
 branch) is refused by name and the branch stays where it was — but
 `archive` settles most of those itself before it gets that far, see
@@ -1269,6 +1275,62 @@ invalid entry in `steps`, and no control on the page draws off
   resolution ever was. No timeout change was needed — `resolve` used the
   same `timeoutSec.default` (1200s) and the same model archive already
   falls to.
+
+### Origin decides whether a landing finished (spec 193)
+
+Three specs reached the archive with their code still sitting on a
+branch, and every row said done. The archive STEP had succeeded, so the
+job was `done` and the folder was already under `archive/` — the folder
+moves before the code merge is even attempted. The landing that failed
+after it stored a sentence and a reason on the job, and nothing was
+drawing either. **A spec whose code did not land is not finished, and
+its row has to say so.**
+
+- **The archive landing asks origin, after merging.** One
+  `git ls-remote --heads origin 'refs/heads/aide/*'` per repo root,
+  cached for 30 seconds, asked fresh at the end of a landing because
+  the merge has just deleted the branch it is about to ask about. A
+  root that still holds `aide/<folder>` is a landing that did not
+  finish, whatever the merge loop reported — and this catches every
+  cause at once: a conflict, a repo the queue never knew about, history
+  the LRU cap evicted, a push that half-succeeded.
+- **It is `archive`'s question and no other step's.** An `analyze`
+  landing runs while implement's code branch is legitimately open, and
+  the same check there would call a healthy landing failed.
+- **A failed landing moves the job to `failed`.** Every page reads the
+  state through one path, so it reads as unfinished wherever the job is
+  shown. Downgraded only from `done`: the runner may have queued the
+  job's NEXT step in between, and a landing must not overwrite a job
+  that has moved on.
+- **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the
+  sentence a person reads — the sentence is joined across repos before
+  any page sees it, so nothing may match on it. Declared twice, in
+  `src/queue.ts` and `src/render/job-state.ts`, and pinned to each other
+  by a test in `test/queue.test.ts` the way `PHASE_STEPS` is pinned to
+  `QUEUE_STEPS`.
+- **An unanswerable question invents nothing.** `ls-remote` that fails
+  is `null`, and `null` claims neither that the branch is open nor that
+  it is gone — the same fail-open rule `isMerged` keeps. A network blip
+  must not report every archive as unlanded.
+- **The spec keeps its row while its branch is open.** An archived spec
+  is normally dropped from the specs list; one whose own `aide/<folder>`
+  is still on origin is the exception, and it renders red through the
+  same path as any other failed row. The archive page marks it "not
+  landed". The filter is the BRANCH, never the job's `errorReason`:
+  `146-one-place-owns-a-steps-commit` carried no reason at all, and a
+  stale reason on an old job would resurrect a row for a spec that is
+  genuinely finished.
+- **The way out is the step that already exists.** `archive` can be
+  enqueued again for such a spec: `aide-run-spec` hands it the open
+  merge, `/aide-archive`'s Step 1 resolves it, Step 2 stops because the
+  folder has already moved, and the landing that follows merges
+  cleanly. A set that has not been refreshed yet is empty, so the
+  enqueue fails closed.
+- **What it does not do.** The Slack ping that already said "finished"
+  is not withdrawn — `announce` belongs to the Runner and fires before
+  the landing exists. And a page loaded in the second between
+  `complete()` writing `done` and the landing settling still reads
+  `done`; the correction arrives a moment later.
 
 Filtering and sorting work on those groups. "Active" means the spec has
 something in flight; sorting by cost sorts on the sum. A step outside

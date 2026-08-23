@@ -3689,6 +3689,50 @@ describe("an archived spec's non-create job is not a row either", () => {
   });
 });
 
+// Spec 193, criteria 5 and 6: the one exception to "archived beats
+// every other reason to keep a group visible".
+//
+// Being archived answers "did this spec finish" with certainty only
+// while nothing of the spec is still open. Three specs were archived
+// with their code sitting on a branch and every row saying done, so the
+// certainty was misplaced — and the filter is the branch, not the job's
+// `errorReason`: 146 carried no reason at all, and a stale reason on an
+// old job would resurrect a row for a spec that is genuinely finished.
+describe("an archived spec whose branch is still on origin (spec 193)", () => {
+  const failedArchive = (folder: string): QueueRowView => ({
+    id: "z1",
+    project: "aide",
+    specFolder: folder,
+    steps: ["archive"],
+    stepIndex: 0,
+    state: "failed",
+    error: "aide/191-x is still on origin in /repos/aide",
+    errorReason: "unlanded",
+    spentUsd: 0,
+    timeoutSec: 1200,
+    createdAt: "2026-08-22T10:00:00Z",
+  });
+
+  const listed = (unlanded: string[]) =>
+    renderQueueRows(
+      [failedArchive("191-x")],
+      { runnerAvailable: true, targets: [], archived: ["aide/191-x"], unlanded },
+      Date.parse("2026-08-23T12:00:00Z"),
+    );
+
+  test("keeps its row, and the row says which repo and which branch", () => {
+    const html = listed(["aide/191-x"]);
+    expect(html).toContain('data-folder="191-x"');
+    // The panel, which a collapsed row draws too — the reader has to be
+    // able to act on it without opening anything.
+    expect(html).toContain("aide/191-x is still on origin in /repos/aide");
+  });
+
+  test("and the one whose branch is gone still draws nothing", () => {
+    expect(listed([])).not.toContain('data-folder="191-x"');
+  });
+});
+
 // A spec made from the New-spec form starts life as a `create` job — a
 // claude run that costs money and can fail — and that run used to be
 // findable only by knowing the job id, or appended after `archive` as a
