@@ -155,16 +155,21 @@ export function stepResults(results: JobStepResultView[], archiveHeldBack?: stri
 // The page's tabs. The choice lives in the URL, not in script: the page
 // reloads itself every 10 seconds, and a tab held only in memory would
 // snap back to the first one on every reload.
-const JOB_TABS = ["overview", "activity", "steps"] as const;
+export const JOB_TABS = ["overview", "activity", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
 /** A tab name off the query string, or the fallback. Exported with
- *  `tabBar` below because the spec page offers the same three tabs and
- *  has to reject the same rubbish; its fallback differs (that page is
- *  about the SPEC, so it opens on the spec whatever is running), which
- *  is why the default is an argument. */
-export function pickTab(name: string | undefined, fallback: JobTab): JobTab {
-  return (JOB_TABS as readonly string[]).includes(name ?? "") ? (name as JobTab) : fallback;
+ *  `tabBar` below because the spec page has to reject the same rubbish
+ *  against its own list — seven tabs since spec 212, where a job has
+ *  three — so the list is an argument rather than this file's own. The
+ *  fallback is an argument for the same reason: the spec page is about
+ *  the SPEC, so it opens on the spec whatever is running. */
+export function pickTab<T extends string>(
+  tabs: readonly T[],
+  name: string | undefined,
+  fallback: T,
+): T {
+  return (tabs as readonly string[]).includes(name ?? "") ? (name as T) : fallback;
 }
 
 /** The tab bar, over a BASE PATH rather than a job (spec 150). It used
@@ -172,10 +177,16 @@ export function pickTab(name: string | undefined, fallback: JobTab): JobTab {
  *  spec-scoped page could not share — and copying the bar into the new
  *  page would have been two renderings of "Activity · 12" that nothing
  *  keeps in step. */
-export function tabBar(
+export function tabBar<T extends string>(
+  tabs: readonly T[],
   basePath: string,
-  current: JobTab,
-  counts: { activity: number; steps: number },
+  current: T,
+  /** How much is behind a tab, for the tabs that have a figure at all.
+   *  Partial rather than one entry per tab: Description, Analysis,
+   *  Solution and Status count nothing, and a tab with no entry renders
+   *  its label with no `· N` suffix — exactly as Activity already does
+   *  for a job that has captured nothing. */
+  counts: Partial<Record<T, number>>,
   /** What the group of pills is OF. "Job" on a job's page; the spec
    *  page says "Spec", because a caption naming the wrong thing is the
    *  one part of a shared component that cannot be shared. */
@@ -187,9 +198,9 @@ export function tabBar(
   return filterPills(
     "tab",
     caption,
-    JOB_TABS.map((t) => ({
+    tabs.map((t) => ({
       label: t[0]!.toUpperCase() + t.slice(1),
-      count: counts[t as "activity" | "steps"] || undefined,
+      count: counts[t] || undefined,
       on: t === current,
       href: `${esc(basePath)}?tab=${t}`,
     })),
@@ -215,27 +226,27 @@ export function tabbedBody(banner: string, tabs: string, panel: string): string 
  *  150). Markdown is deliberately not rendered: the description put
  *  that out of scope, and a reader checking WHICH VERSION is up wants
  *  the text as written. */
-export function specFilePanel(file: SpecFileView, now: number, editHref?: string): string {
-  const stamp =
-    file.sha && file.at
-      ? ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`
-      : file.checking
-        // Spec 208: the page renders now and the stamp arrives on the
-        // next view. It never holds the page for a `git log`.
-        ? ` <span class="muted small">${CHECKING}</span>`
-        : "";
-  // Spec 162: one of the four files is a person's to write, and only the
-  // SPEC page passes a link for it. A step's own output — which is what
-  // this page shows through the same function — is not a thing to hand
-  // edit, so a caller that says nothing gets exactly the panel it got
-  // before the parameter existed.
-  const edit = editHref ? ` <a class="btn small" href="${esc(editHref)}">Edit</a>` : "";
+export function specFilePanel(file: SpecFileView, now: number): string {
   return (
-    `<h2>${esc(file.label)}${stamp}${edit}</h2>` +
+    `<h2>${esc(file.label)}${fileStamp(file, now)}</h2>` +
     (file.text === null
       ? `<p class="muted">${esc(file.label)} has not been written yet.</p>`
       : `<pre class="specfile">${esc(file.text)}</pre>`)
   );
+}
+
+/** WHICH VERSION a file's panel is showing, as the heading's own
+ *  suffix. Its own function since spec 212: the Description tab is a
+ *  textarea rather than a `<pre>`, and it carries the same stamp for
+ *  the same reason — a reader has to be able to tell what they are
+ *  about to edit from what a step wrote. */
+export function fileStamp(file: SpecFileView, now: number): string {
+  if (file.sha && file.at) {
+    return ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`;
+  }
+  // Spec 208: the page renders now and the stamp arrives on the next
+  // view. It never holds the page for a `git log`.
+  return file.checking ? ` <span class="muted small">${CHECKING}</span>` : "";
 }
 
 /** What the run has been doing, or why there is nothing to show. Takes
@@ -294,7 +305,7 @@ export function renderJobDetailPage(
   // While a step is running, what it is DOING is what the page was
   // opened for; a job that has stopped has nothing running, so its
   // facts open instead.
-  const tab = pickTab(opts.tab, job.state === "running" ? "activity" : "overview");
+  const tab = pickTab(JOB_TABS, opts.tab, job.state === "running" ? "activity" : "overview");
   const progress = pips(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
@@ -363,7 +374,7 @@ export function renderJobDetailPage(
 
   const body = tabbedBody(
     banner,
-    tabBar(`/specs/${esc(job.id)}`, tab, {
+    tabBar(JOB_TABS, `/specs/${esc(job.id)}`, tab, {
       activity: job.activity?.length ?? 0,
       steps: job.results.length,
     }),

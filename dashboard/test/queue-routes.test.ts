@@ -6555,7 +6555,7 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
       // proves the form and the save agree about WHICH checkout that
       // commit came out of.
       const form = await (
-        await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner/edit`, {
+        await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner?tab=description`, {
           headers: { "x-aide-token": TOKEN },
         })
       ).text();
@@ -6731,7 +6731,9 @@ describe("no render path runs git or a network command (spec 208)", () => {
       extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
     });
     const before = git.calls.length;
-    const first = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+    // A document tab since spec 212: Overview carries no file text, so
+    // the stamps this is about are on the tabs that do.
+    const first = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
     // The stamps are not known yet, and the page says so rather than
     // holding for four `git log`s.
     expect(first).toContain("checking…");
@@ -6740,7 +6742,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(await until(() => git.calls.length > before)).toBe(true);
     let second = "";
     for (let i = 0; i < 40 && !second.includes("deadbee"); i += 1) {
-      second = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+      second = await (await get(base, "/specs/aide/81-queue-and-runner?tab=analysis")).text();
       if (!second.includes("deadbee")) await new Promise((r) => setTimeout(r, 25));
     }
     expect(second).toContain("deadbee");

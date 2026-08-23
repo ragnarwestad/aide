@@ -25,7 +25,7 @@ import {
 } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
-import { asFileText, pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
+import { pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
 import {
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   dashboardCheckoutRoot,
@@ -92,19 +92,17 @@ import {
   renderArchivePage,
   renderQueuePage,
   renderQueueRows,
-  renderSpecEditPage,
   renderSpecPage,
   SERVICE_WORKER,
   WEBMANIFEST,
-  specEditPath,
   specPagePath,
+  specTabPath,
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
   type ArchiveFilter,
   type ArchivePageView,
   type ArchivedSpecView,
   type JobDetailView,
-  type SpecEditPageView,
   type SpecFileView,
   type SpecPageView,
   type NavEntry,
@@ -317,23 +315,19 @@ export function createRootLock() {
  *  lands on is the spec's own. */
 const ARCHIVED_REFUSAL = "this spec is archived — it is a record, and cannot be edited";
 
-/** What one Save's commit RECORDS. Two different things can arrive in
- *  it since spec 188 — an edit to the prose, and a check a person made
- *  that no step could make — and a commit that carried both says so on
- *  both counts. Neither half is dropped and no third, generic phrase is
- *  invented; the description comes first, in the order the fields are
- *  read.
+/** What a Save's commit RECORDS. Two routes since spec 212 — the
+ *  description's own Save and the checks' — and each writes one file,
+ *  so each has one sentence. There was a third, for the one commit that
+ *  could carry both; two files can no longer arrive in one request, so
+ *  it has nothing left to describe.
  *
  *  Never the runner's grammar: `workflow-history.ts` counts a step by a
  *  commit subject beginning "Run /aide-", and a hand edit is not a step
  *  the spec has had. */
-const saveMessage = (specFolder: string, editedText: boolean, tickedChecks: boolean): string => {
-  if (tickedChecks && editedText) {
-    return `Edit ${EDITABLE_SPEC_FILE} and tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
-  }
-  if (tickedChecks) return `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
-  return `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`;
-};
+const editMessage = (specFolder: string): string =>
+  `Edit ${EDITABLE_SPEC_FILE} for ${specFolder} from the dashboard`;
+const tickMessage = (specFolder: string): string =>
+  `Tick a check in ${STATUS_SPEC_FILE} for ${specFolder} by hand from the dashboard`;
 
 /** Where a form POST goes back to. Built from the five view keys the
  *  page's own forms send (`FILTER_KEYS`, under `FILTER_FIELD_PREFIX`),
@@ -383,7 +377,11 @@ function specsRedirect(
     if (notice.ok) parts.push("noticeOk=1");
   }
   const query = parts.join("&");
-  return new Response(null, { status: 303, headers: { location: query ? `${target}?${query}` : target } });
+  // `&` when the target already carries a query of its own: a refused
+  // save goes back to the tab its form was on (spec 212), and that tab
+  // is a `?tab=` on the spec's own path.
+  const sep = target.includes("?") ? "&" : "?";
+  return new Response(null, { status: 303, headers: { location: query ? `${target}${sep}${query}` : target } });
 }
 
 /** Every refusal, in `serve.log`. Both streams of the launchd job go to
@@ -1092,11 +1090,13 @@ export function createServer(opts: ServerOptions) {
    *  dashboard cannot clone still uses. The clone goes on in the
    *  background and the next view reads through it.
    *
-   *  READ paths only. `machinerySpecDir` is untouched and its other
-   *  three callers still await: `/specs/.../edit` has to read through
-   *  the SAME checkout Save will later write through, or Save's
-   *  compare-stamp check refuses as "changed since you opened it" the
-   *  first time anyone edits a spec shortly after a restart. */
+   *  READ paths only, and only the ones with no form on them.
+   *  `machinerySpecDir` is untouched and its other callers still await:
+   *  the spec page's own Description TAB (spec 212, where `/edit` used
+   *  to be) has to read through the SAME checkout Save will later write
+   *  through, or Save's compare-stamp check refuses as "changed since
+   *  you opened it" the first time anyone edits a spec shortly after a
+   *  restart. */
   const peekMachinerySpecDir = (project: string, dir: string): string => {
     const checkout = resolvedCheckouts.get(project);
     if (!checkout) {
@@ -3443,7 +3443,7 @@ export function createServer(opts: ServerOptions) {
     if (specPage) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const [, project, specFolder] = specPage;
-      const view = await specPageView(project!, specFolder!);
+      const view = await specPageView(project!, specFolder!, url.searchParams.get("tab") ?? undefined);
       if (!view) return new Response("not found", { status: 404 });
       const html = renderSpecPage(
         {
@@ -3486,91 +3486,6 @@ export function createServer(opts: ServerOptions) {
       return specsRedirect({}, undefined, back, { note: result.note, ok: true });
     }
 
-    // Spec 162: the one of the four files a person owns, in a textarea,
-    // and the Save that commits and pushes it. Three segments where the
-    // spec page has two, so neither can swallow the other.
-    const specEdit = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/edit$/);
-    if (specEdit) {
-      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const [, project, specFolder] = specEdit;
-      const found = specDir(project!, specFolder!);
-      if (!found) return new Response("not found", { status: 404 });
-      // The dashboard's own copy, like the Save this form posts to
-      // (spec 205). The commit stamp in the hidden field is what the
-      // save compares against, so the two must be read out of ONE
-      // checkout — read here from the person's and compared there
-      // against the dashboard's, every save would refuse as "changed
-      // since you opened it".
-      const dir = await machinerySpecDir(project!, found);
-      // Hiding the Edit button leaves this route reachable for anyone
-      // who already has the URL — so the refusal is here, where the
-      // form would otherwise be rendered, and not only on the page that
-      // links to it (spec 163).
-      if (specRef(project!, specFolder!)?.archived) {
-        logRefusal("edit", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
-      }
-      // Read off disk and out of git on every request, exactly as the
-      // Overview tab's own panels are: the text in the box and the
-      // commit it is compared against have to be the same instant.
-      const commit = await lastCommitOf(gitRun, dir, EDITABLE_SPEC_FILE);
-      // Spec 188: the checks that are still holding this spec back come
-      // onto this form too, so one Save carries both. "Still holding it
-      // back" is a NARROWER list than "not done": the open rows of the
-      // CURRENT phase, which is the first phase section still carrying
-      // an open mark — the same phase the spec list's own column shows.
-      // A row already ticked is a check already made, and a row in a
-      // phase the workflow has not reached is a check nothing is
-      // waiting on; neither belongs on a form whose question is what
-      // has to be answered before this spec moves on.
-      //
-      // `phase` is `null` for a `4-status.md` with no phase sections at
-      // all (a LOW-complexity spec on the simple checklist layout, or
-      // one never analysed) and `"done"` when every section is clear —
-      // both leave the filter with nothing, and the section is then not
-      // drawn.
-      const statusText = specFileText(dir, STATUS_SPEC_FILE) ?? "";
-      const statusPhase = parseStatus(statusText).phase;
-      const openChecks = parseStatusChecks(statusText).filter((row) => !row.done && row.phase === statusPhase);
-      const statusCommit = openChecks.length > 0 ? await lastCommitOf(gitRun, dir, STATUS_SPEC_FILE) : null;
-      const view: SpecEditPageView = {
-        project: project!,
-        specFolder: specFolder!,
-        file: EDITABLE_SPEC_FILE,
-        // Spec 166: the dependency line is lifted OUT of the box and
-        // into a field of its own. Left in both, a save could not tell
-        // which of the two the person meant.
-        text: stripDependsOnLine(specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
-        // Spec 174: the New-spec page's picker, fed this project's own
-        // active specs. Self excluded — the one box that could only ever
-        // earn spec 166's "cannot depend on itself" refusal.
-        dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
-        // Ticked by what the LINE resolves to, not by what it says:
-        // `resolve_dependency_folder` takes a bare number, and a
-        // hand-written line usually is one — matching the raw string
-        // against a folder would leave a real dependency unticked, and
-        // the next Save would then silently drop it.
-        dependsOnChecked: dependencyFolders(project!, dir),
-        baseSha: commit?.sha,
-        checks:
-          openChecks.length > 0
-            ? {
-                phase: statusPhase!,
-                baseSha: statusCommit?.sha,
-                rows: openChecks.map((row) => ({ line: row.line, task: row.task })),
-              }
-            : undefined,
-        saveAction: `/api/queue${specPagePath(project!, specFolder!)}/save`,
-        token: queueToken,
-        error: url.searchParams.get("error") ?? undefined,
-        notice: url.searchParams.get("notice")
-          ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
-          : undefined,
-      };
-      const html = renderSpecEditPage(view, new Date().toISOString(), nav());
-      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
-    }
-
     const save = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/save$/);
     if (save) {
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -3592,7 +3507,10 @@ export function createServer(opts: ServerOptions) {
       } catch {
         return json({ error: "malformed body" }, 400);
       }
-      const back = specEditPath(project!, specFolder!);
+      // The Description tab, which is where the textarea is (spec 212).
+      // A refusal has to land where the form was, holding what is
+      // actually on disk.
+      const back = specTabPath(project!, specFolder!, "description");
       // An EMPTY textarea is a legitimate save — the terminal-edit path
       // this matches has never stopped anyone deleting the lot. A body
       // with no field at all is not: it is a request that never came
@@ -3643,96 +3561,129 @@ export function createServer(opts: ServerOptions) {
         );
       }
       const baseSha = typeof body.baseSha === "string" && body.baseSha ? body.baseSha : null;
-      // Spec 188: the checks the form carried, ticked. `4-status.md` has
-      // been the runner's since spec 154 and this is the narrow
-      // exception a person is allowed: one existing row's Status mark
-      // and nothing else. The new text is computed HERE, from the rows
-      // the server itself verified against the file on disk, and never
-      // taken from the body — which is what makes "only checkbox lines
-      // can change" structural rather than a promise.
-      //
-      // `bodyToObject` wraps a lone value in an array for the New-spec
-      // form's chip set, exactly as it does for `dependsOn` above, so
-      // both shapes are taken apart the same way.
-      const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
-      let ticked: string | null = null;
-      if (ticks.length > 0) {
-        // Boxes with no phase to read them against is a request that
-        // never came from this form.
-        if (typeof body.checksPhase !== "string") {
-          return specsRedirect({}, { error: "no phase was submitted — nothing was saved" }, back);
-        }
-        // The row-level guard, on top of the file-level `baseSha` one
-        // below. A `null` is every way the page can be out of date at
-        // once: no such phase, no such row inside it, or a row someone
-        // has already ticked in the very commit the page was drawn from
-        // — which a sha alone cannot tell from a fresh render.
-        //
-        // Chained one row after another, which is safe because exactly
-        // one character moves per tick and the cell keeps its padding:
-        // a tick never reflows the table, so every other row's text is
-        // still what it was.
-        ticked = specFileText(dir, STATUS_SPEC_FILE) ?? "";
-        for (const line of ticks) {
-          const next = tickStatusLine(ticked, body.checksPhase, line);
-          // One row that is not there refuses the WHOLE save, the
-          // description edit included — never applied silently while
-          // the tick it came with is dropped.
-          if (next === null) {
-            return specsRedirect(
-              {},
-              { error: "that check is not there to tick any more — reload the page and look again" },
-              back,
-            );
-          }
-          ticked = next;
-        }
-        // Spec 190: the hold-back note goes with the last check it was
-        // waiting on. A declined archive run writes `## Archive held
-        // back` naming one open row and where to close it out; ticking
-        // that row IS closing it out, so leaving the section behind
-        // makes the page go on reporting a spec held back after the
-        // reason is gone.
-        //
-        // The whole file's checks, not the ticked phase's — a spec with
-        // open work in another phase is still held back. And only on
-        // the tick path: a save that just edits the description must
-        // never rewrite a section it never touched.
-        if (!parseStatusChecks(ticked).some((check) => !check.done)) {
-          const cleared = clearArchiveHeldBack(ticked);
-          if (cleared !== null) ticked = cleared;
-        }
-      }
-      const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
-      const edits = [
-        { file: EDITABLE_SPEC_FILE, text: merged, baseSha },
-        ...(ticked === null ? [] : [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }]),
-      ];
       const result = await mergeLock.run(await specsRoot(dir), () =>
-        saveSpecFiles(gitRun, dir, (root) => branchStatus.defaultBranch(root), edits, {
-          specLabel: specFolder!,
-          // Asked through `asFileText`, the same normalization the save
-          // itself writes with: a browser posts a textarea with CRLF
-          // line endings whatever the file had, and comparing the raw
-          // strings would call every save an edit.
-          message: saveMessage(
-            specFolder!,
-            asFileText(merged) !== (specFileText(dir, EDITABLE_SPEC_FILE) ?? ""),
-            ticks.length > 0,
-          ),
-        }),
+        saveSpecFiles(
+          gitRun,
+          dir,
+          (root) => branchStatus.defaultBranch(root),
+          [{ file: EDITABLE_SPEC_FILE, text: merged, baseSha }],
+          { specLabel: specFolder!, message: editMessage(specFolder!) },
+        ),
       );
       if (!result.ok) {
         logRefusal("save", `${project}/${specFolder}`, result.note);
         return specsRedirect({}, { error: result.note }, back);
       }
-      // Back to the whole spec, where the description now carries its
-      // new commit stamp — the Overview tab is what the editor was
-      // opened from.
-      return specsRedirect({}, undefined, specPagePath(project!, specFolder!), {
-        note: result.note,
-        ok: true,
-      });
+      // Back to the tab the form is on, where the description now
+      // carries its new commit stamp. Not the Overview tab it used to
+      // land on: since spec 212 the editor IS a tab of this page, and a
+      // reader who has just saved is as likely to keep editing.
+      return specsRedirect({}, undefined, back, { note: result.note, ok: true });
+    }
+
+    // Spec 212: the checks, on their own route and therefore in their
+    // own commit. `/save` above wrote `1-description.md` and, until this
+    // route existed, `4-status.md` in the SAME commit — which meant a
+    // person had to open the description's editor in order to tick a
+    // box. Two forms now, each committing what it owns.
+    //
+    // `4-status.md` has been the runner's since spec 154 and this is the
+    // narrow exception a person is allowed: one existing row's Status
+    // mark and nothing else. The new text is computed HERE, from the
+    // rows the server itself verified against the file on disk, and
+    // never taken from the body — which is what makes "only checkbox
+    // lines can change" structural rather than a promise. A `text`
+    // field posted at this route is read by nothing.
+    const tick = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/tick$/);
+    if (tick) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = tick;
+      const found = specDir(project!, specFolder!);
+      if (!found) return new Response("not found", { status: 404 });
+      const dir = await machinerySpecDir(project!, found);
+      // Before the body is even read: this one WRITES, commits and
+      // pushes, and an archived spec's folder is in `archive/`. Hiding
+      // the boxes leaves this route reachable for anyone who already
+      // has the URL, so the refusal is here and not only on the page.
+      if (specRef(project!, specFolder!)?.archived) {
+        logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
+        return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      }
+      const sent = await readBounded(req, MAX_SAVE_BODY);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      // The Overview tab, which is where the boxes are.
+      const back = specPagePath(project!, specFolder!);
+      // `bodyToObject` wraps a lone value in an array for the New-spec
+      // form's chip set, exactly as it does for `dependsOn`, so both
+      // shapes are taken apart the same way.
+      const ticks = (Array.isArray(body.tick) ? body.tick : [body.tick]).filter((v): v is string => typeof v === "string");
+      // Save pressed with every box clear. Nothing to say and nothing to
+      // commit — not a refusal either.
+      if (ticks.length === 0) return specsRedirect({}, undefined, back);
+      // Boxes with no phase to read them against is a request that
+      // never came from this form.
+      if (typeof body.checksPhase !== "string") {
+        return specsRedirect({}, { error: "no phase was submitted — nothing was saved" }, back);
+      }
+      // The row-level guard, on top of the file-level `baseSha` one
+      // below. A `null` is every way the page can be out of date at
+      // once: no such phase, no such row inside it, or a row someone
+      // has already ticked in the very commit the page was drawn from
+      // — which a sha alone cannot tell from a fresh render.
+      //
+      // Chained one row after another, which is safe because exactly
+      // one character moves per tick and the cell keeps its padding:
+      // a tick never reflows the table, so every other row's text is
+      // still what it was.
+      let ticked = specFileText(dir, STATUS_SPEC_FILE) ?? "";
+      for (const line of ticks) {
+        const next = tickStatusLine(ticked, body.checksPhase, line);
+        // One row that is not there refuses the WHOLE press, the boxes
+        // beside it included — never applied silently while one of them
+        // is dropped.
+        if (next === null) {
+          return specsRedirect(
+            {},
+            { error: "that check is not there to tick any more — reload the page and look again" },
+            back,
+          );
+        }
+        ticked = next;
+      }
+      // Spec 190: the hold-back note goes with the last check it was
+      // waiting on. A declined archive run writes `## Archive held
+      // back` naming one open row and where to close it out; ticking
+      // that row IS closing it out, so leaving the section behind
+      // makes the page go on reporting a spec held back after the
+      // reason is gone.
+      //
+      // The whole file's checks, not the ticked phase's — a spec with
+      // open work in another phase is still held back.
+      if (!parseStatusChecks(ticked).some((check) => !check.done)) {
+        const cleared = clearArchiveHeldBack(ticked);
+        if (cleared !== null) ticked = cleared;
+      }
+      const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
+      const result = await mergeLock.run(await specsRoot(dir), () =>
+        saveSpecFiles(
+          gitRun,
+          dir,
+          (root) => branchStatus.defaultBranch(root),
+          [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }],
+          { specLabel: specFolder!, message: tickMessage(specFolder!) },
+        ),
+      );
+      if (!result.ok) {
+        logRefusal("tick", `${project}/${specFolder}`, result.note);
+        return specsRedirect({}, { error: result.note }, back);
+      }
+      return specsRedirect({}, undefined, back, { note: result.note, ok: true });
     }
 
     // One job, in full: what it IS (the spec's title and description),
@@ -3871,7 +3822,30 @@ export function createServer(opts: ServerOptions) {
     return { rows: perProject.flat(), filter };
   }
 
-  async function specPageView(project: string, specFolder: string): Promise<SpecPageView | null> {
+  /** Spec 212: the page's own tab decides how much this has to ask git.
+   *  The Description tab's form carries `1-description.md`'s commit as
+   *  its guard, and that is a `git log` this page never made before —
+   *  so it is made for that tab and no other. The checks' own guard is
+   *  bounded the same way, by there being an open check to draw at all;
+   *  the Depends-on resolution short-circuits with no git at all for a
+   *  spec whose description carries no `Depends on:` line.
+   *
+   *  The Description tab is also the one that AWAITS the dashboard's own
+   *  checkout rather than peeking (spec 205): the text in the box and
+   *  the commit Save compares it against have to come out of the same
+   *  checkout Save will write through, or the first edit after a restart
+   *  refuses as "changed since you opened it". Every other tab keeps the
+   *  peek, because a spec page must not wait on the boot-time clone
+   *  (spec 208, criterion 9) — including Overview, whose checks form
+   *  therefore carries a `4-status.md` sha read through whichever
+   *  checkout answered. In the minutes before the clone lands that can
+   *  be the person's own, and a tick drawn from it is REFUSED rather
+   *  than misapplied: the guard fails safe, and a reload fixes it. */
+  async function specPageView(
+    project: string,
+    specFolder: string,
+    tab?: string,
+  ): Promise<SpecPageView | null> {
     const found = specDir(project, specFolder);
     if (!found) return null;
     // The four files as the dashboard's own checkout has them (spec
@@ -3897,19 +3871,58 @@ export function createServer(opts: ServerOptions) {
     // Off the text `specFileViews` has already read, so the page makes
     // no second git or disk read for the same file.
     const status = files.find((f) => f.label === STATUS_SPEC_FILE);
+    const statusText = status?.text ?? "";
+    const rows = parseStatusChecks(statusText);
+    // Which phase's open rows may be TICKED (spec 188, back on Overview
+    // since spec 212): the CURRENT phase, which is the first phase
+    // section still carrying an open mark — the same phase the spec
+    // list's own column shows. `null` for a `4-status.md` with no phase
+    // sections at all (a LOW-complexity spec on the simple checklist
+    // layout, or one never analysed) and `"done"` when every section is
+    // clear; both leave nothing tickable, and the page then draws the
+    // rows with no form.
+    const statusPhase = parseStatus(statusText).phase;
+    const anyTickable = rows.some((row) => !row.done && row.phase === statusPhase);
+    // Read out of the DASHBOARD's own checkout, like the text beside it
+    // (spec 205): the commit stamp a form compares against and the text
+    // in the box have to be the same instant, or every save would refuse
+    // as "changed since you opened it".
+    const statusCommit = anyTickable ? await lastCommitOf(gitRun, dir, STATUS_SPEC_FILE) : null;
+    const formDir = tab === "description" ? await machinerySpecDir(project, found) : null;
+    const descriptionCommit = formDir ? await lastCommitOf(gitRun, formDir, EDITABLE_SPEC_FILE) : null;
+    const descriptionText = formDir ? specFileText(formDir, EDITABLE_SPEC_FILE) : null;
     return {
       project,
       specFolder,
       title: ref?.title ?? undefined,
       archived: ref?.archived ?? false,
-      files,
-      // Rows only: since spec 188 this banner is a summary, and the
-      // tick that used to post from it lives on the Edit form.
-      checks: { rows: parseStatusChecks(status?.text ?? "") },
+      // Spec 166: the dependency line is lifted OUT of the textarea and
+      // into a field of its own. Left in both, a save could not tell
+      // which of the two the person meant. The Description tab strips
+      // it; Overview shows what it resolves to, read-only.
+      files: files.map((f) => {
+        if (f.label !== EDITABLE_SPEC_FILE) return f;
+        const text = formDir ? descriptionText : f.text;
+        return text === null ? { ...f, text } : { ...f, text: stripDependsOnLine(text) };
+      }),
+      checks: { rows, phase: statusPhase ?? undefined, baseSha: statusCommit?.sha },
+      // Ticked by what the LINE resolves to, not by what it says:
+      // `resolve_dependency_folder` takes a bare number, and a
+      // hand-written line usually is one — matching the raw string
+      // against a folder would leave a real dependency unticked, and
+      // the next Save would then silently drop it.
+      dependsOn: dependencyFolders(project, dir),
+      // Spec 174: the New-spec page's picker, fed this project's own
+      // active specs. Self excluded — the one box that could only ever
+      // earn spec 166's "cannot depend on itself" refusal.
+      dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
+      descriptionBaseSha: descriptionCommit?.sha,
       lead: lead ? await jobDetailView(lead) : undefined,
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
       updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
+      saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
+      tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
       // The Reopen control on an archived spec posts to `/api/queue`,
       // which checks the token like every other enqueue (spec 198).
       token: queueToken,
