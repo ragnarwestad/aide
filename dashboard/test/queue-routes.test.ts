@@ -11,7 +11,15 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createRootLock, parseQueueConcurrency, type ServerOptions } from "../src/serve.ts";
+import {
+  createRootLock,
+  createServer,
+  parseArgs,
+  parseQueueConcurrency,
+  runnerArgv,
+  type ServerOptions,
+} from "../src/serve.ts";
+import { createGitRunner, type GitRunner } from "../src/branch-status.ts";
 import {
   renderNewSpecPage,
   renderQueuePage,
@@ -21,7 +29,7 @@ import {
   type QueueRowView,
   type QueueTarget,
 } from "../src/render.ts";
-import { queueHarness, ran, statusSaying } from "./helpers/queue-server.ts";
+import { failFetch, queueHarness, ran, statusSaying } from "./helpers/queue-server.ts";
 import { fakeGit as gitFake } from "./helpers/fake-git.ts";
 
 const TOKEN = "s3cret-token";
@@ -2008,7 +2016,7 @@ describe("a run reaches its own project and no other", () => {
       extraProjects: ["aide-dashboard"],
     } as unknown as Parameters<typeof runnerArgv>[0];
     const argv = runnerArgv(job, "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(argv).not.toContain("--extra-project-dir");
     expect(argv).not.toContain("/home/dev/aide-dashboard");
@@ -2030,7 +2038,7 @@ describe("a chosen dependency reaches the runner and the page", () => {
   const argvFor = async (dependsOn?: string[]) => {
     const { runnerArgv } = await import("../src/serve.ts");
     return runnerArgv(createJob(dependsOn), "create", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
   };
 
@@ -5577,7 +5585,7 @@ describe("a model choice's tool reaches the runner", () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectRoot: "/home/dev",
+      projectDir: "/home/dev/aide",
       push: "branch",
       modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex", model: "gpt-5.6" } },
     });
@@ -5591,7 +5599,7 @@ describe("a model choice's tool reaches the runner", () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(job({ implement: "codex-fast" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectRoot: "/home/dev",
+      projectDir: "/home/dev/aide",
       push: "branch",
       modelChoices: { "codex-fast": { budgetUsd: 5, tool: "codex" } },
     });
@@ -5600,7 +5608,7 @@ describe("a model choice's tool reaches the runner", () => {
 
   test("a choice with no tool field is claude, and the argv is unchanged", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch" };
+    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const before = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", o);
     const after = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
       ...o,
@@ -5615,7 +5623,7 @@ describe("a model choice's tool reaches the runner", () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(job({ implement: "opus" }), "implement", "/tmp/r.json", {
       runnerBin: "/bin/aide-run-spec",
-      projectRoot: "/home/dev",
+      projectDir: "/home/dev/aide",
       push: "branch",
     });
     expect(argv).not.toContain("--tool");
@@ -5641,7 +5649,7 @@ describe("a step's own time limit reaches the runner", () => {
 
   test("an implement is spawned with implement's number, not default's", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
-    const o = { runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch" };
+    const o = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
     const job = jobWith({ analyze: 1200, implement: 5400 });
     expect(timeoutArg(runnerArgv(job, "implement", "/tmp/r.json", o))).toBe("5400");
     expect(timeoutArg(runnerArgv(job, "analyze", "/tmp/r.json", o))).toBe("1200");
@@ -5654,7 +5662,7 @@ describe("a step's own time limit reaches the runner", () => {
   test("a job persisted with the old flat number is still given a real deadline", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(jobWith(2700), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(timeoutArg(argv)).toBe("2700");
   });
@@ -5662,7 +5670,7 @@ describe("a step's own time limit reaches the runner", () => {
   test("a step the table does not name falls to its default", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(jobWith({ default: 1200, implement: 5400 }, ["archive"]), "archive", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
     });
     expect(timeoutArg(argv)).toBe("1200");
   });
@@ -5684,7 +5692,7 @@ describe("a step's own time limit reaches the runner", () => {
   test("the argv for a tail-added step carries a real number, not \"undefined\"", async () => {
     const { runnerArgv } = await import("../src/serve.ts");
     const argv = runnerArgv(jobWith({ analyze: 1200 }, ["analyze", "implement"]), "implement", "/tmp/r.json", {
-      runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch",
+      runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch",
       timeoutSec: { default: 1200, implement: 5400 },
     });
     expect(timeoutArg(argv)).toBe("5400");
@@ -5710,7 +5718,7 @@ describe("a tail-added step is spawned on the same terms as its siblings", () =>
       ...over,
     }) as unknown as Parameters<typeof import("../src/serve.ts").runnerArgv>[0];
 
-  const base = { runnerBin: "/bin/aide-run-spec", projectRoot: "/home/dev", push: "branch" };
+  const base = { runnerBin: "/bin/aide-run-spec", projectDir: "/home/dev/aide", push: "branch" };
   const live = {
     timeoutSec: { default: 1200, implement: 5400 },
     permissionMode: { implement: "bypassPermissions", default: "acceptEdits" },
@@ -5954,5 +5962,184 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(live("archive")).toContain("data-post-to");
     expect(live("archive")).not.toContain("disabled");
     expect(live("analyze")).toContain("disabled");
+  });
+});
+
+// Spec 205: the dashboard works in checkouts of its own.
+//
+// A run was cut from the same checkout a person edits, and the two
+// collided — on 2026-08-23 three specs were archived with their code
+// stranded on a branch. Everything that MUTATES a checkout now resolves
+// to a clone the dashboard owns; the person's own checkout at
+// `<projectsRoot>/<project>` is what the display reads and nothing else.
+//
+// Real git here, unlike the rest of this suite: what is under test is
+// which working tree a commit lands in, and a fake that ignores the
+// directory it was handed could not tell the two apart.
+describe("the dashboard works in checkouts of its own (spec 205)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  function git(cwd: string, ...args: string[]): string {
+    const out = Bun.spawnSync({ cmd: ["git", "-C", cwd, ...args], stdout: "pipe", stderr: "pipe" });
+    if (out.exitCode !== 0) throw new Error(`git ${args.join(" ")} failed: ${out.stderr.toString()}`);
+    return out.stdout.toString();
+  }
+
+  /** A projects root holding ONE real project — a bare origin, and a
+   *  clone of it standing in for the checkout a person edits. The
+   *  harness's own fixture is a plain directory, and this suite needs a
+   *  repository with a remote to clone from. */
+  function realProject(): { projectsRoot: string; person: string; owned: string; site: string } {
+    const where = mkdtempSync(join(tmpdir(), "aide-205-"));
+    ownDirs.push(where);
+    const seed = join(where, "seed");
+    mkdirSync(join(seed, ".aide"), { recursive: true });
+    writeFileSync(join(seed, ".aide", "project.yaml"), "name: aide\n");
+    mkdirSync(join(seed, "specs", "81-queue-and-runner"), { recursive: true });
+    writeFileSync(join(seed, "specs", "81-queue-and-runner", "1-description.md"), "# Queue - Description\n\nAs it was.\n");
+    writeFileSync(join(seed, "specs", "81-queue-and-runner", "4-status.md"), statusSaying(["create"]));
+    git(seed, "init", "-q", "-b", "main");
+    git(seed, "config", "user.name", "Test");
+    git(seed, "config", "user.email", "test@example.com");
+    git(seed, "add", "-A");
+    git(seed, "commit", "-qm", "first");
+    const origin = join(where, "aide.git");
+    Bun.spawnSync({ cmd: ["git", "clone", "-q", "--bare", seed, origin] });
+    const projectsRoot = join(where, "root");
+    mkdirSync(projectsRoot, { recursive: true });
+    const person = join(projectsRoot, "aide");
+    Bun.spawnSync({ cmd: ["git", "clone", "-q", origin, person] });
+    git(person, "config", "user.name", "Test");
+    git(person, "config", "user.email", "test@example.com");
+    const site = join(where, "site");
+    mkdirSync(site, { recursive: true });
+    writeFileSync(join(site, "projects.html"), "<p>overview</p>");
+    return { projectsRoot, person, owned: join(where, "owned"), site };
+  }
+
+  /** The real runner, wrapped so a test can say which directories the
+   *  server ran git in. */
+  function recording(): { run: GitRunner; calls: { dir: string; args: string[] }[] } {
+    const real = createGitRunner();
+    const calls: { dir: string; args: string[] }[] = [];
+    return {
+      calls,
+      run: async (dir, args) => {
+        calls.push({ dir, args });
+        return real(dir, args);
+      },
+    };
+  }
+
+  // Criterion 6, and the whole point: `--project-dir` is what decides
+  // which checkout a run branches, switches and cuts its worktree from.
+  test("the runner is pointed at the dashboard's own checkout, never the person's", () => {
+    const job = {
+      id: "j1", project: "aide", specFolder: "81-queue-and-runner", steps: ["analyze"], stepIndex: 0,
+      budgetUsd: 5, model: {}, timeoutSec: {}, permissionMode: {}, state: "queued", createdAt: "", results: [],
+    } as unknown as Parameters<typeof runnerArgv>[0];
+    const argv = runnerArgv(job, "analyze", "/tmp/r.json", {
+      runnerBin: "/bin/aide-run-spec",
+      projectDir: "/home/dev/aide-dashboard-checkouts/aide/code",
+      push: "branch",
+    });
+    expect(argv[argv.indexOf("--project-dir") + 1]).toBe("/home/dev/aide-dashboard-checkouts/aide/code");
+  });
+
+  // Named on the command line, because the serving host is where these
+  // clones actually take up disk and the default is a directory under
+  // $HOME.
+  test("the checkout root is a flag, and defaults to nothing the server invents", () => {
+    expect(parseArgs(["--site", "/s", "--dashboard-checkouts", "/data/owned"]).dashboardCheckoutRoot).toBe(
+      "/data/owned",
+    );
+    expect(parseArgs(["--site", "/s"]).dashboardCheckoutRoot).toBeUndefined();
+  });
+
+  // Criterion 8: eagerly, so no project ever pays a full clone inside
+  // the request that first needs it.
+  test("Add makes the dashboard's own checkout before anything asks for one", async () => {
+    const { projectsRoot, site, owned } = realProject();
+    const originOfSecond = join(projectsRoot, "..", "aide.git");
+    const server = createServer({
+      siteDir: site, port: 0, claudeUsageFetch: failFetch,
+      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
+      dashboardCheckoutRoot: owned,
+    });
+    try {
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/queue/projects`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ name: "second", gitUrl: originOfSecond }),
+      });
+      expect(res.status).toBe(200);
+      expect(existsSync(join(owned, "second", "code", ".git"))).toBe(true);
+    } finally {
+      server.stop();
+    }
+  });
+
+  // Criteria 1, 2 and 4, in the shape of the incident itself: the
+  // person is mid-edit on a branch of their own when the dashboard
+  // writes.
+  test("a Save writes in the dashboard's own checkout and leaves the person's alone", async () => {
+    const { projectsRoot, person, site, owned } = realProject();
+    // Exactly what a run used to refuse over, and used to trample.
+    git(person, "switch", "-q", "-c", "wip");
+    writeFileSync(join(person, "specs", "81-queue-and-runner", "1-description.md"), "# Mine, half-written\n");
+    const before = git(person, "status", "--porcelain=v1", "--branch");
+    const recorded = recording();
+    const server = createServer({
+      siteDir: site, port: 0, claudeUsageFetch: failFetch,
+      mirrorPath: join(site, "runs.json"), queueMirrorPath: join(site, "queue.json"),
+      projectRoot: projectsRoot, queueProjectRoot: projectsRoot, queueProjects: ["aide"], queueToken: TOKEN,
+      dashboardCheckoutRoot: owned, gitRun: recorded.run,
+    });
+    try {
+      // Through the form, not around it: the hidden `baseSha` is the
+      // commit the save compares against, and reading it off the page
+      // proves the form and the save agree about WHICH checkout that
+      // commit came out of.
+      const form = await (
+        await fetch(`http://127.0.0.1:${server.port}/specs/aide/81-queue-and-runner/edit`, {
+          headers: { "x-aide-token": TOKEN },
+        })
+      ).text();
+      const baseSha = /name="baseSha" value="([^"]*)"/.exec(form)?.[1] ?? "";
+      expect(baseSha).not.toBe("");
+      const res = await fetch(
+        `http://127.0.0.1:${server.port}/api/queue/specs/aide/81-queue-and-runner/save`,
+        {
+          method: "POST",
+          headers: { "x-aide-token": TOKEN, "content-type": "application/json" },
+          redirect: "manual",
+          body: JSON.stringify({
+            text: "# Queue - Description\n\n## Description\n\nSaved by the dashboard.\n",
+            baseSha,
+          }),
+        },
+      );
+      expect(res.status).toBe(303);
+      // The dashboard's own copy carries the edit...
+      const saved = join(owned, "aide", "code", "specs", "81-queue-and-runner", "1-description.md");
+      expect(readFileSync(saved, "utf-8")).toContain("Saved by the dashboard");
+      // ...and the person's half-written file is still theirs, on their
+      // own branch, with nothing committed under them.
+      expect(readFileSync(join(person, "specs", "81-queue-and-runner", "1-description.md"), "utf-8")).toBe(
+        "# Mine, half-written\n",
+      );
+      expect(git(person, "status", "--porcelain=v1", "--branch")).toBe(before);
+      // And the only thing their directory was ever asked is the one
+      // read-only question this design rests on: which origin to clone
+      // the dashboard's own checkout from. Nothing switched, merged,
+      // committed or pushed there.
+      const asked = recorded.calls
+        .filter((c) => c.dir === person || c.dir.startsWith(`${person}/`))
+        .map((c) => c.args.join(" "));
+      expect([...new Set(asked)]).toEqual(["remote get-url origin"]);
+    } finally {
+      server.stop();
+    }
   });
 });

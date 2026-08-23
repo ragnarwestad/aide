@@ -25,6 +25,13 @@ import {
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
+import {
+  DEFAULT_DASHBOARD_CHECKOUT_ROOT,
+  dashboardCheckoutRoot,
+  dashboardSpecDir,
+  ensureDashboardCheckout,
+  type DashboardCheckout,
+} from "./dashboard-checkout.ts";
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
@@ -179,8 +186,15 @@ export interface ServerOptions {
   /** Path to `aide-run-spec`. Without it the queue only stores jobs —
    *  nothing is ever started, and the page says so. */
   queueRunnerBin?: string;
-  /** Where each allowlisted project is checked out on this machine. */
+  /** Where each allowlisted project is checked out on this machine —
+   *  the checkout a PERSON edits. Read for display; never written to
+   *  since spec 205. */
   queueProjectRoot?: string;
+  /** Where the dashboard keeps the clones it works in (spec 205). One
+   *  per project, made the first time it is needed. Defaults to
+   *  `~/aide-dashboard-checkouts`; named here so a test can put them
+   *  somewhere it owns. */
+  dashboardCheckoutRoot?: string;
   queueResultDir?: string;
   /** How far a finished step publishes its work: none, branch or pr.
    *  From the queue config; `branch` when unset. */
@@ -574,7 +588,10 @@ export function runnerArgv(
   resultFile: string,
   o: {
     runnerBin: string;
-    projectRoot: string;
+    /** The checkout the step runs in, resolved by the caller. Since
+     *  spec 205 that is the clone the DASHBOARD owns, and this function
+     *  knows no path convention that could send it anywhere else. */
+    projectDir: string;
     push: string;
     /** The config's own table (spec 125). What a job stores per step is
      *  a NAME the request picked; what the CLI is handed — which tool,
@@ -599,7 +616,7 @@ export function runnerArgv(
   const tool = choice?.tool ?? "claude";
   return [
     o.runnerBin,
-    "--project-dir", join(o.projectRoot, job.project),
+    "--project-dir", o.projectDir,
     "--command", step,
     "--spec", job.specFolder,
     "--budget-usd", String(job.budgetUsd),
@@ -840,9 +857,9 @@ export function createServer(opts: ServerOptions) {
    *  the dependency gate asks across, and for the same reason: a spec
    *  merged in the code repo but not in the specs repo is not merged. */
   const specRoots = (project: string): string[] => {
-    targets();
-    const specs = scan?.specsRoots.get(project);
-    return specs ? [projectDir(project), specs] : [projectDir(project)];
+    const code = machineryProjectDir(project);
+    const specs = machinerySpecsRoot(project);
+    return specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
   };
 
   /** Which of a project's roots still have `branch` on origin. A root
@@ -950,6 +967,33 @@ export function createServer(opts: ServerOptions) {
   const specsRoot = async (dir: string): Promise<string> => {
     const top = await gitRun(dir, ["rev-parse", "--show-toplevel"]);
     return top.code === 0 && top.stdout.trim() ? top.stdout.trim() : dir;
+  };
+
+  /** The dashboard's own copy of the spec folder the display found
+   *  (spec 205). Save COMMITS and PUSHES, and Update merges — all three
+   *  are writes, and the checkout a person edits stopped taking writes
+   *  from the dashboard.
+   *
+   *  The translation is needed rather than a second closure because the
+   *  routes do not resolve a project root at all: `specDir()` hands them
+   *  a directory off the scan of the projects root, and what they need
+   *  is the same folder inside the clone the dashboard owns.
+   *
+   *  Falls back to the person's folder when there is no such clone —
+   *  see `ensureCheckout`: a project the dashboard cannot clone keeps
+   *  working exactly as it did before this spec. */
+  const machinerySpecDir = async (project: string, dir: string): Promise<string> => {
+    // The cached answer where there is one: this runs on every spec
+    // page, every edit form and every save, and `ensureDashboardCheckout`
+    // spawns git twice to work out where a project's specs are. Boot,
+    // the runner's tick and the Settings route all re-ensure, so a
+    // specs root that moves still reaches this map.
+    const checkout = resolvedCheckouts.get(project) ?? (await ensureCheckout(project));
+    if (!checkout) return dir;
+    targets();
+    const personSpecs = scan?.specsRoots.get(project);
+    const translated = personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null;
+    return translated ?? dir;
   };
 
   const resolveProject: ProjectResolver = (project) => {
@@ -1109,9 +1153,91 @@ export function createServer(opts: ServerOptions) {
   // URL, and never given a default one: a dashboard nobody has pointed
   // at a claude-usage makes no request at all.
   const mergeEvents = new MergeEventReporter({ url: opts.mergeEventUrl, fetch: opts.mergeEventFetch });
-  // One resolution, two users: the runner runs a spec in this directory,
-  // and the merge check asks git about the branch it pushed from there.
-  const projectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
+  // Two resolutions since spec 205, and every caller picks one
+  // deliberately. `displayProjectDir` is the checkout a PERSON edits —
+  // what the spec list, the project pages and the manifests are read
+  // from, and the only thing it is ever used for. Nothing here writes to
+  // it: a run that branched, merged and pushed from the directory
+  // somebody was working in is what stranded three specs' code on
+  // 2026-08-23.
+  const displayProjectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
+  // Where the dashboard's OWN clones live. Named as an option so a test
+  // can put them in a temp directory; there is no other reason to move
+  // them.
+  const checkoutBase = opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
+  // The other resolution: the checkout a RUN is cut from, a landing
+  // merges into, and Save commits in. One `existsSync`, so the readers
+  // that only need to know WHERE it is — the drift poll's key, the
+  // origin check's root — cost nothing and await nothing.
+  //
+  // FALLS BACK to the person's checkout while the dashboard has none of
+  // its own. That is not a shortcut, it is the upgrade path: a project
+  // added before this spec, or one whose clone cannot be made at all,
+  // goes on working exactly as it did instead of losing its runs, its
+  // Save and its Update the day this ships. `ensureCheckout` is what
+  // moves it over, and the readiness check is where a clone that cannot
+  // be made is reported by name.
+  const machineryProjectDir = (project: string): string => {
+    const owned = dashboardCheckoutRoot(checkoutBase, project);
+    return existsSync(join(owned, ".git")) ? owned : displayProjectDir(project);
+  };
+  /** What `ensureCheckout` last worked out, so the SYNC readers can ask
+   *  where a project's own specs are without awaiting a clone. Empty
+   *  until the first ensure settles, which is what the fallback below is
+   *  for. */
+  const resolvedCheckouts = new Map<string, DashboardCheckout>();
+  /** The specs root the machinery works in: the dashboard's own once it
+   *  has one, and otherwise the scan's answer — the person's, which is
+   *  the root everything used before this spec. */
+  const machinerySpecsRoot = (project: string): string | undefined => {
+    const owned = resolvedCheckouts.get(project);
+    if (owned) return owned.specs;
+    targets();
+    return scan?.specsRoots.get(project);
+  };
+  /** Make the dashboard's own checkout if it is not there, and answer
+   *  where it is. One promise per project at a time: two requests
+   *  arriving together must not run two `git clone`s into one directory.
+   *
+   *  A project whose clone CANNOT be made — no origin, an unreachable
+   *  one — answers `undefined`, and every caller falls back to the
+   *  checkout it used before this spec. That keeps a project the
+   *  dashboard cannot clone working exactly as it always did instead of
+   *  losing Save and Update outright; the readiness check is where that
+   *  state is reported, by name, on the project's own page. */
+  const ensuring = new Map<string, Promise<DashboardCheckout | undefined>>();
+  /** The last thing said about each project, so a refusal that has not
+   *  changed is not said again. Every tick asks, and a project whose
+   *  origin is unreachable would otherwise fill the log with one line
+   *  every two seconds for as long as the server runs. */
+  const saidAbout = new Map<string, string>();
+  const complain = (project: string, said: string): void => {
+    if (saidAbout.get(project) === said) return;
+    saidAbout.set(project, said);
+    console.error(`queue: the dashboard's own checkout of ${project} — ${said}`);
+  };
+  const ensureCheckout = (project: string): Promise<DashboardCheckout | undefined> => {
+    const running = ensuring.get(project);
+    if (running) return running;
+    const started = ensureDashboardCheckout(gitRun, {
+      base: checkoutBase,
+      project,
+      personDir: displayProjectDir(project),
+    })
+      .then((result) => {
+        if (result.ok) saidAbout.delete(project);
+        else complain(project, result.error ?? "it could not be made");
+        if (result.checkout) resolvedCheckouts.set(project, result.checkout);
+        return result.checkout;
+      })
+      .catch((err) => {
+        complain(project, String(err));
+        return undefined;
+      })
+      .finally(() => ensuring.delete(project));
+    ensuring.set(project, started);
+    return started;
+  };
   // One runner, two users now: the read path asks whether a branch
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
@@ -1132,7 +1258,7 @@ export function createServer(opts: ServerOptions) {
     if (!opts.projectRoot) return;
     await Promise.all(
       buildProjectViews(opts.projectRoot).map(async (p) => {
-        const root = projectDir(p.name);
+        const root = machineryProjectDir(p.name);
         if (!configValue(root, "AIDE_INSTALL_CMD")) return;
         // Each call try/catches internally and degrades to null, so one
         // project's unreachable origin never takes the others with it.
@@ -1171,7 +1297,7 @@ export function createServer(opts: ServerOptions) {
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
-        projectDir,
+        projectDir: machineryProjectDir,
         runnerBin: opts.queueRunnerBin,
         resultDir: opts.queueResultDir ?? join(homedir(), "aide-dashboard", "jobs"),
         maxConcurrent: opts.queueConcurrency ?? DEFAULT_QUEUE_CONCURRENCY,
@@ -1186,7 +1312,7 @@ export function createServer(opts: ServerOptions) {
               resultFile,
               {
                 runnerBin: opts.queueRunnerBin!,
-                projectRoot: opts.queueProjectRoot ?? "",
+                projectDir: machineryProjectDir(job.project),
                 push: opts.queuePush ?? "branch",
                 modelChoices: queue.defaults.modelChoices,
                 timeoutSec: queue.defaults.timeoutSec,
@@ -1274,7 +1400,7 @@ export function createServer(opts: ServerOptions) {
           // Only the wall clock. A cost cap stops mid-sentence with no
           // boundary of its own, and a CLI error is not a stop at all.
           if (!step || outcome.terminalReason !== "timeout") return undefined;
-          const codeRoots = new Set([projectDir(job.project)]);
+          const codeRoots = new Set([machineryProjectDir(job.project)]);
           const pushed = outcome.branchUrls ?? [];
           if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;
           return landStoppedStepBranch(job, step, outcome);
@@ -1343,7 +1469,7 @@ export function createServer(opts: ServerOptions) {
         // `&&` short-circuiting would leave the second answer uncached
         // and the next tick asking again.
         let merged = true;
-        for (const root of [projectDir(job.project), project.specsRoot]) {
+        for (const root of specRoots(job.project)) {
           merged = (await branchStatus.isMerged(root, branch)) && merged;
         }
         if (!merged) {
@@ -1360,8 +1486,21 @@ export function createServer(opts: ServerOptions) {
    *  that a caller may skip. */
   async function tickRunner(): Promise<void> {
     if (!runner) return;
+    // Spec 205: nothing may be STARTED in a checkout that is not there.
+    // Every project with a job waiting, and only those — a clone is
+    // made once and the call is a map lookup ever after, so this costs
+    // one `existsSync` per waiting project per tick.
+    await Promise.all([...new Set(queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
+      .map((project) => ensureCheckout(project)));
     runner.tick(await blockedDependencies());
   }
+
+  // And on boot, before anything is queued: an already-added project
+  // meets this spec for the first time on some restart, and the clone
+  // it needs should not land in the middle of the first request that
+  // wants it. Fire and forget — a clone that fails says so on the
+  // project's own readiness line, and the server serves either way.
+  for (const project of allowed) void ensureCheckout(project);
 
   // On boot, resolve every job left `running` by the last restart
   // before anything new is started.
@@ -1541,7 +1680,7 @@ export function createServer(opts: ServerOptions) {
     job.branchUrls?.length
       ? job.branchUrls
       : job.branchUrl
-        ? [{ root: projectDir(job.project), url: job.branchUrl }]
+        ? [{ root: machineryProjectDir(job.project), url: job.branchUrl }]
         : [];
 
   // A repo's directory basename — `aide`, `aide-specs` — which is the
@@ -1557,7 +1696,7 @@ export function createServer(opts: ServerOptions) {
   // page over — it simply means this project has nothing to preview.
   const projectManifest = (project: string): ManifestData | undefined => {
     try {
-      const text = readFileSync(join(projectDir(project), ".aide", "project.yaml"), "utf-8");
+      const text = readFileSync(join(displayProjectDir(project), ".aide", "project.yaml"), "utf-8");
       const result = parseManifest(text);
       return result.ok ? result.data : undefined;
     } catch {
@@ -1569,7 +1708,7 @@ export function createServer(opts: ServerOptions) {
     // The step whose model the row is about: the one running, or the
     // last one for a job that has finished.
     const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-    // Asked of EACH repo's own checkout. Asking `projectDir(job.project)`
+    // Asked of EACH repo's own checkout. Asking the project's own root
     // about a branch that lives in the specs repo was not merely a
     // missing warning: a stale remote-tracking ref of the same name in
     // the project answered it cleanly, and the page said "merged" about
@@ -1579,7 +1718,7 @@ export function createServer(opts: ServerOptions) {
     // of the same name to the repo holding its plan, and a plan is not
     // something anyone can open and try — the same distinction the merge
     // button already draws, drawn the same way, by comparing roots.
-    const codeRoot = projectDir(job.project);
+    const codeRoot = machineryProjectDir(job.project);
     const preview = projectManifest(job.project)?.deployment?.preview;
     const branchUrls = await Promise.all(
       jobBranches(job).map(async (b) => ({
@@ -1695,7 +1834,7 @@ export function createServer(opts: ServerOptions) {
       const branch = outcome.branch;
       // Code roots last. `sort` is stable, so two repos of the same kind
       // keep the order the run recorded them in.
-      const codeRoots = new Set([projectDir(job.project)]);
+      const codeRoots = new Set([machineryProjectDir(job.project)]);
       const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort(
         (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
       );
@@ -2383,7 +2522,7 @@ export function createServer(opts: ServerOptions) {
                 d,
                 [...allowed].map((name) => ({
                   name,
-                  specsPath: configValue(projectDir(name), "AIDE_SPECS_PATH"),
+                  specsPath: configValue(displayProjectDir(name), "AIDE_SPECS_PATH"),
                 })),
               ),
               worktreeLinks: suggestWorktreeLinksFromLockfile(join(opts.projectRoot!, d)),
@@ -2456,14 +2595,14 @@ export function createServer(opts: ServerOptions) {
       // already treats as cheap — and no invalidation to get wrong.
       const view = buildProjectViews(opts.projectRoot).find((p) => p.name === name);
       if (!view) return new Response("no such project\n", { status: 404 });
-      const dir = projectDir(name);
+      const dir = displayProjectDir(name);
       // Fail open, the way the drift check on `/projects` does. Every
       // check inside `assessProjectReadiness` already treats a git that
       // answers nothing as its own kind of failure rather than throwing,
       // so this catches the case where git is not there to be run at
       // all: the reader came for the project's page, and the half of it
       // that needs no git is still worth serving.
-      const readiness = await assessProjectReadiness(gitRun, dir).catch(() => null);
+      const readiness = await assessProjectReadiness(gitRun, dir, machineryProjectDir(name)).catch(() => null);
       const html = renderProjectPage(
         view,
         projectSettings(dir, readiness),
@@ -2510,7 +2649,7 @@ export function createServer(opts: ServerOptions) {
       // null `checkedAt`, which the row says out loud.
       const driftByProject: Record<string, ProjectDrift> = {};
       for (const p of projects) {
-        const root = projectDir(p.name);
+        const root = machineryProjectDir(p.name);
         if (configValue(root, "AIDE_INSTALL_CMD")) {
           driftByProject[p.name] = branchStatus.peekDrift(root);
         }
@@ -2526,7 +2665,11 @@ export function createServer(opts: ServerOptions) {
       await Promise.all(
         projects.map(async (p) => {
           try {
-            const { canRun, note } = await assessProjectReadiness(gitRun, projectDir(p.name));
+            const { canRun, note } = await assessProjectReadiness(
+              gitRun,
+              displayProjectDir(p.name),
+              machineryProjectDir(p.name),
+            );
             readinessByProject[p.name] = { canRun, note };
           } catch {
             // A note is advice, and the listing is what the reader came
@@ -2647,6 +2790,7 @@ export function createServer(opts: ServerOptions) {
         worktreeLinks: text(asked.worktreeLinks),
       });
       const steps = [...result.steps];
+      let readiness = result.readiness;
       if (result.ok) {
         allowed.add(name);
         // The five-second scan is what every other list on this page
@@ -2654,12 +2798,25 @@ export function createServer(opts: ServerOptions) {
         // not see the project.
         scan = null;
         steps.push(persistAllowlist("added to the allowlist"));
+        // Spec 205: eagerly, and here rather than inside `addProject` —
+        // the alternative is every project's first run, Save or Update
+        // paying a full clone inside the request that happens to need
+        // one, which is a latency regression nobody asked for. The
+        // readiness is re-taken afterwards so the answer describes the
+        // checkout that now exists, not the one that did not a moment
+        // ago.
+        await ensureCheckout(name);
+        readiness = await assessProjectReadiness(
+          gitRun,
+          join(opts.projectRoot, name),
+          machineryProjectDir(name),
+        ).catch(() => readiness ?? undefined);
       }
       // Only for an add that got as far as writing its files: there is
       // nothing to assess in a clone that never happened, and a
       // readiness answer about a project that was not added would be an
       // answer about somebody else's directory.
-      return answerProjectChange("add-project", name, steps, raw, wantsJson, result.readiness);
+      return answerProjectChange("add-project", name, steps, raw, wantsJson, readiness);
     }
 
     // Spec 184: the same two fields the Add form posts, for a project
@@ -2696,7 +2853,20 @@ export function createServer(opts: ServerOptions) {
       // for this project's specs — without this the very next request
       // would still read the old one.
       if (result.ok) scan = null;
-      return answerProjectChange("project-settings", name, result.steps, raw, wantsJson, result.readiness);
+      // And it is what `aide-run-spec` reads out of the DASHBOARD's own
+      // checkout (spec 205): the write above reached the person's
+      // config, and `ensureCheckout` is what carries the new value
+      // across. Without this the next run would still read the old
+      // specs root — silently, which is the whole hazard of two config
+      // files.
+      const readiness = result.ok
+        ? await ensureCheckout(name).then(() =>
+            assessProjectReadiness(gitRun, join(opts.projectRoot!, name), machineryProjectDir(name)).catch(
+              () => result.readiness,
+            ),
+          )
+        : result.readiness;
+      return answerProjectChange("project-settings", name, result.steps, raw, wantsJson, readiness);
     }
 
     const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
@@ -2917,8 +3087,9 @@ export function createServer(opts: ServerOptions) {
     if (update) {
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
       const [, project, specFolder] = update;
-      const dir = specDir(project!, specFolder!);
-      if (!dir) return new Response("not found", { status: 404 });
+      const found = specDir(project!, specFolder!);
+      if (!found) return new Response("not found", { status: 404 });
+      const dir = await machinerySpecDir(project!, found);
       const back = specPagePath(project!, specFolder!);
       // The same lock a merge takes, and for the same hazard: every
       // spec shares the specs root, so two presses — or a press racing
@@ -2941,8 +3112,15 @@ export function createServer(opts: ServerOptions) {
     if (specEdit) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const [, project, specFolder] = specEdit;
-      const dir = specDir(project!, specFolder!);
-      if (!dir) return new Response("not found", { status: 404 });
+      const found = specDir(project!, specFolder!);
+      if (!found) return new Response("not found", { status: 404 });
+      // The dashboard's own copy, like the Save this form posts to
+      // (spec 205). The commit stamp in the hidden field is what the
+      // save compares against, so the two must be read out of ONE
+      // checkout — read here from the person's and compared there
+      // against the dashboard's, every save would refuse as "changed
+      // since you opened it".
+      const dir = await machinerySpecDir(project!, found);
       // Hiding the Edit button leaves this route reachable for anyone
       // who already has the URL — so the refusal is here, where the
       // form would otherwise be rendered, and not only on the page that
@@ -3016,8 +3194,9 @@ export function createServer(opts: ServerOptions) {
     if (save) {
       if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
       const [, project, specFolder] = save;
-      const dir = specDir(project!, specFolder!);
-      if (!dir) return new Response("not found", { status: 404 });
+      const found = specDir(project!, specFolder!);
+      if (!found) return new Response("not found", { status: 404 });
+      const dir = await machinerySpecDir(project!, found);
       // Before the body is even read: this one WRITES, commits and
       // pushes, and an archived spec's folder is in `archive/`.
       if (specRef(project!, specFolder!)?.archived) {
@@ -3281,8 +3460,14 @@ export function createServer(opts: ServerOptions) {
   }
 
   async function specPageView(project: string, specFolder: string): Promise<SpecPageView | null> {
-    const dir = specDir(project, specFolder);
-    if (!dir) return null;
+    const found = specDir(project, specFolder);
+    if (!found) return null;
+    // The four files as the dashboard's own checkout has them (spec
+    // 205) — which is where Save writes, so it is where a save has to be
+    // visible. The person's checkout catches up when the specs cron
+    // pulls it, and the Update button is what closes that gap on
+    // demand.
+    const dir = await machinerySpecDir(project, found);
     const ref = specRef(project, specFolder);
     // Whatever is in flight, or failing that the most recently active —
     // the rule `jobGroup` uses for the row's own lead, over the same
@@ -3412,6 +3597,9 @@ export function parseArgs(argv: string[]): ServerOptions {
     else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
     else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
     else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
+    // Where the dashboard keeps the clones it works in (spec 205).
+    // `~/aide-dashboard-checkouts` unless a host wants them elsewhere.
+    else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
     else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
     // The token is read from a FILE, never an argument: `ps` shows
     // arguments to every user on the machine.
