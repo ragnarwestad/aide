@@ -42,7 +42,7 @@ export { renderProjectsPage,
   ADD_PROJECT_ROUTE,
   projectSettingsRoute,
   removeProjectRoute } from "./render/projects-page.ts";
-export type { ProjectsPageOptions } from "./render/projects-page.ts";
+export type { ProjectsPageOptions, ProjectDrift } from "./render/projects-page.ts";
 
 export { renderNewSpecPage } from "./render/new-spec-page.ts";
 export type { NewSpecPageOptions } from "./render/new-spec-page.ts";

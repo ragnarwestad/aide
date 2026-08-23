@@ -14,7 +14,8 @@ import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
-  BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
+  BranchStatusChecker, createGitRunner, projectCheckout, specBranch, DEFAULT_TTL_MS,
+  type GitRunner,
 } from "./branch-status.ts";
 import {
   DescriptionFreshnessChecker,
@@ -98,6 +99,7 @@ import {
   type SpecFileView,
   type SpecPageView,
   type NavEntry,
+  type ProjectDrift,
   type QueueRowView,
   type QueueTarget,
 } from "./render.ts";
@@ -204,6 +206,14 @@ export interface ServerOptions {
    *  merged. A test seam above all — the default is a bound, not a
    *  setting anybody is expected to tune. */
   queueInstallTimeoutMs?: number;
+  /** How often the drift check asks origin how far each project's
+   *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
+   *  cache window: the page render reads the last answer and never
+   *  takes one itself. `0` turns the schedule off entirely — a test
+   *  seam, for observing the never-checked row without racing a timer.
+   *  Omitted, it is the checker's own TTL, which is the window the
+   *  answer was already considered current for. */
+  driftPollMs?: number;
   runnerAvailable?: boolean;
 }
 
@@ -1042,6 +1052,45 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+  // Spec 203: the drift check runs on a schedule of its own, and the
+  // page render reads whatever it last found. This loop IS the loop
+  // that used to sit inside the `GET /projects` handler — nothing about
+  // its logic changed, only when it runs. It ran there on every cache
+  // miss, which is every project on boot and every project again each
+  // time the window expired, and a page load waited on a `git fetch`
+  // against GitHub per project: /projects measured 1.83 s against 0.04 s
+  // for the pages beside it, and got slower with every project added.
+  //
+  // Asked only of the projects that expect an install to have happened
+  // — deploying is a known hand step where none is configured, and a
+  // banner there would be noise on every row forever.
+  async function refreshDrift(): Promise<void> {
+    if (!opts.projectRoot) return;
+    await Promise.all(
+      buildProjectViews(opts.projectRoot).map(async (p) => {
+        const root = projectDir(p.name);
+        if (!configValue(root, "AIDE_INSTALL_CMD")) return;
+        // Each call try/catches internally and degrades to null, so one
+        // project's unreachable origin never takes the others with it.
+        await branchStatus.commitsBehindOrigin(root);
+      }),
+    );
+  }
+  // The checker's own TTL by default: the window the answer was already
+  // considered current for is the window worth re-taking it in.
+  const driftPollMs = opts.driftPollMs ?? DEFAULT_TTL_MS;
+  // `.unref()`'d and cleared in `stop()`, like the runner's tick and the
+  // SSE keep-alive below — `bun test` runs many suites in one process,
+  // and a timer from a stopped test's server would go on firing into
+  // the next one.
+  const driftTimer =
+    driftPollMs > 0
+      ? (() => {
+          void refreshDrift();
+          return setInterval(() => void refreshDrift(), driftPollMs);
+        })()
+      : null;
+  driftTimer?.unref?.();
   // One merge at a time per repo. Every spec shares the specs root, and
   // two specs in one project share that repo too, so two presses a few
   // milliseconds apart were two git sequences in one working tree.
@@ -2386,18 +2435,22 @@ export function createServer(opts: ServerOptions) {
       // banner there would be noise on every row forever.
       //
       // Kept out of `buildProjectViews`, which stays a pure disk scan
-      // the static generator shares. Concurrent, and bounded by the
-      // checker's own 4 s timeout and 30 s cache, so a page load inside
-      // the window spawns no git at all.
-      const driftByProject: Record<string, number> = {};
-      await Promise.all(
-        projects.map(async (p) => {
-          const root = projectDir(p.name);
-          if (!configValue(root, "AIDE_INSTALL_CMD")) return;
-          const behind = await branchStatus.commitsBehindOrigin(root);
-          if (behind && behind > 0) driftByProject[p.name] = behind;
-        }),
-      );
+      // the static generator shares.
+      //
+      // Spec 203: a read, and nothing else. `peekDrift` is a map
+      // lookup — no await, no git, no network on this path ever. The
+      // taking of the answer is `refreshDrift`'s job on its own
+      // schedule; what a row shows here is the last one it found, with
+      // its own timestamp so the page can say how old it is. A project
+      // gated for the check but never yet answered for is a key with a
+      // null `checkedAt`, which the row says out loud.
+      const driftByProject: Record<string, ProjectDrift> = {};
+      for (const p of projects) {
+        const root = projectDir(p.name);
+        if (configValue(root, "AIDE_INSTALL_CMD")) {
+          driftByProject[p.name] = branchStatus.peekDrift(root);
+        }
+      }
       // Spec 184: whether a run could start in each project, asked on
       // every visit. The Add flow answered this exactly once, in the
       // query string of the redirect it landed on — so an operator who
@@ -3252,6 +3305,7 @@ export function createServer(opts: ServerOptions) {
     // is dropped on purpose rather than by accident.
     stop: () => {
       if (timer) clearInterval(timer);
+      if (driftTimer) clearInterval(driftTimer);
       clearInterval(keepAlive);
       // Every watching page, let go of deliberately: `server.stop(true)`
       // cuts the sockets, and a controller left in the set would be

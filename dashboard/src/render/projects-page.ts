@@ -21,7 +21,7 @@ import {
   tokenField,
   typedConfirm,
 } from "./components.ts";
-import { esc } from "./html.ts";
+import { esc, relTimeLabel } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { projectListBody, projectPagePath, projectSummary, type ProjectView } from "./site.ts";
 
@@ -36,6 +36,15 @@ export const removeProjectRoute = (name: string): string =>
  *  adding it again, or by editing a file in a terminal. */
 export const projectSettingsRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/settings`;
+
+/** The last drift answer the server holds for a project (spec 203).
+ *  `checkedAt` is `null` only where nothing has ever been asked — a
+ *  fresh boot, or a project just added; `behind: null` with a real
+ *  `checkedAt` is the fail-open case, asked and unanswerable. */
+export interface ProjectDrift {
+  behind: number | null;
+  checkedAt: number | null;
+}
 
 export interface ProjectsPageOptions {
   /** Carried into every form on the page, for a browser that got here
@@ -78,9 +87,15 @@ export interface ProjectsPageOptions {
    *  ones that are (spec 142). A project merged from a laptop, the
    *  GitHub web UI or another machine ran no `AIDE_INSTALL_CMD`, so the
    *  serving host is still serving the old code — and until this said
-   *  so, nothing did. Absent, empty, or naming a project by no key at
-   *  all all mean the same thing: no banner. */
-  driftByProject?: Record<string, number>;
+   *  so, nothing did.
+   *
+   *  A key here is a project the check is GATED for, whatever the
+   *  answer; absent means no `AIDE_INSTALL_CMD`, and says nothing at
+   *  all. Since spec 203 the answer comes off a background schedule, so
+   *  a gated project can be present with nothing answered for it yet
+   *  (`checkedAt: null`) — which the row says, rather than showing a
+   *  count nobody has taken. */
+  driftByProject?: Record<string, ProjectDrift>;
   /** Whether a run could start in each project, recomputed per request
    *  (spec 184). The Add flow used to say this exactly once, in the
    *  query string of the redirect it landed on, and never again — so an
@@ -109,9 +124,21 @@ export interface ProjectsPageOptions {
 }
 
 /** What the row says. Spelled out here rather than at the call site so
- *  the count and its wording cannot drift apart. */
-const driftNote = (behind: number): string =>
-  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin — deploy is a hand step`;
+ *  the count and its wording cannot drift apart.
+ *
+ *  The freshness clause is spec 203's half: the count is whatever a
+ *  background schedule last found, so how OLD it is decides how much of
+ *  it to believe. `relTimeLabel`, not `relTime` — this note is escaped
+ *  by `rowMessage` on its way out, and the markup version would show as
+ *  literal tags. `checkedAt` is epoch ms (the checker's cache stamp);
+ *  the label takes an ISO string, hence the conversion. */
+const driftNote = (behind: number, checkedAt: number, now: number): string =>
+  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
+  `${relTimeLabel(new Date(checkedAt).toISOString(), now)} — deploy is a hand step`;
+
+/** And what it says for a project the schedule has not reached yet. A
+ *  count nobody has taken is not zero. */
+const UNCHECKED_NOTE = "origin drift not checked yet";
 
 export function renderProjectsPage(
   projects: ProjectView[],
@@ -120,6 +147,11 @@ export function renderProjectsPage(
   opts: ProjectsPageOptions,
 ): string {
   const allowed = new Set(opts.createProjects ?? []);
+  // The clock the drift note's freshness label is measured against. The
+  // page's own stamp, not a second one passed in: two answers to "when
+  // is now" on one render is one too many.
+  const stamped = Date.parse(generatedAt);
+  const now = Number.isNaN(stamped) ? Date.now() : stamped;
   const body =
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
@@ -148,9 +180,17 @@ export function renderProjectsPage(
       // knows is there.
       settingsHref: (name) => (opts.readinessByProject ? projectSettingsRoute(name) : undefined),
       note: (name) => {
-        const behind = opts.driftByProject?.[name];
+        const drift = opts.driftByProject?.[name];
         const readiness = opts.readinessByProject?.[name];
-        return [readiness && !readiness.canRun ? readiness.note : undefined, behind ? driftNote(behind) : undefined]
+        // Three states, not two: nothing asked yet says so, an
+        // unanswerable answer says nothing (fail-open), and a real
+        // count carries how old it is.
+        const note =
+          !drift ? undefined
+          : drift.checkedAt === null ? UNCHECKED_NOTE
+          : drift.behind ? driftNote(drift.behind, drift.checkedAt, now)
+          : undefined;
+        return [readiness && !readiness.canRun ? readiness.note : undefined, note]
           .filter(Boolean)
           .join(" — ") || undefined;
       },

@@ -81,9 +81,21 @@ describe("the listing on /projects", () => {
 // every load, for as long as the drift lasts.
 
 describe("the drift banner on /projects", () => {
+  // The page renders at AT, so that is "now" for every freshness label
+  // below — the render function has no clock of its own, and one
+  // passed separately would be a second answer to the same question.
+  const NOW = Date.parse(AT);
+  /** An answer taken `secs` before the page was drawn. */
+  const checkedAgo = (behind: number | null, secs: number) => ({
+    behind,
+    checkedAt: NOW - secs * 1000,
+  });
+
   test("a project behind origin says so on its own row, and says how far", () => {
-    const html = page([project("aide"), project("atlasaurus")], { driftByProject: { aide: 3 } });
-    expect(html).toContain("3 commits behind origin — deploy is a hand step");
+    const html = page([project("aide"), project("atlasaurus")], {
+      driftByProject: { aide: checkedAgo(3, 240) },
+    });
+    expect(html).toContain("3 commits behind origin, checked 4 min ago — deploy is a hand step");
     // On aide's row, not floating above the list where a reader has to
     // work out which project it is about.
     expect(html).toMatch(/aide[\s\S]*?3 commits behind origin[\s\S]*?atlasaurus/);
@@ -91,14 +103,59 @@ describe("the drift banner on /projects", () => {
   });
 
   test("one commit behind is one commit, not 1 commits", () => {
-    expect(page([project("aide")], { driftByProject: { aide: 1 } })).toContain(
-      "1 commit behind origin — deploy is a hand step",
+    expect(page([project("aide")], { driftByProject: { aide: checkedAgo(1, 240) } })).toContain(
+      "1 commit behind origin, checked 4 min ago — deploy is a hand step",
     );
   });
 
-  test("a project the drift map does not name gets no banner (criteria 1 and 3)", () => {
-    const html = page([project("aide"), project("atlasaurus")], { driftByProject: { aide: 2 } });
+  // Spec 203: the answer comes off a background schedule now, so how
+  // OLD it is decides how much of it to believe. The label is plain
+  // text, not `relTime`'s <span>: this note is escaped on its way out.
+  test("the freshness label is the note's own words, not markup", () => {
+    const html = page([project("aide")], { driftByProject: { aide: checkedAgo(2, 3 * 86400) } });
+    expect(html).toContain("2 commits behind origin, checked 3 d ago — deploy is a hand step");
+    expect(html).not.toContain("&lt;span");
+  });
+
+  test("an answer taken seconds ago says just now", () => {
+    expect(page([project("aide")], { driftByProject: { aide: checkedAgo(2, 5) } })).toContain(
+      "2 commits behind origin, checked just now — deploy is a hand step",
+    );
+  });
+
+  // Spec 203: gated for the check, but the background poll has not
+  // answered for it yet — a fresh boot, or a project just added. The
+  // row says so rather than showing a count nobody has taken.
+  test("a project the poll has not reached yet says the drift is unchecked", () => {
+    const html = page([project("aide")], {
+      driftByProject: { aide: { behind: null, checkedAt: null } },
+    });
+    expect(html).toContain("origin drift not checked yet");
+    expect(html).not.toContain("behind origin");
+  });
+
+  // Asked and unanswerable is not the same row as never asked: the
+  // fail-open rule says a banner nobody can trust is worse than none.
+  test("a check that could not answer leaves the row silent", () => {
+    const html = page([project("aide")], { driftByProject: { aide: checkedAgo(null, 60) } });
+    expect(html).not.toContain("behind origin");
+    expect(html).not.toContain("not checked yet");
+  });
+
+  test("a checkout level with origin gets no banner", () => {
+    const html = page([project("aide")], { driftByProject: { aide: checkedAgo(0, 60) } });
+    expect(html).not.toContain("behind origin");
+    expect(html).not.toContain("not checked yet");
+  });
+
+  test("a project the drift map does not name gets no banner at all (criteria 1 and 3)", () => {
+    const html = page([project("aide"), project("atlasaurus")], {
+      driftByProject: { aide: checkedAgo(2, 60) },
+    });
     expect(html).not.toMatch(/atlasaurus[\s\S]*?behind origin/);
+    // Absent from the map is not gated for the check — it says nothing,
+    // where a gated-but-unchecked project says so.
+    expect(html).not.toMatch(/atlasaurus[\s\S]*?not checked yet/);
   });
 
   test("with no drift at all the page is exactly what it was", () => {
@@ -111,9 +168,9 @@ describe("the drift banner on /projects", () => {
   // there would hide drift on exactly the project someone is fixing.
   test("an unparseable manifest still gets its banner", () => {
     const html = page([{ name: "brokenproj", manifest: { ok: false, error: "YAML parse error" }, specs: [] }], {
-      driftByProject: { brokenproj: 7 },
+      driftByProject: { brokenproj: checkedAgo(7, 5) },
     });
-    expect(html).toContain("7 commits behind origin");
+    expect(html).toContain("7 commits behind origin, checked just now");
   });
 });
 

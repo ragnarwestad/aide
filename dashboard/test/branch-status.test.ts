@@ -367,6 +367,63 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   });
 });
 
+// Spec 203: the page render reads this cache and never fills it. The
+// filling is a background schedule's job, so what the request path
+// needs is a read that asks git nothing at all — and one that hands
+// back an OLD answer rather than none, so the row can label it.
+describe("BranchStatusChecker.peekDrift", () => {
+  const ON_MASTER = {
+    ...SYMREF_MASTER,
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+    fetch: { code: 0 },
+  };
+
+  test("a repo nothing has ever asked about answers null, and spawns no git", async () => {
+    const git = fakeGit(ON_MASTER);
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekDrift("/repo")).toEqual({ behind: null, checkedAt: null });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, it hands back that answer and when it was taken", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.commitsBehindOrigin("/repo");
+    const before = git.calls.length;
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
+    // A read, not a check: the peek itself asked git nothing.
+    expect(git.calls.length).toBe(before);
+  });
+
+  // The whole point of the freshness label: an old answer is SHOWN as
+  // old, never withheld. A peek that reverted to null past the TTL
+  // would put the page back to having nothing to say.
+  test("past the TTL the same answer stands, with its original timestamp", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "3\n" } });
+    let clock = 1000;
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.commitsBehindOrigin("/repo");
+    clock += 60_000;
+    expect(checker.peekDrift("/repo")).toEqual({ behind: 3, checkedAt: 1000 });
+  });
+
+  // Fail-open, preserved through the peek: git could not answer, but it
+  // WAS asked — which is a different row from one nobody has asked yet.
+  test("an unanswerable check is a real, timestamped null", async () => {
+    const git = fakeGit({ "symbolic-ref": { code: 128 }, "show-ref": { code: 1 } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    await checker.commitsBehindOrigin("/repo");
+    expect(checker.peekDrift("/repo")).toEqual({ behind: null, checkedAt: 5000 });
+  });
+
+  test("the peek is per repo — one checkout's answer never stands in for another's", async () => {
+    const git = fakeGit({ ...ON_MASTER, "rev-list --count": { code: 0, stdout: "5\n" } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.commitsBehindOrigin("/repos/aide");
+    expect(checker.peekDrift("/repos/atlasaurus")).toEqual({ behind: null, checkedAt: null });
+  });
+});
+
 // Spec 193: a landing that failed is not a spec that is done.
 //
 // The queue's memory of its own pushes is not the answer to "does this

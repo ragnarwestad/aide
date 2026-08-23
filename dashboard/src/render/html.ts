@@ -53,11 +53,22 @@ export function usdOrTokens(
 export function relTime(iso: string, now: number): string {
   const then = Date.parse(iso);
   if (Number.isNaN(then)) return esc(iso);
+  return `<span title="${esc(iso)}">${relTimeLabel(iso, now)}</span>`;
+}
+
+/** The same words without the markup, for a caller whose text is
+ *  escaped on its way out (spec 203: the drift note goes through
+ *  `rowMessage`, which would show a literal <span>). One ladder, two
+ *  wrappers — two copies of these thresholds would one day disagree
+ *  about when "min" becomes "h". */
+export function relTimeLabel(iso: string, now: number): string {
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return iso;
   const secs = Math.max(0, Math.round((now - then) / 1000));
-  const label =
+  return (
     secs < 45 ? "just now"
     : secs < 5400 ? `${Math.round(secs / 60)} min ago`
     : secs < 172800 ? `${Math.round(secs / 3600)} h ago`
-    : `${Math.round(secs / 86400)} d ago`;
-  return `<span title="${esc(iso)}">${label}</span>`;
+    : `${Math.round(secs / 86400)} d ago`
+  );
 }

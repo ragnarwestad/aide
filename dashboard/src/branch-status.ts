@@ -30,7 +30,10 @@ export type GitRunner = (
 ) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 const DEFAULT_TIMEOUT_MS = 4000;
-const DEFAULT_TTL_MS = 30_000;
+/** How long one answer stands. Exported since spec 203: the background
+ *  drift poll runs on this same window, and a second constant for the
+ *  same interval would one day be a different number. */
+export const DEFAULT_TTL_MS = 30_000;
 
 /** `git ls-remote --exit-code`'s own answer for "the remote has no such
  *  ref". Documented by git and distinct from every other failure code,
@@ -228,6 +231,21 @@ export class BranchStatusChecker {
 
     this.driftCache.set(projectDir, { at, behind });
     return behind;
+  }
+
+  /** The LAST answer this checker holds for `projectDir`, without asking
+   *  git at all — a map read, nothing else (spec 203). This is what a
+   *  page render calls: the render reads memory and disk, and the
+   *  filling is `commitsBehindOrigin`'s job on a schedule of its own.
+   *
+   *  `checkedAt` is `null` only where NOTHING has ever been asked.
+   *  Past the TTL the cached answer still comes back — stale, not
+   *  withheld — so the row can label how old it is rather than fall
+   *  silent. A `behind` of `null` with a real `checkedAt` is the
+   *  existing fail-open case: asked, unanswerable. */
+  peekDrift(projectDir: string): { behind: number | null; checkedAt: number | null } {
+    const hit = this.driftCache.get(projectDir);
+    return hit ? { behind: hit.behind, checkedAt: hit.at } : { behind: null, checkedAt: null };
   }
 
   /** Every `aide/*` branch origin still has in this root — the question
