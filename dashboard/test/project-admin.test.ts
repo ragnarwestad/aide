@@ -1384,3 +1384,129 @@ describe("proposing the specs root from how the other projects are laid out", ()
     ).toBe("/repos/aide-specs/skjer");
   });
 });
+
+// Spec 205: the checks answer for the checkout a RUN will use.
+//
+// Until now that was the person's own checkout, so the readiness check
+// asked whether THAT could be put on its default branch. A run is cut
+// from a clone the dashboard owns instead, so the same question is
+// asked of that clone — and the person's branch, which decides nothing
+// any more, is not asked about at all. Spec 144 did exactly this to the
+// clean-tree check when it stopped mattering.
+describe("readiness answers for the checkout a run uses (spec 205)", () => {
+  const READY: Record<string, { code: number; stdout?: string }> = {
+    "symbolic-ref --short refs/remotes/origin/HEAD": { code: 0, stdout: "origin/main\n" },
+    "show-ref --verify --quiet refs/heads/main": { code: 0 },
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+    "worktree list --porcelain": { code: 0, stdout: "" },
+    "remote get-url origin": { code: 0, stdout: "https://example.test/aide.git\n" },
+  };
+
+  /** `answers` is layered over a ready checkout, and `only` narrows a
+   *  layer to ONE directory — which is how a test can put the person's
+   *  checkout on a branch of their own while the dashboard's stands on
+   *  main, and see which of the two the checks report. */
+  const runner = (
+    answers: Record<string, { code: number; stdout?: string }> = {},
+    only?: string,
+  ): GitRunner => {
+    const table = { ...READY, ...answers };
+    return async (at, args) => {
+      const joined = args.join(" ");
+      if (only === undefined || at === only) {
+        for (const [prefix, answer] of Object.entries(answers)) {
+          if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+        }
+      }
+      if (joined.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${at}\n` };
+      for (const [prefix, answer] of Object.entries(only === undefined ? table : READY)) {
+        if (joined.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };
+      }
+      return { code: 1, stdout: "" };
+    };
+  };
+
+  /** A person's checkout with a specs/ beside it, and a place for the
+   *  dashboard's own clone that may or may not exist yet. */
+  function pair(opts: { owned?: boolean } = {}): { person: string; owned: string } {
+    const base = root();
+    const person = join(base, "aide");
+    mkdirSync(join(person, "specs"), { recursive: true });
+    const owned = join(base, "owned", "aide", "code");
+    if (opts.owned) mkdirSync(join(owned, ".git"), { recursive: true });
+    return { person, owned };
+  }
+
+  const named = (r: Awaited<ReturnType<typeof assessProjectReadiness>>, name: string) =>
+    r.checks.filter((c) => c.check === name);
+  const blockers = (r: Awaited<ReturnType<typeof assessProjectReadiness>>) =>
+    r.checks.filter((c) => c.blocking).map((c) => c.detail).join(" | ");
+
+  test("the person's branch is not asked about at all any more", async () => {
+    const { person, owned } = pair({ owned: true });
+    const result = await assessProjectReadiness(
+      runner({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" } }, person),
+      person,
+      owned,
+    );
+    expect(result.canRun).toBe(true);
+    expect(result.note).not.toContain("wip/mine");
+    expect(named(result, "defaultBranch").map((c) => c.subject)).not.toContain(person);
+  });
+
+  test("the dashboard's own checkout is the one asked whether it can reach its default branch", async () => {
+    const { person, owned } = pair({ owned: true });
+    const result = await assessProjectReadiness(
+      runner({
+        "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "aide/99-old\n" },
+        "show-ref --verify --quiet refs/heads/main": { code: 1 },
+        "show-ref --verify --quiet refs/remotes/origin/main": { code: 1 },
+      }),
+      person,
+      owned,
+    );
+    expect(result.canRun).toBe(false);
+    // The subject says WHICH checkout answered; the wording says whose
+    // it is. Both, because a path alone reads as an accident.
+    expect(named(result, "defaultBranch").map((c) => c.subject)).toEqual([owned]);
+    expect(blockers(result)).toContain("dashboard's own");
+  });
+
+  // The one thing a lazy clone cannot work around, and the reason it is
+  // a named readiness failure rather than a run that refuses with
+  // nobody there.
+  // Said, not refused. Without an origin there is nothing to clone
+  // from, and the run falls back to the checkout it was pointed at —
+  // which is what every run did before this spec, so it works. What the
+  // reader is told is that this is the project where a run and their own
+  // editing can still meet.
+  test("a person's checkout with no origin is reported, and does not refuse the run", async () => {
+    const { person, owned } = pair();
+    const result = await assessProjectReadiness(runner({ "remote get-url origin": { code: 1 } }), person, owned);
+    expect(result.canRun).toBe(true);
+    const said = named(result, "dashboardCheckout")[0]!;
+    expect(said.ok).toBe(false);
+    expect(said.blocking).toBe(false);
+    expect(said.detail).toContain("no origin remote");
+    expect(result.note).toContain("collide");
+  });
+
+  test("a checkout the dashboard has not made yet is not a refusal — it says where it will go", async () => {
+    const { person, owned } = pair();
+    const result = await assessProjectReadiness(runner(), person, owned);
+    expect(result.canRun).toBe(true);
+    expect(named(result, "dashboardCheckout")[0]!.detail).toContain(owned);
+  });
+
+  // Nothing was passed, so nothing changed: every caller that asks
+  // about one checkout keeps the answer it always got.
+  test("asked without one, the checks are the checkout's own, exactly as before", async () => {
+    const { person } = pair();
+    const result = await assessProjectReadiness(
+      runner({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "wip/mine\n" } }),
+      person,
+    );
+    expect(named(result, "defaultBranch").map((c) => c.subject)).toContain(person);
+    expect(result.note).toContain("wip/mine");
+  });
+});

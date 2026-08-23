@@ -58,6 +58,11 @@ export type ReadinessCheckName =
   | "specsRoot"
   | "specsRepo"
   | "defaultBranch"
+  /** Whether the dashboard's own checkout can be made, when it has not
+   *  been yet (spec 205). Once it exists it answers to `defaultBranch`
+   *  like any other participating repository — the same question, about
+   *  the checkout a run actually uses. */
+  | "dashboardCheckout"
   | "worktreeLinks";
 
 export interface ReadinessCheck {
@@ -564,6 +569,7 @@ function readinessNote(project: string, canRun: boolean, checks: ReadinessCheck[
 export async function assessProjectReadiness(
   run: GitRunner,
   projectDir: string,
+  machineryDir?: string,
 ): Promise<ProjectReadiness> {
   const checks: ReadinessCheck[] = [];
 
@@ -627,9 +633,17 @@ export async function assessProjectReadiness(
   }
 
   // 4. A reachable default branch, for every repository the run would
-  //    touch.
-  for (const { root, label } of roots) {
-    checks.push(...(await repoChecks(run, root, label)));
+  //    touch — and since spec 205 that means the checkouts the DASHBOARD
+  //    owns, not the ones a person edits. Whichever checkout a run
+  //    actually uses is the one asked; `machineryDir` is what names it,
+  //    and a caller that names none is asking about `projectDir` itself,
+  //    exactly as every caller did before that spec.
+  if (machineryDir && resolve(machineryDir) !== resolve(projectDir)) {
+    checks.push(...(await dashboardCheckoutChecks(run, roots, machineryDir)));
+  } else {
+    for (const { root, label } of roots) {
+      checks.push(...(await repoChecks(run, root, label)));
+    }
   }
 
   // 5. And the gitignored paths the project says its own commands need.
@@ -688,6 +702,52 @@ const fail = (step: ProjectStepName, error: string): ProjectAdminResult => ({
   ok: false,
   steps: [{ step, ok: false, error }],
 });
+
+/** The same question `repoChecks` asks, asked of the checkouts the
+ *  dashboard owns (spec 205).
+ *
+ *  Two states, and only one of them is a refusal. A checkout that is
+ *  already there answers for itself, exactly as the person's used to.
+ *  One that has not been made yet cannot be asked anything — so what is
+ *  asked instead is whether it can be MADE: every repository the run
+ *  touches has to have an `origin` to clone from. That is the one thing
+ *  a lazy clone cannot work around, and it belongs on the page rather
+ *  than in a run that refuses with nobody there.
+ *
+ *  The person's own branch is not asked about at all. A run stopped
+ *  moving that checkout, so what it is on decides nothing — the same
+ *  reason spec 144 dropped the clean-tree question. */
+async function dashboardCheckoutChecks(
+  run: GitRunner,
+  roots: { root: string; label: string }[],
+  machineryDir: string,
+): Promise<ReadinessCheck[]> {
+  if (existsSync(join(machineryDir, ".git"))) {
+    return repoChecks(run, machineryDir, "dashboard's own");
+  }
+  const checks: ReadinessCheck[] = [];
+  for (const { root, label } of roots) {
+    const origin = await gitSays(run, root, ["remote", "get-url", "origin"]);
+    checks.push({
+      check: "dashboardCheckout",
+      subject: root,
+      ok: origin !== null,
+      // Worth SAYING and nothing more, the same shape as a checkout on
+      // a feature branch. A project the dashboard cannot clone still
+      // runs — it falls back to the checkout it was pointed at, exactly
+      // as every project did before spec 205 — so refusing the run here
+      // would take away something that works. What the reader needs to
+      // know is that this project is the one where a run and their own
+      // editing can still meet.
+      blocking: false,
+      detail:
+        origin === null
+          ? `the ${label} repository at ${root} has no origin remote, so the dashboard cannot make a checkout of its own — a run works in ${root} itself, where editing it meanwhile can collide`
+          : `the dashboard makes its own checkout of the ${label} repository at ${machineryDir} the first time a run needs one`,
+    });
+  }
+  return checks;
+}
 
 /** Clone or register a project under `projectsRoot`, give it a manifest
  *  if it has none, and point it at its specs root if one was named.

@@ -905,6 +905,49 @@ are genuinely independent: each `aide-run-spec` run works in `git
 worktree` checkouts of its own, so the main checkouts never leave their
 default branch and no run can see another's.
 
+### The dashboard's own checkouts
+
+**The checkout a run is cut from is not the one a person edits.** A
+worktree used to be cut from `<projects root>/<project>` — the directory
+Add clones into and the directory somebody works in. Both wrote to it:
+the runner puts every root it touches onto its default branch before it
+starts, and a landing merges and pushes from the same tree. On 2026-08-23
+three specs were archived with their code stranded on a branch, because
+edits made in that checkout met what two runs were landing from it. The
+per-repo lock serializes the dashboard against itself; nothing serializes
+it against a person's own git client, and nothing can.
+
+So the dashboard keeps clones of its own, under
+`~/aide-dashboard-checkouts/<project>/` — `code/`, plus `specs/` when the
+specs root is a separate repository. One per project, never one per run;
+`--dashboard-checkouts <dir>` moves them. They are made the first time
+they are needed, by cloning the person's checkout's own `origin`, and
+reused ever after. Everything that MUTATES goes there: `aide-run-spec
+--project-dir`, a landing's merge and push, Save, Update, the dependency
+gate's fetches, the drift poll. The person's checkout is read for the
+project list, the manifests and the spec list, and is otherwise asked one
+read-only question ever — which origin to clone from.
+
+Two consequences worth knowing:
+
+- **A landed run and a Save no longer show up in a person's own checkout
+  until they pull it.** Nothing auto-syncs into it, deliberately: an
+  auto-pull would recreate exactly the collision this removes. The specs
+  cron pulls it every two minutes, which is what closes the gap in
+  practice.
+- **`.aide/config` is gitignored, so a clone never carries it.** It is
+  copied from the person's checkout on every ensure — it is the file an
+  operator edits by hand between merges, and a copy taken once would go
+  on answering with whatever was true the day the clone was made.
+  `AIDE_SPECS_PATH` is the one key that does not survive the copy: it
+  names a directory in the person's checkout, and is rewritten to name
+  the dashboard's own specs.
+
+A project whose checkout has no `origin` gets no clone of its own. It
+keeps running exactly as it did before this — in the person's checkout —
+and its readiness line says so, so the one project where a run and a
+person's editing can still meet is named rather than silent.
+
 ### Notifications
 
 There is no stop between steps and no way to ask for one (spec 149). A

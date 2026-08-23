@@ -90,6 +90,11 @@ export function queueHarness(prefix: string): QueueHarness {
         queueMirrorPath: join(dir, "queue.json"),
         projectRoot: root,
         queueProjects: ["aide"],
+        // Spec 205: inside this fixture's own directory, never the
+        // default under $HOME. A suite that let the server fall back to
+        // it would clone into the operator's real checkouts, and the
+        // next suite would find them there.
+        dashboardCheckoutRoot: join(dir, "owned"),
         ...extra,
       });
       servers.push(server);
