@@ -248,6 +248,36 @@ describe("ensureDashboardCheckout", () => {
   });
 });
 
+// Made once and never touched again: a spec written in the person's
+// checkout and pushed was listed by the page — which reads THEIR
+// checkout — and refused by the runner, which reads this one.
+// "unknown spec: 13-woodstack-26" on a spec the reader could see
+// (2026-08-23).
+describe("the dashboard's checkout keeps up with origin", () => {
+  test("a commit pushed after the clone is there on the next call", async () => {
+    const where = tmp("aide-checkout-");
+    const { origin, clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const base = join(where, "owned");
+
+    const first = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    expect(first.ok).toBe(true);
+    const owned = first.checkout!.code;
+    expect(existsSync(join(owned, "later.md"))).toBe(false);
+
+    // Somebody else pushes — the person's own checkout, in real life.
+    writeFileSync(join(clone, "later.md"), "written after the clone\n");
+    git(clone, "add", "-A");
+    git(clone, "-c", "user.name=T", "-c", "user.email=t@e.x", "commit", "-qm", "later");
+    git(clone, "push", "-q", "origin", "main");
+    expect(origin.length).toBeGreaterThan(0);
+
+    const second = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+    expect(second.ok).toBe(true);
+    expect(second.cloned).toBe(false);
+    expect(readFileSync(join(owned, "later.md"), "utf-8")).toBe("written after the clone\n");
+  });
+});
+
 describe("dashboardSpecDir", () => {
   // What Save and Update need: the display found a spec folder in the
   // person's checkout, and the write has to happen in the dashboard's

@@ -109,6 +109,9 @@ export function dashboardSpecDir(
  *  repository. And the repository grows with every spec, so the margin
  *  only ever gets worse. */
 const CLONE_TIMEOUT_MS = 10 * 60 * 1000;
+/** A fetch talks to origin, so it gets more than a question's four
+ *  seconds too — less than a clone, which moves the whole history. */
+const FETCH_TIMEOUT_MS = 60 * 1000;
 
 async function cloneFrom(run: GitRunner, from: string, dest: string): Promise<string | null> {
   const origin = await run(from, ["remote", "get-url", "origin"]);
@@ -181,6 +184,27 @@ function linkWorktreePaths(personDir: string, code: string): void {
  *  where the specs are and rewrites `AIDE_SPECS_PATH` when that answer
  *  has changed, which is how a specs root edited on the Settings page
  *  reaches the checkout the runner actually reads. */
+/** Bring a checkout of the dashboard's own up to date with origin.
+ *
+ *  Made once and never touched again was the shape until 2026-08-23: a
+ *  spec written in the person's checkout and pushed was listed by the
+ *  page — which reads THEIR checkout — and refused by the runner, which
+ *  reads this one. "unknown spec: 13-woodstack-26" on a spec the reader
+ *  could see. It is not a clone that missed something; nobody asked it
+ *  to fetch.
+ *
+ *  Fast-forward only, and a failure is not fatal: these checkouts stay
+ *  on their default branch and nobody commits in them, so there is
+ *  nothing here to lose — and an origin that cannot be reached should
+ *  leave the run to work with what it has rather than refusing. */
+async function bringUpToDate(run: GitRunner, dir: string): Promise<void> {
+  const branch = await run(dir, ["symbolic-ref", "--short", "HEAD"]);
+  const name = branch.code === 0 ? branch.stdout.trim() : "";
+  if (!name) return;
+  await run(dir, ["fetch", "--quiet", "origin", name], FETCH_TIMEOUT_MS);
+  await run(dir, ["merge", "--ff-only", "--quiet", `origin/${name}`]);
+}
+
 export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest): Promise<EnsureResult> {
   const code = dashboardCheckoutRoot(req.base, req.project);
   let cloned = false;
@@ -188,6 +212,8 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
     const failed = await cloneFrom(run, req.personDir, code);
     if (failed) return { ok: false, error: failed, cloned: false };
     cloned = true;
+  } else {
+    await bringUpToDate(run, code);
   }
   // `.aide/config` is gitignored, so `git clone` never carries it —
   // without this the dashboard's own checkout would have no
@@ -233,6 +259,8 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
         const failed = await cloneFrom(run, specsTop, specsRepo);
         if (failed) return { ok: false, error: failed, cloned };
         cloned = true;
+      } else {
+        await bringUpToDate(run, specsRepo);
       }
       // The specs ROOT is a folder inside the specs REPO — one
       // repository holds a folder per project, which is how this repo
