@@ -1259,6 +1259,38 @@ describe("PHASE_STEPS", () => {
   });
 });
 
+// Spec 193, criterion 11. `errorReason` is declared twice — once on the
+// stored job and once on the view the render layer builds — for the
+// same reason `PHASE_STEPS` is: the two layers do not import each
+// other. A union widened in one place only is a reason the row cannot
+// draw, and TypeScript says nothing about it because the render side
+// takes its own narrower type. The declarations are read as TEXT
+// because neither side has a runtime value to compare, which is the
+// same thing `test_aide_run_spec.py` does to the bash and TypeScript
+// copies of `WORKFLOW_STEPS`.
+describe("errorReason", () => {
+  /** The members of the `errorReason?: ...` union in one source file. */
+  const declaredIn = (file: string): string[] => {
+    const src = readFileSync(join(import.meta.dir, "..", "src", file), "utf-8");
+    const line = src.match(/^\s*errorReason\?:([^;]*);/m);
+    expect(line).not.toBeNull();
+    return line![1]!
+      .split("|")
+      .map((m) => m.trim().replace(/^"|"$/g, ""))
+      .filter(Boolean)
+      .sort();
+  };
+
+  test("names the same members on the job and on the row's view", () => {
+    const stored = declaredIn("queue.ts");
+    expect(stored).toEqual(declaredIn("render/job-state.ts"));
+    // Named, so widening the union without a reader is caught here
+    // rather than at the page: `unlanded` is spec 193's refusal — the
+    // spec was archived and a branch of its own is still on origin.
+    expect(stored).toEqual(["conflict", "unlanded"]);
+  });
+});
+
 // --- spec 189: the store says when it changed --------------------------------
 
 // The page used to ask every five seconds whether anything had moved.

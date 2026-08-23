@@ -366,3 +366,96 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
     expect(git.calls.some((c) => c.dir === "/repos/atlasaurus")).toBe(true);
   });
 });
+
+// Spec 193: a landing that failed is not a spec that is done.
+//
+// The queue's memory of its own pushes is not the answer to "does this
+// spec still have a branch open" — origin is. This asks origin once per
+// ROOT rather than once per branch, because both readers want the whole
+// set: the archive landing checks one branch, and the two pages check
+// every archived spec at once.
+describe("BranchStatusChecker.openSpecBranches", () => {
+  /** What `git ls-remote --heads` prints: sha, tab, full ref, one per
+   *  line. Two spec branches and one that is not a spec branch at all —
+   *  the pattern is what excludes the latter, and a fake that answered
+   *  with it would let a wrong pattern pass. */
+  const LISTED =
+    "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n" +
+    "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
+
+  test("asks origin for the spec branches, and never with --exit-code", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    await checker.openSpecBranches("/repos/aide");
+    const call = git.calls.find((c) => c.args[0] === "ls-remote")!;
+    // `--exit-code` would make "this repo has no open spec branch" an
+    // error, which is the ordinary answer for a healthy repo.
+    expect(call.args).not.toContain("--exit-code");
+    expect(call.args).toEqual(["ls-remote", "--heads", "origin", "refs/heads/aide/*"]);
+    expect(call.dir).toBe("/repos/aide");
+  });
+
+  test("the branch names come out of the two-column output", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    const open = await checker.openSpecBranches("/repos/aide");
+    expect([...open!].sort()).toEqual(["aide/178-nobody-waits", "aide/191-one-answer"]);
+    expect(open!.has(specBranch("191-one-answer"))).toBe(true);
+  });
+
+  test("a repo with no spec branch is an empty set, never null", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: "" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    const open = await checker.openSpecBranches("/repos/aide");
+    expect(open).not.toBeNull();
+    expect(open!.size).toBe(0);
+  });
+
+  test("a nonzero exit is null: unanswerable, not 'no branches'", async () => {
+    // 128 is an unreachable host. Reading it as an empty set would tell
+    // every caller that nothing is open during a network blip.
+    const git = fakeGit({ "ls-remote": { code: 128, stdout: "" } });
+    const checker = new BranchStatusChecker({ run: git.run });
+    expect(await checker.openSpecBranches("/repos/aide")).toBeNull();
+  });
+
+  test("one answer stands for the TTL, per root", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.openSpecBranches("/repos/aide");
+    const before = git.calls.length;
+    await checker.openSpecBranches("/repos/aide");
+    expect(git.calls.length).toBe(before);
+    // Another root is another question.
+    await checker.openSpecBranches("/repos/aide-specs");
+    expect(git.calls.length).toBeGreaterThan(before);
+  });
+
+  test("`fresh` bypasses the cache and replaces the entry", async () => {
+    // The landing asks immediately after deleting the branch on origin,
+    // so an answer cached up to 30 seconds earlier would report every
+    // successful landing as unlanded.
+    let stdout = LISTED;
+    const run: GitRunner = async (_dir, args) =>
+      args[0] === "ls-remote" ? { code: 0, stdout } : { code: 1, stdout: "" };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2);
+    stdout = "";
+    expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2); // still cached
+    expect((await checker.openSpecBranches("/repos/aide", true))!.size).toBe(0);
+    // Refreshed, not merely bypassed: the next ordinary reader gets the
+    // new answer too, with the clock unmoved.
+    expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(0);
+  });
+
+  test("an unanswerable refresh does not leave the old answer standing", async () => {
+    let code = 0;
+    const run: GitRunner = async (_dir, args) =>
+      args[0] === "ls-remote" ? { code, stdout: code === 0 ? LISTED : "" } : { code: 1, stdout: "" };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect((await checker.openSpecBranches("/repos/aide"))!.size).toBe(2);
+    code = 128;
+    expect(await checker.openSpecBranches("/repos/aide", true)).toBeNull();
+    expect(await checker.openSpecBranches("/repos/aide")).toBeNull();
+  });
+});

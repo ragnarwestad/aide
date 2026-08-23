@@ -108,6 +108,15 @@ export interface QueuePageOptions {
    *  folder does not exist until it lands) — but once the spec has been
    *  archived, that exception would keep a ghost row forever. */
   archived?: string[];
+  /** The exception to that, from origin (spec 193): archived specs
+   *  whose own `aide/<folder>` is still an open branch. Being archived
+   *  answers "did this spec finish" with certainty only while nothing
+   *  of the spec is still open, and three specs reached the archive
+   *  with their code on a branch and every row saying done. Such a row
+   *  is kept, and renders through the same failed-state path as any
+   *  other — there is nothing special about it but the fact that it is
+   *  drawn at all. */
+  unlanded?: string[];
   token?: string;
   /** Browser code for this page, compiled from `queue-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
@@ -439,7 +448,12 @@ const historyFor = (
 
 const isCreate = (r: QueueRowView): boolean => r.steps.includes("create");
 
-function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: string[]): SpecGroup[] {
+function groupBySpec(
+  rows: QueueRowView[],
+  targets: QueueTarget[],
+  archived?: string[],
+  unlanded?: string[],
+): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
     const key = groupKey(r.project, r.specFolder);
@@ -456,6 +470,7 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: st
   // disk is not recoverable by a filter.
   const judgeable = new Set(targets.map((t) => t.project));
   const archivedSet = new Set(archived ?? []);
+  const unlandedSet = new Set(unlanded ?? []);
   const fromJobs = [...byKey.entries()]
     // Archived beats every other reason to keep a group visible. An
     // unreadable specs root and an in-flight create job both argue for
@@ -467,13 +482,18 @@ function groupBySpec(rows: QueueRowView[], targets: QueueTarget[], archived?: st
     // "not run yet" under a job reporting done (spec 134).
     .filter(
       ([key, all]) =>
-        !archivedSet.has(key) &&
+        // ...with one exception, and only one: a spec whose own branch
+        // is STILL on origin has not finished, whatever its folder says
+        // (spec 193). Nothing else about the row changes — it reads as
+        // failed because its job does.
+        unlandedSet.has(key) ||
+        (!archivedSet.has(key) &&
         // A create job's spec is not a known target BY CONSTRUCTION: the
         // folder is what the job is making, and until it lands there is
         // nothing on disk to match. Without this it would be filtered out
         // in exactly the projects that already have specs — so the job the
         // reader just started would render nothing at all.
-        (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
+          (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate))),
     )
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
@@ -1848,7 +1868,7 @@ function groupRows(
 // gets one line, with its phases beneath it.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(rows, opts.targets, opts.archived);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.unlanded);
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length

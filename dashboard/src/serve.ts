@@ -691,6 +691,13 @@ export function createServer(opts: ServerOptions) {
         archived: string[];
         dirs: Map<string, string>;
         refs: Map<string, SpecRef>;
+        /** Where each project's specs are checked out (spec 193). Off
+         *  the same walk, because the landing's verification and the
+         *  archived-with-an-open-branch set both ask origin about the
+         *  specs repo as well as the code one — and re-walking the
+         *  projects root to learn a path this scan already read would
+         *  be a second answer to a settled question. */
+        specsRoots: Map<string, string>;
       }
     | null = null;
   const targets = (): QueueTarget[] => {
@@ -711,9 +718,11 @@ export function createServer(opts: ServerOptions) {
     // folder name. One lookup answers the title and whether the spec is
     // archived, for every spec there is.
     const refs = new Map<string, SpecRef>();
+    const specsRoots = new Map<string, string>();
     if (opts.projectRoot) {
       for (const p of discoverProjects(opts.projectRoot)) {
         if (!allowed.has(p.name)) continue;
+        specsRoots.set(p.name, p.specsRoot);
         for (const s of p.specs) {
           dirs.set(`${p.name}/${s.folder}`, s.dir);
           refs.set(`${p.name}/${s.folder}`, s);
@@ -782,8 +791,82 @@ export function createServer(opts: ServerOptions) {
         }
       }
     }
-    scan = { at: now, targets: found, archived: gone, dirs, refs };
+    scan = { at: now, targets: found, archived: gone, dirs, refs, specsRoots };
     return found;
+  };
+
+  /** `project/folder` of every ARCHIVED spec whose own `aide/<folder>`
+   *  is STILL on origin in one of its two roots (spec 193).
+   *
+   *  Being archived used to answer "did this spec finish" with
+   *  certainty. It does not: three specs reached the archive with their
+   *  code sitting on a branch and every row saying done. This is the
+   *  exception, and the same set answers both halves of it — which rows
+   *  survive archiving on the specs list, and which archive rows carry
+   *  the not-landed mark. One source, two readers.
+   *
+   *  Refreshed by the routes that already await git (`GET /`,
+   *  `GET /archive`), never on the enqueue path: `resolveProject` is
+   *  synchronous, and an answer that has not been refreshed yet is
+   *  empty — so a re-run enqueued against a stale set fails CLOSED.
+   *
+   *  The filter is the BRANCH, deliberately, and not the job's
+   *  `errorReason`: 146 carried no reason at all, and a stale reason on
+   *  an old job would resurrect a row for a spec that is genuinely
+   *  finished. */
+  let unlanded: string[] = [];
+
+  /** The two repositories a spec's work can be open in — the same pair
+   *  the dependency gate asks across, and for the same reason: a spec
+   *  merged in the code repo but not in the specs repo is not merged. */
+  const specRoots = (project: string): string[] => {
+    targets();
+    const specs = scan?.specsRoots.get(project);
+    return specs ? [projectDir(project), specs] : [projectDir(project)];
+  };
+
+  /** Which of a project's roots still have `branch` on origin. A root
+   *  that cannot be ASKED contributes nothing: an unanswerable question
+   *  is not evidence, either way. */
+  const rootsStillHolding = async (
+    project: string,
+    branch: string,
+    fresh: boolean,
+  ): Promise<string[]> => {
+    const held: string[] = [];
+    for (const root of specRoots(project)) {
+      const open = await branchStatus.openSpecBranches(root, fresh);
+      if (open?.has(branch)) held.push(root);
+    }
+    return held;
+  };
+
+  /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
+   *  spec. The archived keys come off the scan the page already keeps,
+   *  and the intersection is done in memory. */
+  const refreshUnlanded = async (): Promise<string[]> => {
+    targets();
+    const keys = scan?.archived ?? [];
+    if (keys.length === 0) return (unlanded = []);
+    const byProject = new Map<string, string[]>();
+    for (const key of keys) {
+      const cut = key.indexOf("/");
+      const project = key.slice(0, cut);
+      const list = byProject.get(project);
+      if (list) list.push(key.slice(cut + 1));
+      else byProject.set(project, [key.slice(cut + 1)]);
+    }
+    const found: string[] = [];
+    for (const [project, folders] of byProject) {
+      const open = new Set<string>();
+      for (const root of specRoots(project)) {
+        for (const branch of (await branchStatus.openSpecBranches(root)) ?? []) open.add(branch);
+      }
+      for (const folder of folders) {
+        if (open.has(specBranch(folder))) found.push(`${project}/${folder}`);
+      }
+    }
+    return (unlanded = found);
   };
 
   /** A spec's folder on this host, archived or not. Goes through
@@ -852,6 +935,16 @@ export function createServer(opts: ServerOptions) {
   const resolveProject: ProjectResolver = (project) => {
     if (!allowed.has(project)) return null;
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
+    // The way out (spec 193). An archived spec whose branch is still on
+    // origin can have `archive` enqueued again — the runner hands that
+    // step the open merge, the skill resolves it, and the landing that
+    // follows merges cleanly. Nothing else about an archived spec
+    // changes: edit and save stay refused by name, and a spec whose
+    // branch is gone is refused exactly as before.
+    const prefix = `${project}/`;
+    for (const key of unlanded) {
+      if (key.startsWith(prefix)) folders.push(key.slice(prefix.length));
+    }
     return folders.length > 0 ? { specFolders: folders } : null;
   };
   // --- spec 189: the pages that are watching --------------------------------
@@ -1538,6 +1631,33 @@ export function createServer(opts: ServerOptions) {
           if (result.reason === "conflict") reason = "conflict";
         }
       }
+      // Origin decides, not the queue's memory of its own pushes (spec
+      // 193). Archive's contract is that nothing of the spec stays
+      // open, and the loop above can only merge repos it was TOLD
+      // about — a step run by hand, a job the LRU cap has evicted, a
+      // push that half-succeeded, all leave a branch no `branchUrls`
+      // entry ever mentioned. Three specs reached the archive that way
+      // with every row saying done.
+      //
+      // `fresh`, because `mergeBranchIntoDefault` has just deleted the
+      // branch on origin and a cached answer would report every
+      // successful landing as unlanded.
+      //
+      // ARCHIVE's alone, by name and never by a denylist of the others:
+      // an `analyze` landing runs while implement's code branch is
+      // legitimately open, and the same check there would call a
+      // healthy landing failed.
+      if (what.step === "archive") {
+        for (const root of await rootsStillHolding(job.project, branch, true)) {
+          failures.push(
+            `${branch} is still on origin in ${root} — the spec was archived, but its work has not landed`,
+          );
+          // Only where nothing more specific was found: a conflict is
+          // the reason, and "unlanded" is what a conflict LOOKS like
+          // from origin.
+          reason ??= "unlanded";
+        }
+      }
       if (failures.length > 0) {
         // Whatever the success path would have written is NOT written: a
         // create job keeps its provisional key, because the job is still
@@ -1550,7 +1670,11 @@ export function createServer(opts: ServerOptions) {
         // spec 149 removed: nobody's browser is attached to a landing, so
         // the row has to be able to read the reason on any later request
         // (`queue-list.ts`, `resolveForm`).
-        queue.update(job.id, { error: failures.join("; "), errorReason: reason });
+        queue.update(job.id, {
+          error: failures.join("; "),
+          errorReason: reason,
+          ...downgrade(job.id),
+        });
         return;
       }
       // Landed. The branch is on the default branch now, so the job stops
@@ -1578,8 +1702,24 @@ export function createServer(opts: ServerOptions) {
         // enough to be one, and offering Resolve for it would send a
         // whole run at a problem it cannot fix.
         errorReason: undefined,
+        ...downgrade(job.id),
       });
     }
+  }
+
+  /** A landing that failed is not a spec that is done (spec 193).
+   *
+   *  The STEP succeeded, so `complete()` has already written `done` and
+   *  announced it; this promise settles afterwards, and until now it
+   *  wrote only a sentence nothing was drawing. Every page reads the
+   *  state through one path, so moving it is all "reads as unfinished
+   *  wherever the job is shown" takes.
+   *
+   *  Only ever DOWNGRADED from `done`: `complete()` may have queued the
+   *  job's next step in between (`runner.ts`), and a landing must not
+   *  overwrite a job that has moved on. */
+  function downgrade(id: string): { state?: "failed" } {
+    return queue.get(id)?.state === "done" ? { state: "failed" } : {};
   }
 
   /** Put a newly created spec where the page can see it (spec 93).
@@ -1928,10 +2068,15 @@ export function createServer(opts: ServerOptions) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const liveTargets = await withFreshness(targets());
       const archivedKeys = scan?.archived ?? [];
+      // One of the two routes that already await git, which is why the
+      // set is refreshed here rather than on the enqueue path (spec
+      // 193).
+      const unlandedKeys = await refreshUnlanded();
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: liveTargets,
         archived: archivedKeys,
+        unlanded: unlandedKeys,
         script: queueClientScript(),
         // Only what the config granted a budget to is offerable: a
         // dropdown naming a model the machine has not agreed to pay for
@@ -2923,6 +3068,10 @@ export function createServer(opts: ServerOptions) {
    *  straight off the walk, whole: the search reads all of it. */
   async function archivePageView(filter: ArchiveFilter = {}): Promise<ArchivePageView> {
     if (!opts.projectRoot) return { rows: [], filter };
+    // The other route that already awaits git. This is the half that
+    // reaches a spec archived before spec 193, whose job the queue's
+    // LRU cap evicted long ago — 146's case.
+    const open = new Set(await refreshUnlanded());
     const perProject = await Promise.all(
       discoverProjects(opts.projectRoot)
         .filter((p) => allowed.has(p.name))
@@ -2937,6 +3086,7 @@ export function createServer(opts: ServerOptions) {
                 description: s.description ?? undefined,
                 archivedAt: await archivedAt(s.dir),
                 href: specPagePath(p.name, s.folder),
+                notLanded: open.has(`${p.name}/${s.folder}`),
               })),
           ),
         ),

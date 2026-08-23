@@ -63,8 +63,12 @@ export interface QueueRowView {
    *  something the row can offer a way out of. Stored on the job since
    *  spec 149 and read from here: a landing happens with nobody's
    *  browser attached, so the reason cannot ride in a redirect the way
-   *  the Merge button's refusal used to. */
-  errorReason?: "conflict";
+   *  the Merge button's refusal used to.
+   *
+   *  Hand-paired with the same union on `Job` in `queue.ts` — the two
+   *  layers deliberately do not import each other, so `queue.test.ts`
+   *  reads both declarations and asserts they name the same members. */
+  errorReason?: "conflict" | "unlanded";
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
