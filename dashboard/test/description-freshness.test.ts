@@ -12,6 +12,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DescriptionFreshnessChecker,
   SpecCreatedAtChecker,
+  SpecFileCommitChecker,
   firstCommitAt,
   isAnalyzeStale,
   descriptionDiffers,
@@ -450,5 +451,182 @@ describe("SpecCreatedAtChecker", () => {
       },
     });
     expect(await checker.createdAt(DIR, FOLDER)).toBeNull();
+  });
+});
+
+// Spec 208: every question a page render asks gets a read that spawns
+// nothing. The async methods above are unchanged — a background warmer
+// is what keeps calling them — and these are what the render calls
+// instead.
+describe("DescriptionFreshnessChecker.peekStale", () => {
+  const stale = () =>
+    gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+
+  test("a spec nothing has ever asked about answers null, and spawns no git", () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: false, checkedAt: null });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, it hands back that answer and when it was taken", async () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isStale(DIR, FOLDER);
+    const before = git.calls.length;
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
+    expect(git.calls.length).toBe(before);
+  });
+
+  test("past the TTL the same answer stands, with its original timestamp", async () => {
+    const git = stale();
+    let clock = 1000;
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.isStale(DIR, FOLDER);
+    clock += 60_000;
+    expect(checker.peekStale(DIR, FOLDER)).toEqual({ stale: true, checkedAt: 1000 });
+  });
+
+  // The boundary is part of the QUESTION (spec 198), so it is part of
+  // the peek's key too — a reopened spec must not read the pre-reopen
+  // entry.
+  test("a different reopen boundary is a different question", async () => {
+    const git = stale();
+    const checker = new DescriptionFreshnessChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.isStale(DIR, FOLDER);
+    expect(checker.peekStale(DIR, FOLDER, "abc1234")).toEqual({ stale: false, checkedAt: null });
+  });
+});
+
+describe("SpecCreatedAtChecker.peekCreatedAt", () => {
+  const dated = () =>
+    fakeGit({
+      "log --format=%aI": {
+        code: 0,
+        stdout: "2026-08-22T10:00:00+02:00\n2026-08-17T09:00:00+02:00\n",
+      },
+    });
+
+  test("a spec nothing has ever asked about answers null, and spawns no git", () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: null });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, it hands back that date and when it was taken", async () => {
+    const git = dated();
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.createdAt(DIR, FOLDER);
+    const before = git.calls.length;
+    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({
+      createdAt: "2026-08-17T09:00:00+02:00",
+      checkedAt: 1000,
+    });
+    expect(git.calls.length).toBe(before);
+  });
+
+  test("past the TTL the same date stands, with its original timestamp", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.createdAt(DIR, FOLDER);
+    clock += 60_000;
+    expect(checker.peekCreatedAt(DIR, FOLDER).checkedAt).toBe(1000);
+  });
+
+  // Asked and undatable is a real answer, and a different cell from one
+  // nobody has asked yet: the first shows a dash, the second "checking…".
+  test("an undatable spec is a real, timestamped null", async () => {
+    const git = fakeGit({});
+    const checker = new SpecCreatedAtChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    await checker.createdAt(DIR, FOLDER);
+    expect(checker.peekCreatedAt(DIR, FOLDER)).toEqual({ createdAt: null, checkedAt: 5000 });
+  });
+});
+
+// Spec 208: the one question in this codebase that was added without
+// the cache every sibling has. The spec page ran `git log` for all four
+// of its files on every single view.
+describe("SpecFileCommitChecker", () => {
+  const dated = () =>
+    fakeGit({ "log -1 --format=%H": { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" } });
+
+  test("answers with the commit that last touched the file", async () => {
+    const git = dated();
+    const checker = new SpecFileCommitChecker({ run: git.run });
+    expect(await checker.commitFor(DIR, "1-description.md")).toEqual({
+      sha: "deadbee",
+      at: "2026-08-18T09:10:36+02:00",
+    });
+    expect(git.calls[0]!.args).toEqual([
+      "log", "-1", "--format=%H%x09%aI", "--", "1-description.md",
+    ]);
+    expect(git.calls[0]!.dir).toBe(DIR);
+  });
+
+  test("a second ask inside the TTL runs no git at all", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.commitFor(DIR, "1-description.md");
+    clock += 29_000;
+    await checker.commitFor(DIR, "1-description.md");
+    expect(git.calls).toHaveLength(1);
+  });
+
+  test("each file is its own question", async () => {
+    const git = dated();
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.commitFor(DIR, "1-description.md");
+    await checker.commitFor(DIR, "4-status.md");
+    expect(git.calls).toHaveLength(2);
+  });
+
+  test("a file nothing has ever asked about peeks null, and spawns no git", () => {
+    const git = dated();
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
+      sha: null,
+      at: null,
+      checkedAt: null,
+    });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, the peek hands back that stamp and when it was taken", async () => {
+    const git = dated();
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.commitFor(DIR, "1-description.md");
+    const before = git.calls.length;
+    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
+      sha: "deadbee",
+      at: "2026-08-18T09:10:36+02:00",
+      checkedAt: 1000,
+    });
+    expect(git.calls.length).toBe(before);
+  });
+
+  test("past the TTL the same stamp stands, with its original timestamp", async () => {
+    const git = dated();
+    let clock = 1000;
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.commitFor(DIR, "1-description.md");
+    clock += 60_000;
+    expect(checker.peekCommitFor(DIR, "1-description.md").checkedAt).toBe(1000);
+  });
+
+  // A file git cannot date still renders — a spec outside git, a file
+  // never committed. Asked-and-undatable is timestamped, so the page
+  // stops saying "checking…" about it.
+  test("an undatable file is a real, timestamped null", async () => {
+    const git = fakeGit({});
+    const checker = new SpecFileCommitChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    await checker.commitFor(DIR, "1-description.md");
+    expect(checker.peekCommitFor(DIR, "1-description.md")).toEqual({
+      sha: null,
+      at: null,
+      checkedAt: 5000,
+    });
   });
 });

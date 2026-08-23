@@ -553,15 +553,30 @@ describe("an archived spec whose branch is still on origin", () => {
     return rows[0]!;
   };
 
+  /** Spec 208 moved WHEN origin is asked: the render reads whatever a
+   *  background schedule last found, so the page is polled until the
+   *  first tick has landed rather than assumed to have made the call
+   *  itself. The same bounded loop `projects-route.test.ts` uses. */
+  const archivePageUntil = async (base: string, text: string, budgetMs = 2000): Promise<string> => {
+    const deadline = Date.now() + budgetMs;
+    let html = "";
+    while (Date.now() < deadline) {
+      html = await archivePage(base);
+      if (html.toLowerCase().includes(text.toLowerCase())) return html;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    return html;
+  };
+
   test("carries the not-landed mark", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await archivePage(base);
+    const html = await archivePageUntil(base, "not landed");
     expect(titleCell(html, STAMPED).toLowerCase()).toContain("not landed");
   });
 
   test("and one whose branch is gone carries none", async () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
-    const html = await archivePage(base);
+    const html = await archivePageUntil(base, "not landed");
     expect(titleCell(html, SAME_DAY).toLowerCase()).not.toContain("not landed");
   });
 
@@ -573,6 +588,19 @@ describe("an archived spec whose branch is still on origin", () => {
         ? { code: 128, stdout: "" }
         : gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
     const { base } = start({ gitRun: unreachable });
+    // Wait for a tick to have happened at all, then ask: a page checked
+    // before the schedule ran would pass for the wrong reason.
+    await archivePageUntil(base, "never appears", 200);
     expect((await archivePage(base)).toLowerCase()).not.toContain("not landed");
+  });
+
+  // Spec 208, criterion 14. The set is whatever a schedule last found,
+  // so how OLD it is decides how much of it to believe — the same
+  // treatment `driftNote` already gives the commits-behind count, and
+  // the reason a stale answer is SHOWN rather than withheld.
+  test("the mark says how old its answer is", async () => {
+    const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
+    const html = await archivePageUntil(base, "not landed");
+    expect(titleCell(html, STAMPED)).toContain("checked just now");
   });
 });

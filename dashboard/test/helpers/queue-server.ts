@@ -95,6 +95,14 @@ export function queueHarness(prefix: string): QueueHarness {
         // it would clone into the operator's real checkouts, and the
         // next suite would find them there.
         dashboardCheckoutRoot: join(dir, "owned"),
+        // Spec 208: the render reads whatever the schedule last found,
+        // so a fixture that writes its git commits AFTER the server
+        // starts — which most of them do — needs the schedule to come
+        // round again inside a test's patience. In production this is
+        // the checkers' own 30 s window; here it is a few ticks. It is
+        // both the schedule AND the window: two numbers is how a fast
+        // schedule starves, and `serve.ts` keeps them equal.
+        specCachePollMs: 40,
         ...extra,
       });
       servers.push(server);

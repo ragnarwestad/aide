@@ -375,7 +375,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // only unique within its project, and the line under the name — where
     // the project used to sit — now carries what nothing else says.
     expect(html).toContain(
-      `<a class="label" href="${SPEC_HREF}" title="aide:81-queue-and-runner">`+
+      `<a class="label" data-goto href="${SPEC_HREF}" title="aide:81-queue-and-runner">`+
         `<span class="muted">aide:</span>81-queue-and-runner</a>`,
     );
   });
@@ -425,7 +425,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
       { runnerAvailable: true, targets: [] },
     );
     expect(html).toContain(
-      '<a class="label" href="/specs/aide/81-queue-and-runner" title="aide:81-queue-and-runner">' +
+      '<a class="label" data-goto href="/specs/aide/81-queue-and-runner" title="aide:81-queue-and-runner">' +
         '<span class="muted">aide:</span>81-queue-and-runner</a>',
     );
     expect(html).toContain('href="https://example.test/compare"');
@@ -2055,7 +2055,7 @@ describe("spec 119: the list page's own tab", () => {
       { runnerAvailable: true, targets: [] },
     );
     const navHtml = html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
-    expect(navHtml).toContain('<a class="tab" data-nav href="/" aria-current="page">Specs</a>');
+    expect(navHtml).toContain('<a class="tab" data-nav data-goto href="/" aria-current="page">Specs</a>');
     expect(html).not.toContain('href="/specs"');
     expect(html).toContain('<a class="brand" href="/">');
     // The Projects tab points wherever the caller's first entry does —

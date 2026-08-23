@@ -20,6 +20,7 @@ import {
 import {
   DescriptionFreshnessChecker,
   SpecCreatedAtChecker,
+  SpecFileCommitChecker,
   lastCommitOf,
 } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
@@ -229,6 +230,14 @@ export interface ServerOptions {
    *  Omitted, it is the checker's own TTL, which is the window the
    *  answer was already considered current for. */
   driftPollMs?: number;
+  /** How often the spec caches are refilled (spec 208). Like
+   *  `driftPollMs` it is a SCHEDULE, not a cache window: every page
+   *  render reads the last answer and never takes one itself. `0` turns
+   *  the schedule off entirely — a test seam, for observing a page that
+   *  has never been warmed without racing a timer. Omitted, it is the
+   *  checkers' own TTL, which is the window each answer was already
+   *  considered current for. */
+  specCachePollMs?: number;
   runnerAvailable?: boolean;
 }
 
@@ -843,10 +852,13 @@ export function createServer(opts: ServerOptions) {
    *  survive archiving on the specs list, and which archive rows carry
    *  the not-landed mark. One source, two readers.
    *
-   *  Refreshed by the routes that already await git (`GET /`,
-   *  `GET /archive`), never on the enqueue path: `resolveProject` is
-   *  synchronous, and an answer that has not been refreshed yet is
-   *  empty — so a re-run enqueued against a stale set fails CLOSED.
+   *  Refreshed by `refreshSpecCaches` on a schedule of its own (spec
+   *  208) — never inside a request, and never on the enqueue path. It
+   *  used to be rebuilt by the two routes that already awaited git, and
+   *  that is precisely how a network `ls-remote` per project root came
+   *  to sit inside `GET /`. A root the schedule has not reached yet
+   *  contributes NOTHING, exactly as an unanswerable one does, so a
+   *  re-run enqueued against an unwarmed set still fails CLOSED.
    *
    *  The filter is the BRANCH, deliberately, and not the job's
    *  `errorReason`: 146 carried no reason at all, and a stale reason on
@@ -887,7 +899,7 @@ export function createServer(opts: ServerOptions) {
   /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
    *  spec. The archived keys come off the scan the page already keeps,
    *  and the intersection is done in memory. */
-  const refreshUnlanded = async (): Promise<string[]> => {
+  const peekUnlanded = (): string[] => {
     targets();
     const keys = scan?.archived ?? [];
     if (keys.length === 0) return (unlanded = []);
@@ -903,13 +915,36 @@ export function createServer(opts: ServerOptions) {
     for (const [project, folders] of byProject) {
       const open = new Set<string>();
       for (const root of specRoots(project)) {
-        for (const branch of (await branchStatus.openSpecBranches(root)) ?? []) open.add(branch);
+        // A root nobody has asked about yet peeks `null`, and `?? []`
+        // makes it contribute nothing — the same way an unanswerable
+        // one already did. That is what keeps this failing closed
+        // without any new logic to get wrong.
+        for (const branch of branchStatus.peekOpenSpecBranches(root).open ?? []) open.add(branch);
       }
       for (const folder of folders) {
         if (open.has(specBranch(folder))) found.push(`${project}/${folder}`);
       }
     }
     return (unlanded = found);
+  };
+
+  /** When the set was last taken, for the archive page's own label: an
+   *  answer this old is SHOWN with its age rather than withheld, the
+   *  same treatment `driftNote` gives the commits-behind count. The
+   *  OLDEST of the roots asked, because the badge speaks for all of
+   *  them, and `null` where any root has never been asked at all. */
+  const peekUnlandedCheckedAt = (): number | null => {
+    targets();
+    const keys = scan?.archived ?? [];
+    let oldest: number | null = null;
+    for (const key of keys) {
+      for (const root of specRoots(key.slice(0, key.indexOf("/")))) {
+        const { checkedAt } = branchStatus.peekOpenSpecBranches(root);
+        if (checkedAt === null) return null;
+        oldest = oldest === null ? checkedAt : Math.min(oldest, checkedAt);
+      }
+    }
+    return oldest;
   };
 
   /** A spec's folder on this host, archived or not. Goes through
@@ -1000,6 +1035,40 @@ export function createServer(opts: ServerOptions) {
     const personSpecs = scan?.specsRoots.get(project);
     const translated = personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null;
     return translated ?? dir;
+  };
+
+  /** The same translation, without ever awaiting a clone (spec 208).
+   *
+   *  `ensureCheckout` is started at boot for every allowed project, but
+   *  a clone of this very repo measured 4.3 s (spec 205's own analysis)
+   *  — so a spec page opened during the first minutes of a restart
+   *  joined that promise and held the reader for its whole duration,
+   *  showing the OLD page unchanged while it did. That is the literal
+   *  shape of "the app answers at once and never waits on git" stated
+   *  as a bug.
+   *
+   *  So "not made yet" now behaves exactly as "cannot be made" already
+   *  did: fall back to the person's own folder, which is what every
+   *  project used before spec 205 existed and what a project the
+   *  dashboard cannot clone still uses. The clone goes on in the
+   *  background and the next view reads through it.
+   *
+   *  READ paths only. `machinerySpecDir` is untouched and its other
+   *  three callers still await: `/specs/.../edit` has to read through
+   *  the SAME checkout Save will later write through, or Save's
+   *  compare-stamp check refuses as "changed since you opened it" the
+   *  first time anyone edits a spec shortly after a restart. */
+  const peekMachinerySpecDir = (project: string, dir: string): string => {
+    const checkout = resolvedCheckouts.get(project);
+    if (!checkout) {
+      // Started, not waited on — so a page opened before the boot-time
+      // ensure settles still gets the clone going for the next one.
+      void ensureCheckout(project);
+      return dir;
+    }
+    targets();
+    const personSpecs = scan?.specsRoots.get(project);
+    return (personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null) ?? dir;
   };
 
   const resolveProject: ProjectResolver = (project) => {
@@ -1248,6 +1317,17 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+  // How long ONE spec answer stands, and how often it is retaken, are
+  // the same number since spec 208 — because nothing but the schedule
+  // takes them any more. Two numbers here is how a fast schedule
+  // starves: every tick inside the window finds the entry still current
+  // and asks git nothing, so the answer never moves.
+  //
+  // `0` means the schedule is OFF, which is a test seam and not a
+  // window — the checkers keep their own default there, so an answer
+  // put in by hand still stands.
+  const specCachePollMs = opts.specCachePollMs ?? DEFAULT_TTL_MS;
+  const specCacheTtlMs = specCachePollMs > 0 ? specCachePollMs : DEFAULT_TTL_MS;
   // Spec 203: the drift check runs on a schedule of its own, and the
   // page render reads whatever it last found. This loop IS the loop
   // that used to sit inside the `GET /projects` handler — nothing about
@@ -1293,13 +1373,110 @@ export function createServer(opts: ServerOptions) {
   const mergeLock = createRootLock();
   // A third user of the same runner: has the description moved on since
   // the plan was written?
-  const freshness = new DescriptionFreshnessChecker({ run: gitRun });
+  const freshness = new DescriptionFreshnessChecker({ run: gitRun, ttlMs: specCacheTtlMs });
   // And a fourth: which steps this spec has actually had (spec 154).
-  const workflowHistory = new WorkflowHistoryChecker({ run: gitRun });
+  const workflowHistory = new WorkflowHistoryChecker({ run: gitRun, ttlMs: specCacheTtlMs });
   // A fifth: when the spec was MADE (spec 199). Git rather than the
   // queue, because the job store forgets a job once two hundred newer
   // ones exist and the folder's first commit is still there years on.
-  const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun });
+  const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  // And a sixth (spec 208): which commit last touched each spec file.
+  // The spec page asked this four times per view with no cache of its
+  // own — the one question here that was added without the treatment
+  // every sibling already had.
+  const specFileCommits = new SpecFileCommitChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+
+  /** Everything git can say about ONE spec, asked and cached. Written
+   *  once because two callers need it: the schedule below walks every
+   *  live spec through it, and `stampTotalDuration` warms the single
+   *  archived spec it is about before reading the peeks (spec 208 —
+   *  that path is a landing, not a render, and it needs a real answer
+   *  rather than "not yet known"). */
+  async function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }): Promise<void> {
+    if (!t.dir) return;
+    const dir = t.dir;
+    await Promise.all([
+      workflowHistory.read(dir, t.specFolder, t.reopenedAfter),
+      freshness.isStale(dir, t.specFolder, t.reopenedAfter),
+      specCreatedAt.createdAt(dir, t.specFolder),
+      ...SPEC_FILES.map((file) => specFileCommits.commitFor(dir, file)),
+    ]);
+  }
+
+  /** Spec 208: the ONE schedule that feeds every peek on every page.
+   *
+   *  This is `refreshDrift`'s shape (spec 203) applied to the rest of
+   *  the app. The same fix had been made three times, one page each —
+   *  178 wrote it for the whole app and was never merged, 203 shipped
+   *  it for `/projects`, and 193 put a network `ls-remote` back on the
+   *  spec list's render path the next day. What each of those loops
+   *  did inside a request, this does on a schedule; nothing about the
+   *  questions changed, only when they are asked.
+   *
+   *  Two sweeps, and the difference between them is deliberate:
+   *
+   *  - Every LIVE spec, in full. That set is bounded by what is on the
+   *    board, and it is the set every row of `/` draws from.
+   *  - Every root that holds an archived spec, for the one network
+   *    question (`openSpecBranches`), plus the archive DATE of an
+   *    archived spec whose `4-status.md` carries no stamp — a small and
+   *    shrinking set, since the archive step has written the stamp
+   *    since spec 147. Warming an archived spec the way a live one is
+   *    warmed is the unbounded cost spec 178's own plan review
+   *    rejected, and is not done.
+   *
+   *  The roots go out CONCURRENTLY, unlike the `for`-loop this
+   *  replaces: that loop paid one TCP/TLS round trip to GitHub per
+   *  root, one after another, inside `GET /`. Nothing is holding its
+   *  breath for the answer any more, so there is no reason to.
+   *
+   *  A spec that leaves `targets()` — archived, or removed — simply
+   *  stops being walked; its last cached answer is left where it is
+   *  and nothing asks about it again. */
+  let warming = false;
+  async function refreshSpecCaches(): Promise<void> {
+    // The tick does strictly more work than `refreshDrift`, so the
+    // single-flight guard is explicit rather than implied: two ticks
+    // running at once would double the in-flight subprocess and network
+    // count on a machine that also runs the jobs.
+    if (warming) return;
+    warming = true;
+    try {
+      const live = targets();
+      const archivedKeys = scan?.archived ?? [];
+      const roots = new Set<string>();
+      const archivedDirs: string[] = [];
+      for (const key of archivedKeys) {
+        const cut = key.indexOf("/");
+        for (const root of specRoots(key.slice(0, cut))) roots.add(root);
+        const dir = scan?.dirs.get(key);
+        // Only the ones git would be asked about anyway: a spec whose
+        // status file already stamps the date never reaches git at all.
+        if (dir && !specArchivedDate(dir)) archivedDirs.push(dir);
+      }
+      await Promise.all([
+        // Each call try/catches internally and degrades to null or to
+        // nothing-known, so one unreachable origin never takes the
+        // others with it.
+        ...[...roots].map((root) => branchStatus.openSpecBranches(root)),
+        ...archivedDirs.map((dir) => specFileCommits.commitFor(dir, ".")),
+        ...live.map((t) => warmSpec(t)),
+      ]);
+    } finally {
+      warming = false;
+    }
+  }
+  // `.unref()`'d and cleared in `stop()` like every other timer in this
+  // file — `bun test` runs many suites in one process, and a timer from
+  // a stopped test's server would go on firing into the next one.
+  const specCacheTimer =
+    specCachePollMs > 0
+      ? (() => {
+          void refreshSpecCaches();
+          return setInterval(() => void refreshSpecCaches(), specCachePollMs);
+        })()
+      : null;
+  specCacheTimer?.unref?.();
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -2223,14 +2400,19 @@ export function createServer(opts: ServerOptions) {
     // job results. A step a job completed is not necessarily a step
     // that counts: `withFreshness` takes `analyze` back out when the
     // description moved on after it, and the list then shows no total.
-    const [fresh] = await withFreshness([
-      {
-        project: job.project,
-        specFolder: job.specFolder,
-        dir,
-        reopenedAfter: parseStatus(current).reopenedAfter,
-      },
-    ]);
+    const spec = {
+      project: job.project,
+      specFolder: job.specFolder,
+      dir,
+      reopenedAfter: parseStatus(current).reopenedAfter,
+    };
+    // `withFreshness` is a peek since spec 208, and this spec has just
+    // been archived — the schedule walks the LIVE list, so nothing has
+    // ever asked git about this folder. Warmed first, deliberately:
+    // this is a landing, not a render, and a figure worked out from
+    // "not yet known" would be written down and outlive the mistake.
+    await warmSpec(spec);
+    const [fresh] = withFreshness([spec]);
     const rows = await Promise.all(
       queue
         .list()
@@ -2290,39 +2472,45 @@ export function createServer(opts: ServerOptions) {
    *  A spec with no `dir` — a create job's spec, which is the folder the
    *  job is making — has no history to read and keeps the empty
    *  done-set it arrived with. */
-  async function withFreshness(list: QueueTarget[]): Promise<QueueTarget[]> {
-    return Promise.all(
-      list.map(async (t) => {
-        if (!t.dir) return t;
-        const history = await workflowHistory.read(t.dir, t.specFolder, t.reopenedAfter);
-        const fileSteps = t.fileSteps ?? [];
-        // `create` is settled by the folder being on disk, which is
-        // what `t.dir` being set already proves — a stronger source
-        // than the commit log, since a spec written by hand has no
-        // `Run /aide-create` commit at all. Whenever the row is drawn
-        // the spec exists, so "create not run yet" cannot be true
-        // (spec 176). The pip has read it this way since spec 167; the
-        // phase LINE reads the same set now, one layer down.
-        const done = history.done.includes("create") ? history.done : ["create", ...history.done];
-        const withHistory: QueueTarget = {
-          ...t,
-          done,
-          stopped: history.stopped,
-          fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
-          // What the "Started" column holds (spec 199). Null when git
-          // could not answer — a shallow clone, a folder moved without
-          // `git mv` — and then the cell shows a dash rather than a
-          // job's own time, which is the field this replaces.
-          createdAt: (await specCreatedAt.createdAt(t.dir, t.specFolder)) ?? undefined,
-        };
-        if (!(await freshness.isStale(t.dir, t.specFolder, t.reopenedAfter))) return withHistory;
-        return {
-          ...withHistory,
-          analyzeStale: true,
-          done: done.filter((s) => s !== "analyze"),
-        };
-      }),
-    );
+  function withFreshness(list: QueueTarget[]): QueueTarget[] {
+    return list.map((t) => {
+      if (!t.dir) return t;
+      // Peeks, never the async methods (spec 208). A render reads
+      // memory and disk and nothing else; `refreshSpecCaches` is what
+      // keeps these three fed, on a schedule of its own.
+      const { history, checkedAt } = workflowHistory.peekHistory(t.dir, t.specFolder, t.reopenedAfter);
+      // Nothing has ever been asked about this spec. Not "no step has
+      // run" — that is a real answer with a real, empty history — and
+      // the row draws "checking…" rather than a false negative,
+      // which is the class of bug spec 178's own plan review flagged.
+      if (history === null || checkedAt === null) return { ...t, freshnessUnknown: true };
+      const fileSteps = t.fileSteps ?? [];
+      // `create` is settled by the folder being on disk, which is
+      // what `t.dir` being set already proves — a stronger source
+      // than the commit log, since a spec written by hand has no
+      // `Run /aide-create` commit at all. Whenever the row is drawn
+      // the spec exists, so "create not run yet" cannot be true
+      // (spec 176). The pip has read it this way since spec 167; the
+      // phase LINE reads the same set now, one layer down.
+      const done = history.done.includes("create") ? history.done : ["create", ...history.done];
+      const withHistory: QueueTarget = {
+        ...t,
+        done,
+        stopped: history.stopped,
+        fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
+        // What the "Started" column holds (spec 199). Null when git
+        // could not answer — a shallow clone, a folder moved without
+        // `git mv` — and then the cell shows a dash rather than a
+        // job's own time, which is the field this replaces.
+        createdAt: specCreatedAt.peekCreatedAt(t.dir, t.specFolder).createdAt ?? undefined,
+      };
+      if (!freshness.peekStale(t.dir, t.specFolder, t.reopenedAfter).stale) return withHistory;
+      return {
+        ...withHistory,
+        analyzeStale: true,
+        done: done.filter((s) => s !== "analyze"),
+      };
+    });
   }
 
   /** Run the project's own install, once its code has landed. Bounded by
@@ -2494,12 +2682,11 @@ export function createServer(opts: ServerOptions) {
 
     if (path === "/") {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const liveTargets = await withFreshness(targets());
+      const liveTargets = withFreshness(targets());
       const archivedKeys = scan?.archived ?? [];
-      // One of the two routes that already await git, which is why the
-      // set is refreshed here rather than on the enqueue path (spec
-      // 193).
-      const unlandedKeys = await refreshUnlanded();
+      // Read, never taken (spec 208). `refreshSpecCaches` is what asks
+      // origin; this route reads whatever it last found.
+      const unlandedKeys = peekUnlanded();
       const view = {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: liveTargets,
@@ -2592,7 +2779,7 @@ export function createServer(opts: ServerOptions) {
       const html = renderNewSpecPage(nav(), new Date().toISOString(), {
         token: queueToken,
         createProjects: [...allowed].sort(),
-        targets: await withFreshness(targets()),
+        targets: withFreshness(targets()),
         script: queueClientScript(),
         // Why the last submission was refused, carried back here by the
         // create route's own redirect.
@@ -3167,7 +3354,7 @@ export function createServer(opts: ServerOptions) {
     // second opinion about it.
     if (path === ARCHIVE_ROUTE) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const view = await archivePageView({
+      const view = archivePageView({
         q: url.searchParams.get("q") ?? undefined,
         sort: url.searchParams.get("sort") ?? undefined,
         dir: url.searchParams.get("dir") ?? undefined,
@@ -3512,13 +3699,28 @@ export function createServer(opts: ServerOptions) {
    *  A file git cannot date still renders — a spec outside git, a file
    *  never committed. The content is what the page is for; the stamp is
    *  what tells one version from another when there is one to tell. */
-  async function specFileViews(dir: string): Promise<SpecFileView[]> {
-    return Promise.all(
-      SPEC_FILES.map(async (name) => {
-        const commit = await lastCommitOf(gitRun, dir, name);
-        return { label: name, text: specFileText(dir, name), sha: commit?.sha, at: commit?.at };
-      }),
-    );
+  function specFileViews(dir: string): SpecFileView[] {
+    return SPEC_FILES.map((name) => {
+      const { sha, at, checkedAt } = specFileCommits.peekCommitFor(dir, name);
+      // The one cache in this spec a sweep over the live list cannot
+      // fill: an ARCHIVED spec's page is a real render path too, and
+      // archived specs are not `targets()`'s business. So the fill is
+      // started from the request and never waited on — bounded by how
+      // many archived specs anyone actually opens, rather than by how
+      // many exist, which is the unbounded cost spec 178's own plan
+      // review rejected. The next view of this page has the stamp.
+      if (checkedAt === null) void specFileCommits.commitFor(dir, name);
+      return {
+        label: name,
+        text: specFileText(dir, name),
+        sha: sha ?? undefined,
+        at: at ?? undefined,
+        // Nothing has ever asked. Not "git cannot date this file" —
+        // that is a real, timestamped answer and shows no stamp at all,
+        // exactly as it did before this cache existed.
+        checking: checkedAt === null,
+      };
+    });
   }
 
   /** WHEN a spec was archived. The stamp the archive step writes into
@@ -3534,13 +3736,20 @@ export function createServer(opts: ServerOptions) {
    *  `null` from both is a real answer and the page prints it in words.
    *  Only a spec with no stamp reaches git, which since spec 147 is a
    *  shrinking minority. */
-  async function archivedAt(dir: string): Promise<string | null> {
+  function archivedAt(dir: string): { date: string | null; checking: boolean } {
     const stamped = specArchivedDate(dir);
-    if (stamped) return stamped;
-    const commit = await lastCommitOf(gitRun, dir, ".");
+    if (stamped) return { date: stamped, checking: false };
+    // A peek since spec 208, and the same "read, never take" rule as
+    // everywhere else: `refreshSpecCaches` warms exactly this question,
+    // for exactly the archived specs that have no stamp on disk.
+    const { at, checkedAt } = specFileCommits.peekCommitFor(dir, ".");
+    // Nothing is started from here, unlike `specFileViews`: this exact
+    // question is on the warmer's own sweep, for exactly the archived
+    // specs that have no stamp, so `/archive` spawns nothing at all.
+    if (checkedAt === null) return { date: null, checking: true };
     // The DATE, not the instant: every stamp on disk is a date, and one
     // column reading two ways is worse than either.
-    return commit?.at ? commit.at.slice(0, 10) : null;
+    return { date: at ? at.slice(0, 10) : null, checking: false };
   }
 
   /** The archive listing, built off the same walk and the same
@@ -3553,37 +3762,40 @@ export function createServer(opts: ServerOptions) {
    *  left to do here, and the rules that decide what a reader sees
    *  belong beside the headings that offer them. `description` comes
    *  straight off the walk, whole: the search reads all of it. */
-  async function archivePageView(filter: ArchiveFilter = {}): Promise<ArchivePageView> {
+  function archivePageView(filter: ArchiveFilter = {}): ArchivePageView {
     if (!opts.projectRoot) return { rows: [], filter };
-    // The other route that already awaits git. This is the half that
-    // reaches a spec archived before spec 193, whose job the queue's
-    // LRU cap evicted long ago — 146's case.
-    const open = new Set(await refreshUnlanded());
-    const perProject = await Promise.all(
-      discoverProjects(opts.projectRoot)
-        .filter((p) => allowed.has(p.name))
-        .map(async (p): Promise<ArchivedSpecView[]> =>
-          Promise.all(
-            p.specs
-              .filter((s) => s.archived)
-              .map(async (s) => ({
-                project: p.name,
-                folder: s.folder,
-                title: s.title ?? undefined,
-                description: s.description ?? undefined,
-                archivedAt: await archivedAt(s.dir),
-                href: specPagePath(p.name, s.folder),
-                notLanded: open.has(`${p.name}/${s.folder}`),
-                // The stored figure and nothing else (spec 207): the
-                // queue's own records are gone for all but the newest
-                // rows here, and a column that answered for some of
-                // them out of memory would be a column whose blanks
-                // move about.
-                durationMs: specDurationMs(s.dir) ?? undefined,
-              })),
-          ),
-        ),
-    );
+    // This is the half that reaches a spec archived before spec 193,
+    // whose job the queue's LRU cap evicted long ago — 146's case. Read,
+    // never taken (spec 208), like `GET /`: `refreshSpecCaches` is what
+    // asks origin, and how old its answer is rides with the mark.
+    const open = new Set(peekUnlanded());
+    const openCheckedAt = peekUnlandedCheckedAt();
+    const perProject = discoverProjects(opts.projectRoot)
+      .filter((p) => allowed.has(p.name))
+      .map((p): ArchivedSpecView[] =>
+        p.specs
+          .filter((s) => s.archived)
+          .map((s) => {
+            const when = archivedAt(s.dir);
+            const notLanded = open.has(`${p.name}/${s.folder}`);
+            return {
+              project: p.name,
+              folder: s.folder,
+              title: s.title ?? undefined,
+              description: s.description ?? undefined,
+              archivedAt: when.date,
+              dateChecking: when.checking,
+              href: specPagePath(p.name, s.folder),
+              notLanded,
+              notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
+              // The stored figure and nothing else (spec 207): the
+              // queue's own records are gone for all but the newest
+              // rows here, and a column that answered for some of them
+              // out of memory would be a column whose blanks move about.
+              durationMs: specDurationMs(s.dir) ?? undefined,
+            };
+          }),
+      );
     return { rows: perProject.flat(), filter };
   }
 
@@ -3595,7 +3807,7 @@ export function createServer(opts: ServerOptions) {
     // visible. The person's checkout catches up when the specs cron
     // pulls it, and the Update button is what closes that gap on
     // demand.
-    const dir = await machinerySpecDir(project, found);
+    const dir = peekMachinerySpecDir(project, found);
     const ref = specRef(project, specFolder);
     // Whatever is in flight, or failing that the most recently active —
     // the rule `jobGroup` uses for the row's own lead, over the same
@@ -3609,7 +3821,7 @@ export function createServer(opts: ServerOptions) {
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
     const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
     const lead = jobs.find(inFlight) ?? jobs[0];
-    const files = await specFileViews(dir);
+    const files = specFileViews(dir);
     // Off the text `specFileViews` has already read, so the page makes
     // no second git or disk read for the same file.
     const status = files.find((f) => f.label === STATUS_SPEC_FILE);
@@ -3689,6 +3901,7 @@ export function createServer(opts: ServerOptions) {
     stop: () => {
       if (timer) clearInterval(timer);
       if (driftTimer) clearInterval(driftTimer);
+      if (specCacheTimer) clearInterval(specCacheTimer);
       clearInterval(keepAlive);
       closeSpecWatchers();
       // Every watching page, let go of deliberately: `server.stop(true)`

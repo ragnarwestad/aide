@@ -13,7 +13,7 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { stateChip, type QueueRowView } from "./job-state.ts";
-import { filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
+import { CHECKING, filterPills, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -54,6 +54,12 @@ export interface SpecFileView {
   text: string | null;
   sha?: string;
   at?: string;
+  /** Nobody has yet asked git which commit this file is at (spec 208).
+   *  A different state from "git could not say": that one shows no
+   *  stamp at all, exactly as it did before the answer was cached, and
+   *  this one says so. Set only by the SPEC page, which is the one that
+   *  asks. */
+  checking?: boolean;
 }
 
 export interface JobDetailView extends QueueRowView {
@@ -213,7 +219,11 @@ export function specFilePanel(file: SpecFileView, now: number, editHref?: string
   const stamp =
     file.sha && file.at
       ? ` <span class="muted small">committed ${relTime(file.at, now)} · ${esc(file.sha.slice(0, 7))}</span>`
-      : "";
+      : file.checking
+        // Spec 208: the page renders now and the stamp arrives on the
+        // next view. It never holds the page for a `git log`.
+        ? ` <span class="muted small">${CHECKING}</span>`
+        : "";
   // Spec 162: one of the four files is a person's to write, and only the
   // SPEC page passes a link for it. A step's own output — which is what
   // this page shows through the same function — is not a thing to hand

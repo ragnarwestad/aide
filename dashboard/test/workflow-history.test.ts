@@ -183,6 +183,60 @@ describe("WorkflowHistoryChecker", () => {
   });
 });
 
+// Spec 208: the read a page render makes. `history: null` is the whole
+// point of the shape — a spec the warmer has not reached yet is not a
+// spec with no steps, and a row that said "nothing has run" about it
+// would be exactly the false negative this spec exists to stop.
+describe("WorkflowHistoryChecker.peekHistory", () => {
+  test("a spec nothing has ever asked about answers null, and spawns no git", () => {
+    const git = gitLogging(subject("analyze"));
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
+    expect(checker.peekHistory(DIR, FOLDER)).toEqual({ history: null, checkedAt: null });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a read, it hands back that history and when it was taken", async () => {
+    const git = gitLogging(subject("analyze"));
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
+    await checker.read(DIR, FOLDER);
+    const before = git.calls.length;
+    const { history, checkedAt } = checker.peekHistory(DIR, FOLDER);
+    expect(history).toEqual({ done: ["analyze"], stopped: {} });
+    expect(checkedAt).toBe(1000);
+    expect(git.calls.length).toBe(before);
+  });
+
+  // The distinction the render depends on: a real, empty history is an
+  // answer ("nothing has run yet"); a null one is the absence of one.
+  test("a real empty history is not the same as never having asked", async () => {
+    const git = fakeGit({ log: { code: 128, stdout: "" } });
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 5000 });
+    await checker.read(DIR, FOLDER);
+    expect(checker.peekHistory(DIR, FOLDER)).toEqual({
+      history: { done: [], stopped: {} },
+      checkedAt: 5000,
+    });
+  });
+
+  test("past the TTL the same history stands, with its original timestamp", async () => {
+    const git = gitLogging(subject("analyze"));
+    let clock = 1000;
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => clock });
+    await checker.read(DIR, FOLDER);
+    clock += 60_000;
+    expect(checker.peekHistory(DIR, FOLDER).checkedAt).toBe(1000);
+  });
+
+  // The boundary is part of the question (spec 198), so it is part of
+  // the peek's key too.
+  test("a different reopen boundary is a different question", async () => {
+    const git = gitLogging(subject("analyze"));
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
+    await checker.read(DIR, FOLDER);
+    expect(checker.peekHistory(DIR, FOLDER, "abc1234").history).toBeNull();
+  });
+});
+
 // --- what only real git can prove -------------------------------------------
 
 const gitIn = (dir: string, ...args: string[]) =>

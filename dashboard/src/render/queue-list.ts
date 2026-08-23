@@ -27,6 +27,7 @@ import { NEW_SPEC_ROUTE } from "./site.ts";
 // links to it (spec 150).
 import { specPagePath } from "./spec-page.ts";
 import {
+  CHECKING,
   badge,
   btn,
   filterPills,
@@ -105,6 +106,13 @@ export interface QueueTarget {
    *  git could not answer, and then the cell shows a dash — never a
    *  job's time, which would put the movement straight back. */
   createdAt?: string;
+  /** Nothing has yet asked git anything about this spec (spec 208).
+   *  Not "no step has run" — that is a real answer — and the row says
+   *  "checking…" rather than draw a done-set, a Started date and a
+   *  staleness badge it has no answers for. Set by the server when
+   *  `refreshSpecCaches` has not reached this spec yet, and true for at
+   *  most one poll interval after a restart. */
+  freshnessUnknown?: boolean;
   /** Why the last archive run did NOT move the folder, from the spec's
    *  own `## Archive held back` section. Archive is the one phase whose
    *  file-truth is always false for a row still on this page — a spec
@@ -516,6 +524,10 @@ interface SpecGroup {
   /** This spec's description has moved on since its last analysis. The
    *  analyze line says so; nothing is blocked by it. */
   analyzeStale: boolean;
+  /** Nothing has yet asked git anything about this spec (spec 208).
+   *  The row draws "checking…" where it would otherwise state a fact it
+   *  does not have. */
+  freshnessUnknown?: boolean;
 }
 
 /** Fold branch entries by label, most-recently-active row winning a
@@ -561,13 +573,17 @@ function emptyGroup(t: QueueTarget): SpecGroup {
  *  spec's done-set or progress is the one way this join can go wrong. */
 function fromTarget(
   t: QueueTarget | undefined,
-): Pick<SpecGroup, "done" | "title" | "phase" | "dependsOn" | "analyzeStale" | "createdAt"> {
+): Pick<
+  SpecGroup,
+  "done" | "title" | "phase" | "dependsOn" | "analyzeStale" | "createdAt" | "freshnessUnknown"
+> {
   return {
     done: t?.done ?? [],
     title: t?.title,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
     analyzeStale: t?.analyzeStale ?? false,
+    freshnessUnknown: t?.freshnessUnknown,
     // From the TARGET and from nowhere else (spec 199). There is
     // deliberately no fallback to a job's own `createdAt`/`startedAt`:
     // that is the field this change exists to stop reading, and a
@@ -1042,7 +1058,9 @@ const phaseWordCell = (
  *  table has no width to give — the same constraint that put the
  *  attempt count beside a badge rather than under it. */
 function startedCell(g: SpecGroup, now: number): string {
-  const made = g.createdAt ? relTime(g.createdAt, now) : "–";
+  // A dash means git was asked and could not date the folder. Nobody
+  // having asked yet is a different cell (spec 208).
+  const made = g.createdAt ? relTime(g.createdAt, now) : g.freshnessUnknown ? CHECKING : "–";
   if (g.totalDurationMs === undefined) return made;
   return (
     `${made} <span class="muted small" data-total="1" ` +
@@ -1359,6 +1377,11 @@ function specSummary(g: SpecGroup): string {
   // says nothing to anyone. There the title is the only readable thing
   // the row has, and it stays until the spec lands.
   if (!g.named && g.title) bits.push(esc(g.title));
+  // Spec 208. Whatever git knows about this spec is not in yet — the
+  // schedule that fills the caches has not reached it. Said out loud
+  // rather than drawn as "nothing has run": that false negative is the
+  // whole reason the peeks carry a `checkedAt` at all.
+  if (g.freshnessUnknown) bits.push(CHECKING);
   // By NUMBER since 2026-08-21, not by folder. This line used to match
   // `aide-run-spec`'s dependency refusal word for word, which names the
   // whole folder; the number is what a reader recognises, it is
@@ -1409,8 +1432,13 @@ function specHeadRow(
   // line under the name, beside the title; it belongs to the NAME — a
   // folder number is only unique within its project — and the line
   // under it now carries what nothing else says.
+  // `data-goto` (spec 208): a real navigation to a different document,
+  // which no script can swap in — so the click is MARKED and the
+  // browser is left to get on with it. Without it the reader saw the
+  // old page, unchanged, for however long `specPageView` took, and a
+  // click that changes nothing reads as a click that did not register.
   const spec =
-    `<a class="label" href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+    `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
     `title="${esc(g.project)}:${esc(g.specFolder)}">` +
     `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`;
   // The mark beside each link is about the BRANCH alone (spec 174):

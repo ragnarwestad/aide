@@ -22,8 +22,8 @@
 // would add page state and boundary rules to solve nothing, and every
 // row being present is what keeps the browser's own find useful.
 
-import { badge } from "./components.ts";
-import { esc } from "./html.ts";
+import { CHECKING, badge } from "./components.ts";
+import { esc, relTimeLabel } from "./html.ts";
 import { durationLabel } from "./job-state.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { ARCHIVE_ROUTE } from "./site.ts";
@@ -54,6 +54,20 @@ export interface ArchivedSpecView {
    *  whose job the queue's LRU cap evicted long ago — 146's case, which
    *  carried no failure reason at all. */
   notLanded?: boolean;
+  /** When that answer was last taken — epoch ms, the checker's own
+   *  cache stamp (spec 208). The set is whatever a background schedule
+   *  last found, so how OLD it is decides how much of it to believe:
+   *  the mark says so, the same way `driftNote` labels a commits-behind
+   *  count. Absent for a row carrying no mark, and for one whose answer
+   *  has never been taken. */
+  notLandedCheckedAt?: number;
+  /** Nobody has yet asked git when this spec was archived (spec 208).
+   *  Only a spec whose `4-status.md` carries no `Archived:` stamp can
+   *  reach git at all, so this is the shrinking minority of a shrinking
+   *  minority — and the cell says "checking…" for it rather than
+   *  `date unknown`, which is what a spec git ASKED about and could not
+   *  date says. */
+  dateChecking?: boolean;
   /** What the spec cost in TIME: its phases added together, in
    *  milliseconds, off the `Time spent (ms)` stamp its archive landing
    *  wrote into `4-status.md` (spec 207). Absent for every spec
@@ -267,18 +281,33 @@ function head(r: Resolved): string {
   );
 }
 
-function specRow(s: ArchivedSpecView): string {
+/** What the mark says on hover, age included (spec 208). Spelled out
+ *  here rather than at the call site so the fact and its freshness
+ *  cannot drift apart — the same reason `driftNote` exists one page
+ *  over, and the same wording, because it is the same idea: an answer a
+ *  schedule took is shown WITH how old it is rather than withheld.
+ *
+ *  `relTimeLabel`, not `relTime` — this goes in a `title` attribute,
+ *  where markup would show as literal tags. `checkedAt` is epoch ms
+ *  (the checker's cache stamp) and the label takes an ISO string. */
+function notLandedTitle(checkedAt: number | undefined, now: number): string {
+  const why = "its branch is still on origin — re-run archive";
+  if (checkedAt === undefined) return why;
+  return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
+}
+
+function specRow(s: ArchivedSpecView, now: number): string {
   const title = s.title ? `<p class="spec-title">${esc(s.title)}</p>` : "";
   // Beside the link a reader would follow, because the mark is a reason
   // to follow it: the spec needs its `archive` run again.
   const mark = s.notLanded
-    ? ` ${badge("refused", NOT_LANDED, "its branch is still on origin — re-run archive")}`
+    ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
     : "";
   return (
     `<tr><td>${esc(s.project)}</td>` +
     `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +
     `<td><div class="archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
-    `<td class="archive-date">${esc(s.archivedAt ?? NO_DATE)}</td>` +
+    `<td class="archive-date">${esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE))}</td>` +
     // Blank, and deliberately not the dash the description cell uses or
     // the words the date cell uses: a spec archived before spec 207
     // recorded nothing, and "nothing was recorded" is what an empty
@@ -309,7 +338,7 @@ export function renderArchivePage(
       searchForm(r) +
       (shown.length
         ? `<div class="tablewrap"><table class="list">${head(r)}\n` +
-          `<tbody>${shown.map(specRow).join("\n")}</tbody></table></div>`
+          `<tbody>${shown.map((s) => specRow(s, Date.parse(generatedAt) || 0)).join("\n")}</tbody></table></div>`
         : `<p class="empty">No archived spec matches that search.</p>`);
 
   // No meta refresh: the archive is a record, and a record does not

@@ -517,3 +517,60 @@ describe("BranchStatusChecker.openSpecBranches", () => {
   });
 });
 
+
+// Spec 208: the same read `peekDrift` gives the drift count, for the
+// question spec 193 added a day after spec 203 shipped the pattern —
+// and added without it, which is what put a network `ls-remote` back on
+// the spec list's render path.
+describe("BranchStatusChecker.peekOpenSpecBranches", () => {
+  const LISTED =
+    "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n" +
+    "b7e1d05feedface0000000000000000000000000\trefs/heads/aide/178-nobody-waits\n";
+
+  test("a root nothing has ever asked about answers null, and spawns no git", () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({ open: null, checkedAt: null });
+    expect(git.calls.length).toBe(0);
+  });
+
+  test("after a check, it hands back that set and when it was taken", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.openSpecBranches("/repos/aide");
+    const before = git.calls.length;
+    const { open, checkedAt } = checker.peekOpenSpecBranches("/repos/aide");
+    expect([...open!].sort()).toEqual(["aide/178-nobody-waits", "aide/191-one-answer"]);
+    expect(checkedAt).toBe(1000);
+    // A read, not a check: the peek itself asked git nothing.
+    expect(git.calls.length).toBe(before);
+  });
+
+  // Shown stale, never withheld — the same rule `peekDrift` keeps, and
+  // the reason the archive row can label how old its answer is.
+  test("past the TTL the same set stands, with its original timestamp", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    let clock = 1000;
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => clock });
+    await checker.openSpecBranches("/repos/aide");
+    clock += 60_000;
+    expect(checker.peekOpenSpecBranches("/repos/aide").checkedAt).toBe(1000);
+    expect(checker.peekOpenSpecBranches("/repos/aide").open!.size).toBe(2);
+  });
+
+  // Fail-open, preserved through the peek: asked and unanswerable is a
+  // different root from one nobody has asked yet.
+  test("an unanswerable check is a real, timestamped null", async () => {
+    const git = fakeGit({ "ls-remote": { code: 128, stdout: "" } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 5000 });
+    await checker.openSpecBranches("/repos/aide");
+    expect(checker.peekOpenSpecBranches("/repos/aide")).toEqual({ open: null, checkedAt: 5000 });
+  });
+
+  test("the peek is per root — one repo's answer never stands in for another's", async () => {
+    const git = fakeGit({ "ls-remote": { code: 0, stdout: LISTED } });
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    await checker.openSpecBranches("/repos/aide");
+    expect(checker.peekOpenSpecBranches("/repos/aide-specs")).toEqual({ open: null, checkedAt: null });
+  });
+});

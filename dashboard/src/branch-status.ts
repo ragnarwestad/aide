@@ -310,6 +310,28 @@ export class BranchStatusChecker {
     return open;
   }
 
+  /** The LAST answer this checker holds for `root`, without asking git
+   *  at all (spec 208) — the same read `peekDrift` gives the drift
+   *  count, for the question spec 193 added a day after spec 203
+   *  shipped the pattern, and added without it.
+   *
+   *  This is what a page render calls. `openSpecBranches` is a network
+   *  `ls-remote`, one round trip to origin per root, and it sat inside
+   *  `GET /` and `GET /archive` — which is how the spec list came to
+   *  measure 6.7 seconds cold. `refreshSpecCaches` is what keeps this
+   *  warm now; the reader never takes the answer itself.
+   *
+   *  `checkedAt` is `null` only where NOTHING has ever been asked, and
+   *  `open` is then `null` too — which every caller already treats as
+   *  "claim nothing", so an unwarmed root goes on failing CLOSED
+   *  exactly as an unanswerable one does. Past the TTL the cached set
+   *  still comes back — stale, not withheld — so the archive row can
+   *  label how old it is. */
+  peekOpenSpecBranches(root: string): { open: Set<string> | null; checkedAt: number | null } {
+    const hit = this.openCache.get(root);
+    return hit ? { open: hit.open, checkedAt: hit.at } : { open: null, checkedAt: null };
+  }
+
   /** Drop one cached answer. A merge performed by this process changes
    *  the answer it just cached, and a reader who presses Merge and
    *  reloads must not be told "not merged" for the rest of the TTL. */

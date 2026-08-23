@@ -245,6 +245,16 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .btn.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
 .btn.busy { color: var(--muted); border-color: var(--line); cursor: progress; }
 .btn:disabled { opacity: 0.45; cursor: default; }
+/* Spec 208: the two kinds of waiting .btn.busy does not cover. A
+   press has always changed the button that was pressed; opening a row,
+   folding the list and moving between tabs changed nothing at all, and
+   seven silent seconds read as a dead app.
+
+   Deliberately quiet — a dim and a progress cursor, no spinner and no
+   reserved space. The rows are about to be replaced or the document is
+   about to change; anything louder would flash on every fast answer,
+   which is most of them now. */
+.awaiting { opacity: 0.55; cursor: progress; }
 /* Deliberately not a second button of the same size: the merge override
    is a way out for someone who means it, and must not be the thing a
    mouse lands on. */

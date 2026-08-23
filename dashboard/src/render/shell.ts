@@ -163,8 +163,16 @@ function tabBar(entries: NavEntry[], currentPath: string): string {
   // Real tabs, not filter pills: a hairline the row sits on, and the
   // current tab marked by an underline in the accent colour (asked for
   // 2026-08-19, with PaceUp's tab bar as the reference).
+  // `data-goto` (spec 208): these are real page loads, and were the
+  // literal case 1-description.md measured — five seconds from Projects
+  // to Specs with nothing on the screen saying anything had happened.
+  // `data-nav` stays and is still inert for them: the only listener
+  // that reads it is bound to `#jobrows`, and this row sits outside it.
+  // `navigate()` would be the wrong fix even if it did reach here —
+  // `swapRows()` always fetches the Specs list, never the tab's own
+  // target.
   const tab = (label: string, href: string, on: boolean) =>
-    `<a class="tab" data-nav href="${href}"${on ? ` aria-current="page"` : ""}>${label}</a>`;
+    `<a class="tab" data-nav data-goto href="${href}"${on ? ` aria-current="page"` : ""}>${label}</a>`;
   return (
     `<nav class="tabbar">` +
     tab("Specs", "/", currentPath === "/") +

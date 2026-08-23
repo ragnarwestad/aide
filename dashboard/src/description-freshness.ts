@@ -231,6 +231,27 @@ export class DescriptionFreshnessChecker {
     this.cache.set(key, { at, stale });
     return stale;
   }
+
+  /** The LAST answer this checker holds, without asking git at all
+   *  (spec 208) — the same read `peekDrift` gives the drift count, and
+   *  what the spec list calls now instead of `isStale`.
+   *
+   *  `checkedAt` is `null` only where NOTHING has ever been asked, and
+   *  `stale` is then `false` — the same direction every unknown in this
+   *  module takes, so a row the warmer has not reached yet wears no
+   *  badge. The row says "checking…" rather than claiming the plan is
+   *  current; the value alone would not be enough to tell the two
+   *  apart, which is why `checkedAt` rides with it.
+   *
+   *  Keyed the same way `isStale` keys, boundary included: the boundary
+   *  is part of the QUESTION (spec 198). */
+  peekStale(dir: string, specFolder: string, boundarySha?: string): {
+    stale: boolean;
+    checkedAt: number | null;
+  } {
+    const hit = this.cache.get(JSON.stringify([dir, specFolder, boundarySha ?? null]));
+    return hit ? { stale: hit.stale, checkedAt: hit.at } : { stale: false, checkedAt: null };
+  }
 }
 
 export interface SpecCreatedAtOptions {
@@ -279,5 +300,84 @@ export class SpecCreatedAtChecker {
 
     this.cache.set(key, { at, createdAt });
     return createdAt;
+  }
+
+  /** The LAST date this checker holds, without asking git at all (spec
+   *  208). `checkedAt` is `null` only where nothing has ever been
+   *  asked, and the Started cell then says "checking…"; a real,
+   *  timestamped `null` is a spec git could not date, and that cell
+   *  shows a dash, which is what it showed before this column meant
+   *  anything. */
+  peekCreatedAt(dir: string, specFolder: string): { createdAt: string | null; checkedAt: number | null } {
+    const hit = this.cache.get(JSON.stringify([dir, specFolder]));
+    return hit ? { createdAt: hit.createdAt, checkedAt: hit.at } : { createdAt: null, checkedAt: null };
+  }
+}
+
+export interface SpecFileCommitOptions {
+  run: GitRunner;
+  ttlMs?: number;
+  now?: () => number;
+}
+
+/** WHICH VERSION of a spec file is on the screen — the commit that last
+ *  touched it (spec 150), cached, shaped exactly like the two checkers
+ *  above it (spec 208).
+ *
+ *  It is the one question in this codebase that was added without the
+ *  cache every sibling has: the spec page ran `git log` for all four of
+ *  its files on every single view, warm server or not. Nothing about
+ *  `lastCommitOf` itself needed changing — it is a plain, cacheable
+ *  function two other readers in this file already use correctly — only
+ *  its one uncached caller did.
+ *
+ *  Its key is the file, so `"."` (the spec's own FOLDER, which is what
+ *  the archive page's date falls back to) is a question of its own and
+ *  never answered with a file's stamp. */
+export class SpecFileCommitChecker {
+  private readonly run: GitRunner;
+  private readonly ttlMs: number;
+  private readonly now: () => number;
+  private readonly cache = new Map<string, { at: number; commit: { sha: string; at: string } | null }>();
+
+  constructor(opts: SpecFileCommitOptions) {
+    this.run = opts.run;
+    this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
+    this.now = opts.now ?? Date.now;
+  }
+
+  async commitFor(dir: string, file: string): Promise<{ sha: string; at: string } | null> {
+    // JSON, for the reason the checkers above give: a NUL in a source
+    // file makes git treat that file as binary from then on.
+    const key = JSON.stringify([dir, file]);
+    const hit = this.cache.get(key);
+    const at = this.now();
+    if (hit && at - hit.at < this.ttlMs) return hit.commit;
+
+    let commit: { sha: string; at: string } | null = null;
+    try {
+      commit = await lastCommitOf(this.run, dir, file);
+    } catch {
+      commit = null;
+    }
+
+    this.cache.set(key, { at, commit });
+    return commit;
+  }
+
+  /** The LAST stamp this checker holds, without asking git at all.
+   *  `checkedAt` is `null` only where nothing has ever been asked — the
+   *  panel then says "checking…" and the render fires the fill without
+   *  waiting on it. A real, timestamped null is a file git cannot date
+   *  (a spec outside git, a file never committed), and the panel shows
+   *  no stamp at all, exactly as it did before this class existed. */
+  peekCommitFor(dir: string, file: string): {
+    sha: string | null;
+    at: string | null;
+    checkedAt: number | null;
+  } {
+    const hit = this.cache.get(JSON.stringify([dir, file]));
+    if (!hit) return { sha: null, at: null, checkedAt: null };
+    return { sha: hit.commit?.sha ?? null, at: hit.commit?.at ?? null, checkedAt: hit.at };
   }
 }

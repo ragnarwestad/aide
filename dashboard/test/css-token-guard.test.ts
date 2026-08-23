@@ -209,6 +209,10 @@ describe("a class is declared in one place", () => {
  *  wants to look like has to be one of these. */
 const COMPONENTS = [
   "btn", "primary", "ok", "danger", "busy", "spin",
+  // Spec 208: what a control wears between the click and the answer,
+  // for the two kinds of waiting a BUTTON's `busy` does not cover — an
+  // in-page row swap, and a real navigation to another document.
+  "awaiting",
   "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
   "phases", "phase", "default", "checked", "done", "off", "box",
   "rowmsg", "err", "warn", "info",

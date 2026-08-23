@@ -47,6 +47,20 @@ export const ICON_WARN =
 /** Something is happening. A span, not an SVG: it is one CSS rotation. */
 export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 
+/** What a page says where an answer has not arrived yet (spec 208).
+ *
+ *  Every question a render used to block on is a peek now, and a peek
+ *  can say three things, not two: the answer, "asked and unanswerable",
+ *  and "nobody has asked yet". This is the third. It is spelled out in
+ *  one place because five call sites across three pages say it, and a
+ *  page wording the same absence differently in two cells is a page
+ *  whose two cells look like two different states.
+ *
+ *  It is NOT what an unanswerable question says — a spec git cannot
+ *  date still shows a dash, and a file git cannot date still shows no
+ *  stamp, exactly as each did before any of this was cached. */
+export const CHECKING = "checking…";
+
 // --- the step's name is not the reader's word --------------------------------
 
 /** What a phase is CALLED on the page. Empty since spec 181: `review`

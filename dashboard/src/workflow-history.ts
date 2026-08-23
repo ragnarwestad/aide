@@ -204,6 +204,27 @@ export class WorkflowHistoryChecker {
     this.cache.set(key, { at, history });
     return history;
   }
+
+  /** The LAST history this checker holds, without asking git at all
+   *  (spec 208) — the same read `peekDrift` gives the drift count, and
+   *  what the spec list calls now instead of `read`.
+   *
+   *  `history: null` is the whole point of the shape. A real, empty
+   *  history is an ANSWER — "git can prove nothing has run" — and a
+   *  null one is the absence of one, which the row draws as "checking…"
+   *  rather than as a spec still ahead of its workflow. A peek that
+   *  handed back `EMPTY` for both would put back exactly the false
+   *  negative this spec exists to stop.
+   *
+   *  Keyed the same way `read` keys, boundary included: the boundary is
+   *  part of the QUESTION (spec 198). */
+  peekHistory(dir: string, specFolder: string, boundarySha?: string): {
+    history: WorkflowHistory | null;
+    checkedAt: number | null;
+  } {
+    const hit = this.cache.get(JSON.stringify([dir, specFolder, boundarySha ?? null]));
+    return hit ? { history: hit.history, checkedAt: hit.at } : { history: null, checkedAt: null };
+  }
 }
 
 /** The steps `4-status.md`'s own line and the history do not agree

@@ -103,6 +103,43 @@ const phaseDone = (group: string, step: string): boolean =>
 const openQuery = (...keys: string[]): string => `open=${encodeURIComponent(keys.join(","))}`;
 const OPEN_81 = openQuery("aide/81-queue-and-runner");
 
+/** The spec list, asked again until `ok` holds (spec 208).
+ *
+ *  A render reads memory now — the git answers behind a row arrive on
+ *  the cache schedule's own tick, not inside the request. Every fixture
+ *  below that makes its commits or edits its files AFTER the server
+ *  started is therefore asserting something that lands a tick later,
+ *  and the ONE thing that changed for these tests is that they ask
+ *  again rather than once.
+ *
+ *  Bounded, and it falls through with the last answer it got: a genuine
+ *  regression then reads as the assertion it broke rather than as a
+ *  timeout with nothing to look at. The same idiom `projects-route.test.ts`
+ *  has used for the drift poll since spec 203. */
+const listUntil = async (
+  base: string,
+  ok: (html: string) => boolean,
+  budgetMs = 3000,
+): Promise<string> => {
+  const deadline = Date.now() + budgetMs;
+  let html = "";
+  for (;;) {
+    html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    if (ok(html) || Date.now() > deadline) return html;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+};
+
+/** Git has dated the spec's folder — which it can only do once the
+ *  fixture's own `ran()` has made the repo, and once the cache schedule
+ *  has come round since (spec 208). `–` is the cell before either. */
+const dated = (html: string): boolean =>
+  !specControls(html, "81-queue-and-runner").includes('data-col="started">–');
+
+/** The commonest of those predicates: this phase's own line says done. */
+const rowSaysDone = (step: string, folder = "81-queue-and-runner") => (html: string): boolean =>
+  phaseDone(specControls(html, folder), step);
+
 describe("no token configured", () => {
   test("every queue route is 503; /api/aide-runs and POST /api/aide-run are unaffected", async () => {
     const { base } = start();
@@ -565,7 +602,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
-    const html = await (await fetch(`${base}/?${OPEN_81}`, auth)).text();
+    const html = await listUntil(base, rowSaysDone("analyze"));
     // Said done by the phase line's own State column — the box beside
     // it carries no second mark (spec 124) — and still submittable.
     const analyze = specControls(html, "81-queue-and-runner")
@@ -709,7 +746,7 @@ describe("GET / (the spec list, HTML)", () => {
     const pages = renderSite([{ name: "p", manifest: { ok: true, data: { name: "p" } }, specs: [] }], "2026-08-16");
     for (const p of pages) {
       expect(p.html).toContain('<a class="brand" href="/">');
-      expect(p.html).toContain('<a class="tab" data-nav href="/">Specs</a>');
+      expect(p.html).toContain('<a class="tab" data-nav data-goto href="/">Specs</a>');
     }
   });
 });
@@ -885,7 +922,7 @@ describe("the step boxes on a row follow that spec", () => {
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await listUntil(base, rowSaysDone("analyze"));
     const line = specControls(html, "81-queue-and-runner");
     // analyze is done; implement is what you came for.
     expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze"(?![^>]*checked)/);
@@ -917,8 +954,7 @@ describe("the step boxes on a row follow that spec", () => {
       statusSaying(["create", "analyze"]),
     );
     ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
-    const line = specControls(html, "81-queue-and-runner");
+    const line = specControls(await listUntil(base, rowSaysDone("analyze")), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(line).not.toMatch(/value="analyze" checked/);
     expect(line).toMatch(/value="implement" checked/);
@@ -1006,7 +1042,7 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     const { base, dir } = start({ queueToken: TOKEN });
     writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
-    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    const line = specControls(await listUntil(base, rowSaysDone("analyze")), "81-queue-and-runner");
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
@@ -1033,7 +1069,7 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
   test("a spec with no status file at all has had nothing, and does not throw (criterion 4)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     rmSync(join(specDir(dir), "4-status.md"));
-    const line = specControls(await (await fetch(`${base}/?${OPEN_81}`, auth)).text(), "81-queue-and-runner");
+    const line = specControls(await listUntil(base, rowSaysDone("create")), "81-queue-and-runner");
     // Spec 176: the folder is on disk, so `create` happened — whatever
     // git records. The steps this test is the guard for are the other
     // four, which stay correctly not done.
@@ -1055,7 +1091,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     );
     ran(dir, ["create", "analyze"]);
 
-    let html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    let html = await listUntil(base, rowSaysDone("analyze"));
     expect(html).toMatch(/value="implement" checked/);
 
     // Record a completed implement in the queue's own history, exactly
@@ -1084,9 +1120,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
       queueMirrorPath: join(dir, "queue.json"),
       projectRoot: join(dir, "root"),
     });
-    html = await (
-      await fetch(`${second.base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
-    ).text();
+    html = await listUntil(second.base, rowSaysDone("analyze"));
     expect(html).toMatch(/value="implement" checked/);
     // `archive` is ticked here too and always is (spec 200: every phase
     // the spec has left starts ticked), so what says implement is not
@@ -1110,7 +1144,7 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     );
     ran(dir, ["create", "analyze", "implement"]);
 
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    const html = await listUntil(base, rowSaysDone("implement"));
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(true);
     expect(html).toMatch(/value="archive" checked/);
     // The button is named for the phase a press would run (spec 157) —
@@ -1131,7 +1165,10 @@ describe("the spec's own history says what has happened, not the queue's", () =>
       ),
     );
 
-    const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
+    // Spec 208: written after the server started, so the disk scan the
+    // boot-time cache warm took is a scan of the file before this one.
+    // The watcher clears it and the row catches up a tick later.
+    const html = await listUntil(base, (h) => h.includes("held back"));
     expect(html).toContain("held back");
     expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
   });
@@ -4324,9 +4361,29 @@ describe("what a spec cost in time is written when its archive lands (spec 207)"
 // The commits are the record now. The file's line is a claim, and a
 // claim the history does not support is said out loud on the row.
 describe("spec 154: what has run is what has been committed", () => {
-  const auth = { headers: { "x-aide-token": TOKEN } };
   const specDir = (dir: string) => join(dir, "root", "aide", "specs", "81-queue-and-runner");
-  const listPage = (base: string) => fetch(`${base}/?${OPEN_81}`, auth).then((r) => r.text());
+  /** Spec 208: every fixture here writes its `4-status.md` and makes
+   *  its commits AFTER the server started, and a render reads memory
+   *  now. Two things have to catch up before the row is the row this
+   *  suite is about — the cache schedule has to have seen the git repo
+   *  at all, and the filesystem watcher has to have cleared the disk
+   *  scan the boot-time tick took — so the page is asked again until
+   *  the row stops changing.
+   *
+   *  The Started cell is the git half's tell: `–` until git can date
+   *  the folder, a real date once the repo exists. The stability of the
+   *  whole row is the disk half's, since what the file claims differs
+   *  per test and there is no one string to wait for. Bounded, and it
+   *  falls through with the last answer so a regression reads as the
+   *  assertion it broke. */
+  const listPage = async (base: string): Promise<string> => {
+    // Past the filesystem watcher's own 300 ms debounce (`serve.ts`,
+    // `scheduleNotify`), which is what clears the disk scan the
+    // boot-time warm took. Waiting for the ROW to stop changing does
+    // not do it: the row is stable for those 300 ms, at the old answer.
+    await new Promise((r) => setTimeout(r, 400));
+    return listUntil(base, dated);
+  };
 
   // Criterion 1: the 153 incident.
   test("a copied 4-status.md cannot make a fresh spec look analysed", async () => {
@@ -4584,7 +4641,12 @@ describe("a description newer than the analysis is shown on the row", () => {
       gitRun: gitFake({}).run,
     });
     analysedSpec(dir);
-    const html = await listPage(base);
+    // Spec 208: the file's own claim reaches the row off the disk scan,
+    // and that scan was taken at boot — before `analysedSpec` wrote.
+    // The watcher clears it and the row catches up a tick later.
+    const html = await listUntil(base, (h) =>
+      specControls(h, "81-queue-and-runner").includes("the files disagree with what has run"),
+    );
     expect(html).not.toContain("description changed since");
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
@@ -6468,16 +6530,166 @@ describe("the dashboard works in checkouts of its own (spec 205)", () => {
         "# Mine, half-written\n",
       );
       expect(git(person, "status", "--porcelain=v1", "--branch")).toBe(before);
-      // And the only thing their directory was ever asked is the one
-      // read-only question this design rests on: which origin to clone
-      // the dashboard's own checkout from. Nothing switched, merged,
-      // committed or pushed there.
+      // And nothing their directory was ever asked can CHANGE it.
+      //
+      // The one question this design rests on is still there — which
+      // origin to clone the dashboard's own checkout from — and since
+      // spec 208 the cache schedule asks the person's spec folders the
+      // same read-only questions the page render used to ask them
+      // inside a request. That is the same reading, on a clock; what
+      // spec 205 exists to prevent is a WRITE, and the list below is
+      // every verb that would be one.
       const asked = recorded.calls
         .filter((c) => c.dir === person || c.dir.startsWith(`${person}/`))
         .map((c) => c.args.join(" "));
-      expect([...new Set(asked)]).toEqual(["remote get-url origin"]);
+      expect(asked).toContain("remote get-url origin");
+      const writes = ["checkout", "switch", "merge", "commit", "push", "add", "fetch", "reset", "clean"];
+      expect(asked.filter((a) => writes.includes(a.split(" ")[0]!))).toEqual([]);
     } finally {
       server.stop();
     }
+  });
+});
+
+// Spec 208: a render reads memory and disk, and nothing else.
+//
+// This has been introduced three times — spec 178 wrote the rule and
+// was never merged, spec 203 fixed `/projects`, and spec 193 put a
+// network `ls-remote` back on `/` the next day. So it is asserted here
+// rather than left to care: the request path spawns NO git, warm or
+// cold, and a cold page says what it does not know instead of holding
+// the reader.
+describe("no render path runs git or a network command (spec 208)", () => {
+  /** Everything the render could conceivably ask git, recorded. The
+   *  checkout the dashboard makes for itself is a background job of its
+   *  own (spec 205) and is started at boot, not by a request — so the
+   *  count is taken across a request rather than over the process. */
+  function recording() {
+    const calls: { dir: string; args: string[] }[] = [];
+    const run: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      const line = args.join(" ");
+      if (args[0] === "ls-remote") return { code: 0, stdout: "" };
+      if (line.startsWith("log --format=%aI")) return { code: 0, stdout: "2026-08-17T09:00:00+02:00\n" };
+      if (line.startsWith("log -1 --format=%H")) {
+        return { code: 0, stdout: "deadbee\t2026-08-18T09:10:36+02:00\n" };
+      }
+      if (line.startsWith("log --all")) return { code: 0, stdout: "" };
+      return { code: 1, stdout: "" };
+    };
+    return { run, calls };
+  }
+
+  const get = async (base: string, path: string): Promise<Response> =>
+    await fetch(`${base}${path}`, { headers: { "x-aide-token": TOKEN } });
+
+  async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
+    const deadline = Date.now() + budgetMs;
+    while (Date.now() < deadline) {
+      if (check()) return true;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    return check();
+  }
+
+  // Criterion 5: the schedule is off, so nothing has ever been warmed —
+  // and the pages still answer, with no git spawned by the request.
+  test("cold, GET / and GET /?rows=1 spawn nothing and say what they do not know", async () => {
+    const git = recording();
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      archivedSpecs: { "77-old-thing": {} },
+    });
+    const before = git.calls.length;
+    const html = await (await get(base, "/")).text();
+    expect(git.calls.length).toBe(before);
+    // Not a false "nothing has run": the row says the answer is not in
+    // yet. This is the shape spec 178's own plan review flagged.
+    expect(html).toContain("checking…");
+    const rows = await (await get(base, "/?rows=1")).text();
+    expect(git.calls.length).toBe(before);
+    expect(rows).toContain("checking…");
+  });
+
+  // Criterion 6.
+  test("warm, GET / spawns nothing of its own and shows the warmed answers", async () => {
+    const git = recording();
+    // One tick and then nothing for a hundred seconds: the schedule
+    // cannot fire again while the request is in flight, so the count
+    // taken across it is the REQUEST's own and nobody else's.
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 100_000 },
+    });
+    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --format=%aI")));
+    await new Promise((r) => setTimeout(r, 100));
+    const before = git.calls.length;
+    const html = await (await get(base, "/")).text();
+    expect(git.calls.length).toBe(before);
+    expect(html).not.toContain("checking…");
+  });
+
+  // Criterion 8.
+  test("cold, GET /archive renders with a checking date rather than blocking on git", async () => {
+    const git = recording();
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      // No `Archived:` stamp on disk, so the date is git's to answer —
+      // which is exactly the row that used to reach `lastCommitOf`.
+      archivedSpecs: { "77-old-thing": { status: "# Status\n" } },
+    });
+    const before = git.calls.length;
+    const res = await get(base, "/archive");
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(git.calls.length).toBe(before);
+    expect(html).toContain("checking…");
+  });
+
+  // Criterion 9: the dashboard's own clone (spec 205) is started at
+  // boot and takes seconds. A spec page opened before it lands falls
+  // back to the person's own checkout instead of waiting for it.
+  test("a spec page does not wait for the dashboard's own clone", async () => {
+    let releaseClone = (): void => {};
+    const held = new Promise<void>((r) => (releaseClone = r));
+    const git = recording();
+    const slowClone: GitRunner = async (dir, args) => {
+      if (args[0] === "clone") await held;
+      return git.run(dir, args);
+    };
+    const { base } = harness.start({
+      extra: { gitRun: slowClone, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+    });
+    const started = Date.now();
+    const res = await get(base, "/specs/aide/81-queue-and-runner");
+    const took = Date.now() - started;
+    releaseClone();
+    expect(res.status).toBe(200);
+    // Well under a real clone, which measured 4.3 s for this very repo.
+    expect(took).toBeLessThan(1500);
+    expect(await res.text()).toContain("81-queue-and-runner");
+  });
+
+  // Criterion 10: the one cache a sweep over the live list cannot fill —
+  // an archived spec's page is a real render path too. It fills itself
+  // from the request, without the request ever waiting on it.
+  test("a spec page's file stamps fill in behind the request, never during it", async () => {
+    const git = recording();
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+    });
+    const before = git.calls.length;
+    const first = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+    // The stamps are not known yet, and the page says so rather than
+    // holding for four `git log`s.
+    expect(first).toContain("checking…");
+    expect(first).not.toContain("deadbee");
+    // The fire-and-forget fill did run — it was simply never awaited.
+    expect(await until(() => git.calls.length > before)).toBe(true);
+    let second = "";
+    for (let i = 0; i < 40 && !second.includes("deadbee"); i += 1) {
+      second = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+      if (!second.includes("deadbee")) await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(second).toContain("deadbee");
   });
 });
