@@ -216,6 +216,64 @@ export function specArchivedDate(dir: string): string | null {
   return m[1].replace(/`/g, "").trim() || null;
 }
 
+/** The line the archive-time stamp is written on and read off (spec
+ *  207). Its own bullet in Tracking info, beside `Archived:` — one
+ *  section holds everything a machine wrote about the spec's own run.
+ *
+ *  Milliseconds, not the label `durationLabel` draws: `"3h12m"` and
+ *  `"45s"` cannot be compared, and the archive sorts on this. */
+const TIME_SPENT_LINE = /^.*\*\*Time spent \(ms\):\*\*[ \t]*(.*)$/m;
+
+/** WHAT the spec cost in time: its phases added together, in
+ *  milliseconds, off the stamp the dashboard writes when the archive
+ *  step's branch lands (spec 207).
+ *
+ *  A THIRD reader of `4-status.md` beside `specArchivedDate` and
+ *  `parse-status.ts`, on the same terms as the first: its own function,
+ *  its own line, and `null` for every way the value can be missing —
+ *  no file, no line, a line with nothing after it, a line with
+ *  something that is not a count of milliseconds on it. Never a guess,
+ *  because a guessed figure is worse than the blank cell the archive
+ *  already draws for every spec finished before this existed.
+ *
+ *  `0` is a VALUE, not an absence, and the caller has to keep it one:
+ *  a spec whose phases measured nothing measured nothing, and sinking
+ *  it to the bottom of a sort beside the rows that have no figure at
+ *  all would say something else. */
+export function specDurationMs(dir: string): number | null {
+  const status = specFileText(dir, "4-status.md");
+  if (!status) return null;
+  const m = status.match(TIME_SPENT_LINE);
+  if (!m) return null;
+  const value = m[1]!.replace(/`/g, "").trim();
+  // Digits and nothing else: `Number("")` is 0 and `Number(" 12 ")` is
+  // 12, and both would turn a line that says nothing into a figure.
+  if (!/^\d+$/.test(value)) return null;
+  const ms = Number(value);
+  return Number.isSafeInteger(ms) ? ms : null;
+}
+
+/** The same line, written: first bullet under `## Tracking info`, so
+ *  the figure sits where a reader of the file looks for what the run
+ *  cost.
+ *
+ *  A file with no `## Tracking info` heading comes back UNCHANGED —
+ *  there is nowhere to put the line, and inventing a section is a
+ *  guess about a file this function does not own. The caller compares
+ *  what it got back against what it passed in and writes nothing when
+ *  they are equal, which is why this returns a string rather than
+ *  refusing with `null` the way `withDependsOnLine` does: nothing is
+ *  reported to anybody here, so there is nobody to report to.
+ *
+ *  The caller is also what keeps it from being written twice — see
+ *  `specDurationMs` above, which is asked first. */
+export function stampDuration(content: string, ms: number): string {
+  return content.replace(
+    /^(## Tracking info[ \t]*\r?\n(?:[ \t]*\r?\n)?)/m,
+    `$1- **Time spent (ms):** \`${ms}\`\n`,
+  );
+}
+
 // `[ \t]*`, never `\s*`: `\s` matches a newline, and a trailing `\s*`
 // would run an empty field straight into the `---` on the next line.
 const DEPENDS_ON_LINE = /^[ \t]*-[ \t]*\*\*Depends on:\*\*[ \t]*(.*)$/m;

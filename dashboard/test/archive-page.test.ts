@@ -39,7 +39,22 @@ const UNDATED = "31-a-folder-copied-in";
  *  the two projects have to interleave for it to come out on top. */
 const OTHER = "05-the-other-project";
 
-const stamp = (date: string) => `# Status\n\n## Tracking info\n\n- **Archived:** \`${date}\`\n`;
+/** Spec 207 added a second machine-written bullet to the same section.
+ *  `ms` absent is a spec archived before that existed, which is the
+ *  blank-cell case 1-description.md names by hand. */
+const stamp = (date: string, ms?: number) =>
+  `# Status\n\n## Tracking info\n\n` +
+  (ms === undefined ? "" : `- **Time spent (ms):** \`${ms}\`\n`) +
+  `- **Archived:** \`${date}\`\n`;
+
+/** What the stamped fixture cost, in milliseconds. Named so the tests
+ *  assert on the figure the fixture wrote rather than on a literal that
+ *  could drift away from it. */
+const STAMPED_MS = 4_530_000;
+/** A spec whose phases measured nothing. Falsy, present, and the whole
+ *  reason the sort's null-sink cannot be a truthy check. */
+const ZERO_MS = 0;
+const OTHER_MS = 90_000;
 const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
 const described = (title: string, prose: string) =>
@@ -58,7 +73,7 @@ const LONG =
 const ARCHIVED = {
   [STAMPED]: {
     description: described("One page shows the whole spec", "Every spec file on one page."),
-    status: stamp("2026-08-13"),
+    status: stamp("2026-08-13", STAMPED_MS),
   },
   [UNSTAMPED]: {
     description: described("The push is branch only", `A run pushes a branch. ${LONG}`),
@@ -66,13 +81,13 @@ const ARCHIVED = {
   },
   [SAME_DAY]: {
     description: described("The queue remembers", "Jobs survive a restart."),
-    status: stamp("2026-08-13"),
+    status: stamp("2026-08-13", ZERO_MS),
   },
   // No `## Description` section at all: the dash case.
   [UNDATED]: { description: "# A folder copied in - Description\n", status: noStamp },
   [OTHER]: {
     description: described("The other project", "Proof that projects interleave."),
-    status: stamp("2026-08-20"),
+    status: stamp("2026-08-20", OTHER_MS),
     project: "skjer",
   },
 };
@@ -154,14 +169,15 @@ describe("the archived date on a row", () => {
 // --- criterion 1: one table, four columns -----------------------------------
 
 describe("the /archive table", () => {
-  test("is one table with exactly Project, Title, Description and Date", async () => {
+  test("is one table with exactly Project, Title, Description, Date and Duration", async () => {
     const html = await archivePage(start().base);
     const head = html.slice(html.indexOf("<thead"), html.indexOf("</thead>"));
     // The lookahead keeps `<thead>` itself out of the count.
-    expect([...head.matchAll(/<th(?=[\s>])[^>]*>/g)]).toHaveLength(4);
+    expect([...head.matchAll(/<th(?=[\s>])[^>]*>/g)]).toHaveLength(5);
     expect(head.indexOf("Project")).toBeLessThan(head.indexOf("Title"));
     expect(head.indexOf("Title")).toBeLessThan(head.indexOf("Description"));
     expect(head.indexOf("Description")).toBeLessThan(head.indexOf("Date"));
+    expect(head.indexOf("Date")).toBeLessThan(head.indexOf("Duration"));
     // One table, not one per project: the sections and their jump-links
     // are what this replaced.
     expect([...html.matchAll(/<table/g)]).toHaveLength(1);
@@ -236,7 +252,7 @@ describe("the sortable headings", () => {
 
   test("are ordinary links, so sorting needs no script", async () => {
     const html = await archivePage(start().base);
-    for (const label of ["Project", "Title", "Date"]) {
+    for (const label of ["Project", "Title", "Date", "Duration"]) {
       expect(heading(html, label)).toContain('<a class="sortlink');
     }
     expect(heading(html, "Project")).toContain('href="/archive?sort=project"');
@@ -285,6 +301,85 @@ describe("the sortable headings", () => {
   test("a sort nobody offers is the default rather than an error", async () => {
     const odd = await archivePage(start().base, "?sort=colour&dir=sideways");
     expect(order(odd)).toEqual(order(await archivePage(start().base)));
+  });
+});
+
+// --- spec 207: what the spec cost in time ------------------------------------
+//
+// The archive listed a spec's project, title, description and date, and
+// not the one figure worth comparing over time. The live spec list has
+// always shown it — the phases added together — but it is worked out
+// from job records the queue caps at two hundred, and the archive holds
+// ninety specs and grows. So the figure is WRITTEN into `4-status.md`
+// when the archive step lands, and this column reads what was written.
+// Nothing here asks the queue: these fixtures have no jobs at all,
+// which is the eviction case (criterion 2) by construction.
+
+describe("the Duration column (spec 207, criteria 2, 3, 4, 7)", () => {
+  /** One row, whole, found by the folder link that names it. */
+  const cell = (html: string, folder: string): string => {
+    const at = html.indexOf(`>${folder}</a>`);
+    expect(at).toBeGreaterThan(-1);
+    return html.slice(html.lastIndexOf("<tr", at), html.indexOf("</tr>", at));
+  };
+
+  const durationCell = (html: string, folder: string): string =>
+    cell(html, folder).match(/<td class="archive-duration">(.*?)<\/td>/)?.[1] ?? "MISSING";
+
+  // Criterion 2. No job for this spec exists anywhere in this fixture's
+  // queue, so the figure can only have come off the file.
+  test("shows the stored figure, with no job left to work it out from", async () => {
+    const html = await archivePage(start().base);
+    expect(durationCell(html, STAMPED)).toBe("1h15m");
+  });
+
+  // Criterion 3. Blank, not a dash: the date says "date unknown" and
+  // the description says "—", and 1-description.md asks for neither
+  // here — "a row with no figure is blank".
+  test("a spec archived before this existed has an empty cell, not a dash", async () => {
+    const html = await archivePage(start().base);
+    expect(durationCell(html, UNSTAMPED)).toBe("");
+    expect(durationCell(html, UNDATED)).toBe("");
+  });
+
+  test("a spec that measured nothing says so as a figure, not as a blank", async () => {
+    expect(durationCell(await archivePage(start().base), SAME_DAY)).toBe("0s");
+  });
+
+  // Criterion 4. The same contract the other three columns keep.
+  test("the heading is a link, and the active one says which way it is turned", async () => {
+    const plain = await archivePage(start().base);
+    expect(plain).toContain('href="/archive?sort=duration"');
+    const sorted = await archivePage(start().base, "?sort=duration");
+    const head = sorted.slice(sorted.indexOf("<thead"), sorted.indexOf("</thead>"));
+    const th = [...head.matchAll(/<th(?=[\s>])[^>]*>.*?<\/th>/gs)].map((m) => m[0]).find((c) => c.includes("Duration"))!;
+    // Longest first on the first click, the way the money column reads.
+    expect(th).toContain('aria-sort="descending"');
+    expect(th).toContain('href="/archive?sort=duration&amp;dir=asc"');
+  });
+
+  // Criterion 4. `localeCompare(..., { numeric: true })` reads only the
+  // digit runs inside a string: it would put "3h12m" before "45s",
+  // which is why the sort key is the raw millisecond count.
+  test("sorts by the figure, not by the label it is drawn as", async () => {
+    const rows = order(await archivePage(start().base, "?sort=duration"));
+    // 4 530 000 > 90 000 > 0, and the two unstamped rows sink.
+    expect(rows.slice(0, 3)).toEqual([STAMPED, OTHER, SAME_DAY]);
+  });
+
+  // Criterion 7. The `0` row is the one this is really about: it is
+  // falsy, so a truthy null-sink would have dropped it to the bottom
+  // beside the rows that genuinely have nothing.
+  test("turned round, only the rows with no figure stay at the bottom", async () => {
+    const rows = order(await archivePage(start().base, "?sort=duration&dir=asc"));
+    expect(rows.slice(0, 3)).toEqual([SAME_DAY, OTHER, STAMPED]);
+    expect(rows.slice(3).sort()).toEqual([UNDATED, UNSTAMPED].sort());
+  });
+
+  test("a duration sorted either way keeps the same rows", async () => {
+    const asc = order(await archivePage(start().base, "?sort=duration&dir=asc"));
+    const desc = order(await archivePage(start().base, "?sort=duration&dir=desc"));
+    expect([...asc].sort()).toEqual([...desc].sort());
   });
 });
 

@@ -70,7 +70,9 @@ export {
 // `FILTER_KEYS`/`FILTER_FIELD_PREFIX` are the page's, not the server's:
 // the forms send the view and the server sends it back, and one list
 // kept in two places would eventually forget a key on one side.
-export { FILTER_FIELD_PREFIX, FILTER_KEYS, renderQueuePage, renderQueueRows } from "./render/queue-list.ts";
+export {
+  FILTER_FIELD_PREFIX, FILTER_KEYS, computeSpecTotalDurationMs, renderQueuePage, renderQueueRows,
+} from "./render/queue-list.ts";
 export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-list.ts";
 
 export type { BranchView, QueueRowView } from "./render/job-state.ts";

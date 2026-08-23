@@ -90,14 +90,14 @@ named anywhere in this repo.
   standing, with no readiness section. Token required, like every other
   `/projects` path.
 - `/archive` — every ARCHIVED spec in ONE table: Project, Title,
-  Description and Date, each folder linking to its own
+  Description, Date and Duration, each folder linking to its own
   `/specs/<project>/<spec>` page (specs 163, 170). It was a heading per
   project until spec 170; the project became a CELL because the question
   a long archive actually asks — what was archived recently, whichever
   project it came from — is the one sections make unanswerable.
-  Project, Title and Date sort, both ways, through `?sort=` and `?dir=`
-  in the query string, exactly as the spec list's headings do; clicking
-  the sorted heading turns it round. Description does not sort: prose
+  Project, Title, Date and Duration sort, both ways, through `?sort=`
+  and `?dir=` in the query string, exactly as the spec list's headings
+  do; clicking the sorted heading turns it round. Description does not sort: prose
   sorts to nothing anyone came for. `?q=` filters, through a GET form,
   over the folder, the title and the WHOLE description — including the
   part the column's two-line clamp does not show, which the note under
@@ -113,7 +113,30 @@ named anywhere in this repo.
   the archive that predates the stamp, the commit that last touched the
   folder; a spec neither can date reads "date unknown" rather than
   leaving the column blank, and a spec with no `## Description` section
-  reads as a dash. Reached from the nav, labelled "Archive". Token
+  reads as a dash. Duration is what the spec cost in TIME — its phases
+  added together, the same figure the spec list shows for a spec still
+  in flight (spec 207). It is READ off a `- **Time spent (ms):** \`<n>\``
+  bullet in `4-status.md` and never worked out here: the figure comes
+  from the queue's job records, the queue keeps 200 jobs, and the
+  archive holds 90 and grows — so a figure not written down is one
+  almost every archived row would be missing. What writes it is
+  `stampTotalDuration` in `serve.ts`, on the `Landing.onLanded` hook,
+  the moment an `archive` step's branch has actually MERGED; it calls
+  `computeSpecTotalDurationMs` — the spec list's OWN summing function,
+  exported from `render/queue-list.ts` for this — with a `done` set from
+  the same `withFreshness` the list uses, so the stored figure and the
+  one the list showed cannot drift apart. It writes once (a second
+  archive finds the bullet and leaves it), writes through
+  `saveSpecFile` under the same `mergeLock` the merge just used, writes
+  in the dashboard's OWN checkout (spec 205), and never fails anything:
+  a refused write is logged and leaves that row's cell blank, exactly as
+  for a spec archived before this existed. A blank cell is the honest
+  answer there — not "date unknown", not a dash. Sorting is on the raw
+  millisecond count and not the label: `localeCompare(..., { numeric:
+  true })` compares digit runs inside a string and would put `3h12m`
+  ahead of `45s`. A duration of `0` sorts as a value, which is why the
+  sort's missing-value sink is an explicit `=== null` and not the truthy
+  check it was. Reached from the nav, labelled "Archive". Token
   required, like every other `/specs` route it links into.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address

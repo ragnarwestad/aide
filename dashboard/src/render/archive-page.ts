@@ -24,6 +24,7 @@
 
 import { badge } from "./components.ts";
 import { esc } from "./html.ts";
+import { durationLabel } from "./job-state.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { ARCHIVE_ROUTE } from "./site.ts";
 
@@ -53,6 +54,18 @@ export interface ArchivedSpecView {
    *  whose job the queue's LRU cap evicted long ago — 146's case, which
    *  carried no failure reason at all. */
   notLanded?: boolean;
+  /** What the spec cost in TIME: its phases added together, in
+   *  milliseconds, off the `Time spent (ms)` stamp its archive landing
+   *  wrote into `4-status.md` (spec 207). Absent for every spec
+   *  archived before that stamp existed, and the cell is then genuinely
+   *  blank — not `date unknown`, not a dash: 1-description.md asks for
+   *  a blank in as many words, because a figure nobody recorded is
+   *  different from a value that could not be found.
+   *
+   *  Milliseconds rather than the label, because the column SORTS:
+   *  `localeCompare(..., { numeric: true })` compares the digit runs
+   *  inside a string, so it would put `"3h12m"` before `"45s"`. */
+  durationMs?: number;
 }
 
 /** How the table is cut and ordered, straight off the query string.
@@ -96,12 +109,12 @@ const NO_DESCRIPTION = "—";
  *  guess is a filter nobody trusts. */
 const SEARCHED = ["folder", "title", "description"];
 
-const SORTS = ["date", "project", "title"];
+const SORTS = ["date", "project", "title", "duration"];
 const DEFAULT_SORT = "date";
 /** The direction each column takes on the first click: newest archived
- *  first, but names from A. */
+ *  first and longest first, but names from A. */
 const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
-  date: "desc", project: "asc", title: "asc",
+  date: "desc", project: "asc", title: "asc", duration: "desc",
 };
 
 // The same chevron the spec list's headings carry, and for the same
@@ -161,11 +174,15 @@ const tieBreak = (a: ArchivedSpecView, b: ArchivedSpecView): number =>
 
 /** What the sorted column holds for one row. Title falls back to the
  *  folder — a spec whose `1-description.md` has no H1 still has a name,
- *  and the Title cell shows that name too. Only the date can genuinely
- *  be missing. */
-function sortKey(s: ArchivedSpecView, sort: string): string | null {
+ *  and the Title cell shows that name too. Only the date and the
+ *  duration can genuinely be missing.
+ *
+ *  A NUMBER for the duration (spec 207), never its label: see
+ *  `durationMs`. */
+function sortKey(s: ArchivedSpecView, sort: string): string | number | null {
   if (sort === "project") return s.project;
   if (sort === "title") return s.title ?? s.folder;
+  if (sort === "duration") return s.durationMs ?? null;
   return s.archivedAt;
 }
 
@@ -174,12 +191,23 @@ function ordered(rows: ArchivedSpecView[], r: Resolved): ArchivedSpecView[] {
   return [...rows].sort((a, b) => {
     const av = sortKey(a, r.sort);
     const bv = sortKey(b, r.sort);
-    // A spec no date could be found for stays at the bottom whichever
-    // way the column is turned: it is not the oldest, it is unknown,
-    // and floating it to the top on a reversal would say it was.
-    if (av && !bv) return -1;
-    if (!av && bv) return 1;
-    const c = av && bv ? av.localeCompare(bv, "en", { numeric: true }) : 0;
+    // A spec no value could be found for stays at the bottom whichever
+    // way the column is turned: it is not the oldest or the quickest,
+    // it is unknown, and floating it to the top on a reversal would say
+    // it was.
+    //
+    // `=== null` and never a truthy test (spec 207). Every sort key
+    // used to be a non-empty string or `null`, so `if (av && !bv)` said
+    // the same thing — and a duration of exactly `0` is falsy, present,
+    // and would have sunk beside the rows that have no figure at all.
+    if (av !== null && bv === null) return -1;
+    if (av === null && bv !== null) return 1;
+    const c =
+      typeof av === "number" && typeof bv === "number"
+        ? av - bv
+        : av !== null && bv !== null
+          ? String(av).localeCompare(String(bv), "en", { numeric: true })
+          : 0;
     return (c || tieBreak(a, b)) * sign;
   });
 }
@@ -235,7 +263,7 @@ function head(r: Resolved): string {
   // anyone came here for.
   return (
     `<thead><tr>${th("project", "Project")}${th("title", "Title")}` +
-    `<th>Description</th>${th("date", "Date")}</tr></thead>`
+    `<th>Description</th>${th("date", "Date")}${th("duration", "Duration")}</tr></thead>`
   );
 }
 
@@ -250,7 +278,12 @@ function specRow(s: ArchivedSpecView): string {
     `<tr><td>${esc(s.project)}</td>` +
     `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +
     `<td><div class="archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
-    `<td class="archive-date">${esc(s.archivedAt ?? NO_DATE)}</td></tr>`
+    `<td class="archive-date">${esc(s.archivedAt ?? NO_DATE)}</td>` +
+    // Blank, and deliberately not the dash the description cell uses or
+    // the words the date cell uses: a spec archived before spec 207
+    // recorded nothing, and "nothing was recorded" is what an empty
+    // cell says.
+    `<td class="archive-duration">${s.durationMs === undefined ? "" : esc(durationLabel(s.durationMs))}</td></tr>`
   );
 }
 

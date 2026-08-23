@@ -505,6 +505,11 @@ table.list thead a { color: var(--muted); }
 .archive-q { width: 26rem; max-width: 100%; }
 /* The whole date, on one line, never cut. */
 .archive-date { white-space: nowrap; }
+/* And the same for what the spec cost (spec 207): "1h04m" broken over
+   two lines reads as two numbers, not one. The cell is empty for a spec
+   whose archive never recorded a figure, which is a blank and not a gap
+   in the row. */
+.archive-duration { white-space: nowrap; }
 .archive-desc { color: var(--muted); font-size: var(--fs-s); max-width: 34rem;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }

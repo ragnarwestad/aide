@@ -24,7 +24,7 @@ import {
 } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
-import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
+import { asFileText, pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
 import {
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   dashboardCheckoutRoot,
@@ -35,8 +35,8 @@ import {
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, resolveWorktreeLinks, specArchivedDate, specDependsOn, specFileText, specPhaseFile,
-  stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
+  gitignoreCandidates, resolveWorktreeLinks, specArchivedDate, specDependsOn, specDurationMs, specFileText,
+  specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { projectSettings } from "./project-settings.ts";
@@ -86,6 +86,7 @@ import {
   renderProjectSettingsPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
+  computeSpecTotalDurationMs,
   projectSettingsRoute,
   renderArchivePage,
   renderQueuePage,
@@ -1807,6 +1808,17 @@ export function createServer(opts: ServerOptions) {
      *  and a second value worked out from the outcome would be a second
      *  thing that could be wrong. */
     step: WorkflowStep;
+    /** What to do once the merge has actually landed — after the job
+     *  has been updated and the scan invalidated, and only then (spec
+     *  207). `archive`'s alone today: it writes what the spec cost in
+     *  time into `4-status.md`, and a spec whose branch did not land is
+     *  not archived, so there would be nothing to record.
+     *
+     *  Never fatal and never rethrown, exactly like `installAfterMerge`
+     *  in the same function: the merge already happened, and turning a
+     *  landed archive into a failed job would hand back a task nobody
+     *  can act on. */
+    onLanded?: () => Promise<void>;
   }
 
   /** Merge a step's own branch into the default branch of every repo it
@@ -1998,6 +2010,17 @@ export function createServer(opts: ServerOptions) {
       // request that follows a landing would still not show the spec —
       // nor, for an archive, that it has left the list.
       scan = null;
+      // After `scan = null`, so anything this reads sees the landing
+      // rather than the five-second-old picture of the world before it.
+      if (what.onLanded) {
+        try {
+          await what.onLanded();
+        } catch (err) {
+          console.error(
+            `queue: landing ${job.project}/${job.specFolder} — ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
     } catch (err) {
       // Never rethrown: the `landing` flag holds the WHOLE queue, and
       // the runner clears it when this promise settles — which it must
@@ -2141,7 +2164,101 @@ export function createServer(opts: ServerOptions) {
       // spec already held back for the same reason writes no commit, and
       // an error there would report a problem that is not one.
       failedNote: (why) => `the spec was archived, but landing it failed: ${why}`,
+      // The one landing that records anything (spec 207). It runs only
+      // once the branch is genuinely on the default branch: a spec
+      // whose archive did not land is not archived, and a figure
+      // written for it would outlive the row that says so.
+      onLanded: () => stampTotalDuration(job),
     });
+  }
+
+  /** What the spec cost in TIME, written into its own `4-status.md`
+   *  once its archive has landed (spec 207).
+   *
+   *  The spec list has always shown this — the phases added together —
+   *  but it is worked out from the queue's job records, and the queue
+   *  keeps two hundred jobs on one machine while the archive holds
+   *  ninety specs and grows. So most archived rows would have no figure
+   *  and never would, unless it is written down. Written down, it
+   *  survives the queue forgetting, the machine changing and the year
+   *  turning, which is the whole reason to want it.
+   *
+   *  Neither half of the runner can do this: `core/skills/aide-archive`
+   *  reads markdown and runs git, and `core/scripts/aide-run-spec`
+   *  derives what it knows from commit subjects. The per-step timings
+   *  live only in this process's `QueueStore`, so the write happens
+   *  here.
+   *
+   *  Four things it will not do:
+   *
+   *  - It does not compute the sum itself. `computeSpecTotalDurationMs`
+   *    is the spec list's own function, and `done` comes from the same
+   *    `withFreshness` the list calls — so "the stored figure equals
+   *    what the list showed" holds by construction rather than by two
+   *    implementations staying in step.
+   *  - It does not write twice. 133 was archived three times; a second
+   *    landing finds the stamp already there and leaves it alone.
+   *  - It does not write in a person's checkout. The merge above landed
+   *    in the machinery's own (spec 205), which is also where the
+   *    archive step's `git mv` has just moved the folder — so the
+   *    archived path is tried first and the active one second, the same
+   *    two-candidate shape `aide_resolve_spec` uses in bash.
+   *  - It does not fail anything. A refusal is logged and left there;
+   *    what it leaves is a blank cell, which the archive page already
+   *    draws for every spec finished before this existed. */
+  async function stampTotalDuration(job: Job): Promise<void> {
+    const root = machinerySpecsRoot(job.project);
+    if (!root) return;
+    const dir = [join(root, "archive", job.specFolder), join(root, job.specFolder)].find(
+      (candidate) => specFileText(candidate, STATUS_SPEC_FILE) !== null,
+    );
+    if (!dir) return;
+    // Already recorded: a re-run of `archive` must not grow a second
+    // bullet, nor overwrite the first with a figure measured over a
+    // different set of jobs. Read before anything expensive is done.
+    if (specDurationMs(dir) !== null) return;
+    const current = specFileText(dir, STATUS_SPEC_FILE);
+    if (current === null) return;
+    // The list's own done-set, from the list's own function — NOT the
+    // job results. A step a job completed is not necessarily a step
+    // that counts: `withFreshness` takes `analyze` back out when the
+    // description moved on after it, and the list then shows no total.
+    const [fresh] = await withFreshness([
+      {
+        project: job.project,
+        specFolder: job.specFolder,
+        dir,
+        reopenedAfter: parseStatus(current).reopenedAfter,
+      },
+    ]);
+    const rows = await Promise.all(
+      queue
+        .list()
+        .filter((j) => j.project === job.project && j.specFolder === job.specFolder)
+        .map(jobRow),
+    );
+    const ms = computeSpecTotalDurationMs(rows, fresh?.done ?? []);
+    if (ms === undefined) return;
+    const text = stampDuration(current, ms);
+    // Nowhere to put the line — a `4-status.md` with no Tracking info
+    // section — comes back unchanged, and there is nothing to save.
+    if (text === current) return;
+    const baseSha = (await lastCommitOf(gitRun, dir, STATUS_SPEC_FILE))?.sha ?? null;
+    // The same lock the merge above just used and let go of, for the
+    // same hazard: every spec shares the specs root, so this write must
+    // not run beside a save, a pull, or a second landing.
+    const result = await mergeLock.run(await specsRoot(dir), () =>
+      saveSpecFile(gitRun, dir, (r) => branchStatus.defaultBranch(r), {
+        file: STATUS_SPEC_FILE,
+        text,
+        baseSha,
+        specLabel: job.specFolder,
+        message: `Record what ${job.specFolder} cost in time`,
+      }),
+    );
+    if (!result.ok) {
+      console.error(`queue: recording ${job.project}/${job.specFolder}'s time spent — ${result.note}`);
+    }
   }
 
   /** Everything about a spec that only git can answer, asked once per
@@ -3457,6 +3574,12 @@ export function createServer(opts: ServerOptions) {
                 archivedAt: await archivedAt(s.dir),
                 href: specPagePath(p.name, s.folder),
                 notLanded: open.has(`${p.name}/${s.folder}`),
+                // The stored figure and nothing else (spec 207): the
+                // queue's own records are gone for all but the newest
+                // rows here, and a column that answered for some of
+                // them out of memory would be a column whose blanks
+                // move about.
+                durationMs: specDurationMs(s.dir) ?? undefined,
               })),
           ),
         ),

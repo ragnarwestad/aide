@@ -395,6 +395,47 @@ function totalDuration(
   return measured ? total : undefined;
 }
 
+/** The spec's own total, for a caller that has the jobs and the
+ *  done-set but not a rendered group (spec 207).
+ *
+ *  Lifted out of `jobGroup` so the archive-time write into
+ *  `4-status.md` and the figure this page draws are ONE function. The
+ *  repo already carries four hand-paired pairs whose two halves have to
+ *  be edited together — `WORKFLOW_STEPS`, `DEPENDENCY_GATED_STEPS`,
+ *  project readiness, `worktreeLinks` — and "the stored figure equals
+ *  what the list showed" is that shape by default. It is not one here
+ *  because there is only one implementation of it.
+ *
+ *  `done` is a PARAMETER, never worked out from `rows`. The list's own
+ *  comes from `withFreshness`, which takes `analyze` back OUT of the
+ *  set when the description was committed after the last analyze ran —
+ *  even though a job did complete it. A second derivation from the job
+ *  results would disagree in exactly that case, and store a figure the
+ *  list itself would not have shown.
+ *
+ *  The phase lines are rebuilt here rather than passed in for the same
+ *  reason: a caller that had to assemble them first would be a second
+ *  place that knows which lines a spec's total is a sum over. */
+export function computeSpecTotalDurationMs(
+  rows: QueueRowView[],
+  done: readonly string[],
+): number | undefined {
+  return totalDuration(specPhases(rows), done, rows);
+}
+
+/** The phase lines a spec's row and a spec's total are both built over:
+ *  the four in order, then anything else that ran, each with the
+ *  attempts that speak for it, newest first. */
+function specPhases(all: QueueRowView[]): Phase[] {
+  const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
+  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !PHASE_LINES.includes(s));
+  return [...PHASE_LINES, ...extra].map((step) => ({
+    step,
+    attempts: recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null),
+    history: {},
+  }));
+}
+
 interface Phase {
   step: string;
   /** Every job whose current/last step is this phase, newest first. A
@@ -623,15 +664,15 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   // than dropped: a job that ran is never invisible. `create` is one of
   // the five since spec 116, so a create job lands on its own line at
   // the front rather than being appended after archive.
-  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !PHASE_LINES.includes(s));
   // Built before the group, because the spec's total is a sum over
   // these same lines and re-deriving them would be two answers to one
-  // question.
-  const phases: Phase[] = [...PHASE_LINES, ...extra].map((step) => ({
-    step,
-    attempts: recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null),
-    ...heldBackFor(step, target),
-    ...historyFor(step, target),
+  // question. `specPhases` is where that list lives now (spec 207) —
+  // the file-side answers this page shows on a line are added on top of
+  // it, and the total reads neither.
+  const phases: Phase[] = specPhases(all).map((phase) => ({
+    ...phase,
+    ...heldBackFor(phase.step, target),
+    ...historyFor(phase.step, target),
   }));
   return {
     project: lead.project,
@@ -654,7 +695,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     // the way the line's own cell does. Only once nothing is left to
     // run, because a total of a spec still working is a number that
     // will be wrong in a minute.
-    totalDurationMs: totalDuration(phases, spec.done, all),
+    totalDurationMs: computeSpecTotalDurationMs(all, spec.done),
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.
