@@ -2745,21 +2745,62 @@ def test_archive_recovers_an_already_archived_spec_by_its_number(
     assert out["terminalReason"] == "completed"
 
 
-def test_archive_still_refuses_an_already_archived_spec_whose_branch_is_gone(
+# --- Spec 211: a spec that is done says so ---------------------------------
+# The half spec 202 left behind. A folder under archive/ whose branch is
+# gone from every origin fell past the fallback above and landed on the
+# same "unknown spec" refusal a typo gets — the spec exists, its work is
+# on main, and the runner called it missing. Told apart here: found and
+# finished is success with nothing to do; found nowhere is still a typo.
+
+
+def test_archive_reports_an_already_landed_spec_as_done_not_refused(
     runner, workspace, fake_claude, local_origins
 ):
-    """Criterion 2. An archived spec with nothing left on origin is
-    finished, and is refused exactly as it was before the fallback
-    existed — before any money is spent."""
+    """Criterion 1. An archived spec with nothing left on origin is
+    finished work, not a name that does not exist. It is reported as
+    success, and it names the folder so a reader can act on it."""
     add_spec(workspace, "77-recovered", archived=True)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
 
     rc, out, _ = run(runner, workspace, claude, command="archive", spec="77-recovered")
 
-    assert rc == 2, out
-    assert out["terminalReason"] == "refused"
-    assert "unknown spec" in out["error"], out
-    assert not fake_claude.calls.exists(), "the refusal must precede the money"
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "already-landed", out
+    assert "77-recovered" in out["note"], out
+    assert not fake_claude.calls.exists(), "nothing to archive costs nothing"
+
+
+def test_an_already_landed_spec_resolves_by_its_number_too(
+    runner, workspace, fake_claude, local_origins
+):
+    """The graceful outcome follows the same resolver the refusal did: a
+    bare id finds <id>-* under archive/, so pressing Archive on a
+    finished row says so whichever address the caller used."""
+    add_spec(workspace, "77-recovered", archived=True)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command="archive", spec="77")
+
+    assert rc == 0, out
+    assert out["terminalReason"] == "already-landed", out
+    assert "77-recovered" in out["note"], out
+
+
+def test_an_already_landed_spec_reports_the_same_outcome_to_the_result_file(
+    runner, workspace, fake_claude, local_origins
+):
+    """The result file is what the dashboard reads, and it carries the
+    same one JSON line stdout got — a caller never has to parse two
+    shapes, refusal or not."""
+    add_spec(workspace, "77-recovered", archived=True)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+
+    rc, out, _ = run(runner, workspace, claude, command="archive", spec="77-recovered")
+    result_file = workspace["project"].parent / "result.json"
+
+    assert rc == 0, out
+    assert json.loads(result_file.read_text()) == out
 
 
 @pytest.mark.parametrize("step", ["analyze", "implement"])
