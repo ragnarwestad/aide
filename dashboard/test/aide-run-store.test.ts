@@ -79,6 +79,34 @@ describe("AideRunStore", () => {
     expect(store.list().map((r) => r.sessionId).sort()).toEqual(["s2", "s3"]);
   });
 
+  // Spec 210: the store has been written to since spec 80 and read only
+  // as a whole list. A page asking "which third is this ONE run in?" has
+  // the session id in hand and nothing to look it up with.
+  describe("get", () => {
+    test("returns the stored run for a session it knows", () => {
+      const store = new AideRunStore();
+      store.put({ ...valid, phase: "green" as const }, "2026-08-23T10:00:00Z");
+      expect(store.get("abc-123")?.phase).toBe("green");
+      expect(store.get("abc-123")?.command).toBe("implement");
+    });
+
+    test("returns undefined for a session it does not know", () => {
+      const store = new AideRunStore();
+      store.put({ ...valid }, "2026-08-23T10:00:00Z");
+      expect(store.get("no-such-session")).toBeUndefined();
+    });
+
+    test("answers with the LATEST report for a session, not the first", () => {
+      // The row is keyed on the session and a later phase replaces the
+      // earlier one — which is the whole mechanism the page leans on to
+      // watch a run advance red - green - refactor.
+      const store = new AideRunStore();
+      store.put({ ...valid, phase: "red" as const }, "2026-08-23T10:00:00Z");
+      store.put({ ...valid, phase: "refactor" as const }, "2026-08-23T10:40:00Z");
+      expect(store.get("abc-123")?.phase).toBe("refactor");
+    });
+  });
+
   test("mirrors to a file and reloads on boot", () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-runs-"));
     const mirror = join(dir, "runs.json");

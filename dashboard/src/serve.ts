@@ -1944,6 +1944,15 @@ export function createServer(opts: ServerOptions) {
       // the row can act on. Stored on the job (spec 149), because a
       // landing has no browser to redirect the reason to.
       errorReason: job.errorReason,
+      // Which third of an implement is running (spec 210). Only for
+      // `implement`, which is the one step that reports its phases, and
+      // only off the job's LIVE `sessionId` — the queue clears that the
+      // moment a step ends, so a finished job cannot pick up a leftover
+      // row from the session it once used.
+      tddPhase:
+        step === "implement" && job.state === "running" && job.sessionId
+          ? store.get(job.sessionId)?.phase
+          : undefined,
       results: job.results.map((r) => ({
         step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
         // When the step ENDED (spec 199). The only per-step instant

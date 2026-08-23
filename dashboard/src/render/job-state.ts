@@ -3,6 +3,7 @@
 // owns it.
 
 import { badge, stepLabel, type BadgeVariant, type MessageVariant, type PipKind } from "./components.ts";
+import { TDD_PHASES, type TddPhase } from "../aide-run-store.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every
@@ -72,6 +73,14 @@ export interface QueueRowView {
   /** What this job ran on. Shown next to the cost, because a figure
    *  without its model cannot be compared with the next one. */
   model?: string;
+  /** Which third of an `implement` step is running RIGHT NOW (spec
+   *  210), from the report `/aide-implement` sends at each TDD
+   *  boundary. Set by the server only for a running implement whose
+   *  session the store has an answer for — every other row leaves it
+   *  absent and reads exactly as it did before. Absent is the ordinary
+   *  case, not an error: a run whose reports never arrived says
+   *  "running" and fills nothing. */
+  tddPhase?: TddPhase;
   /** One entry per step the job has FINISHED, in the order they ran.
    *  A job is not one step: `steps[stepIndex]` names only the last one
    *  it reached, and placing a two-step job by that alone left the
@@ -376,6 +385,31 @@ export function specNotice(
   return undefined;
 }
 
+/** How many of a running implement's three parts are BEHIND it (spec
+ *  210) — what the pip fills in, as `pips()` wants it. Answered about
+ *  the ROW, so the "only while it is actually running" half of the rule
+ *  is written once rather than at each of the two call sites.
+ *
+ *  Off by one from the phase's own position, and deliberately: `red` is
+ *  the first third being worked on, not the first third finished. A pip
+ *  that looked a third done five seconds into RED would misinform about
+ *  how far the run has got, which is worse than saying nothing — so
+ *  `red` and "no report at all" render identically.
+ *
+ *  One function, because both places the answer appears — the spec
+ *  list's pip strip and the job page's — would otherwise each carry the
+ *  same guarded `indexOf`, and a transposition in one of them is a
+ *  silent lie about progress. */
+export function completedThirds(attempt: QueueRowView | undefined): 1 | 2 | undefined {
+  // The state itself, never `inFlight`: that is queued OR running, and a
+  // job waiting to start is in no TDD phase at all.
+  if (!attempt || attempt.state !== "running") return undefined;
+  const tddPhase = attempt.tddPhase;
+  if (!tddPhase) return undefined;
+  const behind = TDD_PHASES.indexOf(tddPhase);
+  return behind === 1 || behind === 2 ? behind : undefined;
+}
+
 // --- spec 108: one rule for what a phase shows --------------------------------
 
 /** What one phase reads as, in the three parts a row and a job page
@@ -448,7 +482,23 @@ export function wordPhase(
   if (running) {
     return {
       pip: "now",
-      badge: { variant: BADGE_VARIANT[attempt!.state], label: stateLabel(attempt!) },
+      badge: {
+        variant: BADGE_VARIANT[attempt!.state],
+        // Which third of an implement is running, in the word as well as
+        // on the pip (spec 210): "running" for an hour says nothing, and
+        // the State column reserves its width already, so the longer
+        // word moves nothing outside it. Only implement reports phases,
+        // so only implement's rows are given one (`jobRow`, serve.ts).
+        //
+        // The state, not `running` above: that flag is `inFlight`, which
+        // is queued OR running, and a job WAITING to start is in no TDD
+        // phase at all. "queued (refactor)" would be the row reading a
+        // leftover report as if it were live.
+        label:
+          attempt!.tddPhase && attempt!.state === "running"
+            ? `${stateLabel(attempt!)} (${attempt!.tddPhase})`
+            : stateLabel(attempt!),
+      },
       qualifier: filesDisagree,
     };
   }
