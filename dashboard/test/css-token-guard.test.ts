@@ -247,6 +247,9 @@ const STRUCTURE = [
   // one whole spec file, preformatted (spec 150) — the spec page shows
   // four of them and a phase's job page one
   "specfile",
+  // the archive's own two: the search box, widened and uncaptioned, and
+  // the date cell that must not wrap (2026-08-23)
+  "archive-q", "archive-date",
   "u-usd", "u-tok",
   // containers — "stack" was the vertical one (spec 124): the row's
   // action buttons, one under the next, in the list's first column. It

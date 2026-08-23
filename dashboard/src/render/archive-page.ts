@@ -203,8 +203,11 @@ function searchForm(r: Resolved): string {
     (r.dir !== SORT_DEFAULT_DIR[r.sort]! ? `<input type="hidden" name="dir" value="${esc(r.dir)}">` : "");
   return (
     `<form class="row" method="get" action="${esc(ARCHIVE_ROUTE)}">` +
-    `<label class="field"><span>Search</span>` +
-    `<input type="search" name="q" value="${esc(r.q)}" placeholder="a word in any of three fields"></label>` +
+    // No caption over the field: the button beside it says Search, and
+    // the same word twice made the field taller than the button it
+    // stands next to, so the two did not line up (2026-08-23).
+    `<input class="archive-q" type="search" name="q" value="${esc(r.q)}" ` +
+    `placeholder="a word in any of three fields" aria-label="Search the archive">` +
     keep +
     `<button class="btn" type="submit">Search</button>` +
     `</form>\n` +
@@ -247,7 +250,7 @@ function specRow(s: ArchivedSpecView): string {
     `<tr><td>${esc(s.project)}</td>` +
     `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +
     `<td><div class="archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
-    `<td>${esc(s.archivedAt ?? NO_DATE)}</td></tr>`
+    `<td class="archive-date">${esc(s.archivedAt ?? NO_DATE)}</td></tr>`
   );
 }
 

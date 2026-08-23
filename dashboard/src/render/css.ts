@@ -499,6 +499,12 @@ table.list thead a { color: var(--muted); }
    rather than cut on the server, so nothing the reader can search for is
    missing from the markup. -webkit- prefixed as well as plain: the
    prefixed trio is what every browser actually implements today. */
+/* Twice the width a search box gets by default, and no caption over it:
+   the button beside it says what it is, and the caption made the field
+   the taller of the two (2026-08-23). */
+.archive-q { width: 26rem; max-width: 100%; }
+/* The whole date, on one line, never cut. */
+.archive-date { white-space: nowrap; }
 .archive-desc { color: var(--muted); font-size: var(--fs-s); max-width: 34rem;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
