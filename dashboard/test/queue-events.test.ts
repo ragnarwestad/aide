@@ -9,7 +9,9 @@
 // server writing has to fail the test promptly; it must never sit on
 // the suite waiting out Bun's 120-second idle timeout.
 import { afterEach, describe, expect, test } from "bun:test";
-import { queueHarness } from "./helpers/queue-server.ts";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { queueHarness, statusSaying } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
 
@@ -98,6 +100,16 @@ async function connect(base: string, query = `?token=${TOKEN}`): Promise<Stream>
   return stream;
 }
 
+/** The specs-root watch spec 204 opens is a recursive `fs.watch`, and
+ *  FSEvents hands a fresh one the changes made in the milliseconds
+ *  BEFORE it opened — here, the fixture's own project files, written by
+ *  `start()` a moment before the server was made. One `changed` event
+ *  at start-up is what that costs, and it costs nothing: a page open at
+ *  the time redraws once, and a page opened afterwards never hears it.
+ *  A test that asserts SILENCE has to let it pass first, or it is
+ *  asserting something about the fixture rather than about the queue. */
+const settled = (): Promise<void> => Bun.sleep(600);
+
 async function enqueue(base: string): Promise<string> {
   const res = await fetch(`${base}/api/queue`, {
     method: "POST",
@@ -140,6 +152,7 @@ describe("GET /api/queue/events", () => {
   // nothing in particular makes no noise and redraws not at all.
   test("says nothing at all while nothing changes (criterion 1)", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    await settled();
     const s = await connect(base);
     await s.quiet(400);
   });
@@ -216,3 +229,62 @@ async function enqueueOther(base: string): Promise<string> {
   expect(res.status).toBe(200);
   return ((await res.json()) as { job: { id: string } }).job.id;
 }
+
+// --- spec 204: a spec is a folder, and a folder changes no job --------------
+//
+// Four specs added to a project on 2026-08-23 stayed invisible until
+// somebody reloaded the page by hand. The queue's own writes are told
+// to every open page; a `git pull`, a hand-run `/aide-create` or a
+// headless run's own commit writes a folder and touches no job at all,
+// so nothing was told. Each allowed project's specs root is watched for
+// exactly that.
+describe("a spec created outside the dashboard reaches an open page (spec 204)", () => {
+  const madeByHand = (dir: string, folder: string): void => {
+    const at = join(dir, "root", "aide", "specs", folder);
+    mkdirSync(at, { recursive: true });
+    writeFileSync(join(at, "1-description.md"), `# ${folder} - Description\n`);
+    writeFileSync(join(at, "4-status.md"), statusSaying(["create"]));
+  };
+
+  test("a folder written straight to disk broadcasts `changed` (criterion 4)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    // Let the start-up echo pass first, so the event read below is the
+    // one this test caused and not the fixture's own.
+    await settled();
+    const s = await connect(base);
+    madeByHand(dir, "205-made-by-hand");
+    expect(await s.next()).toContain("event: changed");
+  });
+
+  // The event alone is not the promise. The page answers it by asking
+  // for the rows, and the scan behind those rows is cached for five
+  // seconds — so a page that had just drawn itself would be told to
+  // redraw and be handed the same list it already had, with nothing to
+  // say when the next event would come. The watch drops that cache
+  // before it speaks.
+  test("the rows the page then asks for hold the new spec (criterion 4)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    await settled();
+    const s = await connect(base);
+    // Draw the page once, so the five-second scan is warm and stale.
+    const first = await fetch(`${base}/?rows=1&token=${TOKEN}`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).not.toContain("206-made-by-hand");
+
+    madeByHand(dir, "206-made-by-hand");
+    expect(await s.next()).toContain("event: changed");
+
+    const again = await fetch(`${base}/?rows=1&token=${TOKEN}`);
+    expect(await again.text()).toContain("206-made-by-hand");
+  });
+
+  // A watcher nobody closes is a handle held for the life of the
+  // process — and `cleanup()` removes the very directories these point
+  // at, in the same breath.
+  test("stop() closes every watcher it opened (criterion 6)", () => {
+    const { server } = harness.start({ extra: { queueToken: TOKEN } });
+    expect(server.specWatchCount()).toBe(1);
+    server.stop();
+    expect(server.specWatchCount()).toBe(0);
+  });
+});
