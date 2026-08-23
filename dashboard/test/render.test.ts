@@ -6690,3 +6690,162 @@ describe("spec 195: a phase line shows its mark and nothing else", () => {
     expect(panel(html)).not.toContain("the files disagree");
   });
 });
+
+// --- spec 210: a running implement says which third it is in -----------------
+//
+// An implement runs for an hour and the row says only "running". Which
+// of its three parts it is in — writing the failing tests, making them
+// pass, or the suite afterwards — is the difference between nearly done
+// and barely started. `aide-implement` already reports each boundary and
+// `AideRunStore` already keeps it; nothing read it.
+//
+// Two readers, one field. The phase LINE says the word (`running
+// (green)`); the spec head row's pip fills a third at a time. The pip's
+// own width never changes — a pip that grew would move everything on the
+// line beside it.
+describe("spec 210: a running implement says which third it is in", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    extra: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        filter: { open: openKeys(list, targets) },
+        ...extra,
+      },
+      Date.parse("2026-08-23T12:00:00Z"),
+    );
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  /** The spec head row's pip strip — where the fill lives. The phase
+   *  lines below carry no pip of their own. */
+  const pipStrip = (html: string, specFolder: string) =>
+    html
+      .match(new RegExp(`<tr class="spechead[^"]*"[^>]*data-folder="${specFolder}">[\\s\\S]*?</tr>`))?.[0]
+      .match(/<div class="pips">[\s\S]*?<\/div>/)?.[0] ?? "";
+  /** The one pip in that strip that is the running one. `data-third` on
+   *  any other pip would be the mark answering the wrong question. */
+  const nowPip = (html: string, specFolder: string) =>
+    pipStrip(html, specFolder).match(/<span class="pip now"[^>]*>/)?.[0] ?? "";
+
+  // Criterion 2. `green` means RED is behind it: one third of three, not
+  // two. The natural-looking mapping is off by one and nothing in the
+  // type system catches it, so the worked value is pinned here.
+  test("a running implement in GREEN reads (green) and fills one third", () => {
+    const html = rows(
+      [row({ id: "impl", specFolder: "210-green", steps: ["implement"], state: "running", tddPhase: "green" })],
+      [target("210-green")],
+    );
+    expect(subRow(html, "implement")).toContain("running (green)");
+    expect(nowPip(html, "210-green")).toContain('data-third="1"');
+  });
+
+  // Criterion 3.
+  test("a running implement in REFACTOR reads (refactor) and fills two thirds", () => {
+    const html = rows(
+      [row({ id: "impl", specFolder: "210-ref", steps: ["implement"], state: "running", tddPhase: "refactor" })],
+      [target("210-ref")],
+    );
+    expect(subRow(html, "implement")).toContain("running (refactor)");
+    expect(nowPip(html, "210-ref")).toContain('data-third="2"');
+  });
+
+  // Criterion 4: zero thirds complete renders identically to "no report
+  // arrived". A pip that looked 1/3 done five seconds into RED would
+  // actively misinform, which is worse than saying nothing.
+  test("a running implement in RED reads (red) and fills nothing", () => {
+    const html = rows(
+      [row({ id: "impl", specFolder: "210-red", steps: ["implement"], state: "running", tddPhase: "red" })],
+      [target("210-red")],
+    );
+    expect(subRow(html, "implement")).toContain("running (red)");
+    expect(nowPip(html, "210-red")).not.toContain("data-third");
+  });
+
+  // Criterion 6: the report never arrived. Nothing throws, and the row
+  // reads exactly as it does today.
+  test("a running implement nobody reported on reads plain running, unfilled", () => {
+    const html = rows(
+      [row({ id: "impl", specFolder: "210-silent", steps: ["implement"], state: "running" })],
+      [target("210-silent")],
+    );
+    expect(subRow(html, "implement")).toContain("running");
+    expect(subRow(html, "implement")).not.toContain("running (");
+    expect(nowPip(html, "210-silent")).not.toContain("data-third");
+  });
+
+  // Criterion 5: analyze has no phase reports and is out of scope, so
+  // its rows arrive without a `tddPhase` and read as they always did.
+  // WHICH steps are given one is `jobRow`'s rule and is asserted where
+  // that rule lives, in queue-detail.test.ts — naming the step a second
+  // time here would be a second copy of it, which is this repo's own
+  // recurring cost.
+  test("a running step that is not implement is untouched", () => {
+    const html = rows(
+      [row({ id: "an", specFolder: "210-analyze", steps: ["analyze"], state: "running" })],
+      [target("210-analyze")],
+    );
+    expect(subRow(html, "analyze")).toContain("running");
+    expect(subRow(html, "analyze")).not.toContain("running (");
+    expect(pipStrip(html, "210-analyze")).not.toContain("data-third");
+  });
+
+  // A job WAITING to start is in no TDD phase at all. Its own trap:
+  // `inFlight` — what the phase word branches on — is queued OR
+  // running, so a leftover report would have read "queued (refactor)".
+  test("a queued implement carrying a phase still reads plain queued", () => {
+    const html = rows(
+      [row({ id: "impl", specFolder: "210-waiting", steps: ["implement"], state: "queued", tddPhase: "green" })],
+      [target("210-waiting")],
+    );
+    expect(subRow(html, "implement")).toContain("queued");
+    expect(subRow(html, "implement")).not.toContain("(green)");
+    expect(pipStrip(html, "210-waiting")).not.toContain("data-third");
+  });
+
+  // Criterion 7: the phase is over. A stale entry from the session it
+  // once used must not fill a pip for a run that has stopped, nor
+  // qualify a word that is no longer "running".
+  test("an implement that is NOT running ignores a leftover phase", () => {
+    for (const state of ["queued", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
+      const html = rows(
+        [row({ id: "impl", specFolder: "210-over", steps: ["implement"], state, tddPhase: "refactor" })],
+        [target("210-over")],
+      );
+      expect(subRow(html, "implement")).not.toContain("(refactor)");
+      expect(pipStrip(html, "210-over")).not.toContain("data-third");
+    }
+  });
+});
+
+// The markup half on its own: `pips()` is shared by the list and the job
+// page, and the mark is only ever about the pip that is running.
+describe("spec 210: pips() marks the completed thirds", () => {
+  test("a now pip with a third carries the attribute", async () => {
+    const { pips } = await import("../src/render/components.ts");
+    expect(pips([{ kind: "now", title: "implement", third: 1 }])).toContain('data-third="1"');
+    expect(pips([{ kind: "now", title: "implement", third: 2 }])).toContain('data-third="2"');
+  });
+
+  test("a now pip without a third carries nothing, exactly as before", async () => {
+    const { pips } = await import("../src/render/components.ts");
+    expect(pips([{ kind: "now", title: "implement" }])).toBe(
+      `<div class="pips"><span class="pip now" title="implement"></span></div>`,
+    );
+  });
+
+  test("a past or todo pip never carries the mark, whatever it is handed", async () => {
+    const { pips } = await import("../src/render/components.ts");
+    expect(pips([{ kind: "past", title: "analyze", third: 2 }])).not.toContain("data-third");
+    expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
+  });
+});

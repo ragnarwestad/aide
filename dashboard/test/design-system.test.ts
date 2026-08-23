@@ -351,6 +351,36 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     expect(keyframes).not.toContain("opacity");
   });
 
+  // Spec 210: the pip fills a third at a time while an implement runs.
+  // The FILL is what changes; the box never does — a pip that grew would
+  // move everything on the line beside it, and the page's rule is that
+  // nothing moves because something else changed.
+  test("the pip is wide enough for a third to be visible, and divisible by three", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const pip = CSS.match(/\n\.pip \{([^}]*)\}/)?.[1] ?? "";
+    const width = Number(pip.match(/width:\s*(\d+)px/)?.[1]);
+    expect(width).toBe(21);
+    expect(width % 3).toBe(0);
+  });
+
+  test("the fill covers the thirds already behind the run, and only those", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    // Keyed off `.pip.now`: a third belongs to the phase that is
+    // RUNNING. A past or future pip carrying a fill would be the mark
+    // answering a question nobody asked of it.
+    expect(CSS).toContain('.pip.now[data-third="1"]::after { width: 33%; }');
+    expect(CSS).toContain('.pip.now[data-third="2"]::after { width: 67%; }');
+    const overlay = CSS.match(/\.pip\.now\[data-third\]::after \{([^}]*)\}/)?.[1] ?? "";
+    // Anchored LEFT and drawn in the accent: the fill grows from the
+    // start of the bar in the direction the four marks already read.
+    expect(overlay).toContain("var(--accent)");
+    expect(overlay).toMatch(/inset:\s*0 auto 0 0/);
+    // And the box it is drawn inside has to be able to hold it.
+    const pip = CSS.match(/\n\.pip \{([^}]*)\}/)?.[1] ?? "";
+    expect(pip).toContain("position: relative");
+    expect(pip).toContain("overflow: hidden");
+  });
+
   test("a machine set to reduce motion gets none, and can still tell running from waiting", async () => {
     const { CSS } = await import("../src/render/css.ts");
     const reduced = CSS.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
