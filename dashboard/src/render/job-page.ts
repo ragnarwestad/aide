@@ -221,11 +221,16 @@ export function tabBar<T extends string>(
  *  (spec 150) so the last three literals the two pages had in common
  *  are written once — the panels themselves already are. */
 export function tabbedBody(banner: string, tabs: string, panel: string): string {
+  // One wrapper, one right edge: the head line's buttons used to sit at
+  // the frame's width while the open tab's text stopped well short of
+  // it (2026-08-23).
   return (
+    `<div class="doc">` +
     `<p class="intro"><a href="/">← all specs</a></p>\n` +
     banner +
     tabs +
-    `<div class="tabpanel">${panel}</div>`
+    `<div class="tabpanel">${panel}</div>` +
+    `</div>`
   );
 }
 

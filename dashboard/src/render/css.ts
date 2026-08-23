@@ -221,7 +221,15 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
    read one anyway: the file's own line breaks, a measure that does not
    run to the window's edge, and a scrollbar for the one thing wrapping
    cannot save — a table three columns wider than the box. */
-.specfile { white-space: pre-wrap; overflow-x: auto; max-width: 60rem;
+/* One right edge for a document page (2026-08-23). The frame is 72rem
+   and a tab's text stopped at 60, so the buttons on the head line sat a
+   hand's width clear of everything they act on — "så ikke knappene
+   forsvinner ut til høyre". The banner, the tabs and the panel
+   share this one width; the site's own header and top tab bar keep the
+   frame's, because the spec LIST is a table that wants all of it.
+   Declared for both selectors at once so the number has one home. */
+.doc, .specfile { max-width: 60rem; }
+.specfile { white-space: pre-wrap; overflow-x: auto;
   font: var(--fs-s)/1.5 var(--mono); color: var(--text);
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); padding: var(--sp-3); }

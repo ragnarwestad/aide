@@ -247,6 +247,9 @@ const STRUCTURE = [
   // which were filter pills until 2026-08-23 (2026-08-23, "IKKE bruke
   // chips i stedet for tabs").
   "subtabs",
+  // The one width a document page shares: banner, tabs and panel
+  // (2026-08-23).
+  "doc",
   "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule

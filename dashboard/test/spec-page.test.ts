@@ -827,6 +827,46 @@ describe("spec 198: the Reopen control", () => {
     expect(archived()).toMatch(/<form[^>]*action="\/api\/queue"[^>]*method="post"|<form[^>]*method="post"[^>]*action="\/api\/queue"/);
   });
 
+  // Reopen sat under the archived note while Update sat up on the head
+  // line, so the page's two buttons were in two places (2026-08-23,
+  // "Reopen og Update kan vel gjerne stå sammen?"). One group now, at
+  // the end of the head line, where `.pagehead` puts what is not the
+  // state chip.
+  test("Reopen and Update share one group at the end of the head line", () => {
+    const group = /<div class="pagehead">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/div>/.exec(archived())?.[1] ?? "";
+    expect(group).toContain("Reopen");
+    expect(group).toContain("Update");
+    // Reopen FIRST: Update is on every spec page, and a button that
+    // slid sideways whenever a spec was archived would be moving
+    // because something else appeared.
+    expect(group.indexOf("Reopen")).toBeLessThan(group.indexOf("Update"));
+    // Moved, not copied: one Reopen on the page, and it is this one.
+    expect(archived().match(/name="steps" value="reopen"/g)).toHaveLength(1);
+  });
+
+  // "This spec is archived — a record, and read-only." was a notice
+  // under the title until 2026-08-23. Two things were wrong with it:
+  // the page uses that shape for something that just happened, not for
+  // something that is the case, and "read-only" is a truth with
+  // modifications — Reopen is on the head line, and archive can be run
+  // again while the branch is open.
+  test("being archived is a labelled fact on Overview, and does not claim read-only", () => {
+    const html = archived();
+    expect(html).toContain("<strong>Archived</strong>");
+    // The About dialog in the shell calls the dashboard itself
+    // read-only, so it is the old SENTENCE that must be gone.
+    expect(html).not.toContain("a record, and read-only");
+    expect(html).not.toContain("This spec is archived");
+    // It says what is actually the case instead.
+    expect(html).toContain("cannot be edited until the spec is reopened");
+    // Not the notice shape: that one is for what just happened.
+    expect(html).not.toMatch(/class="rowmsg info"[^>]*>[\s\S]{0,80}archived/);
+  });
+
+  test("a live spec says nothing about being archived", () => {
+    expect(page(view({ token: "t0ken" }))).not.toContain("<strong>Archived</strong>");
+  });
+
   // A live spec has the whole row on the queue list for this; the
   // archived page is the one place a reopen can be asked for.
   test("a live spec's page offers nothing of the sort", () => {

@@ -217,9 +217,36 @@ const TAB_FILES: Partial<Record<SpecTab, string>> = {
 function dependsOnLine(view: SpecPageView): string {
   const folders = view.dependsOn ?? [];
   if (folders.length === 0) return "";
-  return (
-    `<p class="desc"><strong>Depends on</strong> ` +
-    `<span class="muted">${folders.map((f) => esc(f)).join(", ")}</span></p>`
+  return fact("Depends on", folders.map((f) => esc(f)).join(", "));
+}
+
+/** One labelled fact about the spec: what it is, then what it says.
+ *
+ *  The shape `Depends on` already had, made shared (2026-08-23) because
+ *  the page's other facts were loose sentences with nothing naming
+ *  them — "This spec is archived — a record, and read-only." sat under
+ *  the title as a notice, which is the shape this page uses for
+ *  something that just happened, not for something that is the case.
+ *
+ *  `value` is already escaped: some of these are a list of links and
+ *  some are plain words. */
+function fact(label: string, value: string): string {
+  return `<p class="desc"><strong>${esc(label)}</strong> <span class="muted">${value}</span></p>`;
+}
+
+/** What being archived actually means for this spec.
+ *
+ *  Not "read-only", which was the wording until 2026-08-23 and is a
+ *  truth with modifications: Reopen is right there on the head line,
+ *  and archive can be run again while the spec's branch is still open.
+ *  What IS true is that the description's textarea and the checks'
+ *  boxes are gone until it is reopened. */
+function archivedLine(view: SpecPageView): string {
+  if (!view.archived) return "";
+  return fact(
+    "Archived",
+    "the folder has moved into <code>archive/</code>, and the description and " +
+      "the checks cannot be edited until the spec is reopened",
   );
 }
 
@@ -412,19 +439,28 @@ export function renderSpecPage(
   // paragraph is not markup a browser has to keep.
   const banner =
     `<div class="pagehead">${lead ? stateChip(lead) : notStartedChip()}` +
+    // The spec's own actions, together at the end of the line
+    // (2026-08-23). Reopen used to sit further down, under the archived
+    // note that explains it, which put the page's two buttons in two
+    // places for no reason a reader could see.
+    //
+    // Reopen goes BEFORE Update, so the control that is always there
+    // keeps the same spot: an Update that slid left whenever a spec was
+    // archived would be a button moving because something else
+    // appeared.
+    `<span class="row">` +
+    (view.archived ? reopenControl(view) : "") +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
     `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
     `<button class="btn" type="submit" title="pull the specs repository and show what it says now">` +
-    `Update</button></form></div>` +
+    `Update</button></form>` +
+    `</span></div>` +
     (view.title ? `<p class="desc"><strong>${esc(view.title)}</strong></p>` : "") +
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.
-    (view.archived
-      ? rowMessage("info", "This spec is archived — a record, and read-only.", { tag: "p" }) +
-        reopenControl(view)
-      : "") +
+
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
 
@@ -439,7 +475,11 @@ export function renderSpecPage(
             ? documentPanel(view, TAB_FILES[tab]!, now)
             // Overview: no file text at all. Where the spec stands, what
             // it is waiting on, and what is still holding it back.
-            : dependsOnLine(view) + checklist(view);
+            // Overview leads with the spec's labelled facts, then its
+            // checks. The STATE is not among them: the chip on the head
+            // line says it, on every tab, and the same word twice on
+            // one screen is what this block was made to stop.
+            : archivedLine(view) + dependsOnLine(view) + checklist(view);
 
   const body = tabbedBody(
     banner,
