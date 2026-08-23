@@ -1561,6 +1561,7 @@ reopened_boundary_in() {   # sets $reopened_sha
 
 completed_steps_for() {   # sets $completed_steps
   local folder="$1" dir="$2" subject step reason seen completed re
+  local existing_line existing_step
   local boundary_args=()
   completed_steps=""
   # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
@@ -1597,6 +1598,29 @@ completed_steps_for() {   # sets $completed_steps
 $(git -C "$dir" log --all ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
+  # A step the line already names stays named, whatever the scan found
+  # (spec 214). The scan sees a step only through the commit-subject
+  # grammar, and a step that committed its own work under a descriptive
+  # subject is invisible to it — Woodstack 22's `implement` committed as
+  # "Record the implementation of ...", and the next step's recompute
+  # wrote `analyze, archive` over `analyze, implement`, which is the only
+  # record there is that implement ran. So the line is a THIRD source
+  # here, alongside this run's own outcome and the scan: added to, never
+  # subtracted from. `aide-reopen` is the one place a step comes off it,
+  # and it does that by regenerating `4-status.md` without the line at
+  # all — so there is nothing here to special-case.
+  #
+  # Tokens are filtered through the same arc lists the scan filters
+  # through, so a placeholder or a typo left on the line by hand does not
+  # become permanent. Splitting is comma -> space, then ordinary word
+  # splitting: bash 3.2 has no `mapfile`, and BSD `sed` will not put a
+  # newline in a replacement.
+  existing_line="$(sed -n 's/^- \*\*Workflow steps completed:\*\*//p' "$3" 2>/dev/null | tail -1)"
+  for existing_step in $(printf '%s' "$existing_line" | tr ',' ' '); do
+    case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in
+      *" $existing_step "*) completed="$completed$existing_step|" ;;
+    esac
+  done
   for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
     case "$completed" in
       *"|$step|"*) completed_steps="${completed_steps:+$completed_steps, }$step" ;;

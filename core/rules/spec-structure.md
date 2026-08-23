@@ -390,6 +390,18 @@ remembered to update it. A step run interactively counts once it is
 committed with the same subject — the four step skills offer exactly
 that commit, and ask first.
 
+**The line is added to, never subtracted from** (spec 214). What the
+commits prove joins what the line already names; a step the line
+already names stays there even when no commit corroborates it. The
+scan recognizes a step only by the subject above, so a step committed
+under a descriptive subject of its own is invisible to it — Woodstack
+22's implement committed as "Record the implementation of ...", the
+next step recomputed the line, and `analyze, implement` came back
+`analyze, archive` for a spec whose code was already on `main`.
+Dropping a step there erases the only record that it ran.
+`aide-reopen` is the one place a step comes off the line, and it does
+that by regenerating the file without the line at all.
+
 Why it stopped being the model's to write: on 2026-08-21 the line was
 wrong in both directions on the same day. One spec's implement had RED
 and GREEN done and was killed by the step's time limit before the model
@@ -397,7 +409,11 @@ reached the instruction, so the line lagged behind a finished branch.
 Another spec's four files were copied from a sibling, so a folder
 minutes old claimed three steps it had never had. A commit cannot be
 copied into existence and does not depend on reaching the last
-instruction.
+instruction. Only the first of those two is still corrected on its own:
+since spec 214 a copied claim stands until the line is deleted by hand
+or `aide-reopen` regenerates the file. That is the deliberate price of
+never erasing a step that really ran — the scan cannot tell a copied
+claim from the last surviving record of one.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done and to pre-tick the step to run next; a `4-status.md` that

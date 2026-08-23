@@ -3557,17 +3557,30 @@ def recorded_line(workspace, branch="aide/81-queue-and-runner", path=None):
     return None
 
 
-def test_a_copied_status_line_is_corrected_by_the_first_step_that_runs(
+def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     runner, workspace, fake_claude
 ):
     """Spec 153: four files copied from a sibling whose analyze had
     landed, so a folder minutes old claimed three steps. Nothing was
-    committed for any of them."""
+    committed for any of them, and the first real step used to write the
+    claim back down to what history could prove.
+
+    Spec 214 reverses that, deliberately: the two cases are the same
+    case seen from opposite sides — a line naming a step no commit can
+    corroborate is either a copied lie (153) or the only surviving
+    record of a step that committed under its own subject (214). The
+    scan cannot tell them apart, and 214's description settles which
+    way to be wrong: "A step already named in the line is never removed,
+    whatever the computation finds", with `aide-reopen` named as the one
+    place a step comes off the line. A copied line therefore stands
+    until someone edits the file or reopens the spec — the price of
+    never erasing a step that really ran.
+    """
     with_status(workspace, ["create", "analyze", "implement"])
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    assert recorded_line(workspace) == "analyze"
+    assert recorded_line(workspace) == "create, analyze, implement"
 
 
 def test_the_line_names_every_step_the_history_has(runner, workspace, fake_claude):
@@ -3784,6 +3797,65 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
     assert roots[str(workspace["specs"])]["changedFiles"] == 0
+
+
+# --- spec 214: a step that has run cannot un-run ------------------------------
+#
+# The commit scan sees a step only through the `Run /aide-<step> for
+# <folder>` subject grammar. A step that committed its own work under a
+# descriptive subject is invisible to it — and the recompute that runs
+# at the NEXT step then wrote the scan's answer over the line, erasing
+# the only record that the step had run. Woodstack 22: the line read
+# `analyze, implement`, `archive` recomputed it, and it came back
+# `analyze, archive` with the row offering "ready for implement" for a
+# spec whose code was already on `main`.
+#
+# So the line is added to and never subtracted from: whatever the scan
+# finds joins whatever the line already says.
+
+
+def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
+    runner, workspace, fake_claude
+):
+    """Acceptance criterion 1, and the Woodstack 22 shape exactly: a
+    MULTI-step line, one of whose steps has no commit matching the
+    subject grammar anywhere in history, recomputed by a later step."""
+    with_status(workspace, ["analyze", "implement"])
+    already_ran(workspace, ["analyze"])  # implement committed under its own subject
+    subprocess.run(
+        ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
+         "-m", f"Record the implementation of {workspace['folder']}"],
+        check=True,
+    )
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    # Workflow order, not the order the two sources found them in.
+    assert recorded_line(workspace) == "analyze, implement, archive"
+
+
+def test_a_step_both_sources_find_is_named_once(runner, workspace, fake_claude):
+    """Acceptance criterion 2. The line and the commit scan overlap for
+    every step that ran headlessly — the union must not double them."""
+    with_status(workspace, ["create", "analyze"])
+    already_ran(workspace, ["create", "analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_line_naming_something_that_is_not_a_step_drops_it(
+    runner, workspace, fake_claude
+):
+    """The union filters through `WORKFLOW_ARC`/`WORKFLOW_ARC_RETIRED`
+    exactly as the commit scan does, so a placeholder or a typo left on
+    the line by hand does not become permanent."""
+    with_status(workspace, ["analyze", "not-a-step"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "analyze, implement"
 
 
 # --- spec 198: reopening a spec is one action --------------------------------
