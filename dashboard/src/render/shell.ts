@@ -41,6 +41,10 @@ const MENU_SCRIPT = transpile("menu-script.ts");
 // does — the guard counts tags, and what it guards against is page
 // code drifting back onto the generated pages.
 const SW_REGISTER_SCRIPT = transpile("sw-register.ts");
+// The fifth: a pressed Save that looks pressed on the pages that post a
+// real form and wait — the spec editor's takes two or three seconds to
+// commit and push. Same tag as the others, for the same reason.
+const FORM_BUSY_SCRIPT = transpile("form-busy.ts");
 
 // Dark, Light, Auto. Not tabs: they are not a page to go to, so they
 // sit inside the "…" menu rather than in the tab bar, and mark the
@@ -226,7 +230,7 @@ export function pageShell(
 ${ICON_LINKS}
 ${PWA_LINKS}
 <style>${CSS}</style>
-<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}</script>
+<script>${THEME_SCRIPT}${UNIT_SCRIPT}${MENU_SCRIPT}${SW_REGISTER_SCRIPT}${FORM_BUSY_SCRIPT}</script>
 </head>
 <body>
 ${pageHeader()}

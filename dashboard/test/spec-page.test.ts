@@ -364,6 +364,22 @@ describe("the edit page", () => {
     expect(html).not.toContain("undefined");
   });
 
+  // Saving here commits and pushes, which takes two or three seconds,
+  // and this page carries no script of its own — so the shell's own
+  // must be what marks the button busy. Without it the Save looks
+  // untouched for those seconds and reads as a press that did not
+  // register (asked for 2026-08-23).
+  test("the shell's busy script comes with the page, so Save looks pressed", () => {
+    const html = edit();
+    expect(html).toContain('data-pending="saving…"');
+    // The transpiled listener itself, not just its effect: this page
+    // is served with no `script` of its own, so the head tag is the
+    // only place it can come from.
+    expect(html).toContain('addEventListener("submit"');
+    expect(html).toContain("dataset.busy");
+    expect(html).not.toContain("<script src");
+  });
+
   test("the text is escaped — a description is arbitrary text off disk", () => {
     const html = edit(editView({ text: "</textarea><script>alert(1)</script>" }));
     expect(html).not.toContain("<script>alert(1)");
