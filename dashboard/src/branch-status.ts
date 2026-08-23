@@ -27,6 +27,14 @@ export function specBranch(specFolder: string): string {
 export type GitRunner = (
   dir: string,
   args: string[],
+  /** Longer than the default for the rare call that is not a question.
+   *  A clone is the case: the specs repository took 4.3 s on 2026-08-23
+   *  and the 4 s default killed it, leaving a `.git` with `objects` and
+   *  no `HEAD` — every run then refused, because the checkout it needed
+   *  was a directory that was not a repository. Passed per call rather
+   *  than by building a second runner, so an injected fake still sees
+   *  every call the code makes. */
+  timeoutMs?: number,
 ) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 const DEFAULT_TIMEOUT_MS = 4000;
@@ -71,7 +79,7 @@ export function lsRemoteSpecBranches(): string[] {
  *  unreachable `origin` from stalling a page load: the queue polls every
  *  5 s and the job page refreshes every 10 s. */
 export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
-  return async (dir, args) => {
+  return async (dir, args, callTimeoutMs) => {
     // A directory that is not there is an ANSWER, not a crash. `cwd` on
     // a missing path fails inside posix_spawn, and the error names the
     // command — "ENOENT ... posix_spawn 'git'" — so it reads as a
@@ -93,7 +101,7 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
     } catch (e) {
       return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}` };
     }
-    const killer = setTimeout(() => proc.kill(), timeoutMs);
+    const killer = setTimeout(() => proc.kill(), callTimeoutMs ?? timeoutMs);
     try {
       const [stdout, stderr] = await Promise.all([
         new Response(proc.stdout).text(),

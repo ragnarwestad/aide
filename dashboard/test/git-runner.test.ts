@@ -28,3 +28,26 @@ describe("a directory that is not there is an answer, not a crash", () => {
     expect(res.stdout.trim().length).toBeGreaterThan(0);
   });
 });
+
+// A clone is not a question. Four seconds is right for "is this branch
+// merged"; the specs repository took 4.3 s to clone on 2026-08-23 and
+// was killed at 4.0, leaving a `.git` with `objects` and no `HEAD`.
+// Every run then refused: the checkout it needed was a directory that
+// was not a repository.
+describe("one call can ask for longer than the default", () => {
+  // 1 ms is shorter than a process takes to start, so the default kills
+  // every call this runner makes — which is what makes the second
+  // assertion mean something.
+  const impatient = createGitRunner(1);
+
+  test("the runner's own figure kills a call that does not name one", async () => {
+    const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"]);
+    expect(res.stdout.trim()).toBe("");
+  });
+
+  test("a call that names its own is not held to it", async () => {
+    const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"], 30_000);
+    expect(res.code).toBe(0);
+    expect(res.stdout.trim().length).toBeGreaterThan(0);
+  });
+});

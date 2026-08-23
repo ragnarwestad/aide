@@ -98,7 +98,18 @@ export function dashboardSpecDir(
   return rel ? join(checkout.specs, rel) : checkout.specs;
 }
 
-/** Clone `from`'s origin into `dest`, or say why not. */
+/** Clone `from`'s origin into `dest`, or say why not.
+ *
+ *  Its OWN runner, with minutes rather than the four seconds every other
+ *  git call here gets. That figure is right for a question — "is this
+ *  branch merged" — and a clone is not a question: the specs repository
+ *  took 4.3 s to clone on 2026-08-23 and was killed at 4.0, leaving a
+ *  `.git` holding `objects` and no `HEAD`. Every run then refused,
+ *  because the checkout it needed was a directory that was not a
+ *  repository. And the repository grows with every spec, so the margin
+ *  only ever gets worse. */
+const CLONE_TIMEOUT_MS = 10 * 60 * 1000;
+
 async function cloneFrom(run: GitRunner, from: string, dest: string): Promise<string | null> {
   const origin = await run(from, ["remote", "get-url", "origin"]);
   const url = origin.code === 0 ? origin.stdout.trim() : "";
@@ -107,7 +118,7 @@ async function cloneFrom(run: GitRunner, from: string, dest: string): Promise<st
   // `cwd` at the parent with the name as the destination argument, the
   // way `addProject` clones: the destination does not exist yet, so it
   // is the one git call that cannot run inside its own directory.
-  const cloned = await run(dirname(dest), ["clone", url, basename(dest)]);
+  const cloned = await run(dirname(dest), ["clone", url, basename(dest)], CLONE_TIMEOUT_MS);
   if (cloned.code !== 0) {
     const said = (cloned.stderr ?? "").trim() || (cloned.stdout ?? "").trim();
     return `cloning ${url} into ${dest} failed (exit ${cloned.code})${said ? `: ${said.slice(-200)}` : ""}`;
