@@ -74,6 +74,14 @@ inventing values.
   time they pull, while this one carries on working — a manifest is
   committed, and this key is the one thing in it that a refresh has no
   way to derive back
+- **A `testScopes:` key is kept too, and this one you may ASK about.**
+  It names the subdirectories that have their own test command (the
+  tools-and-scripts skill, "Project commands"), so a spec runs the
+  command covering what it changed instead of every command the project
+  owns. Never drop one on a refresh; propose one only when the project
+  visibly has a second toolchain in a subdirectory (its own lockfile or
+  build file below the root), and confirm the command with the user
+  rather than guessing it
 
 ### Step 5: Confirm
 

@@ -39,3 +39,10 @@ docs:
 # WRITTEN BY THE DASHBOARD, not by /aide-manifest. Leave a worktreeLinks
 # key exactly as found: never propose one, never remove one.
 worktreeLinks: node_modules
+# Subdirectories with their own test command — a change is tested by the
+# command(s) covering the files it touches. A file matches a scope when it
+# IS the path or lies under it; everything else falls to the project's own
+# detected command. Absent means one command covers the whole repo.
+testScopes:
+  - path: dashboard
+    command: cd dashboard && make test

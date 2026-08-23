@@ -79,11 +79,16 @@ resume it at the first unticked task if it found it in progress.
 ### Phase 3: REFACTOR — Quality check
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`
-2. Full test suite (no regressions)
+2. Full test suite (no regressions) — the command(s) covering the files
+   this run ACTUALLY changed, worked out from the project's `testScopes`
+   (see [Quality check](#quality-check)), never the whole project's
+   command by habit
 3. TypeScript check
 4. ESLint
 5. Build
-6. Update 4-status.md
+6. Update 4-status.md — the "Run the full test suite" row's Notes cell
+   names the command(s) that ran, and, when the project has `testScopes`
+   naming a scope nothing changed in, says that scope was left untested
 7. Show a summary — ready for commit
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
@@ -156,6 +161,21 @@ Example for a Maven/Gradle backend:
 ./gradlew test        # or: mvn test
 ./gradlew build       # or: mvn verify
 ```
+
+**A run tests what it changed.** If the project's manifest has a
+`testScopes:` list, sort the files this run actually changed
+(`git status`/`git diff --name-only`, not the plan's intentions) into
+their scopes by the rule the tools-and-scripts skill gives, and run every
+scope's command that has a file in it — plus the root command if any file
+matched no scope. A change reaching both halves runs both; a change
+reaching one runs one. A project with no `testScopes:` runs its one
+command, exactly as before.
+
+Then say so in `4-status.md`: the "Run the full test suite" row's Notes
+cell names the command(s) that ran, and — only when `testScopes` names a
+scope this run changed nothing in — names that scope as **left
+untested**, so a reader sees what was not tried instead of assuming
+everything was.
 
 ---
 

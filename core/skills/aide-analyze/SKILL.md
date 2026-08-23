@@ -123,6 +123,14 @@ consequence, probability and mitigation.
 must be verifiable by a test — if you cannot phrase the test, the criterion
 is too vague.
 
+**Name the test command the Scope's file list actually resolves to.** Run
+that list through the project's `testScopes` (the tools-and-scripts skill,
+"Project commands"): a file matching no scope belongs to the root command,
+and every scope with a file in it contributes its own. Write the resulting
+command(s) into the plan verbatim — never leave the
+`<project test command>` placeholder standing, and never name a command
+that covers nothing the change touches.
+
 Structure the plan with TDD:
 - Step 0: Write tests (RED phase) — at least one failing test per acceptance criterion
 - Step 1-N: Implementation (GREEN phase)

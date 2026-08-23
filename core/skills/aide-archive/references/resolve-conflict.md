@@ -103,6 +103,16 @@ Run it in the worktree you are standing in. If the project has no test
 command at all, say so plainly in the report — that is a real fact about
 the resolution's confidence, not a detail to leave out.
 
+If the project's manifest has a `testScopes:` list, the command is not one
+command but the set the MERGE's changed files resolve to — this spec's own
+diff plus whatever the default branch brought in
+(`git diff --name-only ORIG_HEAD...HEAD`, and the files the resolution
+touched). Sort them by the rule the tools-and-scripts skill gives and run
+every scope with a file in it, plus the root command if any file matched
+none. A merge reaching both halves runs both; one reaching only a scoped
+subdirectory does not pay for the root command. Name the command(s) that
+ran in the report, as this step already names the absence of one.
+
 **This is the gate the whole design rests on.** A machine resolving a
 conflict unattended and then landing it is defensible because a
 resolution that does not pass the project's own tests does not land.

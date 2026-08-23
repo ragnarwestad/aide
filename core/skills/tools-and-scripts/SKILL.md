@@ -63,6 +63,34 @@ For JS/TS projects, read `package.json` `scripts` for the exact names — the
 table's commands are the usual defaults, not a promise. Test runners must run
 in single-run mode, never watch mode (see the testing rules).
 
+**A subdirectory with its own toolchain: `testScopes`.** Detection reads the
+project ROOT, so it finds ONE command for the whole repository. A project
+whose subdirectory has a toolchain of its own says so in its manifest:
+
+```yaml
+# <project>/.aide/project.yaml
+testScopes:
+  - path: dashboard
+    command: cd dashboard && make test
+```
+
+Given the files a change touches, sort them into buckets and run every
+bucket's command that has at least one file in it:
+
+- A file matches a scope when it **is** the scope's `path` or lies under it
+  as a directory — `dashboard` itself, or `dashboard/src/serve.ts`. It is a
+  directory boundary, never a bare string prefix: `dashboard-notes.md` at
+  the root matches nothing and belongs to the root command.
+- When a file could match more than one scope, the **first** entry in the
+  manifest's own list order wins.
+- A file matching no scope belongs to the **root** command — whatever
+  `AIDE_TEST_CMD` or the table above resolves to.
+- An absent `testScopes:` list changes nothing: one command covers
+  everything, exactly as before.
+
+A change reaching both halves runs both commands. Nothing is skipped for
+being slow — only for covering nothing the change touched.
+
 **When to run what:**
 
 - New files created → Run `git add <file>` automatically
