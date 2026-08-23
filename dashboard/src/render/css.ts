@@ -462,20 +462,33 @@ table.list thead a { color: var(--muted); }
 /* One line, always: the name is clamped with an ellipsis rather than
    wrapped — a wrapped tail landed in front of the branch marks and
    read as one of them (2026-08-19). The full name is in the title. */
-.pipslot { margin-left: var(--sp-2); }
+/* Hard against the end of the fixed-width name line, so every row's
+   pips start at the same x whatever its name is. */
+.pipslot { margin-left: auto; padding-left: var(--sp-2); }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
-  /* 36rem since the pips joined this line and the Progress column went
+  /* 27rem since the pips joined this line and the Progress column went
      with them (2026-08-22): the row is one column shorter, and 18rem
      clamped a name to "194-archive-decides-on-th…" with the width
-     standing empty to the right of it. */
-  max-width: 27rem; }
+     standing empty to the right of it.
+     A WIDTH, not a maximum (2026-08-23): a short name left the pips
+     sitting further left than a long one's, so they stepped in and out
+     down the column instead of forming one. The name still truncates
+     at the same place; what is fixed is where the line ends. */
+  width: 27rem; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
    whole column wide: the phase lines start where this column ends, so
    an un-capped line of text put a hand's width of nothing between the
    buttons and the phases (2026-08-19). */
+/* Indented to the NAME, not to the cell: the fold control stands in
+   front of the name, and the two lines under it began at the cell's
+   own left edge — a step to the left of everything they belong to
+   (asked for 2026-08-23). The offset is the control's own footprint:
+   its width, its margin, and the flex gap after it. */
+.spec-title, .branchlist {
+  margin-left: calc(24px + var(--sp-1) + var(--sp-2)); }
 .spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
   max-width: 27rem; }
 /* The archive's Description column (spec 170). A spec's Description

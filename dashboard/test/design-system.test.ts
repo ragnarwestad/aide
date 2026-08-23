@@ -269,10 +269,12 @@ describe("the spec column is capped, so the phases sit close", () => {
   test("the name, the summary and the repo marks all wrap at a measure", async () => {
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
-    // The measure, not the rule it lives in: spec 130 folded the
-    // second `.spec-name` rule into the first, and the cap came with
-    // it. What this test is for is that the name wraps at a measure.
-    expect(CSS).toMatch(/\.spec-name \{[^}]*max-width: \d+rem/);
+    // A WIDTH on the name line since 2026-08-23, not a maximum: a short
+    // name let the pips beside it sit further left than a long one's,
+    // so they stepped in and out down the column. Still a measure — the
+    // name still truncates — and what this test is for is that the
+    // column ends at one.
+    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: \d+rem/);
   });
 });
 
