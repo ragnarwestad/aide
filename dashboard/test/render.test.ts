@@ -806,6 +806,20 @@ describe("the job page is split into tabs", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
   });
 
+  // Spec 212: the spec page offers seven tabs and the job page three,
+  // through ONE tab-bar renderer that takes the list as an argument.
+  // A job page that grew the spec page's tabs would be that renderer
+  // reading the wrong list, which is exactly what sharing it risks.
+  test("a job has three tabs and only three, whatever the spec page offers", () => {
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
+    const bar = html.match(/<span class="filters" data-filter="tab">[\s\S]*?<\/a><\/span>/)?.[0] ?? "";
+    expect(bar).toContain('<span class="lbl">Job</span>');
+    expect(bar.match(/<a data-nav/g)).toHaveLength(3);
+    for (const gone of ["tab=description", "tab=analysis", "tab=solution", "tab=status"]) {
+      expect([gone, bar.includes(gone)]).toEqual([gone, false]);
+    }
+  });
+
   test("the tab says how much is behind it, so a reader knows before clicking", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
     expect(html).toMatch(/>Activity · 1</);

@@ -601,19 +601,28 @@ describe("GET /specs/<project>/<specFolder>", () => {
     );
   };
 
-  test("shows all four files, whether or not anything has ever run (criterion 2)", async () => {
+  // Spec 212: all four are still there, one TAB each, rather than
+  // stacked in full on Overview. Overview itself carries no file text —
+  // it is where the spec stands.
+  test("offers all four files, whether or not anything has ever run (criterion 2)", async () => {
     const { base, dir } = start();
     fillSpec(dir);
     const res = await fetch(`${base}${PATH}`, auth);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
-    const html = await res.text();
-    for (const name of ["1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"]) {
-      expect(html).toContain(name);
+    const overview = await res.text();
+    for (const tab of ["description", "analysis", "solution", "status"]) {
+      expect([tab, overview.includes(`?tab=${tab}`)]).toEqual([tab, true]);
     }
-    expect(html).toContain("Seven files.");
-    expect(html).toContain("One must-fix.");
-    expect(html).toContain("not started");
+    expect(overview).toContain("not started");
+    expect(overview).not.toContain("Seven files.");
+
+    const analysis = await (await fetch(`${base}${PATH}?tab=analysis`, auth)).text();
+    expect(analysis).toContain("2-analysis.md");
+    expect(analysis).toContain("Seven files.");
+    const solution = await (await fetch(`${base}${PATH}?tab=solution`, auth)).text();
+    expect(solution).toContain("3-solution.md");
+    expect(solution).toContain("One must-fix.");
   });
 
   test("with a lead job it shows that job's Activity and Steps (criterion 1)", async () => {
@@ -656,10 +665,11 @@ describe("GET /specs/<project>/<specFolder>", () => {
   test("the spec's files are re-read on every request, never served from the 5 s scan", async () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", SPEC);
+    const analysis = `${PATH}?tab=analysis`;
     writeFileSync(join(spec, "2-analysis.md"), "before\n");
-    expect(await (await fetch(`${base}${PATH}`, auth)).text()).toContain("before");
+    expect(await (await fetch(`${base}${analysis}`, auth)).text()).toContain("before");
     writeFileSync(join(spec, "2-analysis.md"), "after\n");
-    const html = await (await fetch(`${base}${PATH}`, auth)).text();
+    const html = await (await fetch(`${base}${analysis}`, auth)).text();
     expect(html).toContain("after");
     expect(html).not.toContain("before");
   });

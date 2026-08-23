@@ -506,17 +506,22 @@ describe("an archived spec's own page", () => {
     expect(html).toContain(`<p class="desc"><strong>One page shows the whole spec</strong></p>`);
   });
 
-  test("offers no Edit link, and says why", async () => {
+  // Spec 212: the textarea is the Description tab rather than a page
+  // behind an Edit link, so what an archived spec withholds is the box
+  // itself — the tab is still there, read-only, with the note above it.
+  test("offers no textarea, and says why", async () => {
     const { base } = start();
-    const html = await (await fetch(`${base}${page}`, auth)).text();
-    expect(html).not.toContain("/edit");
+    const html = await (await fetch(`${base}${page}?tab=description`, auth)).text();
+    expect(html).not.toContain("<textarea");
     expect(html.toLowerCase()).toContain("archived");
   });
 
-  test("a live spec's page still offers Edit", async () => {
+  test("a live spec's Description tab still offers the box", async () => {
     const { base } = start();
-    const html = await (await fetch(`${base}/specs/aide/81-queue-and-runner`, auth)).text();
-    expect(html).toContain("/specs/aide/81-queue-and-runner/edit");
+    const html = await (
+      await fetch(`${base}/specs/aide/81-queue-and-runner?tab=description`, auth)
+    ).text();
+    expect(html).toContain("<textarea");
   });
 });
 

@@ -87,8 +87,8 @@ export {
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
   renderSpecPage,
-  specEditPath,
   specPagePath,
+  specTabPath,
 } from "./render/spec-page.ts";
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
 
@@ -98,7 +98,3 @@ export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-
 export { renderArchivePage } from "./render/archive-page.ts";
 export type { ArchiveFilter, ArchivePageView, ArchivedSpecView } from "./render/archive-page.ts";
 
-// `/specs/<project>/<specFolder>/edit` — the one of the four files a
-// person owns, in a textarea (spec 162).
-export { renderSpecEditPage } from "./render/spec-edit-page.ts";
-export type { SpecEditPageView } from "./render/spec-edit-page.ts";

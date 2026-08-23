@@ -11,6 +11,13 @@
 // and a 303 back to a page carrying the reason. What is new is that the
 // POST WRITES — so almost everything below is about what happens when
 // it must not.
+//
+// Spec 212: the GET is gone — the textarea is the spec page's own
+// Description tab — and the one POST that could commit a description
+// edit and a ticked check TOGETHER is two POSTs now, `/save` for the
+// description and `/tick` for the checks, each committing its own one
+// file. A refusal on one can no longer discard the other, because the
+// other was never in the same request.
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -22,6 +29,8 @@ const TOKEN = "s3cret-token";
 const SPEC = "81-queue-and-runner";
 const EDIT = `/specs/aide/${SPEC}/edit`;
 const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
+const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
+const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
 const PAGE = `/specs/aide/${SPEC}`;
 const FILE_SHA = "a3f9c21aaaaaaa";
 const HEAD_SHA = "1111111bbbbbbb";
@@ -98,12 +107,31 @@ const post = (base: string, body: Record<string, string>, path = SAVE, token: st
 
 const NEW_TEXT = "# Queue and runner - Description\n\n## Description\n\nAs it is now.\n";
 
-// --- criteria 2, 10: the page the Edit link opens ---------------------------
+// --- spec 212, criterion 8: the second page is gone -------------------------
+//
+// The textarea lives on the spec page's own Description tab now, so the
+// address it used to have has nothing behind it. Removed rather than
+// redirected: nothing inside the dashboard linked to it once the Edit
+// button went, and every other retired route here answers 404.
 
 describe("GET the edit page", () => {
-  test("holds the description's current text and the commit it was read at", async () => {
+  test("the address it had answers 404, on a live spec and an archived one", async () => {
     const { base } = start(savable("/host"));
-    const res = await fetch(`${base}${EDIT}`, auth);
+    expect((await fetch(`${base}${EDIT}`, auth)).status).toBe(404);
+    const archived = startArchived(savable("/host"));
+    expect((await fetch(`${archived.base}/specs/aide/${ARCHIVED}/edit`, auth)).status).toBe(404);
+  });
+
+  test("the spec page links to no such page — the tab is where the textarea is", async () => {
+    const { base } = start(savable("/host"));
+    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    expect(html).not.toContain(EDIT);
+    expect(html).toContain(`?tab=description`);
+  });
+
+  test("the Description tab holds the text and the commit it was read at", async () => {
+    const { base } = start(savable("/host"));
+    const res = await fetch(`${base}${DESCRIPTION_TAB}`, auth);
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain("<textarea");
@@ -111,36 +139,25 @@ describe("GET the edit page", () => {
     expect(html).toContain(FILE_SHA);
   });
 
-  // Ten seconds is long enough to lose a paragraph.
-  test("does not refresh itself under the reader", async () => {
+  // Ten seconds is long enough to lose a paragraph. This is why the
+  // form had a page of its own before spec 212.
+  test("the Description tab does not refresh itself under the reader", async () => {
     const { base } = start(savable("/host"));
-    expect(await (await fetch(`${base}${EDIT}`, auth)).text()).not.toContain('http-equiv="refresh"');
+    expect(await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text()).not.toContain('http-equiv="refresh"');
   });
 
   test("a spec nobody has is a 404, not a blank editor", async () => {
     const { base } = start(savable("/host"));
-    expect((await fetch(`${base}/specs/aide/99-no-such-spec/edit`, auth)).status).toBe(404);
+    expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`, auth)).status).toBe(404);
   });
 
-  test("it is a GET, and behind the token like every other spec path", async () => {
-    const { base } = start(savable("/host"));
-    expect((await fetch(`${base}${EDIT}`, { method: "POST", ...auth, redirect: "manual" })).status).toBe(405);
-    expect((await fetch(`${base}${EDIT}`)).status).toBe(401);
-  });
-
-  test("the spec page offers the link that leads here", async () => {
-    const { base } = start(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
-    expect(html).toContain(`href="${EDIT}"`);
-  });
-
-  // Criterion 11 (spec 163): the button is gone from the page, but the
-  // route resolved through `specDir()` with no archived check at all,
-  // so the form was one URL away.
-  test("an archived spec has no edit page — it is a record", async () => {
+  // Criterion 11 (spec 163): an archived spec is a record. Hiding the
+  // control is not the guard — the save endpoint is — but the tab must
+  // not offer a box that only gets refused.
+  test("an archived spec's Description tab is read-only", async () => {
     const { base } = startArchived(savable("/host"));
-    const res = await fetch(`${base}/specs/aide/${ARCHIVED}/edit`, { ...auth, redirect: "manual" });
-    expect(res.status).not.toBe(200);
+    const res = await fetch(`${base}/specs/aide/${ARCHIVED}?tab=description`, auth);
+    expect(res.status).toBe(200);
     expect(await res.text()).not.toContain("<textarea");
   });
 });
@@ -208,7 +225,7 @@ describe("a save that cannot go through changes nothing", () => {
       const res = await post(base, { text: NEW_TEXT, baseSha: FILE_SHA });
       expect(res.status).toBe(303);
       const location = decodeURIComponent(res.headers.get("location")!);
-      expect(location.startsWith(EDIT)).toBe(true);
+      expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
       expect(location).toContain(expected);
       // A refused push is rolled back by git, which is mocked here — so
       // the bytes are only asserted for the refusals that never write.
@@ -223,7 +240,7 @@ describe("a save that cannot go through changes nothing", () => {
     const res = await post(base, { text: NEW_TEXT, baseSha: "0000000ffffff" });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
     expect(location).toContain("changed since");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
@@ -424,7 +441,7 @@ describe("the Depends on field", () => {
 
   test("a spec that depends on nothing opens with nothing ticked", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     // Spec 174: a box per spec in the project, as on the New-spec page
     // — never a line to type an identifier into.
     expect(html).toContain(`value="${OTHER}"`);
@@ -439,7 +456,7 @@ describe("the Depends on field", () => {
 
   test("an existing line ticks its box and leaves the textarea", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS(OTHER)));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
     // The raw markdown is gone from the box: one control for one fact.
     expect(html).not.toContain("Depends on:**");
@@ -452,7 +469,7 @@ describe("the Depends on field", () => {
   // to, not the one whose folder happens to match the text.
   test("a dependency written as a bare number ticks the spec it resolves to", async () => {
     const { base } = startTracked(savable("/host"), TRACKED(DEPENDS("99")));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).toMatch(new RegExp(`value="${OTHER}"[^>]*checked`));
   });
 
@@ -461,7 +478,7 @@ describe("the Depends on field", () => {
   // one box that would say it is not drawn.
   test("the spec being edited is not among the boxes", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).not.toContain(`value="${SPEC}"`);
   });
 
@@ -471,7 +488,7 @@ describe("the Depends on field", () => {
   // the line still resolves and still gates the run.
   test("an archived spec is not offered as a new dependency", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).not.toContain(`value="${ARCHIVED}"`);
   });
 
@@ -479,7 +496,7 @@ describe("the Depends on field", () => {
 
   test("the page says the change applies from the next gated step", async () => {
     const { base } = startTracked(savable("/host"));
-    const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    const html = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(html).toContain("next gated step");
     expect(html).toContain("already running");
   });
@@ -559,7 +576,7 @@ describe("the Depends on field", () => {
     const res = await post(base, { text: TRACKED(), dependsOn: "77-no-such-spec", baseSha: FILE_SHA });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
     expect(location).toContain("77-no-such-spec");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED(DEPENDS(OTHER)));
   });
@@ -570,7 +587,7 @@ describe("the Depends on field", () => {
       const res = await post(base, { text: TRACKED(), dependsOn: id, baseSha: FILE_SHA });
       expect(res.status).toBe(303);
       const location = decodeURIComponent(res.headers.get("location")!);
-      expect(location.startsWith(EDIT)).toBe(true);
+      expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
       expect(location).toContain("itself");
       expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(TRACKED());
     }
@@ -593,7 +610,7 @@ describe("the Depends on field", () => {
     const res = await post(base, { text: DESCRIPTION, dependsOn: OTHER, baseSha: FILE_SHA });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location.startsWith(DESCRIPTION_TAB)).toBe(true);
     expect(location).toContain("Created");
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
   });
@@ -609,23 +626,27 @@ describe("the Depends on field", () => {
   });
 });
 
-// --- spec 188: ticking a check is part of editing the spec -------------------
+// --- spec 188, split in two by spec 212: ticking a check --------------------
 //
 // A spec's page had two ways of changing it — the description behind
 // Edit and Save, a check behind a box that wrote and committed on its
-// own press — and a reader had to learn both. The box is gone from the
-// spec's page; the checks that are still holding the spec back are on
-// the Edit form instead, under the textarea, and Save commits them
-// together with whatever the description text changed to.
+// own press — and a reader had to learn both. Spec 188 answered that by
+// putting the checks on the Edit form, under one Save.
+//
+// Spec 212 splits them again, and this time they are not two ways of
+// changing one thing: the description's textarea is the Description
+// tab, the checks are boxes on Overview, and each has a Save that
+// commits its own single file. A person no longer has to open the
+// description editor in order to tick a box.
 //
 // The guards spec 182 built are unchanged and are re-proven here on the
-// save route: a tick lands on the row it was drawn from, and a
+// tick route: a tick lands on the row it was drawn from, and a
 // `4-status.md` a step has written to since the page was drawn refuses
-// the save instead of flipping the wrong line. What is new is that a
-// refusal on EITHER file discards BOTH — "nothing was saved" is what
-// every refusal on this route already promises.
+// the tick instead of flipping the wrong line. What is NEW is what a
+// refusal can no longer do — discard a description edit that was never
+// in the same request.
 
-describe("the checks on the Edit form", () => {
+describe("the checks on the Overview tab", () => {
   const PHASE = "Phase 4: REFACTOR - Test suite";
   const EARLIER_PHASE = "Phase 3: GREEN - Implement";
   const LATER_PHASE = "Phase 5: SHIP - After the merge";
@@ -690,25 +711,27 @@ describe("the checks on the Edit form", () => {
 
   const statusPath = (dir: string, folder = SPEC) => join(dir, "root", "aide", "specs", folder, "4-status.md");
 
-  /** The form's own body: the textarea, the description's sha, the one
-   *  shared phase every box on the form belongs to, and `4-status.md`'s
-   *  own sha. `tick` is repeated once per ticked box, exactly as the
-   *  `dependsOn` boxes above already arrive. */
-  const save = (base: string, over: { text?: string; ticks?: string[]; baseSha?: string; statusBaseSha?: string } = {}) => {
+  /** The checks form's own body, and nothing else: the one shared phase
+   *  every box on it belongs to, `4-status.md`'s own sha, and one
+   *  `tick` per ticked box. There is no `text` field — the description
+   *  is not in this request and cannot be written by it. */
+  const tick = (base: string, over: { ticks?: string[]; phase?: string; statusBaseSha?: string } = {}) => {
     const body = new URLSearchParams([
-      ["text", over.text ?? DESCRIPTION],
-      ["baseSha", over.baseSha ?? FILE_SHA],
-      ["checksPhase", PHASE],
+      ...(over.phase === null ? [] : ([["checksPhase", over.phase ?? PHASE]] as [string, string][])),
       ["statusBaseSha", over.statusBaseSha ?? FILE_SHA],
       ...(over.ticks ?? []).map((line): [string, string] => ["tick", line]),
     ]);
-    return fetch(`${base}${SAVE}`, {
+    return fetch(`${base}${TICK}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
       redirect: "manual",
       body: body.toString(),
     });
   };
+
+  /** The description form's own body: the textarea and its sha. */
+  const save = (base: string, over: { text?: string; baseSha?: string } = {}) =>
+    post(base, { text: over.text ?? DESCRIPTION, baseSha: over.baseSha ?? FILE_SHA });
 
   /** Every git command the run was given, so the ONE commit and its
    *  message can both be read back. */
@@ -726,12 +749,14 @@ describe("the checks on the Edit form", () => {
     return commit[commit.indexOf("-m") + 1]!;
   };
 
-  // --- criterion 4: which checks the form offers ----------------------------
+  // --- criterion 1: which checks Overview offers as boxes -------------------
 
-  describe("GET the edit page", () => {
-    test("the current phase's open rows are boxes in the same form as the textarea", async () => {
+  describe("GET the Overview tab", () => {
+    const overview = (base: string) => fetch(`${base}${PAGE}`, auth).then((r) => r.text());
+
+    test("the current phase's open rows are boxes in a form of their own", async () => {
       const { base } = startWithChecks(savable("/host"));
-      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+      const html = await overview(base);
       expect(html).toContain("Manual check at 375px in a real browser");
       expect(html).toContain("Read the whole diff once");
       expect(html).toContain('name="tick"');
@@ -739,26 +764,26 @@ describe("the checks on the Edit form", () => {
       // belongs to the same phase by construction.
       expect(html).toContain(`name="checksPhase"`);
       expect(html).toContain(`name="statusBaseSha"`);
-      // Inside the one form that Save posts — there is no second one.
-      expect(html.match(/<form method="post"/g)!).toHaveLength(1);
+      // Its own action, not the description's: two forms, two commits.
+      expect(html).toContain(`action="${TICK}"`);
+      expect(html).not.toContain("<textarea");
     });
 
     // "A check already made" — the first of the description's two
-    // exclusions, tested on its own inside the CURRENT phase, so it is
-    // not merely a by-product of the phase filter.
-    test("a row already done in the current phase is not offered", async () => {
-      const { base } = startWithChecks(savable("/host"));
-      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
-      expect(html).not.toContain("Run the full test suite");
+    // exclusions. The row is still SHOWN, because a list that only ever
+    // shrinks says nothing about how far the spec got; it is not a box.
+    test("a row already done in the current phase is shown but is not a box", async () => {
+      const html = await overview(startWithChecks(savable("/host")).base);
+      expect(html).toContain("Run the full test suite");
+      expect(html.match(/name="tick"/g)!).toHaveLength(2);
     });
 
     // "A check nothing is waiting on" — the second exclusion: a phase
     // the workflow has not reached is sitting at its template default.
-    test("an open row in a later phase is not offered", async () => {
-      const { base } = startWithChecks(savable("/host"));
-      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
-      expect(html).not.toContain("Watch the first real run");
-      expect(html).not.toContain(LATER_PHASE);
+    test("an open row in a later phase is shown but is not a box", async () => {
+      const html = await overview(startWithChecks(savable("/host")).base);
+      expect(html).toContain("Watch the first real run");
+      expect(html.match(/name="tick"/g)!).toHaveLength(2);
     });
 
     // Spec 190, criterion 1. With every open mark written in words the
@@ -766,52 +791,46 @@ describe("the checks on the Edit form", () => {
     // no `⬜` anywhere, called the whole file done, and the row filter
     // then matched nothing.
     test("an open row written in words is offered exactly as a symbol one is", async () => {
-      const { base } = startWithChecks(savable("/host"), WORDED);
-      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+      const html = await overview(startWithChecks(savable("/host"), WORDED).base);
       expect(html).toContain('name="tick"');
       expect(html).toContain("Manual check at 375px in a real browser");
       expect(html).toContain("Read the whole diff once");
-      expect(html).not.toContain("Watch the first real run");
+      expect(html.match(/name="tick"/g)!).toHaveLength(2);
     });
 
-    test("a spec whose every phase is done offers no checks at all", async () => {
-      const done = [
-        "# Queue - Status",
-        "",
-        phaseSection(PHASE, [DONE_ROW]),
-      ].join("\n");
-      const { base } = startWithChecks(savable("/host"), done);
-      const html = await (await fetch(`${base}${EDIT}`, auth)).text();
+    test("a spec whose every phase is done offers no boxes at all", async () => {
+      const done = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
+      const html = await overview(startWithChecks(savable("/host"), done).base);
       expect(html).not.toContain('name="tick"');
-      expect(html).toContain("<textarea");
+      expect(html).toContain("Run the full test suite");
     });
 
     // A LOW-complexity spec on the simple checklist layout, or one never
     // analysed: no phase sections at all is a real answer, not an error.
     test("a status file with no phase sections at all opens all the same", async () => {
       const { base } = startWithChecks(savable("/host"), "# Queue - Status\n\n- [ ] something\n");
-      const res = await fetch(`${base}${EDIT}`, auth);
+      const res = await fetch(`${base}${PAGE}`, auth);
       expect(res.status).toBe(200);
-      const html = await res.text();
-      expect(html).not.toContain('name="tick"');
-      expect(html).toContain("<textarea");
+      expect(await res.text()).not.toContain('name="tick"');
     });
   });
 
-  // --- criteria 1, 2, 3: what one Save writes -------------------------------
+  // --- criteria 6, 7: two routes, two commits, one file each ----------------
 
-  test("a tick with the description unchanged commits 4-status.md alone", async () => {
+  test("a tick commits 4-status.md alone, and never the description", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    const res = await save(base, { ticks: [OPEN_ROW] });
+    const res = await tick(base, { ticks: [OPEN_ROW] });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+    expect(git.calls.find((c) => c[0] === "add")!.join(" ")).toContain("4-status.md");
+    expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("1-description.md");
   });
 
-  test("a description edit with no box ticked leaves 4-status.md untouched", async () => {
+  test("a description save commits 1-description.md alone, and never the status", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
     const res = await save(base, { text: NEW_TEXT });
@@ -820,23 +839,97 @@ describe("the checks on the Edit form", () => {
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+    expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("4-status.md");
   });
 
-  test("a tick and a description edit in the same Save are ONE commit", async () => {
+  // The point of the split: what used to be one commit carrying both is
+  // two independent ones, and nothing in the request can carry the
+  // other file.
+  test("a tick and a description edit are two commits, each of one file", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
-    const res = await save(base, { text: NEW_TEXT, ticks: [OPEN_ROW] });
-    expect(res.status).toBe(303);
-    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect((await save(base, { text: NEW_TEXT })).status).toBe(303);
+    expect((await tick(base, { ticks: [OPEN_ROW] })).status).toBe(303);
     expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(NEW_TEXT);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS.replace(OPEN_ROW, ticked(OPEN_ROW)));
-    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
-    expect(git.calls.filter((c) => c[0] === "push")).toHaveLength(1);
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(2);
+    expect(git.calls.filter((c) => c[0] === "push")).toHaveLength(2);
   });
 
-  test("two boxes ticked in one Save both flip", async () => {
+  // A `text` field posted at the tick route is a request that did not
+  // come from the checks form, and it writes nothing.
+  test("a text field sent to the tick route does not write the description", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await save(base, { ticks: [OPEN_ROW, SECOND_OPEN_ROW] });
+    const res = await fetch(`${base}${TICK}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+      body: new URLSearchParams([
+        ["text", NEW_TEXT],
+        ["baseSha", FILE_SHA],
+        ["checksPhase", PHASE],
+        ["statusBaseSha", FILE_SHA],
+        ["tick", OPEN_ROW],
+      ]).toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+  });
+
+  // And the reverse: the tick fields sent to the description's own
+  // route flip nothing.
+  test("tick fields sent to the save route do not flip a row", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await fetch(`${base}${SAVE}`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      redirect: "manual",
+      body: new URLSearchParams([
+        ["text", NEW_TEXT],
+        ["baseSha", FILE_SHA],
+        ["checksPhase", PHASE],
+        ["statusBaseSha", FILE_SHA],
+        ["tick", OPEN_ROW],
+      ]).toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+  });
+
+  test("the tick route lands the reader back on Overview, where the boxes are", async () => {
+    const { base } = startWithChecks(savable("/host"));
+    const res = await tick(base, { ticks: [OPEN_ROW] });
+    expect(decodeURIComponent(res.headers.get("location")!).startsWith(PAGE)).toBe(true);
+  });
+
+  test("it is a POST behind the token, like every other writing route here", async () => {
+    const { base } = startWithChecks(savable("/host"));
+    expect((await fetch(`${base}${TICK}`, auth)).status).toBe(405);
+    expect(
+      (
+        await fetch(`${base}${TICK}`, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          redirect: "manual",
+          body: new URLSearchParams({ checksPhase: PHASE, statusBaseSha: FILE_SHA, tick: OPEN_ROW }).toString(),
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await fetch(`${base}/api/queue/specs/aide/99-no-such/tick`, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+          redirect: "manual",
+          body: new URLSearchParams({ checksPhase: PHASE, statusBaseSha: FILE_SHA, tick: OPEN_ROW }).toString(),
+        })
+      ).status,
+    ).toBe(404);
+  });
+
+  test("two boxes ticked in one press both flip", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await tick(base, { ticks: [OPEN_ROW, SECOND_OPEN_ROW] });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(
@@ -844,12 +937,23 @@ describe("the checks on the Edit form", () => {
     );
   });
 
+  // Nothing ticked at all is a press of Save with every box clear. It
+  // is not a refusal and it is not a commit — there is nothing to say.
+  test("Save pressed with no box ticked writes nothing", async () => {
+    const git = recording();
+    const { base, dir } = startWithChecks(git.run);
+    const res = await tick(base);
+    expect(res.status).toBe(303);
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+  });
+
   // --- spec 190: the hold-back note a met check leaves behind ---------------
 
   test("ticking a word-written row flips it to ✅ and commits like any other", async () => {
     const { base, dir } = startWithChecks(savable("/host"), WORDED);
     const row = "| Manual check at 375px in a real browser | Waiting | still outstanding |";
-    const res = await save(base, { ticks: [row] });
+    const res = await tick(base, { ticks: [row] });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(WORDED.replace(row, ticked(OPEN_ROW)));
@@ -858,7 +962,7 @@ describe("the checks on the Edit form", () => {
   test("ticking the last open check anywhere in the file clears the hold-back section", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
-    const res = await save(base, { ticks: [OPEN_ROW] });
+    const res = await tick(base, { ticks: [OPEN_ROW] });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     const written = readFileSync(statusPath(dir), "utf-8");
@@ -873,14 +977,15 @@ describe("the checks on the Edit form", () => {
   test("a spec still carrying open work keeps its hold-back section", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW, SECOND_OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
-    const res = await save(base, { ticks: [OPEN_ROW] });
+    const res = await tick(base, { ticks: [OPEN_ROW] });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(status.replace(OPEN_ROW, ticked(OPEN_ROW)));
   });
 
-  // The clearing is scoped to the tick path: a save that only edits the
-  // description must not go rewriting a section it never touched.
+  // The clearing belongs to the tick route: a save that only edits the
+  // description must not go rewriting a section it never touched — and
+  // since spec 212 it could not reach the file if it wanted to.
   test("a description edit alone leaves the hold-back section where it is", async () => {
     const status = heldBack([DONE_ROW, OPEN_ROW]);
     const { base, dir } = startWithChecks(savable("/host"), status);
@@ -889,89 +994,81 @@ describe("the checks on the Edit form", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(status);
   });
 
-  // --- what the commit records ----------------------------------------------
+  // --- what each commit records ---------------------------------------------
 
   describe("the commit message", () => {
-    test("a tick alone reads as a check made by hand, not as an edit", async () => {
+    test("a tick reads as a check made by hand, not as an edit", async () => {
       const git = recording();
       const { base } = startWithChecks(git.run);
-      await save(base, { ticks: [OPEN_ROW] });
-      const message = messageOf(git.calls);
-      expect(message).toBe(`Tick a check in 4-status.md for ${SPEC} by hand from the dashboard`);
+      await tick(base, { ticks: [OPEN_ROW] });
+      expect(messageOf(git.calls)).toBe(`Tick a check in 4-status.md for ${SPEC} by hand from the dashboard`);
     });
 
-    test("a description edit alone still reads exactly as it did", async () => {
+    test("a description edit still reads exactly as it did", async () => {
       const git = recording();
       const { base } = startWithChecks(git.run);
       await save(base, { text: NEW_TEXT });
       expect(messageOf(git.calls)).toBe(`Edit 1-description.md for ${SPEC} from the dashboard`);
     });
 
-    // Both halves, in the order the fields are read — a commit that both
-    // edited the prose and ticked a box says so on both counts.
-    test("both together say both, in one message", async () => {
+    // The sentence that named both files in one commit has nothing left
+    // to describe: two files can no longer arrive in one request.
+    test("no commit names both files any more", async () => {
       const git = recording();
       const { base } = startWithChecks(git.run);
-      await save(base, { text: NEW_TEXT, ticks: [OPEN_ROW] });
-      expect(messageOf(git.calls)).toBe(
-        `Edit 1-description.md and tick a check in 4-status.md for ${SPEC} by hand from the dashboard`,
-      );
+      await save(base, { text: NEW_TEXT });
+      await tick(base, { ticks: [OPEN_ROW] });
+      for (const call of git.calls.filter((c) => c[0] === "commit")) {
+        expect(call.join(" ")).not.toContain("and tick a check");
+      }
     });
   });
 
-  // --- criterion 5: a refusal discards BOTH halves --------------------------
+  // --- criterion 7: a tick that cannot go through changes nothing -----------
 
-  test("a 4-status.md that moved under the editor refuses the whole save", async () => {
+  test("a 4-status.md that moved under the reader refuses the tick", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await save(base, { text: NEW_TEXT, ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" });
+    const res = await tick(base, { ticks: [OPEN_ROW], statusBaseSha: "0000000ffffff" });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location.startsWith(PAGE)).toBe(true);
     expect(location).toContain("changed since");
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
   // The sha still matches — the same commit — but the row does not: the
   // reader sat on the page while a step rewrote the table around it.
-  test("a tick naming a row that no longer reads as it did refuses the whole save", async () => {
+  test("a tick naming a row that no longer reads as it did is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await save(base, {
-      text: NEW_TEXT,
+    const res = await tick(base, {
       ticks: ["| Manual check at 375px in a real browser | ⬜ | as it once was |"],
     });
     expect(res.status).toBe(303);
     const location = decodeURIComponent(res.headers.get("location")!);
-    expect(location.startsWith(EDIT)).toBe(true);
+    expect(location.startsWith(PAGE)).toBe(true);
     expect(location).toContain("error=");
-    // The description edit goes with it — never silently applied while
-    // the tick is dropped.
-    expect(readFileSync(descriptionPath(dir), "utf-8")).toBe(DESCRIPTION);
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+  });
+
+  // One row that is not there refuses the whole press, the rows beside
+  // it included — never applied silently while one of them is dropped.
+  test("one bad row refuses every box in the same press", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
+    const res = await tick(base, { ticks: [OPEN_ROW, "| No such row | ⬜ | |"] });
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
   test("a row that is already done is refused rather than committed again", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const res = await save(base, { ticks: [DONE_ROW] });
+    const res = await tick(base, { ticks: [DONE_ROW] });
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
   test("a phase the file does not have is refused", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const body = new URLSearchParams([
-      ["text", DESCRIPTION],
-      ["baseSha", FILE_SHA],
-      ["checksPhase", "Phase 9: NOTHING"],
-      ["statusBaseSha", FILE_SHA],
-      ["tick", OPEN_ROW],
-    ]);
-    const res = await fetch(`${base}${SAVE}`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
-      redirect: "manual",
-      body: body.toString(),
-    });
+    const res = await tick(base, { ticks: [OPEN_ROW], phase: "Phase 9: NOTHING" });
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
@@ -980,53 +1077,60 @@ describe("the checks on the Edit form", () => {
   // that never came from this form.
   test("ticks with no phase named are refused rather than guessed at", async () => {
     const { base, dir } = startWithChecks(savable("/host"));
-    const body = new URLSearchParams([
-      ["text", DESCRIPTION],
-      ["baseSha", FILE_SHA],
-      ["tick", OPEN_ROW],
-    ]);
-    const res = await fetch(`${base}${SAVE}`, {
+    const res = await fetch(`${base}${TICK}`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
       redirect: "manual",
-      body: body.toString(),
+      body: new URLSearchParams([["statusBaseSha", FILE_SHA], ["tick", OPEN_ROW]]).toString(),
     });
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("error=");
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
-  test("an archived spec's checks cannot be ticked either", async () => {
+  // Spec 163: an archived spec is a record, and the guard is on the
+  // route — hiding the boxes leaves it live for anyone with the URL.
+  test("an archived spec's checks cannot be ticked", async () => {
     const { base, dir } = harness.start({
       description: DESCRIPTION,
       status: STATUS,
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const body = new URLSearchParams([
-      ["text", ARCHIVED_TEXT],
-      ["baseSha", FILE_SHA],
-      ["checksPhase", PHASE],
-      ["statusBaseSha", FILE_SHA],
-      ["tick", OPEN_ROW],
-    ]);
-    const res = await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/save`, {
+    const res = await fetch(`${base}/api/queue/specs/aide/${ARCHIVED}/tick`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
       redirect: "manual",
-      body: body.toString(),
+      body: new URLSearchParams([
+        ["checksPhase", PHASE],
+        ["statusBaseSha", FILE_SHA],
+        ["tick", OPEN_ROW],
+      ]).toString(),
     });
     expect(res.status).toBe(303);
     expect(decodeURIComponent(res.headers.get("location")!)).toContain("archived");
     expect(readFileSync(join(dir, "root", "aide", "specs", "archive", ARCHIVED, "4-status.md"), "utf-8")).toBe(STATUS);
   });
 
-  // --- criterion 7: the box that wrote on its own press is gone -------------
+  test("and its Overview offers no box to press", async () => {
+    const { base } = harness.start({
+      description: DESCRIPTION,
+      status: STATUS,
+      archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
+      extra: { queueToken: TOKEN, gitRun: savable("/host") },
+    });
+    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}`, auth)).text();
+    expect(html).toContain("Manual check at 375px in a real browser");
+    expect(html).not.toContain('name="tick"');
+  });
+
+  // --- the route spec 188 removed is still gone ----------------------------
   //
-  // Deliberate, and a test rather than an absence: the route's removal
-  // has to be visible to the next refactor, not something to be
-  // rediscovered.
-  test("the old tick route is gone — the URL answers 404", async () => {
-    const { base } = startWithChecks(savable("/host"));
+  // Deliberate, and a test rather than an absence: `/status/tick` wrote
+  // and committed on the press of one box, with no Save at all. The
+  // form spec 212 gives back is a different thing — every box on it is
+  // posted by one Save — and it lives at `/tick`.
+  test("the old per-box route is gone — the URL answers 404", async () => {
+    const { base, dir } = startWithChecks(savable("/host"));
     const res = await fetch(`${base}/api/queue/specs/aide/${SPEC}/status/tick`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
@@ -1034,18 +1138,6 @@ describe("the checks on the Edit form", () => {
       body: new URLSearchParams({ phase: PHASE, line: OPEN_ROW, baseSha: FILE_SHA }).toString(),
     });
     expect(res.status).toBe(404);
-    expect(readFileSync(statusPath((await startWithChecks(savable("/host"))).dir), "utf-8")).toBe(STATUS);
-  });
-
-  test("the spec's own page carries no control that writes on its press", async () => {
-    const { base } = startWithChecks(savable("/host"));
-    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
-    // The rows are still there — the banner is a summary, and that is
-    // not what changed.
-    expect(html).toContain("Manual check at 375px in a real browser");
-    expect(html).not.toContain("/status/tick");
-    const banner = html.match(/<section class="checks">[\s\S]*?<\/section>/)![0];
-    expect(banner).not.toContain("<form");
-    expect(banner).not.toContain("action=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 });

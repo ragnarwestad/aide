@@ -157,58 +157,72 @@ named anywhere in this repo.
   interactive sessions are claude-usage's own page.)
 - `/specs/<id>` — one job, in full. It did NOT move with the list: every
   job link already sent out points here.
-- `/specs/<project>/<spec>` — the whole SPEC, as it stands now: all four
-  files, each stamped with the commit that last changed it, plus the
-  lead job's Activity and Steps tabs and the Update button that pulls
-  the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`).
-  An ARCHIVED spec has this page too, and always did — the scan records
-  every spec's directory before it drops the archived ones from the
-  list. Since spec 163 it says it is archived and offers no Edit: the
-  spec is a record.
-- `/specs/<project>/<spec>/edit` — `1-description.md` in a textarea, and
-  under it the checks that are still holding the spec back (spec 162,
-  narrowed by spec 188). Refused for an ARCHIVED spec, here and at the
-  save route below: hiding the button would have left both reachable for
-  anyone holding the URL. The description is the one of the four files a
-  person owns: the other three are written by a step and a hand edit
-  there is overwritten the next time that step runs. `4-status.md` is
-  the narrow exception, and only through these boxes — one existing
-  row's Status mark, never its prose. The checks offered are the OPEN
-  rows of the CURRENT phase alone (the first phase section still
-  carrying an open mark, the same one the spec list's column shows): a
-  row already ticked is a check already made, and a row in a phase the
-  workflow has not reached is a check nothing is waiting on. A spec with
-  neither — every phase clear, or a `4-status.md` with no phase sections
-  at all — draws no checks section. The page carries the commit each of
-  the two files was read at and never refreshes itself.
+- `/specs/<project>/<spec>` — the whole SPEC, as it stands now, in SEVEN
+  tabs (spec 212): Overview, one tab per document (Description,
+  Analysis, Solution, Status — each stamped with the commit that last
+  changed it), and the lead job's own Activity and Steps. All four files
+  used to be stacked in full on Overview, which for a spec of any size
+  was thousands of lines of preformatted text before the reader reached
+  what they came for; Overview carries no file text at all now. It is
+  where the spec STANDS: the state chip, the Update button that pulls
+  the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`),
+  the title, what the spec depends on (read-only — the picker that
+  CHANGES it is on the Description tab, with the file the line is stored
+  in), and the checks, as real boxes with a Save of their own.
+  **Only Activity and Steps reload themselves** (`<meta refresh>`, ten
+  seconds): they are the two that move while a step runs, and every
+  other tab carries a form a timer would wipe. The price is a state chip
+  only as fresh as the last time the page was asked for, with Update
+  beside it. An ARCHIVED spec has this page too, and always did — the
+  scan records every spec's directory before it drops the archived ones
+  from the list. Since spec 163 it says it is archived, and its
+  Description tab is read-only with no box to tick anywhere: the spec is
+  a record. `GET /specs/<project>/<spec>/edit`, the page the textarea
+  lived on from spec 162 until spec 212, answers 404 — removed rather
+  than redirected, like every other retired route here.
+- The **Description tab** is `1-description.md` in a textarea with its
+  own Save, plus the `Depends on` picker (spec 166, the New-spec page's
+  own control since spec 174 — the line it writes is a line of this very
+  file, and leaving it in the textarea too would mean two writers for
+  one fact). It is the one of the four files a person owns: the other
+  three are written by a step and a hand edit there is overwritten the
+  next time that step runs.
+- The **checks on Overview** are `4-status.md`'s Tasks rows, every one
+  of them — a list that only ever shrinks says nothing about how far the
+  spec got. The ones that are BOXES are the open rows of the CURRENT
+  phase alone (the first phase section still carrying an open mark, the
+  same one the spec list's column shows): a row already ticked is a
+  check already made, and a row in a phase the workflow has not reached
+  is a check nothing is waiting on. Both are shown, neither presses.
+  `4-status.md` is otherwise the runner's, and this is the narrow
+  exception — one existing row's Status mark, never its prose.
 - `POST /api/queue/specs/<project>/<spec>/save` — writes, commits and
-  pushes what the Edit form carried, on the specs repo's default branch,
-  then returns to the spec. ONE commit, whatever was in it: the
-  description alone, one or more ticked checks alone, or both together
-  (spec 188 — before it, a check was ticked by pressing its box on the
-  spec's page, which wrote and committed on the spot, and a spec had two
-  ways of being changed). A tick's new text is computed HERE from the
+  pushes what the Description tab's form carried
+  (`1-description.md`, the `Depends on` line included), on the specs
+  repo's default branch, then returns to that tab. ONE commit, ONE file.
+- `POST /api/queue/specs/<project>/<spec>/tick` — the same, for the
+  checks form: `4-status.md` alone, its own commit, back to Overview
+  (spec 212). Until it existed, `/save` wrote both files in one commit
+  (spec 188), which meant a person had to open the description's editor
+  in order to tick a box. A tick's new text is computed HERE from the
   row the server verified against the file on disk and never taken from
   the body, so no byte of `4-status.md` outside a Status cell can move.
-  Two guards, not one: each file's `baseSha` as it was read at, and each
+  Two guards, not one: the file's `baseSha` as it was read at, and each
   ticked row's own exact text posted back — a row that no longer reads
   as it did is refused even when the sha still matches, which is what
-  tells a second press apart from a first inside one commit. Every
-  refusal discards the WHOLE save, both files: one file's stale sha, or
-  one row that is not there to tick, and nothing is written to either —
-  a description edit is never applied silently while the tick it came
-  with is dropped. Refused, with nothing written, when the checkout is
-  dirty, on another branch, diverged or unreachable; a commit whose push
-  fails is reset away, because an unpushed commit in the one shared
-  specs checkout breaks the next fast-forward for every project in it.
-  Refused for an ARCHIVED spec, whose files are history. It is the only
-  route that accepts a body over 4096 bytes — a description is not an
-  action post — and its own cap is 64 KiB. `POST
-  .../status/tick`, the route that ticked one row on its own, was
-  deleted with spec 188 and answers 404; the rows are still drawn at the
-  top of the spec's page, above the tab bar, as a read-only summary —
-  the reason they moved there is that the check holding an archive back
-  was a row near the bottom of the fourth file.
+  tells a second press apart from a first. One bad row refuses every box
+  in the same press; a `text` field posted here is read by nothing, and
+  `tick` fields posted at `/save` are read by nothing.
+  Both routes refuse, with nothing written, when the checkout is dirty,
+  on another branch, diverged or unreachable; a commit whose push fails
+  is reset away, because an unpushed commit in the one shared specs
+  checkout breaks the next fast-forward for every project in it. Both
+  refuse an ARCHIVED spec, whose files are history — server-side, not by
+  hiding a control. `/save` is the only route that accepts a body over
+  4096 bytes — a description is not an action post — and its own cap is
+  64 KiB. `POST .../status/tick`, the route that ticked one row on its
+  own press with no Save at all, was deleted with spec 188 and still
+  answers 404.
 - `/specs` and `/queue` — where the list used to live; both redirect to
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is

@@ -9,14 +9,20 @@
 //
 // The spec page is the whole spec as it stands now: four files, in
 // order, each stamped with the commit that last touched it.
+//
+// Spec 212: one TAB per file rather than all four stacked on Overview.
+// Overview is the front page — where the spec stands, what it depends
+// on, and the checks that are still holding it back as real boxes with
+// a Save of their own — and the four documents are four tabs beside it.
+// The reload that used to run on every tab is scoped to the two that
+// move while a step runs, because a page that reloads on a timer wipes
+// a half-typed textarea and a half-ticked list.
 
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
-  renderSpecEditPage,
   renderSpecPage,
   type SpecCheckView,
-  type SpecEditPageView,
   type SpecPageView,
 } from "../src/render.ts";
 import type { JobDetailView } from "../src/render.ts";
@@ -44,6 +50,8 @@ const view = (extra: Partial<SpecPageView> = {}): SpecPageView => ({
     file("4-status.md", "## Phase 1: RED\n\n| Task | Status |\n"),
   ],
   updateAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/update",
+  saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
+  tickAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick",
   ...extra,
 });
 
@@ -64,34 +72,95 @@ const lead = (extra: Partial<JobDetailView> = {}): JobDetailView => ({
 const page = (v: SpecPageView = view(), tab?: string) =>
   renderSpecPage(v, GENERATED, NAV, { tab, now: NOW });
 
-// --- criterion 1: the whole spec, in order ----------------------------------
+// --- spec 212, criteria 1-3: one tab per document ---------------------------
+//
+// Four documents stacked on one tab is thousands of lines of
+// preformatted text before the reader reaches whatever they came for.
+// One tab each, and Overview carries no file text at all.
 
-describe("the spec page's Overview is the four files", () => {
-  test("all four are shown, in the order they are written and read", () => {
+describe("spec 212: Overview is the front page, not the four files", () => {
+  test("no document's text is stacked on it any more", () => {
     const html = page();
-    const at = (name: string) => html.indexOf(name);
-    expect(at("1-description.md")).toBeGreaterThan(-1);
-    expect(at("2-analysis.md")).toBeGreaterThan(at("1-description.md"));
-    expect(at("3-solution.md")).toBeGreaterThan(at("2-analysis.md"));
-    expect(at("4-status.md")).toBeGreaterThan(at("3-solution.md"));
+    expect(html).not.toContain('class="specfile"');
+    expect(html).not.toContain("The dashboard never shows a spec.");
+    expect(html).not.toContain("Approach 1.");
   });
 
-  test("each file's own content is on the page, whole", () => {
+  // What Overview IS for: where the spec stands and what is still
+  // holding it back. The state chip and the Update button sit in the
+  // banner above the tabs, and are on the page whichever tab is open.
+  test("the state chip, the Update button and the title are still there", () => {
     const html = page();
-    expect(html).toContain("The dashboard never shows a spec.");
-    expect(html).toContain("Approach 1.");
-    expect(html).toContain("Phase 1: RED");
+    expect(html).toContain("not started");
+    expect(html).toContain("Update");
+    expect(html).toContain("One page shows the whole spec");
   });
 
-  test("each file carries the commit that last changed it, so the version is readable", () => {
+  test("every document is offered as a tab of its own", () => {
     const html = page();
-    expect(html).toContain("a3f9c21");
-    expect(html).toContain("2026-08-21T09:14:00+02:00");
+    const base = "/specs/aide/150-one-page-shows-the-whole-spec";
+    for (const tab of ["overview", "description", "analysis", "solution", "status", "activity", "steps"]) {
+      expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
+    }
+  });
+});
+
+describe("spec 212: each document tab shows its own file and no other", () => {
+  const only = (tab: string, present: string, absent: string[]) => {
+    const html = page(view(), tab);
+    expect(html).toContain(present);
+    for (const other of absent) expect([tab, other, html.includes(other)]).toEqual([tab, other, false]);
+  };
+
+  test("the analysis tab is the analysis alone", () => {
+    only("analysis", "`discover.ts` has specTitle().", [
+      "The dashboard never shows a spec.",
+      "Approach 1.",
+      "Phase 1: RED",
+    ]);
+  });
+
+  test("the solution tab is the solution alone", () => {
+    only("solution", "Approach 1.", [
+      "The dashboard never shows a spec.",
+      "`discover.ts` has specTitle().",
+      "Phase 1: RED",
+    ]);
+  });
+
+  test("the status tab is the status alone", () => {
+    only("status", "Phase 1: RED", [
+      "The dashboard never shows a spec.",
+      "`discover.ts` has specTitle().",
+      "Approach 1.",
+    ]);
+  });
+
+  test("each carries the commit that last changed it, so the version is readable", () => {
+    for (const tab of ["analysis", "solution", "status"]) {
+      const html = page(view(), tab);
+      expect([tab, html.includes("a3f9c21")]).toEqual([tab, true]);
+      expect([tab, html.includes("2026-08-21T09:14:00+02:00")]).toEqual([tab, true]);
+    }
+  });
+
+  // The three the analyze and implement steps write are read-only, for
+  // the reason they are read-only today: a hand edit there is
+  // overwritten the next time the step runs.
+  test("the three the steps write carry no textarea and no Edit link", () => {
+    for (const tab of ["analysis", "solution", "status"]) {
+      const html = page(view(), tab);
+      expect([tab, html.includes("<textarea")]).toEqual([tab, false]);
+      expect([tab, html.includes("/edit")]).toEqual([tab, false]);
+    }
   });
 
   test("a file git cannot date is still shown — the content is the point", () => {
     const html = page(
-      view({ files: [file("1-description.md", "prose", { sha: undefined, at: undefined })] }),
+      view({
+        files: [file("2-analysis.md", "prose", { sha: undefined, at: undefined })],
+      }),
+      "analysis",
     );
     expect(html).toContain("prose");
     expect(html).not.toContain("undefined");
@@ -100,18 +169,54 @@ describe("the spec page's Overview is the four files", () => {
   // A spec halfway through the workflow has files that are not written
   // yet. Saying so is the answer; an empty box is not.
   test("a file that has not been written says so, rather than showing nothing", () => {
-    const html = page(view({ files: [file("2-analysis.md", null)] }));
+    const html = page(view({ files: [file("2-analysis.md", null)] }), "analysis");
     expect(html).toContain("2-analysis.md");
     expect(html).toContain("has not been written yet");
+  });
+
+  // A tab whose file the view does not carry at all — an archived spec
+  // read out of a folder missing one — must not render "undefined".
+  test("a tab whose file is not among the view's renders the missing note", () => {
+    const html = page(view({ files: [file("1-description.md", "prose")] }), "solution");
+    expect(html).toContain("3-solution.md");
+    expect(html).not.toContain("undefined");
   });
 
   // Markdown is NOT rendered (the description put that out of scope) —
   // which makes escaping the whole question: a spec file is arbitrary
   // text off disk, and it is full of angle brackets.
   test("a file's text is escaped, never markup", () => {
-    const html = page(view({ files: [file("2-analysis.md", "`<script>alert(1)</script>`")] }));
+    const html = page(view({ files: [file("2-analysis.md", "`<script>alert(1)</script>`")] }), "analysis");
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script>alert(1)");
+  });
+});
+
+// --- spec 212, criteria 4, 5: the reload is scoped to the two tabs that move -
+//
+// The page reloaded itself every ten seconds on every tab, which is
+// precisely why editing lived on a page of its own. Overview and the
+// four document tabs now carry forms, so they stop reloading; Activity
+// and Steps keep it, because they are the two that move while a step
+// runs and neither holds a form.
+
+describe("spec 212: which tabs reload themselves", () => {
+  for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
+    test(`${tab} does not refresh itself under the reader`, () => {
+      expect([tab, page(view(), tab).includes('http-equiv="refresh"')]).toEqual([tab, false]);
+    });
+  }
+
+  for (const tab of ["activity", "steps"]) {
+    test(`${tab} still reloads every ten seconds`, () => {
+      expect(page(view(), tab)).toContain('<meta http-equiv="refresh" content="10">');
+    });
+  }
+
+  // A tab name nobody offers falls back to Overview, and the fallback
+  // decides the reload too — not the raw string off the query.
+  test("a tab name nobody offers falls back to Overview, reload and all", () => {
+    expect(page(view(), "../secrets")).not.toContain('http-equiv="refresh"');
   });
 });
 
@@ -121,7 +226,7 @@ describe("a spec with no job at all", () => {
   test("renders, and says it has not started rather than pretending a state", () => {
     const html = page();
     expect(html).toContain("not started");
-    expect(html).toContain("The dashboard never shows a spec.");
+    expect(page(view(), "description")).toContain("The dashboard never shows a spec.");
   });
 
   test("its Activity and Steps tabs say what an empty job's tabs say", () => {
@@ -132,7 +237,7 @@ describe("a spec with no job at all", () => {
   test("its tabs are offered all the same — an empty tab is still a tab", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["overview", "activity", "steps"]) {
+    for (const tab of ["overview", "description", "activity", "steps"]) {
       expect(html).toContain(`href="${base}?tab=${tab}"`);
     }
   });
@@ -213,7 +318,7 @@ describe("the spec page is a page of this site like any other", () => {
 
   test("a tab name nobody offers falls back to the Overview instead of a blank page", () => {
     const html = page(view(), "../secrets");
-    expect(html).toContain("The dashboard never shows a spec.");
+    expect(html).toContain("One page shows the whole spec");
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
   });
 
@@ -280,43 +385,29 @@ describe("the shared panels are the job page's own", () => {
   });
 });
 
-// --- spec 162: the Edit link, and the page it opens -------------------------
+// --- spec 162, moved onto the page by spec 212: the Description tab ---------
 //
 // One of the four files is a person's to write. `2-analysis.md` and
 // `3-solution.md` are the analyze step's output and a hand edit there
-// is overwritten the next time it runs; `4-status.md`
-// has been the runner's since spec 154. So the link is on
-// `1-description.md` and on nothing else — including the phase file the
-// JOB page shows through the same `specFilePanel`.
+// is overwritten the next time it runs; `4-status.md` has been the
+// runner's since spec 154. So the textarea is on `1-description.md`
+// and on nothing else.
+//
+// It used to be a page of its own, reached by an Edit link, for one
+// reason: the spec page refreshed itself every ten seconds and a
+// textarea under a timer is one poll away from losing what was typed.
+// The Description tab does not reload, so the form lives here now and
+// the second page is gone.
 
-describe("the Edit link", () => {
-  test("is on the description and on none of the other three files", () => {
-    const html = page();
-    const href = "/specs/aide/150-one-page-shows-the-whole-spec/edit";
-    expect(html).toContain(`href="${href}"`);
-    expect(html.split(`href="${href}"`)).toHaveLength(2);
-    expect(html).toContain("Edit");
+describe("spec 212: the Edit link that led to a second page is gone", () => {
+  test("no tab offers one, and the page it led to is not linked anywhere", () => {
+    for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
+      expect([tab, page(view(), tab).includes("/edit")]).toEqual([tab, false]);
+    }
   });
 
-  test("is absent when the description is not among the files shown", () => {
-    const html = page(view({ files: [file("2-analysis.md", "## Findings\n")] }));
-    expect(html).not.toContain("/edit");
-  });
-
-  // Spec 163: an archived spec is a RECORD. Editing was built for a
-  // description that is edited WHILE the work is live (spec 162), and
-  // Save on an archived spec would have written, committed and pushed
-  // into `archive/`.
-  test("is gone on an archived spec, replaced by a note that says why", () => {
-    const html = page(view({ archived: true }));
-    expect(html).not.toContain("/edit");
-    expect(html).toContain("archived");
-  });
-
-  // The job page draws its phase's file through the same function. A
-  // step's own output is not a thing to hand-edit, and an Edit link
-  // there would post the wrong file's text at the description's route.
-  test("never appears on a job page's phase file", () => {
+  // The job page draws its phase's file through the same function.
+  test("never appears on a job page's phase file either", () => {
     const html = renderJobDetailPage(
       lead({ phase: { label: "2-analysis.md", text: "## Findings\n", sha: "a3f9c21", at: "2026-08-21T09:14:00+02:00" } }),
       GENERATED,
@@ -328,19 +419,8 @@ describe("the Edit link", () => {
   });
 });
 
-describe("the edit page", () => {
-  const editView = (extra: Partial<SpecEditPageView> = {}): SpecEditPageView => ({
-    project: "aide",
-    specFolder: "150-one-page-shows-the-whole-spec",
-    file: "1-description.md",
-    text: "## Description\n\nThe dashboard never shows a spec.\n",
-    dependsOnOptions: [],
-    dependsOnChecked: [],
-    baseSha: "a3f9c21deadbeef",
-    saveAction: "/api/queue/specs/aide/150-one-page-shows-the-whole-spec/save",
-    ...extra,
-  });
-  const edit = (v: SpecEditPageView = editView()) => renderSpecEditPage(v, GENERATED, NAV);
+describe("the Description tab", () => {
+  const edit = (v: SpecPageView = view()) => page(v, "description");
 
   test("holds the file's current text in a real textarea, in a real form", () => {
     const html = edit();
@@ -350,16 +430,22 @@ describe("the edit page", () => {
     expect(html).toContain("The dashboard never shows a spec.");
   });
 
+  // The description says "each with the commit stamp it has today" —
+  // the tab that can be edited included.
+  test("carries the file's commit stamp, exactly as the read-only tabs do", () => {
+    expect(edit()).toContain("a3f9c21");
+  });
+
   // The whole point of the hidden field: the page is rendered once and
   // a reader may sit on it while an analyze step lands a new version.
   test("carries the commit the text was read at, so a save can be refused", () => {
-    expect(edit()).toContain('value="a3f9c21deadbeef"');
+    expect(edit(view({ descriptionBaseSha: "a3f9c21deadbeef" }))).toContain('value="a3f9c21deadbeef"');
   });
 
   // A spec whose description git has never seen still opens: the field
   // is empty rather than the word "undefined".
   test("a file with no commit yet opens all the same", () => {
-    const html = edit(editView({ baseSha: undefined }));
+    const html = edit(view({ descriptionBaseSha: undefined }));
     expect(html).toContain("<textarea");
     expect(html).not.toContain("undefined");
   });
@@ -381,51 +467,55 @@ describe("the edit page", () => {
   });
 
   test("the text is escaped — a description is arbitrary text off disk", () => {
-    const html = edit(editView({ text: "</textarea><script>alert(1)</script>" }));
+    const html = edit(view({ files: [file("1-description.md", "</textarea><script>alert(1)</script>")] }));
     expect(html).not.toContain("<script>alert(1)");
     expect(html).toContain("&lt;/textarea&gt;");
   });
 
   // A ten-second meta refresh on a page with a textarea on it wipes
-  // whatever the reader was half-way through typing.
+  // whatever the reader was half-way through typing. This is why the
+  // form could not live here before spec 212.
   test("does not refresh itself under the reader", () => {
-    expect(edit()).not.toContain("http-equiv=\"refresh\"");
+    expect(edit()).not.toContain('http-equiv="refresh"');
   });
 
   test("a refused save has somewhere to show its reason", () => {
-    const html = edit(editView({ error: "1-description.md has changed since you opened it" }));
+    const html = edit(view({ error: "1-description.md has changed since you opened it" }));
     expect(html).toContain("1-description.md has changed since you opened it");
   });
 
-  test("Cancel goes back to the spec, having posted nothing", () => {
-    const html = edit();
-    expect(html).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec"');
-    expect(html).toContain("Cancel");
-  });
-
   test("carries the token for a browser that got the page with one", () => {
-    expect(edit(editView({ token: "s3cret" }))).toContain('name="token" value="s3cret"');
+    expect(edit(view({ token: "s3cret" }))).toContain('name="token" value="s3cret"');
   });
 
-  // --- spec 174: the same picker the New-spec page has ---------------------
+  // Spec 163: an archived spec is a RECORD. Editing was built for a
+  // description that is edited WHILE the work is live (spec 162), and
+  // Save on an archived spec would have written, committed and pushed
+  // into `archive/`.
+  test("an archived spec's description is read-only, with the note that says why", () => {
+    const html = edit(view({ archived: true }));
+    expect(html).not.toContain("<textarea");
+    expect(html).toContain("The dashboard never shows a spec.");
+    expect(html).toContain("archived");
+  });
+
+  // --- spec 174, moved with the form: the New-spec page's own picker -------
   //
-  // Spec 166 shipped this as a free-text input because its own
-  // description asked for "a field" without saying which control. The
-  // New-spec page already had the right one — a checkbox per existing
-  // spec — so this page calls the same function rather than a second
-  // copy of the markup.
+  // The dependency line is stored in `1-description.md`'s own text, so
+  // the control that changes it stays with that file's own Save — one
+  // commit for the description and the line together, exactly as
+  // before. Overview shows the same thing read-only.
   describe("the Depends on picker", () => {
     const OPTIONS = [
       { project: "aide", specFolder: "164-a-spec-can-depend" },
       { project: "aide", specFolder: "09-ninth" },
     ];
     const withOptions = (checked: string[] = []) =>
-      edit(editView({ dependsOnOptions: OPTIONS, dependsOnChecked: checked }));
+      edit(view({ dependsOnOptions: OPTIONS, dependsOn: checked }));
 
     test("one checkbox per spec offered, not a text box to type into", () => {
       const html = withOptions();
       expect(html).toContain('name="dependsOn"');
-      expect(html).toContain('type="checkbox"');
       expect(html).toContain('value="164-a-spec-can-depend"');
       expect(html).toContain('value="09-ninth"');
       expect(html).not.toContain('<input type="text" name="dependsOn"');
@@ -457,7 +547,7 @@ describe("the edit page", () => {
     // field is then absent rather than an empty box (the New-spec page
     // does the same).
     test("nothing to depend on, no field", () => {
-      const html = edit(editView({ dependsOnOptions: [], dependsOnChecked: [] }));
+      const html = edit(view({ dependsOnOptions: [], dependsOn: [] }));
       expect(html).not.toContain('name="dependsOn"');
       // The note about when a dependency takes effect goes with it:
       // there is nothing on the page for it to be about.
@@ -467,108 +557,71 @@ describe("the edit page", () => {
     test("the note about when it takes effect stays beside the picker", () => {
       expect(withOptions()).toContain("next gated step");
     });
-  });
 
-  // --- spec 188: the checks that are still holding the spec back -----------
-  //
-  // Drawn in the SAME form as the textarea, so one Save posts both. The
-  // server has already decided WHICH rows belong here (the current
-  // phase's open ones); this page's job is that every one of them is a
-  // real checkbox sharing one hidden phase, and that a spec with none
-  // draws no section at all.
-
-  describe("the checks", () => {
-    const ROW = "| Manual check at 375px in a real browser | ⬜ | still outstanding |";
-    const SECOND = "| Read the whole diff once | ⬜ | |";
-    const withChecks = (rows = [{ line: ROW, task: "Manual check at 375px in a real browser" }]) =>
-      edit(
-        editView({
-          checks: { phase: "Phase 4: REFACTOR - Test suite", baseSha: "b7c40e2deadbeef", rows },
-        }),
-      );
-
-    test("one checkbox per row, inside the one form Save posts", () => {
-      const html = withChecks();
-      expect(html).toContain('name="tick"');
-      expect(html).toContain('type="checkbox"');
-      expect(html).toContain(`value="${ROW}"`);
-      expect(html).toContain("Manual check at 375px in a real browser");
-      // ONE posting form on the page: the boxes are Save's, not their
-      // own. (The shell's own `<form method="dialog">` posts nothing.)
-      expect(html.match(/<form method="post"/g)!).toHaveLength(1);
-    });
-
-    // ONE hidden phase for the whole set, not one per row: every row the
-    // server offers here belongs to the same phase by construction,
-    // which is what lets each box's own value be the row's verbatim line
-    // (a table row contains `|` and cannot be packed into one field with
-    // its phase).
-    test("the phase is one hidden field shared by every box", () => {
-      const html = withChecks([
-        { line: ROW, task: "Manual check at 375px in a real browser" },
-        { line: SECOND, task: "Read the whole diff once" },
-      ]);
-      expect(html.match(/name="checksPhase"/g)!).toHaveLength(1);
-      expect(html).toContain('value="Phase 4: REFACTOR - Test suite"');
-      expect(html.match(/name="tick"/g)!).toHaveLength(2);
-    });
-
-    // The same file-level guard the description carries, for the file
-    // the ticks are written into.
-    test("4-status.md's own commit travels with the form", () => {
-      expect(withChecks()).toContain('name="statusBaseSha"');
-      expect(withChecks()).toContain('value="b7c40e2deadbeef"');
-    });
-
-    test("nothing left to tick, no section", () => {
-      const html = edit(editView({ checks: { phase: "Phase 4: REFACTOR - Test suite", rows: [] } }));
-      expect(html).not.toContain('name="tick"');
-      expect(html).not.toContain('name="checksPhase"');
-    });
-
-    test("a view with no checks at all draws none", () => {
-      expect(edit()).not.toContain('name="tick"');
-    });
-
-    // A task cell is arbitrary text off disk, and so is the row it came
-    // from — both go into the document, one as text and one as an
-    // attribute value.
-    test("the row and its task are escaped", () => {
-      const html = withChecks([
-        { line: '| <img src=x onerror="alert(1)"> | ⬜ | |', task: '<img src=x onerror="alert(1)">' },
-      ]);
-      expect(html).not.toContain("<img src=x");
-      expect(html).toContain("&lt;img");
-    });
-
-    // A file git has never committed has no commit to carry, which is
-    // not a mismatch — the same convention the description's own field
-    // keeps.
-    test("a status file with no commit yet draws the boxes all the same", () => {
-      const html = edit(
-        editView({ checks: { phase: "Phase 4: REFACTOR - Test suite", rows: [{ line: ROW, task: "Manual check" }] } }),
-      );
-      expect(html).toContain('name="tick"');
-      expect(html).not.toContain("undefined");
+    // An archived spec has no form to put the picker in.
+    test("an archived spec is offered no picker", () => {
+      expect(edit(view({ archived: true, dependsOnOptions: OPTIONS }))).not.toContain('name="dependsOn"');
     });
   });
 });
 
-// --- spec 182, narrowed by spec 188: the spec's remaining checks -----------
+// --- spec 212: what the spec depends on, read-only, on the front page -------
+
+describe("spec 212: the Depends on line on Overview", () => {
+  test("names what the spec depends on, and posts nothing", () => {
+    const html = page(view({ dependsOn: ["164-a-spec-can-depend", "09-ninth"] }));
+    expect(html).toContain("<strong>Depends on</strong>");
+    expect(html).toContain("164-a-spec-can-depend");
+    expect(html).toContain("09-ninth");
+    // The read-only line, not the picker: the control that changes it
+    // is on the Description tab, with the file the line is stored in.
+    expect(html).not.toContain('name="dependsOn"');
+  });
+
+  // The same convention `dependsOnField` keeps for a project with
+  // nothing to offer: nothing to say, no line.
+  // The words themselves are in the page's own stylesheet, in a
+  // comment about the New-spec form's layout — so the claim is about
+  // the LINE, not about the document.
+  test("a spec that depends on nothing draws no line at all", () => {
+    expect(page(view({ dependsOn: [] }))).not.toContain("<strong>Depends on</strong>");
+    expect(page(view())).not.toContain("<strong>Depends on</strong>");
+  });
+
+  // An archived spec is a record — the line is a fact about it, and a
+  // fact is not a control.
+  test("an archived spec still shows it, read-only", () => {
+    const html = page(view({ archived: true, dependsOn: ["164-a-spec-can-depend"] }));
+    expect(html).toContain("164-a-spec-can-depend");
+    expect(html).not.toContain('name="dependsOn"');
+  });
+
+  // A folder name is arbitrary text off disk.
+  test("the folder names are escaped", () => {
+    const html = page(view({ dependsOn: ['<img src=x onerror="alert(1)">'] }));
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+});
+
+// --- spec 182, ticked again by spec 212: the spec's remaining checks --------
 //
 // A check only a person can make — look at the page at 375px and say
 // whether it holds — was a row buried near the bottom of the fourth
-// file. The rows come to the top of the page instead, above the tab
-// bar, so they are on every tab.
+// file. The rows came to the top of the page instead.
 //
-// Since spec 188 the banner is a SUMMARY and nothing else: the box that
-// wrote and committed on its own press is gone, and a check is ticked
-// on the Edit form with the description, under one Save. Every row here
-// — open or done, archived or active — is an inert span.
+// Spec 188 made every row inert and moved the tick onto the Edit form,
+// because a second way of changing a spec was one too many to learn.
+// Spec 212 gives the boxes back, on the Overview PANEL rather than in
+// the banner: the description's own editor is now a tab beside it
+// rather than a page behind a link, so a reader still has one place to
+// tick — and a form in the banner would ride onto Activity and Steps,
+// which reload every ten seconds and would wipe a half-ticked list.
 
-describe("the checks block (specs 182, 188)", () => {
+describe("the checks block (specs 182, 188, 212)", () => {
+  const PHASE = "Phase 4: REFACTOR - Test suite";
   const check = (extra: Partial<SpecCheckView> = {}): SpecCheckView => ({
-    phase: "Phase 4: REFACTOR - Test suite",
+    phase: PHASE,
     line: "| Manual check at 375px in a real browser | ⬜ | still outstanding |",
     task: "Manual check at 375px in a real browser",
     done: false,
@@ -576,41 +629,96 @@ describe("the checks block (specs 182, 188)", () => {
   });
 
   const DONE = check({ task: "Run the full test suite", line: "| Run the full test suite | ✅ | |", done: true });
+  const LATER = check({
+    phase: "Phase 5: SHIP",
+    task: "Watch the first real run",
+    line: "| Watch the first real run | ⬜ | |",
+  });
 
-  const withChecks = (rows = [check(), DONE]) => view({ checks: { rows } });
+  const withChecks = (rows = [check(), DONE], extra: Partial<SpecPageView> = {}) =>
+    view({ checks: { rows, phase: PHASE, baseSha: "b7c40e2deadbeef" }, ...extra });
 
-  /** The banner alone. The page has real forms on it — Update, for one
-   *  — so "no form" is a claim about this section and not about the
-   *  document. */
-  const banner = (html: string): string => {
+  /** The checks section alone. The page has real forms on it — Update,
+   *  for one — so a claim about "the form" is a claim about this
+   *  section and not about the document. */
+  const section = (html: string): string => {
     const found = html.match(/<section class="checks">[\s\S]*?<\/section>/);
     expect(found).not.toBeNull();
     return found![0];
   };
 
-  test("an unticked row is on the page, and carries no control that writes", () => {
+  test("an open row in the current phase is a real checkbox, in a form with its own Save", () => {
     const html = page(withChecks());
-    expect(html).toContain("Manual check at 375px in a real browser");
-    expect(banner(html)).not.toContain("<form");
-    expect(banner(html)).not.toContain("action=");
-    expect(banner(html)).not.toContain("<button");
-    expect(html).not.toContain("/status/tick");
+    const checks = section(html);
+    expect(checks).toContain('action="/api/queue/specs/aide/150-one-page-shows-the-whole-spec/tick"');
+    expect(checks).toMatch(/<form[^>]*method="post"/);
+    expect(checks).toContain('type="checkbox"');
+    expect(checks).toContain('name="tick"');
+    expect(checks).toContain('value="| Manual check at 375px in a real browser | ⬜ | still outstanding |"');
+    expect(checks).toContain("Save");
   });
 
-  // The banner, not the Overview panel: the description says the top of
-  // the SPEC's page, and a reader on Activity is reading the same spec.
-  test("it is above the tab bar, so every tab shows it", () => {
-    for (const tab of ["overview", "activity", "steps"]) {
-      const html = page(withChecks(), tab);
-      expect([tab, html.includes("Manual check at 375px in a real browser")]).toEqual([tab, true]);
-      expect([tab, html.indexOf("375px") < html.indexOf('class="tabbar"')]).toEqual([tab, true]);
-    }
+  // The Save that commits the description and the Save that commits a
+  // tick are two forms posting to two actions — that is what turns one
+  // commit carrying both into two commits, each carrying its own file.
+  test("its Save is its own, not the description's", () => {
+    const checks = section(page(withChecks()));
+    expect(checks).not.toContain("/save");
+    expect(checks).not.toContain("<textarea");
   });
 
-  test("a done row is shown too, marked as done and with no control of its own", () => {
+  // ONE hidden phase for the whole set, not one per row: every box the
+  // page offers belongs to the same phase by construction, which is
+  // what lets each box's own value be the row's verbatim line (a table
+  // row contains `|` and cannot be packed into one field with its
+  // phase). `baseSha` is the file's own commit at read time.
+  test("the phase and 4-status.md's own commit travel with the form", () => {
+    const html = page(withChecks());
+    expect(html.match(/name="checksPhase"/g)!).toHaveLength(1);
+    expect(html).toContain(`value="${PHASE}"`);
+    expect(html).toContain('name="statusBaseSha"');
+    expect(html).toContain('value="b7c40e2deadbeef"');
+  });
+
+  test("carries the token for a browser that got the page with one", () => {
+    expect(section(page(withChecks([check()], { token: "s3cret" })))).toContain('name="token" value="s3cret"');
+  });
+
+  // "A check already made" — a done row is still SHOWN, because a list
+  // that only ever shrinks says nothing about how far the spec got —
+  // but it is not a box to press.
+  test("a done row is shown, marked done, and is not a box", () => {
     const html = page(withChecks([DONE]));
     expect(html).toContain("Run the full test suite");
-    expect(banner(html)).not.toContain("<form");
+    expect(section(html)).not.toContain('name="tick"');
+    expect(html).toContain("check done");
+  });
+
+  // "A check nothing is waiting on" — a phase the workflow has not
+  // reached is sitting at its template default.
+  test("an open row in a later phase is shown but is not a box", () => {
+    const html = page(withChecks([check(), LATER]));
+    expect(html).toContain("Watch the first real run");
+    expect(html.match(/name="tick"/g)!).toHaveLength(1);
+  });
+
+  // Every box on the page is inside the ONE form that posts them: a box
+  // outside it posts nothing at all when Save is pressed.
+  test("no box sits outside the form that Save posts", () => {
+    const html = page(withChecks());
+    const checks = section(html);
+    expect(checks.indexOf('name="tick"')).toBeGreaterThan(checks.indexOf("<form"));
+  });
+
+  // Spec 212: the Overview PANEL, not the banner. A form that rode the
+  // banner onto Activity would be wiped by that tab's ten-second
+  // reload halfway through being ticked.
+  test("it is on Overview, and on no tab that reloads itself", () => {
+    expect(page(withChecks())).toContain("Manual check at 375px in a real browser");
+    for (const tab of ["activity", "steps"]) {
+      const html = page(withChecks(), tab);
+      expect([tab, html.includes("Manual check at 375px in a real browser")]).toEqual([tab, false]);
+    }
   });
 
   test("the unticked ones are told apart from the done ones in the markup", () => {
@@ -634,10 +742,45 @@ describe("the checks block (specs 182, 188)", () => {
     expect(page(view())).not.toContain('class="checklist"');
   });
 
+  // Nothing left to tick — every row done, or the current phase not
+  // named at all — leaves the rows on the page and the form off it.
+  test("nothing tickable, no form", () => {
+    const html = page(view({ checks: { rows: [DONE], phase: PHASE, baseSha: "b7c40e2" } }));
+    expect(html).toContain("Run the full test suite");
+    expect(section(html)).not.toContain("<form");
+    expect(page(view({ checks: { rows: [check()] } }))).not.toContain('name="tick"');
+  });
+
+  // Spec 163: an archived spec is a RECORD. A tick would write, commit
+  // and push into `archive/`.
   test("an archived spec is a record — the rows are shown with no control", () => {
-    const html = page(view({ archived: true, checks: { rows: [check()] } }));
-    expect(banner(html)).not.toContain("<form");
-    expect(banner(html)).not.toContain("<button");
+    const html = page(withChecks([check()], { archived: true }));
+    expect(html).toContain("Manual check at 375px in a real browser");
+    expect(section(html)).not.toContain("<form");
+    expect(section(html)).not.toContain("<button");
+    expect(section(html)).not.toContain('name="tick"');
+  });
+
+  // A task cell is arbitrary text off disk, and so is the row it came
+  // from — both go into the document, one as text and one as an
+  // attribute value.
+  test("the row and its task are escaped", () => {
+    const html = page(
+      withChecks([
+        check({ line: '| <img src=x onerror="alert(1)"> | ⬜ | |', task: '<img src=x onerror="alert(1)">' }),
+      ]),
+    );
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
+  // A `4-status.md` git has never committed has no commit to carry,
+  // which is not a mismatch — the same convention the description's own
+  // field keeps.
+  test("a status file with no commit yet draws the boxes all the same", () => {
+    const html = page(view({ checks: { rows: [check()], phase: PHASE } }));
+    expect(html).toContain('name="tick"');
+    expect(html).not.toContain("undefined");
   });
 });
 
@@ -649,7 +792,8 @@ describe("the checks block (specs 182, 188)", () => {
 // something both times. The control belongs where the spec is.
 //
 // Everything ELSE about an archived spec stays as spec 163 left it: no
-// Edit link, the same read-only note, the checks still inert.
+// textarea on the Description tab, the same read-only note, and checks
+// that are shown but cannot be ticked.
 describe("spec 198: the Reopen control", () => {
   const archived = (extra: Partial<SpecPageView> = {}) =>
     page(view({ archived: true, token: "t0ken", ...extra }));
@@ -680,9 +824,10 @@ describe("spec 198: the Reopen control", () => {
     expect(page(view({ token: "t0ken" }))).not.toContain("Reopen");
   });
 
-  test("the archived note and the missing Edit link are unchanged", () => {
+  test("the archived note is unchanged, and nothing on the page edits", () => {
     const html = archived();
     expect(html).not.toContain("/edit");
     expect(html).toContain("archived");
+    expect(page(view({ archived: true }), "description")).not.toContain("<textarea");
   });
 });
