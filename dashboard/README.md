@@ -756,6 +756,30 @@ to `/projects` in the query string, where the page renders it. The
 sentence is built once, on the server, so the two modes cannot drift
 apart.
 
+#### A page render never waits on the network (spec 203)
+
+`assessProjectReadiness`, above, only ever touches disk — `rev-parse`,
+`show-ref`, `symbolic-ref`, `worktree list` — and that was already the
+rule. The commits-behind-origin count beside it on the same row broke
+it: `BranchStatusChecker.commitsBehindOrigin` ran a real `git fetch
+origin` (4 s timeout) inline in the `GET /projects` handler on every
+cache miss, which is every project on server boot and every project
+again once its 30 s cache entry expires. Six configured projects made
+the page 1.83 s against 0.04-0.10 s for `/` and `/archive`, and it gets
+slower with every project added.
+
+The fix moves the fetch off the request path entirely rather than
+shortening it: `refreshDrift()` walks the configured projects and calls
+`commitsBehindOrigin` on an `.unref()`'d `setInterval`, the same shape
+as the runner's own tick and the SSE keep-alive ping, cleared in
+`stop()` beside them. The request handler calls a new synchronous
+`peekDrift()` instead, which reads `commitsBehindOrigin`'s existing
+cache and never spawns git. A project the poll has never reached yet
+returns `checkedAt: null`, and the row says "origin drift not checked
+yet" rather than showing nothing or waiting for an answer — the reader
+sees a labelled stale number instead of a spinner, never a page that
+blocks on GitHub being reachable.
+
 #### What Add finishes itself (spec 140)
 
 Skjer again, the same afternoon: Add reported success and a run still
