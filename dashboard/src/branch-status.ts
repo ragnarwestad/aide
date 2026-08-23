@@ -149,8 +149,16 @@ export class BranchStatusChecker {
    *  no longer has it at all. Everything else — no checkout, no default
    *  branch, a git that errors or times out — is false: "not confirmed
    *  merged". Uncertainty leaves the caveat on the page rather than
-   *  removing it. */
-  async isMerged(projectDir: string, branch: string): Promise<boolean> {
+   *  removing it.
+   *
+   *  `fresh` bypasses the cache AND replaces the entry, the same escape
+   *  hatch `openSpecBranches` carries. The dependency gate (spec 213)
+   *  needs it: it asks immediately before deciding whether to release a
+   *  queued job, and an answer up to 30 seconds old released two jobs
+   *  against a dependency that had not landed yet — the script's own
+   *  gate then refused them, because it asks origin every time. A page
+   *  wanting the cheap cached read simply leaves it out. */
+  async isMerged(projectDir: string, branch: string, fresh = false): Promise<boolean> {
     // JSON, not a control character: a path cannot contain an
     // unescaped quote, so the pair is still unambiguous — and the file
     // stays text. A NUL here made git classify this source file as
@@ -158,7 +166,7 @@ export class BranchStatusChecker {
     const key = JSON.stringify([projectDir, branch]);
     const hit = this.cache.get(key);
     const at = this.now();
-    if (hit && at - hit.at < this.ttlMs) return hit.merged;
+    if (!fresh && hit && at - hit.at < this.ttlMs) return hit.merged;
 
     let merged = false;
     try {

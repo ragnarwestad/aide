@@ -110,6 +110,45 @@ describe("BranchStatusChecker.isMerged", () => {
     expect(git.calls.length).toBeGreaterThan(first);
   });
 
+  // Spec 213: the dependency gate is not a page. Its one answer decides
+  // whether a run starts, and a "merged" taken up to 30 seconds ago
+  // released two jobs against a dependency that had not landed yet —
+  // both were then refused by `aide-run-spec`, which asks origin itself
+  // every time. `fresh` is the same escape hatch `openSpecBranches`
+  // already carries, for the same reason.
+  test("`fresh` ignores a stale cached answer and re-asks git", async () => {
+    let ancestorCode = 0; // merged
+    const run: GitRunner = async (_dir, args) => {
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "merge-base") return { code: ancestorCode, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.isMerged("/repo", "aide/213-x")).toBe(true);
+    ancestorCode = 1; // origin now says: not an ancestor
+    expect(await checker.isMerged("/repo", "aide/213-x")).toBe(true); // still cached, clock unmoved
+    expect(await checker.isMerged("/repo", "aide/213-x", true)).toBe(false);
+    // Refreshed, not merely bypassed: the next ordinary reader sees it too.
+    expect(await checker.isMerged("/repo", "aide/213-x")).toBe(false);
+  });
+
+  test("an unanswerable fresh check does not leave the old answer standing", async () => {
+    let reachable = true;
+    const run: GitRunner = async (_dir, args) => {
+      if (!reachable) throw new Error("no route to host");
+      if (args[0] === "symbolic-ref") return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (args[0] === "merge-base") return { code: 0, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.isMerged("/repo", "aide/213-x")).toBe(true);
+    reachable = false;
+    // Fail-open is unchanged by `fresh`: an unanswerable question is
+    // "not confirmed merged", and it overwrites the cached `true`
+    // rather than letting it stand for the rest of the TTL.
+    expect(await checker.isMerged("/repo", "aide/213-x", true)).toBe(false);
+    expect(await checker.isMerged("/repo", "aide/213-x")).toBe(false);
+  });
   test("the cache is per branch — one answer never stands in for another", async () => {
     const git = fakeGit({
       ...SYMREF_MASTER,

@@ -1648,8 +1648,13 @@ export function createServer(opts: ServerOptions) {
    *
    *  Computed fresh immediately before every `tick()`, never cached
    *  across calls: a job enqueued a line of code ago must be judged
-   *  against data that existed after it did. What it rests on is cached
-   *  anyway — `targets()` for 5 s, each merge answer for 30 s. */
+   *  against data that existed after it did. And since spec 213 the
+   *  merge answer under it is asked fresh too (`isMerged(..., true)`),
+   *  which is what makes that sentence true: a 30 s cached answer
+   *  released two jobs against a dependency that had not landed, and
+   *  the script — which asks origin every time — refused them. Only
+   *  `targets()` is still cached here, for 5 s, and it decides nothing
+   *  on its own: a spec that names no dependency is the cheap half. */
   async function blockedDependencies(): Promise<Map<string, string>> {
     const blocked = new Map<string, string>();
     if (!opts.projectRoot) return blocked;
@@ -1692,7 +1697,7 @@ export function createServer(opts: ServerOptions) {
         // and the next tick asking again.
         let merged = true;
         for (const root of specRoots(job.project)) {
-          merged = (await branchStatus.isMerged(root, branch)) && merged;
+          merged = (await branchStatus.isMerged(root, branch, true)) && merged;
         }
         if (!merged) {
           blocked.set(job.id, dep.folder);

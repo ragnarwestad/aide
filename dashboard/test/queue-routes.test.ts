@@ -5890,6 +5890,52 @@ describe("a job parked on an unmerged dependency (spec 122)", () => {
     expect(git.calls.some((c) => c.dir === paths.specs)).toBe(true);
   });
 
+  // Spec 213. The two tests above and the three-server test below both
+  // read ONE answer; this one is about how old that answer may be. Two
+  // jobs were released roughly half a minute before their dependency
+  // finished archiving: the gate ran fresh every 2 s, but the merge
+  // answer under it stood for 30 s, so a "merged" taken before the
+  // dependency landed was handed out for the rest of that window.
+  //
+  // One server across several real ticks, deliberately — the point is
+  // the same `BranchStatusChecker` instance being asked again inside
+  // its own TTL, which is exactly what the three-server test below was
+  // built to avoid needing.
+  test("the gate re-asks origin on every tick, and releases the job the tick its dependency lands", async () => {
+    const dir = own("aide-queue-gate-fresh-");
+    const { bin, argvFile } = stub(dir);
+    const paths = root(dir);
+    let unmerged = [paths.project, paths.specs];
+    const git = gitFor(() => unmerged);
+    const { base } = harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        queueRunnerBin: bin,
+        queueResultDir: join(dir, "jobs"),
+        gitRun: git.run,
+      },
+    });
+    expect((await queueImplement(base)).status).toBe(200);
+    await settle();
+    const asked = () => git.calls.filter((c) => c.args[0] === "merge-base").length;
+    const first = asked();
+    expect(first).toBeGreaterThan(0);
+
+    // One 2 s tick interval plus margin, well inside the 30 s TTL: the
+    // question has to have been put to git again. Cached, this count
+    // would not move for another 28 seconds.
+    await Bun.sleep(2500);
+    expect(asked()).toBeGreaterThan(first);
+    expect(existsSync(argvFile)).toBe(false);
+
+    // The dependency lands. The job starts on the next tick — not when
+    // a cache happens to expire.
+    unmerged = [];
+    for (let i = 0; i < 50 && !existsSync(argvFile); i++) await Bun.sleep(100);
+    expect(existsSync(argvFile)).toBe(true);
+  }, 20000);
   // Criterion 10 (spec 149). The gate's code is unchanged, but what
   // satisfies it has moved: a dependency's ANALYZE lands itself now, so
   // its specs-repo branch merges early — and that must not read as "the
