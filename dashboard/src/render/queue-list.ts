@@ -800,7 +800,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   // add up to the table you are looking at rather than to some list
   // nobody asked for. They count SPECS, because that is what the table
   // holds one line per.
-  const byProject = groups.filter((g) => !f.project || g.project === f.project);
+  const byProject = groups;
   const states = chips(
     "state",
     "Show",
@@ -813,20 +813,13 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
     })),
   );
 
-  const names = [...new Set(groups.map((g) => g.project))].sort();
-  if (names.length < 2) return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>`;
-  const byState = applyFilter(groups, { state: f.state });
-  const projects = chips("project", "Project", [
-    { key: "", label: "All", count: byState.length, on: !f.project, patch: { project: "" } },
-    ...names.map((p) => ({
-      key: p,
-      label: p,
-      count: byState.filter((g) => g.project === p).length,
-      on: f.project === p,
-      patch: { project: p },
-    })),
-  ]);
-  return `<div class="row">${states}${projects}${runsHelp()}${newSpecLink(opts)}</div>`;
+  // A chip per project stood here until 2026-08-23. It was one control
+  // that grew with the machine: fine at two projects, unreadable at
+  // twenty, and the dashboard now serves whatever a person has. Nothing
+  // replaced it, deliberately — nobody had asked to filter by project,
+  // and the list is short enough to read. Build something when the need
+  // is real, and a dropdown is the shape that does not grow.
+  return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>`;
 }
 
 function sortableHead(f: QueueFilter): string {

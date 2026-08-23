@@ -1484,13 +1484,15 @@ describe("the job list sorts and filters", () => {
     expect(html).not.toContain("b-spec");
   });
 
-  test("the project filter appears once there is more than one project", () => {
+  // A chip per project stood above the list until 2026-08-23: one
+  // control that grew with the machine, and nobody had asked to filter
+  // by project. Every spec is listed now, whatever project it is from.
+  test("no project filter is drawn, however many projects there are", () => {
     const rows = [row("a"), row("b", { project: "aide-dashboard" })];
-    expect(page([row("a")])).not.toContain("data-filter=\"project\"");
-    const html = page(rows, { project: "aide-dashboard" });
-    expect(html).toContain("data-filter=\"project\"");
+    const html = page(rows);
+    expect(html).not.toContain('data-filter="project"');
+    expect(html).toContain("a-spec");
     expect(html).toContain("b-spec");
-    expect(html).not.toContain("a-spec");
   });
 
   // The default view is the newest SPEC at the top — by number, not by
