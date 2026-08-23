@@ -1650,7 +1650,13 @@ export function createServer(opts: ServerOptions) {
       if (what.step === "archive") {
         for (const root of await rootsStillHolding(job.project, branch, true)) {
           failures.push(
-            `${branch} is still on origin in ${root} — the spec was archived, but its work has not landed`,
+            // The sentence carries the move as well as the state: the
+            // way out is the step that just ran, and the row's own
+            // button already offers it. Phrased as an instruction
+            // rather than as a quote of that button's label, so a
+            // future rename leaves the sentence less exact but never
+            // wrong.
+            `${branch} is still on origin in ${root} — the spec was archived, but its work has not landed. Run archive again to land it.`,
           );
           // Only where nothing more specific was found: a conflict is
           // the reason, and "unlanded" is what a conflict LOOKS like

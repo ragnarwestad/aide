@@ -3496,6 +3496,10 @@ describe("every step lands its own work (spec 149)", () => {
       expect(failed.errorReason).toBe("unlanded");
       expect(String(failed.error)).toContain(paths.project);
       expect(String(failed.error)).toContain(BRANCH);
+      // Spec 201: the state is half the sentence — the other half is
+      // the move. The row's own button already offers it; the message
+      // has to say so.
+      expect(String(failed.error).toLowerCase()).toContain("run archive again");
     }, 20000);
 
     // Criterion 3. The happy path is the one this whole change must not
