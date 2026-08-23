@@ -97,6 +97,74 @@ describe("ensureDashboardCheckout", () => {
     expect(existsSync(join(first.checkout!.code, "scratch.txt"))).toBe(true);
   });
 
+  // Spec 209. A clone killed part-way through leaves a `.git` holding
+  // `objects` and no `HEAD` — present, but not a repository that
+  // answers. Read as "already cloned", every run afterwards refused,
+  // and the refusal named a missing spec, which sends a reader looking
+  // in the wrong place entirely. The shape is built by hand rather than
+  // by killing a real clone: what matters is what is on disk, not how
+  // it got there.
+  function halfMadeCheckout(dir: string): void {
+    mkdirSync(join(dir, ".git", "objects"), { recursive: true });
+    writeFileSync(join(dir, ".git", "objects", "pack-half"), "partial\n");
+    writeFileSync(join(dir, "left-behind.txt"), "from the killed clone\n");
+  }
+
+  test("a half-made checkout is replaced on the next call", async () => {
+    const where = tmp("aide-checkout-");
+    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const base = join(where, "owned");
+    halfMadeCheckout(dashboardCheckoutRoot(base, "aide"));
+
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+
+    expect(result.ok).toBe(true);
+    expect(result.cloned).toBe(true);
+    // The clone really happened: the content is there, and what the
+    // killed one left behind is not.
+    expect(readFileSync(join(result.checkout!.code, "README.md"), "utf-8")).toBe("# aide\n");
+    expect(existsSync(join(result.checkout!.code, "left-behind.txt"))).toBe(false);
+    expect(existsSync(join(result.checkout!.code, ".git", "HEAD"))).toBe(true);
+  });
+
+  test("a half-made separate specs checkout is replaced on the next call", async () => {
+    const where = tmp("aide-checkout-");
+    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    const specs = repoWithClone(where, "aide-specs", { "aide/01-first/1-description.md": "# First\n" });
+    const personSpecsRoot = join(specs.clone, "aide");
+    mkdirSync(join(clone, ".aide"), { recursive: true });
+    writeFileSync(join(clone, ".aide", "config"), `AIDE_SPECS_PATH=${personSpecsRoot}\n`);
+    const base = join(where, "owned");
+    halfMadeCheckout(dashboardSpecsRepo(base, "aide"));
+
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+
+    expect(result.ok).toBe(true);
+    expect(result.cloned).toBe(true);
+    expect(result.checkout!.specs).toBe(join(dashboardSpecsRepo(base, "aide"), "aide"));
+    expect(existsSync(join(result.checkout!.specs, "01-first", "1-description.md"))).toBe(true);
+    expect(existsSync(join(result.checkout!.specsRepo, "left-behind.txt"))).toBe(false);
+  });
+
+  // Requirement 3: a replacement that fails says which checkout and
+  // why. The one thing it must never do is report success, because the
+  // next thing a reader sees then is `aide-run-spec` refusing an
+  // "unknown spec" — a message about the wrong thing entirely.
+  test("a half-made checkout that cannot be re-cloned says which one and why", async () => {
+    const where = tmp("aide-checkout-");
+    const { clone } = repoWithClone(where, "aide", { "README.md": "# aide\n" });
+    git(clone, "remote", "set-url", "origin", join(where, "no-such-origin.git"));
+    const base = join(where, "owned");
+    const code = dashboardCheckoutRoot(base, "aide");
+    halfMadeCheckout(code);
+
+    const result = await ensureDashboardCheckout(run, { base, project: "aide", personDir: clone });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(code);
+    expect(result.error).not.toContain("unknown spec");
+  });
+
   // Criterion 3, and the whole of the description's disk-use
   // requirement: one more copy per PROJECT, not one per run. Counted as
   // directories rather than compared as paths — a path equality would
