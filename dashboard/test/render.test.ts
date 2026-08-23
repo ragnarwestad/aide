@@ -1205,35 +1205,33 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "archive")).toContain("checked");
   });
 
-  // Spec 181: the reviewer-perspectives routine that used to run as its
-  // own `review-plan` step, ticked alongside `analyze` as a starting
-  // pair, now runs inside `analyze` — so a fresh spec pre-ticks
-  // `analyze` alone, not a pair.
-  test("a spec nothing has ever run pre-ticks analyze alone (criterion 1a)", () => {
-    const line = runLine(rows([], [target("94-never-run")]), "94-never-run");
-    expect(box(line, "analyze")).toContain('value="analyze" checked');
-    expect(box(line, "implement")).not.toContain("checked");
-    expect(box(line, "archive")).not.toContain("checked");
+  // Spec 200: a press takes the spec as far as it can go, so every
+  // phase that has not run starts ticked. Whether a job has ever run
+  // for the spec makes no difference to that — `explore` is outside
+  // the phase steps, so a spec that has only explored has the same
+  // empty done-set, and the same three ticks, as one nothing has run
+  // at all. That distinction used to be two tests here.
+  test("a spec nothing has run pre-ticks every phase (criterion 1)", () => {
+    const lines = [
+      runLine(rows([], [target("94-never-run")]), "94-never-run"),
+      runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it"),
+    ];
+    for (const line of lines) {
+      expect(box(line, "analyze")).toContain('value="analyze" checked');
+      expect(box(line, "implement")).toContain('value="implement" checked');
+      expect(box(line, "archive")).toContain('value="archive" checked');
+    }
   });
 
-  test("a spec that HAS run something pre-ticks only the next undone phase (criterion 1a)", () => {
-    // `explore` is outside the phase steps, so the done-set is still
-    // empty — but something has run for this spec, so the single
-    // starting pre-tick applies only to a spec nothing has ever run.
-    const line = runLine(rows([job("j1", "explore")], [target("94-row-runs-it")]), "94-row-runs-it");
-    expect(box(line, "analyze")).toContain('value="analyze" checked');
-    expect(box(line, "implement")).not.toContain("checked");
-  });
-
-  test("pre-ticking never re-ticks a phase already done on disk (criterion 1b)", () => {
+  test("pre-ticking never re-ticks a phase already done on disk (criterion 2)", () => {
     // Nothing was ever queued for this spec, but its 2-analysis.md is
-    // filled in: `done` is read off the files, not off job history. The
-    // `tick.length === 0` fallback in `preTicked()` is what makes this
-    // fall back to the ordinary next-undone rule rather than an empty
-    // set (spec 159/161).
+    // filled in: `done` is read off the files, not off job history.
+    // `analyze` is therefore left alone and the two phases after it are
+    // ticked — every phase that has not run, not the next one only.
     const line = runLine(rows([], [target("94-never-run", { done: ["analyze"] })]), "94-never-run");
     expect(box(line, "analyze")).not.toContain("checked");
     expect(box(line, "implement")).toContain('value="implement" checked');
+    expect(box(line, "archive")).toContain('value="archive" checked');
   });
 
   // Criterion 2, as spec 105 rewrote it: the siblings lock too. The
@@ -1364,7 +1362,8 @@ describe("a spec's row runs its own phases", () => {
     );
     expect(order).toEqual(["analyze", "implement", "archive"]);
     // The button is named for what a press would run since spec 157 —
-    // here the one phase a fresh spec pre-ticks.
+    // the FIRST ticked phase and nothing after it, which on a fresh
+    // spec is `analyze` however many boxes start ticked behind it.
     expect(line).toContain(">Analyze</button>");
   });
 
@@ -1899,13 +1898,12 @@ describe("the description-changed badge (criteria 1, 3)", () => {
     const line = runLine(html, "97-stale");
     expect(line).toMatch(/value="analyze" checked/);
     expect(line).not.toMatch(/value="implement" checked/);
-    // Exactly one RUNNABLE box ticked, as `stepBoxes` has always
-    // ticked: a fresh spec's single starting tick belongs to a spec
-    // nothing has ever run (spec 94, spec 181). `create`'s box is
+    // `analyze` and `archive` are what is left to run, so both are
+    // ticked and `implement` is not (spec 200). `create`'s box is
     // ticked too and always is — it is the phase already behind you,
     // not a phase a press would run — so it is counted out by its own
     // lack of a field name.
-    expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(1);
+    expect([...line.matchAll(/name="steps" value="[^"]*" checked/g)]).toHaveLength(2);
   });
 });
 
@@ -4555,11 +4553,11 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     }
   });
 
-  test("a spec nothing has run pre-ticks analyze alone (criterion 3)", () => {
+  test("a spec nothing has run pre-ticks every phase (criterion 3)", () => {
     const html = rows([]);
     expect(box(subRow(html, "analyze"), "analyze")).toContain('value="analyze" checked');
-    expect(box(subRow(html, "implement"), "implement")).not.toContain("checked");
-    expect(box(subRow(html, "archive"), "archive")).not.toContain("checked");
+    expect(box(subRow(html, "implement"), "implement")).toContain('value="implement" checked');
+    expect(box(subRow(html, "archive"), "archive")).toContain('value="archive" checked');
   });
 
   // The whole reason this spec exists: "done" was said by the State
@@ -5562,12 +5560,15 @@ describe("spec 157: the row's one action sits in the State column", () => {
 
   // --- criterion 8: a shut row's Run carries its phases as hidden fields ----
 
-  test("a shut row's run form carries the ticked phase as a hidden input (criterion 8)", () => {
+  // Every phase the spec has left, in `QUEUE_STEPS` order (spec 200):
+  // a shut row's press runs what an open row's pre-ticked boxes would,
+  // and the two read the same `preTicked()` set to say so.
+  test("a shut row's run form carries the ticked phases as hidden inputs (criterion 8)", () => {
     const html = rows([]);
     const posted = [...state(html).matchAll(/<input type="hidden" name="steps" value="([^"]+)">/g)].map(
       (m) => m[1],
     );
-    expect(posted).toEqual(["analyze"]);
+    expect(posted).toEqual(["analyze", "implement", "archive"]);
   });
 
   // An OPEN row has real checkboxes, and they are the only source of

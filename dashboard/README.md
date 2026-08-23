@@ -312,10 +312,15 @@ it got there, and Run then answered "already running on this spec".
 The box says why on hover ("analyze is running"), in the same words the
 state chip uses.
 
-What is pre-ticked is what you almost always came to run: the first
-phase the spec has not had. A phase already done is marked with a tick
-and left unticked; ticking it anyway is a rerun, and no rule stands in
-the way.
+What is pre-ticked is every phase the spec has not had (spec 200): a
+press takes the spec as far as it can go, and unticking a box is how a
+reader says to stop somewhere. The button names the FIRST of the ticked
+phases and not the whole list — a label is a name, not a summary, and
+the boxes are on the row that the press acts on. A phase already done is
+left unticked; ticking it anyway is a rerun, and no rule stands in the
+way. `archive` is the exception the rule needs: a spec still on this
+list is by definition not archived, so it counts as outstanding however
+the history reads, and the pre-ticked set is therefore never empty.
 
 **Which phases a spec has HAD is read off one line, and nothing else**
 (spec 139): `- **Workflow steps completed:** create, analyze` in the

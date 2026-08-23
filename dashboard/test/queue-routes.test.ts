@@ -1077,7 +1077,11 @@ describe("the spec's own history says what has happened, not the queue's", () =>
       await fetch(`${second.base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(html).toMatch(/value="implement" checked/);
-    expect(html).not.toMatch(/value="archive" checked/);
+    // `archive` is ticked here too and always is (spec 200: every phase
+    // the spec has left starts ticked), so what says implement is not
+    // behind us is the BUTTON — it names the first ticked phase, and
+    // would read "Archive" if the queue's own record counted.
+    expect(html).toContain(">Implement</button>");
     // And the phase line says the same: a step the queue ran is not a
     // step the spec has HAD.
     expect(phaseDone(specControls(html, "81-queue-and-runner"), "implement")).toBe(false);
@@ -3655,10 +3659,11 @@ describe("spec 154: what has run is what has been committed", () => {
     expect(phaseDone(line, "create")).toBe(true);
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(phaseDone(line, "implement")).toBe(false);
-    // And the step a spec nothing has run offers is what comes ticked,
-    // not implement.
+    // And the phase a press would START at is analyze, not implement:
+    // every un-run phase is ticked since spec 200, so the button — which
+    // names the first of them — is what tells the two apart.
     expect(line).toMatch(/value="analyze" checked/);
-    expect(line).not.toMatch(/value="implement" checked/);
+    expect(line).toContain(">Analyze</button>");
   });
 
   // Spec 176, criterion 3: a spec that appears on the dashboard has
