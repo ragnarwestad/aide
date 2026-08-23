@@ -1246,6 +1246,102 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert git(project, "status", "--porcelain") == ""
 
 
+# --- spec 197: a branch whose work already landed is not reused --------------
+# The landing deletes the branch on origin; this checkout's copy was left
+# behind, and the reuse block picks a branch up by name alone. Spec 181
+# was reopened and refused to start on exactly that leftover. So the
+# reuse block asks first whether the work is already in origin's default
+# branch — and only that question, never "is the branch still on
+# origin", which a push that never arrived would answer the same way.
+
+
+def test_a_branch_already_landed_on_origin_is_not_reused(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The state spec 181 hit: this checkout still holds the branch it
+    made, but the work landed through a DIFFERENT checkout — so this
+    checkout's own main, and its cached knowledge of origin's main, are
+    both exactly what they were before any of that happened. A run must
+    not silently go on using the stale branch as though nothing landed.
+    """
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "landed.txt").write_text("this reached main\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "the spec's own work")
+    before = git(project, "rev-parse", branch)
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+
+    # The landing happens elsewhere: compute it on a throwaway ref, push
+    # that as origin's main, delete the branch on origin — then erase
+    # every trace of it from THIS checkout, so its knowledge stays as
+    # stale as a real reopened spec's.
+    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
+    git(project, "merge", "-q", "--no-edit", branch)
+    git(project, "push", "-q", "origin", "throwaway-landing:main")
+    git(project, "push", "-q", "origin", "--delete", branch)
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-D", "throwaway-landing")
+    git(project, "update-ref", "-d", "refs/remotes/origin/main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    # Without the check, the stale branch is reused as it stands: a
+    # fast-forward of a base it already contains is a no-op, so the
+    # branch would still be the object this test set up. The fix throws
+    # it away and builds a new one from the current base.
+    assert git(project, "rev-parse", branch) != before, \
+        "a branch whose work already landed must be rebuilt, not reused"
+
+
+def test_a_branch_that_has_not_landed_is_still_reused(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The one case where a leftover is the only copy of something: work
+    that never reached the default branch. Reachable origin or not, that
+    branch is left exactly as it was found."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "still-unlanded.txt").write_text("only on the branch\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "unlanded work")
+    unlanded = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, unlanded, branch), "the unlanded commit must survive"
+
+
+def test_an_unreachable_origin_leaves_a_local_branch_reused_as_before(
+    runner, workspace, fake_claude
+):
+    """The check is a network call like every other one in this script:
+    best effort, and never fatal. An origin nobody can reach must not be
+    read as proof that a branch has landed. No `origin` remote is
+    configured here at all — the plainest form of unreachable there is.
+    """
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-the-earlier-step.txt").write_text("analyze wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier step")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, earlier, branch), \
+        "the earlier step's work must survive when origin cannot be reached"
+
+
 # --- passenger projects: removed -------------------------------------------
 # A run could be told about a third repository with --extra-project-dir, and
 # would watch, branch, commit and push it like any other root (spec 83, after

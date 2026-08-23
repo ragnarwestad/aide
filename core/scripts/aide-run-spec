@@ -851,6 +851,44 @@ sync_branch_with_origin() {
   refuse "$br has diverged from origin's copy in $root (each has commits the other has not — reconcile them by hand)"
 }
 
+# True when $br's local tip is already contained in origin's $base — the
+# mark of work that landed and was never cleaned up in this checkout
+# (spec 197). The landing deletes the branch on origin; this copy was
+# left behind, and the reuse block below picks a branch up by name alone.
+# Spec 181 was reopened onto exactly such a leftover and refused to
+# start, carrying a conflict with a main that had moved on.
+#
+# The question is "is the work in origin's default branch", never "is the
+# branch still on origin": a push that never arrived leaves a branch
+# missing from origin too, and that one holds the only copy of real work.
+#
+# Its own fetch, and a forced one: --pull is off by default, so nothing
+# guarantees this checkout's refs/remotes/origin/<base> has ever been
+# refreshed — and a landing that happened on another machine is invisible
+# in a ref this checkout never fetched. Best effort like every other
+# network call here: an origin nobody can reach leaves the branch exactly
+# as found, never treated as landed on the strength of a failed call.
+branch_already_landed() {
+  local root="$1" br="$2" base="$3" tip="" landed=1
+  # --refmap=, or this question answers a different one. A fetch with
+  # an explicit refspec ALSO updates the remote-tracking refs
+  # its configured refspec covers, so asking about origin's base quietly
+  # moved this checkout's refs/remotes/origin/<base> — the very ref
+  # base_ref_for picked a moment earlier — and the branch was then
+  # merged with a base nobody chose.
+  git -C "$root" fetch -q --refmap= --force origin "refs/heads/$base:refs/aide-branch/landed-base" >/dev/null 2>&1 \
+    || return 1
+  tip="$(git -C "$root" rev-parse --verify -q "refs/heads/$br" 2>/dev/null || true)"
+  if [ -n "$tip" ] \
+     && git -C "$root" merge-base --is-ancestor "$tip" refs/aide-branch/landed-base >/dev/null 2>&1; then
+    landed=0
+  fi
+  # The verdict is captured above and returned below: the cleanup runs in
+  # between, and $? belongs to whatever ran last.
+  git -C "$root" update-ref -d refs/aide-branch/landed-base >/dev/null 2>&1 || true
+  return "$landed"
+}
+
 update_branch_to_base() {
   local wt="$1" ref="$2" root="$3"
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
@@ -883,6 +921,15 @@ for root in "${roots[@]}"; do
   wt="$wt_dir/$wt_name"
   sweep_worktree "$root" "$branch" "$wt"
   base_ref_for "$root" "$base"
+  # A leftover from a landing is not a branch to build on: throw it away
+  # and let the block below make a fresh one, exactly as if this checkout
+  # had never had it (spec 197). `-D`, because the ancestry check has
+  # already established the work is in origin's base, while `-d` asks a
+  # question about THIS checkout's possibly-stale HEAD instead.
+  if git -C "$root" show-ref --verify --quiet "refs/heads/$branch" \
+     && branch_already_landed "$root" "$branch" "$base"; then
+    git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
+  fi
   if git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
     sync_branch_with_origin "$root" "$branch"
     git -C "$root" worktree add -q "$wt" "$branch" 2>/dev/null \
