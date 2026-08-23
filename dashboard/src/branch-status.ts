@@ -72,16 +72,27 @@ export function lsRemoteSpecBranches(): string[] {
  *  5 s and the job page refreshes every 10 s. */
 export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
   return async (dir, args) => {
-    const proc = Bun.spawn({
-      cmd: ["git", ...args],
-      cwd: dir,
-      stdout: "pipe",
-      // Read, not discarded: git says WHY a pull failed only here, and
-      // "another process is holding index.lock" and "the base has
-      // diverged" are the same exit code with different words.
-      stderr: "pipe",
-      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-    });
+    // A directory that is not there is an ANSWER, not a crash. `cwd` on
+    // a missing path fails inside posix_spawn, and the error names the
+    // command — "ENOENT ... posix_spawn 'git'" — so it reads as a
+    // machine with no git rather than a path with no directory. Two
+    // projects on this host have no specs root at all, and the branch
+    // check walks every project's roots: the page threw (2026-08-23).
+    let proc;
+    try {
+      proc = Bun.spawn({
+        cmd: ["git", ...args],
+        cwd: dir,
+        stdout: "pipe",
+        // Read, not discarded: git says WHY a pull failed only here, and
+        // "another process is holding index.lock" and "the base has
+        // diverged" are the same exit code with different words.
+        stderr: "pipe",
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+      });
+    } catch (e) {
+      return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}` };
+    }
     const killer = setTimeout(() => proc.kill(), timeoutMs);
     try {
       const [stdout, stderr] = await Promise.all([

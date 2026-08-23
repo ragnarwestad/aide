@@ -516,3 +516,4 @@ describe("BranchStatusChecker.openSpecBranches", () => {
     expect(await checker.openSpecBranches("/repos/aide")).toBeNull();
   });
 });
+

@@ -859,7 +859,12 @@ export function createServer(opts: ServerOptions) {
   const specRoots = (project: string): string[] => {
     const code = machineryProjectDir(project);
     const specs = machinerySpecsRoot(project);
-    return specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
+    const both = specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
+    // Only roots that are THERE. A project with no specs root configured
+    // resolves to `<project>/specs`, and two projects on this host have
+    // never had one — asking git about a directory that does not exist
+    // is not an unanswerable question, it is a question about nothing.
+    return both.filter((d) => existsSync(d));
   };
 
   /** Which of a project's roots still have `branch` on origin. A root
