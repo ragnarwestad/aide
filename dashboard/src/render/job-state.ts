@@ -89,6 +89,12 @@ export interface StepResultView {
   step?: string;
   ok: boolean;
   costUsd: number;
+  /** When this step ENDED (spec 199). It is the only per-step instant
+   *  there is: a job carries one `startedAt` however many steps it ran,
+   *  so a step's own span is sliced between this and the previous
+   *  step's end. Absent on a result written before the runner recorded
+   *  it, and then that step simply has no duration to show. */
+  at?: string;
   /** This step's own token total, absent when the run did not measure
    *  one. Per STEP, because a phase line speaks for its own attempt and
    *  not for the job's running total. */
@@ -120,6 +126,29 @@ export function stateLabel(r: QueueRowView): string {
       : "stopped — budget";
   }
   return r.state;
+}
+
+/** How long, in words (spec 199). "45s", "4m12s", "1h04m" — the unit
+ *  above the one being read is always there, so two figures beside each
+ *  other compare without anyone counting digits.
+ *
+ *  Seconds are dropped past the hour on purpose: a step that ran for
+ *  two hours is not a figure anybody reads to the second, and the
+ *  column it sits in is the narrowest on the page.
+ *
+ *  HAND-PAIRED with `formatElapsed` in `src/queue-client.ts`, which
+ *  rewrites a running phase's mark once a second and cannot import this
+ *  one (the client file is transpiled into an inline <script>). The two
+ *  are pinned by `test/queue-client.test.ts`, "the page words a
+ *  duration exactly as the server does". Change one and change the
+ *  other, or a phase changes its wording the first time the clock
+ *  ticks over the figure the server drew. */
+export function durationLabel(ms: number): string {
+  const secs = Math.max(0, Math.round(ms / 1000));
+  if (secs < 60) return `${secs}s`;
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  if (secs < 3600) return `${Math.floor(secs / 60)}m${pad(secs % 60)}s`;
+  return `${Math.floor(secs / 3600)}h${pad(Math.floor((secs % 3600) / 60))}m`;
 }
 
 // A wall of identical grey rows hides the one thing you came to see.

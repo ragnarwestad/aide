@@ -213,8 +213,13 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
   font: var(--fs-s)/1.5 var(--mono); color: var(--text);
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); padding: var(--sp-3); }
+/* The small caption over a group of controls: Repos, Show, Theme, Units.
+   It shouted in capitals until 2026-08-23 — four words in a row that a
+   reader has to slow down for, saying nothing the ordinary spelling did
+   not. The weight and the colour already set it apart from what it
+   heads. */
 .lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.06em; }
+  letter-spacing: 0.04em; }
 
 /* --- button --------------------------------------------------------- */
 /* One button. Bare is secondary, and the variants are modifiers on it —

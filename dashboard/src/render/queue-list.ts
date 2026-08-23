@@ -46,6 +46,7 @@ import {
   restingChip,
   specStateChip,
   stateLabel,
+  durationLabel,
   wordPhase,
   type BranchView,
   type PhaseWord,
@@ -96,6 +97,14 @@ export interface QueueTarget {
    *  states. Derived live at render time, never stored, exactly like
    *  the merge check: a re-run clears it by being newer. */
   analyzeStale?: boolean;
+  /** When this spec was MADE — the first commit that touched its folder
+   *  (spec 199). It is what the "Started" column holds and what the
+   *  `started` sort orders by, and it comes from git rather than from
+   *  any job: a job's own start moves every time a phase runs, and the
+   *  queue forgets a job once two hundred newer ones exist. Absent when
+   *  git could not answer, and then the cell shows a dash — never a
+   *  job's time, which would put the movement straight back. */
+  createdAt?: string;
   /** Why the last archive run did NOT move the folder, from the spec's
    *  own `## Archive held back` section. Archive is the one phase whose
    *  file-truth is always false for a row still on this page — a spec
@@ -308,6 +317,84 @@ function activityMs(r: QueueRowView): number {
   return Date.parse(r.startedAt ?? r.createdAt) || 0;
 }
 
+/** How long ONE step of a job took, or has taken so far (spec 199).
+ *
+ *  Nothing stores a per-step duration. A job carries a single
+ *  `startedAt` however many steps it ran, so `finishedAt - startedAt`
+ *  is the whole job's span and belongs to no one step of it — reaching
+ *  for that is the one mistake this function exists to prevent. What
+ *  does exist is an end per finished step (`results[i].at`), and a
+ *  step's own span runs from where the step before it ended, or from
+ *  the job's own start for the first one.
+ *
+ *  `live` marks the step being worked right now: its figure is elapsed,
+ *  not settled, and the browser takes over counting it from `since`. */
+interface PhaseDuration {
+  ms: number;
+  live: boolean;
+  /** The instant to count up from, on a live one. */
+  since: string;
+}
+
+function phaseDuration(r: QueueRowView, step: string, now: number): PhaseDuration | null {
+  const results = r.results ?? [];
+  const boundary = (i: number): string | undefined =>
+    (i > 0 ? results[i - 1]!.at : undefined) ?? r.startedAt;
+  const index = results.findIndex((x) => x.step === step);
+  if (index !== -1) {
+    const end = results[index]!.at;
+    const start = boundary(index);
+    if (!end || !start) return null;
+    const ms = Date.parse(end) - Date.parse(start);
+    return Number.isNaN(ms) ? null : { ms, live: false, since: start };
+  }
+  // Not among the finished steps, so the only way it has a span at all
+  // is by being the one in flight.
+  if (currentStep(r) !== step || !inFlight(r)) return null;
+  const start = boundary(results.length);
+  if (!start) return null;
+  const ms = now - Date.parse(start);
+  return Number.isNaN(ms) ? null : { ms, live: true, since: start };
+}
+
+/** The spec's own total: its phases' durations added together, and only
+ *  once nothing is left to run (spec 199).
+ *
+ *  A sum, never a span. A spec that sat three days between analyze and
+ *  implement did not take three days — the calendar is not the work,
+ *  which is the whole reason this is built out of the phase lines
+ *  rather than out of the first and last timestamps.
+ *
+ *  "Nothing left to run" is every runnable phase being done and no job
+ *  in flight. It is NOT `nextPhase`, which always names archive for a
+ *  spec still on this page — the list is where an unarchived spec
+ *  lives, so that question is always answered "archive" here. */
+function totalDuration(
+  phases: Phase[],
+  done: readonly string[],
+  all: QueueRowView[],
+): number | undefined {
+  if (!QUEUE_STEPS.every((s) => done.includes(s))) return undefined;
+  if (all.some(inFlight)) return undefined;
+  let total = 0;
+  let measured = false;
+  for (const p of phases) {
+    // The attempt the LINE speaks for — its latest — so a phase re-run
+    // three times contributes once, and an earlier failed retry's time
+    // is not summed in beside it.
+    const latest = p.attempts[0];
+    // `now` is never read: the in-flight guard above means no phase
+    // here can come back live, and a settled span is measured between
+    // two recorded instants. Zero rather than a clock, so this function
+    // gives the same answer whenever it is asked.
+    const d = latest ? phaseDuration(latest, p.step, 0) : null;
+    if (!d || d.live) continue;
+    total += d.ms;
+    measured = true;
+  }
+  return measured ? total : undefined;
+}
+
 interface Phase {
   step: string;
   /** Every job whose current/last step is this phase, newest first. A
@@ -336,10 +423,13 @@ interface SpecGroup {
    *  ever run — there is no job page to link to, and no honest answer
    *  to "is it in flight?". */
   lead?: QueueRowView;
-  /** The most recently active job, in flight or not. The "Started"
-   *  column shows ITS time, so the column and the sort answer the same
-   *  question: when did anything last happen to this spec? */
-  latest?: QueueRowView;
+  // There was a `latest` here — the most recently active job — and the
+  // "Started" column showed ITS time, so the column and the sort both
+  // answered "when did anything last happen to this spec?" and every
+  // run threw the row back to the top of the list. Spec 199 replaced
+  // that question with `createdAt` below, and nothing else ever read
+  // the field. The recency ORDER survives it: `jobGroup` still sorts
+  // the jobs by activity to pick the one the header speaks for.
   /** `not-started` is this page's own pseudo-state, not a job's: a spec
    *  that exists and has never been run. It is the filter key and the
    *  CSS suffix; the words the reader sees are "not started". */
@@ -352,7 +442,17 @@ interface SpecGroup {
   /** The same roll-up in tokens, absent while no job under this spec has
    *  reported any (spec 118). */
   spentTokens?: number;
-  activityAt: number;
+  /** When the spec was made, off its target and therefore off git
+   *  (spec 199). Absent for a spec git could not date, and for a create
+   *  job whose folder is not on disk yet. */
+  createdAt?: string;
+  /** How long the spec's phases took, added together — the work, not
+   *  the calendar (spec 199). Absent while anything is still left to
+   *  run, and absent for a spec no phase of which has a measurable
+   *  span. A spec that waited three days between two phases did not
+   *  take three days, which is why this is a SUM of measured phases and
+   *  never `last finished - first started`. */
+  totalDurationMs?: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
    *  Folded by label from rows already on the page — the server folds
    *  the same thing by root when the Merge button posts back, and that
@@ -404,7 +504,6 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     state: "not-started",
     spentUsd: 0,
     costUnmeasured: false,
-    activityAt: 0,
     branches: [],
     phases: PHASE_LINES.map((step) => ({
       step,
@@ -421,13 +520,19 @@ function emptyGroup(t: QueueTarget): SpecGroup {
  *  spec's done-set or progress is the one way this join can go wrong. */
 function fromTarget(
   t: QueueTarget | undefined,
-): Pick<SpecGroup, "done" | "title" | "phase" | "dependsOn" | "analyzeStale"> {
+): Pick<SpecGroup, "done" | "title" | "phase" | "dependsOn" | "analyzeStale" | "createdAt"> {
   return {
     done: t?.done ?? [],
     title: t?.title,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
     analyzeStale: t?.analyzeStale ?? false,
+    // From the TARGET and from nowhere else (spec 199). There is
+    // deliberately no fallback to a job's own `createdAt`/`startedAt`:
+    // that is the field this change exists to stop reading, and a
+    // fallback would leave the row jumping for exactly the specs git
+    // cannot date.
+    createdAt: t?.createdAt,
   };
 }
 
@@ -519,11 +624,19 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   // the five since spec 116, so a create job lands on its own line at
   // the front rather than being appended after archive.
   const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !PHASE_LINES.includes(s));
+  // Built before the group, because the spec's total is a sum over
+  // these same lines and re-deriving them would be two answers to one
+  // question.
+  const phases: Phase[] = [...PHASE_LINES, ...extra].map((step) => ({
+    step,
+    attempts: recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null),
+    ...heldBackFor(step, target),
+    ...historyFor(step, target),
+  }));
   return {
     project: lead.project,
     specFolder: lead.specFolder,
     lead,
-    latest: recent[0]!,
     state: lead.state,
     spentUsd: all.reduce((sum, r) => sum + r.spentUsd, 0),
     costUnmeasured: all.some((r) => anyCostUnmeasured(r.results)),
@@ -533,16 +646,15 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     spentTokens: all.some((r) => r.spentTokens !== undefined)
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
-    activityAt: activityMs(recent[0]!),
     branches: branchesOf(recent),
-    phases: [...PHASE_LINES, ...extra].map((step) => ({
-      step,
-      attempts: recent
-        .map((r) => attemptFor(r, step))
-        .filter((a): a is QueueRowView => a !== null),
-      ...heldBackFor(step, target),
-      ...historyFor(step, target),
-    })),
+    phases,
+    // The same roll-up shape as `spentUsd` above, over time instead of
+    // money — and one figure per phase LINE, not per attempt: a phase
+    // re-run three times contributes the attempt its line speaks for,
+    // the way the line's own cell does. Only once nothing is left to
+    // run, because a total of a spec still working is a number that
+    // will be wrong in a minute.
+    totalDurationMs: totalDuration(phases, spec.done, all),
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.
@@ -584,19 +696,29 @@ function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
-    : g.activityAt;
+    // Spec 199: when the spec was MADE. It used to be the most recent
+    // job's own start, so starting a phase moved the row.
+    : Date.parse(g.createdAt ?? "") || 0;
   return [...groups].sort((a, b) => {
     const x = key(a), y = key(b);
     const cmp =
       (typeof x === "string" ? compareFolders(String(x), String(y)) : (x as number) - (y as number)) * sign;
     if (cmp !== 0) return cmp;
-    // Only between two specs that have BOTH never run. A general folder
-    // tie-break is not free: 29 job fixtures sharing one `createdAt` all
-    // tie on `activityAt` today and keep their insertion order, and
-    // reversing them moves the 25-row cap onto the wrong end of the
-    // list. Never-run specs have no insertion order worth keeping —
-    // theirs is whatever the disk scan happened to produce.
-    if (a.activityAt === 0 && b.activityAt === 0) return b.specFolder.localeCompare(a.specFolder);
+    // Only between two specs that have BOTH never run AND that git
+    // could date neither of. A general folder tie-break is not free: 29
+    // job fixtures sharing one date all tie and keep their insertion
+    // order, and reversing them moves the 25-row cap onto the wrong end
+    // of the list. Never-run specs have no insertion order worth
+    // keeping — theirs is whatever the disk scan happened to produce.
+    //
+    // `!g.lead` is what "never run" reads as since spec 199: it is
+    // absent exactly for a group `emptyGroup` built, which is the same
+    // set the old `activityAt === 0` test named. The datability half is
+    // new — two never-run specs git CAN date sort by their real dates,
+    // and only when neither has one is there nothing left to sort by.
+    if (!a.lead && !b.lead && !a.createdAt && !b.createdAt) {
+      return b.specFolder.localeCompare(a.specFolder);
+    }
     return 0;
   });
 }
@@ -877,6 +999,41 @@ const phaseWordCell = (
   // line is one line in every state a phase can be in.
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
   (aside ? ` ${aside}` : "");
+
+/** The spec header row's own time cell: when the spec was made, and
+ *  what its phases came to once they are all behind it (spec 199).
+ *
+ *  The total rides BESIDE the date, in the cell that is already there.
+ *  A column of its own would take its width from a heading, and this
+ *  table has no width to give — the same constraint that put the
+ *  attempt count beside a badge rather than under it. */
+function startedCell(g: SpecGroup, now: number): string {
+  const made = g.createdAt ? relTime(g.createdAt, now) : "–";
+  if (g.totalDurationMs === undefined) return made;
+  return (
+    `${made} <span class="muted small" data-total="1" ` +
+    `title="what its phases took, added together">${durationLabel(g.totalDurationMs)}</span>`
+  );
+}
+
+/** One phase line's time cell: how long that phase took, or how long it
+ *  has been going (spec 199).
+ *
+ *  A running one carries `data-elapsed` — the instant to count up from
+ *  — and the page's own clock rewrites the text once a second from
+ *  there. The server still writes a figure into it, so the cell says
+ *  something with script switched off; and the mark is a `<span>` of
+ *  fixed content in a cell that is already there, so a phase starting
+ *  or stopping moves nothing on the page around it. */
+function phaseDurationCell(latest: QueueRowView | undefined, step: string, now: number): string {
+  const d = latest ? phaseDuration(latest, step, now) : null;
+  if (!d) return "";
+  const text = durationLabel(d.ms);
+  return d.live
+    ? `<span class="muted small" data-elapsed="${esc(d.since)}">${text}</span>`
+    : `<span class="muted small">${text}</span>`;
+}
+
 // `blank` because a header with nothing spent still owes the reader a
 // dash, while an empty phase line should simply be empty. That
 // distinction is the whole reason this takes a parameter the shared
@@ -1336,7 +1493,13 @@ function specHeadRow(
       opened.has(groupKey(g.project, g.specFolder)),
     )}</span></span>` +
     `</td>` +
-    `<td data-col="started">${g.latest ? relTime(g.latest.startedAt ?? g.latest.createdAt, now) : "–"}</td>` +
+    // When the spec was MADE, and — once nothing is left to run — how
+    // long its phases took (spec 199). The column used to hold the most
+    // recent job's own start, so every run threw the row to the top of
+    // a list sorted by it. A dash where git could not date the folder:
+    // deliberately not a job's time, which is the movement this change
+    // removes.
+    `<td data-col="started">${startedCell(g, now)}</td>` +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     // The spare cell, blank on every row since spec 157: the one
     // action a shut row used to offer here is beside the state now,
@@ -1794,7 +1957,12 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           `<td class="phasecell">${name}</td>` +
           pickCell +
           `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
-          `<td data-col="started">${latest ? relTime(latest.startedAt ?? latest.createdAt, now) : ""}</td>` +
+          // The phase's own duration, not when it began (spec 199).
+          // Same physical column, a different question per row type —
+          // which this column already did before, and which is what
+          // makes "how long did this take?" readable without a column
+          // of its own.
+          `<td data-col="started">${phaseDurationCell(latest, p.step, now)}</td>` +
           `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>` +
           `<td></td>`,
       });
