@@ -28,7 +28,7 @@
 //  - Nothing here runs a git command in the person's directory except
 //    the two read-only questions above.
 
-import { copyFileSync, existsSync, mkdirSync, realpathSync, symlinkSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, realpathSync, rmSync, symlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
@@ -148,6 +148,31 @@ const topOf = async (run: GitRunner, dir: string): Promise<string | null> => {
   return top.code === 0 && top.stdout.trim() ? real(top.stdout.trim()) : null;
 };
 
+/** Whether there is anything here claiming to be a checkout. The
+ *  ordinary first use answers `false`, and it answers without a
+ *  subprocess and without suspending — which the caller depends on:
+ *  spec 208 counts the git commands a cold page render spawns, and an
+ *  `await` reached on the nothing-is-there path moves the first clone's
+ *  own git call out of boot and into the next request. */
+const looksCloned = (dir: string): boolean => existsSync(join(dir, ".git"));
+
+/** Whether a checkout is one a run can work in — present is not the
+ *  same as finished. A clone killed part-way through leaves a `.git`
+ *  holding `objects` and no `HEAD`, which `existsSync` reads as done
+ *  and git reads as no repository at all (spec 209).
+ *
+ *  `topOf` asked TWICE before its `null` is believed, because this is
+ *  the answer that decides whether the directory gets deleted. A run's
+ *  worktree is cut from `code` with `git worktree add` and goes on
+ *  reading `code/.git` for its whole duration, so a single flaky
+ *  `rev-parse` must not turn a healthy, live checkout into a removed
+ *  one. Two failures in a row is "git cannot answer this question",
+ *  which is the same bar `aide-run-spec` accepts before it refuses. */
+async function isUsable(run: GitRunner, dir: string): Promise<boolean> {
+  if (await topOf(run, dir)) return true;
+  return (await topOf(run, dir)) !== null;
+}
+
 /** The gitignored paths the project's own commands need, linked in from
  *  the person's checkout.
  *
@@ -208,7 +233,12 @@ async function bringUpToDate(run: GitRunner, dir: string): Promise<void> {
 export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest): Promise<EnsureResult> {
   const code = dashboardCheckoutRoot(req.base, req.project);
   let cloned = false;
-  if (!existsSync(join(code, ".git"))) {
+  if (!looksCloned(code) || !(await isUsable(run, code))) {
+    // Whatever a killed clone left is in the way: `git clone` refuses a
+    // non-empty directory. Nothing here is anyone's work — it is a
+    // clone, and what it was a clone of is still on origin. A no-op
+    // when there is nothing there yet.
+    rmSync(code, { recursive: true, force: true });
     const failed = await cloneFrom(run, req.personDir, code);
     if (failed) return { ok: false, error: failed, cloned: false };
     cloned = true;
@@ -255,7 +285,8 @@ export async function ensureDashboardCheckout(run: GitRunner, req: EnsureRequest
       specs = join(code, relative(personTop, real(personSpecs)));
     } else {
       specsRepo = dashboardSpecsRepo(req.base, req.project);
-      if (!existsSync(join(specsRepo, ".git"))) {
+      if (!looksCloned(specsRepo) || !(await isUsable(run, specsRepo))) {
+        rmSync(specsRepo, { recursive: true, force: true });
         const failed = await cloneFrom(run, specsTop, specsRepo);
         if (failed) return { ok: false, error: failed, cloned };
         cloned = true;
