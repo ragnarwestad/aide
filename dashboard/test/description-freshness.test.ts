@@ -286,3 +286,56 @@ describe("lastCommitOf", () => {
     expect(await lastCommitAt(git.run, DIR, "1-description.md")).toBe("2026-08-21T09:14:00+02:00");
   });
 });
+
+// --- spec 198: the reopen boundary ------------------------------------------
+//
+// A reopened spec's earlier round is still in the repository, and its
+// `analyze` commit is still the newest one `lastAnalyzeCommit` can find.
+// Left alone, the staleness badge would go on comparing this round's
+// description against an analysis run before the spec was reopened —
+// the third reader of the same commit grammar, and the one the plan
+// review found missing.
+describe("lastAnalyzeCommit with a reopen boundary", () => {
+  const BOUNDARY = "1d0fe79cafe";
+
+  test("no boundary: asks exactly what it asked before the boundary existed", async () => {
+    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    await lastAnalyzeCommit(git.run, DIR, FOLDER);
+    expect(git.calls[git.calls.length - 1]!.args).not.toContain("--not");
+  });
+
+  test("with a boundary: excludes the earlier round, and still names a positive rev", async () => {
+    const git = gitFor("2026-08-18T09:10:36+02:00", "");
+    await lastAnalyzeCommit(git.run, DIR, FOLDER, BOUNDARY);
+    const args = git.calls[git.calls.length - 1]!.args;
+    expect(args).toContain("--not");
+    expect(args).toContain(BOUNDARY);
+    // `git log --not <sha>` with no positive rev walks nothing at all:
+    // a revision argument stops git from defaulting to HEAD. Measured.
+    expect(args).toContain("HEAD");
+    expect(args.indexOf("HEAD")).toBeLessThan(args.indexOf("--not"));
+  });
+});
+
+describe("DescriptionFreshnessChecker with a reopen boundary", () => {
+  const BOUNDARY = "1d0fe79cafe";
+
+  test("passes the boundary on to the analyze lookup", async () => {
+    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    const checker = new DescriptionFreshnessChecker({ run: git.run });
+    await checker.isStale(DIR, FOLDER, BOUNDARY);
+    expect(git.calls.some((c) => c.args.includes("--not") && c.args.includes(BOUNDARY))).toBe(true);
+  });
+
+  // Same reason the history checker's key folds it in: a spec reopened
+  // while the dashboard is running would otherwise answer from the
+  // pre-reopen entry for the whole TTL.
+  test("a spec asked with and without a boundary is two questions", async () => {
+    const git = gitFor("2026-08-18T09:10:36+02:00", analyzeLine("2026-08-18T08:57:16+02:00") + "\n");
+    const checker = new DescriptionFreshnessChecker({ run: git.run, now: () => 0 });
+    await checker.isStale(DIR, FOLDER);
+    const first = git.calls.length;
+    await checker.isStale(DIR, FOLDER, BOUNDARY);
+    expect(git.calls.length).toBeGreaterThan(first);
+  });
+});

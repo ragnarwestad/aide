@@ -486,3 +486,58 @@ class TestStep3DecidesOnMarksNotProse:
             "Step 3 does not require the refusal to name the open row's "
             "phase heading and Task cell"
         )
+
+
+@pytest.mark.validation
+class TestReopenSkillKeepsWhatTheDescriptionAsksFor:
+    """Spec 198. Three of the seven acceptance criteria are the SKILL's
+    own promises rather than the runner's, and no fixture repo can reach
+    them: what a model writes into `4-status.md`, which files it leaves
+    alone, and whether it says the same thing to a terminal that the
+    dashboard's control says to `aide-run-spec`. What CAN be checked is
+    that the instructions still name them — the same net
+    `test_templates.py` keeps over the spec layout, and for the same
+    reason: a partial edit here fails the suite instead of escaping into
+    the next reopened spec.
+    """
+
+    @pytest.fixture
+    def skill(self):
+        path = CORE_SKILLS_DIR / "aide-reopen" / "SKILL.md"
+        assert path.exists(), "core/skills/aide-reopen/SKILL.md is missing"
+        return path.read_text()
+
+    def test_the_description_and_the_readme_are_named_as_untouched(self, skill):
+        """AC7. The description is WHY the spec exists and is what the
+        new round is for."""
+        assert "1-description.md" in skill
+        assert "0-README.md" in skill
+
+    def test_the_three_reset_files_are_named(self, skill):
+        for name in ("2-analysis.md", "3-solution.md", "4-status.md"):
+            assert name in skill, f"{name} is not named as one of the files reset"
+
+    def test_the_archive_trail_is_kept(self, skill):
+        """AC3. The commits cannot be deleted and should not be; the
+        spec's own archive trail has to go on reading."""
+        assert "**Archived:**" in skill
+
+    def test_the_boundary_mark_is_written_in_the_grammar_the_readers_parse(self, skill):
+        """One grammar, four readers: `completed_steps_for` in
+        `core/scripts/aide-run-spec`, `parse-status.ts`,
+        `workflow-history.ts` and `description-freshness.ts`."""
+        assert "**Reopened:**" in skill
+        assert "history before" in skill
+
+    def test_the_four_places_a_branch_hides_are_named(self, skill):
+        """AC2, incident 1: a local ref left behind in one of the four
+        (project-local, project-origin, specs-local, specs-origin) and
+        the next run refuses on a conflict nobody can see."""
+        for word in ("origin", "local"):
+            assert word in skill.lower()
+
+    def test_it_says_the_headless_run_gets_its_commit_for_free(self, skill):
+        """AC4. Both surfaces have to leave the spec in the same state,
+        and a skill that stops to ask in a headless run leaves it in
+        neither."""
+        assert "headless" in skill.lower()

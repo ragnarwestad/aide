@@ -21,8 +21,17 @@ import { dirname } from "node:path";
 // `resolve` was here until spec 171 and is deliberately gone: a merge
 // that fails is the merging step's problem, so `archive` resolves the
 // conflict itself rather than a sixth phase standing beside the five.
+//
+// `reopen` joined it in spec 198: an archived spec whose work has to be
+// done again is taken back into the active list by a step like any
+// other, so that the dashboard's control and `/aide-reopen` in a
+// terminal are one operation with one path. Queueable, but deliberately
+// NOT part of the workflow arc (`HISTORY_STEPS`, `parse-status.ts`'s own
+// list, the bash `WORKFLOW_ARC`) — it is not a stage a spec passes
+// through and it draws no phase box, exactly as `explore` and `manifest`
+// do not.
 export const WORKFLOW_STEPS = [
-  "explore", "create", "analyze", "implement", "archive", "manifest",
+  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
@@ -271,7 +280,25 @@ export interface QueueDefaults {
 
 /** Resolves a project NAME to its real spec folders, or null if it is
  *  not both discovered and allowlisted. */
-export type ProjectResolver = (project: string) => { specFolders: string[] } | null;
+export type ProjectResolver = (project: string) => {
+  specFolders: string[];
+  /** The project's ARCHIVED spec folders (spec 198), which one step and
+   *  no other may be asked for: `reopen`, the step that exists to take
+   *  a spec back out of the archive.
+   *
+   *  Kept apart from `specFolders` rather than merged into it, because
+   *  merging would widen every OTHER step to archived specs too — and
+   *  spec 193 already relies on an archived spec being refused unless
+   *  its branch is still open. That exception lives in `specFolders`,
+   *  where it belongs; this one is per step. */
+  archivedFolders?: string[];
+} | null;
+
+/** The one step an archived spec may be asked for (spec 198). A literal
+ *  step name and never a denylist of the others: a list to be kept in
+ *  step with `WORKFLOW_STEPS` is the drift this repo already names
+ *  three times over. */
+const ARCHIVE_ONLY_STEP = "reopen";
 
 export type ParseResult = { ok: true; job: Job } | { ok: false; error: string };
 
@@ -309,7 +336,10 @@ export function parseJobRequest(
   if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) {
     return { ok: false, error: "invalid specFolder" };
   }
-  if (!resolved.specFolders.includes(r.specFolder)) {
+  const archivedOnly =
+    !resolved.specFolders.includes(r.specFolder) &&
+    (resolved.archivedFolders ?? []).includes(r.specFolder);
+  if (!resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
     return { ok: false, error: `unknown specFolder: ${r.specFolder}` };
   }
 
@@ -322,6 +352,19 @@ export function parseJobRequest(
       return { ok: false, error: `invalid entry in steps: ${String(s)}` };
     }
     steps.push(s as WorkflowStep);
+  }
+
+  // Checked here rather than beside the folder lookup above, so that the
+  // errors keep the order they have always had: a request with a folder
+  // nobody knows still hears about the folder first. An archived spec is
+  // admitted for `reopen` alone (spec 198) — every other step is refused
+  // by name here, and `aide-run-spec`'s own `--spec` gate refuses it a
+  // second time for a run started by hand.
+  if (archivedOnly && steps.some((s) => s !== ARCHIVE_ONLY_STEP)) {
+    return {
+      ok: false,
+      error: `${r.specFolder} is archived — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
+    };
   }
 
   // `gateAfter` was parsed here until spec 149 — a list of steps to stop

@@ -88,7 +88,7 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-WORKFLOW_STEPS="explore create analyze implement archive manifest"
+WORKFLOW_STEPS="explore create analyze implement archive manifest reopen"
 # The steps a dependency actually holds back (spec 122): the ones that
 # BUILD on merged code. analyze and create write only the
 # spec's own folder in the specs repo and conflict with nothing, so
@@ -238,6 +238,25 @@ else
   for candidate in "$specs_root"/*/; do
     base="$(basename "$candidate")"
     case "$base" in "$spec_arg"-*) spec_folder="$base"; break ;; esac
+  done
+fi
+# One step looks in the archive, and it is the step that exists to take a
+# spec back out of it (spec 198). An archived spec is otherwise not
+# runnable at all — "unknown spec" is the right answer for every other
+# command — so this is a named exemption, the way `create` is the named
+# exemption from "the folder must already exist", and never a general
+# relaxation of the gate.
+#
+# The folder is recorded WITHOUT its `archive/` prefix. The branch, the
+# worktree and the commit subject are all named after $spec_label, and an
+# `aide/archive/<slug>` branch is a different spec as far as every reader
+# of the commit grammar is concerned. Where the folder actually stands is
+# a question `status_file_for` below already answers on its own, by
+# trying both addresses.
+if [ -z "$spec_folder" ] && [ "$command_name" = "reopen" ] && [ -d "$specs_root/archive" ]; then
+  for candidate in "$specs_root/archive"/*/; do
+    base="$(basename "$candidate")"
+    case "$base" in "$spec_arg" | "$spec_arg"-*) spec_folder="$base"; break ;; esac
   done
 fi
 # A `create` step is the one that MAKES the folder, so it is the one
@@ -875,6 +894,44 @@ link_worktree_deps() {
   return 0
 }
 
+# --- reopening: the branch goes first (spec 198) -----------------------------
+#
+# An archived spec whose work has to be done again leaves its branch
+# behind in four places — project-local, project-origin, specs-local,
+# specs-origin — and the one that was missed is the one the next run
+# refuses on, with a conflict nobody can see (measured twice, 2026-08-22
+# and 2026-08-23). So `reopen` starts by removing all four.
+#
+# HERE, and not in the skill, for a structural reason rather than a
+# stylistic one: the loop below checks `aide/<folder>` out in a worktree
+# of its own, and git refuses to delete a branch that is checked out. A
+# skill running inside the step could not do it if it tried. The skill
+# still carries the same deletion for the OTHER surface — `/aide-reopen`
+# at a keyboard, where no worktree exists — which is the same shape as
+# `archive`'s merge: the script's own guard is what makes the promise
+# hold whatever the model does.
+#
+# Every deletion tolerates "already gone": a spec whose branch was
+# cleaned up by the landing that archived it is the normal case, and a
+# reopen that failed on it would refuse the majority of specs. An origin
+# that cannot be reached is not a reason to refuse either — the same
+# best-effort rule every other network call in this script keeps.
+#
+# The name is not what has to disappear: the loop below cuts a fresh
+# `aide/<folder>` from the default branch for this very run, and the
+# reopen's own commit lives on it. What has to disappear is the earlier
+# round's TIP, so that nothing is merged forward out of it.
+if [ "$command_name" = "reopen" ]; then
+  for root in "${roots[@]}"; do
+    sweep_worktree "$root" "$branch" ""
+    git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
+    if git -C "$root" remote get-url origin >/dev/null 2>&1; then
+      git -C "$root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
+      git -C "$root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
+    fi
+  done
+fi
+
 mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
 work_roots=()
 for root in "${roots[@]}"; do
@@ -1348,9 +1405,42 @@ status_file_for() {   # sets $status_file
 # separated list. This run's own outcome is known directly and is
 # recorded first, so it wins over anything the log says about the same
 # step — its commit does not exist yet.
+# Where a reopened spec's history STARTS (spec 198). An archived spec
+# that has to be done again keeps every commit from the earlier round —
+# they happened, and the archive is a record — so what changes is not the
+# repository but what counts. The mark is one line of the spec's own
+# `4-status.md`, beside the `**Archived:**` stamp it keeps:
+#
+#     - **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)
+#
+# One grammar, four readers: this, `parse-status.ts`,
+# `workflow-history.ts` and `description-freshness.ts`. The LAST mark
+# wins — a spec reopened twice counts from its current round — and a mark
+# with no sha in it is not a boundary at all: an unreadable one says
+# nothing, which is the pre-reopen behaviour, where a guessed one would
+# hide a round that really did run.
+reopened_boundary_in() {   # sets $reopened_sha
+  local file="$1"
+  reopened_sha=""
+  [ -f "$file" ] || return 0
+  reopened_sha="$(sed -n 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reopened:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
+    "$file" 2>/dev/null | tail -1)"
+  return 0
+}
+
 completed_steps_for() {   # sets $completed_steps
   local folder="$1" dir="$2" subject step reason seen completed re
+  local boundary_args=()
   completed_steps=""
+  # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
+  # the earlier round, since the mark is the specs repo's default-branch
+  # tip at the moment of reopening and the earlier round's commits were
+  # landed onto that branch by its own archive step. A commit made AFTER
+  # the mark is a descendant, never an ancestor, so the new round is
+  # untouched. It has to FOLLOW `--all`: `--not` alone names no positive
+  # rev, and git then walks nothing at all.
+  reopened_boundary_in "$3"
+  [ -n "$reopened_sha" ] && boundary_args=(--not "$reopened_sha")
   seen="|"; completed="|"
   case " $WORKFLOW_ARC " in
     *" $command_name "*)
@@ -1373,7 +1463,7 @@ completed_steps_for() {   # sets $completed_steps
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
   done <<EOF
-$(git -C "$dir" log --all --format=%s --fixed-strings \
+$(git -C "$dir" log --all ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
 EOF
   for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
@@ -1394,7 +1484,7 @@ case " $WORKFLOW_ARC " in
   *" $command_name "*) status_file_for "$commit_label" ;;
 esac
 if [ -n "$status_file" ]; then
-  completed_steps_for "$commit_label" "$(dirname "$status_file")"
+  completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file"
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.
   #

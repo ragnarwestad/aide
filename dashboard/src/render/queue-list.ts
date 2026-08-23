@@ -85,6 +85,12 @@ export interface QueueTarget {
    *  is what the freshness check runs git in, and an absolute path has
    *  no business on a page. */
   dir?: string;
+  /** The commit this spec's history starts AFTER, from its own
+   *  `**Reopened:**` mark (spec 198). Server-side only, like `dir`: it
+   *  is what the two git readers exclude with `--not`, so that a spec
+   *  reopened for another round shows no phase as run before anything
+   *  has run in it. Absent for the overwhelming majority. */
+  reopenedAfter?: string;
   /** The description was committed after the last finished analyze, so
    *  the plan on disk describes an older problem than the description
    *  states. Derived live at render time, never stored, exactly like

@@ -81,10 +81,23 @@ export async function lastAnalyzeCommit(
   run: GitRunner,
   dir: string,
   specFolder: string,
+  boundarySha?: string,
 ): Promise<AnalyzeCommit | null> {
   const subject = analyzeSubject(specFolder);
   const out = await run(dir, [
     "log",
+    // Spec 198: the third reader of the same commit grammar. A reopened
+    // spec's earlier round is still in the repository, and its analyze
+    // commit is still the newest one this lookup can find — so without
+    // the boundary the staleness badge goes on comparing THIS round's
+    // description against an analysis run before the spec was reopened.
+    //
+    // `HEAD` has to be named explicitly once `--not` is there: a
+    // revision argument stops git from defaulting to HEAD, so
+    // `--not <sha>` alone walks nothing at all. Measured. Absent
+    // without a boundary, so a spec that has never been reopened takes
+    // the exact call it took before this parameter existed.
+    ...(boundarySha ? ["HEAD", "--not", boundarySha] : []),
     "--format=%H%x09%aI%x09%s",
     "--fixed-strings",
     `--grep=${subject}`,
@@ -157,11 +170,14 @@ export class DescriptionFreshnessChecker {
    *  finished analyze. Everything else — an unreadable checkout, a spec
    *  outside git, a timeout — is false, which leaves the page saying
    *  exactly what it said before this feature existed. */
-  async isStale(dir: string, specFolder: string): Promise<boolean> {
+  async isStale(dir: string, specFolder: string, boundarySha?: string): Promise<boolean> {
     // JSON rather than a separator character, for the reason
     // branch-status.ts gives: a NUL here makes git treat the source
     // file as binary, and every future diff of it pays for that.
-    const key = JSON.stringify([dir, specFolder]);
+    //
+    // The boundary is part of the question and so part of the key, for
+    // the same reason `WorkflowHistoryChecker`'s is (spec 198).
+    const key = JSON.stringify([dir, specFolder, boundarySha ?? null]);
     const hit = this.cache.get(key);
     const at = this.now();
     if (hit && at - hit.at < this.ttlMs) return hit.stale;
@@ -172,7 +188,7 @@ export class DescriptionFreshnessChecker {
       // No description commit ends it here: the second lookup cannot
       // change the answer, and it costs a subprocess per spec.
       if (describedAt) {
-        const analyzed = await lastAnalyzeCommit(this.run, dir, specFolder);
+        const analyzed = await lastAnalyzeCommit(this.run, dir, specFolder, boundarySha);
         // The dates first, because they cost nothing beyond the lookup
         // already made: a description older than the analysis cannot be
         // stale whatever it says. Only when they point the other way is

@@ -3617,6 +3617,49 @@ describe("every step lands its own work (spec 149)", () => {
         const { base } = await archivedServer("aide-193-rerun-closed-", false);
         expect((await enqueue(base)).status).toBeGreaterThan(399);
       });
+
+      // --- spec 198: the other way out ------------------------------------
+      //
+      // An archived spec can also be REOPENED, and unlike the re-run
+      // above that does not depend on a branch being open — a spec whose
+      // work has to be done again is one that finished cleanly, most of
+      // the time. The two exceptions are kept apart in the resolver for
+      // that reason: `specFolders` carries spec 193's open-branch
+      // exception and admits every step, `archivedFolders` carries this
+      // one and admits `reopen` alone.
+      const enqueueReopen = (base: string, steps: string[] = ["reopen"]) =>
+        fetch(`${base}/api/queue`, {
+          method: "POST",
+          headers: AUTH,
+          body: JSON.stringify({ project: "aide", specFolder: SPEC, steps }),
+        });
+
+      test("reopen is accepted for an archived spec whose branch is gone", async () => {
+        const { base } = await archivedServer("aide-198-reopen-closed-", false);
+        expect((await enqueueReopen(base)).status).toBe(200);
+      });
+
+      test("and every other step still is not", async () => {
+        const { base } = await archivedServer("aide-198-reopen-other-", false);
+        const res = await enqueueReopen(base, ["implement"]);
+        expect(res.status).toBeGreaterThan(399);
+        expect(String((await res.json() as { error?: string }).error)).toContain("archived");
+      });
+
+      // A no-script form POST gets a redirect and nothing else, and the
+      // specs list has no row for an archived spec to put the answer on.
+      // The reader comes back to the page the button is on.
+      test("a form press comes back to the spec's own page", async () => {
+        const { base } = await archivedServer("aide-198-reopen-back-", false);
+        const res = await fetch(`${base}/api/queue`, {
+          method: "POST",
+          headers: { "x-aide-token": TOKEN, "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ project: "aide", specFolder: SPEC, steps: "reopen" }),
+          redirect: "manual",
+        });
+        expect(res.status).toBeGreaterThanOrEqual(300);
+        expect(res.headers.get("location")).toContain(`/specs/aide/${SPEC}`);
+      });
     });
   });
 });

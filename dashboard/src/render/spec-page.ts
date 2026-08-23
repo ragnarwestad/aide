@@ -75,6 +75,11 @@ export interface SpecPageView {
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
+  /** The queue's token, when the site has one — the Reopen control
+   *  posts to `/api/queue` like every other lifecycle action, and that
+   *  route checks it. Absent leaves the field out entirely rather than
+   *  posting an empty one, exactly as `tokenField` does on the list. */
+  token?: string;
   /** The spec's own checks, at the top of the page (spec 182). Absent
    *  for a spec whose `4-status.md` has no phase section at all. */
   checks?: SpecChecksView;
@@ -159,6 +164,40 @@ function checklist(view: SpecPageView): string {
   );
 }
 
+/** The one action an archived spec offers (spec 198).
+ *
+ *  Reopening used to be done by hand in a terminal — move the folder out
+ *  of `archive/`, overwrite three files, hunt the branch down in two
+ *  repositories and two places each. It was done twice and something was
+ *  missed both times, so it is one press, offered where the spec is.
+ *
+ *  A plain `POST /api/queue` with `steps=reopen`, the same enqueue every
+ *  other lifecycle action on this dashboard uses. That is not tidiness:
+ *  it is what makes this control and `/aide-reopen` in a terminal one
+ *  operation rather than two implementations that have to be kept
+ *  agreeing.
+ *
+ *  A form and not a link, for the reason the Update button gives: a GET
+ *  would let a reload run it again.
+ *
+ *  Nothing ELSE about an archived spec changes — no Edit link, the same
+ *  read-only note above this, the checks still inert. And nothing here
+ *  is drawn for a live spec: its own row on the queue list is where its
+ *  actions are. */
+function reopenControl(view: SpecPageView): string {
+  return (
+    `<form class="actionform" method="post" action="/api/queue">` +
+    (view.token ? `<input type="hidden" name="token" value="${esc(view.token)}">` : "") +
+    `<input type="hidden" name="project" value="${esc(view.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(view.specFolder)}">` +
+    `<input type="hidden" name="steps" value="reopen">` +
+    `<button class="btn" type="submit" ` +
+    `title="take this spec back into the active list for another round: ` +
+    `reset the analysis, the plan and the status, keep the description, and remove its branch">` +
+    `Reopen</button></form>`
+  );
+}
+
 export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
@@ -187,7 +226,8 @@ export function renderSpecPage(
     // for it should not have to work out from a missing button that the
     // spec is closed.
     (view.archived
-      ? rowMessage("info", "This spec is archived — a record, and read-only.", { tag: "p" })
+      ? rowMessage("info", "This spec is archived — a record, and read-only.", { tag: "p" }) +
+        reopenControl(view)
       : "") +
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "") +
