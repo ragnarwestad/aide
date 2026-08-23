@@ -1299,14 +1299,18 @@ def test_a_branch_already_landed_on_origin_is_not_reused(
     git(project, "branch", "-D", "throwaway-landing")
     git(project, "update-ref", "-d", "refs/remotes/origin/main")
 
-    claude = specs_only_claude(fake_claude, workspace)
+    # The step writes in the PROJECT, which is where the stale branch is:
+    # since spec 215 a branch carrying nothing does not outlive the run
+    # that cut it, so a step committing nothing here would leave no
+    # branch to ask a question about.
+    claude = project_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
-    # Without the check, the stale branch is reused as it stands: a
-    # fast-forward of a base it already contains is a no-op, so the
-    # branch would still be the object this test set up. The fix throws
-    # it away and builds a new one from the current base.
-    assert git(project, "rev-parse", branch) != before, \
+    # Without the check, the stale branch is reused as it stands and the
+    # step's commit is stacked on top of it, leaving the landed work in
+    # the branch's history. The fix throws it away and builds a new one
+    # from the current base, where that work is not reachable.
+    assert not is_ancestor(project, before, branch), \
         "a branch whose work already landed must be rebuilt, not reused"
 
 
@@ -1811,6 +1815,76 @@ def test_a_leftover_worktree_at_another_path_is_swept_by_branch(
     assert rc == 0, out
     assert out["terminalReason"] == "completed", out
     assert worktrees(workspace["project"]) == [str(workspace["project"])]
+
+
+# --- spec 215: no empty branch survives the run -----------------------------
+
+
+def test_a_run_that_leaves_a_root_untouched_deletes_the_empty_branch(
+    runner, workspace, fake_claude
+):
+    """An analyze step commits nothing in the project, so the branch it
+    cut there carries nothing — and a branch carrying nothing is a
+    branch a later run can only trip over. Three runs were refused on
+    2026-08-23 with `cannot create aide/<spec> in a worktree of`, and
+    every one of those branches had to be deleted by hand, in two
+    repositories each."""
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert git(workspace["project"], "branch", "--list", BRANCH) == "", \
+        "a branch with no commits on it must not outlive the run that cut it"
+    assert BRANCH in git(workspace["specs"], "branch", "--list", BRANCH), \
+        "and the root that DID get work keeps its branch"
+
+
+def test_a_run_that_stops_early_deletes_its_empty_branches_too(runner, workspace, fake_claude):
+    """The cleanup hangs off the same EXIT trap the worktree removal
+    does, so it has to fire on every exit path. A run that stops before
+    the step wrote anything leaves an empty branch in BOTH roots, which
+    is the worst version of the leftover — two repositories to clean by
+    hand for one spec."""
+    claude = fake_claude(f"cat > /dev/null; echo '{json.dumps(RESULT_BUDGET)}'; exit 1")
+    rc, out, _ = run(runner, workspace, claude)
+    assert out["terminalReason"] == "budget", out
+    for repo in (workspace["project"], workspace["specs"]):
+        assert git(repo, "branch", "--list", BRANCH) == "", \
+            f"{repo} kept an empty branch after a run that stopped early"
+
+
+def test_a_second_run_for_the_same_spec_starts_from_a_clean_slate(
+    runner, workspace, fake_claude
+):
+    """The reported symptom: run a step twice on one spec and the second
+    run must get going, not refuse over its own leavings."""
+    claude = specs_only_claude(fake_claude, workspace)
+    rc1, out1, _ = run(runner, workspace, claude)
+    assert rc1 == 0, out1
+    rc2, out2, stdout2 = run(runner, workspace, claude)
+    assert rc2 == 0, out2
+    assert out2["terminalReason"] == "completed", out2
+    assert "cannot create" not in stdout2
+
+
+def test_a_branch_carrying_work_survives_a_run_that_adds_nothing_to_it(
+    runner, workspace, fake_claude
+):
+    """The other half of the rule: only a branch that carries NOTHING is
+    swept. An earlier step's commit, still unpushed, is the one thing
+    this cleanup must never be able to lose — and `head did not move
+    during THIS run` is not the same question as `this branch is
+    empty`."""
+    project = workspace["project"]
+    git(project, "switch", "-q", "-c", BRANCH)
+    (project / "from-the-earlier-step.txt").write_text("implement wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier step")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    rc, out, _ = run(runner, workspace, specs_only_claude(fake_claude, workspace))
+    assert rc == 0, out
+    assert BRANCH in git(project, "branch", "--list", BRANCH), "the branch must survive"
+    assert is_ancestor(project, earlier, BRANCH), "and so must its commit"
 
 
 # --- Criterion 10: two runs, same repos, at the same time -------------------
@@ -3203,7 +3277,10 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     (project / "moved-on.txt").write_text("landed on main after the branch was made\n")
     git(project, "add", "-A")
     git(project, "commit", "-q", "-m", "later work on main")
-    claude = specs_only_claude(fake_claude, workspace)
+    # In the project, because that is the branch the merge is asked
+    # about: since spec 215 a branch this run never advanced past its
+    # base is deleted at the end of it.
+    claude = project_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert is_ancestor(project, "main", branch)
@@ -3959,7 +4036,18 @@ def test_reopen_takes_the_leftover_branch_out_of_both_roots(
     archive_the_spec(workspace)
     old_project = make_branch(workspace["project"], BRANCH)
     old_specs = make_branch(workspace["specs"], BRANCH)
-    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    # The step leaves work in both roots — in the ARCHIVED folder, which
+    # is where a reopen finds the spec. Since spec 215 a branch carrying
+    # nothing is deleted at the end of the run that cut it, so a step
+    # committing nothing would leave no branch of the run's own to look
+    # for here.
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'echo "reopened" > "$PWD/new-code.txt"\n'
+        + f'echo "reopened" > "$specs/archive/{workspace["folder"]}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
     rc, out, _ = run(runner, workspace, claude, command="reopen")
     assert rc == 0, out
     # The run cuts its own branch of the same name from the default

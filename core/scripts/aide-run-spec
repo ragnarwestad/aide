@@ -793,6 +793,46 @@ remove_worktrees() {
   return 0
 }
 
+# A branch this run cut or reused and never advanced past its base
+# carries nothing a later run could lose, so it goes here rather than
+# waiting for branch_already_landed's check at the START of some future
+# run to find it — a check that needs origin reachable at that exact
+# moment, and that only ever runs if a later run for the same spec
+# happens to come along at all. Three runs were refused on 2026-08-23
+# over leftovers of their own making, in two repositories each (spec
+# 215). An `analyze` step commits nothing in the project, so the branch
+# it cuts there is empty by design and left behind on every single run.
+#
+# The comparison is against base_ref_for's value, never the raw local
+# default_branch: a checkout whose main lags behind origin/main would
+# read a genuinely empty branch as "ahead" and skip it. Nothing here
+# needs origin to be REACHABLE — only whatever refs/remotes/origin/<base>
+# this checkout already has.
+#
+# Any commit at all — this run's or an earlier step's — leaves the branch
+# alone. That is a stricter test than branch_already_landed's, which
+# does delete branches carrying work once origin's base contains it.
+# "HEAD moved during this run" would be the wrong question: a reused
+# branch carrying an earlier step's work, that this run added nothing
+# to, must survive.
+#
+# Strictly after remove_worktrees in the same trap: `git branch -D`
+# refuses a branch still checked out somewhere. base_ref_for is defined
+# further down the script than this, and that is safe — the first entry
+# in created_wt_root is appended after base_ref_for's own definition has
+# run, so an exit before then finds nothing to iterate.
+delete_empty_branches() {
+  local root base
+  for root in ${created_wt_root[@]+"${created_wt_root[@]}"}; do
+    base="$(default_branch "$root")"
+    [ -n "$base" ] || continue
+    base_ref_for "$root" "$base"
+    [ "$(git -C "$root" rev-list --count "$base_ref".."$branch" 2>/dev/null)" = "0" ] || continue
+    git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
+  done
+  return 0
+}
+
 # The transcript is copied out of $work_dir before the directory goes,
 # and from the TRAP rather than from the happy path: a run that is
 # killed outright still leaves its transcript behind, and those are
@@ -817,7 +857,7 @@ keep_stream() {
   fi
   return 0
 }
-trap 'keep_stream; remove_worktrees; rm -rf "$work_dir"' EXIT
+trap 'keep_stream; remove_worktrees; delete_empty_branches; rm -rf "$work_dir"' EXIT
 # TERM and INT get a handler of their own, and NOT because the EXIT trap
 # is skipped without one — measured, bash 3.2.57 runs the EXIT trap on an
 # untrapped SIGTERM. The reason is the opposite: with an explicit handler
