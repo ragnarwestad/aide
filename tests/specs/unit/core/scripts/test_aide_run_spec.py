@@ -1246,6 +1246,102 @@ def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, wor
     assert git(project, "status", "--porcelain") == ""
 
 
+# --- spec 197: a branch whose work already landed is not reused --------------
+# The landing deletes the branch on origin; this checkout's copy was left
+# behind, and the reuse block picks a branch up by name alone. Spec 181
+# was reopened and refused to start on exactly that leftover. So the
+# reuse block asks first whether the work is already in origin's default
+# branch — and only that question, never "is the branch still on
+# origin", which a push that never arrived would answer the same way.
+
+
+def test_a_branch_already_landed_on_origin_is_not_reused(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The state spec 181 hit: this checkout still holds the branch it
+    made, but the work landed through a DIFFERENT checkout — so this
+    checkout's own main, and its cached knowledge of origin's main, are
+    both exactly what they were before any of that happened. A run must
+    not silently go on using the stale branch as though nothing landed.
+    """
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "landed.txt").write_text("this reached main\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "the spec's own work")
+    before = git(project, "rev-parse", branch)
+    git(project, "push", "-q", "origin", branch)
+    git(project, "switch", "-q", "main")
+
+    # The landing happens elsewhere: compute it on a throwaway ref, push
+    # that as origin's main, delete the branch on origin — then erase
+    # every trace of it from THIS checkout, so its knowledge stays as
+    # stale as a real reopened spec's.
+    git(project, "switch", "-q", "-c", "throwaway-landing", "main")
+    git(project, "merge", "-q", "--no-edit", branch)
+    git(project, "push", "-q", "origin", "throwaway-landing:main")
+    git(project, "push", "-q", "origin", "--delete", branch)
+    git(project, "switch", "-q", "main")
+    git(project, "branch", "-D", "throwaway-landing")
+    git(project, "update-ref", "-d", "refs/remotes/origin/main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    # Without the check, the stale branch is reused as it stands: a
+    # fast-forward of a base it already contains is a no-op, so the
+    # branch would still be the object this test set up. The fix throws
+    # it away and builds a new one from the current base.
+    assert git(project, "rev-parse", branch) != before, \
+        "a branch whose work already landed must be rebuilt, not reused"
+
+
+def test_a_branch_that_has_not_landed_is_still_reused(
+    runner, workspace, fake_claude, fetchable_origin
+):
+    """The one case where a leftover is the only copy of something: work
+    that never reached the default branch. Reachable origin or not, that
+    branch is left exactly as it was found."""
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "still-unlanded.txt").write_text("only on the branch\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "unlanded work")
+    unlanded = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, unlanded, branch), "the unlanded commit must survive"
+
+
+def test_an_unreachable_origin_leaves_a_local_branch_reused_as_before(
+    runner, workspace, fake_claude
+):
+    """The check is a network call like every other one in this script:
+    best effort, and never fatal. An origin nobody can reach must not be
+    read as proof that a branch has landed. No `origin` remote is
+    configured here at all — the plainest form of unreachable there is.
+    """
+    project = workspace["project"]
+    branch = "aide/81-queue-and-runner"
+    git(project, "switch", "-q", "-c", branch)
+    (project / "from-the-earlier-step.txt").write_text("analyze wrote this\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-q", "-m", "an earlier step")
+    earlier = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "main")
+
+    claude = specs_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert is_ancestor(project, earlier, branch), \
+        "the earlier step's work must survive when origin cannot be reached"
+
+
 # --- passenger projects: removed -------------------------------------------
 # A run could be told about a third repository with --extra-project-dir, and
 # would watch, branch, commit and push it like any other root (spec 83, after
@@ -3365,14 +3461,19 @@ def subject(step, folder="81-queue-and-runner", headless=True, stopped=None):
     )
 
 
-def with_status(workspace, claims=None):
+def with_status(workspace, claims=None, reopened=None):
     """Give the spec a 4-status.md, committed, optionally CLAIMING steps
-    on the line this change takes over."""
+    on the line this change takes over.
+
+    `reopened=<sha>` adds spec 198's boundary mark, which says history
+    before that commit does not count.
+    """
     line = f"- **Workflow steps completed:** {', '.join(claims)}\n" if claims else ""
+    mark = reopen_line(reopened) if reopened else ""
     (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(
         "# Queue - Status\n\n## Tracking info\n\n"
         f"- **Task:** `{workspace['folder']}/`\n"
-        f"{line}"
+        f"{line}{mark}"
         "- **Total progress:** 0% (0 of 4 completed)\n"
     )
     subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
@@ -3604,3 +3705,213 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
     assert roots[str(workspace["specs"])]["changedFiles"] == 0
+
+
+# --- spec 198: reopening a spec is one action --------------------------------
+#
+# An archived spec whose work has to be done again was reopened by hand:
+# move the folder out of `archive/`, overwrite three files, delete the
+# branch in two repositories and in two places each. Done twice on
+# 2026-08-22/23, and both times something was missed — the first left a
+# local branch behind and the next run refused on a conflict nobody
+# could see; the second came back with every phase showing done before
+# anything had run.
+#
+# Two of the three halves live in THIS script, and they live here rather
+# than in the skill for a structural reason: the run stands on
+# `aide/<folder>` in a worktree of its own, and git refuses to delete a
+# branch that is checked out. The skill could not delete it if it tried.
+
+REOPEN_BOUNDARY_DATE = "2026-08-22"
+
+
+def reopen_line(sha, date=REOPEN_BOUNDARY_DATE):
+    """The boundary's own grammar, spelled out rather than derived from
+    the script — a fixture that built it the way the reader parses it
+    would prove only that the two agreed with each other."""
+    return f"- **Reopened:** {date} (history before `{sha}` does not count)\n"
+
+
+def archive_the_spec(workspace):
+    """Leave the spec where a finished archive step leaves it: under
+    `archive/`, with the folder's own name unchanged."""
+    specs = workspace["specs"]
+    (specs / "archive").mkdir(exist_ok=True)
+    subprocess.run(
+        ["git", "-C", str(specs), "mv", workspace["folder"], f"archive/{workspace['folder']}"],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(specs), "commit", "-qm", "archive the spec"], check=True)
+
+
+def make_branch(root, branch, note="leftover"):
+    """A branch left over from an earlier round, with a commit of its
+    own, without moving the checkout off its default branch."""
+    head = git(root, "rev-parse", "HEAD")
+    git(root, "branch", branch, head)
+    return head
+
+
+def has_branch(root, branch):
+    return subprocess.run(
+        ["git", "-C", str(root), "show-ref", "--verify", "--quiet", f"refs/heads/{branch}"]
+    ).returncode == 0
+
+
+BRANCH = "aide/81-queue-and-runner"
+
+
+def test_reopen_finds_a_spec_that_is_already_in_the_archive(runner, workspace, fake_claude):
+    """The --spec gate checks `$specs_root/$spec_arg` and `$specs_root/*/`
+    and nothing else, so an archived folder is "unknown spec" — which
+    would refuse the one step that exists to un-archive it, before the
+    skill ever ran."""
+    archive_the_spec(workspace)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+
+
+def test_the_archive_is_opened_for_reopen_and_for_no_other_step(
+    runner, workspace, fake_claude
+):
+    """An archived spec is not runnable. `reopen` is the exemption, the
+    way `create` is the exemption from "the folder must already exist" —
+    a named step, never a general relaxation of the gate."""
+    archive_the_spec(workspace)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 2, out
+    assert "unknown spec" in out["error"], out
+
+
+def test_reopen_names_the_folder_not_its_archive_path(runner, workspace, fake_claude):
+    """The branch, the worktree and the commit are named after the spec,
+    and an archived folder resolving to `archive/<slug>` would name a
+    branch `aide/archive/<slug>` — a different spec as far as every
+    reader of the commit grammar is concerned."""
+    archive_the_spec(workspace)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen", dry_run=True)
+    assert rc == 0, out
+    assert out["prompt"].startswith("/aide-reopen 81"), out["prompt"]
+
+
+def test_reopen_takes_the_leftover_branch_out_of_both_roots(
+    runner, workspace, fake_claude
+):
+    """Incident 1: a local ref left behind in the main checkout, and the
+    next run refused to start on a conflict nobody could see. Both roots
+    — an analyze step writes only in the specs repo, and its branch is
+    just as much in the way."""
+    archive_the_spec(workspace)
+    old_project = make_branch(workspace["project"], BRANCH)
+    old_specs = make_branch(workspace["specs"], BRANCH)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 0, out
+    # The run cuts its own branch of the same name from the default
+    # branch, so what has to be gone is the earlier round's TIP — not the
+    # name.
+    for root, old in ((workspace["project"], old_project), (workspace["specs"], old_specs)):
+        assert has_branch(root, BRANCH), "the run's own branch"
+        reachable = git(root, "rev-list", BRANCH)
+        base = git(root, "rev-parse", f"{old}")
+        assert base in reachable, "the default branch's history is still there"
+
+
+def test_reopen_takes_the_branch_off_origin_in_both_roots(
+    runner, workspace, fake_claude, origin
+):
+    """The other two of the four places a branch hides. `push` is `none`
+    here, so nothing puts it back — what the bare repos hold at the end
+    is what the deletion left."""
+    archive_the_spec(workspace)
+    for root in (workspace["project"], workspace["specs"]):
+        make_branch(root, BRANCH)
+        git(root, "push", "-q", "origin", BRANCH)
+    for bare in (origin["project"], origin["specs"]):
+        assert has_branch(bare, BRANCH), "staged: the branch is on origin"
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 0, out
+    for bare in (origin["project"], origin["specs"]):
+        assert not has_branch(bare, BRANCH), f"{bare} still holds {BRANCH}"
+
+
+def test_reopen_succeeds_when_the_branches_are_already_gone(
+    runner, workspace, fake_claude, origin
+):
+    """Every one of the four deletions tolerates "already gone": a spec
+    whose branch was cleaned up by the landing that archived it is the
+    normal case, not a failure."""
+    archive_the_spec(workspace)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+
+
+def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
+    runner, workspace, fake_claude
+):
+    """The commits happened, and the archive is a record. What changes is
+    what COUNTS them, never what is in the repository."""
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    archive_the_spec(workspace)
+    before = git(workspace["specs"], "log", "--format=%s", "main")
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 0, out
+    after = git(workspace["specs"], "log", "--format=%s", "main")
+    assert before == after, "the default branch's history must not be rewritten"
+    for step in ("create", "analyze", "implement", "archive"):
+        assert subject(step, workspace["folder"]) in after
+
+
+# --- the boundary: what has run reads as nothing -----------------------------
+
+
+def test_the_reopen_boundary_takes_the_earlier_rounds_steps_off_the_line(
+    runner, workspace, fake_claude
+):
+    """Incident 2: a reopened spec came back with the status file
+    claiming four completed steps before anything had run."""
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    boundary = git(workspace["specs"], "rev-parse", "HEAD")
+    with_status(workspace, reopened=boundary)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "analyze"
+
+
+def test_a_step_run_after_the_reopen_boundary_still_counts(
+    runner, workspace, fake_claude
+):
+    """`--not <sha>` excludes what is REACHABLE from the mark, and a
+    commit made after it is a descendant, never an ancestor. A boundary
+    that hid the new round too would be the same bug pointing the other
+    way."""
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    boundary = git(workspace["specs"], "rev-parse", "HEAD")
+    with_status(workspace, reopened=boundary)
+    already_ran(workspace, ["create"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze"
+
+
+def test_a_spec_that_has_never_been_reopened_counts_everything(
+    runner, workspace, fake_claude
+):
+    """The boundary is OPTIONAL everywhere it is added: a spec with no
+    mark — the overwhelming majority — takes the path it took before."""
+    already_ran(workspace, ["create", "implement"])
+    with_status(workspace)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"

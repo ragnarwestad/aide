@@ -1390,3 +1390,87 @@ describe("QueueStore.onChange (spec 189)", () => {
     expect(store.enqueue(REQ).ok).toBe(true);
   });
 });
+
+// --- spec 198: reopening is a step like any other ---------------------------
+//
+// The dashboard's Reopen control and `/aide-reopen` in a terminal are
+// one operation, and the way to keep them one is to give them one path:
+// both enqueue `reopen`, which drives `aide-run-spec --command reopen`
+// exactly as `archive` and `analyze` already do. Nothing about the
+// enqueue is special-cased for it — which is what the test below is
+// about.
+describe("spec 198: reopen", () => {
+  test("is a step the queue accepts", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["reopen"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.steps).toEqual(["reopen"]);
+  });
+
+  // It is queueable, not a stage a spec passes through: `explore` and
+  // `manifest` are in `WORKFLOW_STEPS` for the same reason, and neither
+  // draws a phase box.
+  test("is not one of the phases a row draws a box for", () => {
+    expect([...PHASE_STEPS] as string[]).not.toContain("reopen");
+  });
+
+  // An archived spec is not among a project's `specFolders` — the page
+  // drops it, deliberately — so the resolver names it in a list of its
+  // own and this is what that list buys.
+  const withArchived = () => ({
+    specFolders: ["81-queue-and-runner"],
+    archivedFolders: ["17-clean-up-console-log"],
+  });
+
+  test("an archived spec can be asked for reopen", () => {
+    const r = parseJobRequest(
+      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reopen"] },
+      { resolve: withArchived, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  // Spec 193 relies on an archived spec being refused unless its branch
+  // is still open, and that exception lives in `specFolders`. Admitting
+  // the archive for `reopen` must not admit it for anything else.
+  test("an archived spec is refused every other step, by name", () => {
+    for (const step of ["archive", "implement", "analyze"]) {
+      const r = parseJobRequest(
+        { ...REQ, specFolder: "17-clean-up-console-log", steps: [step] },
+        { resolve: withArchived, defaults: DEFAULTS },
+      );
+      expect(r.ok).toBe(false);
+      expect(r.ok === false && r.error).toContain("archived");
+    }
+  });
+
+  test("a reopen bundled with a step that is not one is refused whole", () => {
+    const r = parseJobRequest(
+      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reopen", "analyze"] },
+      { resolve: withArchived, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  // A spec nobody has heard of still hears about the folder first: the
+  // step check is second, so the error a reader gets is the one that
+  // explains the most.
+  test("a folder in neither list is unknown, whatever the step", () => {
+    const r = parseJobRequest(
+      { ...REQ, specFolder: "99-never-existed", steps: ["reopen"] },
+      { resolve: withArchived, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.error).toContain("unknown specFolder");
+  });
+
+  // A resolver that names no archived folders at all — every caller
+  // before this field existed — behaves exactly as it did.
+  test("a resolver with no archived list refuses an archived folder outright", () => {
+    const r = parseJobRequest(
+      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reopen"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.error).toContain("unknown specFolder");
+  });
+});

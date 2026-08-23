@@ -190,6 +190,21 @@ export async function mergeBranchIntoDefault(
       const why = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
       return { root, ok: true, branchDeleteError: `merged, but deleting ${branch} on origin failed: ${why}` };
     }
+
+    // 8. And this checkout's own copy (spec 197). The ref outlives the
+    //    worktree that made it — `aide-run-spec` throws the worktree
+    //    directory away at the end of a run, the branch it created stays
+    //    in the shared refs — and nothing removed it until now: 260 had
+    //    piled up by 2026-08-23, one of which stopped spec 181 from
+    //    starting when it was reopened. Only reached once the ORIGIN
+    //    delete has also succeeded, so the two copies go together or not
+    //    at all. `-d` rather than `-D`: the safe form always succeeds
+    //    here, because step 4-5 has just merged the branch into the
+    //    HEAD this runs against, and asking for it says the delete only
+    //    ever follows a merge that landed. Best effort and unreported,
+    //    like the fetch at step 2 — this host may not even have the ref,
+    //    and a cleanup must never turn a landed merge into a failure.
+    await run(root, ["branch", "-d", branch]);
     return { root, ok: true };
   } catch (err) {
     return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);

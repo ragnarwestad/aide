@@ -549,3 +549,56 @@ describe("clearArchiveHeldBack (spec 190)", () => {
     expect(out).not.toContain("---\n\n---");
   });
 });
+
+// --- spec 198: the reopen boundary ------------------------------------------
+//
+// An archived spec reopened for another round carries a mark in its own
+// Tracking info, beside the `**Archived:**` stamp it keeps:
+//
+//     - **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)
+//
+// The mark lives in the FILES and not in the queue for the reason the
+// description gives: the queue holds two hundred jobs on one machine and
+// forgets older ones, while the files travel with the repository and are
+// what a reader opens.
+describe("spec 198: the reopen boundary", () => {
+  const withMark = (line: string) =>
+    ["# 198 - Status", "", "## Tracking info", "", "- **Task:** `198-slug/`", line, ""].join("\n");
+
+  test("the canonical line yields the sha the history starts from", () => {
+    const status = parseStatus(
+      withMark("- **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)"),
+    );
+    expect(status.reopenedAfter).toBe("1d0fe79");
+  });
+
+  test("a spec that has never been reopened has no boundary at all", () => {
+    expect(parseStatus(withMark("- **Archived:** 2026-08-22")).reopenedAfter).toBeUndefined();
+  });
+
+  // The LAST mark wins. A spec reopened twice starts from its current
+  // round, not from the first one — the same rule `archiveHeldBackReason`
+  // keeps for a spec declined twice.
+  test("a spec reopened twice counts from the newest mark", () => {
+    const status = parseStatus(
+      [
+        "# 198 - Status",
+        "",
+        "## Tracking info",
+        "",
+        "- **Reopened:** 2026-08-22 (history before `aaaaaaa` does not count)",
+        "- **Reopened:** 2026-08-23 (history before `bbbbbbb` does not count)",
+        "",
+      ].join("\n"),
+    );
+    expect(status.reopenedAfter).toBe("bbbbbbb");
+  });
+
+  // A mark whose sha is missing or unreadable says nothing, and "nothing"
+  // is the pre-reopen behaviour — the same direction every other unknown
+  // in this codebase takes. A boundary guessed at would hide a round that
+  // really did run.
+  test("a mark with no sha in it is not a boundary", () => {
+    expect(parseStatus(withMark("- **Reopened:** 2026-08-23")).reopenedAfter).toBeUndefined();
+  });
+});

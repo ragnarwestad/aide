@@ -16,7 +16,11 @@ import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, type GitRunner,
 } from "./branch-status.ts";
-import { DescriptionFreshnessChecker, lastCommitOf } from "./description-freshness.ts";
+import {
+  DescriptionFreshnessChecker,
+  SpecCreatedAtChecker,
+  lastCommitOf,
+} from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
 import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { asFileText, pullFastForward, saveSpecFiles } from "./specs-pull.ts";
@@ -786,6 +790,12 @@ export function createServer(opts: ServerOptions) {
             // `withFreshness` fills `done` in from the runner's own
             // commits, and this is what it compares them against.
             fileSteps: status?.workflowSteps ?? [],
+            // Where this spec's history starts, when it has been
+            // reopened (spec 198). Read off the same content as
+            // `fileSteps` and `heldBack`, for the same reason: three
+            // answers out of `4-status.md` and no second pass over the
+            // file.
+            reopenedAfter: status?.reopenedAfter,
             archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
           });
         }
@@ -945,7 +955,25 @@ export function createServer(opts: ServerOptions) {
     for (const key of unlanded) {
       if (key.startsWith(prefix)) folders.push(key.slice(prefix.length));
     }
-    return folders.length > 0 ? { specFolders: folders } : null;
+    // The second way out (spec 198). An archived spec can be REOPENED,
+    // and the control for it is on the archived spec's own page — so the
+    // resolver has to name a folder `targets()` deliberately drops.
+    //
+    // In a list of its OWN, never appended to `specFolders`: that list
+    // is what every step is checked against, and widening it would take
+    // spec 193's guarantee with it — an archived spec whose branch has
+    // been landed is refused, and has to stay refused, for `archive`.
+    // `parseJobRequest` admits this list for `reopen` alone.
+    //
+    // `scan` is filled by the `targets()` call above, so this never
+    // reads a stale set.
+    const archived: string[] = [];
+    for (const key of scan?.archived ?? []) {
+      if (key.startsWith(prefix)) archived.push(key.slice(prefix.length));
+    }
+    return folders.length > 0 || archived.length > 0
+      ? { specFolders: folders, archivedFolders: archived }
+      : null;
   };
   // --- spec 189: the pages that are watching --------------------------------
   //
@@ -1023,6 +1051,10 @@ export function createServer(opts: ServerOptions) {
   const freshness = new DescriptionFreshnessChecker({ run: gitRun });
   // And a fourth: which steps this spec has actually had (spec 154).
   const workflowHistory = new WorkflowHistoryChecker({ run: gitRun });
+  // A fifth: when the spec was MADE (spec 199). Git rather than the
+  // queue, because the job store forgets a job once two hundred newer
+  // ones exist and the folder's first commit is still there years on.
+  const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun });
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -1095,7 +1127,14 @@ export function createServer(opts: ServerOptions) {
         onStepDone: (job, step, outcome) => {
           if (outcome.ok) {
             if (step === "create") return landNewSpec(job, outcome);
-            if (step === "analyze") {
+            // `reopen` lands for exactly the reason `analyze` does, and
+            // for it the argument is not an improvement but the whole
+            // feature (spec 198): the un-archived folder is what makes
+            // the spec active again, this page reads the MAIN checkout,
+            // and a reopen left on its branch would show nowhere at all
+            // — "reopening is one action" would then still end with
+            // somebody in a terminal.
+            if (step === "analyze" || step === "reopen") {
               return landStepBranch(job, step, outcome);
             }
             if (step === "archive") return landArchivedSpec(job, outcome);
@@ -1472,6 +1511,10 @@ export function createServer(opts: ServerOptions) {
       errorReason: job.errorReason,
       results: job.results.map((r) => ({
         step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
+        // When the step ENDED (spec 199). The only per-step instant
+        // there is — a job has one `startedAt` however many steps it
+        // ran — so it is what a phase's own duration is sliced out of.
+        at: r.at,
         // Carried, not dropped: the totals the list and the overview tab
         // build out of these results have no other way to know a figure
         // they are summing was over-charged (spec 152).
@@ -1877,7 +1920,7 @@ export function createServer(opts: ServerOptions) {
     return Promise.all(
       list.map(async (t) => {
         if (!t.dir) return t;
-        const history = await workflowHistory.read(t.dir, t.specFolder);
+        const history = await workflowHistory.read(t.dir, t.specFolder, t.reopenedAfter);
         const fileSteps = t.fileSteps ?? [];
         // `create` is settled by the folder being on disk, which is
         // what `t.dir` being set already proves — a stronger source
@@ -1892,8 +1935,13 @@ export function createServer(opts: ServerOptions) {
           done,
           stopped: history.stopped,
           fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
+          // What the "Started" column holds (spec 199). Null when git
+          // could not answer — a shallow clone, a folder moved without
+          // `git mv` — and then the cell shows a dash rather than a
+          // job's own time, which is the field this replaces.
+          createdAt: (await specCreatedAt.createdAt(t.dir, t.specFolder)) ?? undefined,
         };
-        if (!(await freshness.isStale(t.dir, t.specFolder))) return withHistory;
+        if (!(await freshness.isStale(t.dir, t.specFolder, t.reopenedAfter))) return withHistory;
         return {
           ...withHistory,
           analyzeStale: true,
@@ -2576,6 +2624,21 @@ export function createServer(opts: ServerOptions) {
       } catch {
         return json({ error: "malformed body" }, 400);
       }
+      // Where a no-script form POST comes back to. `/` for every
+      // control on this dashboard but one: the Reopen button is on an
+      // ARCHIVED spec's own page (spec 198), and the specs list has no
+      // row for an archived spec to put the answer on — a reader who
+      // pressed it would be dropped on a list showing nothing at all,
+      // which is the "did the button do anything" spec 157 was about.
+      // The spec's own page shows the run, and it is the page the press
+      // came from.
+      const askedFor = raw as Record<string, unknown> | null;
+      const backTo =
+        typeof askedFor?.project === "string" &&
+        typeof askedFor?.specFolder === "string" &&
+        specRef(askedFor.project, askedFor.specFolder)?.archived
+          ? specPagePath(askedFor.project, askedFor.specFolder)
+          : "/";
       const result = queue.enqueue(raw);
       if (!result.ok) {
         // Which spec was asked for, off the SUBMITTED fields — the two
@@ -2595,10 +2658,10 @@ export function createServer(opts: ServerOptions) {
         // navigates to find out which, so the answer has to say.
         return wantsJson
           ? json({ error: result.error, spec }, 400)
-          : specsRedirect(raw, { error: result.error, spec });
+          : specsRedirect(raw, { error: result.error, spec }, backTo);
       }
       await tickRunner();
-      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw);
+      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, backTo);
     }
 
     // Spec 149: `cancel` is what is left of a route that also had
@@ -3133,6 +3196,9 @@ export function createServer(opts: ServerOptions) {
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
       updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
+      // The Reopen control on an archived spec posts to `/api/queue`,
+      // which checks the token like every other enqueue (spec 198).
+      token: queueToken,
     };
   }
 

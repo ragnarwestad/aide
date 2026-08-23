@@ -624,3 +624,49 @@ describe("the checks block (specs 182, 188)", () => {
     expect(banner(html)).not.toContain("<button");
   });
 });
+
+// --- spec 198: reopening a spec is one action -------------------------------
+//
+// An archived spec whose work has to be done again was reopened by hand
+// in a terminal — move the folder, overwrite three files, hunt down the
+// branch in two repositories and two places each. Done twice, missed
+// something both times. The control belongs where the spec is.
+//
+// Everything ELSE about an archived spec stays as spec 163 left it: no
+// Edit link, the same read-only note, the checks still inert.
+describe("spec 198: the Reopen control", () => {
+  const archived = (extra: Partial<SpecPageView> = {}) =>
+    page(view({ archived: true, token: "t0ken", ...extra }));
+
+  test("an archived spec offers exactly one action, and it is Reopen", () => {
+    const html = archived();
+    expect(html).toContain("Reopen");
+    expect(html).toContain('action="/api/queue"');
+    expect(html).toContain('name="steps" value="reopen"');
+  });
+
+  test("it names the spec the server has to resolve, and carries the token", () => {
+    const html = archived();
+    expect(html).toContain('name="project" value="aide"');
+    expect(html).toContain('name="specFolder" value="150-one-page-shows-the-whole-spec"');
+    expect(html).toContain('name="token" value="t0ken"');
+  });
+
+  // A GET would let a reload re-run it, exactly as the Update button's
+  // own comment says of the pull.
+  test("it posts", () => {
+    expect(archived()).toMatch(/<form[^>]*action="\/api\/queue"[^>]*method="post"|<form[^>]*method="post"[^>]*action="\/api\/queue"/);
+  });
+
+  // A live spec has the whole row on the queue list for this; the
+  // archived page is the one place a reopen can be asked for.
+  test("a live spec's page offers nothing of the sort", () => {
+    expect(page(view({ token: "t0ken" }))).not.toContain("Reopen");
+  });
+
+  test("the archived note and the missing Edit link are unchanged", () => {
+    const html = archived();
+    expect(html).not.toContain("/edit");
+    expect(html).toContain("archived");
+  });
+});

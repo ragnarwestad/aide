@@ -96,8 +96,31 @@ const EMPTY: WorkflowHistory = { done: [], stopped: {} };
  *  a FIXED string naming this spec, the way `lastAnalyzeCommit` narrows
  *  its own: cheap on a long history, and the grammar above decides the
  *  rest. */
-export function workflowLogArgs(specFolder: string): string[] {
-  return ["log", "--all", "--format=%s", "--fixed-strings", `--grep=Run /aide-`, `--grep= for ${specFolder}`, "--all-match"];
+export function workflowLogArgs(specFolder: string, boundarySha?: string): string[] {
+  return [
+    "log",
+    "--all",
+    // Spec 198. `--not <sha>` excludes every commit REACHABLE from the
+    // reopen mark — exactly the earlier round, since the mark is the
+    // specs repo's default-branch tip at the moment of reopening and
+    // that round's commits were landed onto that branch by its own
+    // archive step. A commit made AFTER the mark is a descendant, never
+    // an ancestor, so the new round is untouched.
+    //
+    // It has to FOLLOW `--all`: `--not` names no positive rev of its
+    // own, and a revision argument stops git from defaulting to HEAD —
+    // so `--not <sha>` alone walks nothing at all. Measured.
+    //
+    // Optional, and absent for the overwhelming majority: a spec that
+    // has never been reopened takes the exact call it took before this
+    // parameter existed.
+    ...(boundarySha ? ["--not", boundarySha] : []),
+    "--format=%s",
+    "--fixed-strings",
+    `--grep=Run /aide-`,
+    `--grep= for ${specFolder}`,
+    "--all-match",
+  ];
 }
 
 /** The subjects, newest first, folded into one answer per step.
@@ -155,18 +178,24 @@ export class WorkflowHistoryChecker {
    *  to have run", which reads on the page as a spec still ahead of its
    *  workflow. That is visible and is fixed by running the step; a
    *  guess in the other direction is neither. */
-  async read(dir: string, specFolder: string): Promise<WorkflowHistory> {
+  async read(dir: string, specFolder: string, boundarySha?: string): Promise<WorkflowHistory> {
     // JSON rather than a separator character, for the reason
     // branch-status.ts gives: a NUL here makes git treat the source
     // file as binary, and every future diff of it pays for that.
-    const key = JSON.stringify([dir, specFolder]);
+    //
+    // The boundary is part of the QUESTION and so part of the key (spec
+    // 198): a spec reopened while the dashboard is running would
+    // otherwise answer from the pre-reopen entry for the whole TTL —
+    // which is exactly the "everything shows done" the reopen exists to
+    // end.
+    const key = JSON.stringify([dir, specFolder, boundarySha ?? null]);
     const hit = this.cache.get(key);
     const at = this.now();
     if (hit && at - hit.at < this.ttlMs) return hit.history;
 
     let history = EMPTY;
     try {
-      const out = await this.run(dir, workflowLogArgs(specFolder));
+      const out = await this.run(dir, workflowLogArgs(specFolder, boundarySha));
       if (out.code === 0) history = readWorkflowSubjects(out.stdout.split("\n"), specFolder);
     } catch {
       history = EMPTY;

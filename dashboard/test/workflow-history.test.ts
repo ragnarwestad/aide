@@ -213,3 +213,82 @@ describe("WorkflowHistoryChecker against real git", () => {
     expect(history.stopped).toEqual({ implement: "timeout" });
   });
 });
+
+// --- spec 198: history before the reopen boundary does not count -------------
+//
+// An archived spec that has to be done again is reopened, and the
+// commits from the earlier round stay in the repository — they happened,
+// and the archive is a record. What changes is that everything counting
+// steps starts from the mark rather than from the folder's whole
+// history. `--not <sha>` is the mechanism: it excludes every commit
+// REACHABLE from the mark, which is exactly the earlier round, since the
+// mark is the specs repo's default-branch tip at the moment of
+// reopening.
+
+const BOUNDARY = "1d0fe79cafe";
+
+describe("workflowLogArgs with a reopen boundary", () => {
+  test("no boundary: asks exactly what it asked before the boundary existed", () => {
+    expect(workflowLogArgs(FOLDER)).not.toContain("--not");
+  });
+
+  test("with a boundary: excludes everything reachable from the mark", () => {
+    const args = workflowLogArgs(FOLDER, BOUNDARY);
+    expect(args).toContain("--not");
+    expect(args).toContain(BOUNDARY);
+    // `--not` alone names no positive rev, and git then walks nothing at
+    // all. The exclusion has to follow `--all`, never replace it.
+    expect(args.indexOf("--all")).toBeLessThan(args.indexOf("--not"));
+  });
+});
+
+describe("WorkflowHistoryChecker with a reopen boundary", () => {
+  test("passes the boundary on to git", async () => {
+    const git = gitLogging();
+    const checker = new WorkflowHistoryChecker({ run: git.run });
+    await checker.read(DIR, FOLDER, BOUNDARY);
+    expect(git.calls[0]!.args).toContain("--not");
+    expect(git.calls[0]!.args).toContain(BOUNDARY);
+  });
+
+  // The cache is keyed on the question, and the boundary is part of it:
+  // a spec reopened while the dashboard is running would otherwise keep
+  // answering from the pre-reopen entry for the whole TTL — which is
+  // exactly the "everything shows done" the reopen exists to end.
+  test("a spec asked with and without a boundary is two questions", async () => {
+    const git = gitLogging(subject("analyze"));
+    const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 0 });
+    await checker.read(DIR, FOLDER);
+    await checker.read(DIR, FOLDER, BOUNDARY);
+    expect(git.calls.length).toBe(2);
+  });
+});
+
+describe("WorkflowHistoryChecker boundary against real git", () => {
+  test("the earlier round is not counted, and the new round still is", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "aide-reopen-"));
+    gitIn(repo, "init", "-q", "-b", "main");
+    gitIn(repo, "config", "user.name", "Test");
+    gitIn(repo, "config", "user.email", "test@example.com");
+    const specDir = join(repo, FOLDER);
+    mkdirSync(specDir);
+    writeFileSync(join(specDir, "1-description.md"), "# spec\n");
+    gitIn(repo, "add", "-A");
+    gitIn(repo, "commit", "-qm", subject("create"));
+    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
+    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("implement"));
+    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("archive"));
+    const boundary = gitIn(repo, "rev-parse", "HEAD").stdout.toString().trim();
+
+    const checker = new WorkflowHistoryChecker({ run: createGitRunner(), ttlMs: 0 });
+    expect((await checker.read(specDir, FOLDER)).done).toEqual([
+      "create", "analyze", "implement", "archive",
+    ]);
+    // Reopened: nothing has run in the new round.
+    expect(await checker.read(specDir, FOLDER, boundary)).toEqual({ done: [], stopped: {} });
+
+    // And the new round's own analyze, made after the mark, still counts.
+    gitIn(repo, "commit", "-q", "--allow-empty", "-m", subject("analyze"));
+    expect((await checker.read(specDir, FOLDER, boundary)).done).toEqual(["analyze"]);
+  });
+});

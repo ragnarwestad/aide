@@ -279,20 +279,23 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
 
 // --- spec 99: a merged branch is gone, and a gone branch is not a conflict ---
 
+/** What every call before the merge itself answers when the checkout is
+ *  clean and up to date — the table the two cleanup blocks below both
+ *  build their cases on. */
+const OK_TABLE = {
+  ...CLEAN_MASTER,
+  "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+  pull: { code: 0 },
+  switch: { code: 0 },
+  fetch: { code: 0 },
+};
+
 // Spec 92's dependency guard asks origin directly whether a branch is
 // still there, so a merged branch left on origin reads as "not merged
 // yet" and refused a dependent spec three times on 2026-08-18. Deleting
 // it is what removes that false signal — and the deletion is a cleanup
 // step, never a reason to call a landed merge a failure.
 describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", () => {
-  const OK_TABLE = {
-    ...CLEAN_MASTER,
-    "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
-    pull: { code: 0 },
-    switch: { code: 0 },
-    fetch: { code: 0 },
-  };
-
   test("a fast-forward merge deletes the branch and stays ok (criterion 3)", async () => {
     const git = fakeGit({ ...OK_TABLE, "merge -q --ff-only": { code: 0 }, push: { code: 0 } });
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
@@ -345,6 +348,74 @@ describe("mergeBranchIntoDefault: the branch is deleted on origin afterwards", (
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(false);
     expect(ran(git.calls, "push")).toBe(false);
+  });
+});
+
+// --- spec 197: the checkout's own copy goes at the same moment --------------
+//
+// The branch a run makes outlives the worktree that made it: a worktree
+// is thrown away when the run ends, the ref it created is not. Nothing
+// ever removed one, and 260 had piled up by 2026-08-23 — and one of them
+// was still there to be picked up when spec 181 was reopened, carrying a
+// conflict with a main that had moved on. So the landing deletes both
+// copies, or neither.
+describe("mergeBranchIntoDefault: the branch is deleted locally too (spec 197)", () => {
+  test("a fast-forward merge deletes the local branch as well as origin's (criterion 1)", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      "branch -d": { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(argv(git.calls)).toContain(`branch -d ${BRANCH}`);
+    // After origin's, never before: the origin delete is the one that
+    // can still fail, and a local ref removed ahead of it would be the
+    // only copy lost.
+    expect(argv(git.calls).indexOf(`push -q origin --delete ${BRANCH}`)).toBeLessThan(
+      argv(git.calls).indexOf(`branch -d ${BRANCH}`),
+    );
+  });
+
+  test("a real merge deletes the local branch too (criterion 2)", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 0 },
+      push: { code: 0 },
+      "branch -d": { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(argv(git.calls)).toContain(`branch -d ${BRANCH}`);
+  });
+
+  test("an origin delete that fails never touches the local branch (criterion 3)", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 0 },
+      "push -q origin --delete": { code: 1, stderr: "remote: refusing\n" },
+      push: { code: 0 },
+      "branch -d": { code: 0 },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result.ok).toBe(true);
+    expect(result.branchDeleteError).toContain(BRANCH);
+    // "In both places, or in neither": origin still has it, so this
+    // checkout keeps its copy too.
+    expect(ran(git.calls, "branch -d")).toBe(false);
+  });
+
+  test("a local branch that cannot be deleted never turns a landed merge into a failure (criterion 4)", async () => {
+    const git = fakeGit({
+      ...OK_TABLE,
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 0 },
+      "branch -d": { code: 1, stderr: "error: branch not found\n" },
+    });
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
   });
 });
 

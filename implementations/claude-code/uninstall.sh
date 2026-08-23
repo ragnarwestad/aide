@@ -53,6 +53,7 @@ SKILLS=(
   "aide-analyze"
   "aide-archive"
   "aide-explore"
+  "aide-reopen"
   "aide-manifest"
   "aide-implement"
   "aide-create"

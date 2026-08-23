@@ -17,6 +17,12 @@ export interface StatusInfo {
   /** Which workflow steps this spec has HAD (spec 139), in workflow
    *  order. Empty when the file says nothing — never a guess. */
   workflowSteps: string[];
+  /** The commit a reopened spec's history starts AFTER (spec 198), or
+   *  absent for the overwhelming majority that have never been
+   *  reopened. A SHA, not a date — the name says what it is FOR, which
+   *  is the boundary every reader of the commit grammar excludes with
+   *  `--not`. */
+  reopenedAfter?: string;
 }
 
 const PROGRESS_RE =
@@ -45,6 +51,30 @@ const WORKFLOW_STEPS = ["create", "analyze", "implement", "archive"];
 
 const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 
+// --- spec 198: where a reopened spec's history starts ------------------------
+
+// An archived spec whose work has to be done again keeps every commit
+// from the earlier round — they happened, and the archive is a record —
+// so what changes is not the repository but what counts. The mark is one
+// line of Tracking info, beside the `**Archived:**` stamp the spec
+// keeps:
+//
+//     - **Reopened:** 2026-08-23 (history before `1d0fe79` does not count)
+//
+// It lives in the FILES rather than in the queue for the reason
+// `1-description.md` gives: the queue holds two hundred jobs on one
+// machine and forgets older ones, while the files travel with the
+// repository and are what a reader opens.
+//
+// The SHA is what is captured, and a line without one is not a boundary.
+// An unreadable mark says nothing, which is the pre-reopen behaviour; a
+// guessed one would hide a round that really did run — the same
+// direction every other unknown in this codebase takes.
+//
+// `core/scripts/aide-run-spec` keeps the bash twin of this rule in
+// `reopened_boundary_in`.
+const REOPENED_RE = /reopened:\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
+
 export function parseStatus(content: string): StatusInfo {
   const m = content.match(PROGRESS_RE);
   const progress: Progress | null = m
@@ -72,7 +102,22 @@ export function parseStatus(content: string): StatusInfo {
   }
   if (sawPhaseSection && phase === null) phase = "done";
 
-  return { progress, phase, workflowSteps: parseWorkflowSteps(content) };
+  return {
+    progress,
+    phase,
+    workflowSteps: parseWorkflowSteps(content),
+    reopenedAfter: parseReopenedAfter(content) ?? undefined,
+  };
+}
+
+/** The commit a reopened spec's history starts after, or null.
+ *
+ *  The LAST mark wins: a spec reopened twice counts from its current
+ *  round, not from the first one — the same rule
+ *  `archiveHeldBackReason` keeps for a spec declined twice. */
+function parseReopenedAfter(content: string): string | null {
+  const matches = [...content.matchAll(REOPENED_RE)];
+  return matches[matches.length - 1]?.[1] ?? null;
 }
 
 /** The recorded steps, in WORKFLOW order rather than the order the line
