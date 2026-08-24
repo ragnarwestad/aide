@@ -52,7 +52,7 @@ import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
   QueueStore, currentWorkRoundJobs, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects,
-  persistQueueModelDefaults, persistQueueProjects, WORKFLOW_STEPS,
+  persistQueueModelDefaults, persistQueueProjects,
   tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
@@ -93,6 +93,7 @@ import {
   renderRemoveProjectPage,
   renderSettingsPage,
   SETTINGS_ROUTE,
+  SETTINGS_STEPS,
   ADD_PROJECT_ROUTE,
   computeSpecTotalDurationMs,
   projectSettingsRoute,
@@ -3348,10 +3349,10 @@ export function createServer(opts: ServerOptions) {
       if (!opts.queueConfigFile) return refuse("this server has no queue config file");
       if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
       const table = models as Record<string, unknown>;
-      const unknown = Object.keys(table).find((step) => !(WORKFLOW_STEPS as readonly string[]).includes(step));
+      const unknown = Object.keys(table).find((step) => !(SETTINGS_STEPS as readonly string[]).includes(step));
       if (unknown) return refuse(`unknown workflow step: ${unknown}`);
       const next: Record<string, string> = {};
-      for (const step of WORKFLOW_STEPS) {
+      for (const step of SETTINGS_STEPS) {
         const value = table[step];
         if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
         if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
