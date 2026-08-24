@@ -1768,7 +1768,7 @@ describe("the job list sorts and filters", () => {
   test("the state filter is offered with a count on each choice", () => {
     const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
     expect(html).toMatch(/>All · 3</);
-    expect(html).toMatch(/>Active · 1</);
+    expect(html).toMatch(/>Running · 1</);
     expect(html).toMatch(/>Done · 1</);
     expect(html).toMatch(/>Problems · 1</);
   });
@@ -1963,7 +1963,7 @@ describe("the job list sorts and filters", () => {
       await fetch(`${base}/?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(rows).toContain('data-filter="state"');
-    expect(rows).toMatch(/aria-current="true"[^>]*>Active/);
+    expect(rows).toMatch(/aria-current="true"[^>]*>Running/);
   });
 });
 
@@ -2034,7 +2034,7 @@ describe("filtering and sorting work on specs, not jobs", () => {
       job("b1", "bb-spec", { state: "running" }),
     ]);
     expect(html).toMatch(/>All · 2</);
-    expect(html).toMatch(/>Active · 1</);
+    expect(html).toMatch(/>Running · 1</);
     expect(html).toMatch(/>Done · 1</);
   });
 

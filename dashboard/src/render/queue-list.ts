@@ -396,7 +396,7 @@ const filterFields = (f?: QueueFilter): string =>
 // everything that did not simply finish — a cap-stop and a crash are
 // different, but both are things you go looking for on purpose.
 //
-// "Not archived" is FIRST, and that position is the whole of what makes
+// "Active" is FIRST, and that position is the whole of what makes
 // it the default: `stateFilter` falls back to `STATE_FILTERS[0]`, so
 // moving it changes the default filter for every reader. It held "All"
 // until spec 221 folded the archive onto this list — at which point
@@ -408,17 +408,16 @@ const filterFields = (f?: QueueFilter): string =>
 // there is, which is a list that goes stale the first time a state is
 // added; the exception is what this entry IS, so it says so.
 //
-// The four in the middle are untouched by spec 221 BY CONSTRUCTION:
+// The three in the middle are untouched by spec 221 BY CONSTRUCTION:
 // none of them names `ARCHIVED_STATE`, so each already excludes an
 // archived row without a line of new code.
 const STATE_FILTERS: { key: string; label: string; states?: string[]; excludeStates?: string[] }[] = [
-  { key: "not-archived", label: "Not archived", excludeStates: [ARCHIVED_STATE] },
+  { key: "not-archived", label: "Active", excludeStates: [ARCHIVED_STATE] },
   { key: "all", label: "All" },
-  { key: "not-started", label: "Not started", states: ["not-started"] },
   // Read off `IN_FLIGHT` rather than written out a second time: a state
   // added to one and forgotten in the other is exactly the drift this
   // page cannot afford, and the single-job page needs the same set.
-  { key: "active", label: "Active", states: [...IN_FLIGHT] },
+  { key: "active", label: "Running", states: [...IN_FLIGHT] },
   { key: "done", label: "Done", states: ["done"] },
   {
     key: "problem",

@@ -1807,19 +1807,18 @@ describe("every spec is a row (criteria 1-10)", () => {
     expect(order).toEqual(["aa-spec", "bb-spec"]);
   });
 
-  test("the state chips count and cut the never-run specs (criterion 8)", () => {
+  test("Active includes never-run specs without a separate chip (criterion 8)", () => {
     const list = [job("j1", "analyze", { state: "done" })];
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
     expect(html).toMatch(/>All · 2</);
-    expect(html).toMatch(/>Not started · 1</);
-    expect(html).toMatch(/>Active · 0</);
+    expect(html).not.toContain(">Not started");
+    expect(html).toMatch(/>Running · 0</);
     expect(html).toMatch(/>Done · 1</);
     expect(html).toMatch(/>Problems · 0</);
 
-    const only = rows(list, targets, { filter: { state: "not-started" } });
-    expect(only).toContain("90-never-run");
-    expect(head(only, "90-has-run")).toBe("");
+    expect(html).toContain("90-never-run");
+    expect(html).toContain("90-has-run");
   });
 
   test("a never-run spec's Cost and Started are dashes (criterion 9)", () => {
@@ -1914,7 +1913,7 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
   });
 
   test("the filter, sort and project links keep the fold (criterion 15)", () => {
-    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "not-started" });
+    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "active" });
     // Every state chip and every sortable column header keeps it.
     const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
     expect(links.length).toBeGreaterThan(4);
@@ -1925,7 +1924,7 @@ describe("a spec's phases fold away (criteria 11-15)", () => {
   // itself is rooted there — `/specs` would cost a redirect hop on
   // every sort, filter and fold click.
   test("the filter, sort and fold links are rooted at / , not /specs", () => {
-    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "not-started" });
+    const html = rows([target("90-x"), target("90-y")], { open: "aide/90-x", state: "active" });
     const links = [...html.matchAll(/<a data-nav href="([^"]+)"/g)].map((m) => m[1]!);
     expect(links.length).toBeGreaterThan(4);
     for (const href of links) {
@@ -7175,8 +7174,8 @@ describe("spec 221: archived specs on the spec list", () => {
     const html = rows({ archivedSpecs: [archivedSpec("50-archived")] });
     // Nothing is passed as the filter at all: this is the fallback every
     // reader with a bare `/` gets.
-    expect(html).toMatch(/aria-current="true"[^>]*>Not archived/);
-    expect(html.indexOf(">Not archived")).toBeLessThan(html.indexOf(">All"));
+    expect(html).toMatch(/aria-current="true"[^>]*>Active/);
+    expect(html.indexOf(">Active")).toBeLessThan(html.indexOf(">All"));
   });
 
   test("the default chip hides an archived row even when the data is there", () => {
@@ -7205,8 +7204,8 @@ describe("spec 221: archived specs on the spec list", () => {
     expect(folders(html)).toEqual(["70-archived", "60-live", "50-archived"]);
   });
 
-  test("the four older chips still exclude archived rows", () => {
-    for (const state of ["not-started", "active", "done", "problem"]) {
+  test("the three older chips still exclude archived rows", () => {
+    for (const state of ["active", "done", "problem"]) {
       const html = rows({
         archivedSpecs: [archivedSpec("50-archived")],
         targets: [live("60-live")],
@@ -7270,7 +7269,7 @@ describe("spec 221: archived specs on the spec list", () => {
     const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
     expect(html).toMatch(/>Archived · 2</);
     expect(html).toMatch(/>All · 3</);
-    expect(html).toMatch(/>Not archived · 1</);
+    expect(html).toMatch(/>Active · 1</);
   });
 
   test("and never twice, once those rows are actually on the page", () => {

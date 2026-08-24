@@ -236,8 +236,8 @@ const listUntil = async (base: string, text: string, query = "", budgetMs = 2000
 describe("the default filter", () => {
   test("is a chip of its own, and it is the one the bare page resolves to", async () => {
     const html = await specsList(start().base);
-    expect(html).toContain(">Not archived");
-    expect(html).toMatch(/aria-current="true"[^>]*>Not archived/);
+    expect(html).toContain(">Active");
+    expect(html).toMatch(/aria-current="true"[^>]*>Active/);
   });
 
   // Every archived spec in this fixture has landed — `gitDated` answers
@@ -581,7 +581,7 @@ describe("an archived spec whose branch is still on origin", () => {
     expect(blockFor(open, STAMPED)).not.toContain('class="rowrun"');
   });
 
-  // The exception the DEFAULT view keeps. "Not archived" is today's
+  // The exception the DEFAULT view keeps. "Active" is today's
   // reading view unchanged in content (1-description.md), and today it
   // shows this row: a spec archived with its work still on a branch has
   // not finished, and a reading view that dropped it would hide the
@@ -618,13 +618,13 @@ describe("the All chip", () => {
   test("and its own chip is not the default one", async () => {
     const html = await specsList(start().base, ALL_VIEW);
     expect(html).toMatch(/aria-current="true"[^>]*>All/);
-    expect(html).not.toMatch(/aria-current="true"[^>]*>Not archived/);
+    expect(html).not.toMatch(/aria-current="true"[^>]*>Active/);
   });
 
-  // The four chips that were here before this spec each list the states
+  // The three chips that were here before this spec each list the states
   // they allow, and none of them lists `archived`.
-  test("the four older chips keep their meaning", async () => {
-    for (const state of ["not-started", "active", "done", "problem"]) {
+  test("the three older chips keep their meaning", async () => {
+    for (const state of ["active", "done", "problem"]) {
       const html = await specsList(start().base, `?state=${state}`);
       for (const folder of Object.keys(ARCHIVED)) expect(html).not.toContain(folder);
     }
@@ -813,7 +813,7 @@ describe("building the archived rows", () => {
     expect(filterShowsArchived("not-archived")).toBe(false);
     expect(filterShowsArchived("all")).toBe(true);
     expect(filterShowsArchived("archived")).toBe(true);
-    for (const key of ["not-started", "active", "done", "problem"]) {
+    for (const key of ["active", "done", "problem"]) {
       expect(filterShowsArchived(key)).toBe(false);
     }
     // A stale bookmark falls back to the default, which shows none.
