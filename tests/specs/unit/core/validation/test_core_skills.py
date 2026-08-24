@@ -488,6 +488,130 @@ class TestStep3DecidesOnMarksNotProse:
         )
 
 
+class TestStep3DistinguishesOrdinaryProgressFromHeldBack:
+    """Spec 227: "held back" is a warning, not the ordinary flow.
+
+    A job queued as [analyze, archive] ran its analysis, archive found
+    every task row unstarted because implement had never run, declined
+    — and wrote `## Archive held back`, which the dashboard shows as an
+    amber badge and a warning panel in three places. Declining was
+    right; warning about it was not, since by that reading every freshly
+    created spec is "held back" too. Step 3's headless branch therefore
+    has to tell two shapes apart: work the workflow has simply not
+    reached (every open row unstarted and `implement` absent from the
+    commit-derived `Workflow steps completed` line) is ordinary
+    progression and writes nothing, while a row still open after
+    implement ran keeps today's warning. Step 3 has no executable
+    counterpart — a headless run follows it as prose — so the rule is
+    pinned in its text, the same way TestStep3DecidesOnMarksNotProse
+    pins the Status-cell rule.
+    """
+
+    SKILL = CORE_SKILLS_DIR / "aide-archive" / "SKILL.md"
+
+    def _headless_branch(self) -> str:
+        text = self.SKILL.read_text(encoding="utf-8")
+        start = text.index("### Step 3: Check that the work is done")
+        end = text.index("### Step 4:", start)
+        step3 = text[start:end]
+        return step3[step3.index("Nobody is there (headless"):]
+
+    def _split_branches(self) -> tuple[str, str]:
+        """The ordinary-progression half and the genuinely-blocked half."""
+        headless = self._headless_branch()
+        lowered = headless.lower()
+        assert "ordinary progression" in lowered, (
+            "Step 3's headless branch never names ordinary progression, so it "
+            "still treats every open row as a warning"
+        )
+        assert "genuinely blocked" in lowered, (
+            "Step 3's headless branch never names the genuinely-blocked case"
+        )
+        cut = lowered.index("genuinely blocked")
+        return headless[lowered.index("ordinary progression"):cut], headless[cut:]
+
+    def test_ordinary_progression_is_read_off_the_completed_steps_line(self):
+        """AC1: unstarted rows plus no implement is the normal flow, and
+        the run stops there without writing a warning."""
+        headless = self._headless_branch()
+        ordinary, _ = self._split_branches()
+
+        assert "Workflow steps completed" in headless, (
+            "Step 3 never reads the commit-derived `Workflow steps completed` "
+            "line, so it has no way to know whether implement ever ran"
+        )
+        assert "Not started" in headless and "\u2b1c" in headless, (
+            "Step 3 never says what UNSTARTED means, so it cannot ask the "
+            "narrower question that separates the two cases"
+        )
+        assert re.search(r"every open row unstarted", ordinary, re.I), (
+            "the ordinary-progression case does not require EVERY open row to "
+            "be unstarted"
+        )
+        assert re.search(r"`?implement`?[^.]{0,80}absent", ordinary), (
+            "the ordinary-progression case does not require `implement` to be "
+            "absent from the completed-steps line"
+        )
+        assert re.search(r"(no|not|never)[^.]{0,40}## Archive held back", ordinary), (
+            "the ordinary-progression case does not say the `## Archive held "
+            "back` section is left unwritten"
+        )
+        assert re.search(r"do not\s+continue[^.]{0,40}Step 4", ordinary, re.I), (
+            "the ordinary-progression case does not stop before Step 4"
+        )
+        assert "/aide-implement" in ordinary, (
+            "the ordinary-progression report does not name the next step"
+        )
+
+    def test_a_row_still_open_after_implement_ran_keeps_the_warning(self):
+        """AC2: spec 219's shape is unchanged — the section is still
+        written, with the same one bullet."""
+        _, blocked = self._split_branches()
+
+        assert re.search(r"`?implement`?[^.]{0,60}present", blocked), (
+            "the genuinely-blocked case does not trigger on `implement` being "
+            "present on the completed-steps line while a row is still open"
+        )
+        assert "## Archive held back" in blocked, (
+            "the genuinely-blocked case no longer writes the `## Archive held "
+            "back` section"
+        )
+        assert "ONE bullet" in blocked, (
+            "the genuinely-blocked case lost the one-bullet rule"
+        )
+        assert re.search(r"do not\s+continue[^.]{0,40}Step 4", blocked, re.I), (
+            "the genuinely-blocked case does not stop before Step 4"
+        )
+
+    def test_a_stale_section_is_removed_when_the_spec_reads_as_normal(self):
+        """AC3: a warning left by an earlier run of this shape does not
+        outlive the shape that wrote it."""
+        ordinary, _ = self._split_branches()
+
+        assert re.search(
+            r"remove\b[^.]{0,120}(stale|already in the file|earlier run)",
+            ordinary, re.I | re.DOTALL,
+        ), (
+            "the ordinary-progression case never removes a `## Archive held "
+            "back` section an earlier run left behind"
+        )
+
+    def test_a_row_begun_but_unfinished_is_blocked_without_implement(self):
+        """AC4: in progress, blocked or waiting is not the normal flow,
+        whatever the completed-steps line says."""
+        _, blocked = self._split_branches()
+
+        assert re.search(r"not unstarted", blocked, re.I), (
+            "the genuinely-blocked case does not trigger on an open row that "
+            "was begun but never finished"
+        )
+        for mark in ("\U0001f504", "\u274c", "\u26a0"):
+            assert mark in blocked, (
+                f"the genuinely-blocked case does not name the {mark} mark as "
+                "a row that was begun"
+            )
+
+
 @pytest.mark.validation
 class TestReopenSkillKeepsWhatTheDescriptionAsksFor:
     """Spec 198. Three of the seven acceptance criteria are the SKILL's
