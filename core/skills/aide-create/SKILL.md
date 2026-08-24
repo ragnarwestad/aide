@@ -102,16 +102,21 @@ Examples:
 directory the skill can operate in, whether or not it sits inside the
 project root.
 
-A headless run gets its commit for free. Working interactively, ASK
-whether to commit the new spec, and suggest this message so the step is
-recognised the same way:
+A headless run gets its commit for free. Working interactively, commit
+and push RIGHT AWAY, with this message so the step is recognised the
+same way:
 
 ```text
-Run /aide-create for <spec-folder>
+Run /aide-create for <spec-folder> (model: <tool> <model>)
 ```
 
-Offer it only once the 5 files have actually been created; nothing to
-stage means nothing to offer.
+Do not ask first: the user's request to create the spec was the
+approval, and a follow-up question here is how a finished folder sits
+staged-but-uncommitted for hours while everyone believes it was queued
+(spec 220, 2026-08-24). Commit only once the 5 files have actually been
+created — nothing to stage means nothing to commit. If origin has moved,
+`git pull --rebase` and push again; a push that still fails is reported
+out loud, never left silent.
 
 Nothing in Tracking info records the step. Which steps a spec has had
 is read off the spec's own commits, and `aide-run-spec` writes the
@@ -124,14 +129,6 @@ alone too. `create` is the one stage nobody picks a model for in
 advance: a spec is already being written by the time it reaches a
 dashboard row, so its model is only ever recorded after the fact, from
 whatever commit created the folder.
-
-A headless run gets its commit for free. Working interactively, ASK
-whether to commit the new folder, and suggest this message so the step
-is recognised the same way:
-
-```text
-Run /aide-create for <spec-folder> (model: <tool> <model>)
-```
 
 Add the `(model: ...)` part only when you can name your own model with
 certainty. A Claude Code session is told which model it is running in
