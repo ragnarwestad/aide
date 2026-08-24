@@ -306,6 +306,16 @@ in `~/.claude/settings.json` as:
 }
 ```
 
+That hook is one of two producers, and only this one is a person's own
+setting. The other is the queue itself (spec 222): when the runner
+spawns a step, it hands the child `AIDE_RUN_URL` pointing at this
+server's own `/api/aide-run`, derived from the port it actually bound,
+so the TDD phases of a headless run reach the row with nothing
+configured on the machine. Before that, every phase report from a
+headless step exited silently and the rows sat at `phase: null`. An
+`AIDE_RUN_URL` already in the server's own environment is left alone,
+so pointing reporting at another sink still works.
+
 The address in that block changed with spec 172: it is the HTTPS one
 now, and the old `:8788` address answers on the serving host itself and
 nowhere else. A bookmark carrying `?token=` still works on the new

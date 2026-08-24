@@ -1611,6 +1611,20 @@ export function createServer(opts: ServerOptions) {
         today: () => new Date().toISOString().slice(0, 10),
         spawn: (job, step, resultFile, sessionId, streamFile) => {
           mkdirSync(dirname(resultFile), { recursive: true });
+          // Spec 222. `aide-emit-run` reports each TDD phase and is
+          // inert unless `AIDE_RUN_URL` says where — so a headless step
+          // reported into silence, because nothing from launchd down to
+          // the spawned `claude` ever set it. This server knows its own
+          // address, so it tells the step where to report, and no
+          // machine needs configuring for it.
+          //
+          // `server` is declared further down this function, but this
+          // callback is only ever CALLED from the polling
+          // `runner.tick()` timer — long after `Bun.serve()` has
+          // returned — so the read is never a TDZ error. It has to be
+          // `server.port` and not `opts.port`: `port: 0` means "let the
+          // OS pick", and every test in this suite starts that way.
+          const selfRunUrl = `http://127.0.0.1:${server.port}/api/aide-run`;
           const proc = Bun.spawn({
             cmd: runnerArgv(
               job,
@@ -1643,6 +1657,14 @@ export function createServer(opts: ServerOptions) {
               sessionId,
               streamFile,
             ),
+            // The spread is load-bearing. `Bun.spawn`'s `env`, once
+            // given at all, REPLACES the child's environment rather
+            // than layering onto it, and this call passed none before —
+            // so the child inherited PATH, HOME and the credentials
+            // `git` and `claude` need implicitly. An operator who has
+            // already pointed reporting at another sink keeps it: the
+            // derived URL is a default, never an override.
+            env: { ...process.env, AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl },
             detached: true,
             // stdout is ignored (the result FILE is the contract), but
             // stderr goes to a per-job log: when the runner died
