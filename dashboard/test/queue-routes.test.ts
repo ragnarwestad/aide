@@ -2705,6 +2705,72 @@ describe("POST /api/queue/create (spec 93)", () => {
     expect(ok.headers.get("location")).toBe("/");
   });
 
+  // Spec 228: the model the create step runs on, chosen on the form
+  // itself. Posted form-encoded, which is the no-JS path and the one
+  // `bodyToObject` folds `model.create` into the per-step shape on.
+  test("a model picked on the form reaches the stored job (spec 228)", async () => {
+    const { base } = start({
+      queueToken: TOKEN,
+      queueDefaults: {
+        budgetUsd: 3,
+        jobCapUsd: 10,
+        dailyCapUsd: 20,
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" },
+        modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+      },
+    });
+    const res = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({ ...CREATE, "model.create": "fable" }).toString(),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
+    expect(body.job.model).toEqual({ create: "fable" });
+
+    // ...and a name this server does not offer is refused, rather than
+    // quietly falling back to the default.
+    const bad = await fetch(`${base}/api/queue/create`, {
+      method: "POST",
+      headers: {
+        "x-aide-token": TOKEN,
+        "content-type": "application/x-www-form-urlencoded",
+        accept: "application/json",
+      },
+      body: new URLSearchParams({ ...CREATE, "model.create": "opus" }).toString(),
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  // The page has to OFFER what the route accepts — the `/new` handler
+  // reads the same `modelChoices` the `/` handler does, or the form
+  // draws a dropdown the server would refuse every entry of.
+  test("GET /new offers the configured models, grouped by AI (spec 228)", async () => {
+    const { base } = start({
+      queueToken: TOKEN,
+      queueDefaults: {
+        budgetUsd: 3,
+        jobCapUsd: 10,
+        dailyCapUsd: 20,
+        timeoutSec: { default: 1200 },
+        permissionMode: { default: "acceptEdits" },
+        model: { default: "sonnet" },
+        modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" } },
+      },
+    });
+    const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('name="model.create"');
+    expect(html).toContain('data-ai="model.create"');
+    expect(html).toContain('<optgroup label="Codex">');
+    expect(html).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+
   test("the form offers every allowlisted project, spec or no spec", async () => {
     const { base } = start({ queueToken: TOKEN, queueProjects: ["aide", "brandnew"] });
     const html = await (await fetch(`${base}/new`, { headers: { "x-aide-token": TOKEN } })).text();

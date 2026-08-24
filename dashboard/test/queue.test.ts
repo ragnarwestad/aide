@@ -934,6 +934,90 @@ describe("parseCreateRequest — dependsOn", () => {
   });
 });
 
+// --- spec 228: the model a create job runs on --------------------------------
+
+// Every step but `create` could already be pointed at a model from its
+// own phase line. `create` never could — it makes the spec the phase
+// lines belong to, so there is no row to pick from — and the New-spec
+// form is where that choice belongs instead. The name arrives in the
+// same `model.<step>` shape every phase line already posts, and is
+// looked up in the same table (`lookUpModel`), so a name this parser
+// accepts is a name `parseJobRequest` would accept too.
+describe("parseCreateRequest — model", () => {
+  const allow = (project: string) => project === "aide" || project === "brandnew";
+  const CREATE = { project: "aide", title: "A new spec", description: "Do the thing" };
+  const WITH_CHOICES: QueueDefaults = {
+    ...DEFAULTS,
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  // Criterion 4.
+  test("a configured model is honoured, and the job carries it for the one step it runs", () => {
+    const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: WITH_CHOICES });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.model).toEqual({ create: "fable" });
+    // Risk 3: the shape, not just the value. A create job runs one
+    // step, so its model table names exactly that step — the same shape
+    // `perStep(["create"], ...)` produces, differing only in the name.
+    expect(Object.keys(r.job.model!)).toEqual(["create"]);
+  });
+
+  // Criterion 5: the same wording `parseJobRequest` refuses with.
+  test("a name the config does not offer is refused, with the shared wording", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, model: { create: "nonexistent-model" } },
+      { allow, defaults: WITH_CHOICES },
+    );
+    expect(r).toEqual({ ok: false, error: "unknown or not-allowed model: nonexistent-model" });
+  });
+
+  // Criterion 7: nothing configured at all is a different sentence from
+  // a name that is merely not on the list.
+  test("a server offering no model at all says so, rather than naming the pick", () => {
+    const r = parseCreateRequest({ ...CREATE, model: { create: "fable" } }, { allow, defaults: DEFAULTS });
+    expect(r).toEqual({ ok: false, error: "no model choice is configured on this server" });
+  });
+
+  // Criterion 6: an untouched form and a form with no Model field at
+  // all both land here, and both mean "the configuration decides".
+  test("omitted, empty, or not posted at all: the config's own default for the step", () => {
+    for (const body of [
+      CREATE,
+      { ...CREATE, model: { create: "" } },
+      { ...CREATE, model: "" },
+      { ...CREATE, model: {} },
+    ]) {
+      const r = parseCreateRequest(body, { allow, defaults: WITH_CHOICES });
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      // DEFAULTS.model names no `create`, so the table's own `default`
+      // is what the step gets — exactly what `perStep` gave it before
+      // this field existed.
+      expect(r.job.model).toEqual({ create: DEFAULTS.model.default! });
+      expect(Object.keys(r.job.model!)).toEqual(["create"]);
+    }
+  });
+
+  test("a malformed name is refused before anything is looked up", () => {
+    for (const bad of [{ create: "../etc/passwd" }, { create: 7 }, ["fable"]]) {
+      expect(parseCreateRequest({ ...CREATE, model: bad }, { allow, defaults: WITH_CHOICES }).ok).toBe(false);
+    }
+  });
+
+  // A create job runs one step. A name posted for any other is the
+  // browser sending the whole set of phase selects, and is skipped
+  // rather than refused — the rule `parseJobRequest` already follows.
+  test("a name for a step this job does not run is ignored, not refused", () => {
+    const r = parseCreateRequest(
+      { ...CREATE, model: { implement: "fable" } },
+      { allow, defaults: WITH_CHOICES },
+    );
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.model).toEqual({ create: DEFAULTS.model.default! });
+  });
+});
+
 // The widened validation is for ONE route. `parseJobRequest` still
 // requires a project with a discovered spec — a regression guard, green
 // today and green afterwards.

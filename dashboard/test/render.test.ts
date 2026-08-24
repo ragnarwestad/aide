@@ -2349,7 +2349,9 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // the chips carry so the browser can narrow them. Reworked 2026-08-19:
   // Project and Depends on share the first row, Title has a line of its
   // own, and Create/Cancel sit at the RIGHT of the Description box —
-  // which in the markup means after it.
+  // which in the markup means after it. Reworked again by spec 228:
+  // Project shares its row with the Model choice instead, and Depends
+  // on drops to a full-width row of its own.
   test("the page carries Project, Depends on, Title, Description, Create, Cancel — in that order", () => {
     const html = newPage({
       targets: [
@@ -2371,10 +2373,22 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       "Cancel</a>",
     ].map(at);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    // The rows themselves: Project+Depends in one, Description+actions
-    // in another, Title between them on its own line.
+    // The rows themselves: Project leads the first, Description+actions
+    // the last, Title and Depends on each on a line of their own between
+    // them.
     expect(html).toMatch(/<span class="frow"><label class="field"><span>Project<\/span>/);
     expect(html).toMatch(/<span class="frow"><label class="field wide"><span>Description<\/span>/);
+    // Criterion 8 (spec 228): Depends on has left Project's row. It
+    // stands after that row CLOSES, in a `field wide` of its own — the
+    // same mechanism Title uses — and not inside a second `.frow`.
+    const betweenProjectAndDepends = html.slice(
+      html.indexOf('<select name="project">'),
+      html.indexOf('name="dependsOn"'),
+    );
+    expect(betweenProjectAndDepends).toContain(
+      '</span><span class="field wide"><span>Depends on</span>',
+    );
+    expect(betweenProjectAndDepends).not.toContain('<span class="frow">');
     expect(html).toMatch(/<span class="factions"><button[^>]*>Create<\/button>/);
     // Each chip says which project it belongs to.
     expect(html).toMatch(/data-project="aide-dashboard"[^]*?value="01-first"/);
@@ -2387,6 +2401,78 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     const html = newPage();
     expect(html).toContain('<a class="btn" href="/">Cancel</a>');
     expect(html).not.toContain('name="cancel"');
+  });
+
+  // --- spec 228: the model the FIRST step runs on ----------------------------
+  //
+  // The four steps that follow `create` each have a phase line with a
+  // model picker on it. `create` has none — it makes the spec those
+  // lines belong to — so this form is the only place its model can be
+  // chosen. Same two controls the phase lines draw, same helpers, same
+  // single-tool rule.
+  const TWO_TOOLS: NonNullable<NewSpecPageOptions["modelChoices"]> = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12 },
+    { name: "codex-fast", budgetUsd: 5, tool: "codex" },
+  ];
+
+  /** The value both selects have to agree on for `applyAiPick` to find
+   *  one from the other (`queue-client.ts`: the lookup is by `name` AND
+   *  `form`, so a shared enclosing `<form>` element is not enough). */
+  const formAttr = (html: string, selector: string): string | undefined =>
+    html.match(new RegExp(`<select ${selector}[^>]*\\bform="([^"]*)"`))?.[1];
+
+  // Criterion 1.
+  test("two tools configured: a grouped Model select and a paired AI select, both pre-filled", () => {
+    const html = newPage({ modelChoices: TWO_TOOLS, defaultModels: { create: "fable", default: "sonnet" } });
+    const model = html.match(/<select name="model\.create"[\s\S]*?<\/select>/)![0];
+    expect(model).toContain('<optgroup label="Claude Code">');
+    expect(model).toContain('<optgroup label="Codex">');
+    // The step's own configured default outranks the table's fallback.
+    expect(model).toMatch(/<option value="fable"[^>]*selected/);
+    const ai = html.match(/<select data-ai="model\.create"[\s\S]*?<\/select>/)![0];
+    expect(ai).toContain(">Claude Code</option>");
+    expect(ai).toContain(">Codex</option>");
+    // The AI shown is the tool of the model beside it, and each option
+    // carries the model that AI would fill in.
+    expect(ai).toMatch(/<option value="claude"[^>]*data-default="fable"[^>]*selected/);
+    expect(ai).toMatch(/<option value="codex"[^>]*data-default="codex-fast"/);
+  });
+
+  // Risk 1: the one detail the browser's pairing depends on. Without a
+  // matching `form` value the AI select renders, looks pressable, and
+  // silently writes into nothing.
+  test("the Model and AI selects carry the same form id — and the form actually has it", () => {
+    const html = newPage({ modelChoices: TWO_TOOLS });
+    const id = formAttr(html, 'name="model\\.create"');
+    expect(id).toBeTruthy();
+    expect(formAttr(html, 'data-ai="model\\.create"')).toBe(id!);
+    expect(html).toContain(`<form method="post" action="/api/queue/create" class="newspecform" id="${id}"`);
+  });
+
+  // Criterion 3: `aiPicker`'s own rule — an AI picker offering one AI
+  // has nothing to offer.
+  test("one tool configured: the Model select alone, no AI select", () => {
+    const html = newPage({
+      modelChoices: [{ name: "sonnet", budgetUsd: 3 }, { name: "fable", budgetUsd: 12 }],
+      defaultModels: { default: "sonnet" },
+    });
+    expect(html).toContain('name="model.create"');
+    expect(html).not.toContain('data-ai="model.create"');
+    // Pre-filled from the table's fallback when the step names nothing.
+    expect(html).toMatch(/<option value="sonnet"[^>]*selected/);
+  });
+
+  // Criterion 2: "nothing chosen means no line", the same answer
+  // `dependsOnField` and `modelPicker` both already give.
+  test("no model configured at all: neither control is drawn", () => {
+    for (const opts of [{}, { modelChoices: [] }]) {
+      const html = newPage(opts);
+      expect(html).not.toContain('name="model.create"');
+      expect(html).not.toContain('data-ai="model.create"');
+      // ...and no caption left hanging over nothing.
+      expect(html).not.toContain(">Model</span>");
+    }
   });
 
   // Criterion 4. Today the toggle simply omits itself from `/` when

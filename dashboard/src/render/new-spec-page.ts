@@ -21,7 +21,14 @@
 import { btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import type { QueueTarget } from "./queue-list.ts";
+import {
+  defaultModelForTool,
+  modelOptions,
+  resolveChosenModel,
+  TOOL_NAMES,
+  type QueuePageOptions,
+  type QueueTarget,
+} from "./queue-list.ts";
 
 export interface NewSpecPageOptions {
   /** Carried into the form, for a browser that got here with the token
@@ -44,6 +51,15 @@ export interface NewSpecPageOptions {
    *  after a no-JS form POST. It goes at the top: the spec it named was
    *  never made, so there is no row for it to land on. */
   error?: string;
+  /** Every model the config granted a budget to, and which CLI each
+   *  starts — the same view the spec list's phase lines are given, built
+   *  by the same helper in `serve.ts` so the two pages cannot come to
+   *  offer different lists (spec 228). */
+  modelChoices?: QueuePageOptions["modelChoices"];
+  /** What the configuration would give each step. Only `create`'s entry
+   *  (or the table's `default`) can matter here: a create job runs that
+   *  one step. */
+  defaultModels?: QueuePageOptions["defaultModels"];
 }
 
 // What a spec builds on (spec 110). One chip per active spec, newest
@@ -67,7 +83,14 @@ export interface NewSpecPageOptions {
 // than the page's own options object: the list to offer, and which of
 // it is already ticked. A second copy of this markup would have drifted
 // from it the first time one of the two was fixed.
-export function dependsOnField(targets: QueueTarget[], checked: Set<string> = new Set()): string {
+export function dependsOnField(
+  targets: QueueTarget[],
+  checked: Set<string> = new Set(),
+  // A row of its own, or a field sharing one. The New-spec page asks for
+  // the first since spec 228; the Edit page, the other caller, keeps the
+  // layout it has by leaving this alone.
+  o: { wide?: boolean } = {},
+): string {
   const specs = [...targets].sort(
     (a, b) =>
       a.project.localeCompare(b.project) ||
@@ -92,7 +115,7 @@ export function dependsOnField(targets: QueueTarget[], checked: Set<string> = ne
         )
         .join(""),
     ),
-    { group: true },
+    { group: true, wide: o.wide },
   );
 }
 

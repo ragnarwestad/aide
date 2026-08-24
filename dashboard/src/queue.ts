@@ -331,6 +331,26 @@ function tighten(raw: unknown, limit: number, name: string): number | Error {
   return raw;
 }
 
+/** The one table a posted model NAME is checked against (spec 228).
+ *
+ *  It was `parseJobRequest`'s own closure until the New-spec form gained
+ *  a Model choice of its own: two parsers now read a name off a request,
+ *  and the sentence a refusal carries is the same sentence in both — a
+ *  second copy would have drifted the first time one was reworded.
+ *
+ *  Two different answers, deliberately: a name that is merely not on the
+ *  list, and a server that offers no list at all. Everything the choice
+ *  is GRANTED comes from here; the request supplies only the name. */
+function lookUpModel(defaults: QueueDefaults, name: string): ModelChoice | { error: string } {
+  const found = defaults.modelChoices?.[name];
+  if (found) return found;
+  return {
+    error: defaults.modelChoices
+      ? `unknown or not-allowed model: ${name}`
+      : "no model choice is configured on this server",
+  };
+}
+
 export function parseJobRequest(
   raw: unknown,
   opts: { resolve: ProjectResolver; defaults: QueueDefaults },
@@ -400,18 +420,9 @@ export function parseJobRequest(
   let modelChoice: string | undefined;
   let choice: ModelChoice | undefined;
   let stepModels: Record<string, string> | undefined;
-  const lookUp = (name: string): ModelChoice | { error: string } => {
-    const found = defaults.modelChoices?.[name];
-    if (found) return found;
-    return {
-      error: defaults.modelChoices
-        ? `unknown or not-allowed model: ${name}`
-        : "no model choice is configured on this server",
-    };
-  };
   if (typeof r.model === "string" && r.model !== "") {
     if (!NAME_RE.test(r.model)) return { ok: false, error: "invalid model" };
-    const found = lookUp(r.model);
+    const found = lookUpModel(defaults, r.model);
     if ("error" in found) return { ok: false, error: found.error };
     choice = found;
     modelChoice = r.model;
@@ -432,7 +443,7 @@ export function parseJobRequest(
       // steps, whichever are ticked. Only the ticked ones apply.
       if (!steps.includes(step as WorkflowStep)) continue;
       if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: `invalid model for ${step}` };
-      const found = lookUp(name);
+      const found = lookUpModel(defaults, name);
       if ("error" in found) return { ok: false, error: found.error };
       stepModels[step] = name;
       grants.push(found);
@@ -576,6 +587,34 @@ export function parseCreateRequest(
     }
   }
 
+  // Which model the one step this job runs is run ON (spec 228). Every
+  // step BUT `create` could already be pointed at one from its own
+  // phase line; `create` MAKES the spec those lines belong to, so there
+  // is no row to pick it from and the New-spec form is where the choice
+  // is made instead.
+  //
+  // The per-step shape, which is what `bodyToObject` already folds a
+  // posted `model.create=` into — the same shape, and the same table
+  // (`lookUpModel`), as every phase line's pick, so a name accepted here
+  // is a name `parseJobRequest` would accept too. An empty value keeps
+  // meaning "the configuration decides": that is what an untouched
+  // select posts, and what a form with no Model field at all leaves out.
+  let modelChoice: string | undefined;
+  if (r.model !== undefined && r.model !== null && r.model !== "") {
+    if (typeof r.model !== "object" || Array.isArray(r.model)) return { ok: false, error: "invalid model" };
+    // The one step this job runs, and no other. A name posted for a
+    // step a create job does not have is skipped rather than refused —
+    // the rule `parseJobRequest` already follows for the same reason: a
+    // browser posts every select it drew, whichever are ticked.
+    const name = (r.model as Record<string, unknown>).create;
+    if (name !== undefined && name !== null && name !== "") {
+      if (typeof name !== "string" || !NAME_RE.test(name)) return { ok: false, error: "invalid model for create" };
+      const found = lookUpModel(defaults, name);
+      if ("error" in found) return { ok: false, error: found.error };
+      modelChoice = name;
+    }
+  }
+
   const steps: WorkflowStep[] = ["create"];
   return {
     ok: true,
@@ -590,7 +629,10 @@ export function parseCreateRequest(
       jobCapUsd: defaults.jobCapUsd,
       timeoutSec: defaults.timeoutSec,
       permissionMode: perStep(steps, defaults.permissionMode),
-      model: perStep(steps, defaults.model),
+      // The same shape `perStep` gives a one-step job either way — one
+      // entry, named for the one step — differing only in where the
+      // name came from.
+      model: modelChoice ? { create: modelChoice } : perStep(steps, defaults.model),
       createTitle: title,
       createDescription: description,
       // Omitted entirely when nothing was chosen: "nothing chosen means

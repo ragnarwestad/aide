@@ -2087,7 +2087,7 @@ function archiveDateCell(s: ArchivedSpecView): string {
  *  because `aiPicker` needs the same answer: the AI a line shows is the
  *  tool of the model that line is on, and a second copy of this
  *  reasoning is a second copy that can drift from it. */
-function resolveChosenModel(
+export function resolveChosenModel(
   models: NonNullable<QueuePageOptions["modelChoices"]>,
   configured: string | undefined,
   used: string | undefined,
@@ -2107,7 +2107,7 @@ function resolveChosenModel(
  *  Both are facts about the CONFIGURATION, worked out here and carried
  *  into the markup on the option. The browser copies the value; it
  *  never decides between a tool's models itself. */
-function defaultModelForTool(
+export function defaultModelForTool(
   models: NonNullable<QueuePageOptions["modelChoices"]>,
   tool: string,
   configured: string | undefined,
@@ -2191,7 +2191,7 @@ function modelPicker(
  *  comes first is a fact about the page, not about whichever tool an
  *  admin happened to list first. A tool with nothing configured draws
  *  no group at all. */
-function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, chosen?: string): string {
+export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, chosen?: string): string {
   return Object.keys(TOOL_NAMES)
     .map((tool) => {
       const group = models.filter((m) => (m.tool ?? "claude") === tool);
@@ -2270,7 +2270,7 @@ function phaseCaptionCells(opts: QueuePageOptions): string {
 
 /** What each CLI is called on the page. The config's own word is the
  *  short one the runner uses; this is the one a reader picks by. */
-const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
+export const TOOL_NAMES: Record<string, string> = { claude: "Claude Code", codex: "Codex" };
 
 // The AI a phase will run on, beside the model it will run (spec 179).
 // One per phase line, in the column between the phase's name and its
