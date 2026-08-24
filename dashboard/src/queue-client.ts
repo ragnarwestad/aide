@@ -737,6 +737,68 @@ async function postTailStep(box: HTMLInputElement): Promise<void> {
   }
 }
 
+/** The same press for the two SELECTS on a live phase line (spec 225).
+ *
+ *  Everything `postTailStep` does above and for the same reasons — the
+ *  row locks while the request is out, the row is redrawn from the
+ *  server's own answer, an unsendable request reloads the page — with
+ *  one difference: what a select showed before the reader moved it is
+ *  gone by the time this runs, so a refusal cannot put the old value
+ *  back by hand. The swap `showRefusal` does brings the server's own
+ *  value with it, and dropping the key from `chosen` is what stops the
+ *  refused one being replayed over it.
+ *
+ *  The value is passed in rather than read off the select: `applyAiPick`
+ *  calls this with the model it just wrote, and reading `.value` there
+ *  would depend on the write having landed first.
+ *
+ *  The step is the select's own `name` — `model.<step>`, the field it
+ *  posts under on a row that is not busy. */
+async function postTailModel(select: HTMLSelectElement, model: string): Promise<void> {
+  const to = select.getAttribute("data-post-to") ?? "";
+  const step = select.name.startsWith("model.") ? select.name.slice("model.".length) : "";
+  if (!to || !step) return;
+  const formId = select.getAttribute("form") ?? "";
+  const form = formId
+    ? (document.querySelector(`form[id="${attrValue(formId)}"]`) as HTMLFormElement | null)
+    : null;
+  const controls = form ? rowControls(form) : [select as Control];
+  const before = controls.map((el) => [el, el.disabled] as const);
+  inFlight += 1;
+  pressGen += 1;
+  for (const el of controls) el.disabled = true;
+  try {
+    const url = new URL(to, location.href);
+    const token = form?.querySelector('input[name="token"]') as HTMLInputElement | null;
+    if (token?.value) url.searchParams.set("token", token.value);
+    const body = new URLSearchParams();
+    body.append("step", step);
+    body.append("model", model);
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    const answer = (await res.json().catch(() => null)) as ActionResult | null;
+    if (res.ok && answer?.ok) {
+      // Remembered like any other hand-made pick: a phase still ahead
+      // has no history for the server to draw the value back from, so
+      // without this the swap that follows would put the configured
+      // default over the model the job is now on.
+      chosen.set(selectKey(select), model);
+      await swapRows();
+      return;
+    }
+    chosen.delete(selectKey(select));
+    await showRefusal(refusalText(answer), answer?.spec);
+  } catch {
+    location.href = location.pathname + location.search;
+  } finally {
+    inFlight -= 1;
+    for (const [el, was] of before) if (el.isConnected) el.disabled = was;
+  }
+}
+
 // A refusal used to navigate — and take the reader's view with it. It
 // does not any more: the address bar is moved WITHOUT a document load,
 // and the rows are re-asked with the same query the server's own
@@ -904,6 +966,13 @@ function applyAiPick(select: HTMLSelectElement): void {
     model.value = want;
     chosen.set(selectKey(model), want);
   }
+  // Spec 225: on a LIVE line nothing else would carry this to the
+  // server. The write above fires no `change` event — deliberately, for
+  // the reason the comment on this function gives — so the delegated
+  // listener never sees it, and the running job would go on using the
+  // model the row has stopped showing. Called with the value already
+  // resolved, never by dispatching a synthetic event.
+  if (model.getAttribute("data-post-to")) return void postTailModel(model, want);
 }
 
 // The other direction, and the only one the AI select is ever written
@@ -1145,6 +1214,17 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
   // about it is remembered for the next redraw either; `applyAiPick`
   // records what it wrote under the select it wrote it into, and the
   // picker itself is set back from that select on the way out.
+  // Spec 225: the model select on a phase the running job has not
+  // reached. Same reasoning as the box above — there is no Run button
+  // on a busy row to submit it with — so the pick goes to the running
+  // job's own route now. The AI select beside it is set from this one
+  // first, so the line does not sit showing a tool the model it posted
+  // does not belong to.
+  const liveModel = target?.closest?.("select[data-post-to]") as HTMLSelectElement | null;
+  if (liveModel) {
+    syncAiToModel(liveModel);
+    return postTailModel(liveModel, liveModel.value);
+  }
   const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
   if (ai) return applyAiPick(ai);
   // Every other select on the rows IS remembered: they are swapped

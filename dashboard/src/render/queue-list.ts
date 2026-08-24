@@ -2010,22 +2010,34 @@ function modelPicker(
   opts: QueuePageOptions,
   step: string,
   busy: boolean,
+  live: boolean,
   used?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
-  const why = busy ? busyReason(g) : "";
+  // Spec 225: the same rule the box beside it has followed since spec
+  // 160. A phase the running job has not reached is a phase whose
+  // model can still be chosen, so the row-level lock is narrowed by
+  // the server's own per-phase answer rather than applied wholesale.
+  const locked = busy && !live;
+  const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   const chosen = resolveChosenModel(models, configured, used);
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
+    // Where a live pick goes: the running job's own route, the same
+    // convention the tail box's tick already uses. While a job runs the
+    // run form asks for a SECOND job and the queue refuses it as a
+    // clash, so the select posts itself rather than waiting for a
+    // press this row does not offer.
+    (live ? ` data-post-to="/api/queue/${esc(g.lead!.id)}/model"` : "") +
     // Whether this select is showing HISTORY or a suggestion, said to
     // the browser (spec 169). It scoped the removed "set all" control
     // to the phases still ahead; it stays because the server saying
     // which phases have run — derived from the same `used` the
     // pre-filled value is — is better than the browser re-deriving it.
     (used !== undefined ? ` data-ran="1"` : "") +
-    (busy ? ` disabled title="${esc(why)}"` : "") +
+    (locked ? ` disabled title="${esc(why)}"` : "") +
     `>` +
     modelOptions(models, chosen) +
     `</select>`
@@ -2183,6 +2195,7 @@ function aiPicker(
   opts: QueuePageOptions,
   step: string,
   busy: boolean,
+  live: boolean,
   used?: string,
 ): string {
   const models = opts.modelChoices ?? [];
@@ -2191,7 +2204,12 @@ function aiPicker(
   // about whichever tool an admin happened to list first.
   const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
   if (tools.length < 2) return "";
-  const why = busy ? busyReason(g) : "";
+  // Spec 225, and the same `live` the model select beside it takes.
+  // This one carries no `data-post-to`: it posts nothing itself, and a
+  // pick made on it reaches the server through the model select it
+  // writes into.
+  const locked = busy && !live;
+  const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   // The same answer `modelPicker` pre-fills its select with, from the
   // same helper: the AI shown is the tool of the model this line is on,
@@ -2200,7 +2218,7 @@ function aiPicker(
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(runFormId(g))}"` +
-    (busy ? ` disabled title="${esc(why)}"` : "") +
+    (locked ? ` disabled title="${esc(why)}"` : "") +
     `>` +
     tools
       .map(
@@ -2390,8 +2408,8 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // configured AI and nothing to choose between.
       const pickCell =
         `<td class="modelcell"><span class="row">` +
-        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, latest?.model)}` +
-        `${modelPicker(g, opts, p.step, busy, latest?.model)}</span>${box}</span></td>`;
+        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model)}` +
+        `${modelPicker(g, opts, p.step, busy, live, latest?.model)}</span>${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:

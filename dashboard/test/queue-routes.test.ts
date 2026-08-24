@@ -6817,6 +6817,132 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
   });
 });
 
+// --- spec 225: a phase still ahead takes a model too --------------------------
+
+// The sibling of the route above, and named after the one thing it
+// does. A box tick and a select change are two different events at two
+// different moments; folding them into one body would make `/steps`
+// branch on which fields it was handed, and `checked`'s absence would
+// have to mean something other than `false`.
+describe("POST /api/queue/:id/model (spec 225)", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const DEFAULTS = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  /** One job in the mirror, RUNNING the step at `stepIndex`, served by
+   *  a second server started on that mirror — the same trick the
+   *  `/steps` suite above uses, so no runner reconciles the seeded
+   *  state out from under the test. */
+  async function running(steps: string[], stepIndex = 0): Promise<{ base: string; id: string }> {
+    const first = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const made = (await (
+      await fetch(`${first.base}/api/queue`, {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ ...JOB, steps }),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(first.dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "running";
+    job.stepIndex = stepIndex;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    const second = harness.start({
+      extra: { queueToken: TOKEN, queueMirrorPath: mirror, queueDefaults: DEFAULTS },
+    });
+    return { base: second.base, id: made.job.id };
+  }
+
+  const pick = (base: string, id: string, step: string, model: string, body?: BodyInit) =>
+    fetch(`${base}/api/queue/${id}/model`, {
+      method: "POST",
+      headers: body
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        : JSON_HEADERS,
+      body: body ?? JSON.stringify({ step, model }),
+    });
+
+  const modelOf = async (base: string, id: string): Promise<Record<string, string>> => {
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })).json()) as {
+      jobs: { id: string; model: Record<string, string> }[];
+    };
+    return listed.jobs.find((j) => j.id === id)!.model;
+  };
+
+  test("a step still ahead takes the model (criterion 4)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "implement", "fable");
+    expect(res.status).toBe(200);
+    const answer = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
+    expect(answer.ok).toBe(true);
+    expect(answer.job.model.implement).toBe("fable");
+    expect((await modelOf(base, id)).implement).toBe("fable");
+  });
+
+  test("the form encoding the page posts is understood too (criterion 4)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "", "", new URLSearchParams({ step: "implement", model: "fable" }));
+    expect(res.status).toBe(200);
+    expect((await modelOf(base, id)).implement).toBe("fable");
+  });
+
+  test("the running step is refused, by name (criterion 3)", async () => {
+    const { base, id } = await running(["analyze", "implement"], 1);
+    const res = await pick(base, id, "implement", "fable");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("implement");
+    expect((await modelOf(base, id)).implement).toBe("opus");
+  });
+
+  test("a model the server does not offer is refused (criterion 7)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "implement", "haiku");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("haiku");
+    expect((await modelOf(base, id)).implement).toBe("opus");
+  });
+
+  test("a job that is not running is refused (criterion 8)", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const res = await pick(base, made.job.id, "analyze", "fable");
+    expect(res.status).toBe(400);
+    expect((await modelOf(base, made.job.id)).analyze).toBe("sonnet");
+  });
+
+  test("an unknown job is a 404, and GET is not a way in", async () => {
+    const { base, id } = await running(["analyze"]);
+    expect((await pick(base, "nope", "archive", "fable")).status).toBe(404);
+    expect((await fetch(`${base}/api/queue/${id}/model`, { headers: JSON_HEADERS })).status).toBe(405);
+  });
+
+  // The other half of the wiring: the row the reader is looking at has
+  // to draw those selects live, and point them at this route.
+  test("the row draws the live model select and points it here (criteria 1-3)", async () => {
+    const { base, id } = await running(["analyze"]);
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    const group = specControls(html, "81-queue-and-runner");
+    const select = (step: string) =>
+      group.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
+    expect(select("implement")).toContain(`data-post-to="/api/queue/${id}/model"`);
+    expect(select("implement")).not.toContain("disabled");
+    expect(select("analyze")).toContain("disabled");
+    expect(select("analyze")).not.toContain("data-post-to");
+  });
+});
+
 // Spec 205: the dashboard works in checkouts of its own.
 //
 // A run was cut from the same checkout a person edits, and the two

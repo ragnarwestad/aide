@@ -3608,6 +3608,43 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
     }
 
+    // Spec 225: the same edit for the other two controls on a phase
+    // line. A sibling route rather than a second field on `/steps`,
+    // because a box tick and a select change are two different events
+    // at two different moments — one body carrying both would have to
+    // branch on which fields it was handed, and `checked`'s absence
+    // would have to start meaning something other than `false`.
+    //
+    // It queues nothing, so no tick is asked for: the runner reads
+    // `job.model[step]` fresh when it spawns the step, which is what
+    // makes the pick apply without an "apply" mechanism of its own.
+    const tailModelEdit = path.match(/^\/api\/queue\/([A-Za-z0-9-]+)\/model$/);
+    if (tailModelEdit) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, id] = tailModelEdit;
+      const job = queue.get(id!);
+      if (!job) return json({ error: "no such job" }, 404);
+      const sent = await readBounded(req);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const step = typeof body.step === "string" ? body.step : "";
+      const model = typeof body.model === "string" ? body.model : "";
+      const spec = `${job.project}/${job.specFolder}`;
+      const result = queue.editTailModel(id!, step, model);
+      if (!result.ok) {
+        logRefusal("model", spec, result.error);
+        return wantsJson
+          ? json({ error: result.error, spec }, 400)
+          : specsRedirect(body, { error: result.error, spec });
+      }
+      return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
+    }
+
     // `/archive` was a route of its own from spec 163 until spec 221 —
     // every archived spec in one sortable, searchable table. It is gone,
     // and there is deliberately no redirect standing in its place: the

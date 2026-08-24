@@ -989,6 +989,64 @@ export class QueueStore {
     return { ok: true, job: next };
   }
 
+  /** Change the model a RUNNING job will use for a step it has not
+   *  reached yet (spec 225) — the AI and model selects beside the
+   *  boxes spec 160 unlocked.
+   *
+   *  Guarded by the SAME `tailEdits()` the box's own route asks, so a
+   *  select drawn live and the store that takes its pick can never
+   *  disagree about where the tail starts. It answers for both kinds
+   *  of step that function names without a branch between them: one
+   *  already in the job's tail, and one the job does not have at all —
+   *  `Job.model` is a per-step table, and an entry for a step nobody
+   *  has ticked is inert until the step is added and reached.
+   *
+   *  Read, checked and written in ONE synchronous call, nothing awaited
+   *  in between, exactly as `editTailStep` above: that is what makes a
+   *  pick arriving after its step has started find it outside
+   *  `tailEdits()` and be refused by name, rather than land too late
+   *  and silently.
+   *
+   *  The name is checked against the SAME table `parseJobRequest` reads
+   *  at job creation, in the same words — a small duplication, chosen
+   *  over extracting a shared helper out of a working, tested path
+   *  nothing here asked to change. What it does NOT do is re-grant a
+   *  budget: the caps are the config's to give at job creation, and a
+   *  job started on a modest model does not buy a hungrier one's
+   *  headroom by being re-pointed at it mid-run. */
+  editTailModel(id: string, step: string, model: string): ParseResult {
+    const job = this.jobs.get(id);
+    if (!job) return { ok: false, error: "no such job" };
+    const named = step || "that step";
+    const wanted = WORKFLOW_STEPS.find((s) => s === step);
+    if (!wanted || !tailEdits(job).includes(wanted)) {
+      // One sentence, and it names the step — the row has a single line
+      // to say why a pick did not take.
+      return {
+        ok: false,
+        error:
+          job.state === "running"
+            ? `${named} is not a step this run can still be given`
+            : `${named} cannot be changed: this job is ${job.state}, not running`,
+      };
+    }
+    if (!NAME_RE.test(model)) return { ok: false, error: "invalid model" };
+    const found = this.defaults.modelChoices?.[model];
+    if (!found) {
+      return {
+        ok: false,
+        error: this.defaults.modelChoices
+          ? `unknown or not-allowed model: ${model}`
+          : "no model choice is configured on this server",
+      };
+    }
+    const next = { ...job, model: { ...job.model, [wanted]: model } };
+    this.jobs.set(id, next);
+    this.mirror();
+    this.changed();
+    return { ok: true, job: next };
+  }
+
   update(id: string, patch: Partial<Job>): Job | undefined {
     const job = this.jobs.get(id);
     if (!job) return undefined;
