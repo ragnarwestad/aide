@@ -469,6 +469,23 @@ select[name^="model."] {
    desktop has the same problem. */
 .tablewrap { overflow-x: auto; }
 
+/* And the spec list scrolls DOWN inside the same box (spec 226). The
+   25-row cap that kept this list short is gone, so it is as long as the
+   archive is; bounding it here is what keeps the chips, the (?), New
+   spec and the search field where the reader left them while the rows
+   move under them.
+
+   Scoped to #jobrows rather than to .tablewrap at large: the job page's
+   Steps table and the settings table wear the same class, and nobody
+   asked for either of them to be given a height.
+
+   Unconditional, like the horizontal rule above it — the wrapper is
+   present in the phone layout too, where .speclist is stacked blocks
+   rather than a table, and a box that scrolled only on a desktop would
+   be a page that ran off the bottom on a phone. 70vh leaves the row of
+   controls and the page's own header in view above it. */
+#jobrows .tablewrap { overflow-y: auto; max-height: 70vh; }
+
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
   vertical-align: top; }
@@ -552,6 +569,19 @@ table.list thead a { color: var(--muted); }
 /* The note saying what the field looks in belongs to the field, not to
    the table under it. */
 .specsearch + .listnote { margin-top: var(--sp-1); }
+/* The clear control (spec 226) sits IN the field, at its right edge —
+   where every search box a reader has used before puts it. The wrapper
+   is what the absolute position is measured from; it takes the field's
+   own width so the flex row lays it out as the field it holds.
+
+   The field keeps room on its right for the control, so a long term
+   does not run underneath it. */
+.searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
+.searchfield > .archive-q { width: 100%; padding-right: var(--sp-5); }
+.searchclear { position: absolute; right: 0; top: 0; bottom: 0;
+  display: inline-flex; align-items: center; padding: 0 var(--sp-2);
+  color: var(--muted); text-decoration: none; line-height: 1; }
+.searchclear:hover { color: var(--text); }
 /* An archived spec's reader row (spec 221). Its description cell wears
    both classes — the archive's own two-line clamp, and the spec
    column's measure — and the measure has to win, or the one row on the

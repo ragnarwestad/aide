@@ -276,8 +276,11 @@ const STRUCTURE = [
   // list since spec 221, which folded the archive into it.
   "archive-q", "archive-date", "archive-duration",
   // and the form that box sits in (spec 221): a line of its own under
-  // the chips, because that line was already full.
-  "specsearch",
+  // the chips, because that line was already full. "searchfield" is the
+  // box's own wrapper and "searchclear" the × inside it (spec 226) —
+  // one press back to the whole list, and a link like every other
+  // control on this page rather than a script.
+  "specsearch", "searchfield", "searchclear",
   "u-usd", "u-tok",
   // containers — "stack" was the vertical one (spec 124): the row's
   // action buttons, one under the next, in the list's first column. It

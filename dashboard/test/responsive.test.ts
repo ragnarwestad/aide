@@ -181,6 +181,57 @@ describe("every wide table scrolls inside its own box", () => {
     expect(rows()).toContain('<div class="tablewrap"><table class="list speclist">');
   });
 
+  // Spec 226. The cap that kept this list short is gone, so the list is
+  // as long as the archive is; it scrolls in a box of its own, and the
+  // controls above it stay where the reader left them.
+  //
+  // Scoped to `#jobrows`, not to `.tablewrap` at large: the job page's
+  // Steps table and the settings table wear the same class and nobody
+  // asked for either of them to be bounded in height.
+  describe("the spec list scrolls in its own box (spec 226)", () => {
+    /** The `#jobrows .tablewrap` rule's body. */
+    const listWrap = (): string => {
+      const m = /#jobrows \.tablewrap \{([^}]*)\}/.exec(CSS);
+      expect(m).not.toBeNull();
+      return m![1]!;
+    };
+
+    test("the list's box has a height to scroll inside (criterion 2)", () => {
+      expect(listWrap()).toMatch(/overflow-y:\s*auto/);
+      expect(listWrap()).toMatch(/max-height:\s*\S+/);
+    });
+
+    // The page still scrolls the ordinary way everywhere else — the
+    // rule is on the list's wrapper, never on `main` or `body`.
+    test("nothing else on the page is bounded to make it work", () => {
+      expect(CSS).not.toMatch(/\bmain \{[^}]*overflow/);
+      expect(CSS).not.toMatch(/\bbody \{[^}]*overflow/);
+    });
+
+    // Risk 3: at phone width `.speclist` leaves table layout for
+    // stacked flex blocks. The wrapper is present in both layouts and
+    // the rule is unconditional, so the box works there too — a rule
+    // the narrow block quietly overrode would be a list that scrolled
+    // on a desktop and ran off the page on a phone.
+    test("the narrow-width block does not take it away", () => {
+      expect(NARROW).not.toContain("tablewrap");
+    });
+
+    // Criterion 2's other half: the chips, the "?", New spec and the
+    // search field are OUTSIDE the box, ahead of it in the markup. That
+    // is the structural fact a string test can check; that they visibly
+    // stay put while the rows move is the Manual testing note.
+    test("every control sits ahead of the box, not inside it (criterion 2)", () => {
+      const html = rows();
+      const box = html.indexOf('<div class="tablewrap">');
+      expect(box).toBeGreaterThan(-1);
+      const above = html.slice(0, box);
+      for (const control of ['data-filter="state"', '<details class="intro">', 'class="specsearch"'])
+        expect(above).toContain(control);
+      expect(html.slice(box)).not.toContain("specsearch");
+    });
+  });
+
   test("the Steps table on the job and spec pages is wrapped", () => {
     const html = stepResults([
       {
