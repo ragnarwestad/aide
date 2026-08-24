@@ -966,6 +966,12 @@ tr.spec-archived td { color: var(--muted); }
      the badge line — read as a hole. The row pads once, at its edges. */
   table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
   table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
+  /* The horizontal cell padding goes the same way as the vertical did:
+     each line-2 cell kept the desktop 12px on both sides, which put
+     up to 24px of dead air between badge, date and cost — enough to
+     wrap the cost off the line on a phone. The row's flex gap is the
+     one spacing between them. */
+  table.list tr.spechead > td:not(:first-child) { padding-left: 0; padding-right: 0; }
   /* The 2px separator above a spec sits on the CELLS in the base rule,
      and here the cells wrap onto line 2 — each drawing its own border
      segment, which read as a stray grey line between the name and the
