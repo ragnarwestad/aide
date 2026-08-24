@@ -602,3 +602,27 @@ describe("spec 198: the reopen boundary", () => {
     expect(parseStatus(withMark("- **Reopened:** 2026-08-23")).reopenedAfter).toBeUndefined();
   });
 });
+
+describe("spec 231: the work-round boundary", () => {
+  test("a Reset mark is a boundary", () => {
+    const status = parseStatus(
+      "# Status\n\n## Tracking info\n\n- **Reset:** 2026-08-24 (history before `c0ffee1` does not count)\n",
+    );
+    expect(status.reopenedAfter).toBe("c0ffee1");
+  });
+
+  test("the latest valid Reset or Reopened mark wins", () => {
+    const status = parseStatus(
+      [
+        "# Status",
+        "",
+        "## Tracking info",
+        "",
+        "- **Reset:** 2026-08-23 (history before `aaaaaaa` does not count)",
+        "- **Reopened:** 2026-08-24 (history before `bbbbbbb` does not count)",
+        "",
+      ].join("\n"),
+    );
+    expect(status.reopenedAfter).toBe("bbbbbbb");
+  });
+});

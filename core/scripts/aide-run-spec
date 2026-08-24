@@ -96,7 +96,7 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-WORKFLOW_STEPS="explore create analyze implement archive manifest reopen"
+WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset"
 # The steps a dependency actually holds back (spec 122): the ones that
 # BUILD on merged code. analyze and create write only the
 # spec's own folder in the specs repo and conflict with nothing, so
@@ -1092,7 +1092,7 @@ link_worktree_deps() {
   return 0
 }
 
-# --- reopening: the branch goes first (spec 198) -----------------------------
+# --- new work round: the branch goes first -----------------------------------
 #
 # An archived spec whose work has to be done again leaves its branch
 # behind in four places — project-local, project-origin, specs-local,
@@ -1119,13 +1119,18 @@ link_worktree_deps() {
 # `aide/<folder>` from the default branch for this very run, and the
 # reopen's own commit lives on it. What has to disappear is the earlier
 # round's TIP, so that nothing is merged forward out of it.
-if [ "$command_name" = "reopen" ]; then
+if [ "$command_name" = "reopen" ] || [ "$command_name" = "reset" ]; then
   for root in "${roots[@]}"; do
     sweep_worktree "$root" "$branch" ""
     git -C "$root" branch -D "$branch" >/dev/null 2>&1 || true
     if git -C "$root" remote get-url origin >/dev/null 2>&1; then
       git -C "$root" push -q origin --delete "$branch" >/dev/null 2>&1 || true
       git -C "$root" update-ref -d "refs/remotes/origin/$branch" >/dev/null 2>&1 || true
+      if [ "$command_name" = "reset" ]; then
+        remote_ref="$(git -C "$root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null)" \
+          || refuse "cannot verify that origin/$branch was removed from $root"
+        [ -z "$remote_ref" ] || refuse "cannot remove origin/$branch from $root"
+      fi
     fi
   done
 fi
@@ -1642,11 +1647,13 @@ status_file_for() {   # sets $status_file
 # with no sha in it is not a boundary at all: an unreadable one says
 # nothing, which is the pre-reopen behaviour, where a guessed one would
 # hide a round that really did run.
-reopened_boundary_in() {   # sets $reopened_sha
+work_round_boundary_in() {   # sets $work_round_sha
   local file="$1"
-  reopened_sha=""
+  work_round_sha=""
   [ -f "$file" ] || return 0
-  reopened_sha="$(sed -n 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reopened:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
+  work_round_sha="$(sed -n \
+    -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reopened:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
+    -e 's/^[[:space:]]*-\{0,1\}[[:space:]]*\*\*Reset:\*\*.*history before `\([0-9a-fA-F]\{7,40\}\)`.*/\1/p' \
     "$file" 2>/dev/null | tail -1)"
   return 0
 }
@@ -1669,8 +1676,8 @@ completed_steps_for() {   # sets $completed_steps and $model_records
   # the mark is a descendant, never an ancestor, so the new round is
   # untouched. It has to FOLLOW `--all`: `--not` alone names no positive
   # rev, and git then walks nothing at all.
-  reopened_boundary_in "$3"
-  [ -n "$reopened_sha" ] && boundary_args=(--not "$reopened_sha")
+  work_round_boundary_in "$3"
+  [ -n "$work_round_sha" ] && boundary_args=(--not "$work_round_sha")
   seen="|"; completed="|"
   case " $WORKFLOW_ARC " in
     *" $command_name "*)

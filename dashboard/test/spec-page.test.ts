@@ -21,6 +21,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   renderJobDetailPage,
+  renderResetSpecPage,
   renderSpecPage,
   type SpecCheckView,
   type SpecPageView,
@@ -878,5 +879,33 @@ describe("spec 198: the Reopen control", () => {
     expect(html).not.toContain("/edit");
     expect(html).toContain("archived");
     expect(page(view({ archived: true }), "description")).not.toContain("<textarea");
+  });
+});
+
+describe("spec 231: the Reset control", () => {
+  test("an active spec offers Reset immediately before Update", () => {
+    const html = page(view({ resetAction: "/reset-confirm" }));
+    const group = /<div class="pagehead">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/div>/.exec(html)?.[1] ?? "";
+    expect(group).toContain('href="/reset-confirm"');
+    expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Update"));
+  });
+
+  test("Reset is absent for an archived spec and unavailable while busy", () => {
+    expect(page(view({ archived: true, resetAction: "/reset-confirm" }))).not.toContain("/reset-confirm");
+    const html = page(view({ resetAction: "/reset-confirm", resetUnavailableReason: "a job is running" }));
+    expect(html).toContain("Reset");
+    expect(html).toContain("a job is running");
+    expect(html).not.toContain('href="/reset-confirm"');
+  });
+
+  test("the confirmation explains every effect and requires the exact folder", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    for (const text of [
+      "0-README.md", "1-description.md", "analysis", "plan", "status",
+      "local and remote", "earlier jobs and commits", "Project code", "default-branch history",
+    ]) expect(html).toContain(text);
+    expect(html).toContain(`data-confirm="${view().specFolder}"`);
+    expect(html).toContain('name="confirm"');
+    expect(html).toContain('name="token" value="t0ken"');
   });
 });

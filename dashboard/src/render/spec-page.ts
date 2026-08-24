@@ -37,7 +37,7 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring mistake, and a second tab bar would be the fourth.
 
-import { btn, field, rowMessage, tokenField } from "./components.ts";
+import { btn, field, rowMessage, tokenField, typedConfirm } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { notStartedChip, stateChip } from "./job-state.ts";
@@ -106,6 +106,10 @@ export interface SpecPageView {
   /** Where the Update button posts. Built by the server, because only
    *  it knows the action's own path. */
   updateAction: string;
+  /** Confirmation page for starting a new work round on an active spec. */
+  resetAction?: string;
+  /** Why Reset cannot be selected at this instant. */
+  resetUnavailableReason?: string;
   /** Where the Description tab's Save posts. */
   saveAction: string;
   /** Where the Overview tab's checks form posts (spec 212). Its own
@@ -146,6 +150,35 @@ export interface SpecPageView {
  *  on it and the list links to it. */
 export const specPagePath = (project: string, specFolder: string): string =>
   `/specs/${encodeURIComponent(project)}/${encodeURIComponent(specFolder)}`;
+
+export function renderResetSpecPage(
+  project: string,
+  specFolder: string,
+  entries: NavEntry[],
+  generatedAt: string,
+  opts: { token?: string; error?: string; script?: string } = {},
+): string {
+  const back = specPagePath(project, specFolder);
+  const body =
+    (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
+    rowMessage(
+      "info",
+      "Reset keeps 0-README.md and 1-description.md byte for byte. It regenerates the analysis, plan and status, removes old local and remote spec branches, and keeps earlier jobs and commits as history. Project code and default-branch history are unchanged.",
+      { tag: "p" },
+    ) +
+    `<form method="post" action="/api/queue${back}/reset" class="newspecform">` +
+    tokenField(opts.token) +
+    `<span class="frow">` +
+    typedConfirm({
+      target: specFolder,
+      label: "Type the exact folder name to reset it",
+      button: "Reset",
+      pending: "resetting…",
+    }) +
+    `<a class="btn" href="${esc(back)}">Cancel</a>` +
+    `</span></form>`;
+  return pageShell(`Reset ${specFolder}`, entries, "/", body, generatedAt, undefined, { script: opts.script });
+}
 
 /** One TAB of that page. Beside `specPagePath` and for the same reason:
  *  the server sends a refused save back to the tab its form was on, and
@@ -359,6 +392,14 @@ function reopenControl(view: SpecPageView): string {
   );
 }
 
+function resetControl(view: SpecPageView): string {
+  if (!view.resetAction || view.archived) return "";
+  if (view.resetUnavailableReason) {
+    return `<span class="btn" aria-disabled="true" title="${esc(view.resetUnavailableReason)}">Reset</span>`;
+  }
+  return `<a class="btn" href="${esc(view.resetAction)}" title="start this active spec again from its description">Reset</a>`;
+}
+
 /** One document, read-only, under its own name and commit stamp. A tab
  *  whose file the view does not carry at all renders the same "not
  *  written yet" note an empty one does, rather than nothing. */
@@ -450,6 +491,7 @@ export function renderSpecPage(
     // appeared.
     `<span class="row">` +
     (view.archived ? reopenControl(view) : "") +
+    resetControl(view) +
     // A GET would let a reload re-run the pull, so this is a form and
     // not a link, exactly as every other action on this dashboard is.
     `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +

@@ -50,7 +50,7 @@ import {
 import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
-  QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
+  QueueStore, currentWorkRoundJobs, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
   tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
@@ -95,6 +95,7 @@ import {
   renderQueuePage,
   renderQueueRows,
   renderSpecPage,
+  renderResetSpecPage,
   SERVICE_WORKER,
   WEBMANIFEST,
   specPagePath,
@@ -1714,7 +1715,7 @@ export function createServer(opts: ServerOptions) {
             // and a reopen left on its branch would show nowhere at all
             // — "reopening is one action" would then still end with
             // somebody in a terminal.
-            if (step === "analyze" || step === "reopen") {
+            if (step === "analyze" || step === "reopen" || step === "reset") {
               return landStepBranch(job, step, outcome);
             }
             if (step === "archive") return landArchivedSpec(job, outcome);
@@ -2090,6 +2091,7 @@ export function createServer(opts: ServerOptions) {
       // starts.
       editableSteps: tailEdits(job),
       state: job.state,
+      landing: job.landing,
       model: step ? resolveStepModel(job, step, queue.defaults.model) : job.modelChoice,
       spentUsd: job.spentUsd,
       // The stored split is five numbers; the page shows one. Flattened
@@ -3654,6 +3656,54 @@ export function createServer(opts: ServerOptions) {
     // Everything it could do — the date, the description, the "not
     // landed" mark, the search — is on the list it folded into.
 
+    const resetPage = path.match(/^\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reset$/);
+    if (resetPage) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = resetPage;
+      const ref = specRef(project!, specFolder!);
+      if (!ref || ref.archived) return new Response("not found", { status: 404 });
+      return new Response(
+        renderResetSpecPage(project!, specFolder!, nav(), new Date().toISOString(), {
+          token: queueToken,
+          error: url.searchParams.get("error") ?? undefined,
+          script: queueClientScript(),
+        }),
+        { headers: { "content-type": "text/html; charset=utf-8" } },
+      );
+    }
+
+    const resetPost = path.match(/^\/api\/queue\/specs\/([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)\/reset$/);
+    if (resetPost) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const [, project, specFolder] = resetPost;
+      const back = `${specPagePath(project!, specFolder!)}/reset`;
+      const sent = await readBounded(req);
+      if ("refusal" in sent) return sent.refusal;
+      let body: Record<string, unknown> = {};
+      try {
+        if (sent.text) body = bodyToObject(sent.text, req.headers.get("content-type")) as Record<string, unknown>;
+      } catch {
+        return json({ error: "malformed body" }, 400);
+      }
+      const refuseReset = (error: string): Response =>
+        wantsJson ? json({ error }, 400) : specsRedirect({}, { error }, back);
+      if (body.confirm !== specFolder) return refuseReset(`type ${specFolder} exactly to confirm Reset`);
+      const ref = specRef(project!, specFolder!);
+      if (!ref) return new Response("not found", { status: 404 });
+      if (ref.archived) return refuseReset(`${specFolder} is archived — Reset is only for active specs`);
+      if (queue.list().some((job) => job.landing)) return refuseReset("a landing is in progress");
+      if (queue.list().some((job) =>
+        job.project === project && job.specFolder === specFolder &&
+        (job.state === "queued" || job.state === "running")
+      )) return refuseReset("another job for this spec is still running");
+      const result = queue.enqueue({ project, specFolder, steps: ["reset"] });
+      if (!result.ok) return refuseReset(result.error);
+      await tickRunner();
+      return wantsJson
+        ? json({ ok: true, job: result.job })
+        : specsRedirect({}, undefined, specPagePath(project!, specFolder!));
+    }
+
     // The SPEC page, and the Update button that keeps it honest (spec
     // 150). Two path segments where the job route has one, so the two
     // are disjoint by shape: a job id never contains a slash, and a
@@ -4145,9 +4195,10 @@ export function createServer(opts: ServerOptions) {
     // steps since spec 149) and the same "started, or failing that
     // created" clock, so the page a name opens speaks for the job the
     // name spoke for.
-    const jobs = queue
+    const matchingJobs = queue
       .list()
-      .filter((j) => j.project === project && j.specFolder === specFolder)
+      .filter((j) => j.project === project && j.specFolder === specFolder);
+    const jobs = currentWorkRoundJobs(matchingJobs)
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
     const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
     const lead = jobs.find(inFlight) ?? jobs[0];
@@ -4205,6 +4256,12 @@ export function createServer(opts: ServerOptions) {
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
       updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,
+      resetAction: `${specPagePath(project, specFolder)}/reset`,
+      resetUnavailableReason: matchingJobs.some((job) => job.state === "queued" || job.state === "running")
+        ? "another job for this spec is still running"
+        : queue.list().some((job) => job.landing)
+          ? "a landing is in progress"
+          : undefined,
       saveAction: `/api/queue${specPagePath(project, specFolder)}/save`,
       tickAction: `/api/queue${specPagePath(project, specFolder)}/tick`,
       // The Reopen control on an archived spec posts to `/api/queue`,

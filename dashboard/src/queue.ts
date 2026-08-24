@@ -31,9 +31,26 @@ import { dirname } from "node:path";
 // through and it draws no phase box, exactly as `explore` and `manifest`
 // do not.
 export const WORKFLOW_STEPS = [
-  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen",
+  "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
+
+/** Keep only jobs after the newest Reset that completed and landed. */
+export function currentWorkRoundJobs<T extends {
+  steps: readonly string[];
+  state: string;
+  landing?: boolean;
+  createdAt: string;
+  startedAt?: string;
+}>(
+  jobs: T[],
+): T[] {
+  const at = (job: T): number => Date.parse(job.startedAt ?? job.createdAt) || 0;
+  const boundary = jobs
+    .filter((job) => job.state === "done" && !job.landing && job.steps.includes("reset"))
+    .reduce((latest, job) => Math.max(latest, at(job)), -Infinity);
+  return boundary === -Infinity ? jobs : jobs.filter((job) => at(job) > boundary);
+}
 
 /** The steps a spec's row draws a box for, in the order they run — and
  *  so the steps a running job's tail may be given (spec 160). It is

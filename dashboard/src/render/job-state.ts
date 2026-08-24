@@ -42,6 +42,7 @@ export interface QueueRowView {
   state:
     | "queued" | "running" | "done"
     | "stopped" | "failed" | "cancelled" | "interrupted";
+  landing?: boolean;
   spentUsd: number;
   /** The same figure in tokens (spec 118). A NUMBER here, not the stored
    *  split: the page shows a compact total and nothing else, and the
