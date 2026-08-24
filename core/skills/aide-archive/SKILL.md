@@ -86,27 +86,52 @@ says. Any row open, name it (its phase heading and Task cell) and:
 - **Someone is there (interactive):** show the status and ask whether to
   archive anyway. Never archive silently past an open row.
 - **Nobody is there (headless — the prompt said so, or `AIDE_HEADLESS`
-  is set):** do NOT archive. Add — or replace, if one is already there —
-  a `## Archive held back` section in `4-status.md` holding ONE bullet
-  that names what is still open AND where a person closes it out — ONE
-  line, e.g.
-  `- the Slack webhook (Phase 4, still unchecked) — tick it on the spec's page`
-  Then report the hold-back plainly and stop: do not continue to Step 4
-  or Step 5.
+  is set):** do NOT archive — but before writing anything, tell ordinary
+  progression apart from a genuine block. Read the Tracking info's
+  `- **Workflow steps completed:**` line (the commit-derived record
+  `aide-run-spec` writes and the dashboard's `parseWorkflowSteps` reads),
+  and read every open row's Status cell again asking a narrower
+  question: is it UNSTARTED — `⬜`, or the Notation table's own word
+  `Not started`, case-insensitively — rather than merely not done.
 
-  The second half is not decoration. The bullet is the only thing the
-  reader is shown, in three places on the dashboard, and "still
-  unchecked" describes the app's state without saying what to do about
-  it. Since spec 182 the row is a real checkbox on the spec's own page:
-  one click writes the mark, commits it, and the hold-back is gone.
+  - **Ordinary progression — every open row unstarted, and `implement`
+    absent from that line (or the line itself absent):** the spec has
+    simply not reached implement yet, exactly as a freshly analyzed spec
+    has not. That is the workflow working, never a warning. Write no
+    `## Archive held back` section, and REMOVE one already in the file —
+    stale, left by an earlier run of this shape — so a normal-progression
+    decline leaves none behind. Report plainly that the work is not done
+    yet and name the next step, `/aide-implement`. Then stop: do not
+    continue to Step 4 or Step 5, and write nothing else to
+    `4-status.md`.
+  - **Genuinely blocked — any open row that is NOT unstarted (`🔄` in
+    progress, `❌` blocked, `⚠️` waiting), or `implement` present on that
+    line while a row is still open:** work that was supposed to be
+    finished is not. Add — or replace, if one is already there — a
+    `## Archive held back` section in `4-status.md` holding ONE bullet
+    that names what is still open AND where a person closes it out — ONE
+    line, e.g.
+    `- the Slack webhook (Phase 4, still unchecked) — tick it on the spec's page`
+    Then report the hold-back plainly and stop: do not continue to Step 4
+    or Step 5.
 
-  One section, one bullet, replaced in place — a spec declined twice
-  carries its CURRENT reason, not a growing list of stale ones. The
-  dashboard reads that heading directly and shows the bullet as the
-  reason the spec's archive phase says "held back" instead of "done".
-  It is the only signal there is: the run's own exit status is the
-  claude session's, and a run that declined exits just as successfully
-  as one that moved the folder.
+    The second half is not decoration. The bullet is the only thing the
+    reader is shown, in three places on the dashboard, and "still
+    unchecked" describes the app's state without saying what to do about
+    it. Since spec 182 the row is a real checkbox on the spec's own page:
+    one click writes the mark, commits it, and the hold-back is gone.
+
+    One section, one bullet, replaced in place — a spec declined twice
+    carries its CURRENT reason, not a growing list of stale ones. The
+    dashboard reads that heading directly and shows the bullet as the
+    reason the spec's archive phase says "held back" instead of "done".
+    It is the only signal there is: the run's own exit status is the
+    claude session's, and a run that declined exits just as successfully
+    as one that moved the folder.
+
+    Which is why the split above matters: that badge and that panel are
+    an alarm, and an alarm every unimplemented spec sets off is one
+    nobody reads.
 
 ### Step 4: Close the loop
 
