@@ -64,6 +64,22 @@ spec — but never leave the change with nothing at all.
    - Re-run until everything passes
 4. **Before committing:** Run the entire test suite to check for regressions
 
+### Slow tests never block the session
+
+The job itself often takes seconds; verification must not turn that
+into a quarter of an hour of the user waiting (raised hard 2026-08-24).
+
+- Run in the FOREGROUND only fast, narrow test files that cover the
+  exact change. Learn which files in a repo are slow before running
+  anything broad.
+- Anything slow runs in the BACKGROUND, announced with what it is and
+  roughly how long, while the job and the conversation continue.
+  Report the result when it lands.
+- The full suite runs exactly ONCE per job, in the background, before
+  commit — never inline, never repeated per iteration.
+- When the user is waiting to SEE something, deploy or show it first
+  and verify in the background.
+
 ---
 
 ## Test commands

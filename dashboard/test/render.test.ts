@@ -931,7 +931,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     // is next, so it wears `b-ready` here. What it must not read is the
     // OLDER job's outcome, which would still be the bare word "failed".
     expect(head).toContain('class="badge b-ready"');
-    expect(head).toContain("ready for analyze");
+    expect(head).toContain(">ready<");
     expect(head).not.toContain('class="badge b-refused"');
   });
 
@@ -1641,7 +1641,7 @@ describe("every spec is a row (criteria 1-10)", () => {
     // — so the column says what comes next on both. Nothing has run
     // here, so the next phase is analyze.
     expect(line).toContain('class="badge b-ready"');
-    expect(line).toContain("ready for analyze");
+    expect(line).toContain(">ready<");
     expect(line).not.toContain("not started");
     // It used to link to nothing — "a link to nothing is worse than no
     // link". Spec 150 gave every spec somewhere to point, so what must
@@ -2400,7 +2400,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     // The badge and the button are untouched — they are what says it.
     // Spec 176 changed the words on a never-run row from "not started"
     // to what comes next; the badge itself is still what says it.
-    expect(cell).toContain("ready for analyze");
+    expect(cell).toContain(">ready<");
   });
 
   // In flight the sentence says nothing (asked for 2026-08-19): the
@@ -2449,7 +2449,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       ],
       [target("101-a")],
     );
-    expect(chip(html)).toBe("ready for analyze");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Analyze</button>");
     expect(hint(html)).toBe("");
   });
 
@@ -2468,7 +2469,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("ready for archive");
+    expect(chip(html)).toBe("ready");
     expect(chip(html).toLowerCase()).not.toContain("merge");
     expect(hint(html)).toBe("");
   });
@@ -2484,7 +2485,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("ready for implement");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toBe("done");
     expect(hint(html)).toBe("");
   });
@@ -2494,7 +2496,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", steps: ["implement"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement"] })],
     );
-    expect(chip(html)).toBe("ready for archive");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Archive</button>");
   });
 
   // An open branch used to outrank the phase that was ready, because
@@ -2512,7 +2515,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       ],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("ready for implement");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Implement</button>");
     expect(hint(html)).toBe("");
   });
 
@@ -2525,7 +2529,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       [row({ specFolder: "101-a", steps: ["archive"], state: "done" })],
       [target("101-a", { done: ["analyze", "implement", "archive"] })],
     );
-    expect(chip(html)).toBe("ready for archive");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Archive</button>");
     expect(hint(html)).toBe("");
   });
 
@@ -2544,7 +2549,8 @@ describe("spec 101: one line per row for what is going on and what is next (crit
       ],
       [target("101-a", { done: ["analyze"] })],
     );
-    expect(chip(html)).toBe("ready for implement");
+    expect(chip(html)).toBe("ready");
+    expect(html).toContain(">Implement</button>");
     expect(chip(html)).not.toContain("nothing waiting on you");
   });
 
@@ -2559,7 +2565,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
         [target("101-a", { done: ["analyze"] })],
       );
       expect(chip(html)).toContain(state);
-      expect(chip(html)).not.toContain("ready for");
+      expect(chip(html)).not.toContain(">ready<");
       expect(hint(html)).toBe("");
     }
   });
@@ -2782,10 +2788,10 @@ describe("spec 103: a collapsed row shows status only", () => {
     // badge below.
     expect(line).not.toContain("Status only");
     expect(line).not.toContain("% done");
-    // Spec 132: the badge says the resting state and what is next, so a
-    // spec whose files say nothing has run reads "ready for analyze".
+    // Spec 132: the badge says the resting state — one word since
+    // 2026-08-24; the button beside it is what names the next phase.
     expect(line).toContain('class="badge b-ready"');
-    expect(line).toContain("ready for analyze");
+    expect(line).toContain(">ready<");
     expect(line).toContain('class="pips"');
     expect(line).toContain("$1.50");
   });
@@ -3975,7 +3981,7 @@ describe("spec 116: create is the first phase line", () => {
         .replace(/<span class="dot"[^>]*><\/span>/g, "")
         .match(/<span class="badge b-[a-z]+"[^>]*>([^<]*)<\/span>/)?.[1] ?? "";
     expect(said(withCreate)).toBe(said(withoutCreate));
-    expect(said(withCreate)).toBe("ready for implement");
+    expect(said(withCreate)).toBe("ready");
     // The button is named for the phase a press would run (spec 157),
     // and `create` is not one of them whether it is done or not.
     expect(runLine(withCreate)).toContain(">Implement</button>");
@@ -5539,7 +5545,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   for (const open of [true, false]) {
     test(`the next unstarted phase names the button (${open ? "open" : "shut"}, criterion 1)`, () => {
       const html = rows([lead()], [target("157-one-action", { done: BUILT })], { open });
-      expect(state(html)).toContain("ready for implement");
+      expect(state(html)).toContain(">ready<");
       expect(labels(state(html))).toEqual(["Implement"]);
     });
   }
@@ -5549,7 +5555,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
     // Spec 176: the badge names the next phase here as it does on a
     // row that has run something, so it agrees with the button beside
     // it rather than saying nothing.
-    expect(state(html)).toContain("ready for analyze");
+    expect(state(html)).toContain(">ready<");
     expect(labels(state(html))).toEqual(["Analyze"]);
   });
 
@@ -5561,7 +5567,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
   test("a spec with no job left in memory still says what comes next (spec 176)", () => {
     const html = rows([], [target("157-one-action", { done: BUILT })]);
     expect(state(html)).toContain('class="badge b-ready"');
-    expect(state(html)).toContain("ready for implement");
+    expect(state(html)).toContain(">ready<");
     expect(state(html)).not.toContain("not started");
     expect(labels(state(html))).toEqual(["Implement"]);
   });
@@ -5741,7 +5747,7 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [],
       [target("191-agree", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(state(html)).toContain("ready for archive");
+    expect(state(html)).toContain(">ready<");
     expect(labels(state(html))).toEqual(["Archive"]);
   });
 
@@ -5754,7 +5760,8 @@ describe("spec 157: the row's one action sits in the State column", () => {
       [],
       [target("191-cleared", { done: ["analyze", "review-plan", "implement", "archive"] })],
     );
-    expect(state(html)).toContain("ready for archive");
+    expect(state(html)).toContain(">ready<");
+    expect(labels(state(html))).toEqual(["Archive"]);
     expect(state(html)).not.toContain("nothing waiting on you");
   });
 
@@ -7065,5 +7072,37 @@ describe("spec 221: archived specs on the spec list", () => {
     });
     expect(html).toMatch(/>Archived · 1</);
     expect(html).toMatch(/>All · 2</);
+  });
+});
+
+// --- spec 220: the pull request a run left open ------------------------------
+//
+// A project that reviews its code archives with the code still on its
+// branch, and a pull request describing it. The row is where a reader
+// finds out — the same line that carries the compare links — and a `gh`
+// that could not open the request has to say so there too, or an
+// orphaned open branch looks exactly like a reviewed one.
+describe("a row shows the pull request its run opened (spec 220)", () => {
+  const open = (extra: Partial<QueueRowView>): string =>
+    renderQueueRows([row({ steps: ["archive"], state: "done", ...extra })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+
+  test("the link is on the row, beside the branch it is for", () => {
+    const html = open({ prUrl: "https://github.test/aide/pull/7" });
+    expect(html).toContain('href="https://github.test/aide/pull/7"');
+    expect(html.toLowerCase()).toContain("pull request");
+  });
+
+  test("a gh that could not open one says so instead", () => {
+    const html = open({ prError: "gh auth login required" });
+    expect(html).toContain("gh auth login required");
+    expect(html).not.toContain("pull/7");
+  });
+
+  test("a row with neither is the row it has always been", () => {
+    const html = open({});
+    expect(html.toLowerCase()).not.toContain("pull request");
   });
 });

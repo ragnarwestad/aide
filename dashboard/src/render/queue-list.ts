@@ -160,6 +160,15 @@ export interface ArchivedSpecView {
    *  whose job the queue's LRU cap evicted long ago — 146's case, which
    *  carried no failure reason at all. */
   notLanded?: boolean;
+  /** Its branch is open because the project reviews its code (spec 220),
+   *  not because the landing failed. Takes precedence over `notLanded`,
+   *  which is derived from the same fact and would otherwise say the
+   *  opposite of what happened. */
+  prOpen?: boolean;
+  /** The request itself, when the run managed to open one. Absent where
+   *  `gh` could not — and then the row says the branch is open with
+   *  nothing describing it, which is a state worth seeing. */
+  prUrl?: string;
   /** When that answer was last taken — epoch ms, the checker's own
    *  cache stamp (spec 208). The set is whatever a background schedule
    *  last found, so how OLD it is decides how much of it to believe:
@@ -193,6 +202,15 @@ export const NO_DATE = "date unknown";
  *  Drawn with the same `refused` badge a failed row gets — one archive
  *  is not a different kind of problem from the other. */
 export const NOT_LANDED = "not landed";
+
+/** The mark an archived row carries instead, when its branch is open
+ *  BECAUSE THE PROJECT ASKED FOR THAT (spec 220): `codeLanding: pr` in
+ *  its manifest, so the code waits on a pull request for as long as the
+ *  review takes. Same fact from origin — the branch is there — and the
+ *  opposite meaning, which is the whole reason it is worded apart:
+ *  `NOT_LANDED` reads as an instruction to run archive again, and this
+ *  one is an instruction to go and review something. */
+export const PR_OPEN = "PR open";
 
 /** What the description says when `1-description.md` has no
  *  `## Description` section. A dash, not a blank: the same reason the
@@ -710,6 +728,17 @@ interface SpecGroup {
    *  the same thing by root when the Merge button posts back, and that
    *  one is the authority. Nothing here decides where git runs. */
   branches: BranchView[];
+  /** The pull request a `pr`-mode run opened for this spec's code branch
+   *  (spec 220), off the most recently active job that reported one. A
+   *  project whose code is reviewed archives with that branch still on
+   *  origin, deliberately and for as long as the review takes — so the
+   *  row has to say where the review IS, or a reader has no way to tell
+   *  it from a landing that got stuck. */
+  prUrl?: string;
+  /** Why `gh` opened none. The other half of the same answer, and the
+   *  more urgent one: this is a branch left unmerged with nothing
+   *  describing it, which no amount of waiting will resolve. */
+  prError?: string;
   phases: Phase[];
   /** Steps this spec has already had, from its matching target: what its
    *  own files show, and what the queue actually ran. Marked on the
@@ -967,6 +996,10 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
     branches: branchesOf(recent),
+    // Newest-first, so the first job that reported one wins — the same
+    // rule `branchesOf` folds branch labels by.
+    prUrl: recent.find((r) => r.prUrl)?.prUrl,
+    prError: recent.find((r) => r.prError)?.prError,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
     // money — and one figure per phase LINE, not per attempt: a phase
@@ -1766,6 +1799,16 @@ function specHeadRow(
   // whether it landed, and what lands it. What the row's lead job is
   // doing is the State column's answer, said there once.
   const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
+  // Spec 220: where the review is. Beside the branch list because it is
+  // about the same branch — the code is on it and stays on it until
+  // somebody merges the request. A `gh` that opened none says so
+  // instead, and says it as a refusal: an open branch with nothing
+  // describing it is the one outcome nobody is waiting for.
+  const review = g.prUrl
+    ? ` <a class="small" href="${esc(g.prUrl)}" title="the pull request this spec's code is waiting on">pull request</a>`
+    : g.prError
+      ? ` ${badge("refused", "no pull request", g.prError)}`
+      : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
@@ -1844,6 +1887,7 @@ function specHeadRow(
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
     diff +
+    review +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence
@@ -2429,6 +2473,21 @@ function notLandedTitle(checkedAt: number | undefined, now: number): string {
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 }
 
+/** The waiting-on-review mark, wrapped in a link to the request when
+ *  there is one to link to — the mark is a reason to go somewhere, and
+ *  the place is the pull request. Without a URL it is the bare badge,
+ *  saying the branch is open and nothing describes it. */
+function prOpenMark(s: ArchivedSpecView): string {
+  const mark = badge(
+    "waiting",
+    PR_OPEN,
+    s.prUrl
+      ? "its code is waiting on a pull request — open it to review"
+      : "its code is on a branch and no pull request was opened for it",
+  );
+  return s.prUrl ? `<a href="${esc(s.prUrl)}">${mark}</a>` : mark;
+}
+
 /** The one action an archived spec offers (spec 198, on its row since
  *  spec 221). The same `POST /api/queue` with `steps=reopen` the spec's
  *  own page sends — not a shared helper with it, because the two differ
@@ -2473,9 +2532,15 @@ function archivedHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): str
   const s = g.archive!;
   // Beside the link a reader would follow, because the mark is a reason
   // to follow it: the spec needs its `archive` run again.
-  const mark = s.notLanded
-    ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
-    : "";
+  // Spec 220 first: the two marks come from ONE fact — the branch is
+  // still on origin — and a project that reviews its code means that
+  // fact to be true. Reading `notLanded` first would call every working
+  // PR-mode archive stuck.
+  const mark = s.prOpen
+    ? ` ${prOpenMark(s)}`
+    : s.notLanded
+      ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
+      : "";
   // "checking…" is a spec nobody has ASKED git about; `date unknown` is
   // one git was asked about and could not date. Two different answers,
   // and a cell saying the wrong one is a cell that lies about whether

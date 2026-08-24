@@ -61,6 +61,14 @@ describe("Started and Cost fold away at phone width", () => {
     expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
   });
 
+  // The action button after the badge must start at the same x on every
+  // row, whatever the state's wording — so the badge reserves the width
+  // of its longest label ("implementing queued") instead of sizing to
+  // whichever word it happens to carry.
+  test("the spec header's badge reserves one width for every state", () => {
+    expect(NARROW).toMatch(/table\.list tr\.spechead \.badge \{ min-width: [\d.]+rem/);
+  });
+
   // Criterion 2. Three separate renderers write these two cells — the
   // head row, each phase line, and the caption line above them — and
   // hiding one set while another stays visible leaves the table with

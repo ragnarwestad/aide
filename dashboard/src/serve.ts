@@ -37,8 +37,9 @@ import {
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, resolveWorktreeLinks, specArchivedDate, specDependsOn, specDurationMs, specFileText,
-  specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine, type DiscoveredProject, type SpecRef,
+  gitignoreCandidates, resolveCodeLanding, resolveWorktreeLinks, specArchivedDate, specDependsOn,
+  specDurationMs, specFileText, specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine,
+  type CodeLanding, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
 import { projectSettings } from "./project-settings.ts";
@@ -902,6 +903,25 @@ export function createServer(opts: ServerOptions) {
    *  finished. */
   let unlanded: string[] = [];
 
+  /** The SUBSET of `unlanded` that is open on purpose (spec 220): a
+   *  project whose manifest says `codeLanding: pr` archives with its
+   *  code branch still on origin, for as long as the review takes.
+   *
+   *  A subset, not a set of its own, and deliberately: every existing
+   *  reader of `unlanded` goes on seeing exactly what it saw — the row
+   *  stays on the specs list, and `archive` stays enqueueable for it —
+   *  and what splits is only what the two pages CALL it. `NOT_LANDED`
+   *  reads as an instruction to run archive again; this state is an
+   *  instruction to go and review something, and a page that says the
+   *  first about the second is worse than saying nothing.
+   *
+   *  Only when the branch is open in the CODE root alone. A specs root
+   *  that still holds it is a landing that genuinely did not finish —
+   *  the specs merge is never gated, in any mode — and calling that a
+   *  review would hide the one failure this whole check exists to
+   *  catch. */
+  let prOpen: string[] = [];
+
   /** The two repositories a spec's work can be open in — the same pair
    *  the dependency gate asks across, and for the same reason: a spec
    *  merged in the code repo but not in the specs repo is not merged. */
@@ -938,7 +958,10 @@ export function createServer(opts: ServerOptions) {
   const peekUnlanded = (): string[] => {
     targets();
     const keys = scan?.archived ?? [];
-    if (keys.length === 0) return (unlanded = []);
+    if (keys.length === 0) {
+      prOpen = [];
+      return (unlanded = []);
+    }
     const byProject = new Map<string, string[]>();
     for (const key of keys) {
       const cut = key.indexOf("/");
@@ -948,19 +971,41 @@ export function createServer(opts: ServerOptions) {
       else byProject.set(project, [key.slice(cut + 1)]);
     }
     const found: string[] = [];
+    const reviewing: string[] = [];
     for (const [project, folders] of byProject) {
       const open = new Set<string>();
+      // Kept apart from the union above (spec 220): which ROOT holds a
+      // branch is what tells "waiting on a review" from "the landing did
+      // not finish", and folding the roots together loses it.
+      const elsewhere = new Set<string>();
+      const codeRoot = machineryProjectDir(project);
+      const pr = codeLanding(project) === "pr";
+      // A specs root INSIDE the project is the same repository, so it
+      // holds the same one branch and answers `ls-remote` identically —
+      // `specRoots` asks it separately because it compares paths, not
+      // repos. Counting that as a second root would call every
+      // single-repo project's review a failed landing, and paceup and
+      // atlasaurus are both shaped that way.
+      const separate = (root: string): boolean =>
+        root !== codeRoot && !resolve(root).startsWith(resolve(codeRoot) + sep);
       for (const root of specRoots(project)) {
         // A root nobody has asked about yet peeks `null`, and `?? []`
         // makes it contribute nothing — the same way an unanswerable
         // one already did. That is what keeps this failing closed
         // without any new logic to get wrong.
-        for (const branch of branchStatus.peekOpenSpecBranches(root).open ?? []) open.add(branch);
+        for (const branch of branchStatus.peekOpenSpecBranches(root).open ?? []) {
+          open.add(branch);
+          if (separate(root)) elsewhere.add(branch);
+        }
       }
       for (const folder of folders) {
-        if (open.has(specBranch(folder))) found.push(`${project}/${folder}`);
+        const branch = specBranch(folder);
+        if (!open.has(branch)) continue;
+        found.push(`${project}/${folder}`);
+        if (pr && !elsewhere.has(branch)) reviewing.push(`${project}/${folder}`);
       }
     }
+    prOpen = reviewing;
     return (unlanded = found);
   };
 
@@ -1294,6 +1339,18 @@ export function createServer(opts: ServerOptions) {
     const owned = dashboardCheckoutRoot(checkoutBase, project);
     return existsSync(join(owned, ".git")) ? owned : displayProjectDir(project);
   };
+  /** Whether this project's archived code merges into its default branch
+   *  or waits for a pull request (spec 220), read fresh off the
+   *  MACHINERY's checkout — the one a run is cut from and a landing
+   *  merges in, so the answer is the one the work is actually done
+   *  against.
+   *
+   *  Read per call rather than cached: it is one small YAML file, the
+   *  same cost class as the `4-status.md` reads `targets()` already does
+   *  per spec, and an operator changing the choice on the settings page
+   *  should see the next job honour it rather than the next restart. */
+  const codeLanding = (project: string): CodeLanding => resolveCodeLanding(machineryProjectDir(project));
+
   /** What `ensureCheckout` last worked out, so the SYNC readers can ask
    *  where a project's own specs are without awaiting a clone. Empty
    *  until the first ensure settles, which is what the fallback below is
@@ -1560,7 +1617,22 @@ export function createServer(opts: ServerOptions) {
               {
                 runnerBin: opts.queueRunnerBin!,
                 projectDir: machineryProjectDir(job.project),
-                push: opts.queuePush ?? "branch",
+                // Spec 220. The global setting speaks for every project
+                // on this host at once; a project that reviews its code
+                // says so in its own committed manifest, and that
+                // answer wins. It only ever raises the mode TO `pr` —
+                // `merge` is the absence of an opinion, not an
+                // instruction to publish less than the host asked for.
+                //
+                // Both halves have to travel together: `landBranch`
+                // below stops merging this project's code root, and a
+                // branch left open with no pull request describing it
+                // is worse than either behaviour on its own. Read per
+                // spawn, off disk, the same way `projectManifest` is
+                // read per render — one small YAML file, and an edit
+                // takes effect on the next job rather than the next
+                // deploy.
+                push: codeLanding(job.project) === "pr" ? "pr" : (opts.queuePush ?? "branch"),
                 modelChoices: queue.defaults.modelChoices,
                 timeoutSec: queue.defaults.timeoutSec,
                 permissionMode: queue.defaults.permissionMode,
@@ -2009,6 +2081,11 @@ export function createServer(opts: ServerOptions) {
       createdAt: job.createdAt,
       startedAt: job.startedAt,
       branchUrls,
+      // Spec 220: stored on the job, not derived here like `branchUrls`
+      // — only the run that called `gh` knows the URL, and there is
+      // nothing on this machine to work it out from.
+      prUrl: job.prUrl,
+      prError: job.prError,
       stopReason: job.stopReason,
       error: job.error,
       // Why the landing was refused, when it was refused for something
@@ -2112,6 +2189,18 @@ export function createServer(opts: ServerOptions) {
       const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort(
         (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
       );
+      /** Roots this landing deliberately does not merge (spec 220): a
+       *  project whose manifest says `codeLanding: pr` has its CODE
+       *  reviewed before it reaches the default branch, and the run has
+       *  already opened the pull request.
+       *
+       *  `archive` alone, by the literal step name, and the code root
+       *  alone. `create` and `analyze` never reach a code root in a
+       *  gated position, and the specs root is bookkeeping — an archive
+       *  commit moving a folder is not a change anyone reviews, and the
+       *  description scopes this to the code. */
+      const leaveOpen = (root: string): boolean =>
+        what.step === "archive" && codeRoots.has(root) && codeLanding(job.project) === "pr";
       if (!branch || repos.length === 0) {
         if (what.nothingToLand) queue.update(job.id, { error: what.nothingToLand });
         return;
@@ -2121,6 +2210,16 @@ export function createServer(opts: ServerOptions) {
       // of. A conflict is the only one a `resolve` step could finish.
       let reason: Job["errorReason"];
       for (const repo of repos) {
+        if (leaveOpen(repo.root)) {
+          // Nothing merged, nothing deleted, nothing installed: the code
+          // is on its branch, which is where the review happens, and
+          // installing it here would deploy exactly the change the
+          // review exists to hold back.
+          console.error(
+            `queue: landing ${job.project}/${job.specFolder} in ${repo.root} — left open for review (codeLanding: pr)`,
+          );
+          continue;
+        }
         const base = await branchStatus.defaultBranch(repo.root);
         if (!base) {
           // Guessing which branch to merge INTO is the one guess with no
@@ -2218,6 +2317,13 @@ export function createServer(opts: ServerOptions) {
       // healthy landing failed.
       if (what.step === "archive") {
         for (const root of await rootsStillHolding(job.project, branch, true)) {
+          // A root the loop above CHOSE not to merge is not a root that
+          // failed to merge (spec 220). Without this, every working
+          // PR-mode archive reports itself as an unlanded failure — the
+          // check asks origin about the project's roots with no
+          // knowledge of which ones the landing skipped, and in `pr`
+          // mode the code root always still holds the branch, by design.
+          if (leaveOpen(root)) continue;
           failures.push(
             // The sentence carries the move as well as the state: the
             // way out is the step that just ran, and the row's own
@@ -2256,10 +2362,23 @@ export function createServer(opts: ServerOptions) {
       // advertising one: a compare page for a merged branch shows
       // nothing, and the row would otherwise name a branch it can
       // no longer derive (`specBranch` reads the RENAMED folder).
+      // ...except what was deliberately left open (spec 220), which
+      // still has a branch and still wants naming: the row is where a
+      // reader learns the code is waiting on a review rather than
+      // already on the default branch.
+      const stillOpen = repos.filter((repo) => leaveOpen(repo.root));
+      // And the review it is waiting on is named on THIS job, whichever
+      // job opened it. `implement` pushed the code and called `gh`;
+      // `archive` is the row a reader is looking at when the spec goes
+      // quiet, and a link they have to go hunting for on an older row is
+      // a link that is not there.
+      const review = stillOpen.length ? queue.pullRequestFor(job.project, job.specFolder) : {};
       queue.update(job.id, {
         ...what.landed,
-        branchUrl: undefined,
-        branchUrls: [],
+        branchUrl: stillOpen.length ? (stillOpen[0]!.url ?? job.branchUrl) : undefined,
+        branchUrls: stillOpen,
+        prUrl: review.prUrl,
+        prError: review.prError,
         error: undefined,
         errorReason: undefined,
       });
@@ -2992,6 +3111,7 @@ export function createServer(opts: ServerOptions) {
         // IS rather than what it was when the page was last generated.
         specsPath: configValue(dir, "AIDE_SPECS_PATH") ?? "",
         worktreeLinks: resolveWorktreeLinks(dir).links,
+        codeLanding: resolveCodeLanding(dir),
         worktreeLinkCandidates: gitignoreCandidates(dir),
         error: url.searchParams.get("error") ?? undefined,
       });
@@ -3272,6 +3392,10 @@ export function createServer(opts: ServerOptions) {
       const result = await updateProjectSettings(gitRun, join(opts.projectRoot, name), {
         specsPath: str(asked.specsPath),
         worktreeLinks: str(asked.worktreeLinks),
+        // Only when the form actually sent one (spec 220): a caller
+        // posting the two older fields alone must not be read as
+        // choosing `merge` and quietly taking the key back out.
+        ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
       });
       // The specs root a save just named is where the scan goes looking
       // for this project's specs — without this the very next request
@@ -3852,14 +3976,23 @@ export function createServer(opts: ServerOptions) {
     // below is holding back.
     targets();
     const open = new Set(peekUnlanded());
+    // Filled by the same call, and read after it (spec 220): the subset
+    // of `open` that is open because the project reviews its code.
+    const reviewing = new Set(prOpen);
     const openCheckedAt = peekUnlandedCheckedAt();
     const everyOne = filterShowsArchived(state);
     const rows: ArchivedSpecView[] = [];
     for (const key of scan?.archived ?? []) {
-      const notLanded = open.has(key);
+      // The two marks come from one fact and mean opposite things (spec
+      // 220), so the deliberate one wins outright rather than both being
+      // set and the renderer picking.
+      const prWaiting = reviewing.has(key);
+      const notLanded = open.has(key) && !prWaiting;
       // The gate, and it is BEFORE the two file reads under it — after
       // them it would be a filter, not a gate, and would cost the
-      // default view exactly what it exists to save.
+      // default view exactly what it exists to save. A PR waiting on
+      // review is not the failure this gate exists to surface, so it
+      // does not bypass it the way `notLanded` does.
       if (!everyOne && !notLanded) continue;
       const ref = scan?.refs.get(key);
       if (!ref) continue;
@@ -3875,6 +4008,12 @@ export function createServer(opts: ServerOptions) {
         href: specPagePath(project, ref.folder),
         notLanded,
         notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
+        prOpen: prWaiting,
+        // Off the newest job that reported one. The queue keeps two
+        // hundred jobs and the archive grows past that, so an old row
+        // simply has no link — the mark still says the branch is open,
+        // which is the part that matters.
+        prUrl: prWaiting ? queue.pullRequestFor(project, ref.folder).prUrl : undefined,
         // The stored figure and nothing else (spec 207): the queue's own
         // records are gone for all but the newest rows here, and a
         // column that answered for some of them out of memory would be a

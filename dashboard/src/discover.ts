@@ -87,6 +87,34 @@ export function resolveWorktreeLinks(
   return { links: "", source: null };
 }
 
+/** What a project does with its archived CODE: merge it into the default
+ *  branch, or leave it on its branch for a pull request. */
+export type CodeLanding = "merge" | "pr";
+
+/** Which of the two this project chose (spec 220).
+ *
+ *  The COMMITTED manifest and nothing else — deliberately unlike
+ *  `resolveWorktreeLinks` above, which reads `.aide/config` as a
+ *  fallback. That fallback exists because `AIDE_WORKTREE_LINKS` predates
+ *  the manifest and both spellings had to keep working; this key has no
+ *  older spelling to migrate from, and giving it one would let a
+ *  gitignored file on one machine quietly overrule the policy the repo
+ *  states.
+ *
+ *  Absent, unrecognized, unparseable or no manifest at all → `merge`,
+ *  which is what every project on the host did before this existed.
+ *
+ *  One half of a hand-kept pair: `core/scripts/aide-run-spec` reads the
+ *  same key with one anchored `sed` to default its own `--push`, and
+ *  `tests/fixtures/code-landing-precedence.json` is the table both sides
+ *  are checked against. */
+export function resolveCodeLanding(projectDir: string): CodeLanding {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return "merge";
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
+}
+
 function specTitle(dir: string): string | null {
   const desc = join(dir, "1-description.md");
   if (!existsSync(desc)) return null;

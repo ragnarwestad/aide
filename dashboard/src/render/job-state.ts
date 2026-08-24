@@ -59,6 +59,17 @@ export interface QueueRowView {
    *  Derived live from git at render time, never stored on the job: the
    *  answer changes long after the job stops running. */
   branchUrls?: BranchView[];
+  /** The pull request a `pr`-mode run opened for this job's code branch
+   *  (spec 220). Stored on the job rather than derived at render time,
+   *  unlike `branchUrls`: only the run that called `gh` knows the URL,
+   *  and there is nothing on this machine to re-derive it from. */
+  prUrl?: string;
+  /** Why `gh` opened none. Shown BESIDE the branch rather than as the
+   *  job's error, because the step succeeded and the code really is on
+   *  its branch — what is missing is the request describing it, which
+   *  for a project whose landing deliberately leaves that branch open is
+   *  the whole difference between waiting on a review and an orphan. */
+  prError?: string;
   error?: string;
   /** Why the job's own landing was refused, when it was refused for
    *  something the row can offer a way out of. Stored on the job since
@@ -236,10 +247,15 @@ export interface RestingState {
  *  named from it — so the two could disagree on the very same row
  *  ("not started · Implement"). Sharing this makes them agree by
  *  construction. */
+// One word each since 2026-08-24 ("ready", "done"): the phase the spec
+// is ready FOR is already named by the Run button beside this badge —
+// the same `readyPhase` names both, so they cannot disagree — and
+// "nothing waiting on you" said nothing "done" does not. The colour
+// still tells the two apart at a glance.
 export function restingChip(resting: RestingState = {}): string {
   if (resting.archiveHeldBack) return badge("waiting", "archive held back");
-  if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
-  return badge("done", "done — nothing waiting on you");
+  if (resting.readyPhase) return badge("ready", "ready");
+  return badge("done", "done");
 }
 
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {

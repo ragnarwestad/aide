@@ -686,10 +686,24 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .pip.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
   background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
 @keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+/* The "still checking" mark: a pulsing bar where a fact will land once
+   the cache warms, instead of the word it replaced reading like a fact
+   itself (asked for 2026-08-24; the word is deliberately NOT quoted in
+   this comment — the stylesheet is page content, and a test asking
+   whether a page still says it would find the comment). It survives
+   inside the bar, visually hidden, for screen readers. Same sweep
+   mechanics as .pip.now above; amber, the waiting family's colour. */
+.checking { display: inline-block; vertical-align: middle; width: 3.75rem; height: 0.55em;
+  border-radius: var(--r-s);
+  background: linear-gradient(90deg, var(--warn-soft), var(--warn), var(--warn-soft));
+  background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
+.checking .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
 /* Motion off, and the reader can still tell a running phase from a
    waiting one: --accent stays, the mark simply stands still. */
 @media (prefers-reduced-motion: reduce) {
   .pip.now { animation: none; background: var(--accent); }
+  .checking { animation: none; background: var(--warn); }
 }
 /* Which THIRD of a running implement is behind it (spec 210). The parts
    already done stand still in solid --accent; the rest goes on
@@ -944,6 +958,21 @@ tr.spec-archived td { color: var(--muted); }
      with it the table — wider than the viewport instead of letting the
      label's own ellipsis do its job. */
   table.list tr.spechead > td:first-child { flex: 1 1 100%; min-width: 0; }
+  /* The header line starts further left than the phase lines under it
+     (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
+     the base cell padding (var(--sp-3)) put it flush with the minor
+     detail lines an open row shows. flush with the card's edge; the
+     subrows keep the full padding and so read as indented under it. */
+  table.list tr.spechead > td:first-child { padding-left: 0; }
+
+  /* The open spec's faint ground, restated on the ROWS: the base rule
+     paints the cells, and at this width the cells are flex items with
+     their padding moved off them — or display:contents, which paints
+     nothing at all — so the tint showed in patches. The tr is the box
+     that spans the group here, so it carries the ground. */
+  table.list tr.spechead:has(+ tr.subrow),
+  table.list tr.subrow,
+  table.list tr.specnotice:has(+ tr.subrow) { background: var(--surface-2); }
   table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
@@ -951,6 +980,15 @@ tr.spec-archived td { color: var(--muted); }
      the badge line — read as a hole. The row pads once, at its edges. */
   table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
   table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
+  /* The 2px separator above a spec sits on the CELLS in the base rule,
+     and here the cells wrap onto line 2 — each drawing its own border
+     segment, which read as a stray grey line between the name and the
+     badge on every spec but the first (whose cells have the first-row
+     exemption). The row is the box that spans the spec here, so the
+     row carries the one separator and the cells none. */
+  table.list tr.spechead { border-top: 2px solid var(--line-strong); }
+  table.list tr.spechead > td { border-top: none; }
+  table.list tbody tr.spechead:first-child { border-top: none; }
   /* The desktop rule (space-between, base stylesheet) spaces the badge
      and the Archive button apart to fill a table column's own width —
      a gap that ate into line 2's space here too, for the same reason
@@ -964,13 +1002,23 @@ tr.spec-archived td { color: var(--muted); }
      empty, which is what was still forcing Cost to wrap even after the
      other two gaps were closed. */
   table.list tr.spechead .actionslot { min-width: 0; }
+  /* What IS reserved on this line is the badge's width — or the action
+     button after it starts wherever the state's wording happens to
+     end, in a different place on every row. Sized for the longest
+     label the badge can carry now that the resting texts are one word
+     ("ready"/"done", 2026-08-24): "implementing queued", 19 characters
+     of fs-s plus the dot and the padding. */
+  table.list tr.spechead .badge { min-width: 9rem; box-sizing: border-box; }
   /* Not margin-left:auto (removed): pushing date/cost hard to the right
      reserves that gap even when the line is tight, which is what was
      forcing Cost to wrap onto a third line despite there being room for
      it if the gap were not reserved. Plain flow, sharing the row's own
      gap like every other item on the line, fits all four. */
   table.list tr.spechead [data-col="started"] { display: block; }
-  table.list tr.spechead [data-col="cost"]::before { content: "· "; }
+  /* No "· " separator before the cost (removed 2026-08-24): it read
+     fine while date and cost sat side by side, and as a stray leading
+     dot every time the cost wrapped alone or the date showed the
+     checking bar. The flex gap already separates the two. */
 
   /* .spec-name/.spec-title/.archive-desc carry a desktop alignment width
      (27rem/27rem/34rem), and it MUST be overridden here — width: auto,

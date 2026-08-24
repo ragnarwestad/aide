@@ -71,3 +71,34 @@ describe("deployment.preview (spec 95)", () => {
     }
   });
 });
+
+// Spec 220: whether a project's archived code merges straight into its
+// default branch or waits on a pull request. A team policy about review,
+// so it lives in the COMMITTED manifest and nowhere else — and it fails
+// toward today's behaviour, the way every other field here does.
+describe("codeLanding (spec 220)", () => {
+  test("both recognized values parse", () => {
+    for (const value of ["merge", "pr"] as const) {
+      const result = parseManifest(`name: x\ncodeLanding: ${value}\n`);
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.codeLanding).toBe(value);
+    }
+  });
+
+  test("an unrecognized value is left absent, not carried through", () => {
+    // Absent is the shape the resolver reads as `merge`. Carrying
+    // `rebase` through would make every reader downstream decide for
+    // itself what a word it has never heard means.
+    const result = parseManifest("name: x\ncodeLanding: rebase\n");
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.codeLanding).toBeUndefined();
+  });
+
+  test("a manifest without it leaves it undefined — aide's and PaceUp's do", () => {
+    for (const name of ["paceup.yaml", "atlasaurus.yaml"]) {
+      const result = parseManifest(fixture(name));
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.codeLanding).toBeUndefined();
+    }
+  });
+});

@@ -184,6 +184,56 @@ for a spec that is genuinely finished. The way out is
 the step that already exists — `archive` can be enqueued again for such
 a spec, and `resolveProject` admits it only while its branch is open.
 
+**A project can ask for that branch to stay open (spec 220).**
+`codeLanding: pr` in the COMMITTED `.aide/project.yaml` says this
+project's code is reviewed before it reaches the default branch, and it
+does two things that must never be separated: the dashboard runs every
+one of that project's steps with `--push pr`, so `aide-run-spec` opens
+the request, and `landBranch` skips `mergeBranchIntoDefault` for the
+CODE root of an `archive` landing. Either half alone is worse than
+neither — a landing left open with nothing describing it, or a pull
+request merged past moments after it was opened. Five things not to get
+backwards:
+
+- **It is a SIXTH hand-paired pair**, after `WORKFLOW_STEPS`,
+  `DEPENDENCY_GATED_STEPS`, project readiness, `worktreeLinks` and
+  `errorReason`: `resolveCodeLanding` in `dashboard/src/discover.ts`
+  reads the key with `parseManifest`, and `core/scripts/aide-run-spec`
+  reads it with one anchored `sed` to default its own `--push`.
+  `tests/fixtures/code-landing-precedence.json` is the table both sides
+  are checked against — one file, six combinations, read by a test on
+  each side.
+- **The manifest and NOTHING else.** Unlike `worktreeLinks`, there is no
+  `.aide/config` fallback: that one exists only because
+  `AIDE_WORKTREE_LINKS` predates the manifest and both spellings had to
+  keep working. Whether code is reviewed is a team policy, and
+  `.aide/config` is gitignored — a policy a fresh clone cannot read is
+  not a policy. Absent, unrecognized or unparseable all resolve to
+  `merge`, which is what every project did before this existed.
+- **The manifest is a DEFAULT for `--push`, never an override.** A
+  `--push` typed at a terminal wins; `push_mode_explicit` in
+  `aide-run-spec` is what tells "typed" from "left standing", which the
+  `worktreeLinks` precedence never had to do because no flag competed
+  with it.
+- **The CODE root only, and `archive` only.** The specs root keeps
+  auto-merging in every mode — an archive commit moving a folder is
+  bookkeeping, not a change anyone reviews — and `create`/`analyze`
+  never reach a code root in the gated position. A specs root INSIDE the
+  project is the same repository and therefore the same branch, so a
+  single-repo project leaves its one branch open and that IS the pull
+  request.
+- **`errorReason` did NOT grow a member for this.** A branch left open
+  on purpose is a success; that pair classifies failures a person can
+  act on. What splits instead is the WORDING of the one branch-still-on-
+  origin set above: `prOpen` in `dashboard/src/serve.ts` is the subset
+  that is open deliberately, and `PR_OPEN` in
+  `dashboard/src/render/archive-page.ts` is what such a row says instead
+  of `NOT_LANDED`. The set itself is unchanged, so the row stays on the
+  list and `archive` stays enqueueable for it exactly as before.
+  `assessProjectReadiness` is deliberately untouched: every value of
+  `codeLanding` is valid to run with, so it is never a reason to refuse
+  a run.
+
 **That way out did not work until spec 202.** The dashboard's half was
 real — `resolveProject` admitted the job — but `core/scripts/aide-run-spec`
 resolved `--spec` against the active folder only, so a re-run refused
