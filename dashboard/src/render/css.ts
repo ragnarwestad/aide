@@ -438,6 +438,8 @@ select[name^="model."] {
    to whatever stands beside it (seen against Create, 2026-08-19). */
 .field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
   min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
+.newspecform textarea { overflow-x: auto; }
+.specform .factions { margin-top: var(--sp-1); }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 .field input[name="title"] { min-width: 18rem; }
 

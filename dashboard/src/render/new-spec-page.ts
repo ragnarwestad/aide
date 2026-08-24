@@ -119,35 +119,48 @@ export function dependsOnField(
   );
 }
 
-// Three fields and nothing else. Everything a job can be tuned with —
-// the model, the other repos — belongs to running a spec, and this form
-// does not run one: it makes a spec, which then appears as a row and is
-// run from there like all the others.
+// The fields needed to make the spec and choose the model for that one
+// create step. Everything for later steps belongs on the spec's row.
 //
 // It posts a project NAME, a title and a description. What the spec ends
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
+  const formId = "new-spec-form";
   const models = opts.modelChoices ?? [];
   const configured = opts.defaultModels?.create ?? opts.defaultModels?.default;
   const chosen = models.length ? resolveChosenModel(models, configured, undefined) : undefined;
-  const chosenTool = models.find((model) => model.name === chosen)?.tool ?? "claude";
-  const tools = [...new Set(models.map((model) => model.tool ?? "claude"))];
-  const modelField = !models.length ? "" : field(
-    "AI / model",
-    (tools.length > 1 ? `<select data-ai="model.create" aria-label="AI for Create" form="new-spec-form">` +
-      tools.map((tool) => `<option value="${tool}" data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
-        `${tool === chosenTool ? " selected" : ""}>${esc(TOOL_NAMES[tool] ?? tool)}</option>`).join("") +
-      `</select>` : "") +
-      `<select name="model.create" form="new-spec-form">${modelOptions(models, chosen)}</select>`,
+  const tools = Object.keys(TOOL_NAMES).filter((tool) =>
+    models.some((model) => (model.tool ?? "claude") === tool),
   );
-  // Three lines, read top to bottom (asked for 2026-08-19): Project and
-  // Depends on side by side, Title on a line of its own, Description
-  // right under it with Create and Cancel at its right-hand side. Each
+  const restingTool = models.find((model) => model.name === chosen)?.tool ?? "claude";
+  const aiSelect =
+    tools.length > 1
+      ? `<noscript><style>[data-ai]{display:none}</style></noscript>` +
+        `<select data-ai="model.create" form="${formId}">` +
+        tools
+          .map(
+            (tool) =>
+              `<option value="${esc(tool)}"` +
+              ` data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
+              `${tool === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[tool]!)}</option>`,
+          )
+          .join("") +
+        `</select>`
+      : "";
+  const modelSelect = models.length
+    ? `<select name="model.create" form="${formId}">` +
+      modelOptions(models, chosen) +
+      `</select>`
+    : "";
+  // Four lines, read top to bottom: Project and Model side by side,
+  // Depends on and Title on lines of their own, then Description with
+  // Create and Cancel at its right-hand side. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
   // form shares, so the shared `.newspecform` look is untouched.
   return (
-    `<form method="post" action="/api/queue/create" class="newspecform" id="new-spec-form">${tokenField(opts.token)}` +
+    `<form method="post" action="/api/queue/create" class="newspecform" id="${formId}">` +
+    tokenField(opts.token) +
     `<span class="frow">` +
     field(
       "Project",
@@ -155,7 +168,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
-    modelField +
+    (modelSelect ? field("Model", aiSelect + modelSelect) : "") +
     `</span>` +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
     field(

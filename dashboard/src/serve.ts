@@ -3049,11 +3049,13 @@ export function createServer(opts: ServerOptions) {
         token: queueToken,
         createProjects: [...allowed].sort(),
         targets: withFreshness(targets()),
+        script: queueClientScript(),
         modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
-          name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+          name,
+          budgetUsd: choice.budgetUsd,
+          ...(choice.tool ? { tool: choice.tool } : {}),
         })),
         defaultModels: queue.defaults.model,
-        script: queueClientScript(),
         // Why the last submission was refused, carried back here by the
         // create route's own redirect.
         error: url.searchParams.get("error") ?? undefined,
@@ -3939,6 +3941,15 @@ export function createServer(opts: ServerOptions) {
       if (specRef(project!, specFolder!)?.archived) {
         logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
         return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      }
+      const activeJob = queue.list().some(
+        (job) => job.project === project && job.specFolder === specFolder &&
+          (job.state === "queued" || job.state === "running"),
+      );
+      if (activeJob) {
+        const reason = "another job for this spec is still running — nothing was saved";
+        logRefusal("tick", `${project}/${specFolder}`, reason);
+        return specsRedirect({}, { error: reason }, specPagePath(project!, specFolder!));
       }
       const sent = await readBounded(req, MAX_SAVE_BODY);
       if ("refusal" in sent) return sent.refusal;

@@ -324,8 +324,9 @@ function checklist(view: SpecPageView): string {
   // Spec 163: an archived spec is a RECORD, and a tick would write,
   // commit and push into `archive/`. The rows stay — they are a fact
   // about the spec — and nothing on them presses.
+  const activeJob = view.lead?.state === "queued" || view.lead?.state === "running";
   const tickable = (row: SpecCheckView): boolean =>
-    !view.archived && !row.done && row.phase === view.checks?.phase;
+    !view.archived && !activeJob && !row.done && row.phase === view.checks?.phase;
   const anyTickable = rows.some(tickable);
   const control = (row: SpecCheckView): string =>
     tickable(row)
@@ -346,7 +347,7 @@ function checklist(view: SpecPageView): string {
   if (!anyTickable) return `<section class="checks">${head}${list}</section>`;
   return (
     `<section class="checks">${head}` +
-    `<form method="post" action="${esc(view.tickAction)}">` +
+    `<form class="specform" method="post" action="${esc(view.tickAction)}">` +
     tokenField(view.token) +
     `<input type="hidden" name="checksPhase" value="${esc(view.checks!.phase!)}">` +
     // Empty rather than absent for a file git has never committed —
@@ -428,7 +429,7 @@ function descriptionPanel(view: SpecPageView, now: number): string {
   const picker = dependsOnField(view.dependsOnOptions ?? [], new Set(view.dependsOn ?? []));
   return (
     `<h2>${esc(EDITABLE_SPEC_FILE)}${fileStamp(file ?? { label: EDITABLE_SPEC_FILE, text: null }, now)}</h2>` +
-    `<form method="post" action="${esc(view.saveAction)}" class="newspecform">` +
+    `<form method="post" action="${esc(view.saveAction)}" class="newspecform specform">` +
     tokenField(view.token) +
     // Empty rather than absent when git has never committed the file:
     // an absent field and an empty one say the same thing to the route,
@@ -453,7 +454,7 @@ function descriptionPanel(view: SpecPageView, now: number): string {
       // No newline between the tag and the text: an HTML parser eats a
       // single leading one, which would silently drop the first line of
       // a file that begins with a blank one.
-      `<textarea name="text" rows="30" spellcheck="false">${esc(file?.text ?? "")}</textarea>`,
+      `<textarea name="text" rows="30" spellcheck="false" wrap="off">${esc(file?.text ?? "")}</textarea>`,
       { wide: true },
     ) +
     `</span>` +

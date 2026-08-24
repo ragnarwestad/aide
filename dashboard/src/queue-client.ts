@@ -1287,6 +1287,15 @@ document.getElementById("jobrows")?.addEventListener("change", ((event: Event) =
 // for the request the press makes.
 const newSpec = document.querySelector(NEW_SPEC_FORM) as HTMLFormElement | null;
 newSpec?.addEventListener("submit", ((event: Event) => submitCreate(newSpec, event)) as EventListener);
+// This page has no `#jobrows`, so the delegated model listener above
+// cannot hear its AI and model controls.
+newSpec?.addEventListener("change", ((event: Event) => {
+  const target = event.target as Element | null;
+  const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
+  if (ai) return applyAiPick(ai);
+  const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
+  if (model) syncAiToModel(model);
+}) as EventListener);
 syncDependsOn();
 newSpec?.querySelector("select[name=project]")?.addEventListener("change", syncDependsOn);
 // --- spec 199: a running phase counts up while the reader watches ---------
