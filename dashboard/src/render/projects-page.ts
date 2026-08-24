@@ -180,11 +180,6 @@ export function renderProjectsPage(
     projectListBody(projects, {
       pageHref: (name) => projectPagePath(name),
       removeHref: (name) => (allowed.has(name) ? removeProjectRoute(name) : undefined),
-      // Settings on every row the served page draws, whether or not
-      // anything is wrong: it is where the two fields live now, and a
-      // control that appears only on a broken project is one nobody
-      // knows is there.
-      settingsHref: (name) => (opts.readinessByProject ? projectSettingsRoute(name) : undefined),
       note: (name) => {
         const drift = opts.driftByProject?.[name];
         const readiness = opts.readinessByProject?.[name];

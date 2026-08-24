@@ -183,6 +183,12 @@ describe("the drift banner on /projects", () => {
 // allowlisted row carries its own Remove linking to a confirm page.
 
 describe("the Add button and the Remove links on /projects", () => {
+  test("the project link marks the whole row while Remove stays a separate anchor", () => {
+    const html = page([project("aide")], { createProjects: ["aide"] });
+    expect(html).toContain('<a class="proj-row-link" href="/projects/aide">aide</a>');
+    expect(html).toContain('<a class="btn small proj-row-action" href="/projects/aide/remove">Remove</a>');
+  });
+
   test("Add is a button above the list, at the right — like New spec", () => {
     const html = page([project("aide")], { createProjects: ["aide"] });
     // One line above the list: the counts on the left, Add on the right
@@ -209,7 +215,7 @@ describe("the Add button and the Remove links on /projects", () => {
     expect(html).toContain('href="/projects/aide/remove"');
     expect(html).toContain('href="/projects/atlasaurus/remove"');
     // On the row, after the row's own text.
-    expect(html).toMatch(/atlasaurus[\s\S]*?<a class="btn small" href="\/projects\/atlasaurus\/remove">Remove<\/a>/);
+    expect(html).toMatch(/atlasaurus[\s\S]*?<a class="btn small proj-row-action" href="\/projects\/atlasaurus\/remove">Remove<\/a>/);
   });
 
   test("a discovered project the allowlist does not know gets no Remove", () => {
@@ -461,7 +467,7 @@ describe("a project's Settings page (spec 184)", () => {
 // act on it immediately had no way to rediscover what was missing short
 // of starting a run and having it refused.
 describe("the list says which projects cannot run yet (spec 184)", () => {
-  test("a project that cannot run carries its note and a link to Settings", () => {
+  test("a project that cannot run carries its note without a Settings action", () => {
     const html = page([project("skjer")], {
       createProjects: ["skjer"],
       readinessByProject: {
@@ -469,16 +475,16 @@ describe("the list says which projects cannot run yet (spec 184)", () => {
       },
     });
     expect(html).toContain("no specs root at /repos/specs/skjer");
-    expect(html).toContain('href="/projects/skjer/settings"');
+    expect(html).not.toContain('href="/projects/skjer/settings"');
   });
 
-  test("a project that can run carries no note, and its Settings link all the same", () => {
+  test("a project that can run carries neither a note nor a Settings action", () => {
     const html = page([project("skjer")], {
       createProjects: ["skjer"],
       readinessByProject: { skjer: { canRun: true, note: "skjer is ready to run" } },
     });
     expect(html).not.toContain("ready to run");
-    expect(html).toContain('href="/projects/skjer/settings"');
+    expect(html).not.toContain('href="/projects/skjer/settings"');
   });
 
   // The generated site has no server behind it to check a token

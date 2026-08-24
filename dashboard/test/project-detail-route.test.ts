@@ -84,6 +84,14 @@ const get = (base: string, name: string) =>
   fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
 
 describe("GET /projects/<name> — the project's own page, served", () => {
+  test("the page links back to Projects and to the encoded Edit route", async () => {
+    const name = "aide & co";
+    const root = projectsRoot({ [name]: null });
+    const html = await (await get(serve(root, settled(root, name)), name)).text();
+    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co/settings">Edit</a>');
+  });
+
   test("a known project answers 200 with its manifest, and no spec list", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const res = await get(serve(root, settled(root, "aide")), "aide");

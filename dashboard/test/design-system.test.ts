@@ -368,6 +368,18 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     expect(width % 3).toBe(0);
   });
 
+  test("the project row link covers its row below independent actions", async () => {
+    const { CSS } = await import("../src/render/css.ts");
+    const row = CSS.match(/\.proj-row \{([^}]*)\}/)?.[1] ?? "";
+    const overlay = CSS.match(/\.proj-row-link::after \{([^}]*)\}/)?.[1] ?? "";
+    const action = CSS.match(/\.proj-row-action \{([^}]*)\}/)?.[1] ?? "";
+    expect(row).toContain("position: relative");
+    expect(overlay).toContain("position: absolute");
+    expect(overlay).toContain("inset: 0");
+    expect(action).toContain("position: relative");
+    expect(action).toContain("z-index: 1");
+  });
+
   test("the fill covers the thirds already behind the run, and only those", async () => {
     const { CSS } = await import("../src/render/css.ts");
     // Keyed off `.pip.now`: a third belongs to the phase that is

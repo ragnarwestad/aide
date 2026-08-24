@@ -918,9 +918,12 @@ ul.activity li { padding: 2px 0; border-bottom: 1px solid var(--line);
 .listtop > .btn { margin-left: auto; }
 .proj-row { background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r); padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0;
-  display: flex; align-items: center; gap: var(--sp-4); }
+  display: flex; align-items: center; gap: var(--sp-4); position: relative; }
 /* The row's text fills the line; the Remove keeps to the right of it. */
 .proj-row > div:first-child { flex: 1; min-width: 0; }
+.proj-row-link::after { content: ""; position: absolute; inset: 0; }
+.proj-row-action { position: relative; z-index: 1; }
+.project-actions { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
 .proj-row.error { border-color: var(--danger); }
 .error-text { color: var(--danger); }
 /* Whether the spec's FOLDER has been archived on disk — a different

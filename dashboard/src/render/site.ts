@@ -149,10 +149,9 @@ function overviewRow(
   path: string,
   removeHref?: string,
   note?: string,
-  settingsHref?: string,
 ): string {
-  const settings = settingsHref ? `<a class="btn small" href="${esc(settingsHref)}">Settings</a>` : "";
-  const remove = removeHref ? `<a class="btn small" href="${esc(removeHref)}">Remove</a>` : "";
+  const remove = removeHref ? `<a class="btn small proj-row-action" href="${esc(removeHref)}">Remove</a>` : "";
+  const projectLink = `<a class="proj-row-link" href="${esc(path)}">${esc(p.name)}</a>`;
   // Spec 142: on the row, not floating above the list — a reader should
   // not have to work out which project a warning is about. An error row
   // gets it too: a checkout whose manifest will not parse is still a
@@ -160,8 +159,8 @@ function overviewRow(
   const drift = note ? rowMessage("warn", note, { tag: "p" }) : "";
   if (!p.manifest.ok) {
     return (
-      `<div class="proj-row error"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
-      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${settings}${remove}</div>`
+      `<div class="proj-row error"><div>${projectLink}` +
+      `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>${drift}</div>${remove}</div>`
     );
   }
   const active = p.specs.filter((s) => !s.archived).length;
@@ -170,11 +169,11 @@ function overviewRow(
     ? `<p class="desc">${esc(p.manifest.data.description)}</p>`
     : "";
   return (
-    `<div class="proj-row"><div><a href="${esc(path)}">${esc(p.name)}</a>` +
+    `<div class="proj-row"><div>${projectLink}` +
     `<span class="counts">${active} active · ${archived} archived</span>` +
     desc +
     drift +
-    `</div>${settings}${remove}</div>`
+    `</div>${remove}</div>`
   );
 }
 
@@ -278,7 +277,10 @@ export function renderProjectPage(
   // of it, and that holds for a project whose manifest will not parse
   // too: `projectBody` is then a single error paragraph, and the
   // config is the rest of what the page has to say.
-  const body = projectBody(p) + runConfigurationBlock(settings, readiness);
+  const actions =
+    `<div class="project-actions"><a class="btn" href="${PROJECTS_ROUTE}">← Back</a>` +
+    `<a class="btn primary" href="/projects/${encodeURIComponent(p.name)}/settings">Edit</a></div>`;
+  const body = actions + projectBody(p) + runConfigurationBlock(settings, readiness);
   return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt);
 }
 
@@ -318,11 +320,6 @@ export function projectListBody(
      *  `ProjectView` is a pure disk scan the static generator shares,
      *  and a live git answer does not belong on it. */
     note?: (name: string) => string | undefined;
-    /** Where the project's own settings are changed (spec 184).
-     *  Alongside `removeHref` and for the same reason: a generated page
-     *  has no server behind it to check a token against, so it carries
-     *  no control at all. */
-    settingsHref?: (name: string) => string | undefined;
   },
 ): string {
   const ordered = [...projects].sort((a, b) => a.name.localeCompare(b.name));
@@ -334,7 +331,6 @@ export function projectListBody(
           opts.pageHref(p.name),
           opts.removeHref?.(p.name),
           opts.note?.(p.name),
-          opts.settingsHref?.(p.name),
         ),
       )
       .join("\n")
