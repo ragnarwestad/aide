@@ -381,7 +381,7 @@ spec's own commits.** Every step the runner finishes leaves a commit
 whose subject says which step it was and how it ended:
 
 ```text
-Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
+Run /aide-<step> for <spec-folder>[ (headless)][ (model: <tool> [<model>])][ (stopped: <reason>)]
 ```
 
 Those commits are the record. The line is derived from them at the end
@@ -421,6 +421,46 @@ disagrees with them is said out loud on the row rather than believed.
 The progress percentage below the line is a different question and is
 still the model's: it says how far the TDD phases inside `implement`
 have got, not whether `implement` ran at all.
+
+#### Model per step
+
+One `- **Model (<step>):**` line per step, beside the line above and
+never merged into it:
+
+```markdown
+- **Workflow steps completed:** create, analyze
+- **Model (create):** claude claude-opus-5
+- **Model (analyze):** claude claude-sonnet-5
+```
+
+The two answer different questions — that one says whether a step ran,
+this one says who ran it — and putting two facts on one line is what
+caused the Woodstack 22 incident for the first of them. The value is
+the tool, then the model it was given, and the model half is absent
+when the run named none. Steps are the same four, in the same order.
+
+**Do not edit these lines either. `aide-run-spec` writes them, from the
+same commits**, whose subject carries the model where it carries
+everything else it knows about the run. Before this spec the fact lived
+only in the dashboard's job queue, which holds 200 jobs and evicts the
+rest, so it disappeared from exactly the specs old enough for anyone to
+ask about.
+
+**Each line is its step's newest sighting, and nothing else touches
+it.** A step re-run under a different model reads as that model — this
+field is not add-only the way the line above is, because "who ran it"
+has a right answer that changes and "did it run" does not. A step the
+scan finds no model for in a given pass keeps whatever line it already
+had: a later step's run never erases an earlier step's model.
+
+A subject with no `(model: ...)` in it — every one written before this
+spec, and every commit a step wrote under a descriptive message of its
+own — yields no line at all. **An absent line does not prove the step
+ran without a model, and an absent `Model (create)` line does not prove
+`create` never ran** — only that no commit could be attributed to it.
+That is the ordinary case for a spec whose `1-description.md` a person
+wrote by hand: nothing is recorded, rather than "human" being inferred
+from the silence.
 
 ---
 

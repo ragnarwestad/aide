@@ -102,6 +102,34 @@ Examples:
   project's repo (the specs live elsewhere, possibly their own repo)
 - Otherwise: `git add <specs-root>/NN-slug/*.md`
 
+Nothing in Tracking info records the step. Which steps a spec has had
+is read off the spec's own commits, and `aide-run-spec` writes the
+`Workflow steps completed:` line from them — leave that line exactly as
+you found it in the template.
+
+Which model ran each step is read off those same commits, and the same
+script writes the `Model (<step>):` lines from them — leave those lines
+alone too. `create` is the one stage nobody picks a model for in
+advance: a spec is already being written by the time it reaches a
+dashboard row, so its model is only ever recorded after the fact, from
+whatever commit created the folder.
+
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the new folder, and suggest this message so the step
+is recognised the same way:
+
+```text
+Run /aide-create for <spec-folder> (model: <tool> <model>)
+```
+
+Add the `(model: ...)` part only when you can name your own model with
+certainty. A Claude Code session is told which model it is running in
+its own context, so it can write `claude claude-opus-5`; an assistant
+that cannot name itself offers the bare subject without the suffix and
+never guesses. A person writing `1-description.md` by hand and
+committing it under their own message leaves no such commit at all, and
+no `Model (create)` line is written — an absence, never a guess.
+
 ### Step 6: Confirm
 
 Show a summary and the next step:

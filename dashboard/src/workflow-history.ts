@@ -55,13 +55,22 @@ export const HISTORY_STEPS_RETIRED = ["review-plan"];
 // `WORKFLOW_STEPS` and `DEPENDENCY_GATED_STEPS` already are — change
 // one and the other has to change with it.
 //
-//     Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]
+//     Run /aide-<step> for <spec-folder>[ (headless)][ (model: <tool> [<model>])][ (stopped: <reason>)]
 //
 // - `<step>` is the step's own name, exactly as `--command` names it.
 // - `<spec-folder>` is the folder, never the numeric id: a `create` run
 //   names the folder it just made.
 // - ` (headless)` is present for a run `aide-run-spec` made and absent
 //   for one committed at somebody's keyboard. Both count.
+// - ` (model: <tool> [<model>])` is spec 217: who ran the step. The
+//   tool is always known, the model value only when the caller named
+//   one. Nothing here reads the value — the field it feeds is written
+//   into `4-status.md` by `aide-run-spec` — but the group has to be in
+//   the pattern all the same, because the pattern anchors on `$` and a
+//   subject carrying a suffix it does not know about does not degrade:
+//   it stops matching, and the step vanishes from the history.
+//   It comes BEFORE the stop reason, which is read greedily to the end
+//   of the subject and would otherwise swallow it.
 // - ` (stopped: <reason>)` is present only when the run did NOT
 //   complete, and carries `terminal_reason` verbatim (`timeout`,
 //   `budget_exhausted`, …). Such a step has RUN but is not DONE.
@@ -76,7 +85,7 @@ const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\
 const subjectPattern = (specFolder: string): RegExp =>
   new RegExp(
     `^Run /aide-([a-z][a-z-]*) for ${escapeRegExp(specFolder)}` +
-      `(?: \\(headless\\))?(?: \\(stopped: (.+)\\))?$`,
+      `(?: \\(headless\\))?(?: \\(model: ([^)]+)\\))?(?: \\(stopped: (.+)\\))?$`,
   );
 
 export interface WorkflowHistory {
@@ -139,7 +148,9 @@ export function readWorkflowSubjects(subjects: string[], specFolder: string): Wo
     if (!m) continue;
     const step = m[1]!;
     if ((!HISTORY_STEPS.includes(step) && !HISTORY_STEPS_RETIRED.includes(step)) || seen.has(step)) continue;
-    seen.set(step, m[2] ?? null);
+    // m[2] is the model, which nothing on this side reads; m[3] is the
+    // stop reason.
+    seen.set(step, m[3] ?? null);
   }
   const stopped: Record<string, string> = {};
   for (const [step, reason] of seen) if (reason !== null) stopped[step] = reason;

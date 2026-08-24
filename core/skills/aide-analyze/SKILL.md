@@ -161,13 +161,23 @@ is read off the spec's own commits, and `aide-run-spec` writes the
 `Workflow steps completed:` line from them — leave that line exactly as
 you found it.
 
+Which model ran each step is read off those same commits, and the same
+script writes the `Model (<step>):` lines from them — leave those lines
+alone too.
+
 A headless run gets its commit for free. Working interactively, ASK
 whether to commit the analysis, and suggest this message so the step is
 recognised the same way:
 
 ```text
-Run /aide-analyze for <spec-folder>
+Run /aide-analyze for <spec-folder> (model: <tool> <model>)
 ```
+
+Add the `(model: ...)` part only when you can name your own model with
+certainty. A Claude Code session is told which model it is running in
+its own context, so it can write `claude claude-opus-5`; an assistant
+that cannot name itself offers the bare subject without the suffix and
+never guesses.
 
 Offer it only when the analysis actually completed; one that failed, or
 that you stopped part-way, has nothing to record.
