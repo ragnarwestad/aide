@@ -799,7 +799,7 @@ export function createServer(opts: ServerOptions) {
     const refs = new Map<string, SpecRef>();
     const specsRoots = new Map<string, string>();
     if (opts.projectRoot) {
-      for (const p of discoverProjects(opts.projectRoot)) {
+      for (const p of discoverProjects(opts.projectRoot, ownedSpecsRoot)) {
         if (!allowed.has(p.name)) continue;
         specsRoots.set(p.name, p.specsRoot);
         for (const s of p.specs) {
@@ -1301,6 +1301,23 @@ export function createServer(opts: ServerOptions) {
    *  until the first ensure settles, which is what the fallback below is
    *  for. */
   const resolvedCheckouts = new Map<string, DashboardCheckout>();
+  /** Where a project's spec folders are LISTED from (spec 218): the
+   *  dashboard's own checkout once one has been resolved, and nothing
+   *  otherwise — `discoverProjects` then walks the person's own, exactly
+   *  as everything did before spec 205.
+   *
+   *  The same source a run resolves `--spec` against, which is the whole
+   *  point: a folder committed in the person's checkout and never pushed
+   *  used to get a row offering four steps, and every one of them
+   *  refused with `unknown spec`. Sync and cache-only on purpose — a
+   *  render never waits on a clone (spec 208), and `refreshSpecCaches`
+   *  is what keeps the answer current.
+   *
+   *  Passed to every walk that lists specs FOR A READER, and to no
+   *  other: the `fs.watch` loop watches the person's own checkout for
+   *  local edits and must go on watching it, and `refreshDrift` reads
+   *  nothing off the walk but `p.name`. */
+  const ownedSpecsRoot = (project: string): string | undefined => resolvedCheckouts.get(project)?.specs;
   /** The specs root the machinery works in: the dashboard's own once it
    *  has one, and otherwise the scan's answer — the person's, which is
    *  the root everything used before this spec. */
@@ -1496,6 +1513,20 @@ export function createServer(opts: ServerOptions) {
         ...[...roots].map((root) => branchStatus.openSpecBranches(root)),
         ...archivedDirs.map((dir) => specFileCommits.commitFor(dir, ".")),
         ...live.map((t) => warmSpec(t)),
+        // And the checkout the LIST is read from (spec 218). Every other
+        // caller of `ensureCheckout` is a project that has something
+        // going on — a job queued (spec 216's `tickRunner`), a spec page
+        // open, a Save. A project with none of that had its checkout
+        // fetched once at boot and never again, so a spec pushed from
+        // another machine would have sat unlisted for as long as the
+        // server ran rather than until the next poll.
+        //
+        // Here rather than in the routes, for the same reason as
+        // everything else in this function: a render reads what the
+        // schedule last found, and never waits on git itself.
+        // `ensureCheckout` deduplicates per project and fails open, so a
+        // project whose origin is unreachable costs one complaint, once.
+        ...[...allowed].map((project) => ensureCheckout(project)),
       ]);
     } finally {
       warming = false;
@@ -2981,7 +3012,7 @@ export function createServer(opts: ServerOptions) {
       // Read fresh, uncached, exactly as `/projects` does: nothing polls
       // this page, so a scan per request is the cost `make generate`
       // already treats as cheap — and no invalidation to get wrong.
-      const view = buildProjectViews(opts.projectRoot).find((p) => p.name === name);
+      const view = buildProjectViews(opts.projectRoot, ownedSpecsRoot).find((p) => p.name === name);
       if (!view) return new Response("no such project\n", { status: 404 });
       const dir = displayProjectDir(name);
       // Fail open, the way the drift check on `/projects` does. Every
@@ -3017,7 +3048,7 @@ export function createServer(opts: ServerOptions) {
       // Read fresh, uncached: unlike `/` nothing polls this page, so a
       // scan per request is the same cost `make generate` already treats
       // as cheap — and no invalidation to get wrong.
-      const projects = buildProjectViews(opts.projectRoot);
+      const projects = buildProjectViews(opts.projectRoot, ownedSpecsRoot);
       // Spec 142: a merge made anywhere but the Merge button below ran
       // no `AIDE_INSTALL_CMD`, so the serving host is still serving the
       // old code and, until this asked, nothing said so. Asked only of
@@ -3800,7 +3831,7 @@ export function createServer(opts: ServerOptions) {
     // asks origin, and how old its answer is rides with the mark.
     const open = new Set(peekUnlanded());
     const openCheckedAt = peekUnlandedCheckedAt();
-    const perProject = discoverProjects(opts.projectRoot)
+    const perProject = discoverProjects(opts.projectRoot, ownedSpecsRoot)
       .filter((p) => allowed.has(p.name))
       .map((p): ArchivedSpecView[] =>
         p.specs

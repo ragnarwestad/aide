@@ -356,7 +356,19 @@ function specFolders(root: string, archived: boolean): SpecRef[] {
   return out;
 }
 
-export function discoverProjects(root: string): DiscoveredProject[] {
+/** Where a caller of its own wants a project's spec folders listed FROM,
+ *  when that is not the checkout the scan walked (spec 218).
+ *
+ *  The dashboard resolves a run's `--spec` against a clone it owns
+ *  (spec 205), and the list has to name what a run can actually resolve
+ *  — a folder committed in the person's checkout and never pushed got a
+ *  row offering steps that every one of them refused. A plain optional
+ *  function, and not a `DashboardCheckout` parameter: this module knows
+ *  nothing about clones, origins or git, and the static generator has no
+ *  checkout to offer and passes nothing. */
+export type OwnedSpecsRoot = (project: string) => string | undefined;
+
+export function discoverProjects(root: string, ownedSpecsRoot?: OwnedSpecsRoot): DiscoveredProject[] {
   const projects: DiscoveredProject[] = [];
   if (!existsSync(root)) return projects;
   for (const entry of readdirSync(root)) {
@@ -368,9 +380,15 @@ export function discoverProjects(root: string): DiscoveredProject[] {
       continue; // dangling symlink or unreadable entry — not a project
     }
     const specsRoot = configSpecsPath(dir) ?? join(dir, "specs");
+    // `specsRoot` on the result stays the person's own even when the
+    // folders come from somewhere else: the write path's translation
+    // (`dashboardSpecDir`) and the `fs.watch` that redraws a page on a
+    // local edit both read it, and only which directory is ENUMERATED
+    // moves.
+    const listedFrom = ownedSpecsRoot?.(entry) ?? specsRoot;
     const specs = [
-      ...specFolders(specsRoot, false),
-      ...specFolders(join(specsRoot, "archive"), true),
+      ...specFolders(listedFrom, false),
+      ...specFolders(join(listedFrom, "archive"), true),
     ].sort((a, b) => a.folder.localeCompare(b.folder, "en", { numeric: true }));
     projects.push({ name: entry, dir, manifestPath, specsRoot, specs });
   }
@@ -443,8 +461,8 @@ export function gitignoreCandidates(dir: string): string[] {
  *
  *  A spec with no `4-status.md` gets `null`, never an invented zero: the
  *  page tells "not started" and "nothing written down" apart. */
-export function buildProjectViews(root: string): ProjectView[] {
-  return discoverProjects(root).map((p) => ({
+export function buildProjectViews(root: string, ownedSpecsRoot?: OwnedSpecsRoot): ProjectView[] {
+  return discoverProjects(root, ownedSpecsRoot).map((p) => ({
     name: p.name,
     manifest: parseManifest(readFileSync(p.manifestPath, "utf-8")),
     specs: p.specs.map((s) => {

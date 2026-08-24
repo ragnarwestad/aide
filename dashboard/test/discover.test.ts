@@ -128,6 +128,82 @@ describe("discoverProjects", () => {
   });
 });
 
+// Spec 218: WHICH spec folders exist is the dashboard's own checkout's
+// answer, not the person's. A run resolves `--spec` against the clone
+// the dashboard owns (spec 205), so a folder committed in the person's
+// checkout and never pushed was listed on a page and refused by every
+// step offered on its row.
+//
+// `specsRoot` on the result stays the person's own throughout: the
+// write path's translation and the `fs.watch` that redraws a page still
+// read it, and only which directory the FOLDERS are enumerated from
+// moves.
+describe("listing specs from a root the caller owns (spec 218)", () => {
+  let ownedRoot: string;
+  let owned: string;
+  const forProjB = (project: string): string | undefined => (project === "proj-b" ? owned : undefined);
+
+  beforeAll(() => {
+    ownedRoot = mkdtempSync(join(tmpdir(), "aide-dash-owned-"));
+    owned = join(ownedRoot, "proj-b", "specs");
+    mkdirSync(join(owned, "04-pushed-thing"), { recursive: true });
+    writeFileSync(join(owned, "04-pushed-thing", "1-description.md"), "# The pushed thing - Description\n");
+    writeFileSync(
+      join(owned, "04-pushed-thing", "4-status.md"),
+      "# The pushed thing - Status\n\n**Total progress:** `25% (1 of 4 completed)`\n",
+    );
+    mkdirSync(join(owned, "archive", "05-pushed-and-archived"), { recursive: true });
+    writeFileSync(
+      join(owned, "archive", "05-pushed-and-archived", "1-description.md"),
+      "# The pushed and archived thing - Description\n",
+    );
+  });
+
+  afterAll(() => {
+    rmSync(ownedRoot, { recursive: true, force: true });
+  });
+
+  test("the folders come from the resolver's root, and the person's own are not listed", () => {
+    const b = discoverProjects(root, forProjB).find((p) => p.name === "proj-b")!;
+    expect(b.specs.map((s) => s.folder)).toEqual(["04-pushed-thing", "05-pushed-and-archived"]);
+    expect(b.specs.map((s) => s.folder)).not.toContain("03-b-thing");
+  });
+
+  test("archive/ is walked under the resolver's root too, and flagged there", () => {
+    const b = discoverProjects(root, forProjB).find((p) => p.name === "proj-b")!;
+    const byFolder = Object.fromEntries(b.specs.map((s) => [s.folder, s]));
+    expect(byFolder["04-pushed-thing"].archived).toBe(false);
+    expect(byFolder["05-pushed-and-archived"].archived).toBe(true);
+    expect(byFolder["04-pushed-thing"].title).toBe("The pushed thing");
+  });
+
+  test("specsRoot stays the person's own, while each spec's dir is the owned one", () => {
+    const b = discoverProjects(root, forProjB).find((p) => p.name === "proj-b")!;
+    expect(b.specsRoot).toBe(join(root, "proj-b", "specs"));
+    expect(b.dir).toBe(join(root, "proj-b"));
+    expect(b.specs[0]!.dir).toBe(join(owned, "04-pushed-thing"));
+  });
+
+  test("a project the resolver has no answer for is listed from its own checkout", () => {
+    const a = discoverProjects(root, forProjB).find((p) => p.name === "proj-a")!;
+    expect(a.specs.map((s) => s.folder)).toEqual(["01-first-thing", "02-old-thing"]);
+  });
+
+  test("no resolver at all is every project's own checkout, exactly as before", () => {
+    const b = discoverProjects(root).find((p) => p.name === "proj-b")!;
+    expect(b.specs.map((s) => s.folder)).toEqual(["03-b-thing"]);
+  });
+
+  test("buildProjectViews passes the resolver through, status file and all", () => {
+    const b = buildProjectViews(root, forProjB).find((p) => p.name === "proj-b")!;
+    expect(b.specs.map((s) => s.folder)).toEqual(["04-pushed-thing", "05-pushed-and-archived"]);
+    expect(b.specs[0]!.status?.progress).toEqual({ percent: 25, done: 1, total: 4 });
+    // The status of a spec only the person has is not read at all — the
+    // folder it is in was never listed.
+    expect(b.specs.map((s) => s.folder)).not.toContain("03-b-thing");
+  });
+});
+
 // Criterion 1 (spec 02): what a job IS. The title alone says "83-multi-
 // project-jobs"; the description says what that spec is about, and
 // today a reader has to leave the dashboard to read it.
