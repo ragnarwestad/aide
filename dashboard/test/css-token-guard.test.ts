@@ -279,11 +279,6 @@ const STRUCTURE = [
   // and the three read as three separate things with that between
   // them.
   "list", "spechead", "subrow", "phasecell", "modelcell",
-  // the per-phase AI/model fold at phone width (spec 215): the
-  // wrapper around analyze/implement's controls, and the status
-  // word's own cell class so it can join the same narrow-width
-  // stacking rule as the name and the controls.
-  "phasedetail", "phaseword",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead

@@ -504,16 +504,8 @@ table.list thead a { color: var(--muted); }
      A WIDTH, not a maximum (2026-08-23): a short name left the pips
      sitting further left than a long one's, so they stepped in and out
      down the column instead of forming one. The name still truncates
-     at the same place; what is fixed is where the line ends.
-     min(27rem, 100%), not a bare 27rem (spec 215): 432px is wider than
-     a 375px phone regardless of what the narrow block hides, and this
-     is the one rule that may say so — a second, phone-only rule for
-     this class fails the "declared once" guard exactly as a bare
-     second rule would. Unchanged at every desktop width, where the
-     container is always wider than 27rem; the spechead cell's own
-     display: block; width: 100% (the narrow block) is what gives
-     the percentage a definite width to resolve against. */
-  width: min(27rem, 100%); }
+     at the same place; what is fixed is where the line ends. */
+  width: 27rem; }
 .spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
@@ -642,20 +634,6 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .fold:hover { background: var(--surface-2); color: var(--text); }
 .fold svg { transition: transform 120ms ease; }
 .fold.shut svg { transform: rotate(-90deg); }
-/* The per-phase AI/model fold (spec 215): analyze/implement wrap their
-   controls in a <details class="phasedetail">, and this pair of rules
-   is what makes that inert everywhere but a phone. The chevron has
-   nothing to do at a width where the row below is always shown, so it
-   stays hidden; and the row is FORCED visible regardless of [open]
-   — author-origin CSS beats the UA stylesheet's own display: none
-   for closed details content, which is what lets a <details> with
-   no open attribute still render as always-open here. The narrow
-   block repeats both selectors to reverse them, per this file's own
-   convention: same selector, later wins. */
-summary.fold { display: none; list-style: none; }
-summary.fold::-webkit-details-marker { display: none; }
-details.phasedetail > .row { flex-wrap: nowrap; }
-details.phasedetail:not([open]) > .row { display: flex; }
 .branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
   font-weight: 400; font-family: var(--sans); }
 .branch { white-space: nowrap; }
@@ -898,35 +876,20 @@ tr.spec-archived td { color: var(--muted); }
   /* Started and Cost are not what a phone is for: the reader is
      checking whether a run finished and pressing Run or Cancel, and
      neither figure is needed to do either. Dropped rather than
-     squeezed — six columns in 390px is six unreadable ones. Scoped to
-     the sortable header and every phase line ONLY (spec 215) — the
-     spec header's own cells used to be named here too, and are what
-     the rule below now stacks instead of hiding. */
-  table.list thead [data-col="started"], table.list thead [data-col="cost"],
-  table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
+     squeezed — six columns in 390px is six unreadable ones. Hidden in
+     all three places the cells are written, or the ones left standing
+     hold two empty columns nothing lines up under. */
+  table.list [data-col="started"], table.list [data-col="cost"] { display: none; }
 
-  /* The spec header's own cells — name, badge/button, date, cost —
-     each take a line of their own instead of the two hidden columns
-     and one over-wide name column a table row gives them (spec 215).
-     This is also what gives .spec-name's own min(27rem, 100%) a
-     definite width to resolve the percentage against: a block-level
-     element is sized by ordinary block layout, not by the table's own
-     column-width negotiation. */
-  table.list tr.spechead > td { display: block; width: 100%; }
-
-  /* An open row's phase line carries THREE real cells now (spec 215;
-     TWO since spec 192) — the name, the AI select + model select +
-     the phase's box together, and the status word, which used to keep
-     a column of its own beside them. Two selects and a name do not
-     cross 375px side by side, so each cell takes a line of its own: a
-     block-level child of a table row is wrapped in an anonymous cell,
-     and two of them in a row end up in the same one, stacked. The
-     status word joins the same stacked group so a collapsed phase
-     reads as one unbroken block — name, then chevron + box, then
-     status — with nothing from another cell type between them. */
+  /* An open row's phase line carries TWO real cells since spec 192 —
+     the name, then the AI select, the model select and the phase's box
+     together. Two selects and a name do not cross 375px side by side,
+     so each cell takes a line of its own: a block-level child of a
+     table row is wrapped in an anonymous cell, and two of them in a row
+     end up in the same one, stacked. The cells after them (the phase's
+     state word) stay real cells and keep their column. */
   table.list tr.subrow .phasecell,
-  table.list tr.subrow .modelcell,
-  table.list tr.subrow .phaseword { display: block; width: 100%; }
+  table.list tr.subrow .modelcell { display: block; width: 100%; }
   /* And the three inside that one cell wrap as the model and the box
      already did: each takes a line of its own rather than squeezing
      into the width the stacked cell gives them. */
@@ -942,16 +905,6 @@ tr.spec-archived td { color: var(--muted); }
   table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }
   table.list tr.subrow .modelcell > .row > [data-cap],
   table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
-
-  /* The per-phase AI/model fold (spec 215): only here does the chevron
-     have anything to do, and only here does a closed fold actually
-     stay closed — the base rules above the media query force it open
-     at every wider width. */
-  summary.fold { display: inline-flex; }
-  details.phasedetail:not([open]) > .row { display: none; }
-  /* Archive has no AI or model settings to fold: its selects are
-     hidden outright, with no chevron offered for them. */
-  [data-step="archive"] .modelcell select { display: none; }
 
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }

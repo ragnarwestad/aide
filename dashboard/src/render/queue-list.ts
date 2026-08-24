@@ -2010,30 +2010,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // needed now: every line writes this cell, whichever step it
       // names, and `aiPicker` simply draws nothing when there is one
       // configured AI and nothing to choose between.
-      // The AI select and the model select, wrapped in a closed
-      // <details> for every phase but archive (spec 215): a phone
-      // reader opens a chevron for these two rather than meeting them
-      // unconditionally on every phase line. The tick box is a sibling
-      // of the wrapper, not a child of it, so it — and the status word
-      // beside it — render regardless of the fold's expand state
-      // (acceptance criterion 8). Archive has no AI or model settings
-      // to fold, so its controls stay exactly as every step's were
-      // before this spec: direct children of the row.
-      const controls =
-        `${aiPicker(g, opts, p.step, busy, latest?.model)}` +
-        `${modelPicker(g, opts, p.step, busy, latest?.model)}`;
-      // No wrapper when there is nothing to fold: a deployment with no
-      // model configured at all leaves `controls` empty, same as
-      // `aiPicker`/`modelPicker` already degrade to nothing rather than
-      // draw an empty control — a chevron that opens onto an empty row
-      // would be worse than no chevron.
       const pickCell =
-        p.step === "archive" || !controls
-          ? `<td class="modelcell"><span class="row">${controls}${box}</span></td>`
-          : `<td class="modelcell"><span class="row">` +
-            `<details class="phasedetail"><summary class="fold" ` +
-            `aria-label="${esc(stepLabel(p.step))}'s AI and model">${CHEVRON}</summary>` +
-            `<span class="row">${controls}</span></details>${box}</span></td>`;
+        `<td class="modelcell"><span class="row">` +
+        `${aiPicker(g, opts, p.step, busy, latest?.model)}` +
+        `${modelPicker(g, opts, p.step, busy, latest?.model)}${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
@@ -2042,7 +2022,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           // 165 moved the box in beside the model.
           `<td class="phasecell">${name}</td>` +
           pickCell +
-          `<td class="phaseword">${phaseWordCell(word, `${stale}${tries}`)}</td>` +
+          `<td>${phaseWordCell(word, `${stale}${tries}`)}</td>` +
           // The phase's own duration, not when it began (spec 199).
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what

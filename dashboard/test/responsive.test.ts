@@ -48,20 +48,10 @@ const rows = (filter?: QueuePageOptions["filter"], extra: Partial<QueuePageOptio
 // --- criterion 1: the two columns a phone does not need ---------------------
 
 describe("Started and Cost fold away at phone width", () => {
-  test("the narrow-width block hides both columns in the header and the phase lines", () => {
-    expect(NARROW.replace(/\s+/g, " ")).toContain(
-      'table.list thead [data-col="started"], table.list thead [data-col="cost"], ' +
-        'table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] ' +
-        "{ display: none; }",
+  test("the narrow-width block hides both columns", () => {
+    expect(NARROW).toMatch(
+      /table\.list \[data-col="started"\][\s\S]*?\[data-col="cost"\][\s\S]*?display:\s*none/,
     );
-  });
-
-  // Spec 215: the spec header's own Started/Cost cells stack with the
-  // name now, rather than vanishing — a bare, unscoped selector would
-  // hide them again.
-  test("the spec header's own Started and Cost cells are not named by the hide rule", () => {
-    expect(NARROW).not.toMatch(/table\.list \[data-col="started"\]/);
-    expect(NARROW).not.toMatch(/table\.list \[data-col="cost"\]/);
   });
 
   // Criterion 2. Three separate renderers write these two cells — the
@@ -95,29 +85,6 @@ describe("Started and Cost fold away at phone width", () => {
   });
 });
 
-// --- criteria 1, 3: the spec header shrinks and stacks instead of scrolling -
-
-describe("the spec header stacks at phone width instead of scrolling (spec 215)", () => {
-  test(".spec-name is declared once, with a width that can shrink to fit", () => {
-    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
-    expect(CSS).toMatch(/\.spec-name\s*\{[^}]*width:\s*min\(27rem,\s*100%\)/);
-    expect(CSS).not.toMatch(/\.spec-name\s*\{[^}]*width:\s*27rem/);
-  });
-
-  test("the narrow-width block makes every spechead cell a full-width block", () => {
-    expect(NARROW.replace(/\s+/g, " ")).toContain(
-      "table.list tr.spechead > td { display: block; width: 100%; }",
-    );
-  });
-
-  test("the head row still renders its badge, date and cost — nothing removed, only restyled", () => {
-    const html = rows();
-    const head = html.match(/<tr class="spechead[^"]*"[^>]*>[\s\S]*?<\/tr>/)![0];
-    expect(head).toContain('<td data-col="started">');
-    expect(head).toContain('<td class="num" data-col="cost">');
-  });
-});
-
 // --- criterion 3: the open row's phase lines stack --------------------------
 
 describe("the phase lines stop being pinned columns at phone width", () => {
@@ -140,14 +107,10 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(NARROW).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
   });
 
-  // Spec 215: a third cell, the status word, joins the same stacked
-  // group — a collapsed phase now reads as one unbroken block instead
-  // of two cells stacking together while the status sits in a column
-  // of its own to their right.
-  test("a phase line's three cells each take a line of their own", () => {
+  test("a phase line's two cells each take a line of their own", () => {
     expect(NARROW.replace(/\s+/g, " ")).toContain(
-      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell, " +
-        "table.list tr.subrow .phaseword { display: block; width: 100%; }",
+      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell " +
+        "{ display: block; width: 100%; }",
     );
   });
 
@@ -176,31 +139,6 @@ describe("the phase lines stop being pinned columns at phone width", () => {
   test("the desktop rule is still declared outside the media query", () => {
     const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
     expect(desktop).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }");
-  });
-});
-
-// --- criteria 6, 7, 9: analyze/implement fold their AI/model at phone width -
-
-describe("analyze and implement fold their AI and model controls at phone width (spec 215)", () => {
-  const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
-
-  test("an open fold's controls sit side by side, and a closed fold is forced open outside the narrow block", () => {
-    expect(desktop).toContain("details.phasedetail > .row { flex-wrap: nowrap; }");
-    expect(desktop).toContain("details.phasedetail:not([open]) > .row { display: flex; }");
-  });
-
-  test("the same selector is reversed inside the narrow block, so only there does the fold actually close", () => {
-    expect(NARROW).toContain("details.phasedetail:not([open]) > .row { display: none; }");
-  });
-
-  test("the chevron is hidden outside the narrow block and shown inside it", () => {
-    expect(desktop).toMatch(/summary\.fold\s*\{[^}]*display:\s*none/);
-    expect(NARROW).toMatch(/summary\.fold\s*\{[^}]*display:\s*inline-flex/);
-  });
-
-  test("archive's AI and model selects are hidden at phone width, and no other step has an equivalent rule", () => {
-    expect(NARROW).toContain('[data-step="archive"] .modelcell select { display: none; }');
-    expect(NARROW.match(/\.modelcell select \{ display: none; \}/g) ?? []).toHaveLength(1);
   });
 });
 
