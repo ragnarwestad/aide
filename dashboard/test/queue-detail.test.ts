@@ -666,12 +666,16 @@ describe("GET /specs/<project>/<specFolder>", () => {
     const { base, dir } = start();
     const spec = join(dir, "root", "aide", "specs", SPEC);
     const analysis = `${PATH}?tab=analysis`;
-    writeFileSync(join(spec, "2-analysis.md"), "before\n");
-    expect(await (await fetch(`${base}${analysis}`, auth)).text()).toContain("before");
-    writeFileSync(join(spec, "2-analysis.md"), "after\n");
+    // Distinctive sentinels, not English words: the stylesheet is
+    // inlined into every page, and a comment in it saying "before"
+    // failed this test for a week's worth of head-scratching
+    // (2026-08-24) while the files were being re-read just fine.
+    writeFileSync(join(spec, "2-analysis.md"), "sentinel-first-write\n");
+    expect(await (await fetch(`${base}${analysis}`, auth)).text()).toContain("sentinel-first-write");
+    writeFileSync(join(spec, "2-analysis.md"), "sentinel-second-write\n");
     const html = await (await fetch(`${base}${analysis}`, auth)).text();
-    expect(html).toContain("after");
-    expect(html).not.toContain("before");
+    expect(html).toContain("sentinel-second-write");
+    expect(html).not.toContain("sentinel-first-write");
   });
 });
 

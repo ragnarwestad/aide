@@ -902,8 +902,8 @@ tr.spec-archived td { color: var(--muted); }
      with a 500px iframe walk (2026-08-24): a flex tr inside a table
      still contributes its one-line max-content width (~458px, the
      badge + button + date + cost side by side) to the table's minimum,
-     so .tablewrap grew a scrollbar below ~480px however shrinkable the
-     items themselves were. As stacked blocks the flex rows wrap freely
+     so the table's scroll box grew a scrollbar below ~480px however
+     shrinkable the items were. As stacked blocks the flex rows wrap freely
      and nothing computes a table minimum. Scoped to .speclist: the
      archive page and the settings table share .list and keep real
      table layout. The remaining true-table rows here (the notice

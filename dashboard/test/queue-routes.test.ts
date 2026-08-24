@@ -1557,7 +1557,7 @@ describe("the job list sorts and filters", () => {
 
   test("one table holds every job — no fixed section above it", () => {
     const html = page([row("a", { state: "running" }), row("b")]);
-    expect(html.match(/<table class="list"/g)).toHaveLength(1);
+    expect(html.match(/<table class="list speclist"/g)).toHaveLength(1);
     expect(html).toContain("a-spec");
     expect(html).toContain("b-spec");
   });
@@ -2027,8 +2027,11 @@ describe("a phase says how long it took", () => {
   });
 
   // The work, not the calendar. These two jobs are three days apart and
-  // the spec took twenty minutes (criteria 5 and 6).
-  test("a finished spec's total is the sum of its phases, not the calendar span", () => {
+  // the spec took twenty minutes (criteria 5 and 6). The TOTAL left the
+  // header cell on 2026-08-24 — beside "3 d ago" it read as noise — so
+  // the sum now lives only on the phase lines and in what archive
+  // writes into 4-status.md; the header carries the date alone.
+  test("a finished spec's phases carry their durations; the header only its date", () => {
     const html = page(
       [
         job("a1", "aa-spec", {
@@ -2048,29 +2051,13 @@ describe("a phase says how long it took", () => {
       ],
       [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze", "implement", "archive"] })],
     );
-    // 5 + 10 + 5 minutes of work; three days of waiting in between.
-    // The total is the work. (The date beside it still reads "3 d ago"
-    // — that is when the spec was made, and it is the other half of
-    // this cell.)
-    const total = headCell(html, "aa-spec").match(/data-total="1"[^>]*>([^<]+)</)?.[1];
-    expect(total).toBe("20m00s");
-    // And it is exactly what the phase lines add up to.
+    // 5 + 10 + 5 minutes of work, on the lines that did it; the header
+    // cell says when the spec was made and nothing else.
+    expect(headCell(html, "aa-spec")).not.toContain("data-total");
+    expect(headCell(html, "aa-spec")).toContain("3 d ago");
     expect(phaseCell(html, "analyze")).toContain("5m00s");
     expect(phaseCell(html, "implement")).toContain("10m00s");
     expect(phaseCell(html, "archive")).toContain("5m00s");
-  });
-
-  test("a spec with a phase still ahead of it shows no total", () => {
-    const html = page(
-      [
-        job("a1", "aa-spec", {
-          startedAt: "2026-08-16T09:00:00Z",
-          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
-        }),
-      ],
-      [target("aa-spec", { createdAt: "2026-08-13T08:00:00Z", done: ["analyze"] })],
-    );
-    expect(headCell(html, "aa-spec")).not.toContain("data-total");
   });
 
   // The header row's own cell is the spec's date, and it does not move
@@ -2159,10 +2146,11 @@ describe("computeSpecTotalDurationMs (spec 207)", () => {
     expect(computeSpecTotalDurationMs([], ALL_DONE)).toBeUndefined();
   });
 
-  // The figure the list draws and the figure this returns are the same
-  // number, because they are the same call. Read off the rendered page
-  // as a label, which is all the page has.
-  test("is the figure the spec list draws for the same jobs", () => {
+  // The list stopped drawing this figure on 2026-08-24 — beside
+  // "3 d ago" it read as noise — so the function's remaining reader is
+  // the archive step, which writes the same sum into 4-status.md
+  // (spec 207). The list not smuggling it back in is worth a line.
+  test("the spec list no longer draws the figure", () => {
     const html = renderQueueRows(
       rows(),
       {
@@ -2172,10 +2160,7 @@ describe("computeSpecTotalDurationMs (spec 207)", () => {
       },
       Date.parse("2026-08-16T12:00:00Z"),
     );
-    const drawn = html
-      .match(/<tr class="spechead[^"]*"[^>]*data-folder="aa-spec">.*?<\/tr>/)?.[0]
-      ?.match(/data-total="1"[^>]*>([^<]+)</)?.[1];
-    expect(drawn).toBe("20m00s");
+    expect(html).not.toContain('data-total="1"');
   });
 });
 

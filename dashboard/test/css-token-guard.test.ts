@@ -195,11 +195,16 @@ describe("the page's width comes from the frame rule alone", () => {
 // --- one class, one home (spec 130) ----------------------------------------
 
 describe("a class is declared in one place", () => {
-  test(".spec-name is declared once, not twice", () => {
+  test(".spec-name is declared once per context: the base, and one mobile override", () => {
     // Two rules for one class is how a class starts having two homes:
     // the next reader changes the first one and never sees the second.
     // (`.spec-name > .label` is a different selector and does not count.)
-    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
+    // Exactly one lives OUTSIDE the phone media query; the second is
+    // that block's own override (2026-08-24) — a third anywhere is the
+    // drift this test exists to catch.
+    const base = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect((base.match(/\.spec-name\s*\{/g) ?? []).length).toBe(1);
+    expect((CSS.match(/\.spec-name\s*\{/g) ?? []).length).toBe(2);
   });
 });
 
@@ -279,6 +284,14 @@ const STRUCTURE = [
   // and the three read as three separate things with that between
   // them.
   "list", "spechead", "subrow", "phasecell", "modelcell",
+  // the spec list's own table (2026-08-24): the mobile stylesheet lays
+  // it out as stacked blocks, and the archive page and the settings
+  // table share "list" without wanting any of that.
+  "speclist",
+  // the mobile fold on a phase line (design handoff, mobile-spec-row):
+  // the label, its hidden checkbox, the chevron, and the AI+model pair
+  // the checkbox shows and hides. Inert on desktop.
+  "phasefold", "foldphase", "foldchevron", "aimodel",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead

@@ -48,10 +48,17 @@ const rows = (filter?: QueuePageOptions["filter"], extra: Partial<QueuePageOptio
 // --- criterion 1: the two columns a phone does not need ---------------------
 
 describe("Started and Cost fold away at phone width", () => {
-  test("the narrow-width block hides both columns", () => {
+  // Scoped to the PHASE lines since the mobile-spec-row handoff
+  // (2026-08-24): the spec's own header line keeps its date and cost,
+  // folded onto the second line beside the badge and the button.
+  test("the narrow-width block hides both columns on the phase lines", () => {
     expect(NARROW).toMatch(
-      /table\.list \[data-col="started"\][\s\S]*?\[data-col="cost"\][\s\S]*?display:\s*none/,
+      /table\.list tr\.subrow \[data-col="started"\][\s\S]*?tr\.subrow \[data-col="cost"\][\s\S]*?display:\s*none/,
     );
+  });
+
+  test("the spec header keeps its date, shown as an ordinary flex item", () => {
+    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
   });
 
   // Criterion 2. Three separate renderers write these two cells — the
@@ -96,34 +103,39 @@ describe("the phase lines stop being pinned columns at phone width", () => {
     expect(CSS).not.toContain("stackcell");
   });
 
-  // Since spec 165 a phase line is real table columns, and since spec
-  // 192 there are TWO of them — the name, then the one cell that holds
-  // the AI select, the model select and the phase's box together. Two
-  // selects and a name do not cross 375px, so each cell takes a line of
-  // its own, and the row inside the merged cell wraps as it already
-  // did — over three children now instead of two, which is the whole
-  // of what the merge asked of this block.
-  test("the merged cell's controls wrap onto a line each", () => {
-    expect(NARROW).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
+  // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
+  // FLEX line at this width — identically whether its fold is open or
+  // shut, because a table computes one column layout from all its rows,
+  // and rows disagreeing about their display type scattered controls
+  // into other rows' columns (the first attempt's bug). The two cells
+  // dissolve: .modelcell and its .row become display:contents, so the
+  // tick box and the .aimodel pair are flex items of the row itself,
+  // and only .aimodel's own visibility follows the checkbox.
+  test("every phase line is one flex row, open or shut", () => {
+    expect(NARROW).toMatch(/table\.list tr\.subrow \{ display: flex;/);
+    expect(NARROW.replace(/\s+/g, " ")).toContain(
+      "table.list tr.subrow .modelcell, table.list tr.subrow .modelcell > .row " +
+        "{ display: contents; }",
+    );
   });
 
-  test("a phase line's two cells each take a line of their own", () => {
-    expect(NARROW.replace(/\s+/g, " ")).toContain(
-      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell " +
-        "{ display: block; width: 100%; }",
+  test("the AI/model pair hides until the phase's own fold is opened", () => {
+    expect(NARROW).toContain("table.list tr.subrow .aimodel { display: none; }");
+    expect(NARROW).toMatch(
+      /tr\.subrow:has\(\.foldphase:checked\) \.aimodel \{\s*display: flex;/,
     );
   });
 
   // 6.25rem of floor inside a screen that is 23rem wide. Held here, the
   // table would scroll — which is the whole of what this block exists to
-  // prevent. The stacking rule above needs it released just as badly: a
-  // full-width block still honours a min-width. The AI column's own 8rem
-  // went with the column in spec 192, so there is one width left to give
-  // back rather than two.
+  // prevent. Both caps fall together (min AND max): the model select's
+  // 100px max-width outweighed the .aimodel > * rule by selector
+  // specificity, so lifting only the minimum left a 90/10 split where
+  // 50/50 was asked for.
   test("the width the phase lines reserve on a desktop is given back", () => {
     expect(NARROW).not.toContain("toolcell");
     expect(NARROW).toContain(
-      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }',
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }',
     );
   });
 
@@ -153,7 +165,7 @@ describe("every wide table scrolls inside its own box", () => {
   });
 
   test("the spec list's table is wrapped", () => {
-    expect(rows()).toContain('<div class="tablewrap"><table class="list">');
+    expect(rows()).toContain('<div class="tablewrap"><table class="list speclist">');
   });
 
   test("the Steps table on the job and spec pages is wrapped", () => {

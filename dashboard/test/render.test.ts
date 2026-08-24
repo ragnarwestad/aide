@@ -2307,7 +2307,7 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
 
   // Everything the rows renderer puts out ahead of the table — which is
   // the filter bar and nothing else.
-  const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list">'));
+  const beforeTable = (html: string) => html.slice(0, html.indexOf('<table class="list speclist">'));
 
   test("the popover stays inside the refreshed rows before the New-spec link", () => {
     const html = page({ createProjects: ["aide"] });
@@ -2927,7 +2927,7 @@ describe("spec 103: a collapsed row shows status only", () => {
     ]) {
       // Scoped to the list: the "?" popover above it is a `<details>`
       // of its own (spec 113), about how runs work, not about a row.
-      const table = html.match(/<table class="list">[\s\S]*<\/table>/)?.[0] ?? "";
+      const table = html.match(/<table class="list speclist">[\s\S]*<\/table>/)?.[0] ?? "";
       expect(table).not.toBe("");
       expect(table).not.toContain("data-more");
       expect(table).not.toContain('class="more"');
@@ -3554,11 +3554,16 @@ describe("the front page after the panel moved", () => {
 
   test("help rides before New spec at the right-hand end of either filter row", () => {
     const assertOrder = (html: string) => {
-      const filters = html.indexOf('data-filter="state"');
-      const help = html.indexOf('<details class="intro"');
-      const newSpec = html.indexOf('href="/new"');
-      const table = html.indexOf("<table");
-      expect(filters).toBeGreaterThan(html.indexOf('<div id="jobrows">'));
+      // From the list container on, not from 0: the inlined stylesheet
+      // mentions data-filter="state" too (the mobile filter-bar rules,
+      // 2026-08-24), and an indexOf from the top finds the CSS text
+      // long before the markup.
+      const jobrows = html.indexOf('<div id="jobrows">');
+      const filters = html.indexOf('data-filter="state"', jobrows);
+      const help = html.indexOf('<details class="intro"', jobrows);
+      const newSpec = html.indexOf('href="/new"', jobrows);
+      const table = html.indexOf("<table", jobrows);
+      expect(filters).toBeGreaterThan(jobrows);
       expect([filters, help, newSpec, table]).toEqual(
         [...[filters, help, newSpec, table]].sort((a, b) => a - b),
       );
@@ -3823,11 +3828,14 @@ describe("spec 116: create is the first phase line", () => {
     // fills and an attempt-less line leaves empty. Since spec 123 the
     // model shares the phase name's own cell rather than having one of
     // its own, so the emptiness is inside that cell.
-    // The name stands alone in the first cell since spec 165, and the
-    // box moved in beside the model. `create`'s box is ticked,
+    // The name leads the first cell since spec 165 — wrapped in the
+    // mobile fold control since 2026-08-24, which is inert on desktop —
+    // and the box moved in beside the model. `create`'s box is ticked,
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
-    expect(line).toContain('<td class="phasecell"><span class="muted">create</span></td>');
+    expect(line).toMatch(
+      /<td class="phasecell"><label class="phasefold">[\s\S]*?<span class="muted">create<\/span><\/label><\/td>/,
+    );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
         '<input type="checkbox" value="create" checked disabled ' +
@@ -5854,15 +5862,23 @@ describe("spec 192: the phase line's controls share one cell", () => {
     const html = rows();
     for (const step of ["create", "analyze", "implement", "archive"]) {
       const first = cells(subRow(html, step))[0] ?? "";
-      // The name, and nothing in front of it: no box, no placeholder
-      // span holding a column's place, no select.
-      expect([step, first.includes("<input")]).toEqual([step, false]);
+      // The name, and no CONTROL in front of it: no phase box, no
+      // placeholder span holding a column's place, no select. The
+      // mobile fold control (2026-08-24) is the one deliberate
+      // exception — its checkbox and chevron are invisible outside the
+      // phone media query, so on a desktop the cell still reads as the
+      // name alone.
       expect([step, first.includes("data-phase")]).toEqual([step, false]);
       expect([step, first.includes("<select")]).toEqual([step, false]);
-      // The name is the whole of it — a future `STEP_LABELS` entry
-      // would reach a reader as a different word, so the cell is
-      // checked for text and not for the step's own word.
-      expect([step, /^<(a|span)[^>]*>[a-z-]+<\/(a|span)>$/.test(first)]).toEqual([step, true]);
+      expect([step, first.includes('class="foldphase"')]).toEqual([step, true]);
+      // The name is the whole of the visible text — a future
+      // `STEP_LABELS` entry would reach a reader as a different word,
+      // so the cell is checked for shape and not for the step's own
+      // word.
+      expect([
+        step,
+        /<(a|span)[^>]*>[a-z-]+<\/(a|span)><\/label>$/.test(first),
+      ]).toEqual([step, true]);
       // And it is still a cell of its own: the merge is behind it, not
       // around it.
       expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
@@ -6026,28 +6042,28 @@ describe("spec 192: the phase line's controls share one cell", () => {
     }
   });
 
-  // --- criterion 5: one control per line at phone width ---------------------
+  // --- criterion 5: a folded phase line at phone width ----------------------
 
-  test("at phone width the merged cell's controls stack one per line (criterion 5)", async () => {
+  test("at phone width the AI/model pair folds behind the phase's chevron (criterion 5)", async () => {
     const { CSS } = await import("../src/render/css.ts");
     const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
-    // Three controls in one cell now, and the wrap that took the model
-    // select and the box onto a line each takes all three.
-    expect(narrow).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
-    // Two real cells on a phase line, not three: the name, then the
-    // cell that holds the choices. Each takes a full line of its own.
+    // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
+    // flex row at this width — identical open or shut — with the cells
+    // dissolved (display:contents), and the AI/model pair hidden until
+    // the phase's own fold checkbox shows it.
+    expect(narrow).toMatch(/table\.list tr\.subrow \{ display: flex;/);
     expect(narrow.replace(/\s+/g, " ")).toContain(
-      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell " +
-        "{ display: block; width: 100%; }",
+      "table.list tr.subrow .modelcell, table.list tr.subrow .modelcell > .row " +
+        "{ display: contents; }",
     );
-    // And the width the model select reserves on a desktop is given
-    // back, by the same attribute selector that reserves it.
+    expect(narrow).toContain("table.list tr.subrow .aimodel { display: none; }");
+    // And the widths the two selects reserve on a desktop are given
+    // back — min AND max, or the 50/50 split never happens.
     expect(narrow).toContain(
-      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }',
+      'table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }',
     );
     // The pinned flex bases the three-in-one cell needed before spec
-    // 165 stay gone: one cell again, but the widths are not pinned by
-    // hand this time.
+    // 165 stay gone: the widths are not pinned by hand this time.
     expect(CSS).not.toContain(".phasecell > .row");
     expect(CSS).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
   });

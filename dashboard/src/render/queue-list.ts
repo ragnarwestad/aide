@@ -501,7 +501,12 @@ interface SpecGroup {
    *  run, and absent for a spec no phase of which has a measurable
    *  span. A spec that waited three days between two phases did not
    *  take three days, which is why this is a SUM of measured phases and
-   *  never `last finished - first started`. */
+   *  never `last finished - first started`.
+   *
+   *  Not DRAWN on the list since 2026-08-24 — beside "3 h ago" the
+   *  figure read as noise — but still computed: it is the same sum
+   *  `archive` writes into `4-status.md` (spec 207), and the group
+   *  carrying it keeps the two readers on one source. */
   totalDurationMs?: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
    *  Folded by label from rows already on the page — the server folds
