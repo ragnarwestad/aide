@@ -962,8 +962,23 @@ they are needed, by cloning the person's checkout's own `origin`, and
 reused ever after. Everything that MUTATES goes there: `aide-run-spec
 --project-dir`, a landing's merge and push, Save, Update, the dependency
 gate's fetches, the drift poll. The person's checkout is read for the
-project list, the manifests and the spec list, and is otherwise asked one
-read-only question ever — which origin to clone from.
+project list and the manifests, and is otherwise asked one read-only
+question ever — which origin to clone from.
+
+**The spec list itself is read from the dashboard's own checkout, not
+the person's (spec 218).** Every reader-facing listing —
+`GET /projects/:name`, `GET /projects`, the home page's queue rows and
+the archive page — lists from `resolvedCheckouts.get(project)?.specs`
+when the dashboard's own clone exists, falling back to the person's
+checkout otherwise (a new project, or one whose clone failed). This is
+the same clone `aide-run-spec` resolves a spec folder against, so a
+folder that only exists in the person's checkout, committed but never
+pushed, does not appear in the list — before spec 218 it did, and
+running a step on it failed with `unknown spec: ... (not under
+<dashboard-checkout>/specs/<project>)`. The fetch that keeps the
+dashboard's clone current happens inside `refreshSpecCaches`'s existing
+schedule, never inside a request, so this still costs no git spawn on
+the render path (spec 208).
 
 Two consequences worth knowing:
 
