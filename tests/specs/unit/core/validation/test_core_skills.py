@@ -541,3 +541,48 @@ class TestReopenSkillKeepsWhatTheDescriptionAsksFor:
         and a skill that stops to ask in a headless run leaves it in
         neither."""
         assert "headless" in skill.lower()
+
+
+@pytest.mark.validation
+class TestCreateSkillStagesAndOffersToCommit:
+    """Spec 219, AC9. Of the four step skills, aide-create was the only
+    one that never offered a commit — Step 5 unconditionally SKIPPED
+    `git add` whenever the specs root sat outside the project (the
+    `aide-specs` shape), so the ordinary interactive flow produced no
+    aide-authored commit for commit-msg-spec-guard to recognize. A
+    human committing that scaffold by hand from the IDE would then be
+    blocked by the very hook meant to catch hand-written specs, even
+    though the files were genuinely produced by the skill.
+    """
+
+    SKILL = CORE_SKILLS_DIR / "aide-create" / "SKILL.md"
+
+    def _step_5_text(self) -> str:
+        text = self.SKILL.read_text(encoding="utf-8")
+        start = text.index("### Step 5:")
+        end = text.index("### Step 6:", start)
+        return text[start:end]
+
+    def test_step_5_no_longer_unconditionally_skips_git_add(self):
+        step5 = self._step_5_text()
+        assert "SKIP" not in step5, (
+            "Step 5 still skips `git add` for an external specs root — "
+            "a spec created there never gets staged, so there is "
+            "nothing for Step 5's commit offer to commit"
+        )
+        assert "git add" in step5
+
+    def test_step_5_offers_the_create_commit_with_the_convention_message(self):
+        step5 = self._step_5_text()
+        assert "Run /aide-create for" in step5, (
+            "Step 5 does not offer the `Run /aide-create for <spec-folder>` "
+            "commit — the one convention-carrying commit aide-create was "
+            "missing"
+        )
+
+    def test_it_says_the_headless_run_gets_its_commit_for_free(self):
+        """Matches the other three step skills' identical wording, so a
+        headless `aide-run-spec` run and an interactive one leave the
+        spec in the same state."""
+        step5 = self._step_5_text()
+        assert "headless" in step5.lower()

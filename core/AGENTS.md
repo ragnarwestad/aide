@@ -66,6 +66,7 @@ them rather than duplicating:
 
 - **Simplicity first** (minimal code, no speculative abstraction) — the `/code-review` skill
 - **Goal-driven execution** (verifiable success criteria, RED → GREEN → REFACTOR) — `testing.md` and `/tdd-coach`
+- **Never hand-write a spec's files** — the `spec-structure` rule/skill, "Templates"
 
 ---
 

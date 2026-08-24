@@ -1,0 +1,86 @@
+#!/bin/bash
+# aide-managed: commit-msg-spec-guard — installed by aide-install-spec-hook.
+#
+# Best-effort guardrail (spec 219): rejects a commit that touches a
+# spec's 4/5-file layout (0-README.md, 1-description.md, 2-analysis.md,
+# 3-solution.md, 4-status.md) unless the message matches the convention
+# documented in core/rules/spec-structure.md's "Workflow steps
+# completed" section — Run /aide-<step> for <spec-folder>[...]. Every
+# spec file is meant to be produced by invoking the actual /aide-*
+# skill, never hand-written; a human copying the pattern by hand looks
+# identical to one the skill produced, and this hook is what tells them
+# apart.
+#
+# 1-description.md is the one documented exception: spec-structure.md
+# allows a hand-edit to its Description field on an EXISTING file, so
+# it is gated only when newly added, not when modified. The other four
+# names are gated whether added or modified — no case for hand-editing
+# their content outside a skill run is documented anywhere.
+#
+# Best-effort only, as the description that asked for this hook says
+# itself: a commit message can be typed to match the convention on a
+# genuinely hand-written spec. This blocks the accidental case, not a
+# deliberate bypass. It also does not catch a reword-only
+# `git commit --amend -m`, since HEAD at hook-fire time is still the
+# commit being amended — an accepted, named risk, not engineered
+# around.
+set -u
+
+msg_file="${1:-}"
+if [ -z "$msg_file" ] || [ ! -f "$msg_file" ]; then
+  exit 0
+fi
+
+gated=0
+gated_paths=""
+
+while IFS= read -r path; do
+  [ -n "$path" ] || continue
+  base="$(basename "$path")"
+  case "$base" in
+    1-description.md)
+      # Gated only when newly added — an existing file's Description
+      # field is the one documented outside-the-flow allowance.
+      if ! git cat-file -e "HEAD:$path" 2>/dev/null; then
+        gated=1
+        gated_paths="$gated_paths$path
+"
+      fi
+      ;;
+    0-README.md|2-analysis.md|3-solution.md|4-status.md)
+      gated=1
+      gated_paths="$gated_paths$path
+"
+      ;;
+  esac
+done <<EOF
+$(git diff --cached --name-only --no-renames 2>/dev/null)
+EOF
+
+[ "$gated" -eq 1 ] || exit 0
+
+subject="$(head -n 1 "$msg_file")"
+re="^Run /aide-[a-z][a-z-]* for .+( \(headless\))?( \(stopped: .+\))?$"
+if [[ "$subject" =~ $re ]]; then
+  exit 0
+fi
+
+{
+  echo "commit-msg-spec-guard: rejected."
+  echo ""
+  echo "This commit touches a spec's 4/5-file layout:"
+  echo "$gated_paths" | sed '/^$/d; s/^/  /'
+  echo ""
+  echo "but its message does not match the convention:"
+  echo ""
+  echo "  Run /aide-<step> for <spec-folder>[ (headless)][ (stopped: <reason>)]"
+  echo ""
+  echo "Spec files are produced by invoking the actual /aide-* skill for"
+  echo "that step, never by hand-writing them — see"
+  echo "core/rules/spec-structure.md, \"Templates\". If this commit"
+  echo "genuinely came from a skill run, its message should already"
+  echo "match; reword it with:"
+  echo ""
+  echo "  git commit --amend -m \"Run /aide-<step> for <spec-folder>\""
+} >&2
+exit 1

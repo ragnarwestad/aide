@@ -10,7 +10,12 @@
 # AI-specific scripts are handled by the individual
 # installer, not here.
 
-COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-pull-specs validate-env upgrade-ai-tools _aide-spec-lib.sh"
+COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emit-run aide-run-spec aide-pull-specs aide-install-spec-hook validate-env upgrade-ai-tools _aide-spec-lib.sh"
+# The hook body aide-install-spec-hook writes into a target repo (spec
+# 219). Kept as its own file under core/scripts/hooks/, not embedded in
+# the installer, so it can be tested standalone — which means it needs
+# its own copy step, since the loop above only copies flat files.
+COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_common_bin() {
@@ -23,6 +28,14 @@ install_common_bin() {
       echo "   ✅ Installed: ~/.local/bin/$s"
     fi
   done
+  mkdir -p ~/.local/bin/hooks
+  for s in $COMMON_BIN_HOOK_SCRIPTS; do
+    if [ -f "$_CORE_SCRIPTS_DIR/hooks/$s" ]; then
+      cp "$_CORE_SCRIPTS_DIR/hooks/$s" ~/.local/bin/hooks/
+      chmod +x ~/.local/bin/hooks/"$s"
+      echo "   ✅ Installed: ~/.local/bin/hooks/$s"
+    fi
+  done
 }
 
 uninstall_common_bin() {
@@ -31,6 +44,12 @@ uninstall_common_bin() {
     if [ -f "$HOME/.local/bin/$s" ]; then
       rm "$HOME/.local/bin/$s"
       echo "   ✅ Removed: ~/.local/bin/$s"
+    fi
+  done
+  for s in $COMMON_BIN_HOOK_SCRIPTS; do
+    if [ -f "$HOME/.local/bin/hooks/$s" ]; then
+      rm "$HOME/.local/bin/hooks/$s"
+      echo "   ✅ Removed: ~/.local/bin/hooks/$s"
     fi
   done
 }
