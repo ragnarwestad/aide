@@ -272,12 +272,12 @@ describe("the spec column is capped, so the phases sit close", () => {
   test("the name, the summary and the repo marks all wrap at a measure", async () => {
     const { CSS } = await import("../src/render/css.ts");
     expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
-    // A WIDTH on the name line since 2026-08-23, not a maximum: a short
-    // name let the pips beside it sit further left than a long one's,
-    // so they stepped in and out down the column. Still a measure — the
-    // name still truncates — and what this test is for is that the
-    // column ends at one.
-    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: \d+rem/);
+    // min(27rem, 100%) since spec 215, not a bare width: a fixed
+    // 27rem forced the table past a phone's viewport regardless of
+    // what else was hidden. Still a measure at every desktop width —
+    // the name still truncates — and what this test is for is that
+    // the column ends at one.
+    expect(CSS).toMatch(/\.spec-name \{[^}]*[^-]width: min\(\d+rem, 100%\)/);
   });
 });
 

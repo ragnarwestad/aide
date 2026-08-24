@@ -2931,7 +2931,12 @@ describe("spec 103: a collapsed row shows status only", () => {
       expect(table).not.toBe("");
       expect(table).not.toContain("data-more");
       expect(table).not.toContain('class="more"');
-      expect(table).not.toContain("<summary");
+      // The old "more" disclosure is gone for good — the checks above
+      // are what prove it. A `<summary>` can still appear now (spec
+      // 215's per-phase AI/model fold), but every one on the list is
+      // that fold's own, never a stray "more" reincarnated.
+      const summaries = [...table.matchAll(/<summary[^>]*>/g)];
+      expect(summaries.every((m) => m[0].includes('class="fold"'))).toBe(true);
     }
   });
 });
@@ -3835,7 +3840,7 @@ describe("spec 116: create is the first phase line", () => {
         "<span></span></label>",
     );
     expect(line).toContain(
-      '<td><span class="badge b-done">done</span></td>' +
+      '<td class="phaseword"><span class="badge b-done">done</span></td>' +
         '<td data-col="started"></td><td class="num" data-col="cost"></td>',
     );
   });
@@ -6034,11 +6039,12 @@ describe("spec 192: the phase line's controls share one cell", () => {
     // Three controls in one cell now, and the wrap that took the model
     // select and the box onto a line each takes all three.
     expect(narrow).toContain("table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }");
-    // Two real cells on a phase line, not three: the name, then the
-    // cell that holds the choices. Each takes a full line of its own.
+    // Three real cells on a phase line: the name, the cell that holds
+    // the choices, and the status word (spec 215) — each takes a full
+    // line of its own.
     expect(narrow.replace(/\s+/g, " ")).toContain(
-      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell " +
-        "{ display: block; width: 100%; }",
+      "table.list tr.subrow .phasecell, table.list tr.subrow .modelcell, " +
+        "table.list tr.subrow .phaseword { display: block; width: 100%; }",
     );
     // And the width the model select reserves on a desktop is given
     // back, by the same attribute selector that reserves it.
@@ -6050,6 +6056,48 @@ describe("spec 192: the phase line's controls share one cell", () => {
     // hand this time.
     expect(CSS).not.toContain(".phasecell > .row");
     expect(CSS).not.toMatch(/\.modelcell[^{]*\{[^}]*flex: 0 0/);
+  });
+
+  // --- spec 215: analyze/implement fold their AI and model on a phone -------
+
+  test("analyze and implement wrap their controls in a closed details.phasedetail (criterion 4)", () => {
+    const html = rows();
+    for (const step of ["analyze", "implement"]) {
+      const merged = cells(subRow(html, step))[1] ?? "";
+      expect([step, merged.includes('<details class="phasedetail">')]).toEqual([step, true]);
+      expect([step, merged.includes('<summary class="fold"')]).toEqual([step, true]);
+      // AI and model live inside the fold, ahead of where they used to
+      // sit directly in the merged cell.
+      expect([
+        step,
+        merged.indexOf('<details class="phasedetail">') < merged.indexOf(`data-ai="model.${step}"`),
+      ]).toEqual([step, true]);
+      // A fresh render is always closed — no `open` attribute.
+      expect([step, /<details class="phasedetail"[^>]*\bopen\b/.test(merged)]).toEqual([step, false]);
+    }
+  });
+
+  test("archive's controls are never wrapped in details.phasedetail (criterion 5)", () => {
+    const html = rows();
+    const merged = cells(subRow(html, "archive"))[1] ?? "";
+    expect(merged.includes("phasedetail")).toBe(false);
+    expect(merged.includes('data-ai="model.archive"')).toBe(true);
+    expect(merged.includes('<select name="model.archive"')).toBe(true);
+  });
+
+  test("the tick box and the status word stay outside the fold, so both render regardless of expand state (criterion 8)", () => {
+    const html = rows();
+    for (const step of ["analyze", "implement"]) {
+      const line = subRow(html, step);
+      const merged = cells(line)[1] ?? "";
+      const detailsEnd = merged.indexOf("</details>");
+      const boxAt = merged.indexOf(`data-phase="${step}"`);
+      expect([step, detailsEnd]).not.toEqual([step, -1]);
+      expect([step, boxAt > detailsEnd]).toEqual([step, true]);
+      // The status-word cell carries its own class now, so it can join
+      // the narrow-width stacking rule.
+      expect([step, cellTags(line)[2]]).toEqual([step, '<td class="phaseword">']);
+    }
   });
 });
 
