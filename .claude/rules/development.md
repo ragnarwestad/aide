@@ -170,12 +170,17 @@ it is a landing that did not finish. Four things not to get backwards:
   and asserts they name the same members.
 
 The visible half is one set — archived specs whose own branch is still
-on origin — with two readers: `groupBySpec` in
-`dashboard/src/render/queue-list.ts` keeps such a row on the specs list,
-and `dashboard/src/render/archive-page.ts` marks it "not landed". It is
-filtered on the BRANCH and never on the job's `errorReason`: spec 146
-carried no reason at all, and a stale reason on an old job would
-resurrect a row for a spec that is genuinely finished. The way out is
+on origin — and since spec 221 it has ONE reader:
+`dashboard/src/render/queue-list.ts` draws every archived spec as a
+reader row on the specs list, and such a spec's row carries the "not
+landed" mark. `dashboard/src/render/archive-page.ts` was the second
+reader and is gone with the `/archive` page it drew. The row is the
+reason the set is still built on the DEFAULT view, where the rest of
+the archive is not: a spec whose work never landed has not finished,
+and the reading view is where that has to be seen. It is filtered on
+the BRANCH and never on the job's `errorReason`: spec 146 carried no
+reason at all, and a stale reason on an old job would resurrect a row
+for a spec that is genuinely finished. The way out is
 the step that already exists — `archive` can be enqueued again for such
 a spec, and `resolveProject` admits it only while its branch is open.
 

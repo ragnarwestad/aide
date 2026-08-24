@@ -265,8 +265,12 @@ const STRUCTURE = [
   "specfile",
   // the archive's own three: the search box, widened and uncaptioned,
   // and the two cells that must not wrap — the date (2026-08-23) and
-  // what the spec cost in time (spec 207)
+  // what the spec cost in time (spec 207). All three are on the Specs
+  // list since spec 221, which folded the archive into it.
   "archive-q", "archive-date", "archive-duration",
+  // and the form that box sits in (spec 221): a line of its own under
+  // the chips, because that line was already full.
+  "specsearch",
   "u-usd", "u-tok",
   // containers — "stack" was the vertical one (spec 124): the row's
   // action buttons, one under the next, in the list's first column. It
@@ -302,8 +306,10 @@ const STRUCTURE = [
   "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,
   // which `site.ts` uses for the unrelated question of whether a spec
-  // folder has been archived on disk.
-  "run-new", "run-live", "run-past",
+  // folder has been archived on disk. "run-archived" is spec 221's
+  // reader row: an archived spec, on the list, with no control on it
+  // the server would refuse.
+  "run-new", "run-live", "run-past", "run-archived",
   // and site.ts's answer to that other question
   "spec-open", "spec-archived",
   // the project overview

@@ -1227,7 +1227,11 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
   });
 
-  test("a spec whose folder has been archived is off the list entirely (criterion 7)", async () => {
+  // Was "off the list entirely" (spec 86, criterion 7) until spec 221:
+  // an archived spec IS a row now, on the chips that ask for one. What
+  // survives that change is the DEFAULT view, which is still every spec
+  // but the archived ones — and that is what this asserts.
+  test("a spec whose folder has been archived is off the default view", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const archived = join(dir, "root", "aide", "specs", "archive", "80-already-archived");
     mkdirSync(archived, { recursive: true });
@@ -1236,6 +1240,21 @@ describe("the spec's own history says what has happened, not the queue's", () =>
     const html = await (await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(html).toContain("81-queue-and-runner");
     expect(html).not.toContain("80-already-archived");
+
+    // And on the chip that asks for them, it is there — one list, two
+    // readings of it, rather than a spec that has left the dashboard.
+    // Polled, because the folder was made after the server started and
+    // the disk scan it answers from is cached for a few seconds.
+    const deadline = Date.now() + 3000;
+    let archivedView = "";
+    for (;;) {
+      archivedView = await (
+        await fetch(`${base}/?state=archived`, { headers: { "x-aide-token": TOKEN } })
+      ).text();
+      if (archivedView.includes("80-already-archived") || Date.now() > deadline) break;
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(archivedView).toContain("80-already-archived");
   });
 });
 
@@ -7068,8 +7087,11 @@ describe("no render path runs git or a network command (spec 208)", () => {
     expect(html).not.toContain("checking…");
   });
 
-  // Criterion 8.
-  test("cold, GET /archive renders with a checking date rather than blocking on git", async () => {
+  // Criterion 8. It asked `/archive` until spec 221 retired that page;
+  // the rows are on the Specs list now, behind the chip that shows
+  // them, and the rule they have to keep is the same one — peek, never
+  // take, on the request path.
+  test("cold, an archived row renders with a checking date rather than blocking on git", async () => {
     const git = recording();
     const { base } = harness.start({
       extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
@@ -7078,7 +7100,7 @@ describe("no render path runs git or a network command (spec 208)", () => {
       archivedSpecs: { "77-old-thing": { status: "# Status\n" } },
     });
     const before = git.calls.length;
-    const res = await get(base, "/archive");
+    const res = await get(base, "/?state=archived");
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(git.calls.length).toBe(before);

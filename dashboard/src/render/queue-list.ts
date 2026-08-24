@@ -20,7 +20,7 @@
 // filters and the sort are ordinary links, and every Run control is a
 // plain form.
 
-import { esc, relTime, usdOrTokens } from "./html.ts";
+import { esc, relTime, relTimeLabel, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
 // One function, because the server routes on this path and the list
@@ -122,6 +122,109 @@ export interface QueueTarget {
   archiveHeldBack?: { reason: string };
 }
 
+/** An ARCHIVED spec, as this list draws it (spec 221).
+ *
+ *  It came from `render/archive-page.ts`, which held the `/archive`
+ *  page until that page retired: everything the Archive tab could do is
+ *  done from a chip on this list now, so the shape it read moved here
+ *  rather than being written a second time. Nothing about the fields
+ *  changed in the move — the comments are the ones the archive page
+ *  wrote them with.
+ *
+ *  It is deliberately NOT a `QueueTarget`: a target is a spec the queue
+ *  may RUN, and the one thing an archived spec may be asked for is
+ *  `reopen` (`ARCHIVE_ONLY_STEP`, queue.ts). Two shapes, because they
+ *  answer two questions. */
+export interface ArchivedSpecView {
+  /** Which project's archive it came out of. */
+  project: string;
+  /** The spec's folder, which is also its number — what a person calls
+   *  it when they go looking for it. */
+  folder: string;
+  /** Its H1, when `1-description.md` has one. */
+  title?: string;
+  /** The prose under `## Description`, whole. The cell shows two lines
+   *  of it and the search reads all of it — cutting it here would make
+   *  the two disagree. */
+  description?: string;
+  /** When it was archived: the `4-status.md` stamp, or failing that the
+   *  commit that last touched the folder. `null` when neither answers,
+   *  and the row says so in words rather than leaving the cell blank. */
+  archivedAt: string | null;
+  /** Where the page that already worked lives. Built by the server from
+   *  the same function the spec list links through. */
+  href: string;
+  /** Its own `aide/<folder>` is STILL on origin (spec 193): the spec
+   *  was archived and its work never landed. Derived from origin rather
+   *  than from the job, because this is the half that reaches a spec
+   *  whose job the queue's LRU cap evicted long ago — 146's case, which
+   *  carried no failure reason at all. */
+  notLanded?: boolean;
+  /** When that answer was last taken — epoch ms, the checker's own
+   *  cache stamp (spec 208). The set is whatever a background schedule
+   *  last found, so how OLD it is decides how much of it to believe:
+   *  the mark says so, the same way `driftNote` labels a commits-behind
+   *  count. Absent for a row carrying no mark, and for one whose answer
+   *  has never been taken. */
+  notLandedCheckedAt?: number;
+  /** Nobody has yet asked git when this spec was archived (spec 208).
+   *  Only a spec whose `4-status.md` carries no `Archived:` stamp can
+   *  reach git at all, so this is the shrinking minority of a shrinking
+   *  minority — and the cell says "checking…" for it rather than
+   *  `date unknown`, which is what a spec git ASKED about and could not
+   *  date says. */
+  dateChecking?: boolean;
+  /** What the spec cost in TIME: its phases added together, in
+   *  milliseconds, off the `Time spent (ms)` stamp its archive landing
+   *  wrote into `4-status.md` (spec 207). Absent for every spec
+   *  archived before that stamp existed, and the cell is then genuinely
+   *  blank — not `date unknown`, not a dash: a figure nobody recorded is
+   *  different from a value that could not be found. */
+  durationMs?: number;
+}
+
+/** What the date cell says when the spec carries no stamp and git
+ *  cannot date its folder either — a folder copied in rather than
+ *  committed. Spelled out here so the row and its test cannot word the
+ *  same absence differently. */
+export const NO_DATE = "date unknown";
+
+/** The mark an archived row carries when its branch is still open.
+ *  Drawn with the same `refused` badge a failed row gets — one archive
+ *  is not a different kind of problem from the other. */
+export const NOT_LANDED = "not landed";
+
+/** What the description says when `1-description.md` has no
+ *  `## Description` section. A dash, not a blank: the same reason the
+ *  date says `date unknown`. */
+const NO_DESCRIPTION = "—";
+
+/** The three fields the search reads. Named in one place because the
+ *  page says them out loud under the field — a filter whose reach is a
+ *  guess is a filter nobody trusts. */
+const SEARCHED = ["folder", "title", "description"];
+
+/** This page's own pseudo-states for an archived spec (spec 221). No job
+ *  ever carries either: they are what a reader ROW is, and they are the
+ *  values the chips are defined against — the older chips exclude a
+ *  settled archived row because none of them lists this first string.
+ *
+ *  TWO of them, because being archived answers "did this spec finish"
+ *  with certainty only while nothing of the spec is still open (spec
+ *  193). A spec archived with its own branch still on origin has not
+ *  finished; it has always been on the reading view, and the chip
+ *  defined by excluding archived specs must not be what finally takes
+ *  it off. So it is archived to the Archived chip, a problem to the
+ *  Problems chip, and not-archived to the one that means "everything
+ *  still going on" — three answers that fall out of one extra value
+ *  rather than out of an exception inside the filter.
+ *
+ *  The row is the same either way, and so is the word in its State
+ *  cell: what tells the two apart on the page is the "not landed" mark,
+ *  which is the fact the reader has to act on. */
+const ARCHIVED_STATE = "archived";
+const ARCHIVED_OPEN_STATE = "archived-unlanded";
+
 export interface QueuePageOptions {
   /** 81a ships no runner: the page says so rather than leaving jobs in
    *  "queued" with no explanation. */
@@ -132,15 +235,21 @@ export interface QueuePageOptions {
    *  folder does not exist until it lands) — but once the spec has been
    *  archived, that exception would keep a ghost row forever. */
   archived?: string[];
-  /** The exception to that, from origin (spec 193): archived specs
-   *  whose own `aide/<folder>` is still an open branch. Being archived
-   *  answers "did this spec finish" with certainty only while nothing
-   *  of the spec is still open, and three specs reached the archive
-   *  with their code on a branch and every row saying done. Such a row
-   *  is kept, and renders through the same failed-state path as any
-   *  other — there is nothing special about it but the fact that it is
-   *  drawn at all. */
-  unlanded?: string[];
+  /** The archived specs themselves, as reader rows (spec 221). The KEYS
+   *  above are cheap and always sent — `groupBySpec` drops job rows by
+   *  them; THIS is the walk over every archived folder, and the server
+   *  only makes it when the resolved filter can show one
+   *  (`filterShowsArchived`). Absent is therefore "the reader did not
+   *  ask for them", not "there are none": the chip counts fall back to
+   *  the keys above for exactly that reason.
+   *
+   *  Spec 193's exception lives on `notLanded` here rather than as a
+   *  second visibility rule. An archived spec whose branch is still on
+   *  origin used to be the ONE archived spec with a row, and it came
+   *  through the ordinary interactive path — a Run, model selects and
+   *  tick boxes the server would have refused. It is the same reader
+   *  row as every other archived spec now, wearing the mark. */
+  archivedSpecs?: ArchivedSpecView[];
   token?: string;
   /** Browser code for this page, compiled from `queue-client.ts` by the
    *  server. Nothing is hardcoded as a string here: page code is
@@ -184,6 +293,12 @@ export interface QueueFilter {
   project?: string;
   sort?: string;
   dir?: string;
+  /** A plain search term (spec 221), matched against the three fields
+   *  `SEARCHED` names — folder, title and the WHOLE description, not
+   *  the two lines the row shows. It came off the archive page, which
+   *  had the only search on this dashboard; it reads live and archived
+   *  rows alike now, because they are rows on one list. */
+  q?: string;
   /** Which specs are expanded: `<project>/<folder>`, comma-separated.
    *  A row is COLLAPSED unless it is named here — the list is a wall of
    *  controls otherwise, and the reader came to read states. It rides in
@@ -223,7 +338,7 @@ const PHASE_LINES = ["create", ...QUEUE_STEPS];
 /** How the list is cut and ordered. One list, exported so `serve.ts`
  *  builds the redirect after a POST from the same five keys the forms
  *  send — two copies would eventually disagree about what "the view" is. */
-export const FILTER_KEYS = ["state", "project", "sort", "dir", "open"] as const;
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "q"] as const;
 
 /** The prefix a filter key rides under as a form field. Prefixed
  *  because one of the five is `project`, which is ALSO what the Run
@@ -231,6 +346,14 @@ export const FILTER_KEYS = ["state", "project", "sort", "dir", "open"] as const;
  *  as a list, and the enqueue refuses the whole request as "invalid
  *  project". */
 export const FILTER_FIELD_PREFIX = "view.";
+
+/** What tells `POST /api/queue` that the press came from a row on THIS
+ *  list (spec 221). Reopen is offered in two places — an archived
+ *  spec's own page and its row here — and the two want the answer on
+ *  different pages. A marker rather than a redirect target: where to go
+ *  back to is the server's decision, and a page that took the
+ *  destination from the browser would take it from anyone. */
+export const FROM_LIST_FIELD = "fromList";
 
 /** The current view, sent along with the press. The redirect the server
  *  answers with can only carry forward what the POST itself received,
@@ -245,13 +368,27 @@ const filterFields = (f?: QueueFilter): string =>
 
 const SHOWN = 25;
 
-// The four questions actually asked of this list. "Problems" holds
+// The questions actually asked of this list. "Problems" holds
 // everything that did not simply finish — a cap-stop and a crash are
 // different, but both are things you go looking for on purpose.
-// "Not started" comes AFTER "All", which must stay first: `stateFilter`
-// falls back to `STATE_FILTERS[0]`, so moving it changes the default
-// filter for every reader.
-const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
+//
+// "Not archived" is FIRST, and that position is the whole of what makes
+// it the default: `stateFilter` falls back to `STATE_FILTERS[0]`, so
+// moving it changes the default filter for every reader. It held "All"
+// until spec 221 folded the archive onto this list — at which point
+// "All" started meaning all, archived specs included, and the reading
+// view every tab sits on needed a chip of its own to be.
+//
+// `excludeStates` exists for that one entry and no other. An allow-list
+// cannot say "every state but this one" without naming every job state
+// there is, which is a list that goes stale the first time a state is
+// added; the exception is what this entry IS, so it says so.
+//
+// The four in the middle are untouched by spec 221 BY CONSTRUCTION:
+// none of them names `ARCHIVED_STATE`, so each already excludes an
+// archived row without a line of new code.
+const STATE_FILTERS: { key: string; label: string; states?: string[]; excludeStates?: string[] }[] = [
+  { key: "not-archived", label: "Not archived", excludeStates: [ARCHIVED_STATE] },
   { key: "all", label: "All" },
   { key: "not-started", label: "Not started", states: ["not-started"] },
   // Read off `IN_FLIGHT` rather than written out a second time: a state
@@ -259,8 +396,20 @@ const STATE_FILTERS: { key: string; label: string; states?: string[] }[] = [
   // page cannot afford, and the single-job page needs the same set.
   { key: "active", label: "Active", states: [...IN_FLIGHT] },
   { key: "done", label: "Done", states: ["done"] },
-  { key: "problem", label: "Problems", states: ["failed", "stopped", "interrupted", "cancelled"] },
+  {
+    key: "problem",
+    label: "Problems",
+    // An archive that left its own branch open did not simply finish
+    // either, and it read as `failed` here before spec 221 gave it a
+    // row of its own.
+    states: ["failed", "stopped", "interrupted", "cancelled", ARCHIVED_OPEN_STATE],
+  },
+  { key: ARCHIVED_STATE, label: "Archived", states: [ARCHIVED_STATE, ARCHIVED_OPEN_STATE] },
 ];
+
+/** The default, by position and not by name — so a chip moved to the
+ *  front is the default, and nothing has to be told twice. */
+const DEFAULT_STATE_FILTER = STATE_FILTERS[0]!;
 
 const SORTS = ["started", "spec", "state", "cost"];
 // The default view: newest spec at the top. Chosen 2026-08-19 over
@@ -273,9 +422,55 @@ const SORT_DEFAULT_DIR: Record<string, "asc" | "desc"> = {
   started: "desc", cost: "desc", spec: "desc", state: "asc",
 };
 
-function stateFilter(key: string | undefined): { key: string; states?: string[] } {
-  return STATE_FILTERS.find((f) => f.key === key) ?? STATE_FILTERS[0]!;
+function stateFilter(
+  key: string | undefined,
+): { key: string; states?: string[]; excludeStates?: string[] } {
+  return STATE_FILTERS.find((f) => f.key === key) ?? DEFAULT_STATE_FILTER;
 }
+
+/** Whether one chip admits one state. Written once because `applyFilter`
+ *  decides which rows are RENDERED with it and `filterBar` decides what
+ *  each chip's count SAYS with it — two answers to one question is how
+ *  a chip comes to read "· 0" over a table with rows in it. */
+const matchesState = (
+  f: { states?: string[]; excludeStates?: string[] },
+  state: string,
+): boolean => (!f.states || f.states.includes(state)) && !(f.excludeStates ?? []).includes(state);
+
+/** Whether this view can show an archived spec at all (spec 221).
+ *
+ *  The server asks before it builds the rows: the walk over every
+ *  archived folder is the one expensive thing on this route, aide alone
+ *  has about 150 of them, and the default view — which is what nearly
+ *  every open tab sits on, refreshing itself on every change event —
+ *  must never pay for it. One exported rule rather than a second
+ *  reading of the query string in `serve.ts`, so the gate and the
+ *  filter can never disagree about which chips show what. */
+export function filterShowsArchived(state: string | undefined): boolean {
+  return matchesState(stateFilter(state), ARCHIVED_STATE);
+}
+
+/** Whether a row is an archived spec's, whichever of the two states it
+ *  carries. Read wherever the ROW SHAPE is the question rather than the
+ *  filter's — which is the routing in `groupRows` and the chip counts. */
+const isArchivedRow = (g: SpecGroup): boolean =>
+  g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE;
+
+/** Everything the search reads, as one lowercase haystack. The WHOLE
+ *  description, not the two lines a row shows: a term found in the
+ *  clipped tail still turns up its row, and the note under the field
+ *  says as much. Off `SpecGroup`, so one matcher reads a live spec and
+ *  an archived one — the "across active AND archived" half of spec 221
+ *  falls out of there being one row shape rather than two. */
+const haystack = (g: SpecGroup): string =>
+  `${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
+
+/** A term of nothing but spaces is no search at all: it must not empty
+ *  the list. */
+const matchesSearch = (g: SpecGroup, f: QueueFilter): boolean => {
+  const term = (f.q ?? "").trim().toLowerCase();
+  return !term || haystack(g).includes(term);
+};
 
 // --- one spec, however many jobs it took -------------------------------------
 
@@ -480,10 +675,12 @@ interface SpecGroup {
   // that question with `createdAt` below, and nothing else ever read
   // the field. The recency ORDER survives it: `jobGroup` still sorts
   // the jobs by activity to pick the one the header speaks for.
-  /** `not-started` is this page's own pseudo-state, not a job's: a spec
-   *  that exists and has never been run. It is the filter key and the
-   *  CSS suffix; the words the reader sees are "not started". */
-  state: QueueRowView["state"] | "not-started";
+  /** `not-started` and `archived` are this page's own pseudo-states, not
+   *  a job's: a spec that exists and has never been run, and a spec
+   *  whose folder has moved into `archive/`. They are the filter keys
+   *  and the CSS suffixes; the words the reader sees are "not started"
+   *  and "archived". */
+  state: QueueRowView["state"] | "not-started" | "archived" | "archived-unlanded";
   spentUsd: number;
   /** Whether any step summed into `spentUsd` was over-charged rather
    *  than measured (spec 152). Rolled up across every job the spec has
@@ -523,6 +720,12 @@ interface SpecGroup {
    *  It used to be one summary line for whichever spec the top form's
    *  dropdown had selected; every row now answers for itself. */
   title?: string;
+  /** What the spec is about, whole (spec 221). Never DRAWN on a live
+   *  spec's row — `specSummary` decides what that line says, and the
+   *  description is not on it — but the search reads it, and a search
+   *  that reached an archived spec's prose and not a live one's would
+   *  be two filters wearing one field's name. */
+  description?: string;
   phase?: string;
   /** The specs this one builds on, by folder — from its own
    *  1-description.md, not from anything the queue ran. */
@@ -534,6 +737,11 @@ interface SpecGroup {
    *  The row draws "checking…" where it would otherwise state a fact it
    *  does not have. */
   freshnessUnknown?: boolean;
+  /** The archived spec this row speaks for (spec 221). Present exactly
+   *  when `state` is `archived`, and it is what the reader row draws
+   *  from: the date, the mark, the recorded duration and the link.
+   *  Absent on every other row, which has jobs and a target instead. */
+  archive?: ArchivedSpecView;
 }
 
 /** Fold branch entries by label, most-recently-active row winning a
@@ -581,11 +789,20 @@ function fromTarget(
   t: QueueTarget | undefined,
 ): Pick<
   SpecGroup,
-  "done" | "title" | "phase" | "dependsOn" | "analyzeStale" | "createdAt" | "freshnessUnknown"
+  | "done"
+  | "title"
+  | "description"
+  | "phase"
+  | "dependsOn"
+  | "analyzeStale"
+  | "createdAt"
+  | "freshnessUnknown"
 > {
   return {
     done: t?.done ?? [],
     title: t?.title,
+    // Read but not drawn: the search's third field (spec 221).
+    description: t?.description,
     phase: t?.phase,
     dependsOn: t?.dependsOn ?? [],
     analyzeStale: t?.analyzeStale ?? false,
@@ -626,7 +843,7 @@ function groupBySpec(
   rows: QueueRowView[],
   targets: QueueTarget[],
   archived?: string[],
-  unlanded?: string[],
+  archivedSpecs?: ArchivedSpecView[],
 ): SpecGroup[] {
   const byKey = new Map<string, QueueRowView[]>();
   for (const r of rows) {
@@ -644,7 +861,6 @@ function groupBySpec(
   // disk is not recoverable by a filter.
   const judgeable = new Set(targets.map((t) => t.project));
   const archivedSet = new Set(archived ?? []);
-  const unlandedSet = new Set(unlanded ?? []);
   const fromJobs = [...byKey.entries()]
     // Archived beats every other reason to keep a group visible. An
     // unreadable specs root and an in-flight create job both argue for
@@ -654,26 +870,67 @@ function groupBySpec(
     // alone, and a project with no other live target still slipped an
     // archived spec's row through `judgeable` — every phase reading
     // "not run yet" under a job reporting done (spec 134).
+    // There was an exception here until spec 221: a spec whose own
+    // branch is STILL on origin kept its JOB row, archived or not (spec
+    // 193), because a row was the only way to see that its work had
+    // never landed. It had to come through this path because there was
+    // no other — so it read as an ordinary, fully-interactive job row,
+    // offering a Run the server would have refused. Every archived spec
+    // gets a reader row now, and spec 193's answer rides on that row as
+    // a MARK (`ArchivedSpecView.notLanded`) instead of as a reason to
+    // draw one. The two must not be re-separated: a second, different
+    // kind of archived row is what 1-description.md rules out by name.
     .filter(
       ([key, all]) =>
-        // ...with one exception, and only one: a spec whose own branch
-        // is STILL on origin has not finished, whatever its folder says
-        // (spec 193). Nothing else about the row changes — it reads as
-        // failed because its job does.
-        unlandedSet.has(key) ||
-        (!archivedSet.has(key) &&
+        !archivedSet.has(key) &&
         // A create job's spec is not a known target BY CONSTRUCTION: the
         // folder is what the job is making, and until it lands there is
         // nothing on disk to match. Without this it would be filtered out
         // in exactly the projects that already have specs — so the job the
         // reader just started would render nothing at all.
-          (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate))),
+        (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
     )
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
     ...fromJobs,
+    // Only ever a list the server chose to build: under the default
+    // filter it is absent, and this adds nothing at all.
+    ...(archivedSpecs ?? []).map(readerGroup),
     ...targets.filter((t) => !byKey.has(groupKey(t.project, t.specFolder))).map(emptyGroup),
   ];
+}
+
+/** An archived spec's row: a record, not a control (spec 221).
+ *
+ *  It goes through neither `jobGroup` nor `emptyGroup`, and that is the
+ *  point. Both build a row the reader can RUN — phases, a done-set, a
+ *  lead job to speak for it — and every step but `reopen` is refused
+ *  for an archived spec server-side (`ARCHIVE_ONLY_STEP`, queue.ts). A
+ *  row offering a press that would be turned down is worse than no row.
+ *
+ *  `phases: []` rather than the usual four: a reader row is never
+ *  opened, so nothing reads them — and an empty list is what "this row
+ *  has no phases to show" says, where four empty ones would draw a
+ *  workflow that is over. */
+function readerGroup(s: ArchivedSpecView): SpecGroup {
+  return {
+    project: s.project,
+    specFolder: s.folder,
+    // It came out of a folder on disk, so the name IS the spec's.
+    named: true,
+    // The one place the two archived states are told apart.
+    state: s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
+    spentUsd: 0,
+    costUnmeasured: false,
+    branches: [],
+    phases: [],
+    done: [],
+    title: s.title,
+    description: s.description,
+    dependsOn: [],
+    analyzeStale: false,
+    archive: s,
+  };
 }
 
 function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGroup {
@@ -735,9 +992,12 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
 }
 
 function applyFilter(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
-  const states = stateFilter(f.state).states;
+  const chip = stateFilter(f.state);
   return groups.filter(
-    (g) => (!states || states.includes(g.state)) && (!f.project || g.project === f.project),
+    (g) =>
+      matchesState(chip, g.state) &&
+      (!f.project || g.project === f.project) &&
+      matchesSearch(g, f),
   );
 }
 
@@ -861,18 +1121,43 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
-  // nobody asked for. They count SPECS, because that is what the table
+  // nobody asked for. The search is one of those filters since spec 221
+  // — a chip counting rows a term has cut would be counting a table
+  // nobody can see. They count SPECS, because that is what the table
   // holds one line per.
-  const byProject = groups;
+  const counted = groups.filter((g) => matchesSearch(g, f));
+  // The archived rows are built only where the filter shows them (spec
+  // 221), so on the default view there are almost none to count — and
+  // "Archived · 0" beside an archive of a hundred and fifty is the one
+  // thing a count must not say. The KEYS are cheap and always sent, and
+  // there is exactly one reader row per key, so the keys no row was
+  // built for are the rest of the count. "Almost" because the default
+  // view does build a row for an archived spec whose branch is still
+  // open (spec 193), which is why this subtracts what is on the page
+  // rather than testing whether anything is.
+  //
+  // Dropped while a search term is active: which archived specs a term
+  // would have matched cannot be known without the rows, and a number
+  // that is wrong is worse than a chip with no number on it.
+  const built = new Set(
+    groups.filter(isArchivedRow).map((g) => groupKey(g.project, g.specFolder)),
+  );
+  const uncounted = (f.q ?? "").trim()
+    ? 0
+    : (opts.archived ?? []).filter((k) => !built.has(k)).length;
   const states = chips(
     "state",
     "Show",
     STATE_FILTERS.map((s) => ({
       key: s.key,
       label: s.label,
-      count: byProject.filter((g) => !s.states || s.states.includes(g.state)).length,
+      count:
+        counted.filter((g) => matchesState(s, g.state)).length +
+        (matchesState(s, ARCHIVED_STATE) ? uncounted : 0),
       on: s.key === current,
-      patch: { state: s.key === "all" ? "" : s.key },
+      // The DEFAULT entry is the one that travels as no value at all —
+      // by position, so moving a chip to the front moves this with it.
+      patch: { state: s.key === DEFAULT_STATE_FILTER.key ? "" : s.key },
     })),
   );
 
@@ -882,7 +1167,38 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>`;
+  return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>` + searchForm(f);
+}
+
+/** The search field (spec 221). It came off `/archive`, which had the
+ *  only search on this dashboard, and it reads the same three fields
+ *  there as here.
+ *
+ *  Links, not script, like every other control on this page: a plain GET
+ *  form, so it works with JavaScript switched off, survives a reload and
+ *  can be pasted to someone else. A GET form REPLACES the query string,
+ *  so everything else in the view travels as hidden fields — without
+ *  them, searching would silently throw away the chip and the column the
+ *  reader had just chosen. */
+function searchForm(f: QueueFilter): string {
+  const keep = FILTER_KEYS.filter((k) => k !== "q")
+    .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
+    .join("");
+  return (
+    `<form class="specsearch" method="get" action="/">` +
+    // No caption over the field: the button beside it says Search, and
+    // the same word twice made the field taller than the button it
+    // stands next to (2026-08-23).
+    `<input class="archive-q" type="search" name="q" value="${esc((f.q ?? "").trim())}" ` +
+    `placeholder="a word in any of three fields" aria-label="Search the specs">` +
+    keep +
+    `<button class="btn" type="submit">Search</button>` +
+    `</form>\n` +
+    // Said out loud, because the one thing a reader cannot see about a
+    // filter is what it looked in.
+    `<p class="muted small listnote">Searches the ${SEARCHED.join(", the ")} — the whole ` +
+    `description, including the part the row does not show.</p>\n`
+  );
 }
 
 function sortableHead(f: QueueFilter): string {
@@ -2098,6 +2414,100 @@ function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {
   );
 }
 
+/** What the "not landed" mark says on hover, age included (spec 208).
+ *  Spelled out here rather than at the call site so the fact and its
+ *  freshness cannot drift apart — the same reason `driftNote` exists,
+ *  and the same idea: an answer a schedule took is shown WITH how old
+ *  it is rather than withheld.
+ *
+ *  `relTimeLabel`, not `relTime` — this goes in a `title` attribute,
+ *  where markup would show as literal tags. `checkedAt` is epoch ms
+ *  (the checker's cache stamp) and the label takes an ISO string. */
+function notLandedTitle(checkedAt: number | undefined, now: number): string {
+  const why = "its branch is still on origin — re-run archive";
+  if (checkedAt === undefined) return why;
+  return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
+}
+
+/** The one action an archived spec offers (spec 198, on its row since
+ *  spec 221). The same `POST /api/queue` with `steps=reopen` the spec's
+ *  own page sends — not a shared helper with it, because the two differ
+ *  in the one thing that matters here and a five-field form is not worth
+ *  an abstraction over that difference.
+ *
+ *  What they differ in is `FROM_LIST_FIELD`: it is what tells the
+ *  handler the press came from a row rather than from the spec's page,
+ *  and therefore which page to answer on. A no-script form POST gets one
+ *  redirect and no second chance to ask. */
+function reopenForm(g: SpecGroup, opts: QueuePageOptions): string {
+  return (
+    `<form method="post" action="/api/queue" class="actionform">` +
+    tokenField(opts.token) +
+    filterFields(opts.filter) +
+    `<input type="hidden" name="project" value="${esc(g.project)}">` +
+    `<input type="hidden" name="specFolder" value="${esc(g.specFolder)}">` +
+    `<input type="hidden" name="steps" value="reopen">` +
+    `<input type="hidden" name="${FROM_LIST_FIELD}" value="1">` +
+    btn({ label: "Reopen", pending: "reopening…", variant: "primary" }) +
+    `</form>`
+  );
+}
+
+/** An archived spec's row: everything `/archive` showed, on the list
+ *  that now holds it (spec 221) — the link to its own page, the date it
+ *  was archived, what it cost, its description behind the same two-line
+ *  clamp, spec 193's "not landed" mark, and Reopen.
+ *
+ *  A row of its own rather than a branch inside `specHeadRow`, because
+ *  what it has to be is defined by what it must NOT draw: no fold (there
+ *  is nothing under it to open), no pips (its workflow is over and its
+ *  phases are on its own page), no model select, no tick box and no Run.
+ *  Written as a branch, every one of those would be an `if` that a later
+ *  change could get wrong in the direction that draws a control the
+ *  server refuses.
+ *
+ *  The same five cells as every other row, in the same order: a row
+ *  short of a cell the header still declares is what shifts a table's
+ *  columns sideways. */
+function archivedHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string {
+  const s = g.archive!;
+  // Beside the link a reader would follow, because the mark is a reason
+  // to follow it: the spec needs its `archive` run again.
+  const mark = s.notLanded
+    ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
+    : "";
+  // "checking…" is a spec nobody has ASKED git about; `date unknown` is
+  // one git was asked about and could not date. Two different answers,
+  // and a cell saying the wrong one is a cell that lies about whether
+  // there is anything still to find out.
+  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
+  // Blank, and deliberately not the dash the description uses or the
+  // words the date uses: a spec archived before spec 207 recorded
+  // nothing, and "nothing was recorded" is what an empty cell says.
+  const took =
+    s.durationMs === undefined
+      ? ""
+      : ` <span class="muted small archive-duration">${esc(durationLabel(s.durationMs))}</span>`;
+  return (
+    `<tr class="spechead run-archived" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
+    `<td colspan="2"><div class="spec-name">` +
+    `<a class="label" data-goto href="${esc(s.href)}" ` +
+    `title="${esc(g.project)}:${esc(g.specFolder)}">` +
+    `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>${mark}</div>` +
+    // The whole description, clamped by CSS rather than cut here, so
+    // nothing the reader can search for is missing from the markup.
+    `<div class="spec-title archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
+    `<td><span class="row">${badge("done", ARCHIVED_STATE)}` +
+    `<span class="actionslot">${reopenForm(g, opts)}</span></span></td>` +
+    `<td class="archive-date" data-col="started">${date}${took}</td>` +
+    // A dash, like every other row that has spent nothing: the queue's
+    // own record is long gone for all but the newest of these, and a
+    // figure for some of them would be a column whose blanks move about.
+    `<td class="num" data-col="cost">–</td>` +
+    `</tr>`
+  );
+}
+
 // A collapsed row OMITS its phase lines and its "more" line rather than
 // hiding them: the state is in the URL, so the server knows before it
 // draws. A `<details>` cannot do this — it breaks the table — and a
@@ -2115,6 +2525,9 @@ function groupRows(
 ): string {
   return groups
     .map((g) => {
+      // A record, and one line of one: it has no phases to open, no job
+      // to have refused anything, and nothing under it to fold.
+      if (isArchivedRow(g)) return archivedHeadRow(g, opts, now);
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
       const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g, refusalFor(g, opts));
@@ -2140,7 +2553,7 @@ function groupRows(
 // gets one line, with its phases beneath it.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
-  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.unlanded);
+  const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs);
   const matched = sortGroups(applyFilter(groups, f), f);
   const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length

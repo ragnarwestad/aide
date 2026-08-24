@@ -9,7 +9,6 @@
 //   render/new-spec-page.ts  /new — the form that makes a spec
 //   render/job-page.ts    /specs/<id> — one job, in full
 //   render/spec-page.ts   /specs/<project>/<spec> — the whole spec
-//   render/archive-page.ts   /archive — every archived spec, by project
 //   render/shell.ts       the frame they all sit in
 //   render/job-state.ts   what a job looks like to a page
 //   render/html.ts        escaping and formatting
@@ -26,7 +25,7 @@
 // none.
 
 export {
-  ABOUT_PAGE, ARCHIVE_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
+  ABOUT_PAGE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, projectListBody, renderSite,
   navEntries,
   // `/projects/<name>` — the project's own page, served (spec 185), so
   // what it says about the config file is true when it is read rather
@@ -71,9 +70,12 @@ export {
 // the forms send the view and the server sends it back, and one list
 // kept in two places would eventually forget a key on one side.
 export {
-  FILTER_FIELD_PREFIX, FILTER_KEYS, computeSpecTotalDurationMs, renderQueuePage, renderQueueRows,
+  FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, computeSpecTotalDurationMs,
+  filterShowsArchived, renderQueuePage, renderQueueRows,
 } from "./render/queue-list.ts";
-export type { QueueFilter, QueuePageOptions, QueueTarget } from "./render/queue-list.ts";
+export type {
+  ArchivedSpecView, QueueFilter, QueuePageOptions, QueueTarget,
+} from "./render/queue-list.ts";
 
 export type { BranchView, QueueRowView } from "./render/job-state.ts";
 
@@ -92,9 +94,4 @@ export {
 } from "./render/spec-page.ts";
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
 
-// `/archive` — every archived spec, grouped by project (spec 163). The
-// pages it links to are the spec page's; what was missing was the way
-// in.
-export { renderArchivePage } from "./render/archive-page.ts";
-export type { ArchiveFilter, ArchivePageView, ArchivedSpecView } from "./render/archive-page.ts";
 

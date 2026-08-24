@@ -165,15 +165,15 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  // Three since spec 163, which gave the archive a half of the site of
-  // its own: its pages had worked since spec 150 and nothing linked to
-  // one.
-  test("three tabs, Specs, Projects and Archive, between the header and the page's own h1", () => {
+  // Three from spec 163, which gave the archive a half of the site of
+  // its own, until spec 221 folded the archive into the Specs list and
+  // took the tab back off.
+  test("two tabs, Specs and Projects, between the header and the page's own h1", () => {
     for (const [path, html] of every) {
       const bar = tabs(html);
       expect([path, [...bar.matchAll(/<a[^>]*>([^<]*)<\/a>/g)].map((m) => m[1])]).toEqual([
         path,
-        ["Specs", "Projects", "Archive"],
+        ["Specs", "Projects"],
       ]);
       expect([path, html.indexOf("</header>") < html.indexOf("<nav")]).toEqual([path, true]);
       // The generated pages keep their h1 under the tabs; the spec list

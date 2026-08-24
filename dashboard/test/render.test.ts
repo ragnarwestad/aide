@@ -17,6 +17,7 @@ import {
   type NewSpecPageOptions,
   type Page,
   type ProjectView,
+  type ArchivedSpecView,
   type QueuePageOptions,
   type QueueRowView,
   type QueueTarget,
@@ -120,25 +121,28 @@ describe("nav (criterion 2)", () => {
     expect(navEntries()[0]).toEqual({ label: "Projects", path: "/projects" });
   });
 
-  // Criterion 4 (spec 163): the archive's pages have worked since spec
-  // 150 and nothing linked to one, so they existed and could not be
-  // found. The nav is the way in.
-  test("the Archive entry is there, pointing at the served page", () => {
-    expect(navEntries()).toContainEqual({ label: "Archive", path: "/archive" });
+  // Spec 163 gave the archive a tab of its own; spec 221 took it away
+  // again, because every archived spec is a row on the Specs list now —
+  // one chip away, with the same date, description, "not landed" mark
+  // and search the tab had. Two places to read one thing is two places
+  // to keep in step.
+  test("the Archive entry is gone", () => {
+    expect(navEntries().map((e) => e.label)).not.toContain("Archive");
+    expect(navEntries().map((e) => e.path)).not.toContain("/archive");
   });
 
-  // Two tabs since spec 119, three since spec 163: the site has a Specs
-  // half, a Projects half and now the archive. The project pages are
-  // still the Projects page's business rather than tabs of their own,
-  // and About left the bar for the "…" menu — it is not a half of the
-  // site.
-  test("the tabs are Specs, Projects and Archive; the wordmark is still home", () => {
+  // Two tabs since spec 119, three from spec 163 to spec 221, two
+  // again: the site has a Specs half and a Projects half. The project
+  // pages are still the Projects page's business rather than tabs of
+  // their own, and About left the bar for the "…" menu — it is not a
+  // half of the site.
+  test("the tabs are Specs and Projects; the wordmark is still home", () => {
     for (const page of site) {
       const navHtml = page.html.match(/<nav[^>]*>[\s\S]*?<\/nav>/)![0];
       const links = [...navHtml.matchAll(/<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(
         (m) => [m[2], m[1]],
       );
-      expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"], ["Archive", "/archive"]]);
+      expect(links).toEqual([["Specs", "/"], ["Projects", "/projects"]]);
       expect(page.html).toContain('<a class="brand" href="/">');
     }
   });
@@ -3743,23 +3747,50 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
     createdAt: "2026-08-22T10:00:00Z",
   });
 
-  const listed = (unlanded: string[]) =>
+  // Spec 221 moved WHERE that answer is drawn without changing what it
+  // answers. The row used to be this failed job's own, kept alive by an
+  // exception inside `groupBySpec` — which meant an archived spec's row
+  // carried a Run, model selects and tick boxes the server would have
+  // refused. Every archived spec has a reader row now, and spec 193's
+  // fact rides on it as a mark.
+  const listed = (notLanded: boolean) =>
     renderQueueRows(
       [failedArchive("191-x")],
-      { runnerAvailable: true, targets: [], archived: ["aide/191-x"], unlanded },
+      {
+        runnerAvailable: true,
+        targets: [],
+        archived: ["aide/191-x"],
+        archivedSpecs: [
+          {
+            project: "aide",
+            folder: "191-x",
+            archivedAt: "2026-08-22",
+            href: "/specs/aide/191-x",
+            notLanded,
+          },
+        ],
+        filter: { state: "archived" },
+      },
       Date.parse("2026-08-23T12:00:00Z"),
     );
 
-  test("keeps its row, and the row says which repo and which branch", () => {
-    const html = listed(["aide/191-x"]);
+  test("keeps its row, and the row says the branch is still open", () => {
+    const html = listed(true);
     expect(html).toContain('data-folder="191-x"');
-    // The panel, which a collapsed row draws too — the reader has to be
-    // able to act on it without opening anything.
-    expect(html).toContain("aide/191-x is still on origin in /repos/aide");
+    expect(html).toContain("not landed");
+    expect(html).toContain("its branch is still on origin — re-run archive");
   });
 
-  test("and the one whose branch is gone still draws nothing", () => {
-    expect(listed([])).not.toContain('data-folder="191-x"');
+  test("and the one whose branch is gone gets the row without the mark", () => {
+    const html = listed(false);
+    expect(html).toContain('data-folder="191-x"');
+    expect(html).not.toContain("not landed");
+  });
+
+  // The failed archive job does NOT get a row of its own beside it: one
+  // spec is one line, and an archived spec's line is the reader row.
+  test("the failed archive job adds no second row", () => {
+    expect(listed(true).match(/<tr class="spechead/g)).toHaveLength(1);
   });
 });
 
@@ -5751,9 +5782,14 @@ describe("spec 161: the row's one action is primary", () => {
       { runnerAvailable: true, targets, projects: ["aide"] },
       Date.parse("2026-08-21T12:00:00Z"),
     );
-  /** Every button on the page, as its class attribute. */
+  /** Every button on a ROW, as its class attribute. Read off the table
+   *  alone since spec 221: the search field above it has a Search button
+   *  of its own, and it is not a row's action — the rule under test is
+   *  about the one control a row draws. */
   const classes = (html: string): string[] =>
-    [...html.matchAll(/<button[^>]*class="([^"]*)"[^>]*>/g)].map((m) => m[1] ?? "");
+    [...html.slice(html.indexOf("<tbody")).matchAll(/<button[^>]*class="([^"]*)"[^>]*>/g)].map(
+      (m) => m[1] ?? "",
+    );
   const lead = (extra: Partial<QueueRowView> = {}) =>
     row({ id: "j1", specFolder: "161-one-variant", steps: ["analyze"], state: "done", ...extra });
 
@@ -6887,5 +6923,147 @@ describe("spec 210: pips() marks the completed thirds", () => {
     const { pips } = await import("../src/render/components.ts");
     expect(pips([{ kind: "past", title: "analyze", third: 2 }])).not.toContain("data-third");
     expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
+  });
+});
+
+// Spec 221: an archived spec is a row on the spec list, and the list
+// grew a chip axis and a search field to hold it. The route-level half
+// is `archived-specs.test.ts`; this is the renderer on its own, where a
+// fixture can say things a real archive on disk cannot — an archived
+// spec and a live one whose folder numbers interleave, a search term
+// that matches only one of them.
+describe("spec 221: archived specs on the spec list", () => {
+  const archivedSpec = (
+    folder: string,
+    over: Partial<ArchivedSpecView> = {},
+  ): ArchivedSpecView => ({
+    project: "aide",
+    folder,
+    title: `Title of ${folder}`,
+    description: `What ${folder} was about.`,
+    archivedAt: "2026-08-13",
+    href: `/specs/aide/${folder}`,
+    ...over,
+  });
+
+  const live = (specFolder: string): QueueTarget => ({ project: "aide", specFolder });
+
+  const rows = (opts: Partial<QueuePageOptions> = {}): string =>
+    renderQueueRows([], { runnerAvailable: true, targets: [], ...opts });
+
+  const folders = (html: string): string[] =>
+    [...html.matchAll(/href="\/specs\/[A-Za-z0-9._-]+\/([A-Za-z0-9._-]+)"/g)].map((m) => m[1]!);
+
+  test("the default chip is the new one, and it comes first", () => {
+    const html = rows({ archivedSpecs: [archivedSpec("50-archived")] });
+    // Nothing is passed as the filter at all: this is the fallback every
+    // reader with a bare `/` gets.
+    expect(html).toMatch(/aria-current="true"[^>]*>Not archived/);
+    expect(html.indexOf(">Not archived")).toBeLessThan(html.indexOf(">All"));
+  });
+
+  test("the default chip hides an archived row even when the data is there", () => {
+    // The server gates the data too (criterion 10), but the renderer
+    // must not depend on that: a row that reached it must still be cut
+    // by the filter, or the two halves of one rule could disagree.
+    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], targets: [live("60-live")] });
+    expect(folders(html)).toEqual(["60-live"]);
+  });
+
+  test("the Archived chip shows only archived rows", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived")],
+      targets: [live("60-live")],
+      filter: { state: "archived" },
+    });
+    expect(folders(html)).toEqual(["50-archived"]);
+  });
+
+  test("All interleaves the two kinds by one sort key", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("70-archived"), archivedSpec("50-archived")],
+      targets: [live("60-live")],
+      filter: { state: "all" },
+    });
+    expect(folders(html)).toEqual(["70-archived", "60-live", "50-archived"]);
+  });
+
+  test("the four older chips still exclude archived rows", () => {
+    for (const state of ["not-started", "active", "done", "problem"]) {
+      const html = rows({
+        archivedSpecs: [archivedSpec("50-archived")],
+        targets: [live("60-live")],
+        filter: { state },
+      });
+      expect(folders(html)).not.toContain("50-archived");
+    }
+  });
+
+  test("an archived row draws no control the server would refuse", () => {
+    const html = rows({ archivedSpecs: [archivedSpec("50-archived")], filter: { state: "archived" } });
+    expect(html).toContain("Reopen");
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).not.toContain('class="rowrun"');
+  });
+
+  test("and carries the not-landed mark when its branch is still open", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { notLanded: true })],
+      filter: { state: "archived" },
+    });
+    expect(html).toContain("not landed");
+  });
+
+  test("a date nobody could find is said in words, not left blank", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { archivedAt: null })],
+      filter: { state: "archived" },
+    });
+    expect(html).toContain("date unknown");
+  });
+
+  test("and one nobody has asked git about yet says it is checking", () => {
+    const html = rows({
+      archivedSpecs: [archivedSpec("50-archived", { archivedAt: null, dateChecking: true })],
+      filter: { state: "archived" },
+    });
+    expect(html).not.toContain("date unknown");
+    expect(html.toLowerCase()).toContain("checking");
+  });
+
+  test("the search reads folder, title and description, across both kinds", () => {
+    const both = {
+      archivedSpecs: [archivedSpec("50-archived", { title: "Wolverine", description: "gone" })],
+      targets: [live("60-live")],
+    };
+    const seen = (q: string) => folders(rows({ ...both, filter: { state: "all", q } }));
+    expect(seen("wolverine")).toEqual(["50-archived"]);
+    expect(seen("60-live")).toEqual(["60-live"]);
+    expect(seen("gone")).toEqual(["50-archived"]);
+    // Whitespace is not a term: it must not empty the list.
+    expect(seen("  ")).toEqual(["60-live", "50-archived"]);
+  });
+
+  test("the chips count the archived specs the page did not build", () => {
+    // The route hands the KEYS whatever the filter is (they are what
+    // `groupBySpec` drops job rows by) and the ROWS only when the filter
+    // shows them — so a chip that would show archived rows counts the
+    // keys rather than reading "0" off a set nobody built.
+    const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
+    expect(html).toMatch(/>Archived · 2</);
+    expect(html).toMatch(/>All · 3</);
+    expect(html).toMatch(/>Not archived · 1</);
+  });
+
+  test("and never twice, once those rows are actually on the page", () => {
+    const html = rows({
+      targets: [live("60-live")],
+      archived: ["aide/50-archived"],
+      archivedSpecs: [archivedSpec("50-archived")],
+      filter: { state: "all" },
+    });
+    expect(html).toMatch(/>Archived · 1</);
+    expect(html).toMatch(/>All · 2</);
   });
 });
