@@ -58,7 +58,20 @@ serve-local: generate
 # aide repo (spec 85), so the thing to clone is not the thing bun runs
 # in. They were the same path back when the dashboard was its own repo,
 # which is why one variable used to do both jobs.
-MINI_REPO ?= develop/aide
+#
+# The checkout the SERVICE runs from is the dashboard's OWN (spec 205),
+# never a person's. A landing merges the code there and runs
+# AIDE_INSTALL_CMD there, then restarts this launchd job — so a job
+# pointed at somebody's `develop/aide` reloads the code the landing did
+# not touch, which is exactly what happened twice on 2026-08-24 (spec
+# 223). `install-serve` clones or pulls this path directly over ssh: on
+# a fresh host the service is not running yet, so nothing else can
+# create it first, and once it boots the service's own periodic
+# `ensureDashboardCheckout` takes over keeping it current. Must match
+# `dashboardCheckoutRoot(DEFAULT_DASHBOARD_CHECKOUT_ROOT, "aide")` in
+# dashboard/src/dashboard-checkout.ts — kept in sync by
+# test/install-serve-paths.test.ts.
+MINI_REPO ?= aide-dashboard-checkouts/aide/code
 MINI_SRC ?= $(MINI_REPO)/dashboard
 REMOTE_STATE ?= aide-dashboard
 # bun via the mise shim: bare `bun` is not on launchd's PATH.

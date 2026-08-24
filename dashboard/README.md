@@ -1825,6 +1825,38 @@ renders a launchd plist and starts the job. No plist is committed:
 `$HOME`, resolved over ssh at install time. Logs go to
 `~/Library/Logs/aide-dashboard/serve.log` on that host.
 
+**The repo it clones there is the dashboard's OWN checkout —
+`~/aide-dashboard-checkouts/aide/code` — not a checkout a person
+edits.** That is the directory a code landing merges into and runs
+`AIDE_INSTALL_CMD` in (spec 205), and the landing restarts the launchd
+job afterwards. Point the job anywhere else and the restart reloads
+code the landing never touched: on 2026-08-24 two specs reached
+`origin`, were installed, and changed nothing on the served page until
+somebody ran `git pull` by hand in `develop/aide`. The path is written
+once in the Makefile (`MINI_REPO`) and once in
+`src/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
+`test/install-serve-paths.test.ts` reads both and fails if they
+disagree.
+
+`install-serve` creates that checkout itself, with plain `git clone`
+over ssh, so a fresh host needs neither the checkout nor a running
+service beforehand. Once the service boots from it, its own periodic
+`ensureDashboardCheckout` keeps it current from then on.
+
+**An already-installed service migrates by re-running the same
+command.** `make install-serve` is idempotent and is already the
+documented upgrade path (`deploy-serve: install-serve`) — it rewrites
+the plist with the new location and restarts the job. Nothing else is
+needed, and the person's own checkout on that host goes back to being
+just a working copy: no service reads from it, so letting it fall
+behind stops mattering.
+
+**Check your `.env.deploy` for a `MINI_REPO` override before
+upgrading.** It is gitignored and per-machine, so a host that names its
+own checkout there keeps pointing the service at that checkout — which
+is the exact bug above, reintroduced for that one operator. Remove the
+line and let the default apply.
+
 Everything is overridable, nothing personal is baked in:
 
 All paths are relative to the serving host's own `$HOME`.
@@ -1834,7 +1866,8 @@ All paths are relative to the serving host's own `$HOME`.
 | `MINI`           | — required                    | the ssh target                          |
 | `PORT`           | `8788`                        | port to serve on, behind the proxy      |
 | `TS_PORT`        | `443`                         | port tailscale serve terminates TLS on  |
-| `MINI_SRC`       | `develop/aide-dashboard`      | the checkout                            |
+| `MINI_REPO`      | `aide-dashboard-checkouts/aide/code` | the repo to clone or pull — the dashboard's own checkout |
+| `MINI_SRC`       | `$(MINI_REPO)/dashboard`      | the directory bun runs in, and what the plist points at |
 | `REMOTE_STATE`   | `aide-dashboard`              | site, mirrors, queue state              |
 | `REMOTE_BUN`     | `.local/share/mise/shims/bun` | bun on that host                        |
 | `LABEL`          | `com.aide-dashboard.serve`    | launchd job label                       |
