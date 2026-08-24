@@ -195,6 +195,14 @@ is set. Besides the `UserPromptSubmit` hook it has a phase mode
 `/aide-implement` skill calls at each TDD boundary, so a headless run
 can be followed while it works.
 
+**A step the dashboard's own queue starts needs no such setting** (spec
+222). The server knows its own address, so it spawns the runner with
+`AIDE_RUN_URL` already pointing at its own `/api/aide-run` — nothing to
+configure per machine. An `AIDE_RUN_URL` the server was itself started
+with wins over that, for an operator who has pointed reporting
+somewhere else; a run launched by hand at a keyboard is opt-in exactly
+as before.
+
 ---
 
 ## Keeping a serving host's specs current (opt-in)
