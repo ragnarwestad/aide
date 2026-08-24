@@ -2153,7 +2153,11 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
       `</td></tr>`;
   return (
     filterBar(groups, f, opts) +
-    `<div class="tablewrap"><table class="list">${sortableHead(f)}<tbody>${body}</tbody></table></div>` +
+    // "speclist" beside "list": the mobile stylesheet lays THIS table
+    // out as stacked blocks (its rows are flex lines there), and the
+    // archive page and the settings table share .list without wanting
+    // any of that.
+    `<div class="tablewrap"><table class="list speclist">${sortableHead(f)}<tbody>${body}</tbody></table></div>` +
     (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
   );
 }

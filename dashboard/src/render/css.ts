@@ -890,6 +890,24 @@ tr.spec-archived td { color: var(--muted); }
      button instead (design handoff, mobile-spec-row). */
   table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
 
+  /* The spec LIST leaves table layout entirely at this width — found
+     with a 500px iframe walk (2026-08-24): a flex tr inside a table
+     still contributes its one-line max-content width (~458px, the
+     badge + button + date + cost side by side) to the table's minimum,
+     so .tablewrap grew a scrollbar below ~480px however shrinkable the
+     items themselves were. As stacked blocks the flex rows wrap freely
+     and nothing computes a table minimum. Scoped to .speclist: the
+     archive page and the settings table share .list and keep real
+     table layout. The remaining true-table rows here (the notice
+     panel, the "no spec matches" line) hold one full-width cell each,
+     so block costs them nothing. The three tab links up top get their
+     7rem floor lifted for the same overall goal — three of them do
+     not cross 360px otherwise. */
+  table.speclist, table.speclist tbody { display: block; }
+  table.speclist tr:not(.spechead):not(.subrow) { display: block; }
+  table.speclist tr:not(.spechead):not(.subrow) > td { display: block; }
+  .tabbar .tab { min-width: 0; }
+
   /* The spec header line (design handoff, mobile-spec-row): the mock
      puts the fold/name/pips alone on the first line and the badge, the
      Archive button and the date/cost together on a second — one flex
@@ -898,8 +916,13 @@ tr.spec-archived td { color: var(--muted); }
      container; each td is still a td, just laid out as a flex item
      instead of a table cell. */
   table.list tr.spechead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-  table.list tr.spechead > td:first-child { flex: 1 1 100%; }
-  table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; }
+  /* min-width: 0 on the cells, or nothing ever truncates: a flex item
+     refuses to shrink below its content's min-content width by default
+     (min-width: auto), so a long spec name forced the whole row — and
+     with it the table — wider than the viewport instead of letting the
+     label's own ellipsis do its job. */
+  table.list tr.spechead > td:first-child { flex: 1 1 100%; min-width: 0; }
+  table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
      flex lines put 10px + the row gap + 10px between the name line and
@@ -928,11 +951,12 @@ tr.spec-archived td { color: var(--muted); }
   table.list tr.spechead [data-col="cost"]::before { content: "· "; }
 
   /* .spec-name/.spec-title/.archive-desc carry a desktop alignment width
-     (27rem/27rem/34rem) with nothing overriding it below 40rem, so the
-     row was forced wider than the viewport even with Started/Cost
-     already hidden above. Freed here rather than changed at the source:
-     the fixed width is still what lines desktop rows up. */
-  .spec-name, .spec-title, .archive-desc { max-width: none; box-sizing: border-box; }
+     (27rem/27rem/34rem), and it MUST be overridden here — width: auto,
+     put back 2026-08-24 after being dropped in an earlier round: the
+     27rem (432px) held below ~480px viewports and pushed the pips out
+     of the right edge. It looked fine at the window width it happened
+     to be tested at, which is how the regression slipped through. */
+  .spec-name, .spec-title, .archive-desc { width: auto; max-width: none; box-sizing: border-box; }
 
   /* A long name gets two lines before it clamps to an ellipsis, instead
      of one. The pips are their own flex item and do not wrap with it —
