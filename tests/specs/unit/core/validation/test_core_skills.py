@@ -653,6 +653,24 @@ class TestReopenSkillKeepsWhatTheDescriptionAsksFor:
         assert "**Reopened:**" in skill
         assert "history before" in skill
 
+
+@pytest.mark.validation
+class TestResetSkillKeepsTheActiveSpecHistory:
+    @pytest.fixture
+    def skill(self):
+        path = CORE_SKILLS_DIR / "aide-reset" / "SKILL.md"
+        assert path.exists(), "core/skills/aide-reset/SKILL.md is missing"
+        return path.read_text()
+
+    def test_it_keeps_the_owned_files_and_regenerates_the_work_files(self, skill):
+        for name in ("0-README.md", "1-description.md", "2-analysis.md", "3-solution.md", "4-status.md"):
+            assert name in skill
+
+    def test_it_writes_the_reset_boundary_and_refuses_archived_specs(self, skill):
+        assert "**Reset:**" in skill
+        assert "history before" in skill
+        assert "active folder" in skill
+
     def test_the_four_places_a_branch_hides_are_named(self, skill):
         """AC2, incident 1: a local ref left behind in one of the four
         (project-local, project-origin, specs-local, specs-origin) and

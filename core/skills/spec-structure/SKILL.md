@@ -405,7 +405,7 @@ under a descriptive subject of its own is invisible to it — Woodstack
 next step recomputed the line, and `analyze, implement` came back
 `analyze, archive` for a spec whose code was already on `main`.
 Dropping a step there erases the only record that it ran.
-`aide-reopen` is the one place a step comes off the line, and it does
+`aide-reopen` and `aide-reset` are the places a step comes off the line, and they do
 that by regenerating the file without the line at all.
 
 Why it stopped being the model's to write: on 2026-08-21 the line was
@@ -417,7 +417,7 @@ minutes old claimed three steps it had never had. A commit cannot be
 copied into existence and does not depend on reaching the last
 instruction. Only the first of those two is still corrected on its own:
 since spec 214 a copied claim stands until the line is deleted by hand
-or `aide-reopen` regenerates the file. That is the deliberate price of
+or `aide-reopen`/`aide-reset` regenerates the file. That is the deliberate price of
 never erasing a step that really ran — the scan cannot tell a copied
 claim from the last surviving record of one.
 

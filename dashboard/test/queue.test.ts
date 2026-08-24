@@ -7,7 +7,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  JOB_STATES, PHASE_STEPS, QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
+  JOB_STATES, PHASE_STEPS, QueueStore, currentWorkRoundJobs, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
   persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
 } from "../src/queue.ts";
 // The list of boxes the row DRAWS, read from the render side itself:
@@ -1686,5 +1686,46 @@ describe("spec 198: reopen", () => {
     );
     expect(r.ok).toBe(false);
     expect(r.ok === false && r.error).toContain("unknown specFolder");
+  });
+});
+
+describe("spec 231: reset", () => {
+  test("an active spec can be asked for reset", () => {
+    const r = parseJobRequest({ ...REQ, steps: ["reset"] }, { resolve, defaults: DEFAULTS });
+    expect(r.ok).toBe(true);
+    expect(r.ok && r.job.steps).toEqual(["reset"]);
+  });
+
+  test("reset is not a workflow phase and is refused for an archived spec", () => {
+    expect([...PHASE_STEPS] as string[]).not.toContain("reset");
+    const r = parseJobRequest(
+      { ...REQ, specFolder: "17-clean-up-console-log", steps: ["reset"] },
+      {
+        resolve: () => ({
+          specFolders: ["81-queue-and-runner"],
+          archivedFolders: ["17-clean-up-console-log"],
+        }),
+        defaults: DEFAULTS,
+      },
+    );
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.error).toContain("archived");
+  });
+
+  test("only jobs after a successfully landed Reset belong to the current round", () => {
+    const jobs = [
+      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
+      { steps: ["reset"], state: "done", createdAt: "2026-08-24T11:00:00Z" },
+      { steps: ["analyze"], state: "failed", createdAt: "2026-08-24T12:00:00Z" },
+    ];
+    expect(currentWorkRoundJobs(jobs)).toEqual([jobs[2]]);
+  });
+
+  test("a Reset still landing is not a boundary yet", () => {
+    const jobs = [
+      { steps: ["analyze"], state: "done", createdAt: "2026-08-24T10:00:00Z" },
+      { steps: ["reset"], state: "done", landing: true, createdAt: "2026-08-24T11:00:00Z" },
+    ];
+    expect(currentWorkRoundJobs(jobs)).toEqual(jobs);
   });
 });

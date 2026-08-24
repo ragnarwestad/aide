@@ -4250,6 +4250,10 @@ def reopen_line(sha, date=REOPEN_BOUNDARY_DATE):
     return f"- **Reopened:** {date} (history before `{sha}` does not count)\n"
 
 
+def reset_line(sha, date=REOPEN_BOUNDARY_DATE):
+    return f"- **Reset:** {date} (history before `{sha}` does not count)\n"
+
+
 def archive_the_spec(workspace):
     """Leave the spec where a finished archive step leaves it: under
     `archive/`, with the folder's own name unchanged."""
@@ -4382,6 +4386,27 @@ def test_reopen_succeeds_when_the_branches_are_already_gone(
     assert out["ok"] is True, out
 
 
+def test_reset_accepts_an_active_spec_and_removes_remote_branches(
+    runner, workspace, fake_claude, origin
+):
+    for root in (workspace["project"], workspace["specs"]):
+        make_branch(root, BRANCH)
+        git(root, "push", "-q", "origin", BRANCH)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reset")
+    assert rc == 0, out
+    for bare in (origin["project"], origin["specs"]):
+        assert not has_branch(bare, BRANCH)
+
+
+def test_reset_is_refused_for_an_archived_spec(runner, workspace, fake_claude):
+    archive_the_spec(workspace)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reset")
+    assert rc == 2, out
+    assert "unknown spec" in out["error"]
+
+
 def test_reopen_leaves_the_earlier_rounds_commits_in_the_repository(
     runner, workspace, fake_claude
 ):
@@ -4431,6 +4456,20 @@ def test_a_step_run_after_the_reopen_boundary_still_counts(
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze"
+
+
+def test_the_reset_boundary_excludes_the_earlier_round(runner, workspace, fake_claude):
+    already_ran(workspace, ["create", "analyze", "implement", "archive"])
+    boundary = git(workspace["specs"], "rev-parse", "HEAD")
+    with_status(workspace, reopened=boundary)
+    status = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status.write_text(status.read_text().replace(reopen_line(boundary), reset_line(boundary)))
+    git(workspace["specs"], "add", str(status))
+    git(workspace["specs"], "commit", "-qm", "use reset boundary")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "analyze"
 
 
 def test_a_spec_that_has_never_been_reopened_counts_everything(

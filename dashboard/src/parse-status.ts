@@ -17,9 +17,9 @@ export interface StatusInfo {
   /** Which workflow steps this spec has HAD (spec 139), in workflow
    *  order. Empty when the file says nothing — never a guess. */
   workflowSteps: string[];
-  /** The commit a reopened spec's history starts AFTER (spec 198), or
-   *  absent for the overwhelming majority that have never been
-   *  reopened. A SHA, not a date — the name says what it is FOR, which
+  /** The commit the current work round starts AFTER, or absent when no
+   *  Reset/Reopened mark exists. A SHA, not a date — the name says what
+   *  it is FOR, which
    *  is the boundary every reader of the commit grammar excludes with
    *  `--not`. */
   reopenedAfter?: string;
@@ -51,7 +51,7 @@ const WORKFLOW_STEPS = ["create", "analyze", "implement", "archive"];
 
 const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 
-// --- spec 198: where a reopened spec's history starts ------------------------
+// --- where the current work round starts ------------------------------------
 
 // An archived spec whose work has to be done again keeps every commit
 // from the earlier round — they happened, and the archive is a record —
@@ -71,9 +71,10 @@ const WORKFLOW_RE = /workflow steps completed:\*\*\s*(.*)/i;
 // guessed one would hide a round that really did run — the same
 // direction every other unknown in this codebase takes.
 //
+// Reset uses the same durable grammar without moving an active folder.
 // `core/scripts/aide-run-spec` keeps the bash twin of this rule in
-// `reopened_boundary_in`.
-const REOPENED_RE = /reopened:\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
+// `work_round_boundary_in`.
+const WORK_ROUND_RE = /(?:reopened|reset):\*\*[^\n]*?history before\s*`([0-9a-fA-F]{7,40})`/gi;
 
 export function parseStatus(content: string): StatusInfo {
   const m = content.match(PROGRESS_RE);
@@ -110,13 +111,13 @@ export function parseStatus(content: string): StatusInfo {
   };
 }
 
-/** The commit a reopened spec's history starts after, or null.
+/** The commit the current work round starts after, or null.
  *
  *  The LAST mark wins: a spec reopened twice counts from its current
  *  round, not from the first one — the same rule
  *  `archiveHeldBackReason` keeps for a spec declined twice. */
 function parseReopenedAfter(content: string): string | null {
-  const matches = [...content.matchAll(REOPENED_RE)];
+  const matches = [...content.matchAll(WORK_ROUND_RE)];
   return matches[matches.length - 1]?.[1] ?? null;
 }
 

@@ -89,9 +89,9 @@ export {
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
   renderSpecPage,
+  renderResetSpecPage,
   specPagePath,
   specTabPath,
 } from "./render/spec-page.ts";
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
-
 

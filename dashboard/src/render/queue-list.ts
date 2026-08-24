@@ -26,6 +26,7 @@ import { NEW_SPEC_ROUTE } from "./site.ts";
 // One function, because the server routes on this path and the list
 // links to it (spec 150).
 import { specPagePath } from "./spec-page.ts";
+import { currentWorkRoundJobs } from "../queue.ts";
 import {
   CHECKING,
   badge,
@@ -924,13 +925,18 @@ function groupBySpec(
         // reader just started would render nothing at all.
         (known.has(key) || !judgeable.has(all[0]!.project) || all.some(isCreate)),
     )
+    .map(([key, all]) => [key, currentWorkRoundJobs(all)] as const)
+    .filter(([, all]) => all.length > 0)
     .map(([key, all]) => jobGroup(all, byKeyTarget.get(key)));
   return [
     ...fromJobs,
     // Only ever a list the server chose to build: under the default
     // filter it is absent, and this adds nothing at all.
     ...(archivedSpecs ?? []).map(readerGroup),
-    ...targets.filter((t) => !byKey.has(groupKey(t.project, t.specFolder))).map(emptyGroup),
+    ...targets.filter((t) => {
+      const jobs = byKey.get(groupKey(t.project, t.specFolder));
+      return !jobs || currentWorkRoundJobs(jobs).length === 0;
+    }).map(emptyGroup),
   ];
 }
 

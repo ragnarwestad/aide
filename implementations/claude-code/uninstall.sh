@@ -54,6 +54,7 @@ SKILLS=(
   "aide-archive"
   "aide-explore"
   "aide-reopen"
+  "aide-reset"
   "aide-manifest"
   "aide-implement"
   "aide-create"
