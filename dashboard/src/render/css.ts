@@ -972,6 +972,9 @@ tr.spec-archived td { color: var(--muted); }
      wrap the cost off the line on a phone. The row's flex gap is the
      one spacing between them. */
   table.list tr.spechead > td:not(:first-child) { padding-left: 0; padding-right: 0; }
+  /* Except a sliver against the card's right edge, so the cost does
+     not sit flush on it. */
+  table.list tr.spechead > td:last-child { padding-right: var(--sp-2); }
   /* The 2px separator above a spec sits on the CELLS in the base rule,
      and here the cells wrap onto line 2 — each drawing its own border
      segment, which read as a stray grey line between the name and the
@@ -1001,12 +1004,13 @@ tr.spec-archived td { color: var(--muted); }
      ("ready"/"done", 2026-08-24): "implementing queued", 19 characters
      of fs-s plus the dot and the padding. */
   table.list tr.spechead .badge { min-width: 9rem; box-sizing: border-box; }
-  /* Not margin-left:auto (removed): pushing date/cost hard to the right
-     reserves that gap even when the line is tight, which is what was
-     forcing Cost to wrap onto a third line despite there being room for
-     it if the gap were not reserved. Plain flow, sharing the row's own
-     gap like every other item on the line, fits all four. */
-  table.list tr.spechead [data-col="started"] { display: block; }
+  /* Date and cost stand at the line's right edge, away from the action
+     button (asked for 2026-08-24). An auto margin only absorbs FREE
+     space, so it cannot wrap the cost by itself — what did that before
+     was the cell padding and the reserved widths, all since removed:
+     this margin was blamed and pulled in that round, and put back once
+     the real culprits were gone. */
+  table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }
   /* No "· " separator before the cost (removed 2026-08-24): it read
      fine while date and cost sat side by side, and as a stray leading
      dot every time the cost wrapped alone or the date showed the

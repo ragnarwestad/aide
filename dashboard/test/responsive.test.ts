@@ -57,8 +57,10 @@ describe("Started and Cost fold away at phone width", () => {
     );
   });
 
-  test("the spec header keeps its date, shown as an ordinary flex item", () => {
-    expect(NARROW).toContain('table.list tr.spechead [data-col="started"] { display: block; }');
+  test("the spec header keeps its date, pushed to the line's right edge", () => {
+    expect(NARROW).toContain(
+      'table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }',
+    );
   });
 
   // The action button after the badge must start at the same x on every
