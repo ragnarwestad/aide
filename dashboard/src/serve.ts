@@ -74,12 +74,13 @@ import {
   APPLE_TOUCH_ICON,
   APP_ICON,
   APP_ICON_MASKABLE,
-  ARCHIVE_ROUTE,
   NEW_SPEC_ROUTE,
   OVERVIEW_PAGE,
   PROJECTS_ROUTE,
   FILTER_FIELD_PREFIX,
   FILTER_KEYS,
+  FROM_LIST_FIELD,
+  filterShowsArchived,
   navEntries,
   renderJobDetailPage,
   renderNewSpecPage,
@@ -91,7 +92,6 @@ import {
   ADD_PROJECT_ROUTE,
   computeSpecTotalDurationMs,
   projectSettingsRoute,
-  renderArchivePage,
   renderQueuePage,
   renderQueueRows,
   renderSpecPage,
@@ -101,8 +101,6 @@ import {
   specTabPath,
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
-  type ArchiveFilter,
-  type ArchivePageView,
   type ArchivedSpecView,
   type JobDetailView,
   type SpecFileView,
@@ -1901,10 +1899,6 @@ export function createServer(opts: ServerOptions) {
     // reason: it carries a real form, and a form's token has to be
     // checked per request.
     path === NEW_SPEC_ROUTE ||
-    // The archive is a read route inside the same surface (spec 163) —
-    // outside the guard it would list every archived spec, and its
-    // links, to anyone who can reach the port.
-    path === ARCHIVE_ROUTE ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -2911,9 +2905,15 @@ export function createServer(opts: ServerOptions) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const liveTargets = withFreshness(targets());
       const archivedKeys = scan?.archived ?? [];
-      // Read, never taken (spec 208). `refreshSpecCaches` is what asks
-      // origin; this route reads whatever it last found.
-      const unlandedKeys = peekUnlanded();
+      const chosenState = url.searchParams.get("state") ?? undefined;
+      // Every archived spec is a row on this list since spec 221 — but
+      // only for a reader whose chip asks for one. The builder decides
+      // that itself, off the same `filterShowsArchived` the chips are
+      // defined by, and the scale question is why: aide alone archives
+      // about 150 specs, this page rebuilds itself on every change
+      // event on every open tab, and the default view must not pay for
+      // a set it does not show.
+      const archivedSpecs = archivedSpecRows(chosenState);
       // The reader's own choice of column, from the address or from the
       // cookie it was last written into.
       const chosenSort = sortChoice(url, req);
@@ -2921,7 +2921,7 @@ export function createServer(opts: ServerOptions) {
         runnerAvailable: opts.runnerAvailable ?? runner !== null,
         targets: liveTargets,
         archived: archivedKeys,
-        unlanded: unlandedKeys,
+        archivedSpecs,
         script: queueClientScript(),
         // Only what the config granted a budget to is offerable: a
         // dropdown naming a model the machine has not agreed to pay for
@@ -2959,11 +2959,16 @@ export function createServer(opts: ServerOptions) {
         // and read back off the same address, but the sort is thrown
         // away by every plain link to `/` there is.
         filter: {
-          state: url.searchParams.get("state") ?? undefined,
+          state: chosenState,
           project: url.searchParams.get("project") ?? undefined,
           sort: chosenSort.sort,
           dir: chosenSort.dir,
           open: url.searchParams.get("open") ?? undefined,
+          // The search term (spec 221), a query-string citizen like the
+          // rest of the view — so it survives a reload, can be pasted to
+          // someone else, and rides along on the SSE-driven row swap,
+          // which sends `location.search` back verbatim.
+          q: url.searchParams.get("q") ?? undefined,
         },
       };
       // The rows alone: the page swaps them from script every few
@@ -3476,16 +3481,21 @@ export function createServer(opts: ServerOptions) {
       } catch {
         return json({ error: "malformed body" }, 400);
       }
-      // Where a no-script form POST comes back to. `/` for every
-      // control on this dashboard but one: the Reopen button is on an
-      // ARCHIVED spec's own page (spec 198), and the specs list has no
-      // row for an archived spec to put the answer on — a reader who
-      // pressed it would be dropped on a list showing nothing at all,
-      // which is the "did the button do anything" spec 157 was about.
-      // The spec's own page shows the run, and it is the page the press
-      // came from.
+      // Where a no-script form POST comes back to: the page the press
+      // came FROM, because a redirect is the only answer such a form
+      // gets and a reader dropped somewhere else cannot tell whether the
+      // button did anything (spec 157).
+      //
+      // Reopen is the one control offered in two places (spec 198, and
+      // spec 221 for the row). An archived spec's own page still gets
+      // its answer there; a press on the list's own reader row says so
+      // with `FROM_LIST_FIELD` and is answered on the list, filter and
+      // all — `specsRedirect` rebuilds the view from the `view.*` fields
+      // the same form carries. The marker is what decides it, never a
+      // destination taken from the browser.
       const askedFor = raw as Record<string, unknown> | null;
       const backTo =
+        askedFor?.[FROM_LIST_FIELD] !== "1" &&
         typeof askedFor?.project === "string" &&
         typeof askedFor?.specFolder === "string" &&
         specRef(askedFor.project, askedFor.specFolder)?.archived
@@ -3598,26 +3608,14 @@ export function createServer(opts: ServerOptions) {
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(body);
     }
 
-    // The archive (specs 163, 170): every archived spec in one sortable,
-    // searchable table, each row linking to the page that has worked
-    // since spec 150 and that nothing pointed at. Read fresh per
-    // request, like `/projects` — nothing polls it, and a record nobody
-    // is writing has no cache to invalidate.
-    //
-    // The three query values are passed on exactly as they arrived:
-    // what is usable and what a stale bookmark should fall back to is
-    // the render layer's rule, in one place, and this route has no
-    // second opinion about it.
-    if (path === ARCHIVE_ROUTE) {
-      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-      const view = archivePageView({
-        q: url.searchParams.get("q") ?? undefined,
-        sort: url.searchParams.get("sort") ?? undefined,
-        dir: url.searchParams.get("dir") ?? undefined,
-      });
-      const html = renderArchivePage(view, new Date().toISOString(), nav());
-      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
-    }
+    // `/archive` was a route of its own from spec 163 until spec 221 —
+    // every archived spec in one sortable, searchable table. It is gone,
+    // and there is deliberately no redirect standing in its place: the
+    // Specs list is one chip away from the same reading, but it is not
+    // the same page, and answering a bookmark with a view that differs
+    // from the one it asked for is worse than saying the page is gone.
+    // Everything it could do — the date, the description, the "not
+    // landed" mark, the search — is on the list it folded into.
 
     // The SPEC page, and the Update button that keeps it honest (spec
     // 150). Two path segments where the job route has one, so the two
@@ -3959,65 +3957,93 @@ export function createServer(opts: ServerOptions) {
     return { date: at ? at.slice(0, 10) : null, checking: false };
   }
 
-  /** The archive listing, built off the same walk and the same
-   *  allowlist as everything else on the dashboard: a project the queue
-   *  may not run is not a project this dashboard shows.
+  /** Every archived spec the reader's own chip asks for, as a row for
+   *  the Specs list (spec 221; this built the `/archive` page until that
+   *  page retired).
    *
-   *  Every project's archived specs in ONE flat list, unordered (spec
-   *  170). The ordering and the search are the render layer's — the
-   *  table interleaves the projects, so there is no per-project sort
-   *  left to do here, and the rules that decide what a reader sees
-   *  belong beside the headings that offer them. `description` comes
-   *  straight off the walk, whole: the search reads all of it. */
-  function archivePageView(filter: ArchiveFilter = {}): ArchivePageView {
-    if (!opts.projectRoot) return { rows: [], filter };
-    // This is the half that reaches a spec archived before spec 193,
-    // whose job the queue's LRU cap evicted long ago — 146's case. Read,
-    // never taken (spec 208), like `GET /`: `refreshSpecCaches` is what
-    // asks origin, and how old its answer is rides with the mark.
+   *  Off the scan every other lookup on this route already shares:
+   *  `refs` holds what each spec IS — title, description, folder,
+   *  directory — for archived and live specs alike, and `archived` holds
+   *  the keys of the archived ones with the allowlist already applied.
+   *  It used to walk `discoverProjects` a second time for the same
+   *  answer. One flat list, unordered: the ordering, the filtering and
+   *  the search are the render layer's, so there is one copy of each
+   *  rule and the route has none. `description` is whole, because the
+   *  search reads all of it.
+   *
+   *  **The state is what decides how much of this gets built, and that
+   *  is the whole point.** A row costs two small file reads
+   *  (`archivedAt` and the duration stamp), aide alone archives about
+   *  150 specs, and this page rebuilds itself on every change event on
+   *  every open tab. A view whose chip cannot show an archived row
+   *  builds nothing for one — with ONE exception, and it is spec 193's:
+   *  an archived spec whose own branch is still on origin has NOT
+   *  finished, and taking its row off the reading view would hide the
+   *  exact failure spec 193 exists to surface. 1-description.md asks for
+   *  the default chip to be today's reading view unchanged in content,
+   *  and that is what this keeps. The set is `peekUnlanded()`, it is
+   *  normally empty, and it is bounded by how many specs are genuinely
+   *  stranded rather than by how big the archive has grown.
+   *
+   *  Nothing here runs git: `archivedAt` and the not-landed mark are
+   *  peeks against caches a background schedule keeps warm (spec 208),
+   *  exactly as `/archive` relied on. */
+  function archivedSpecRows(state: string | undefined): ArchivedSpecView[] {
+    if (!opts.projectRoot) return [];
+    // Fills `scan`, and — through `peekUnlanded` below — refills
+    // `unlanded`, which `resolveProject` reads to decide whether an
+    // archived spec may have `archive` asked for it a second time (spec
+    // 193's way out, spec 202's other half). Both are peeks and an
+    // intersection in memory, never a walk, so neither is what the gate
+    // below is holding back.
+    targets();
     const open = new Set(peekUnlanded());
     // Filled by the same call, and read after it (spec 220): the subset
     // of `open` that is open because the project reviews its code.
     const reviewing = new Set(prOpen);
     const openCheckedAt = peekUnlandedCheckedAt();
-    const perProject = discoverProjects(opts.projectRoot, ownedSpecsRoot)
-      .filter((p) => allowed.has(p.name))
-      .map((p): ArchivedSpecView[] =>
-        p.specs
-          .filter((s) => s.archived)
-          .map((s) => {
-            const when = archivedAt(s.dir);
-            const key = `${p.name}/${s.folder}`;
-            const prWaiting = reviewing.has(key);
-            // The two marks come from one fact and mean opposite things,
-            // so the deliberate one wins outright rather than both being
-            // set and the renderer picking.
-            const notLanded = open.has(key) && !prWaiting;
-            return {
-              project: p.name,
-              folder: s.folder,
-              title: s.title ?? undefined,
-              description: s.description ?? undefined,
-              archivedAt: when.date,
-              dateChecking: when.checking,
-              href: specPagePath(p.name, s.folder),
-              notLanded,
-              notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
-              prOpen: prWaiting,
-              // Off the newest job that reported one. The queue keeps
-              // two hundred jobs and the archive grows past that, so an
-              // old row simply has no link — the mark still says the
-              // branch is open, which is the part that matters.
-              prUrl: prWaiting ? queue.pullRequestFor(p.name, s.folder).prUrl : undefined,
-              // The stored figure and nothing else (spec 207): the
-              // queue's own records are gone for all but the newest
-              // rows here, and a column that answered for some of them
-              // out of memory would be a column whose blanks move about.
-              durationMs: specDurationMs(s.dir) ?? undefined,
-            };
-          }),
-      );
-    return { rows: perProject.flat(), filter };
+    const everyOne = filterShowsArchived(state);
+    const rows: ArchivedSpecView[] = [];
+    for (const key of scan?.archived ?? []) {
+      // The two marks come from one fact and mean opposite things (spec
+      // 220), so the deliberate one wins outright rather than both being
+      // set and the renderer picking.
+      const prWaiting = reviewing.has(key);
+      const notLanded = open.has(key) && !prWaiting;
+      // The gate, and it is BEFORE the two file reads under it — after
+      // them it would be a filter, not a gate, and would cost the
+      // default view exactly what it exists to save. A PR waiting on
+      // review is not the failure this gate exists to surface, so it
+      // does not bypass it the way `notLanded` does.
+      if (!everyOne && !notLanded) continue;
+      const ref = scan?.refs.get(key);
+      if (!ref) continue;
+      const project = key.slice(0, key.indexOf("/"));
+      const when = archivedAt(ref.dir);
+      rows.push({
+        project,
+        folder: ref.folder,
+        title: ref.title ?? undefined,
+        description: ref.description ?? undefined,
+        archivedAt: when.date,
+        dateChecking: when.checking,
+        href: specPagePath(project, ref.folder),
+        notLanded,
+        notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
+        prOpen: prWaiting,
+        // Off the newest job that reported one. The queue keeps two
+        // hundred jobs and the archive grows past that, so an old row
+        // simply has no link — the mark still says the branch is open,
+        // which is the part that matters.
+        prUrl: prWaiting ? queue.pullRequestFor(project, ref.folder).prUrl : undefined,
+        // The stored figure and nothing else (spec 207): the queue's own
+        // records are gone for all but the newest rows here, and a
+        // column that answered for some of them out of memory would be a
+        // column whose blanks move about.
+        durationMs: specDurationMs(ref.dir) ?? undefined,
+      });
+    }
+    return rows;
   }
 
   /** Spec 212: the page's own tab decides how much this has to ask git.

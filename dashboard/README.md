@@ -57,12 +57,70 @@ named anywhere in this repo.
 
 ## URL scheme
 
-- `/` — one row per spec — every non-archived spec of every
-  allowlisted project, whether or not it has ever run — with its
-  workflow phases beneath, foldable away; run any phase from its own
-  line, watch one, cancel one (token required). The front page: it
-  is what the dashboard is used for, so it is what the dashboard opens
-  on.
+- `/` — one row per spec — every spec of every allowlisted project,
+  whether or not it has ever run — with its workflow phases beneath,
+  foldable away; run any phase from its own line, watch one, cancel one
+  (token required). The front page: it is what the dashboard is used
+  for, so it is what the dashboard opens on.
+  - **The chips are one axis, and `?state=` is where it lives.** Six
+    of them: "Not archived" (the DEFAULT, and today's reading view),
+    "All", "Not started", "Active", "Done", "Problems" and "Archived".
+    The default is `STATE_FILTERS[0]` and nothing else — moving an
+    entry to the front changes the default for every reader — and it
+    travels as no `state=` value at all, so `/` stays a clean link.
+  - **An archived spec is a row here since spec 221**, which retired
+    `/archive` (specs 163, 170) by folding it in. Its row is a READER
+    row: the link to its own `/specs/<project>/<spec>` page, its whole
+    description behind the same two-line clamp the archive's cell had,
+    the date it was archived, what it cost in time, spec 193's "not
+    landed" mark, and Reopen. No model select, no tick box and no Run —
+    the server refuses every step but `reopen` for an archived spec
+    (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
+    control that should not be drawn. The date is the `**Archived:**`
+    stamp in `4-status.md`, or, for the older half of the archive that
+    predates the stamp, the commit that last touched the folder; a spec
+    neither can date reads "date unknown" rather than leaving the
+    column blank, and one with no `## Description` section reads as a
+    dash.
+  - **What the archived row says a spec COST** is its phases added
+    together (spec 207) — the same figure the list shows for a spec
+    still in flight. It is READ off a `- **Time spent (ms):** \`<n>\``
+    bullet in `4-status.md` and never worked out here: the figure comes
+    from the queue's job records, the queue keeps 200 jobs, and the
+    archive holds 150 and grows — so a figure not written down is one
+    almost every archived row would be missing. What writes it is
+    `stampTotalDuration` in `serve.ts`, on the `Landing.onLanded` hook,
+    the moment an `archive` step's branch has actually MERGED; it calls
+    `computeSpecTotalDurationMs` — the spec list's OWN summing function,
+    exported from `render/queue-list.ts` for this — with a `done` set
+    from the same `withFreshness` the list uses, so the stored figure
+    and the one the list showed cannot drift apart. It writes once (a
+    second archive finds the bullet and leaves it), writes through
+    `saveSpecFile` under the same `mergeLock` the merge just used,
+    writes in the dashboard's OWN checkout (spec 205), and never fails
+    anything: a refused write is logged and leaves that row's cell
+    blank, exactly as for a spec archived before this existed. A blank
+    cell is the honest answer there — not "date unknown", not a dash.
+  - **Building those rows is gated on the chip** (`filterShowsArchived`,
+    exported from `render/queue-list.ts` so the gate and the chips
+    cannot disagree). A row costs two small file reads, aide alone
+    archives about 150 specs, and this page rebuilds itself on every
+    change event on every open tab — so a view whose chip cannot show
+    an archived row builds nothing for one. ONE exception: an archived
+    spec whose own branch is still on origin (spec 193) is built
+    whatever the chip, because it has NOT finished and the reading view
+    has always shown it. That is also why there are two archived
+    pseudo-states — `archived` and `archived-unlanded`: the second is
+    archived to the Archived chip, a problem to the Problems chip, and
+    not-archived to the chip defined by excluding archived specs, and
+    all three fall out of the chip tables rather than out of an
+    exception inside the filter.
+  - **`?q=` is a plain search**, a GET form carrying the rest of the
+    view as hidden fields, matching the folder, the title and the WHOLE
+    description — including the part the clamp does not show, which the
+    note under the field says out loud. It came off the archive page
+    and reads live and archived rows alike, because they are rows on
+    one list.
 - `/new` — the form that makes a spec: a project, what it builds on, a
   title and a description, with Create (queues the job and returns to
   the list, where the new spec's row shows its progress) and Cancel
@@ -89,55 +147,6 @@ named anywhere in this repo.
   that cannot answer leaves the manifest, the specs and the settings
   standing, with no readiness section. Token required, like every other
   `/projects` path.
-- `/archive` — every ARCHIVED spec in ONE table: Project, Title,
-  Description, Date and Duration, each folder linking to its own
-  `/specs/<project>/<spec>` page (specs 163, 170). It was a heading per
-  project until spec 170; the project became a CELL because the question
-  a long archive actually asks — what was archived recently, whichever
-  project it came from — is the one sections make unanswerable.
-  Project, Title, Date and Duration sort, both ways, through `?sort=`
-  and `?dir=` in the query string, exactly as the spec list's headings
-  do; clicking the sorted heading turns it round. Description does not sort: prose
-  sorts to nothing anyone came for. `?q=` filters, through a GET form,
-  over the folder, the title and the WHOLE description — including the
-  part the column's two-line clamp does not show, which the note under
-  the field says out loud. Both controls are plain links and a plain
-  form, so both work with script off and survive a reload; each carries
-  the other's state. No paging: at 79 rows it would add page state and
-  boundary rules to solve nothing, and every row being present is what
-  keeps the browser's own find useful. Sorting by title reads the human
-  title and falls back to the folder; an equal date breaks by folder
-  NUMBER and then by project, and a spec no date could be found for
-  stays at the bottom whichever way the column is turned. The date is
-  the `**Archived:**` stamp in `4-status.md`, or, for the older half of
-  the archive that predates the stamp, the commit that last touched the
-  folder; a spec neither can date reads "date unknown" rather than
-  leaving the column blank, and a spec with no `## Description` section
-  reads as a dash. Duration is what the spec cost in TIME — its phases
-  added together, the same figure the spec list shows for a spec still
-  in flight (spec 207). It is READ off a `- **Time spent (ms):** \`<n>\``
-  bullet in `4-status.md` and never worked out here: the figure comes
-  from the queue's job records, the queue keeps 200 jobs, and the
-  archive holds 90 and grows — so a figure not written down is one
-  almost every archived row would be missing. What writes it is
-  `stampTotalDuration` in `serve.ts`, on the `Landing.onLanded` hook,
-  the moment an `archive` step's branch has actually MERGED; it calls
-  `computeSpecTotalDurationMs` — the spec list's OWN summing function,
-  exported from `render/queue-list.ts` for this — with a `done` set from
-  the same `withFreshness` the list uses, so the stored figure and the
-  one the list showed cannot drift apart. It writes once (a second
-  archive finds the bullet and leaves it), writes through
-  `saveSpecFile` under the same `mergeLock` the merge just used, writes
-  in the dashboard's OWN checkout (spec 205), and never fails anything:
-  a refused write is logged and leaves that row's cell blank, exactly as
-  for a spec archived before this existed. A blank cell is the honest
-  answer there — not "date unknown", not a dash. Sorting is on the raw
-  millisecond count and not the label: `localeCompare(..., { numeric:
-  true })` compares digit runs inside a string and would put `3h12m`
-  ahead of `45s`. A duration of `0` sorts as a value, which is why the
-  sort's missing-value sink is an explicit `=== null` and not the truthy
-  check it was. Reached from the nav, labelled "Archive". Token
-  required, like every other `/specs` route it links into.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address
   carried; no token needed, like every other generated page. The file
@@ -812,7 +821,7 @@ it: `BranchStatusChecker.commitsBehindOrigin` ran a real `git fetch
 origin` (4 s timeout) inline in the `GET /projects` handler on every
 cache miss, which is every project on server boot and every project
 again once its 30 s cache entry expires. Six configured projects made
-the page 1.83 s against 0.04-0.10 s for `/` and `/archive`, and it gets
+the page 1.83 s against 0.04-0.10 s for `/`, and it gets
 slower with every project added.
 
 The fix moves the fetch off the request path entirely rather than
@@ -977,8 +986,8 @@ question ever — which origin to clone from.
 
 **The spec list itself is read from the dashboard's own checkout, not
 the person's (spec 218).** Every reader-facing listing —
-`GET /projects/:name`, `GET /projects`, the home page's queue rows and
-the archive page — lists from `resolvedCheckouts.get(project)?.specs`
+`GET /projects/:name`, `GET /projects` and the home page's queue rows,
+archived rows included — lists from `resolvedCheckouts.get(project)?.specs`
 when the dashboard's own clone exists, falling back to the person's
 checkout otherwise (a new project, or one whose clone failed). This is
 the same clone `aide-run-spec` resolves a spec folder against, so a
@@ -1518,11 +1527,14 @@ its row has to say so.**
   is `null`, and `null` claims neither that the branch is open nor that
   it is gone — the same fail-open rule `isMerged` keeps. A network blip
   must not report every archive as unlanded.
-- **The spec keeps its row while its branch is open.** An archived spec
-  is normally dropped from the specs list; one whose own `aide/<folder>`
-  is still on origin is the exception, and it renders red through the
-  same path as any other failed row. The archive page marks it "not
-  landed". The filter is the BRANCH, never the job's `errorReason`:
+- **The spec keeps its row while its branch is open.** Every archived
+  spec has a reader row on the specs list since spec 221, but only on a
+  chip that asks for one; a spec whose own `aide/<folder>` is still on
+  origin is built whatever the chip, so it stays on the DEFAULT view —
+  wearing the "not landed" mark, and counted by the Problems chip. It
+  rendered as an ordinary failed job row until spec 221, offering a Run
+  the server would have refused. The filter is the BRANCH, never the
+  job's `errorReason`:
   `146-one-place-owns-a-steps-commit` carried no reason at all, and a
   stale reason on an old job would resurrect a row for a spec that is
   genuinely finished.

@@ -98,11 +98,11 @@ function manifestBlock(data: ManifestData): string {
 export function navEntries(): NavEntry[] {
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
-    // Spec 163. It sits among the project pages rather than beside
-    // Projects because the FIRST entry is what the tab bar reads as the
-    // Projects tab; what makes it a tab of its own instead of a project
-    // is its absolute path, which no project page has.
-    { label: "Archive", path: ARCHIVE_ROUTE },
+    // An Archive tab stood here from spec 163 until spec 221. Every
+    // archived spec is a row on the Specs list now, one chip away, with
+    // its date, its description, its "not landed" mark and the same
+    // search the tab had — so a second place to read the same thing was
+    // a second place to keep in step with it.
     // A tab per project stood here, from the days this was a generated
     // site with a page per project and no server (aide-dashboard spec
     // 01). A project is reached from the Projects page now, which lists
@@ -133,12 +133,6 @@ export const PROJECTS_ROUTE = "/projects";
 /** Where a spec is made (spec 121). It was a disclosure folded into the
  *  spec list until the button that opened it became a link to here. */
 export const NEW_SPEC_ROUTE = "/new";
-
-/** Where the archive is read (spec 163). An archived spec's own page
- *  has worked since spec 150 — `specDir()` resolves an archived folder
- *  and the four files render — but nothing linked to one, so the pages
- *  existed and could not be found. This is the way in. */
-export const ARCHIVE_ROUTE = "/archive";
 
 // The prose itself lives in shell.ts, where the About DIALOG on every
 // page shows the same words — this page is the no-JS fallback the menu

@@ -543,6 +543,20 @@ table.list thead a { color: var(--muted); }
 .archive-desc { color: var(--muted); font-size: var(--fs-s); max-width: 34rem;
   display: -webkit-box; -webkit-box-orient: vertical;
   -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+/* The search on the Specs list (spec 221), the field the archive page
+   had. A line of its own UNDER the chips rather than on the end of
+   them: that line already carries six chips, the (?) and New spec, and
+   a 26rem field after them wrapped the button onto a row by itself. */
+.specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  margin: var(--sp-2) 0 0; }
+/* The note saying what the field looks in belongs to the field, not to
+   the table under it. */
+.specsearch + .listnote { margin-top: var(--sp-1); }
+/* An archived spec's reader row (spec 221). Its description cell wears
+   both classes — the archive's own two-line clamp, and the spec
+   column's measure — and the measure has to win, or the one row on the
+   list that is a record would be a hand wider than every row above it. */
+table.list tr.run-archived .spec-title.archive-desc { max-width: 27rem; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
@@ -1024,6 +1038,9 @@ tr.spec-archived td { color: var(--muted); }
      of the right edge. It looked fine at the window width it happened
      to be tested at, which is how the regression slipped through. */
   .spec-name, .spec-title, .archive-desc { width: auto; max-width: none; box-sizing: border-box; }
+  /* Including the reader row's, whose desktop measure is written with a
+     specificity this line could not otherwise reach (spec 221). */
+  table.list tr.run-archived .spec-title.archive-desc { max-width: none; }
 
   /* A long name gets two lines before it clamps to an ellipsis, instead
      of one. The pips are their own flex item and do not wrap with it —
