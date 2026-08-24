@@ -3043,6 +3043,12 @@ export function createServer(opts: ServerOptions) {
         createProjects: [...allowed].sort(),
         targets: withFreshness(targets()),
         script: queueClientScript(),
+        modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
+          name,
+          budgetUsd: choice.budgetUsd,
+          ...(choice.tool ? { tool: choice.tool } : {}),
+        })),
+        defaultModels: queue.defaults.model,
         // Why the last submission was refused, carried back here by the
         // create route's own redirect.
         error: url.searchParams.get("error") ?? undefined,

@@ -1066,6 +1066,11 @@ function harness(
       // (spec 225), and a test has to be able to wait for it.
       return on["change"]?.({ target: select }) as unknown as Promise<void>;
     },
+    changeCreateAi: (index: number, tool: string) => {
+      const select = aiSelects[index]!;
+      select.value = tool;
+      return on["create:change"]?.({ target: select }) as unknown as Promise<void>;
+    },
     /** One phase's model, moved by hand — the other half of what a
      *  swap must not wash away. */
     changeModel: (index: number, value: string) => {
@@ -2116,6 +2121,14 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
     // Only analyze moved. Had the AI select been remembered under the
     // shared key, the restore would have written it across the row.
     expect(values(h)).toEqual(["sonnet", "codex-fast", "codex-fast", "sonnet"]);
+  });
+});
+
+describe("the Create spec AI choice fills its model (spec 228)", () => {
+  test("the form's own change listener applies the paired model", () => {
+    const h = harness(() => ({ ok: true, body: { ok: true } }));
+    h.changeCreateAi(0, "codex");
+    expect(h.modelSelects[0]!.value).toBe("codex-fast");
   });
 });
 
