@@ -221,6 +221,10 @@ const COMPONENTS = [
   "badge", "b-idle", "b-running", "b-waiting", "b-ready", "b-refused", "b-done", "dot",
   "phases", "phase", "default", "checked", "done", "off", "box",
   "rowmsg", "err", "warn", "info",
+  // the invisible holder around the spec row's state badge (2026-08-24),
+  // mirroring actionslot: it reserves the width on mobile so the pill
+  // inside keeps its natural size.
+  "badgeslot",
   // the "still checking" pulse (2026-08-24): the bar itself, and the
   // visually-hidden word inside it that screen readers get instead.
   "checking", "sr",

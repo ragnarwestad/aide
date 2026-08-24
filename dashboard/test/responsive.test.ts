@@ -67,8 +67,11 @@ describe("Started and Cost fold away at phone width", () => {
   // row, whatever the state's wording — so the badge reserves the width
   // of its longest label ("implementing queued") instead of sizing to
   // whichever word it happens to carry.
-  test("the spec header's badge reserves one width for every state", () => {
-    expect(NARROW).toMatch(/table\.list tr\.spechead \.badge \{ min-width: [\d.]+rem/);
+  test("the spec header's badge SLOT reserves one width for every state", () => {
+    // The holder, never the pill: a min-width on the badge itself
+    // stretched its coloured background.
+    expect(NARROW).toMatch(/table\.list tr\.spechead \.badgeslot \{ min-width: [\d.]+rem/);
+    expect(NARROW).not.toMatch(/tr\.spechead \.badge \{/);
   });
 
   // Criterion 2. Three separate renderers write these two cells — the

@@ -1569,7 +1569,11 @@ function specHeadRow(
     // gap between them is declared once and the button drops to a line
     // of its own when the column runs out of width, rather than
     // widening the table (`.tablewrap` would scroll instead).
-    `<td><span class="row">${
+    // `.badgeslot` mirrors `.actionslot`: an invisible holder that can
+    // reserve a width (mobile does) without stretching the pill inside
+    // it — a min-width on the badge itself widened the coloured pill
+    // (2026-08-24).
+    `<td><span class="row"><span class="badgeslot">${
       g.lead
         ? stateCell(g.lead, {
             archiveHeldBack: heldBack,
@@ -1584,7 +1588,7 @@ function specHeadRow(
         // its commits, so `readyPhase` is "implement" and the badge
         // read "not started".
         : restingChip({ archiveHeldBack: heldBack, readyPhase })
-    }<span class="actionslot">${stateAction(
+    }</span><span class="actionslot">${stateAction(
       g,
       opts,
       opened.has(groupKey(g.project, g.specFolder)),

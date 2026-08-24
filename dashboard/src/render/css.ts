@@ -997,13 +997,14 @@ tr.spec-archived td { color: var(--muted); }
      empty, which is what was still forcing Cost to wrap even after the
      other two gaps were closed. */
   table.list tr.spechead .actionslot { min-width: 0; }
-  /* What IS reserved on this line is the badge's width — or the action
+  /* What IS reserved on this line is the badge's SLOT — or the action
      button after it starts wherever the state's wording happens to
-     end, in a different place on every row. Sized for the longest
-     label the badge can carry now that the resting texts are one word
-     ("ready"/"done", 2026-08-24): "implementing queued", 19 characters
-     of fs-s plus the dot and the padding. */
-  table.list tr.spechead .badge { min-width: 9rem; box-sizing: border-box; }
+     end, in a different place on every row. On the holder, never the
+     badge itself: a min-width on the pill stretched its coloured
+     background (2026-08-24). Sized for the longest label it can carry
+     now that the resting texts are one word ("ready"/"done"):
+     "implementing queued", 19 characters of fs-s plus dot and padding. */
+  table.list tr.spechead .badgeslot { min-width: 9rem; margin-left: var(--sp-2); }
   /* Date and cost stand at the line's right edge, away from the action
      button (asked for 2026-08-24). An auto margin only absorbs FREE
      space, so it cannot wrap the cost by itself — what did that before
