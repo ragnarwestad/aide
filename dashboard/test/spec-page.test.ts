@@ -440,6 +440,16 @@ describe("the Description tab", () => {
     expect(html).toContain("The dashboard never shows a spec.");
   });
 
+  test("wide description lines stay on one line and scroll inside the field", () => {
+    const html = edit();
+    expect(html).toContain('<textarea name="text" rows="30" spellcheck="false" wrap="off">');
+    expect(html).toContain('.newspecform textarea { overflow-x: auto; }');
+  });
+
+  test("the Save row has one spacing token above it", () => {
+    expect(edit()).toContain('.specform .factions { margin-top: var(--sp-1); }');
+  });
+
   // The description says "each with the commit stamp it has today" —
   // the tab that can be edited included.
   test("carries the file's commit stamp, exactly as the read-only tabs do", () => {
@@ -666,6 +676,22 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(checks).toContain('name="tick"');
     expect(checks).toContain('value="| Manual check at 375px in a real browser | ⬜ | still outstanding |"');
     expect(checks).toContain("Save");
+  });
+
+  for (const state of ["queued", "running"] as const) {
+    test(`a ${state} job leaves every check visible but removes the controls`, () => {
+      const checks = section(page(withChecks([check(), DONE, LATER], { lead: lead({ state }) })));
+      expect(checks).toContain("Manual check at 375px in a real browser");
+      expect(checks).toContain("Run the full test suite");
+      expect(checks).toContain("Watch the first real run");
+      expect(checks).not.toContain('name="tick"');
+      expect(checks).not.toContain("<form");
+      expect(checks).not.toContain("<button");
+    });
+  }
+
+  test("a completed job does not make the checks read-only", () => {
+    expect(section(page(withChecks([check()], { lead: lead({ state: "done" }) })))).toContain('name="tick"');
   });
 
   // The Save that commits the description and the Save that commits a

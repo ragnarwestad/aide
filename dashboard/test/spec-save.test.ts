@@ -830,6 +830,23 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("1-description.md");
   });
 
+  test("a queued matching job refuses a direct tick without changing 4-status.md", async () => {
+    const git = recording();
+    const { base, dir } = startWithChecks(git.run);
+    const queued = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN },
+      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["implement"] }),
+    });
+    expect(queued.status).toBe(200);
+
+    const res = await tick(base, { ticks: [OPEN_ROW] });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain("still running");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(0);
+  });
+
   test("a description save commits 1-description.md alone, and never the status", async () => {
     const git = recording();
     const { base, dir } = startWithChecks(git.run);
