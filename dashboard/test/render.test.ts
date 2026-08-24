@@ -2422,6 +2422,21 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   const formAttr = (html: string, selector: string): string | undefined =>
     html.match(new RegExp(`<select ${selector}[^>]*\\bform="([^"]*)"`))?.[1];
 
+  test("the AI and Model selects are separately labelled fields in the same row", () => {
+    const html = newPage({ modelChoices: TWO_TOOLS });
+    expect(html).toMatch(
+      /<span class="frow">[\s\S]*?<label class="field"><span>AI<\/span>[\s\S]*?<select data-ai="model\.create"[\s\S]*?<\/label><label class="field"><span>Model<\/span>[\s\S]*?<select name="model\.create"[\s\S]*?<\/label><\/span>/,
+    );
+  });
+
+  test("Back links home before the create form", () => {
+    const html = newPage();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html.indexOf("← Back</a>")).toBeLessThan(
+      html.indexOf('action="/api/queue/create"'),
+    );
+  });
+
   // Criterion 1.
   test("two tools configured: a grouped Model select and a paired AI select, both pre-filled", () => {
     const html = newPage({ modelChoices: TWO_TOOLS, defaultModels: { create: "fable", default: "sonnet" } });
@@ -2459,6 +2474,10 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     });
     expect(html).toContain('name="model.create"');
     expect(html).not.toContain('data-ai="model.create"');
+    expect(html).toMatch(
+      /<label class="field"><span>Model<\/span><select name="model\.create"[\s\S]*?<\/select><\/label>/,
+    );
+    expect(html).not.toContain("<span>AI</span>");
     // Pre-filled from the table's fallback when the step names nothing.
     expect(html).toMatch(/<option value="sonnet"[^>]*selected/);
   });
