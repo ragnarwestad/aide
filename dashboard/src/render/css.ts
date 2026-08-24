@@ -966,6 +966,15 @@ tr.spec-archived td { color: var(--muted); }
      the badge line — read as a hole. The row pads once, at its edges. */
   table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
   table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
+  /* The 2px separator above a spec sits on the CELLS in the base rule,
+     and here the cells wrap onto line 2 — each drawing its own border
+     segment, which read as a stray grey line between the name and the
+     badge on every spec but the first (whose cells have the first-row
+     exemption). The row is the box that spans the spec here, so the
+     row carries the one separator and the cells none. */
+  table.list tr.spechead { border-top: 2px solid var(--line-strong); }
+  table.list tr.spechead > td { border-top: none; }
+  table.list tbody tr.spechead:first-child { border-top: none; }
   /* The desktop rule (space-between, base stylesheet) spaces the badge
      and the Archive button apart to fill a table column's own width —
      a gap that ate into line 2's space here too, for the same reason
