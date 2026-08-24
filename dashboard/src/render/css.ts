@@ -1001,7 +1001,10 @@ tr.spec-archived td { color: var(--muted); }
      it if the gap were not reserved. Plain flow, sharing the row's own
      gap like every other item on the line, fits all four. */
   table.list tr.spechead [data-col="started"] { display: block; }
-  table.list tr.spechead [data-col="cost"]::before { content: "· "; }
+  /* No "· " separator before the cost (removed 2026-08-24): it read
+     fine while date and cost sat side by side, and as a stray leading
+     dot every time the cost wrapped alone or the date showed the
+     checking bar. The flex gap already separates the two. */
 
   /* .spec-name/.spec-title/.archive-desc carry a desktop alignment width
      (27rem/27rem/34rem), and it MUST be overridden here — width: auto,
