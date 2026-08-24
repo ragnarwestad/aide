@@ -1,0 +1,64 @@
+{
+  "_comment": [
+    "Spec 220: how a project's code-landing choice resolves, as one table both",
+    "implementations are checked against. `aide-run-spec` (bash) and the dashboard's",
+    "resolveCodeLanding() (TypeScript) read it independently — the pair is hand-kept,",
+    "like WORKFLOW_STEPS, DEPENDENCY_GATED_STEPS and the worktree links, so the",
+    "agreement is asserted rather than assumed.",
+    "",
+    "Unlike the worktree links this has NO .aide/config fallback: the choice is a team",
+    "policy about review, not a per-machine preference, and a gitignored file silently",
+    "overriding the committed manifest is exactly the drift the manifest was picked to",
+    "avoid. The `config` column is there to prove the old-style spelling is IGNORED.",
+    "",
+    "`landing` is what both sides must resolve to. `push` is the mode aide-run-spec must",
+    "run with when no --push was typed on the command line; the dashboard's own column",
+    "is the same answer, since a `pr` landing forces `--push pr` over the global default.",
+    "",
+    "null means: the key is not written in that file at all."
+  ],
+  "cases": [
+    {
+      "name": "unset",
+      "manifest": null,
+      "config": null,
+      "landing": "merge",
+      "push": "none"
+    },
+    {
+      "name": "merge",
+      "manifest": "merge",
+      "config": null,
+      "landing": "merge",
+      "push": "none"
+    },
+    {
+      "name": "pr",
+      "manifest": "pr",
+      "config": null,
+      "landing": "pr",
+      "push": "pr"
+    },
+    {
+      "name": "an-unrecognized-value-is-merge",
+      "manifest": "rebase",
+      "config": null,
+      "landing": "merge",
+      "push": "none"
+    },
+    {
+      "name": "the-config-spelling-is-ignored",
+      "manifest": null,
+      "config": "pr",
+      "landing": "merge",
+      "push": "none"
+    },
+    {
+      "name": "the-manifest-is-not-shadowed-by-the-config",
+      "manifest": "pr",
+      "config": "merge",
+      "landing": "pr",
+      "push": "pr"
+    }
+  ]
+}

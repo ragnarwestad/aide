@@ -54,6 +54,15 @@ export interface ArchivedSpecView {
    *  whose job the queue's LRU cap evicted long ago — 146's case, which
    *  carried no failure reason at all. */
   notLanded?: boolean;
+  /** Its branch is open because the project reviews its code (spec 220),
+   *  not because the landing failed. Takes precedence over `notLanded`,
+   *  which is derived from the same fact and would otherwise say the
+   *  opposite of what happened. */
+  prOpen?: boolean;
+  /** The request itself, when the run managed to open one. Absent where
+   *  `gh` could not — and then the row says the branch is open with
+   *  nothing describing it, which is a state worth seeing. */
+  prUrl?: string;
   /** When that answer was last taken — epoch ms, the checker's own
    *  cache stamp (spec 208). The set is whatever a background schedule
    *  last found, so how OLD it is decides how much of it to believe:
@@ -112,6 +121,15 @@ export const NO_DATE = "date unknown";
  *  list gives a failed row — one archive is not a different kind of
  *  problem from the other. */
 export const NOT_LANDED = "not landed";
+
+/** The mark an archived row carries instead, when its branch is open
+ *  BECAUSE THE PROJECT ASKED FOR THAT (spec 220): `codeLanding: pr` in
+ *  its manifest, so the code waits on a pull request for as long as the
+ *  review takes. Same fact from origin — the branch is there — and the
+ *  opposite meaning, which is the whole reason it is worded apart:
+ *  `NOT_LANDED` reads as an instruction to run archive again, and this
+ *  one is an instruction to go and review something. */
+export const PR_OPEN = "PR open";
 
 /** What the description cell says when `1-description.md` has no
  *  `## Description` section. A dash, not a blank cell: the same reason
@@ -296,13 +314,34 @@ function notLandedTitle(checkedAt: number | undefined, now: number): string {
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 }
 
+/** The waiting-on-review mark, wrapped in a link to the request when
+ *  there is one to link to — the mark is a reason to go somewhere, and
+ *  the place is the pull request. Without a URL it is the bare badge,
+ *  saying the branch is open and nothing describes it. */
+function prOpenMark(s: ArchivedSpecView): string {
+  const mark = badge(
+    "waiting",
+    PR_OPEN,
+    s.prUrl
+      ? "its code is waiting on a pull request — open it to review"
+      : "its code is on a branch and no pull request was opened for it",
+  );
+  return s.prUrl ? `<a href="${esc(s.prUrl)}">${mark}</a>` : mark;
+}
+
 function specRow(s: ArchivedSpecView, now: number): string {
   const title = s.title ? `<p class="spec-title">${esc(s.title)}</p>` : "";
   // Beside the link a reader would follow, because the mark is a reason
   // to follow it: the spec needs its `archive` run again.
-  const mark = s.notLanded
-    ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
-    : "";
+  // Spec 220 first: the two marks come from ONE fact — the branch is
+  // still on origin — and a project that reviews its code means that
+  // fact to be true. Reading `notLanded` first would call every working
+  // PR-mode archive stuck.
+  const mark = s.prOpen
+    ? ` ${prOpenMark(s)}`
+    : s.notLanded
+      ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
+      : "";
   return (
     `<tr><td>${esc(s.project)}</td>` +
     `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +

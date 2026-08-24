@@ -6889,3 +6889,35 @@ describe("spec 210: pips() marks the completed thirds", () => {
     expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
   });
 });
+
+// --- spec 220: the pull request a run left open ------------------------------
+//
+// A project that reviews its code archives with the code still on its
+// branch, and a pull request describing it. The row is where a reader
+// finds out — the same line that carries the compare links — and a `gh`
+// that could not open the request has to say so there too, or an
+// orphaned open branch looks exactly like a reviewed one.
+describe("a row shows the pull request its run opened (spec 220)", () => {
+  const open = (extra: Partial<QueueRowView>): string =>
+    renderQueueRows([row({ steps: ["archive"], state: "done", ...extra })], {
+      runnerAvailable: true,
+      targets: [],
+    });
+
+  test("the link is on the row, beside the branch it is for", () => {
+    const html = open({ prUrl: "https://github.test/aide/pull/7" });
+    expect(html).toContain('href="https://github.test/aide/pull/7"');
+    expect(html.toLowerCase()).toContain("pull request");
+  });
+
+  test("a gh that could not open one says so instead", () => {
+    const html = open({ prError: "gh auth login required" });
+    expect(html).toContain("gh auth login required");
+    expect(html).not.toContain("pull/7");
+  });
+
+  test("a row with neither is the row it has always been", () => {
+    const html = open({});
+    expect(html.toLowerCase()).not.toContain("pull request");
+  });
+});

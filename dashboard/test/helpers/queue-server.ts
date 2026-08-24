@@ -89,6 +89,13 @@ export function queueHarness(prefix: string): QueueHarness {
         mirrorPath: join(dir, "runs.json"),
         queueMirrorPath: join(dir, "queue.json"),
         projectRoot: root,
+        // The same tree, named as the MACHINERY's root too (spec 220):
+        // left unset, `machineryProjectDir` falls back to a bare
+        // relative project name, and anything read out of a project's
+        // own directory — its manifest, most of all — is then read
+        // relative to whatever directory the test runner happens to be
+        // standing in. Production always has both.
+        queueProjectRoot: root,
         queueProjects: ["aide"],
         // Spec 205: inside this fixture's own directory, never the
         // default under $HOME. A suite that let the server fall back to

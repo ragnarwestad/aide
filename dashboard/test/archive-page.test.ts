@@ -22,6 +22,9 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import type { GitRunner } from "../src/branch-status.ts";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { NOT_LANDED, PR_OPEN } from "../src/render/archive-page.ts";
 import { CSS } from "../src/render/css.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
@@ -607,5 +610,33 @@ describe("an archived spec whose branch is still on origin", () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await archivePageUntil(base, "not landed");
     expect(titleCell(html, STAMPED)).toContain("checked just now");
+  });
+
+  // --- spec 220: a branch left open on purpose --------------------------
+  //
+  // A project whose code goes through a pull request archives with its
+  // code branch STILL on origin, for as long as the review takes. The
+  // mark above would call that a stuck landing forever, which is the
+  // opposite of what happened — so it is worded for what it is, and says
+  // where the request is when the run managed to open one.
+  describe("and one whose project reviews its code", () => {
+    const reviewing = (dir: string) =>
+      writeFileSync(join(dir, "root", "aide", ".aide", "project.yaml"), "name: aide\ncodeLanding: pr\n");
+
+    test("is marked as waiting on its pull request, not as unlanded", async () => {
+      const { base, dir } = start({ gitRun: gitWithBranches([STAMPED]) });
+      reviewing(dir);
+      const html = await archivePageUntil(base, PR_OPEN);
+      const cell = titleCell(html, STAMPED).toLowerCase();
+      expect(cell).toContain(PR_OPEN.toLowerCase());
+      expect(cell).not.toContain(NOT_LANDED.toLowerCase());
+    });
+
+    test("and a project that merges its code is marked exactly as before", async () => {
+      const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
+      const html = await archivePageUntil(base, NOT_LANDED);
+      expect(titleCell(html, STAMPED).toLowerCase()).toContain(NOT_LANDED.toLowerCase());
+      expect(titleCell(html, STAMPED).toLowerCase()).not.toContain(PR_OPEN.toLowerCase());
+    });
   });
 });
