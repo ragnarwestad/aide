@@ -900,6 +900,12 @@ tr.spec-archived td { color: var(--muted); }
   table.list tr.spechead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
   table.list tr.spechead > td:first-child { flex: 1 1 100%; }
   table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; }
+  /* The vertical padding moves off the cells and onto the row: each td
+     kept the desktop 10px above and below, and two tds stacked as two
+     flex lines put 10px + the row gap + 10px between the name line and
+     the badge line — read as a hole. The row pads once, at its edges. */
+  table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
+  table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
   /* The desktop rule (space-between, base stylesheet) spaces the badge
      and the Archive button apart to fill a table column's own width —
      a gap that ate into line 2's space here too, for the same reason
