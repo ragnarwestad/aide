@@ -1,0 +1,78 @@
+#!/bin/bash
+# Installs the commit-msg-spec-guard hook into one or more spec repos.
+#
+# The hook is written into the repository's COMMON git dir
+# (`git rev-parse --git-common-dir`), not the `.git/hooks` of one
+# particular worktree — `aide-run-spec` gives every run its own
+# `git worktree` under $HOME/aide-worktrees/, and git shares `hooks/`
+# across every worktree of one repository
+# (`.claude/rules/development.md`, "Hooks are shared across worktrees
+# of one repository"). Installing once into the main checkout therefore
+# protects every worktree `aide-run-spec` creates from it, with no
+# per-worktree install step needed.
+#
+# Usage: aide-install-spec-hook <repo-path> [<repo-path> ...]
+#
+# A repo whose commit-msg hook already exists and carries no aide
+# marker is left untouched — the operator's own hook is never
+# overwritten, only reported with a warning naming the path. Installing
+# is opt-in, per repo: a repo never named here has no guard at all.
+set -u
+
+usage() {
+  echo "usage: aide-install-spec-hook <repo-path> [<repo-path> ...]" >&2
+  exit 2
+}
+
+[ "$#" -gt 0 ] || usage
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOK_SOURCE="$SCRIPT_DIR/hooks/commit-msg-spec-guard"
+MARKER="aide-managed: commit-msg-spec-guard"
+
+if [ ! -f "$HOOK_SOURCE" ]; then
+  echo "aide-install-spec-hook: missing hook source: $HOOK_SOURCE" >&2
+  exit 1
+fi
+
+status=0
+
+for root in "$@"; do
+  name="$(basename "$root")"
+
+  if [ ! -d "$root" ]; then
+    echo "$name: skipped — no such directory: $root" >&2
+    continue
+  fi
+
+  if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "$name: skipped — not a git working tree" >&2
+    continue
+  fi
+
+  # --git-common-dir is relative to $root unless it is already
+  # absolute — resolve it by hand rather than relying on a git version
+  # new enough for --path-format=absolute.
+  common_dir_raw="$(git -C "$root" rev-parse --git-common-dir 2>/dev/null)"
+  case "$common_dir_raw" in
+    /*) common_dir="$common_dir_raw" ;;
+    *) common_dir="$root/$common_dir_raw" ;;
+  esac
+
+  hook_path="$common_dir/hooks/commit-msg"
+
+  if [ -f "$hook_path" ] && ! grep -qF "$MARKER" "$hook_path" 2>/dev/null; then
+    echo "$name: skipped — existing commit-msg hook has no aide marker: $hook_path" >&2
+    continue
+  fi
+
+  if ! mkdir -p "$common_dir/hooks" || ! cp "$HOOK_SOURCE" "$hook_path"; then
+    echo "$name: failed to install hook at $hook_path" >&2
+    status=1
+    continue
+  fi
+  chmod +x "$hook_path"
+  echo "$name: installed commit-msg hook -> $hook_path"
+done
+
+exit "$status"

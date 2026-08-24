@@ -98,9 +98,20 @@ Examples:
 
 ### Step 5: Stage in git
 
-- If the specs root lies OUTSIDE the project root: SKIP git add in the
-  project's repo (the specs live elsewhere, possibly their own repo)
-- Otherwise: `git add <specs-root>/NN-slug/*.md`
+`git add <specs-root>/NN-slug/*.md` — the specs root is a working
+directory the skill can operate in, whether or not it sits inside the
+project root.
+
+A headless run gets its commit for free. Working interactively, ASK
+whether to commit the new spec, and suggest this message so the step is
+recognised the same way:
+
+```text
+Run /aide-create for <spec-folder>
+```
+
+Offer it only once the 5 files have actually been created; nothing to
+stage means nothing to offer.
 
 Nothing in Tracking info records the step. Which steps a spec has had
 is read off the spec's own commits, and `aide-run-spec` writes the

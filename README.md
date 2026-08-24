@@ -241,6 +241,42 @@ moves a checkout.
 
 ---
 
+## Blocking hand-written spec commits (opt-in)
+
+Spec files are meant to be produced by invoking the actual `/aide-*`
+skill for that step, never by hand-writing or reimplementing the
+pattern (`core/rules/spec-structure.md`, "Templates"). Nothing enforces
+that at the git level by default — a spec 218-shaped incident (a spec
+hand-copied from a previous one's already-correct pattern, 2026-08-24)
+produces a commit that looks identical to a skill-produced one.
+
+`aide-install-spec-hook` installs a best-effort `commit-msg` guard into
+one or more spec repos:
+
+```bash
+aide-install-spec-hook ~/develop/aide-specs [~/develop/other-specs ...]
+```
+
+It rejects a commit that touches a spec's 4/5-file layout
+(`0-README.md`, `2-analysis.md`, `3-solution.md`, `4-status.md`, or a
+newly-added `1-description.md`) unless the message matches the
+existing convention — `Run /aide-<step> for <spec-folder>[...]`. A
+hand-edit to an EXISTING `1-description.md`'s Description field
+(`spec-structure.md`'s one documented outside-the-flow allowance) is
+never gated. The hook is written into the repository's common git dir,
+so it protects every `git worktree` of that repo, not only the
+checkout the installer was pointed at.
+
+It is best-effort by construction, exactly like `aide-pull-specs`
+above: it only fires on a machine where it has been installed, and a
+commit message can always be typed to match the convention on a
+genuinely hand-written spec. The primary defense is the documented
+rule; this closes the accidental gap, not a deliberate one. Run it
+once per machine, alongside `aide-pull-specs`, for every spec repo that
+machine writes to.
+
+---
+
 ## Resources
 
 - [DEVELOPING.md](DEVELOPING.md) - Developer guide for aide

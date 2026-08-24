@@ -510,6 +510,13 @@ AI tools create documentation directly based on the structure described in this 
 The `/aide-create` command creates the 4-file structure with the correct placeholders.
 The `/aide-analyze` command fills in the analysis, solution and status.
 
+**Spec files are always produced by invoking the actual `/aide-*` skill
+for that step — never by hand-writing or reimplementing the pattern
+directly with Read/Write/Bash, even when the exact structure is already
+known from a previous invocation in the same session.** A spec created
+this way carries none of the commits, review or convention the skill
+provides, and looks identical to one that did.
+
 ---
 
 ## See also
