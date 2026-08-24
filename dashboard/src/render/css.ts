@@ -673,10 +673,12 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
   background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
 @keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
 /* The "still checking" mark: a pulsing bar where a fact will land once
-   the cache warms, instead of the word "checking…" reading like a fact
-   itself (asked for 2026-08-24). The word survives inside it, visually
-   hidden, for screen readers. Same sweep mechanics as .pip.now above,
-   on the neutral greys — this is waiting, not running. */
+   the cache warms, instead of the word it replaced reading like a fact
+   itself (asked for 2026-08-24; the word is deliberately NOT quoted in
+   this comment — the stylesheet is page content, and a test asking
+   whether a page still says it would find the comment). It survives
+   inside the bar, visually hidden, for screen readers. Same sweep
+   mechanics as .pip.now above; amber, the waiting family's colour. */
 .checking { display: inline-block; vertical-align: middle; width: 3.75rem; height: 0.55em;
   border-radius: var(--r-s);
   background: linear-gradient(90deg, var(--warn-soft), var(--warn), var(--warn-soft));
@@ -942,6 +944,21 @@ tr.spec-archived td { color: var(--muted); }
      with it the table — wider than the viewport instead of letting the
      label's own ellipsis do its job. */
   table.list tr.spechead > td:first-child { flex: 1 1 100%; min-width: 0; }
+  /* The header line starts further left than the phase lines under it
+     (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
+     the base cell padding (var(--sp-3)) put it flush with the minor
+     detail lines an open row shows. flush with the card's edge; the
+     subrows keep the full padding and so read as indented under it. */
+  table.list tr.spechead > td:first-child { padding-left: 0; }
+
+  /* The open spec's faint ground, restated on the ROWS: the base rule
+     paints the cells, and at this width the cells are flex items with
+     their padding moved off them — or display:contents, which paints
+     nothing at all — so the tint showed in patches. The tr is the box
+     that spans the group here, so it carries the ground. */
+  table.list tr.spechead:has(+ tr.subrow),
+  table.list tr.subrow,
+  table.list tr.specnotice:has(+ tr.subrow) { background: var(--surface-2); }
   table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
   /* The vertical padding moves off the cells and onto the row: each td
      kept the desktop 10px above and below, and two tds stacked as two
