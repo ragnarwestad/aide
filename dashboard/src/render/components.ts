@@ -58,8 +58,14 @@ export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
  *
  *  It is NOT what an unanswerable question says — a spec git cannot
  *  date still shows a dash, and a file git cannot date still shows no
- *  stamp, exactly as each did before any of this was cached. */
-export const CHECKING = "checking…";
+ *  stamp, exactly as each did before any of this was cached.
+ *
+ *  A pulsing bar, not the word (asked for 2026-08-24): the text read
+ *  as a fact the row was stating rather than work in progress. The
+ *  word survives inside, visually hidden, for screen readers — and for
+ *  every test that asks whether a cell is still checking. */
+export const CHECKING =
+  '<span class="checking" title="checking…"><span class="sr">checking…</span></span>';
 
 // --- the step's name is not the reader's word --------------------------------
 

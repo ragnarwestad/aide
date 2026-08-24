@@ -672,10 +672,22 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .pip.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
   background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
 @keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+/* The "still checking" mark: a pulsing bar where a fact will land once
+   the cache warms, instead of the word "checking…" reading like a fact
+   itself (asked for 2026-08-24). The word survives inside it, visually
+   hidden, for screen readers. Same sweep mechanics as .pip.now above,
+   on the neutral greys — this is waiting, not running. */
+.checking { display: inline-block; vertical-align: middle; width: 3.75rem; height: 0.55em;
+  border-radius: var(--r-s);
+  background: linear-gradient(90deg, var(--warn-soft), var(--warn), var(--warn-soft));
+  background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
+.checking .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
 /* Motion off, and the reader can still tell a running phase from a
    waiting one: --accent stays, the mark simply stands still. */
 @media (prefers-reduced-motion: reduce) {
   .pip.now { animation: none; background: var(--accent); }
+  .checking { animation: none; background: var(--warn); }
 }
 /* Which THIRD of a running implement is behind it (spec 210). The parts
    already done stand still in solid --accent; the rest goes on

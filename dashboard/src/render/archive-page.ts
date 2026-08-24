@@ -346,7 +346,9 @@ function specRow(s: ArchivedSpecView, now: number): string {
     `<tr><td>${esc(s.project)}</td>` +
     `<td><a href="${esc(s.href)}">${esc(s.folder)}</a>${mark}${title}</td>` +
     `<td><div class="archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
-    `<td class="archive-date">${esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE))}</td>` +
+    // CHECKING is markup (the pulsing bar) since 2026-08-24, so it goes
+    // in unescaped; the two real texts stay escaped as before.
+    `<td class="archive-date">${s.archivedAt ? esc(s.archivedAt) : s.dateChecking ? CHECKING : esc(NO_DATE)}</td>` +
     // Blank, and deliberately not the dash the description cell uses or
     // the words the date cell uses: a spec archived before spec 207
     // recorded nothing, and "nothing was recorded" is what an empty
