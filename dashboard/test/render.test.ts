@@ -3877,8 +3877,8 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
             project: "aide",
             folder: "191-x",
             archivedAt: "2026-08-22",
-            href: "/specs/aide/191-x",
             notLanded,
+            done: ["create", "analyze", "implement", "archive"],
           },
         ],
         filter: { state: "archived" },
@@ -7055,7 +7055,9 @@ describe("spec 221: archived specs on the spec list", () => {
     title: `Title of ${folder}`,
     description: `What ${folder} was about.`,
     archivedAt: "2026-08-13",
-    href: `/specs/aide/${folder}`,
+    // What the spec's own 4-status.md claims it has had (spec 224) —
+    // the whole workflow, which is what an archived spec normally says.
+    done: ["create", "analyze", "implement", "archive"],
     ...over,
   });
 

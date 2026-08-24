@@ -1917,12 +1917,11 @@ describe("the job list sorts and filters", () => {
     expect(html).toContain("No spec matches");
   });
 
-  test("the list is capped, and says how many it left out", () => {
+  test("the list shows everything, with no cap (spec 226)", () => {
     const html = page(Array.from({ length: 29 }, (_, i) => row(`j${i}`)), { sort: "started" });
     expect(html).toContain("j0-spec");
     expect(html).toContain("j24-spec");
-    expect(html).not.toContain("j25-spec");
-    expect(html).toContain("4 older");
+    expect(html).toContain("j28-spec");
   });
 
   test("the partial refresh carries the controls too, so the filter survives a tick", async () => {

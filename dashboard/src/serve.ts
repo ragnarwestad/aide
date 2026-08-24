@@ -3994,6 +3994,27 @@ export function createServer(opts: ServerOptions) {
     return { date: at ? at.slice(0, 10) : null, checking: false };
   }
 
+  /** Which steps an archived spec's own `4-status.md` CLAIMS it has had
+   *  (spec 224) — what its phase lines and its pip strip are drawn from
+   *  once its row is opened.
+   *
+   *  The file's own word, and deliberately: a LIVE row's done-set is
+   *  git-verified, through the `workflowHistory` cache `withFreshness`
+   *  peeks — and `refreshSpecCaches` never warms that cache for an
+   *  archived spec, because doing so is the unbounded cost spec 178's
+   *  plan review turned down. Reusing the live path here would read
+   *  `{history: null}` for every archived row and draw "checking…" for
+   *  ever, which is not a truer answer than this one, only a slower way
+   *  of giving none.
+   *
+   *  A THIRD reader of the same file beside `archivedAt` and
+   *  `specDurationMs`, on the same terms as both: its own question, and
+   *  an empty list for every way the answer can be missing. */
+  function archivedSteps(dir: string): string[] {
+    const status = specFileText(dir, "4-status.md");
+    return status ? parseStatus(status).workflowSteps : [];
+  }
+
   /** Every archived spec the reader's own chip asks for, as a row for
    *  the Specs list (spec 221; this built the `/archive` page until that
    *  page retired).
@@ -4009,8 +4030,9 @@ export function createServer(opts: ServerOptions) {
    *  search reads all of it.
    *
    *  **The state is what decides how much of this gets built, and that
-   *  is the whole point.** A row costs two small file reads
-   *  (`archivedAt` and the duration stamp), aide alone archives about
+   *  is the whole point.** A row costs three small file reads
+   *  (`archivedAt`, the duration stamp and the steps its `4-status.md`
+   *  claims — spec 224, when the row grew phase lines), aide alone archives about
    *  150 specs, and this page rebuilds itself on every change event on
    *  every open tab. A view whose chip cannot show an archived row
    *  builds nothing for one — with ONE exception, and it is spec 193's:
@@ -4064,7 +4086,6 @@ export function createServer(opts: ServerOptions) {
         description: ref.description ?? undefined,
         archivedAt: when.date,
         dateChecking: when.checking,
-        href: specPagePath(project, ref.folder),
         notLanded,
         notLandedCheckedAt: notLanded ? (openCheckedAt ?? undefined) : undefined,
         prOpen: prWaiting,
@@ -4078,6 +4099,8 @@ export function createServer(opts: ServerOptions) {
         // column that answered for some of them out of memory would be a
         // column whose blanks move about.
         durationMs: specDurationMs(ref.dir) ?? undefined,
+        // The row opens now (spec 224), and this is what it opens on.
+        done: archivedSteps(ref.dir),
       });
     }
     return rows;
