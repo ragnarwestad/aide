@@ -1065,7 +1065,12 @@ const phaseWordCell = (
 function startedCell(g: SpecGroup, now: number): string {
   // A dash means git was asked and could not date the folder. Nobody
   // having asked yet is a different cell (spec 208).
-  return g.createdAt ? relTime(g.createdAt, now) : g.freshnessUnknown ? CHECKING : "–";
+  const made = g.createdAt ? relTime(g.createdAt, now) : g.freshnessUnknown ? CHECKING : "–";
+  if (g.totalDurationMs === undefined) return made;
+  return (
+    `${made} <span class="muted small" data-total="1" ` +
+    `title="what its phases took, added together">${durationLabel(g.totalDurationMs)}</span>`
+  );
 }
 
 /** One phase line's time cell: how long that phase took, or how long it
@@ -1895,18 +1900,9 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
     .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
-      const nameLink = latest
+      const name = latest
         ? `<a href="/specs/${esc(latest.id)}">${esc(stepLabel(p.step))}</a>`
         : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
-      // On mobile the AI/model selects are folded behind this control by
-      // default (design handoff, mobile-spec-row): reading the list to
-      // check status should not carry setup controls on every line. The
-      // checkbox is invisible outside the mobile media query, so desktop
-      // is unaffected — `.phasefold` is a plain inline wrapper there.
-      const name =
-        `<label class="phasefold">` +
-        `<input type="checkbox" class="foldphase">` +
-        `<span class="foldchevron">${CHEVRON}</span>${nameLink}</label>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
@@ -2016,8 +2012,8 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // configured AI and nothing to choose between.
       const pickCell =
         `<td class="modelcell"><span class="row">` +
-        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, latest?.model)}` +
-        `${modelPicker(g, opts, p.step, busy, latest?.model)}</span>${box}</span></td>`;
+        `${aiPicker(g, opts, p.step, busy, latest?.model)}` +
+        `${modelPicker(g, opts, p.step, busy, latest?.model)}${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
