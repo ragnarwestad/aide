@@ -1345,6 +1345,112 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "archive")).not.toContain('name="steps"');
   });
 
+  // --- spec 225: the pickers follow the same rule the boxes do -------------
+  //
+  // Spec 160 unlocked the boxes for the phases a running job has not
+  // reached; the AI and model selects beside them stayed locked on the
+  // row-level `busy` alone. They read `editableSteps` now — the
+  // server's own answer, the same one the box reads, so a picker and
+  // the box on its own line can never disagree about where the tail
+  // starts.
+  const CHOICES_225 = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "codex-fast", budgetUsd: 5, tool: "codex" as const },
+  ];
+  /** The two selects on one phase's line, as their opening tags: what
+   *  a test about `disabled` and `data-post-to` is actually asking. */
+  const pickers = (html: string, step: string) => {
+    const line = subRow(html, step);
+    return {
+      ai: line.match(new RegExp(`<select data-ai="model\\.${step}"[^>]*>`))?.[0] ?? "",
+      model: line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "",
+    };
+  };
+
+  test("a later phase the job HAS keeps its AI and model pickable (spec 225, criterion 1)", () => {
+    const html = rows(
+      [
+        job("j1", "analyze", {
+          state: "running",
+          steps: ["analyze", "implement", "archive"],
+          editableSteps: ["implement", "archive"],
+        }),
+      ],
+      [target("94-row-runs-it")],
+      { modelChoices: CHOICES_225 },
+    );
+    for (const step of ["implement", "archive"]) {
+      const p = pickers(html, step);
+      expect([step, p.ai.includes("disabled")]).toEqual([step, false]);
+      expect([step, p.model.includes("disabled")]).toEqual([step, false]);
+      // The model select is the one that posts: a live pick goes to
+      // the running job's own route the moment it is made.
+      expect([step, p.model.includes(`data-post-to="/api/queue/j1/model"`)]).toEqual([step, true]);
+      // The AI select posts nothing itself, live or not — it writes
+      // the model select beside it, and that is what reaches the
+      // server.
+      expect([step, p.ai.includes("data-post-to")]).toEqual([step, false]);
+    }
+  });
+
+  test("a phase the job does not have at all is pickable too (spec 225, criterion 2)", () => {
+    const html = rows(
+      [job("j1", "analyze", { state: "running", editableSteps: ["implement", "archive"] })],
+      [target("94-row-runs-it")],
+      { modelChoices: CHOICES_225 },
+    );
+    for (const step of ["implement", "archive"]) {
+      const p = pickers(html, step);
+      expect([step, p.ai.includes("disabled")]).toEqual([step, false]);
+      expect([step, p.model.includes("disabled")]).toEqual([step, false]);
+      expect([step, p.model.includes("data-post-to")]).toEqual([step, true]);
+    }
+  });
+
+  test("the running phase and everything behind it stay locked (spec 225, criterion 3)", () => {
+    const html = rows(
+      [
+        job("j1", "implement", {
+          state: "running",
+          steps: ["analyze", "implement", "archive"],
+          stepIndex: 1,
+          editableSteps: ["archive"],
+        }),
+      ],
+      [target("94-row-runs-it")],
+      { modelChoices: CHOICES_225 },
+    );
+    for (const step of ["analyze", "implement"]) {
+      const p = pickers(html, step);
+      expect([step, p.ai.includes("disabled")]).toEqual([step, true]);
+      expect([step, p.model.includes("disabled")]).toEqual([step, true]);
+      // The same sentence the boxes carry: why the row will not take a
+      // click, not a bare padlock.
+      expect([step, p.ai.includes('title="implement is running"')]).toEqual([step, true]);
+      expect([step, p.model.includes('title="implement is running"')]).toEqual([step, true]);
+      expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
+    }
+    const ahead = pickers(html, "archive");
+    expect(ahead.ai).not.toContain("disabled");
+    expect(ahead.model).not.toContain("disabled");
+  });
+
+  // The window between two steps is not a running job: the server names
+  // no editable step for it, and the row goes back to locking wholesale.
+  test("a job merely queued between two steps locks both pickers (spec 225)", () => {
+    const html = rows(
+      [job("j1", "analyze", { state: "queued" })],
+      [target("94-row-runs-it")],
+      { modelChoices: CHOICES_225 },
+    );
+    for (const step of ["analyze", "implement", "archive"]) {
+      const p = pickers(html, step);
+      expect([step, p.ai.includes("disabled")]).toEqual([step, true]);
+      expect([step, p.model.includes("disabled")]).toEqual([step, true]);
+      expect([step, p.model.includes("data-post-to")]).toEqual([step, false]);
+    }
+  });
+
   /** Rewritten by spec 145. While a row is busy, a box's tick stopped
    *  meaning "what a fresh press would pre-tick" and started meaning
    *  "this job named this step" — and a job names the step it is

@@ -15,7 +15,7 @@ import {
 // bash copy in `aide-run-spec`, and a test that reads both is what
 // keeps them from drifting.
 import { QUEUE_STEPS } from "../src/render/queue-list.ts";
-import { parseArgs } from "../src/serve.ts";
+import { parseArgs, resolveStepModel } from "../src/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
@@ -1243,6 +1243,136 @@ describe("editing a running job's tail (spec 160)", () => {
       const job = running(["implement", "archive"]);
       expect(tailEdits(job.store.get(job.id)!)).not.toContain("analyze");
     });
+  });
+});
+
+// --- spec 225: the model a phase still ahead will run on ----------------------
+
+// Spec 160 let a reader add or drop a step on a running job. The AI and
+// model selects beside those boxes stayed locked, and this is the store
+// half of unlocking them: one method, guarded by the same `tailEdits()`
+// the box already asks, so the two controls cannot disagree about which
+// phases are still open.
+describe("editing a running job's model for a step still ahead (spec 225)", () => {
+  const CHOICES: QueueDefaults = {
+    ...DEFAULTS,
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  let made_ = 0;
+  const running = (steps: string[], stepIndex = 0, defaults: QueueDefaults = CHOICES) => {
+    const mirror = join(dir, `queue-model-${(made_ += 1)}.json`);
+    const store = new QueueStore({ defaults, resolve, mirrorPath: mirror });
+    const made = store.enqueue({ ...REQ, steps });
+    if (!made.ok) throw new Error(made.error);
+    store.update(made.job.id, { state: "running", stepIndex });
+    return { store, mirror, id: made.job.id, model: () => store.get(made.job.id)!.model };
+  };
+
+  test("a step still ahead takes the new model, and the runner would read it (criterion 4)", () => {
+    const job = running(["analyze", "implement"]);
+    const answer = job.store.editTailModel(job.id, "implement", "fable");
+    expect(answer.ok).toBe(true);
+    expect(job.model().implement).toBe("fable");
+    // The read side, unchanged by this spec and asked here on purpose:
+    // what the runner spawns with is `resolveStepModel` against the job
+    // as the store holds it at that instant.
+    expect(resolveStepModel(job.store.get(job.id)!, "implement", DEFAULTS.model)).toBe("fable");
+  });
+
+  // The other half of `tailEdits()`: a phase this job does not have at
+  // all. Writing it is inert until the step is added through the box's
+  // own route, and read by the same `resolveStepModel` when it is.
+  test("a phase the job does not have takes one too (criterion 4)", () => {
+    const job = running(["analyze"]);
+    expect(job.store.editTailModel(job.id, "archive", "fable").ok).toBe(true);
+    expect(job.model().archive).toBe("fable");
+    expect(job.store.get(job.id)!.steps).toEqual(["analyze"]);
+  });
+
+  test("the running step and everything behind it are closed (criterion 3)", () => {
+    const job = running(["analyze", "implement"], 1);
+    for (const step of ["analyze", "implement"]) {
+      const answer = job.store.editTailModel(job.id, step, "fable");
+      expect(`${step}: ${answer.ok}`).toBe(`${step}: false`);
+      if (!answer.ok) expect(answer.error).toContain(step);
+    }
+    expect(job.model().implement).toBe("opus");
+  });
+
+  // The page drew implement as a live select; by the time the pick
+  // arrived the runner had walked onto it. The store decides against
+  // the job as it is at that instant, never against what the page
+  // believed.
+  test("a step the runner has walked past since the page drew it is refused by name (criterion 6)", () => {
+    const job = running(["analyze", "implement"]);
+    job.store.update(job.id, { stepIndex: 1 });
+    const answer = job.store.editTailModel(job.id, "implement", "fable");
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toContain("implement");
+    expect(job.model().implement).toBe("opus");
+  });
+
+  test("a model the server does not offer is refused, in the words job creation uses (criterion 7)", () => {
+    const job = running(["analyze", "implement"]);
+    const answer = job.store.editTailModel(job.id, "implement", "haiku");
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toBe("unknown or not-allowed model: haiku");
+    expect(job.model().implement).toBe("opus");
+  });
+
+  test("a server with no choices configured refuses every name (criterion 7)", () => {
+    const job = running(["analyze", "implement"], 0, DEFAULTS);
+    const answer = job.store.editTailModel(job.id, "implement", "fable");
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toBe("no model choice is configured on this server");
+  });
+
+  test("a malformed name is refused before the table is asked", () => {
+    const job = running(["analyze", "implement"]);
+    const answer = job.store.editTailModel(job.id, "implement", "fable/../etc");
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toBe("invalid model");
+  });
+
+  test("a job that is not running is closed altogether (criterion 8)", () => {
+    for (const state of ["queued", "done", "failed", "cancelled", "stopped", "interrupted"] as const) {
+      const job = running(["analyze", "implement"]);
+      job.store.update(job.id, { state });
+      const answer = job.store.editTailModel(job.id, "implement", "fable");
+      expect(`${state}: ${answer.ok}`).toBe(`${state}: false`);
+      expect(job.model().implement).toBe("opus");
+    }
+  });
+
+  test("an unknown job is not found", () => {
+    running(["analyze", "implement"]);
+    const job = running(["analyze", "implement"]);
+    expect(job.store.editTailModel("no-such-job", "implement", "fable").ok).toBe(false);
+  });
+
+  // The mirror is what survives a restart, and a model chosen only in
+  // memory would be undone by one.
+  test("the edit reaches the mirror", () => {
+    const job = running(["analyze", "implement"]);
+    expect(job.store.editTailModel(job.id, "implement", "fable").ok).toBe(true);
+    const stored = JSON.parse(readFileSync(job.mirror, "utf-8")) as {
+      id: string;
+      model: Record<string, string>;
+    }[];
+    expect(stored.find((j) => j.id === job.id)!.model.implement).toBe("fable");
+  });
+
+  // The caps are the config's to grant, and this route grants none: a
+  // job created on a modest model does not buy a hungrier one's
+  // headroom by being re-pointed at it mid-run.
+  test("the job's own budget is left exactly where it was", () => {
+    const job = running(["analyze", "implement"]);
+    const before = job.store.get(job.id)!;
+    expect(job.store.editTailModel(job.id, "implement", "fable").ok).toBe(true);
+    const after = job.store.get(job.id)!;
+    expect(after.budgetUsd).toBe(before.budgetUsd);
+    expect(after.jobCapUsd).toBe(before.jobCapUsd);
   });
 });
 

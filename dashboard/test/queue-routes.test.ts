@@ -2025,7 +2025,15 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).toContain("$5.00");
   });
 
-  test("the cap counts specs, and says how many specs it left out (criterion 11)", () => {
+  // Spec 226 inverted this. It used to pin a 25-row cap and the "N
+  // older specs not shown" line that counted what the cap had dropped.
+  // Hiding rows is wrong in every view: the reader cannot find what is
+  // not on the page, and the browser's own find is the search the
+  // archived and combined views are read with. The cap was a
+  // performance guess, and the answer to a payload that turns out to
+  // matter is server-side — render only what changed, or cache the
+  // fragment — never a cap again.
+  test("every spec a filter matches is on the page (criterion 1)", () => {
     const rows = Array.from({ length: 26 }, (_, i) => [
       job(`x${i}`, `s${String(i).padStart(2, "0")}-spec`, {
         startedAt: `2026-08-16T${String(i % 24).padStart(2, "0")}:00:00Z`,
@@ -2037,8 +2045,51 @@ describe("filtering and sorting work on specs, not jobs", () => {
     const html = page(rows, { sort: "spec", dir: "asc" });
     expect(html).toContain("s00-spec");
     expect(html).toContain("s24-spec");
-    expect(html).not.toContain("s25-spec");
-    expect(html).toContain("1 older");
+    // The 26th, the one the cap used to cut.
+    expect(html).toContain("s25-spec");
+    // The note the cap wrote, by its shape rather than by a word: this
+    // is the WHOLE page, and "older" is inside "folder" and inside a
+    // comment in the inlined stylesheet.
+    expect(html).not.toMatch(/\d+ older specs? not shown/);
+    expect(html).not.toContain("not shown.");
+  });
+
+  // Spec 226's item 4, which the code already satisfied when the spec
+  // was written — so this is a regression guard and nothing else. The
+  // "?" and New spec used to sit in a band of their own above the
+  // chips; they belong beside them, on the line immediately above the
+  // list. What actually right-aligns the pair is `margin-left: auto` on
+  // `details.intro` (css.ts), which no string test can observe; what a
+  // string test CAN say is that the three are in one `.row`, in that
+  // order, ahead of the search form and the table.
+  test('the "?" and New spec sit in the chips\' own row (criterion 6)', () => {
+    const html = renderQueuePage(
+      [job("a1", "aa-spec")],
+      "2026-08-16T00:00:00Z",
+      [{ label: "Overview", path: "projects.html" }],
+      { runnerAvailable: true, targets: [], createProjects: ["aide"] },
+    );
+    // The row the search form follows, read by its two ends rather than
+    // by a regex: `<div class="row">` occurs elsewhere on the page, and
+    // a pattern that backtracked past one of those would be reading a
+    // region nobody meant.
+    const at = html.indexOf('<form class="specsearch"');
+    expect(at).toBeGreaterThan(-1);
+    const opens = html.lastIndexOf('<div class="row">', at);
+    expect(opens).toBeGreaterThan(-1);
+    const inside = html.slice(opens, at);
+    expect(inside.slice(inside.indexOf("</div>"))).toMatch(/^<\/div>\s*$/);
+    expect(inside).toContain('data-filter="state"');
+    expect(inside.indexOf('<details class="intro">')).toBeGreaterThan(
+      inside.indexOf('data-filter="state"'),
+    );
+    expect(inside.indexOf(">New spec</a>")).toBeGreaterThan(
+      inside.indexOf('<details class="intro">'),
+    );
+    // And the whole row is ahead of the list it labels.
+    expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
+      html.indexOf('<div class="tablewrap">'),
+    );
   });
 
   // Every spec is ONE line, so its place in the order is the group's —
@@ -6814,6 +6865,132 @@ describe("POST /api/queue/:id/steps (spec 160)", () => {
     expect(live("archive")).toContain("data-post-to");
     expect(live("archive")).not.toContain("disabled");
     expect(live("analyze")).toContain("disabled");
+  });
+});
+
+// --- spec 225: a phase still ahead takes a model too --------------------------
+
+// The sibling of the route above, and named after the one thing it
+// does. A box tick and a select change are two different events at two
+// different moments; folding them into one body would make `/steps`
+// branch on which fields it was handed, and `checked`'s absence would
+// have to mean something other than `false`.
+describe("POST /api/queue/:id/model (spec 225)", () => {
+  const JSON_HEADERS = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const DEFAULTS = {
+    budgetUsd: 3,
+    jobCapUsd: 10,
+    dailyCapUsd: 20,
+    timeoutSec: { default: 1200 },
+    permissionMode: { default: "acceptEdits" },
+    model: { implement: "opus", default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 }, fable: { budgetUsd: 12, jobCapUsd: 30 } },
+  };
+
+  /** One job in the mirror, RUNNING the step at `stepIndex`, served by
+   *  a second server started on that mirror — the same trick the
+   *  `/steps` suite above uses, so no runner reconciles the seeded
+   *  state out from under the test. */
+  async function running(steps: string[], stepIndex = 0): Promise<{ base: string; id: string }> {
+    const first = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const made = (await (
+      await fetch(`${first.base}/api/queue`, {
+        method: "POST",
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ ...JOB, steps }),
+      })
+    ).json()) as { job: { id: string } };
+    const mirror = join(first.dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const job = jobs.find((j) => j.id === made.job.id)!;
+    job.state = "running";
+    job.stepIndex = stepIndex;
+    writeFileSync(mirror, JSON.stringify(jobs));
+    const second = harness.start({
+      extra: { queueToken: TOKEN, queueMirrorPath: mirror, queueDefaults: DEFAULTS },
+    });
+    return { base: second.base, id: made.job.id };
+  }
+
+  const pick = (base: string, id: string, step: string, model: string, body?: BodyInit) =>
+    fetch(`${base}/api/queue/${id}/model`, {
+      method: "POST",
+      headers: body
+        ? { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "x-aide-token": TOKEN }
+        : JSON_HEADERS,
+      body: body ?? JSON.stringify({ step, model }),
+    });
+
+  const modelOf = async (base: string, id: string): Promise<Record<string, string>> => {
+    const listed = (await (await fetch(`${base}/api/queue`, { headers: JSON_HEADERS })).json()) as {
+      jobs: { id: string; model: Record<string, string> }[];
+    };
+    return listed.jobs.find((j) => j.id === id)!.model;
+  };
+
+  test("a step still ahead takes the model (criterion 4)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "implement", "fable");
+    expect(res.status).toBe(200);
+    const answer = (await res.json()) as { ok: boolean; job: { model: Record<string, string> } };
+    expect(answer.ok).toBe(true);
+    expect(answer.job.model.implement).toBe("fable");
+    expect((await modelOf(base, id)).implement).toBe("fable");
+  });
+
+  test("the form encoding the page posts is understood too (criterion 4)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "", "", new URLSearchParams({ step: "implement", model: "fable" }));
+    expect(res.status).toBe(200);
+    expect((await modelOf(base, id)).implement).toBe("fable");
+  });
+
+  test("the running step is refused, by name (criterion 3)", async () => {
+    const { base, id } = await running(["analyze", "implement"], 1);
+    const res = await pick(base, id, "implement", "fable");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("implement");
+    expect((await modelOf(base, id)).implement).toBe("opus");
+  });
+
+  test("a model the server does not offer is refused (criterion 7)", async () => {
+    const { base, id } = await running(["analyze", "implement"]);
+    const res = await pick(base, id, "implement", "haiku");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toContain("haiku");
+    expect((await modelOf(base, id)).implement).toBe("opus");
+  });
+
+  test("a job that is not running is refused (criterion 8)", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const made = (await (
+      await fetch(`${base}/api/queue`, { method: "POST", headers: JSON_HEADERS, body: JSON.stringify(JOB) })
+    ).json()) as { job: { id: string } };
+    const res = await pick(base, made.job.id, "analyze", "fable");
+    expect(res.status).toBe(400);
+    expect((await modelOf(base, made.job.id)).analyze).toBe("sonnet");
+  });
+
+  test("an unknown job is a 404, and GET is not a way in", async () => {
+    const { base, id } = await running(["analyze"]);
+    expect((await pick(base, "nope", "archive", "fable")).status).toBe(404);
+    expect((await fetch(`${base}/api/queue/${id}/model`, { headers: JSON_HEADERS })).status).toBe(405);
+  });
+
+  // The other half of the wiring: the row the reader is looking at has
+  // to draw those selects live, and point them at this route.
+  test("the row draws the live model select and points it here (criteria 1-3)", async () => {
+    const { base, id } = await running(["analyze"]);
+    const html = await (
+      await fetch(`${base}/?${OPEN_81}`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    const group = specControls(html, "81-queue-and-runner");
+    const select = (step: string) =>
+      group.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
+    expect(select("implement")).toContain(`data-post-to="/api/queue/${id}/model"`);
+    expect(select("implement")).not.toContain("disabled");
+    expect(select("analyze")).toContain("disabled");
+    expect(select("analyze")).not.toContain("data-post-to");
   });
 });
 

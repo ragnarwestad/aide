@@ -389,7 +389,7 @@ function harness(
   /** `ran` is the server's own "this phase has history" marker
    *  (`data-ran="1"`, `queue-list.ts`): the select is showing what the
    *  phase really ran on. */
-  const modelSelect = (step: string, chosen: string, ran = false) => {
+  const modelSelect = (step: string, chosen: string, ran = false, live = false) => {
     const options = MODELS.map(([value, tool]) => ({
       value,
       dataset: { tool },
@@ -409,16 +409,23 @@ function harness(
       // "the swap never came".
       disabled: false,
       isConnected: true,
-      getAttribute: (n: string) => (n === "form" ? ROW_FORM : null),
+      // Spec 225: a phase the running job has not reached keeps its
+      // model select live, and the route it posts to is on the select
+      // itself — the same attribute the tail box carries.
+      getAttribute: (n: string) =>
+        n === "form" ? ROW_FORM : n === "data-post-to" && live ? "/api/queue/job-1/model" : null,
       // A change lands on the select itself, and the handler walks up
-      // with `closest`. A model select is NOT an AI select, not a
-      // phase box and not a tail box (spec 160) — it is not an `input`
-      // at all — so it answers all three of those selectors with null
-      // and its own with itself.
+      // with `closest`. A model select is NOT an AI select and not a
+      // phase box, so it answers those selectors with null and its own
+      // with itself. `data-post-to` is asked in two shapes: the tail
+      // BOX's `input[data-post-to]` (never this) and, since spec 225,
+      // a live model select's own `select[data-post-to]`.
       closest: (sel: string): unknown =>
-        sel.includes("data-ai") || sel.includes('name="steps"') || sel.includes("data-post-to")
+        sel.includes("data-ai") || sel.includes('name="steps"')
           ? null
-          : self,
+          : sel.includes("data-post-to")
+            ? (live && sel.includes("select") ? self : null)
+            : self,
       get selectedOptions() {
         return options.filter((o) => o.selected);
       },
@@ -448,7 +455,9 @@ function harness(
     modelSelect("create", "sonnet"),
     modelSelect("analyze", "fable", true),
     modelSelect("implement", "codex-fast"),
-    modelSelect("archive", "sonnet"),
+    // Spec 225: the phase the running job has not reached — the one
+    // whose selects stay live, exactly where `tailBox` is.
+    modelSelect("archive", "sonnet", false, true),
   ];
   /** A model select belonging to ANOTHER row: a write must reach the
    *  five that share its form id and no others. */
@@ -699,6 +708,13 @@ function harness(
   // and the answer is not here yet" look, so the fake grows the one
   // thing a class can be read off.
   const rowsClass = { className: "" };
+  // Spec 226: the list scrolls in `.tablewrap`, and how far down it is
+  // scrolled has to survive the five-second refresh. The wrapper is a
+  // NEW element after a wholesale replace — the browser threw the old
+  // subtree away — so the fake makes a new object with `scrollTop` back
+  // at 0 whenever `innerHTML` is written. Without that, a test could
+  // not tell "the position was restored" from "nothing ever moved it".
+  let wrap = { scrollTop: 0 };
   const rows = {
     get className(): string {
       return rowsClass.className;
@@ -712,8 +728,10 @@ function harness(
     },
     set innerHTML(html: string) {
       table.parse(html);
+      wrap = { scrollTop: 0 };
       redrawControls();
     },
+    querySelector: (sel: string) => (sel.includes("tablewrap") ? wrap : null),
     querySelectorAll: (sel: string) =>
       sel.includes("model.")
         ? [...modelSelects, otherRowSelect]
@@ -1007,6 +1025,10 @@ function harness(
     rowFor: (id: string) => table.byId(id),
     /** Every row's anchor id in the order they stand in. */
     rowIds: () => table.ids(),
+    /** The list's scroll box as it stands right now (spec 226) — a new
+     *  object after every wholesale replace, exactly as the browser's
+     *  own element is. */
+    wrap: () => wrap,
     submit, submitCreate, click, clickFold, gotoLink, clickGoto,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
@@ -1040,14 +1062,16 @@ function harness(
     changeAi: (index: number, tool: string) => {
       const select = aiSelects[index]!;
       select.value = tool;
-      on["change"]?.({ target: select });
+      // Returned rather than dropped: on a LIVE line the pick posts
+      // (spec 225), and a test has to be able to wait for it.
+      return on["change"]?.({ target: select }) as unknown as Promise<void>;
     },
     /** One phase's model, moved by hand — the other half of what a
      *  swap must not wash away. */
     changeModel: (index: number, value: string) => {
       const select = modelSelects[index]!;
       select.value = value;
-      on["change"]?.({ target: select });
+      return on["change"]?.({ target: select }) as unknown as Promise<void>;
     },
     /** A phase box ticked or unticked by hand — the third control on
      *  the row a swap used to wash away. */
@@ -2435,6 +2459,114 @@ describe("a tail box's tick posts itself (spec 160)", () => {
   });
 });
 
+// --- spec 225: a live model pick posts itself ---------------------------------
+
+// The same reasoning the tail box's tick rests on, applied to the two
+// selects beside it. A busy row has no Run button to submit them with,
+// and `/api/queue` would ask for a SECOND job — so a pick made on a
+// phase the run has not reached goes to the running job's own route the
+// moment it is made.
+describe("a live model pick posts itself (spec 225)", () => {
+  const OK = { ok: true, job: { id: "job-1" } };
+  const LIVE = 3; // archive — the phase the running job has not reached
+  const posts = (h: ReturnType<typeof harness>) =>
+    h.requests.filter((r) => r.url.includes("/api/queue/job-1/model"));
+
+  test("it posts the pick to the job's own route, not to /api/queue (criterion 4)", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeModel(LIVE, "fable");
+    const posted = posts(h)[0]!;
+    expect(posted.init.method).toBe("POST");
+    expect(String(posted.init.body)).toContain("step=archive");
+    expect(String(posted.init.body)).toContain("model=fable");
+    // The token rides in the query string, as every other press does.
+    expect(posted.url).toContain("token=s3cret");
+    // And never the create route.
+    expect(h.requests.some((r) => r.url.endsWith("/api/queue"))).toBe(false);
+  });
+
+  // Criterion 5. `applyAiPick` deliberately fires no `change` event —
+  // it writes the model select's value and records it. On a live line
+  // that would leave the row showing an AI the running job knows
+  // nothing about, so the pick has to reach the same route by hand.
+  test("a picked AI posts the model it just wrote (criterion 5)", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeAi(LIVE, "codex");
+    const posted = posts(h)[0]!;
+    expect(posted).toBeDefined();
+    expect(String(posted.init.body)).toContain("step=archive");
+    // The value the SERVER worked out for that AI, carried on the
+    // option — the browser copies it and never decides one.
+    expect(String(posted.init.body)).toContain("model=codex-fast");
+    expect(h.modelSelects[LIVE]!.value).toBe("codex-fast");
+  });
+
+  // The line that is NOT live is unchanged: its pick is remembered for
+  // the next Run and reaches no route at all.
+  test("a dormant phase's pick is still only remembered", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeModel(1, "sonnet");
+    expect(posts(h)).toHaveLength(0);
+    h.changeAi(1, "codex");
+    expect(posts(h)).toHaveLength(0);
+  });
+
+  // Spec 151's rule, applied to a select: the whole row locks the
+  // instant the pick lands, and stays locked until it has been redrawn
+  // from the server's own answer.
+  test("the row locks at once and is redrawn from the answer", async () => {
+    let atRequest = { run: false, box: false, model: false, otherRow: false };
+    const h = harness((url) => {
+      if (url.includes("/api/queue/job-1/model")) {
+        atRequest = {
+          run: h.runButton.disabled,
+          box: h.stepBoxes[0]!.disabled,
+          model: h.modelSelects[LIVE]!.disabled,
+          otherRow: h.otherRowSelect.disabled,
+        };
+      }
+      return { ok: true, body: OK };
+    });
+    await h.changeModel(LIVE, "fable");
+    expect(atRequest).toEqual({ run: true, box: true, model: true, otherRow: false });
+    expect(h.rows.innerHTML).not.toBe("");
+    expect(h.modelSelects[LIVE]!.disabled).toBe(false);
+  });
+
+  // An accepted pick is not in the markup the server draws back — the
+  // select is pre-filled from the phase's own history, and a phase
+  // still ahead has none — so it is remembered the same way a pick for
+  // the next Run is, and the swap puts it back.
+  test("an accepted pick survives the redraw that follows it", async () => {
+    const h = harness(() => ({ ok: true, body: OK }));
+    await h.changeModel(LIVE, "fable");
+    expect(h.modelSelects[LIVE]!.value).toBe("fable");
+  });
+
+  // A refusal has to be visible: the select showed a model the running
+  // job is not on, and the server did not take it.
+  test("a refused pick is dropped, and the reason is shown", async () => {
+    const h = harness((url) =>
+      url.includes("/api/queue/job-1/model")
+        ? { ok: false, body: { error: "archive is not a step this run can still be given" } }
+        : { ok: true },
+    );
+    await h.changeModel(LIVE, "fable");
+    expect(h.replaced.join("")).toContain(encodeURIComponent("not a step this run can still be given"));
+    // Not remembered either: the swap put the server's own value back,
+    // and nothing replays the refused one over it.
+    expect(h.modelSelects[LIVE]!.value).toBe("sonnet");
+    expect(h.modelSelects[LIVE]!.disabled).toBe(false);
+    expect(h.runButton.disabled).toBe(false);
+  });
+
+  test("a request that cannot be sent reloads the page, as every other press does", async () => {
+    const h = harness(() => ({ ok: false, throws: true }));
+    await h.changeModel(LIVE, "fable");
+    expect(h.location.href).toBe("/");
+  });
+});
+
 // --- spec 189: the page changes when something changes -----------------------
 
 // The five-second timer is gone. The page holds one connection open and
@@ -2834,6 +2966,55 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     h.live()!.emit("open");
     await flush();
     expect(h.rows.innerHTML).toBe(page(group(A, "queued")));
+  });
+
+  // --- spec 226: the refresh does not throw the reader back to the top ---
+  //
+  // With the 25-row cap gone the list is as long as the archive is, and
+  // it scrolls in a box of its own. A poll that lands while somebody is
+  // reading halfway down must leave them there.
+  //
+  // The wholesale replace is the path that matters, and it is not a
+  // rare one: `applyGroupDiff` declines whenever anything OUTSIDE the
+  // rows differs, and a chip's count changing — a job starting,
+  // finishing or being cancelled — is exactly that. It builds the
+  // wrapper afresh, so a fix that only rode the keyed-diff path would
+  // look right in a quiet minute and reset the scroll the next time
+  // anything ran.
+  describe("the list's scroll position survives a redraw (spec 226)", () => {
+    /** The same page with one chip count changed — markup outside the
+     *  rows, which is what makes `applyGroupDiff` decline. */
+    const withCount = (n: number, ...groups: string[]): string =>
+      `<div class="row"><a>Active · ${n}</a></div><div class="tablewrap">` +
+      `<table class="list"><thead></thead><tbody>${groups.join("")}</tbody></table></div>`;
+
+    test("a wholesale replace puts it back where it was", async () => {
+      const h = pages(withCount(1, group(A, "queued")), withCount(2, group(A, "running")));
+      await settle(h);
+      h.wrap().scrollTop = 420;
+
+      h.live()!.emit("open");
+      await flush();
+
+      // The fallback fired — the filter bar differs, so the diff
+      // declined — and the wrapper is a different object than the one
+      // that was scrolled.
+      expect(h.rows.innerHTML).toContain("Active · 2");
+      expect(h.wrap().scrollTop).toBe(420);
+    });
+
+    test("and the keyed diff, which never touches the box, leaves it alone", async () => {
+      const h = pages(withCount(1, group(A, "queued")), withCount(1, group(A, "running")));
+      await settle(h);
+      const box = h.wrap();
+      box.scrollTop = 137;
+
+      h.live()!.emit("open");
+      await flush();
+
+      expect(h.wrap()).toBe(box);
+      expect(h.wrap().scrollTop).toBe(137);
+    });
   });
 });
 
