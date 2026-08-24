@@ -953,52 +953,53 @@ tr.spec-archived td { color: var(--muted); }
      the mock draws no heading row here at all. */
   table.list thead { display: none; }
 
-  /* The "Phase | AI Model Select" caption row heads a desktop column
-     layout that no longer exists once a phase's own line carries the
-     chevron, the box and its state together: nothing on mobile stays
-     lined up under "AI" or "Model" until a row is opened, and "Select"
-     is already said inline on every collapsed line. The mock draws no
-     such row on mobile at all. */
-  table.list tr.subrow[data-caption="1"] { display: none; }
+  /* The fold control (design handoff, mobile-spec-row), second attempt
+     (2026-08-24). The first attempt toggled .modelcell between
+     display:block and table-cell depending on the checkbox, and that
+     was the bug: a table computes ONE column layout from ALL its rows,
+     so rows disagreeing about their display type scattered the
+     selects and tick boxes into the wrong columns. This version never
+     lets the table's column layout see these rows at all: EVERY subrow
+     is a flex line, identically, open or shut — the same technique
+     tr.spechead above uses, where it holds up. Per-row state changes
+     inside a flex container affect only that row.
 
-  /* The fold control (design handoff, mobile-spec-row): reading the
-     list to check status should not carry the AI and model selects on
-     every line — that is information needed at SETUP, not at reading
-     time. .aimodel is collapsed by default and opened by the phase's
-     own checkbox via CSS :has(), so no client script is needed. The
-     chevron points right (rotated -90deg) closed and down (its drawn
-     orientation) open, matching the fold control on the spec row.
-     Collapsed, .phasecell and .modelcell stay ordinary table cells —
-     the modelcell holds only the tick box then, so chevron, name, box
-     and the state word all fit on the phase's one line. Only once
-     .aimodel actually shows does the row need the extra line, so THAT
-     is what forces .modelcell to its own full-width block, not the
-     phase being a subrow at all (that was the older, always-on rule
-     this replaces — it stacked the box under the name even when there
-     was nothing beside it to make room for). */
-  /* A fixed name column (5.3rem — enough for "implement", the longest)
-     so the chevron/Select/status starting point is the same x on all
-     four phase lines, whichever name is above it. */
-  table.list tr.subrow .phasefold { min-width: 5.3rem; }
+     Collapsed: [chevron name] [tick box] [status] on one line — the
+     name column fixed at 5.3rem ("implement", the longest) so the box
+     and status start at the same x on all four lines. Open: .aimodel
+     becomes a full-width item ordered last, so AI and Model drop to a
+     line of their own below, 50/50.
+
+     display:contents on .modelcell and its .row lifts the box and
+     .aimodel up to be flex items of the row itself; selectors like
+     ".modelcell > .row select" still match (they read the DOM, not
+     the boxes). The caption row is also a subrow, hidden below rather
+     than flexed. */
+  table.list tr.subrow { display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--sp-1) var(--sp-2); }
+  table.list tr.subrow > td { border-bottom: none; }
+  table.list tr.subrow { border-bottom: 1px solid var(--line); }
+  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
+  table.list tr.subrow .modelcell,
+  table.list tr.subrow .modelcell > .row { display: contents; }
   table.list tr.subrow .phasefold { cursor: pointer; }
-  table.list tr.subrow .phasefold .foldchevron {
-    display: inline-flex; flex-shrink: 0; transform: rotate(-90deg);
-    transition: transform 0.15s;
-  }
-  /* flex-shrink:0 on the wrapping span is not enough on its own: the
-     span is itself a flex container with the SVG as its one child, and
-     a long name ("implement") pushing .phasefold past the fixed column
-     width shrank the SVG itself to a sliver (measured: 13x5px) unless
-     the shrink is refused on the SVG too. */
+  table.list tr.subrow .phasefold .foldchevron { display: inline-flex;
+    transform: rotate(-90deg); transition: transform 0.15s; }
   table.list tr.subrow .phasefold .foldchevron svg { flex-shrink: 0; }
   table.list tr.subrow:has(.foldphase:checked) .phasefold .foldchevron { transform: rotate(0deg); }
-  table.list tr.subrow .modelcell .aimodel { display: none; }
-  table.list tr.subrow:has(.foldphase:checked) .modelcell .aimodel {
-    display: flex; gap: var(--sp-2);
-  }
-  table.list tr.subrow:has(.foldphase:checked) .modelcell .aimodel > * { flex: 1; }
-  table.list tr.subrow:has(.foldphase:checked) .modelcell { display: block; width: 100%; }
-  table.list tr.subrow:has(.foldphase:checked) .modelcell > .row { flex-wrap: wrap; }
+  table.list tr.subrow .aimodel { display: none; }
+  table.list tr.subrow:has(.foldphase:checked) .aimodel {
+    display: flex; gap: var(--sp-2); flex: 1 1 100%; order: 10; }
+  /* max-width: none included: the desktop caps (8rem on the AI select,
+     100px on the model select) otherwise stop the two halves from
+     actually reaching 50% each. */
+  table.list tr.subrow:has(.foldphase:checked) .aimodel > * { flex: 1 1 0%; min-width: 0; max-width: none; }
+
+  /* The "Phase | AI Model Select" caption row heads a desktop column
+     layout that does not exist at this width; the mock draws no such
+     row on mobile at all. */
+  table.list tr.subrow[data-caption="1"] { display: none; }
+
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the
      table would scroll — the one thing spec 155 exists to prevent, and
@@ -1007,7 +1008,12 @@ tr.spec-archived td { color: var(--muted); }
      there is no second column inside the cell to line a caption up
      with, and a column that closes when its control is absent is
      better than a scrollbar. */
-  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; }
+  /* max-width: none on the model select too, or the 50/50 split above
+     never happens: this selector (attribute + element type) outweighs
+     the .aimodel > * rule, so the desktop 100px cap kept winning there
+     while the AI select — reset below at its own matching specificity —
+     grew freely. 90/10, not 50/50, until both caps fall together. */
+  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
   table.list tr.subrow .modelcell > .row > [data-cap],
   table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
 

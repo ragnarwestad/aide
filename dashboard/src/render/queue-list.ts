@@ -1903,6 +1903,11 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // check status should not carry setup controls on every line. The
       // checkbox is invisible outside the mobile media query, so desktop
       // is unaffected — `.phasefold` is a plain inline wrapper there.
+      // Only `.aimodel`'s own visibility toggles on the checkbox
+      // (2026-08-24): `.modelcell` itself stays display:block on every
+      // subrow, open or shut, so the table's column layout never
+      // depends on which rows happen to be open — that inconsistency
+      // was the actual bug the first version of this control had.
       const name =
         `<label class="phasefold">` +
         `<input type="checkbox" class="foldphase">` +
