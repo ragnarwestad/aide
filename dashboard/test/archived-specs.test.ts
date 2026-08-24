@@ -463,6 +463,46 @@ describe("the search field", () => {
   });
 });
 
+// --- spec 226, criteria 4 and 5: one press back to the unfiltered view -----
+
+describe("the search field's clear control", () => {
+  /** The form's own markup, so a `×` anywhere else on the page cannot
+   *  answer for the one that is supposed to be in the field. */
+  const searchForm = (html: string): string => {
+    const at = html.indexOf('<form class="specsearch"');
+    expect(at).toBeGreaterThan(-1);
+    return html.slice(at, html.indexOf("</form>", at));
+  };
+
+  test("is a link back to the same view with the term dropped (criterion 4)", async () => {
+    const form = searchForm(await specsList(start().base, `${ARCHIVED_VIEW}&q=remembers`));
+    expect(form).toContain('class="searchclear"');
+    // A link, not script: the same "state lives in the URL" shape the
+    // fold and the sort already have, so it works with JavaScript off
+    // and can be pasted to someone else.
+    expect(form).toMatch(/<a class="searchclear"[^>]*href="\/\?state=archived"/);
+  });
+
+  test("keeps every other filter the reader had chosen (criterion 4)", async () => {
+    const form = searchForm(
+      await specsList(start().base, `${ALL_VIEW}&sort=spec&dir=asc&q=remembers`),
+    );
+    const href = /<a class="searchclear"[^>]*href="([^"]*)"/.exec(form)?.[1] ?? "";
+    expect(href).toContain("state=all");
+    expect(href).toContain("sort=spec");
+    expect(href).toContain("dir=asc");
+    expect(href).not.toContain("q=");
+  });
+
+  test("is not in the markup when there is nothing to clear (criterion 5)", async () => {
+    expect(searchForm(await specsList(start().base, ARCHIVED_VIEW))).not.toContain("searchclear");
+    // Nor for a term that is no search at all.
+    expect(searchForm(await specsList(start().base, `${ARCHIVED_VIEW}&q=++`))).not.toContain(
+      "searchclear",
+    );
+  });
+});
+
 // --- criteria 7, 8: the Archive tab retires --------------------------------
 
 describe("the Archive tab", () => {
@@ -563,11 +603,15 @@ describe("building the archived rows", () => {
   });
 });
 
-// --- criterion 11: the 25-row cap holds over a combined view ---------------
+// --- spec 226, criterion 1: no view leaves a spec off the page -------------
+//
+// This block pinned the opposite until spec 226: exactly 25 rows, and a
+// line counting the rest. The archived and the combined views exist to
+// be browsed and searched with the browser's own find, and find cannot
+// reach a row the server never sent.
 
 describe("an archive bigger than the page", () => {
-  /** Thirty archived specs, numbered so the newest twenty-five are
-   *  knowable by name. aide alone has about 150 of them. */
+  /** Thirty archived specs. aide alone has about 150 of them. */
   const MANY = Object.fromEntries(
     Array.from({ length: 30 }, (_, i) => [
       `${100 + i}-archived-spec`,
@@ -575,16 +619,26 @@ describe("an archive bigger than the page", () => {
     ]),
   );
 
-  test("shows exactly 25 rows and counts the rest (criterion 11)", async () => {
+  test("the archived view shows all thirty (criterion 1)", async () => {
     const html = await specsList(start({}, MANY).base, ARCHIVED_VIEW);
-    expect(order(html)).toHaveLength(25);
-    expect(html).toContain("5 older specs not shown.");
+    expect(order(html)).toHaveLength(30);
+    expect(html).not.toContain("not shown");
   });
 
-  test("the same cap covers a combined view", async () => {
+  test("and so does a combined view", async () => {
     const html = await specsList(start({}, MANY).base, ALL_VIEW);
     // Thirty archived plus the two live specs.
-    expect(order(html)).toHaveLength(25);
-    expect(html).toContain("7 older specs not shown.");
+    expect(order(html)).toHaveLength(32);
+    expect(html).not.toContain("not shown");
+  });
+
+  // The live-refresh route renders the same fragment, so a cap left in
+  // one of the two would have shown as a list that shrank five seconds
+  // after it was drawn.
+  test("the five-second refresh sends the same thirty", async () => {
+    const { base } = start({}, MANY);
+    const rows = await (await fetch(`${base}/?rows=1&state=archived`, auth)).text();
+    expect(order(rows)).toHaveLength(30);
+    expect(rows).not.toContain("not shown");
   });
 });

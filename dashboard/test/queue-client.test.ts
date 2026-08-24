@@ -708,6 +708,13 @@ function harness(
   // and the answer is not here yet" look, so the fake grows the one
   // thing a class can be read off.
   const rowsClass = { className: "" };
+  // Spec 226: the list scrolls in `.tablewrap`, and how far down it is
+  // scrolled has to survive the five-second refresh. The wrapper is a
+  // NEW element after a wholesale replace — the browser threw the old
+  // subtree away — so the fake makes a new object with `scrollTop` back
+  // at 0 whenever `innerHTML` is written. Without that, a test could
+  // not tell "the position was restored" from "nothing ever moved it".
+  let wrap = { scrollTop: 0 };
   const rows = {
     get className(): string {
       return rowsClass.className;
@@ -721,8 +728,10 @@ function harness(
     },
     set innerHTML(html: string) {
       table.parse(html);
+      wrap = { scrollTop: 0 };
       redrawControls();
     },
+    querySelector: (sel: string) => (sel.includes("tablewrap") ? wrap : null),
     querySelectorAll: (sel: string) =>
       sel.includes("model.")
         ? [...modelSelects, otherRowSelect]
@@ -1016,6 +1025,10 @@ function harness(
     rowFor: (id: string) => table.byId(id),
     /** Every row's anchor id in the order they stand in. */
     rowIds: () => table.ids(),
+    /** The list's scroll box as it stands right now (spec 226) — a new
+     *  object after every wholesale replace, exactly as the browser's
+     *  own element is. */
+    wrap: () => wrap,
     submit, submitCreate, click, clickFold, gotoLink, clickGoto,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
@@ -2953,6 +2966,55 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     h.live()!.emit("open");
     await flush();
     expect(h.rows.innerHTML).toBe(page(group(A, "queued")));
+  });
+
+  // --- spec 226: the refresh does not throw the reader back to the top ---
+  //
+  // With the 25-row cap gone the list is as long as the archive is, and
+  // it scrolls in a box of its own. A poll that lands while somebody is
+  // reading halfway down must leave them there.
+  //
+  // The wholesale replace is the path that matters, and it is not a
+  // rare one: `applyGroupDiff` declines whenever anything OUTSIDE the
+  // rows differs, and a chip's count changing — a job starting,
+  // finishing or being cancelled — is exactly that. It builds the
+  // wrapper afresh, so a fix that only rode the keyed-diff path would
+  // look right in a quiet minute and reset the scroll the next time
+  // anything ran.
+  describe("the list's scroll position survives a redraw (spec 226)", () => {
+    /** The same page with one chip count changed — markup outside the
+     *  rows, which is what makes `applyGroupDiff` decline. */
+    const withCount = (n: number, ...groups: string[]): string =>
+      `<div class="row"><a>Active · ${n}</a></div><div class="tablewrap">` +
+      `<table class="list"><thead></thead><tbody>${groups.join("")}</tbody></table></div>`;
+
+    test("a wholesale replace puts it back where it was", async () => {
+      const h = pages(withCount(1, group(A, "queued")), withCount(2, group(A, "running")));
+      await settle(h);
+      h.wrap().scrollTop = 420;
+
+      h.live()!.emit("open");
+      await flush();
+
+      // The fallback fired — the filter bar differs, so the diff
+      // declined — and the wrapper is a different object than the one
+      // that was scrolled.
+      expect(h.rows.innerHTML).toContain("Active · 2");
+      expect(h.wrap().scrollTop).toBe(420);
+    });
+
+    test("and the keyed diff, which never touches the box, leaves it alone", async () => {
+      const h = pages(withCount(1, group(A, "queued")), withCount(1, group(A, "running")));
+      await settle(h);
+      const box = h.wrap();
+      box.scrollTop = 137;
+
+      h.live()!.emit("open");
+      await flush();
+
+      expect(h.wrap()).toBe(box);
+      expect(h.wrap().scrollTop).toBe(137);
+    });
   });
 });
 

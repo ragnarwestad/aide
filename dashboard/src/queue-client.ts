@@ -309,10 +309,12 @@ function insertGroup(groups: RowGroup[], at: number, held: Record<string, true>)
  *  caller falls back to replacing the lot — which is also the repair
  *  for a diff that stopped half way.
  *
- *  It declines on anything outside the table changing (the filter bar's
- *  own counts, the "N older specs not shown" line) and on the specs
- *  being reordered, because both move rows the reader is looking at
- *  whatever this does. */
+ *  It declines on anything outside the table changing — the filter
+ *  bar's own counts, which is an everyday event: a chip counts one
+ *  fewer the moment a job finishes — and on the specs being reordered,
+ *  because both move rows the reader is looking at whatever this does.
+ *  It also used to decline on the "N older specs not shown" line, which
+ *  went with the cap in spec 226. */
 function applyGroupDiff(prev: RowSplit, next: RowSplit): boolean {
   if (prev.prefix !== next.prefix || prev.suffix !== next.suffix) return false;
   const was: Record<string, string> = {};
@@ -372,12 +374,27 @@ async function swapRows(): Promise<void> {
     // must not happen is this one landing on top of what the press just
     // drew.
     if (pressGen !== gen) return;
+    // Spec 226: how far down the list is scrolled, kept across the
+    // redraw the way `restoreChosen` keeps a reader's own picks. The
+    // wholesale replace below builds `.tablewrap` afresh, and a new
+    // element starts at the top — so somebody reading the middle of the
+    // archive would be thrown back to the first row.
+    //
+    // Unconditional, on both paths. The keyed diff never touches the
+    // box, so putting the same number back is a no-op there; the
+    // fallback is not the rare path it sounds like, because
+    // `applyGroupDiff` declines whenever anything outside the rows
+    // differs — a chip's count changing when a job starts or finishes
+    // is exactly that.
+    const scrolled = (body.querySelector(".tablewrap") as HTMLElement | null)?.scrollTop ?? 0;
     // Spec 204. The first paint has nothing to diff against, markup the
     // split cannot account for is redrawn the old way, and a diff that
     // could not finish is repaired by the same line.
     const next = splitGroups(html);
     if (!next || !lastRows || !applyGroupDiff(lastRows, next)) body.innerHTML = html;
     lastRows = next;
+    const wrap = body.querySelector(".tablewrap") as HTMLElement | null;
+    if (wrap) wrap.scrollTop = scrolled;
     restoreChosen(body);
     // After the restore, never before: a model put back by hand may
     // belong to the other tool, and the list has to follow the value

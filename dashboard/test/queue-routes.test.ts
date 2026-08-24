@@ -2025,7 +2025,15 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).toContain("$5.00");
   });
 
-  test("the cap counts specs, and says how many specs it left out (criterion 11)", () => {
+  // Spec 226 inverted this. It used to pin a 25-row cap and the "N
+  // older specs not shown" line that counted what the cap had dropped.
+  // Hiding rows is wrong in every view: the reader cannot find what is
+  // not on the page, and the browser's own find is the search the
+  // archived and combined views are read with. The cap was a
+  // performance guess, and the answer to a payload that turns out to
+  // matter is server-side — render only what changed, or cache the
+  // fragment — never a cap again.
+  test("every spec a filter matches is on the page (criterion 1)", () => {
     const rows = Array.from({ length: 26 }, (_, i) => [
       job(`x${i}`, `s${String(i).padStart(2, "0")}-spec`, {
         startedAt: `2026-08-16T${String(i % 24).padStart(2, "0")}:00:00Z`,
@@ -2037,8 +2045,51 @@ describe("filtering and sorting work on specs, not jobs", () => {
     const html = page(rows, { sort: "spec", dir: "asc" });
     expect(html).toContain("s00-spec");
     expect(html).toContain("s24-spec");
-    expect(html).not.toContain("s25-spec");
-    expect(html).toContain("1 older");
+    // The 26th, the one the cap used to cut.
+    expect(html).toContain("s25-spec");
+    // The note the cap wrote, by its shape rather than by a word: this
+    // is the WHOLE page, and "older" is inside "folder" and inside a
+    // comment in the inlined stylesheet.
+    expect(html).not.toMatch(/\d+ older specs? not shown/);
+    expect(html).not.toContain("not shown.");
+  });
+
+  // Spec 226's item 4, which the code already satisfied when the spec
+  // was written — so this is a regression guard and nothing else. The
+  // "?" and New spec used to sit in a band of their own above the
+  // chips; they belong beside them, on the line immediately above the
+  // list. What actually right-aligns the pair is `margin-left: auto` on
+  // `details.intro` (css.ts), which no string test can observe; what a
+  // string test CAN say is that the three are in one `.row`, in that
+  // order, ahead of the search form and the table.
+  test('the "?" and New spec sit in the chips\' own row (criterion 6)', () => {
+    const html = renderQueuePage(
+      [job("a1", "aa-spec")],
+      "2026-08-16T00:00:00Z",
+      [{ label: "Overview", path: "projects.html" }],
+      { runnerAvailable: true, targets: [], createProjects: ["aide"] },
+    );
+    // The row the search form follows, read by its two ends rather than
+    // by a regex: `<div class="row">` occurs elsewhere on the page, and
+    // a pattern that backtracked past one of those would be reading a
+    // region nobody meant.
+    const at = html.indexOf('<form class="specsearch"');
+    expect(at).toBeGreaterThan(-1);
+    const opens = html.lastIndexOf('<div class="row">', at);
+    expect(opens).toBeGreaterThan(-1);
+    const inside = html.slice(opens, at);
+    expect(inside.slice(inside.indexOf("</div>"))).toMatch(/^<\/div>\s*$/);
+    expect(inside).toContain('data-filter="state"');
+    expect(inside.indexOf('<details class="intro">')).toBeGreaterThan(
+      inside.indexOf('data-filter="state"'),
+    );
+    expect(inside.indexOf(">New spec</a>")).toBeGreaterThan(
+      inside.indexOf('<details class="intro">'),
+    );
+    // And the whole row is ahead of the list it labels.
+    expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
+      html.indexOf('<div class="tablewrap">'),
+    );
   });
 
   // Every spec is ONE line, so its place in the order is the group's —

@@ -384,8 +384,6 @@ const filterFields = (f?: QueueFilter): string =>
 
 // --- the list ---------------------------------------------------------------
 
-const SHOWN = 25;
-
 // The questions actually asked of this list. "Problems" holds
 // everything that did not simply finish — a cap-stop and a crash are
 // different, but both are things you go looking for on purpose.
@@ -1063,9 +1061,12 @@ function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     // Only between two specs that have BOTH never run AND that git
     // could date neither of. A general folder tie-break is not free: 29
     // job fixtures sharing one date all tie and keep their insertion
-    // order, and reversing them moves the 25-row cap onto the wrong end
-    // of the list. Never-run specs have no insertion order worth
-    // keeping — theirs is whatever the disk scan happened to produce.
+    // order, and a tie-break on the name would re-sort every one of
+    // them — a row moving for a reason nobody asked about. (This used
+    // to name a sharper harm: it moved the 25-row cap onto the wrong
+    // end of the list. Spec 226 removed the cap, not the reason.)
+    // Never-run specs have no insertion order worth keeping — theirs is
+    // whatever the disk scan happened to produce.
     //
     // `!g.lead` is what "never run" reads as since spec 199: it is
     // absent exactly for a group `emptyGroup` built, which is the same
@@ -1217,13 +1218,29 @@ function searchForm(f: QueueFilter): string {
   const keep = FILTER_KEYS.filter((k) => k !== "q")
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
+  const q = (f.q ?? "").trim();
   return (
     `<form class="specsearch" method="get" action="/">` +
     // No caption over the field: the button beside it says Search, and
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).
-    `<input class="archive-q" type="search" name="q" value="${esc((f.q ?? "").trim())}" ` +
+    //
+    // The clear control (spec 226) sits inside the field, so getting
+    // back to the whole list is one press rather than select-all and
+    // delete. A LINK, like the fold and the sort: `q` is dropped and
+    // every other filter travels on, so it works with script off,
+    // survives a reload and can be pasted — and `data-nav` lets
+    // `queue-client.ts` swap the rows in place instead of reloading.
+    // Drawn only when there is something to clear; an × over an empty
+    // field is a control that does nothing.
+    `<span class="searchfield">` +
+    `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
     `placeholder="a word in any of three fields" aria-label="Search the specs">` +
+    (q
+      ? `<a class="searchclear" data-nav href="${queueHref(f, { q: "" })}" ` +
+        `title="Clear the search" aria-label="Clear the search">&times;</a>`
+      : "") +
+    `</span>` +
     keep +
     `<button class="btn" type="submit">Search</button>` +
     `</form>\n` +
@@ -1699,8 +1716,10 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
 //
 // A link, not a form and not a disclosure (spec 121): the form has a
 // page of its own at `NEW_SPEC_ROUTE`, with a Create and a Cancel on
-// it. The control keeps the position the panel had — above the table,
-// outside `#jobrows` — and the primary-button look spec 113 gave it.
+// it. It sits at the right-hand end of the filter chips' own row,
+// beside the "?" — inside `#jobrows`, since spec 221 moved the filter
+// bar in there — and keeps the primary-button look spec 113 gave it.
+// It stood in a band of its own above the table before that.
 // Not offered at all when no project on this machine may have a spec
 // made in it, exactly as the panel was not.
 function newSpecLink(opts: QueuePageOptions): string {
@@ -2638,15 +2657,23 @@ function groupRows(
 // four separate jobs used to fill four rows, repeating its own name on
 // every one, each showing a single progress pip. It is one spec, and it
 // gets one line, with its phases beneath it.
+//
+// EVERY spec the filter matches, for every filter (spec 226). There was
+// a 25-row cap here, with a line under the table counting what it had
+// dropped. Hiding rows is wrong in every view: the archived and the
+// combined views are read with the browser's own find, and find cannot
+// reach a row the server never sent. The cap was a performance guess,
+// and if the poll's payload ever turns out to matter the fix is
+// server-side — send only the rows that changed, or cache the fragment
+// — never a cap again.
 export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, now = Date.now()): string {
   const f = opts.filter ?? {};
   const groups = groupBySpec(rows, opts.targets, opts.archived, opts.archivedSpecs);
   const matched = sortGroups(applyFilter(groups, f), f);
-  const hidden = Math.max(0, matched.length - SHOWN);
   const body = matched.length
-    ? // `groups`, not `matched`: a dependency the filter or the 25-row
-      // cap has hidden is still in the way of the row that names it.
-      groupRows(matched.slice(0, SHOWN), opts, now, openedSet(f))
+    ? // `groups`, not `matched`: a dependency the filter has hidden is
+      // still in the way of the row that names it.
+      groupRows(matched, opts, now, openedSet(f))
     : `<tr><td colspan="${LIST_COLUMNS}" class="empty muted">` +
       // Two different emptinesses. "Nothing matches what you asked for"
       // is answered by changing the filter; "there is no spec here at
@@ -2662,8 +2689,7 @@ export function renderQueueRows(rows: QueueRowView[], opts: QueuePageOptions, no
     // out as stacked blocks (its rows are flex lines there), and the
     // archive page and the settings table share .list without wanting
     // any of that.
-    `<div class="tablewrap"><table class="list speclist">${sortableHead(f)}<tbody>${body}</tbody></table></div>` +
-    (hidden ? `<p class="muted small listnote">${hidden} older ${hidden === 1 ? "spec" : "specs"} not shown.</p>` : "")
+    `<div class="tablewrap"><table class="list speclist">${sortableHead(f)}<tbody>${body}</tbody></table></div>`
   );
 }
 
