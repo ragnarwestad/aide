@@ -666,3 +666,125 @@ class TestWorkflowStepRecord:
         if not path.exists():
             pytest.skip("spec-structure.md not found")
         return path.read_text()
+
+
+@pytest.mark.validation
+class TestModelPerStepRecord:
+    """Spec 217: which MODEL ran each step, recorded next to which steps
+    have run — never merged into that line.
+
+    The two are different facts. `Workflow steps completed` answers "did
+    it run"; `Model (<step>)` answers "who ran it". Conflating two facts
+    on one line is what caused the Woodstack 22 incident for the first
+    of them, so the second gets a line per step.
+
+    Until this spec the answer lived only in the dashboard's job queue,
+    which holds 200 jobs and evicts the rest — so the fact vanished on
+    exactly the specs old enough for anyone to ask about it. It is
+    derived the same way the steps line is: from the spec's own commits,
+    by `aide-run-spec`, never from a model's account of itself. What a
+    test can check in a SKILL.md is that the instruction says so.
+    """
+
+    # All four stages, `create` included: it has no dashboard model
+    # picker (a spec is already being created by the time it reaches a
+    # row), so its field is filled in after the fact from whatever
+    # commit created it — by the same mechanism, not a bespoke one.
+    WRITERS = {
+        "aide-create": "create",
+        "aide-analyze": "analyze",
+        "aide-implement": "implement",
+        "aide-archive": "archive",
+    }
+
+    @staticmethod
+    def _text(workspace_root, *parts):
+        path = workspace_root.joinpath(*parts)
+        if not path.exists():
+            pytest.skip(f"{path.name} not found")
+        return path.read_text()
+
+    # AC5: the skill does not write the field. It names it so a model
+    # knows which line not to touch, exactly as it does for the steps
+    # line.
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_skill_does_not_write_the_model_line_itself(self, workspace_root, skill):
+        lowered = self._text(workspace_root, "core", "skills", skill, "SKILL.md").lower()
+        assert "model (<step>)" in lowered, \
+            f"{skill} must name the Model field, so a model knows which line not to touch"
+        assert "leave those lines" in lowered, \
+            f"{skill} must say plainly that the Model line is not its to write"
+
+    # AC4: the interactive path keeps the signal by OFFERING it on the
+    # commit — and only when the assistant can actually name its own
+    # model. Omission, never a guess, is the fallback.
+    @pytest.mark.parametrize("skill", sorted(WRITERS))
+    def test_the_skill_offers_the_model_suffix_only_when_it_knows(self, workspace_root, skill):
+        content = self._text(workspace_root, "core", "skills", skill, "SKILL.md")
+        step = self.WRITERS[skill]
+        assert f"Run /aide-{step} for " in content, \
+            f"{skill} must name the commit subject that records the step"
+        assert "(model:" in content, \
+            f"{skill} must show the model suffix on the commit it offers"
+        lowered = content.lower()
+        assert "only when you can name your own model" in lowered, \
+            f"{skill} must make the suffix conditional on actually knowing the model"
+        assert "never guess" in lowered, \
+            f"{skill} must say what to do when it cannot: leave it out, never guess"
+
+    # AC8: a fresh spec has had no step, so it knows no model either.
+    def test_status_template_claims_no_model(self, workspace_root):
+        content = self._template(workspace_root, "4-status.md.template")
+        line = next((ln for ln in content.splitlines() if "**Model (" in ln), None)
+        assert line is None, \
+            "4-status.md.template must not claim a model: the lines are written by " \
+            f"the runner from the commits, and the template said {line!r}"
+
+    # AC9, the file-templates half.
+    def test_file_templates_say_the_model_is_not_the_models_to_write(self, workspace_root):
+        content = self._text(workspace_root, "core", "skills", "aide-create",
+                             "references", "file-templates.md")
+        status = next(chunk for chunk in content.split("\n## ")
+                      if chunk.splitlines()[0].startswith("4-status"))
+        lowered = status.lower()
+        assert "model (<step>)" in lowered, \
+            "file-templates.md must name the Model field the placeholder does not carry"
+        assert "aide-run-spec" in lowered, \
+            "file-templates.md must name the runner as the writer of it"
+
+    # AC9, the rule half — the contract every tool is given.
+    def test_the_rule_defines_the_model_field(self, workspace_root):
+        section = TestWorkflowStepRecord._status_section(self._rule(workspace_root))
+        lowered = section.lower()
+        assert "model (<step>)" in lowered, \
+            "spec-structure.md's 4-status section must define the Model field"
+        assert "aide-run-spec" in lowered, \
+            "the rule must name the runner as the writer, so nobody edits the field by hand"
+        assert "newest" in lowered, \
+            "the rule must give the update rule: the newest commit for a step wins"
+
+    def test_the_rule_says_an_absent_create_line_proves_nothing(self, workspace_root):
+        """The description's second creation scenario: a person writes
+        `1-description.md` by hand and commits it under their own
+        message. No commit can be attributed to `create`, so no line is
+        written — and a reader must not read that silence as "create
+        never ran", nor the runner invent "human" to fill it."""
+        lowered = TestWorkflowStepRecord._status_section(self._rule(workspace_root)).lower()
+        assert "model (create)" in lowered, \
+            "the rule must address create's asymmetry by name"
+        assert "does not prove" in lowered, \
+            "the rule must say an absent Model (create) line does not prove create never ran"
+
+    @staticmethod
+    def _template(workspace_root, name):
+        path = workspace_root / "core" / "templates" / "todo" / name
+        if not path.exists():
+            pytest.skip(f"{name} not found")
+        return path.read_text()
+
+    @staticmethod
+    def _rule(workspace_root):
+        path = workspace_root / "core" / "rules" / "spec-structure.md"
+        if not path.exists():
+            pytest.skip("spec-structure.md not found")
+        return path.read_text()

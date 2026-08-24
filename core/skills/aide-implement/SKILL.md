@@ -99,7 +99,13 @@ own legend has stopped describing it.
 Nothing in Tracking info records the step. Which steps a spec has had
 is read off the spec's own commits, and `aide-run-spec` writes the
 `Workflow steps completed:` line from them — leave that line exactly as
-you found it. The percentage above it is still yours: it says how far
+you found it.
+
+Which model ran each step is read off those same commits, and the same
+script writes the `Model (<step>):` lines from them — leave those lines
+alone too.
+
+The percentage above it is still yours: it says how far
 the TDD phases got, which is the field for partial work.
 
 A headless run gets its commit for free. Working interactively, ASK
@@ -107,8 +113,14 @@ whether to commit the work, and suggest this message so the step is
 recognised the same way:
 
 ```text
-Run /aide-implement for <spec-folder>
+Run /aide-implement for <spec-folder> (model: <tool> <model>)
 ```
+
+Add the `(model: ...)` part only when you can name your own model with
+certainty. A Claude Code session is told which model it is running in
+its own context, so it can write `claude claude-opus-5`; an assistant
+that cannot name itself offers the bare subject without the suffix and
+never guesses.
 
 Offer it only once the verification in this phase has passed. A red
 suite, a failing build or a phase you could not finish is not a step

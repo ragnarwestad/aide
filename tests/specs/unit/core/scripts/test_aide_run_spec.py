@@ -3581,25 +3581,36 @@ def test_the_dry_run_shows_the_codex_argv(runner, workspace, fake_codex):
 # `DEPENDENCY_GATED_STEPS` are pinned to each other.
 
 
-def subject(step, folder="81-queue-and-runner", headless=True, stopped=None):
+def subject(step, folder="81-queue-and-runner", headless=True, stopped=None, model=None):
     """The commit-subject grammar, spelled out rather than derived from
     the script — a fixture that built it the same way the reader parses
-    it would prove only that the two agreed with each other."""
+    it would prove only that the two agreed with each other.
+
+    `model=` is spec 217's suffix, and it sits BEFORE the stop reason:
+    `(stopped: <reason>)` ends the subject and its reason is read
+    greedily, so a suffix after it would be swallowed into the reason.
+    """
     return (
         f"Run /aide-{step} for {folder}"
         + (" (headless)" if headless else "")
+        + (f" (model: {model})" if model else "")
         + (f" (stopped: {stopped})" if stopped else "")
     )
 
 
-def with_status(workspace, claims=None, reopened=None):
+def with_status(workspace, claims=None, reopened=None, models=None):
     """Give the spec a 4-status.md, committed, optionally CLAIMING steps
     on the line this change takes over.
 
     `reopened=<sha>` adds spec 198's boundary mark, which says history
     before that commit does not count.
+
+    `models={step: value}` adds spec 217's per-step Model lines, in the
+    place the runner writes them: directly under the steps line.
     """
     line = f"- **Workflow steps completed:** {', '.join(claims)}\n" if claims else ""
+    for step, value in (models or {}).items():
+        line += f"- **Model ({step}):** {value}\n"
     mark = reopen_line(reopened) if reopened else ""
     (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(
         "# Queue - Status\n\n## Tracking info\n\n"
@@ -3631,6 +3642,19 @@ def recorded_line(workspace, branch="aide/81-queue-and-runner", path=None):
     for line in text.split("\n"):
         if line.startswith("- **Workflow steps completed:**"):
             return line.split(":**", 1)[1].strip()
+    return None
+
+
+def recorded_model(workspace, step, branch="aide/81-queue-and-runner", path=None):
+    """Spec 217's per-step Model line, read out of the branch's own
+    commit for the same reason `recorded_line` is: the promise is that
+    the edit rides IN the step's commit, not that it reached the disk."""
+    path = path or f"{workspace['folder']}/4-status.md"
+    text = git(workspace["specs"], "show", f"{branch}:{path}")
+    prefix = f"- **Model ({step}):**"
+    for line in text.split("\n"):
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
     return None
 
 
@@ -3692,7 +3716,7 @@ def test_a_step_that_touches_only_the_project_still_gets_a_specs_commit(
     branch_log = git(
         workspace["specs"], "log", "--format=%s", "aide/81-queue-and-runner"
     ).split("\n")
-    assert subject("implement") in branch_log, branch_log
+    assert subject("implement", model="claude") in branch_log, branch_log
 
 
 def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, fake_claude):
@@ -3792,7 +3816,9 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
     commits = git(workspace["specs"], "log", "--format=%s", f"{before}..{branch}").split("\n")
-    assert commits == [subject("analyze")], commits
+    # The model suffix (spec 217) is part of the subject a headless run
+    # writes: the tool is always known, so it is always there.
+    assert commits == [subject("analyze", model="claude")], commits
     assert recorded_line(workspace) == "analyze"
 
 
@@ -3867,13 +3893,229 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     """The commit loop commits whatever it finds changed. A file
     rewritten to exactly what it already said would put a step's name on
     a commit carrying nothing."""
-    with_status(workspace, ["create", "analyze"])
+    # Spec 217: the Model line is part of "already right" now — a file
+    # missing it has news to gain, and gaining it is a real change.
+    with_status(workspace, ["create", "analyze"], models={"analyze": "claude"})
     already_ran(workspace, ["create", "analyze"])
     claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     roots = {r["root"]: r for r in out["repos"]}
     assert roots[str(workspace["specs"])]["changedFiles"] == 0
+
+
+# --- spec 217: which model ran each step --------------------------------------
+#
+# "Did it run" and "who ran it" are two different facts, and conflating
+# them on one line is what caused the Woodstack 22 incident for the
+# first of them. So the model gets a line of its own per step, derived
+# the same way: from the commit subject, by the runner, never from a
+# model's own account of itself.
+#
+# The suffix sits BEFORE `(stopped: <reason>)`, whose reason is read
+# greedily to the end of the subject — a suffix after it would be
+# swallowed into the reason, and every subject written before this
+# change would start parsing differently.
+
+
+def test_the_step_records_the_model_it_ran_under(runner, workspace, fake_claude):
+    """AC1: the tool and the model named on the command line reach both
+    the commit subject and the file's own line."""
+    with_status(workspace)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    assert git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner") == \
+        subject("analyze", model="claude claude-sonnet-5")
+    assert recorded_model(workspace, "analyze") == "claude claude-sonnet-5"
+
+
+def test_a_run_with_no_model_flag_records_the_tool_alone(runner, workspace, fake_claude):
+    """AC2: the tool is always known — it defaults to `claude` and is
+    validated at parse time — so it is recorded on its own rather than
+    the whole fact being dropped for want of a model name."""
+    with_status(workspace)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert "(model: claude)" in git(
+        workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
+    )
+    assert recorded_model(workspace, "analyze") == "claude"
+
+
+def test_a_subject_with_no_model_suffix_leaves_no_model_line(runner, workspace, fake_claude):
+    """AC3: a commit made before this change says nothing about a model,
+    and nothing is what gets written for it. The step still counts as
+    having run — the two facts are independent."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+    assert recorded_model(workspace, "create") is None
+    assert recorded_model(workspace, "analyze") is None
+    assert recorded_model(workspace, "implement") == "claude"
+
+
+def test_a_hand_written_spec_gets_no_model_line_for_create(runner, workspace, fake_claude):
+    """AC6: `1-description.md` written by a person and committed under
+    their own message leaves no commit to attribute create to, so there
+    is no `Model (create)` line — an absence, never a guess at "human"."""
+    with_status(workspace)
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert recorded_model(workspace, "create") is None
+
+
+def test_a_model_recorded_on_an_earlier_commit_is_read_back(runner, workspace, fake_claude):
+    """The scan is the source for every step but this run's own."""
+    with_status(workspace)
+    already_ran(workspace, ["create"], model="claude claude-opus-5")
+    already_ran(workspace, ["analyze"], model="codex gpt-5")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     model="claude-sonnet-5")
+    assert rc == 0, out
+    assert recorded_model(workspace, "create") == "claude claude-opus-5"
+    assert recorded_model(workspace, "analyze") == "codex gpt-5"
+    assert recorded_model(workspace, "implement") == "claude claude-sonnet-5"
+
+
+def test_a_stopped_run_still_records_its_model(runner, workspace, fake_claude):
+    """Both suffixes on one subject, in the order that keeps the greedy
+    stop reason last. The step did not finish, so it is not on the
+    completed line — but it ran, and under a model."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze"])
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'echo "half-written" > "$PWD/half.txt"\n'
+        "trap '' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     model="claude-sonnet-5", timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    last = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
+    assert last == subject("implement", model="claude claude-sonnet-5", stopped="timeout"), last
+    assert recorded_line(workspace) == "create, analyze"
+    assert recorded_model(workspace, "implement") == "claude claude-sonnet-5"
+
+
+def test_a_stopped_subject_still_reads_back_as_a_stop(runner, workspace, fake_claude):
+    """The greedy-reason trap, from the reader's side: a stop reason
+    followed by nothing is what the regex must keep seeing. A step whose
+    NEWEST commit stopped is not completed, model suffix or no."""
+    with_status(workspace)
+    already_ran(workspace, ["create"])
+    already_ran(workspace, ["analyze"], model="claude claude-opus-5", stopped="timeout")
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, implement"
+    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
+
+
+def test_the_model_line_reaches_a_step_that_committed_its_own_work(
+    runner, workspace, fake_claude
+):
+    """AC10: `archive` resolving a conflict commits with `--no-edit`
+    before the generic loop runs, so the loop AMENDS rather than opening
+    a commit of its own — and the amended subject is the step's, not the
+    grammar's. The model fact must survive that path too: it reaches the
+    commit's body, and the file's line is written regardless, because
+    this run's own step is seeded from the flags rather than scanned
+    for."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "implement"])
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "resolved" > "$specs/{folder}/resolution.txt"\n'
+        + 'git -C "$specs" add -A\n'
+        + 'git -C "$specs" commit -q -m "Resolve the conflict the step was handed"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="archive",
+                     model="claude-sonnet-5")
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    assert git(workspace["specs"], "log", "-1", "--pretty=%s", branch) == \
+        "Resolve the conflict the step was handed"
+    body = git(workspace["specs"], "log", "-1", "--pretty=%B", branch)
+    assert "(model: claude claude-sonnet-5)" in body, body
+    assert recorded_model(workspace, "archive") == "claude claude-sonnet-5"
+
+
+def test_a_re_run_under_a_different_model_updates_the_line(runner, workspace, fake_claude):
+    """AC11, first half: newest sighting wins, exactly as it does for
+    done/stopped. The Model lines are NOT add-only — a step re-run under
+    a different model is now recorded as that model."""
+    with_status(workspace, ["create", "analyze"],
+                models={"analyze": "claude claude-haiku-4-5"})
+    already_ran(workspace, ["create"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze",
+                     model="claude-opus-5")
+    assert rc == 0, out
+    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
+
+
+def test_a_step_with_no_fresh_sighting_keeps_its_model_line(runner, workspace, fake_claude):
+    """AC11, second half: a later step's run must not erase what an
+    earlier step's line already says. The scan can only see a model
+    through the subject grammar, so a step whose commit carries no
+    suffix has no fresh sighting — and no fresh sighting leaves the line
+    exactly as it was."""
+    with_status(workspace, ["create", "analyze"],
+                models={"analyze": "claude claude-opus-5"})
+    already_ran(workspace, ["create", "analyze"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
+    assert recorded_model(workspace, "implement") == "claude"
+
+
+def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root):
+    """Risk 1, and AC7's structural half. The grammar exists once in
+    bash (`completed_steps_for`) and once in TypeScript
+    (`subjectPattern`), with no shared source, and BOTH anchor on `$`.
+    Adding a trailing group to one and not the other would stop every
+    future subject matching in the language that was missed — breaking
+    the pre-existing "Workflow steps completed" derivation, not just the
+    model line. The fifth hand-paired pair in this repo, pinned the way
+    the other four already are.
+    """
+    import re
+
+    bash = (workspace_root / "core" / "scripts" / "aide-run-spec").read_text()
+    m = re.search(r'^\s*re="(\^Run /aide-[^"]*)"', bash, re.M)
+    assert m, "aide-run-spec no longer builds the subject regex as a plain string"
+    from_bash = m.group(1).replace("${folder}", "FOLDER")
+
+    ts = (workspace_root / "dashboard" / "src" / "workflow-history.ts").read_text()
+    m = re.search(r"const subjectPattern[^;]*?new RegExp\(\s*(.*?),?\s*\);", ts, re.S)
+    assert m, "workflow-history.ts no longer builds the subject regex from template literals"
+    from_ts = "".join(re.findall(r"`([^`]*)`", m.group(1)))
+    from_ts = (
+        from_ts.replace("${escapeRegExp(specFolder)}", "FOLDER")
+        # A JS string literal doubles every backslash the regex needs;
+        # bash's `[[ =~ ]]` operand does not. And the only structural
+        # difference the two are allowed is capture-vs-not.
+        .replace("\\\\", "\\")
+        .replace("(?:", "(")
+    )
+
+    assert from_bash == from_ts, (
+        "the script and the dashboard disagree about the commit-subject grammar:\n"
+        f"  bash: {from_bash}\n"
+        f"  ts:   {from_ts}"
+    )
 
 
 # --- spec 214: a step that has run cannot un-run ------------------------------

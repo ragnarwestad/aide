@@ -1476,6 +1476,22 @@ commit_label="${created_spec_folder:-$spec_label}"
 suffix=""
 [ "$terminal_reason" != "completed" ] && suffix=" (stopped: $terminal_reason)"
 
+# Spec 217: WHO ran the step, next to what happened to it. The tool is
+# always known — it defaults to `claude` and is refused if it is neither
+# of the two — so this is never empty; the model VALUE is only there
+# when the caller named one, and is left out rather than guessed at.
+#
+# It sits BEFORE `$suffix` in every subject that carries both: the stop
+# reason is read greedily to the end of the subject, so a suffix after
+# it would be swallowed into the reason and every subject written before
+# this change would start parsing differently.
+model_value="$tool${model:+ $model}"
+model_suffix=" (model: $model_value)"
+# What the amend branches append on a line of their own. Both suffixes
+# carry a leading space because the generated subject below is one line;
+# the appended line drops the first of them.
+amend_note="${model_suffix}${suffix}"
+
 #
 # The commit happens in the WORKTREE; the reported `root` is the main
 # checkout. Four places consume those paths after the run is over — the
@@ -1599,11 +1615,17 @@ reopened_boundary_in() {   # sets $reopened_sha
   return 0
 }
 
-completed_steps_for() {   # sets $completed_steps
-  local folder="$1" dir="$2" subject step reason seen completed re
+completed_steps_for() {   # sets $completed_steps and $model_records
+  local folder="$1" dir="$2" subject step reason step_model seen completed re
   local existing_line existing_step
   local boundary_args=()
   completed_steps=""
+  # Spec 217, one `step=<tool> [<model>]` record per line, newest
+  # sighting first — the same "first sighting speaks for the step" rule
+  # the scan below already applies, so a re-run's model supersedes the
+  # attempt before it. `=` is safe as the separator: a step name is
+  # `[a-z-]+` and neither a tool name nor a model id carries one.
+  model_records=""
   # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
   # the earlier round, since the mark is the specs repo's default-branch
   # tip at the moment of reopening and the earlier round's commits were
@@ -1618,9 +1640,16 @@ completed_steps_for() {   # sets $completed_steps
     *" $command_name "*)
       seen="|$command_name|"
       [ "$terminal_reason" = "completed" ] && completed="|$command_name|"
+      # THIS run's model comes from the flags it was given, not from the
+      # commit it is about to make. That is what carries the fact
+      # through the amend path (spec 146), where the step committed its
+      # own work under its own subject and the grammar below never sees
+      # it.
+      model_records="$command_name=$model_value
+"
       ;;
   esac
-  re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(stopped: (.+)\))?$"
+  re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
   # --all, not HEAD: `implement` deliberately lands nothing until
   # `archive` runs, so its commit sits on this spec's own branch for as
   # long as the spec takes. Newest first, which is what makes the first
@@ -1629,11 +1658,17 @@ completed_steps_for() {   # sets $completed_steps
     [ -n "$subject" ] || continue
     [[ "$subject" =~ $re ]] || continue
     step="${BASH_REMATCH[1]}"
-    reason="${BASH_REMATCH[4]}"
+    step_model="${BASH_REMATCH[4]}"
+    reason="${BASH_REMATCH[6]}"
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
     case "$seen" in *"|$step|"*) continue ;; esac
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
+    # A subject with no model suffix — every one written before spec 217
+    # — leaves no record, and the write-back leaves that step's line
+    # exactly as it found it. Absence is never filled in with a guess.
+    [ -n "$step_model" ] && model_records="$model_records$step=$step_model
+"
   done <<EOF
 $(git -C "$dir" log --all ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
@@ -1687,13 +1722,41 @@ if [ -n "$status_file" ]; then
   # under is left alone too — this writes the value, never the layout.
   if [ -n "$completed_steps" ] && \
      grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    awk -v line="- **Workflow steps completed:** $completed_steps" '
+    # Spec 217's block, built here rather than in awk: one
+    # `- **Model (<step>):**` line per step there is anything to say
+    # about, in workflow order, going in directly under the line above.
+    #
+    # The merge is "fresh sighting wins, no fresh sighting keeps what
+    # the file already had" — the scan sees a model only through the
+    # subject grammar, so a step that committed under a descriptive
+    # message of its own has none, and its line must survive the next
+    # step's recompute the way spec 214's step names do. Unlike that
+    # line the field is not add-ONLY: a step re-run under a different
+    # model is genuinely that model now, so a fresh sighting replaces.
+    : > "$work_dir/model-lines"
+    for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
+      step_model="$(printf '%s\n' "$model_records" | sed -n "s/^$step=//p" | head -1)"
+      [ -n "$step_model" ] || step_model="$(sed -n "s/^- \*\*Model ($step):\*\*[[:space:]]*//p" \
+        "$status_file" 2>/dev/null | tail -1)"
+      [ -n "$step_model" ] || continue
+      printf -- '- **Model (%s):** %s\n' "$step" "$step_model" >> "$work_dir/model-lines"
+    done
+    awk -v line="- **Workflow steps completed:** $completed_steps" \
+        -v models="$work_dir/model-lines" '
+      function emit_models(  ln) {
+        while ((getline ln < models) > 0) print ln
+        close(models)
+      }
       BEGIN { written = 0 }
+      # Dropped wherever they sit and re-emitted as one block below the
+      # line above: this pass owns their order, so a step that gained a
+      # line and a step that already had one end up in the same place.
+      /^- \*\*Model \([a-z][a-z-]*\):\*\*/ { next }
       /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; written = 1 }
+        if (!written) { print line; emit_models(); written = 1 }
         next
       }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
+      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; emit_models(); written = 1; next }
       { print }
     ' "$status_file" > "$work_dir/status-line" 2>/dev/null
     # Written back only when it actually differs. The commit loop below
@@ -1725,19 +1788,21 @@ for root in "${roots[@]}"; do
       # The step already committed part of its own work under a written
       # message (spec 146) — fold the leftover into THAT commit rather
       # than opening a second one under the generic subject.
-      if [ -n "$suffix" ]; then
-        # $suffix carries a leading space because the generic subject
-        # below is one line. The step's own message can have a body, so
-        # gluing $suffix onto the raw %B would land it mid-paragraph:
-        # give it a line of its own and drop the space that only made
-        # sense inline.
+      if [ -n "$amend_note" ]; then
+        # The step's own message can have a body, so gluing the note
+        # onto the raw %B would land it mid-paragraph: give it a line of
+        # its own and drop the leading space that only made sense
+        # inline. `--no-edit` is what is left when the note has nothing
+        # to say at all — since spec 217 that means neither a stop
+        # reason NOR a model, so it cannot be assumed from an empty
+        # $suffix alone.
         existing_message="$(git -C "$wt" log -1 --pretty=%B)"
-        git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${suffix# }" >/dev/null 2>&1 || true
+        git -C "$wt" commit -q --amend -m "$existing_message"$'\n\n'"${amend_note# }" >/dev/null 2>&1 || true
       else
         git -C "$wt" commit -q --amend --no-edit >/dev/null 2>&1 || true
       fi
     else
-      git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$suffix" >/dev/null 2>&1 || true
+      git -C "$wt" commit -q -m "Run /aide-$command_name for $commit_label (headless)$model_suffix$suffix" >/dev/null 2>&1 || true
     fi
   fi
   head_after="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"

@@ -29,9 +29,16 @@ import { fakeGit } from "./helpers/fake-git.ts";
 const FOLDER = "154-the-runner-owns-the-record-of-what-has-run";
 const DIR = `/specs/aide/${FOLDER}`;
 
-const subject = (step: string, opts: { headless?: boolean; stopped?: string; folder?: string } = {}) =>
+const subject = (
+  step: string,
+  opts: { headless?: boolean; stopped?: string; folder?: string; model?: string } = {},
+) =>
   `Run /aide-${step} for ${opts.folder ?? FOLDER}` +
   (opts.headless === false ? "" : " (headless)") +
+  // Spec 217's suffix sits BEFORE the stop reason, which is read
+  // greedily to the end of the subject — a suffix after it would be
+  // swallowed into the reason.
+  (opts.model ? ` (model: ${opts.model})` : "") +
   (opts.stopped ? ` (stopped: ${opts.stopped})` : "");
 
 /** git log prints NEWEST FIRST, and every case here depends on that. */
@@ -104,6 +111,29 @@ describe("readWorkflowSubjects", () => {
     );
     expect(history.done).toEqual([]);
     expect(history.stopped).toEqual({ implement: "budget_exhausted" });
+  });
+
+  // Spec 217, AC7: the grammar gained a `(model: ...)` suffix, and this
+  // side of the pair has to keep deriving the same answer from a
+  // subject that carries one. Both regexes anchor on `$`, so a suffix
+  // the pattern does not know about does not degrade — it stops
+  // matching altogether, and the step disappears from the history.
+  test("a subject carrying a model suffix reads exactly as one without", () => {
+    const withModel = readWorkflowSubjects(
+      [subject("implement", { model: "claude claude-sonnet-5" }), subject("analyze", { model: "codex gpt-5" })],
+      FOLDER,
+    );
+    expect(withModel).toEqual(readWorkflowSubjects([subject("implement"), subject("analyze")], FOLDER));
+    expect(withModel.done).toEqual(["analyze", "implement"]);
+  });
+
+  test("a model suffix does not leak into the stop reason", () => {
+    const history = readWorkflowSubjects(
+      [subject("implement", { model: "claude claude-sonnet-5", stopped: "timeout" })],
+      FOLDER,
+    );
+    expect(history.done).toEqual([]);
+    expect(history.stopped).toEqual({ implement: "timeout" });
   });
 
   // AC5: a step run at somebody's keyboard, committed by hand with the
