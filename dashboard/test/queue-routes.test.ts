@@ -5694,6 +5694,70 @@ function ownConfig(contents: Record<string, unknown> = {}): string {
   return file;
 }
 
+describe("Settings routes (spec 232)", () => {
+  const STEPS = ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"];
+  const DEFAULTS = {
+    budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+    timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+    model: { default: "sonnet" },
+    modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+  };
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  test("GET is guarded and renders the live defaults", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    expect((await fetch(`${base}/settings`)).status).toBe(401);
+    const res = await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('name="model.implement"');
+  });
+
+  test("a successful save affects later jobs but not an accepted job", async () => {
+    const file = ownConfig({ model: { default: "sonnet", future: "keep" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const accepted = await fetch(`${base}/api/queue`, {
+      method: "POST", headers: AUTH, body: JSON.stringify(JOB),
+    });
+    const first = (await accepted.json()) as { job: { model: Record<string, string> } };
+    const model = Object.fromEntries(STEPS.map((step) => [step, "codex-fast"]));
+    const saved = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH, body: JSON.stringify({ model }),
+    });
+    expect(saved.status).toBe(200);
+    expect(first.job.model.analyze).toBe("sonnet");
+    const later = await fetch(`${base}/api/queue`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ project: "aide", specFolder: "82-second", steps: ["analyze"] }),
+    });
+    // The fixture does not discover 82-second, so use create to observe a later accepted job.
+    const created = await fetch(`${base}/api/queue/create`, {
+      method: "POST", headers: AUTH, body: JSON.stringify({ project: "aide", title: "Later", description: "Later job" }),
+    });
+    expect(later.status).toBe(400);
+    expect(((await created.json()) as { job: { model: Record<string, string> } }).job.model.create).toBe("codex-fast");
+    expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
+  });
+
+  test("invalid input and missing config leave live defaults unchanged", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    for (const model of [
+      { analyze: "sonnet" },
+      { ...Object.fromEntries(STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
+      Object.fromEntries(STEPS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
+    ]) {
+      const res = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: JSON.stringify({ model }) });
+      expect(res.status).toBe(400);
+    }
+    const without = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const res = await fetch(`${without.base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ model: Object.fromEntries(STEPS.map((step) => [step, "sonnet"])) }),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
 const projectsIn = (file: string): string[] =>
   (JSON.parse(readFileSync(file, "utf-8")) as { projects?: string[] }).projects ?? [];
 

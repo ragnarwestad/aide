@@ -1149,6 +1149,21 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 
+const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;
+const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
+settingsForm?.addEventListener("change", ((event: Event) => {
+  const target = event.target as Element | null;
+  const ai = target?.closest?.("select[data-ai]") as HTMLSelectElement | null;
+  if (ai) return applyAiPick(ai);
+  const model = target?.closest?.('select[name^="model."]') as HTMLSelectElement | null;
+  if (model) syncAiToModel(model);
+}) as EventListener);
+settingsForm?.addEventListener("submit", (async (event: Event) => {
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  await postForm(settingsForm, async () => formNote(settingsForm, "Defaults saved"), (why) => formNote(settingsForm, why));
+}) as EventListener);
+
 // --- spec 189: the server says when, and the page listens ------------------
 //
 // This used to be a five-second timer that fetched the rows whether

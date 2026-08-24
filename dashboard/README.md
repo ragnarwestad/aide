@@ -235,6 +235,14 @@ named anywhere in this repo.
 - `/specs` and `/queue` — where the list used to live; both redirect to
   `/`, query string intact, so an old bookmark still lands
 - `/queue/<id>` — redirects to `/specs/<id>`, where the job still is
+- `/settings` — global defaults for the AI and model used by Explore,
+  Create, Analyze, Implement, Archive, Manifest and Reopen. Saving writes the
+  seven step values to `queue-config.json`; later jobs use them immediately,
+  while jobs already accepted keep their stored choices.
+- `POST /api/queue/settings` — validates all seven model names against
+  `modelChoices`, updates the JSONC file atomically while retaining comments
+  and unrelated values, and changes the live defaults only after the write
+  succeeds. Token required like the rest of the queue surface.
 - `/api/queue` — the same jobs as JSON; `POST /api/queue` enqueues one;
   `POST /api/queue/<id>/cancel` acts on one. The API keeps the queue's
   own name: it is a contract, not a page anyone reads. `approve` and
