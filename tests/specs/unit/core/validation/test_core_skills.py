@@ -728,3 +728,17 @@ class TestCreateSkillStagesAndOffersToCommit:
         spec in the same state."""
         step5 = self._step_5_text()
         assert "headless" in step5.lower()
+
+    def test_validation_is_local_only_without_package_download_fallback(self):
+        skill = self.SKILL.read_text(encoding="utf-8")
+        assert "markdownlint-cli2" in skill
+        assert "installed locally" in skill
+        assert "must not invoke `npx`" in skill
+
+
+@pytest.mark.validation
+class TestMarkdownHookDefaultsAreLocalOnly:
+    def test_claude_hook_does_not_use_npx_for_markdownlint(self):
+        settings_path = CORE_SKILLS_DIR.parents[1] / "implementations" / "claude-code" / "settings.json"
+        settings = settings_path.read_text(encoding="utf-8")
+        assert "npx markdownlint-cli2" not in settings

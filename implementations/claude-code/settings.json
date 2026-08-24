@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE\" == *.md ]]; then npx markdownlint-cli2 \"$FILE\" 2>&1; fi; exit 0"
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [[ \"$FILE\" == *.md ]]; then if command -v markdownlint-cli2 >/dev/null 2>&1; then markdownlint-cli2 \"$FILE\" 2>&1; else echo 'Markdown validation skipped: markdownlint-cli2 is not installed locally' >&2; fi; fi; exit 0"
           }
         ]
       }

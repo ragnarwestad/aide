@@ -8,8 +8,6 @@
 # the lint command (used by the tests).
 
 payload=$(cat)
-LINT_CMD="${AIDE_MARKDOWNLINT_CMD:-npx markdownlint-cli2}"
-
 files=$(jq -r '.tool_input.file_path // empty' <<<"$payload")
 if [ -z "$files" ]; then
   files=$(jq -r '.tool_input.command // .tool_input.input // empty' <<<"$payload" |
@@ -19,7 +17,15 @@ fi
 while IFS= read -r file; do
   [ -n "$file" ] || continue
   case "$file" in
-    *.md) $LINT_CMD "$file" 2>&1 ;;
+    *.md)
+      if [ -n "${AIDE_MARKDOWNLINT_CMD:-}" ]; then
+        $AIDE_MARKDOWNLINT_CMD "$file" 2>&1
+      elif command -v markdownlint-cli2 >/dev/null 2>&1; then
+        markdownlint-cli2 "$file" 2>&1
+      else
+        echo "Markdown validation skipped: markdownlint-cli2 is not installed locally" >&2
+      fi
+      ;;
   esac
 done <<<"$files"
 exit 0

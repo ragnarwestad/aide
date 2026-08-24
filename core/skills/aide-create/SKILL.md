@@ -96,6 +96,12 @@ Examples:
   When the prompt states no such value, write no such line. Never infer a
   dependency from the description.
 
+Markdown validation uses `markdownlint-cli2` only when it is installed locally.
+Rely on the automatic hook where present; otherwise check for the executable
+with `command -v markdownlint-cli2` before running it. If it is unavailable,
+report that validation was skipped and continue. Validation must not invoke `npx`
+or another package-download fallback.
+
 ### Step 5: Stage in git
 
 `git add <specs-root>/NN-slug/*.md` — the specs root is a working
