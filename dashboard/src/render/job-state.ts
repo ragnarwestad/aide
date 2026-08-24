@@ -247,10 +247,15 @@ export interface RestingState {
  *  named from it — so the two could disagree on the very same row
  *  ("not started · Implement"). Sharing this makes them agree by
  *  construction. */
+// One word each since 2026-08-24 ("ready", "done"): the phase the spec
+// is ready FOR is already named by the Run button beside this badge —
+// the same `readyPhase` names both, so they cannot disagree — and
+// "nothing waiting on you" said nothing "done" does not. The colour
+// still tells the two apart at a glance.
 export function restingChip(resting: RestingState = {}): string {
   if (resting.archiveHeldBack) return badge("waiting", "archive held back");
-  if (resting.readyPhase) return badge("ready", `ready for ${resting.readyPhase}`);
-  return badge("done", "done — nothing waiting on you");
+  if (resting.readyPhase) return badge("ready", "ready");
+  return badge("done", "done");
 }
 
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {

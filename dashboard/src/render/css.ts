@@ -950,6 +950,13 @@ tr.spec-archived td { color: var(--muted); }
      empty, which is what was still forcing Cost to wrap even after the
      other two gaps were closed. */
   table.list tr.spechead .actionslot { min-width: 0; }
+  /* What IS reserved on this line is the badge's width — or the action
+     button after it starts wherever the state's wording happens to
+     end, in a different place on every row. Sized for the longest
+     label the badge can carry now that the resting texts are one word
+     ("ready"/"done", 2026-08-24): "implementing queued", 19 characters
+     of fs-s plus the dot and the padding. */
+  table.list tr.spechead .badge { min-width: 9rem; box-sizing: border-box; }
   /* Not margin-left:auto (removed): pushing date/cost hard to the right
      reserves that gap even when the line is tight, which is what was
      forcing Cost to wrap onto a third line despite there being room for

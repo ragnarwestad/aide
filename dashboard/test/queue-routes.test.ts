@@ -689,7 +689,7 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     // Spec 176: the State column says what the process says comes
     // next, on a row nothing has run as on one that has.
     expect(html).toContain('class="badge b-ready"');
-    expect(html).toContain("ready for analyze");
+    expect(html).toContain(">ready<");
     expect(html).not.toContain("not started");
   });
 
