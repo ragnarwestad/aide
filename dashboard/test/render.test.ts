@@ -25,6 +25,7 @@ import {
 // The padlock itself, so a test can say a box does NOT carry one
 // without restating its markup (spec 145).
 import { ICON_LOCK } from "../src/render/components.ts";
+import { stateLabel } from "../src/render/job-state.ts";
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published
@@ -5568,6 +5569,21 @@ describe("a phase's page shows that phase's own file", () => {
 // table has marked it "est." per step since spec 118 — but the two
 // TOTALS built on top of those steps had no access to the flag, so
 // 149's spec total read "41.13 USD" as if it were money spent.
+describe("provider-limit presentation", () => {
+  test("the stopped label identifies the provider limit", () => {
+    expect(stateLabel(row({ state: "stopped", stopReason: "provider-limit" } as never))).toBe(
+      "stopped — provider limit",
+    );
+  });
+
+  test("the specs list and job detail show the structured explanation", () => {
+    const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
+    const stopped = row({ state: "stopped", stopReason: "provider-limit", error } as never);
+    expect(renderQueueRows([stopped], { runnerAvailable: true, targets: [] })).toContain(error);
+    expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(error);
+  });
+});
+
 describe("an unmeasured cost is marked where it is totalled", () => {
   const marker = '<span class="muted small">est.</span>';
 

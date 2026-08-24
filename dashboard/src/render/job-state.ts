@@ -51,7 +51,7 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
-  stopReason?: "budget" | "timeout";
+  stopReason?: "budget" | "timeout" | "provider-limit";
   /** Every repo this job pushed to, one entry each — a list even when it
    *  holds one, because `paceup` and `atlasaurus` (specs inside the
    *  project repo, one branch per job) are the NORMAL shape and must
@@ -141,9 +141,8 @@ export function anyCostUnmeasured(results: StepResultView[] | undefined): boolea
 // outcome, and a reader who cannot tell them apart ignores both.
 export function stateLabel(r: QueueRowView): string {
   if (r.state === "stopped") {
-    return r.stopReason === "timeout"
-      ? `stopped — ${Math.round(r.timeoutSec / 60)} min`
-      : "stopped — budget";
+    if (r.stopReason === "timeout") return `stopped — ${Math.round(r.timeoutSec / 60)} min`;
+    return r.stopReason === "provider-limit" ? "stopped — provider limit" : "stopped — budget";
   }
   return r.state;
 }

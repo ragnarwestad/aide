@@ -3616,6 +3616,37 @@ describe("landing a stopped step's specs-only work (spec 187)", () => {
       );
     }
   });
+
+  test("a provider-limit stop lands specs-only work through the safe path", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(git);
+    const job = await runStep(base, "analyze");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({ ...STOPPED_RESULT, terminalReason: "provider-limit" }),
+    );
+    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    await settle(base, job.id, (j) => !j.landing);
+    expect(stopped.stopReason as string).toBe("provider-limit");
+    expect(mergesOf(git.calls)).not.toEqual([]);
+  });
+
+  test("a provider-limit stop leaves project changes on the branch", async () => {
+    const git = gitFor();
+    const { base, results } = serverWithRunner(git);
+    const job = await runStep(base, "implement");
+    writeFileSync(
+      join(results, `${job.id}.json`),
+      JSON.stringify({
+        ...STOPPED_RESULT,
+        terminalReason: "provider-limit",
+        branchUrls: [{ root: CODE_REPO, url: "https://example.test/aide" }],
+      }),
+    );
+    const stopped = await settle(base, job.id, (j) => j.state === "stopped");
+    expect(stopped.landing).toBeFalsy();
+    expect(mergesOf(git.calls)).toEqual([]);
+  });
 });
 
 // --- spec 149: merging happens inside the steps, never by hand --------------

@@ -1426,6 +1426,54 @@ def test_the_terminal_result_is_selected_by_type_not_by_position(runner, workspa
     assert out["terminalReason"] == "completed"
 
 
+def test_a_rejected_provider_limit_overrides_a_contradictory_success(runner, workspace, fake_claude):
+    limit = {
+        "type": "rate_limit_event",
+        "rate_limit_info": {
+            "status": "rejected",
+            "rateLimitType": "seven_day",
+            "resetsAt": 1787587200,
+        },
+    }
+    result = {
+        **RESULT_OK,
+        "is_error": True,
+        "terminal_reason": "api_error",
+        "api_error_status": 429,
+    }
+    claude = fake_claude(stream_body(result, before=[limit], exit_code=1))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["ok"] is False
+    assert out["terminalReason"] == "provider-limit"
+    assert "seven day" in out["error"]
+    assert "2026-08-24" in out["error"]
+
+
+def test_is_error_prevents_a_success_subtype_from_completing(runner, workspace, fake_claude):
+    result = {**RESULT_OK, "is_error": True, "errors": ["provider request failed"]}
+    claude = fake_claude(stream_body(result))
+    _, out, _ = run(runner, workspace, claude)
+    assert out["ok"] is False
+    assert out["terminalReason"] == "cli-error"
+    assert "provider request failed" in out["error"]
+
+
+def test_nonzero_exit_prevents_a_success_subtype_from_completing(runner, workspace, fake_claude):
+    claude = fake_claude(stream_body(RESULT_OK, exit_code=1))
+    _, out, _ = run(runner, workspace, claude)
+    assert out["ok"] is False
+    assert out["terminalReason"] == "cli-error"
+    assert "exit 1" in out["error"]
+
+
+def test_exit_zero_and_a_non_error_success_still_complete(runner, workspace, fake_claude):
+    claude = fake_claude(stream_body(RESULT_OK, exit_code=0))
+    _, out, _ = run(runner, workspace, claude)
+    assert out["ok"] is True
+    assert out["terminalReason"] == "completed"
+
+
 def test_a_truncated_last_line_does_not_lose_the_result(runner, workspace, fake_claude, tmp_path):
     """A killed run leaves half a line behind. Refusing the whole file
     over it would throw away a result event that arrived intact."""

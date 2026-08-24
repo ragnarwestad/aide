@@ -37,7 +37,7 @@
 # its full budget and reports no token count at all.
 #
 # terminalReason is this script's own vocabulary, not the CLI's:
-#   completed | budget | timeout | refused | spawn-failed | cli-error
+#   completed | budget | timeout | provider-limit | refused | spawn-failed | cli-error
 #   | already-landed
 #
 # --stream-file PATH keeps the claude transcript (stream-json, one event
@@ -1399,6 +1399,10 @@ if [ "$tool" = "codex" ]; then
 else
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
   "$transcript" 2>/dev/null | tail -n 1)"
+provider_limit_json="$(jq -Rc 'fromjson? | select(
+  type == "object" and .type == "rate_limit_event" and
+  .rate_limit_info.status == "rejected"
+)' "$transcript" 2>/dev/null | tail -n 1)"
 
 if [ -n "$result_json" ]; then
   have_result="true"
@@ -1456,15 +1460,33 @@ if [ -n "$stopped" ]; then
 # "Did the tool say how it went", not "was a cost measured" — the two
 # are the same question for claude and different for codex, which
 # finishes perfectly well without ever naming a dollar figure.
+elif [ -n "${provider_limit_json:-}" ]; then
+  terminal_reason="provider-limit"
+  limit_type="$(jq -r '.rate_limit_info.rateLimitType // "provider" | gsub("_"; " ")' <<<"$provider_limit_json")"
+  reset_at="$(jq -r '.rate_limit_info.resetsAt // empty | if type == "number" then todateiso8601 else tostring end' <<<"$provider_limit_json")"
+  error_msg="$limit_type provider limit reached"
+  [ -n "$reset_at" ] && error_msg="$error_msg; resets $reset_at"
 elif [ "$have_result" = "true" ]; then
+  is_error="$(jq -r '.is_error // false' <<<"$result_json")"
+  if [ "$subtype" = "error_max_budget_usd" ]; then
+    terminal_reason="budget"
+    error_msg="the step's budget was reached"
+  elif [ "$is_error" = "true" ]; then
+    terminal_reason="cli-error"
+    error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")"
+    [ -n "$error_msg" ] || error_msg="provider reported an error"
+  elif [ "$exit_code" -ne 0 ]; then
+    terminal_reason="cli-error"
+    error_msg="$tool exit $exit_code"
+  else
   case "$subtype" in
     success) terminal_reason="completed" ;;
-    error_max_budget_usd) terminal_reason="budget"; error_msg="the step's budget was reached" ;;
     # The codex branch above has already put the turn's own message
     # here; only claude's shape needs digging out at this point.
     *) terminal_reason="cli-error"
        [ -n "$error_msg" ] || error_msg="$(jq -r '(.errors // []) | join("; ")' <<<"$result_json")" ;;
   esac
+  fi
 else
   terminal_reason="cli-error"
   cost="$budget_usd"; cost_measured="false"

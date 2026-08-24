@@ -494,7 +494,10 @@ export class Runner {
     // A cap or the clock ending a run is `stopped` — never `failed`.
     // Under tight caps this is a common, healthy outcome, and a reader
     // who cannot tell it from a broken agent will ignore both.
-    if (outcome.terminalReason === "budget" || outcome.terminalReason === "timeout") {
+    if (
+      outcome.terminalReason === "budget" || outcome.terminalReason === "timeout" ||
+      outcome.terminalReason === "provider-limit"
+    ) {
       const stopped = this.o.store.update(job.id, {
         ...base,
         state: "stopped",

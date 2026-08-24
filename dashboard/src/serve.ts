@@ -1738,9 +1738,13 @@ export function createServer(opts: ServerOptions) {
           // is no second list of "which steps are safe" to keep in step
           // with the first.
           //
-          // Only the wall clock. A cost cap stops mid-sentence with no
-          // boundary of its own, and a CLI error is not a stop at all.
-          if (!step || outcome.terminalReason !== "timeout") return undefined;
+          // The wall clock and a provider limit both stop after the
+          // runner has committed the work. A cost cap and a CLI error
+          // have no such safe landing promise.
+          if (
+            !step ||
+            (outcome.terminalReason !== "timeout" && outcome.terminalReason !== "provider-limit")
+          ) return undefined;
           const codeRoots = new Set([machineryProjectDir(job.project)]);
           const pushed = outcome.branchUrls ?? [];
           if (pushed.length === 0 || pushed.some((r) => codeRoots.has(r.root))) return undefined;

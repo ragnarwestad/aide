@@ -251,6 +251,25 @@ describe("steps and cost", () => {
     expect(store.get(job.id)?.stopReason).toBe("timeout");
   });
 
+  test("a provider limit stops on the current step and starts no later step", () => {
+    const job = enqueue({ steps: ["analyze", "implement"] });
+    const runner = makeRunner({
+      readResult: () => ({
+        ...okResult(0), ok: false, terminalReason: "provider-limit",
+        error: "seven day provider limit; resets 2026-08-24 12:00 UTC",
+      }),
+    });
+    runner.tick();
+    runner.poll();
+    const after = store.get(job.id)!;
+    expect(after.state).toBe("stopped");
+    expect(after.stopReason as string).toBe("provider-limit");
+    expect(after.stepIndex).toBe(0);
+    expect(after.error).toContain("resets 2026-08-24");
+    runner.tick();
+    expect(spawns).toHaveLength(1);
+  });
+
   test("a refused or broken step fails the job", () => {
     const job = enqueue();
     const runner = makeRunner({
