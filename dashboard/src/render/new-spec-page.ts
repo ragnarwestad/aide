@@ -153,7 +153,7 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
       modelOptions(models, chosen) +
       `</select>`
     : "";
-  // Four lines, read top to bottom: Project and Model side by side,
+  // Four lines, read top to bottom: Project, AI and Model side by side,
   // Depends on and Title on lines of their own, then Description with
   // Create and Cancel at its right-hand side. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
@@ -168,7 +168,8 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
-    (modelSelect ? field("Model", aiSelect + modelSelect) : "") +
+    (aiSelect ? field("AI", aiSelect) : "") +
+    (modelSelect ? field("Model", modelSelect) : "") +
     `</span>` +
     dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
     field(
@@ -206,6 +207,7 @@ export function renderNewSpecPage(
 ): string {
   const projects = opts.createProjects ?? [];
   const body =
+    `<a class="btn" href="/">← Back</a>\n` +
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     (projects.length
