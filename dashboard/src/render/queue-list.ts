@@ -151,9 +151,6 @@ export interface ArchivedSpecView {
    *  commit that last touched the folder. `null` when neither answers,
    *  and the row says so in words rather than leaving the cell blank. */
   archivedAt: string | null;
-  /** Where the page that already worked lives. Built by the server from
-   *  the same function the spec list links through. */
-  href: string;
   /** Its own `aide/<folder>` is STILL on origin (spec 193): the spec
    *  was archived and its work never landed. Derived from origin rather
    *  than from the job, because this is the half that reaches a spec
@@ -190,6 +187,16 @@ export interface ArchivedSpecView {
    *  blank — not `date unknown`, not a dash: a figure nobody recorded is
    *  different from a value that could not be found. */
   durationMs?: number;
+  /** Which steps the spec's own `4-status.md` CLAIMS it has had (spec
+   *  224). It is what the row's phase lines and its pip strip are drawn
+   *  from, and it is the file's own unverified word — deliberately, and
+   *  as the only affordable source rather than as a shortcut. A live
+   *  row's done-set is git-verified through `workflowHistory`'s cache,
+   *  and `refreshSpecCaches` never warms that cache for an archived
+   *  spec: that is the unbounded cost spec 178's plan review rejected,
+   *  so reusing the live path here would read `{history: null}` for
+   *  every archived row and say "checking…" for ever. */
+  done: string[];
 }
 
 /** What the date cell says when the spec carries no stamp and git
@@ -932,15 +939,23 @@ function groupBySpec(
 /** An archived spec's row: a record, not a control (spec 221).
  *
  *  It goes through neither `jobGroup` nor `emptyGroup`, and that is the
- *  point. Both build a row the reader can RUN — phases, a done-set, a
- *  lead job to speak for it — and every step but `reopen` is refused
- *  for an archived spec server-side (`ARCHIVE_ONLY_STEP`, queue.ts). A
- *  row offering a press that would be turned down is worse than no row.
+ *  point. Both build a row off JOBS — a lead job to speak for it, an
+ *  attempt per phase — and an archived spec's jobs are gone from the
+ *  queue's two-hundred-deep memory for all but the newest of them.
  *
- *  `phases: []` rather than the usual four: a reader row is never
- *  opened, so nothing reads them — and an empty list is what "this row
- *  has no phases to show" says, where four empty ones would draw a
- *  workflow that is over. */
+ *  It is still the same ROW, though, and since spec 224 it is drawn by
+ *  the same builder: `isArchivedRow` is what locks it, and the lock is
+ *  what keeps every control on it from offering a press the server
+ *  would refuse (`ARCHIVE_ONLY_STEP`, queue.ts). There were two row
+ *  builders until then, kept level by hand, and they had already
+ *  drifted — no fold and no phase lines on one side only.
+ *
+ *  The four phases, therefore, and not the `phases: []` this built
+ *  until spec 224: the row opens now, and what it opens on is what the
+ *  spec's own `4-status.md` claims. No `attempts`, because there is no
+ *  job to attribute one to — `wordPhase` renders a truthful "done" from
+ *  `happened` alone, so the lines and the pip strip are correct without
+ *  one, and the duration and cost cells are simply blank. */
 function readerGroup(s: ArchivedSpecView): SpecGroup {
   return {
     project: s.project,
@@ -952,8 +967,8 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     branches: [],
-    phases: [],
-    done: [],
+    phases: PHASE_LINES.map((step) => ({ step, attempts: [], history: {} })),
+    done: s.done,
     title: s.title,
     description: s.description,
     dependsOn: [],
@@ -1633,6 +1648,13 @@ const rowAnchorId = (g: SpecGroup): string => `spec-${groupKey(g.project, g.spec
 // written outside its tags, reaching it by `form="…"` — the trick spec
 // 123 introduced for the model select.
 function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): string {
+  // The third branch, and the first thing asked (spec 224). An archived
+  // spec has ONE action — `reopen` is the only step `ARCHIVE_ONLY_STEP`
+  // lets past — so there is no Run form to carry and no phase to name:
+  // the branches below would name one, because `preTicked` answers
+  // "what would run next" for a spec whose workflow is over by ticking
+  // `archive` alone.
+  if (isArchivedRow(g)) return reopenForm(g, opts);
   const busy = specBusy(g);
   // A conflict used to draw a Resolve control of its own here, off the
   // job's stored `errorReason`. Spec 171 took it away: `archive`
@@ -1764,11 +1786,23 @@ function specHeadRow(
   now: number,
   opened: Set<string>,
 ): string {
-  // Three answers, not two — and named `run-*` rather than
+  // Whether this row is a RECORD rather than a control (spec 224). It
+  // is asked once here and consulted wherever the row would otherwise
+  // read live-only state, exactly as `busy` already is — the difference
+  // being that `busy` says "not right now" and this says "not ever
+  // again, without a Reopen first".
+  const locked = isArchivedRow(g);
+  // Four answers, not three — and named `run-*` rather than
   // `active`/`archived`, which `site.ts` uses for the unrelated
   // question of whether a spec folder has been archived on disk. The
   // two used to share the words and mean different things.
-  const rowClass = !g.lead ? "run-new" : inFlight(g.lead) ? "run-live" : "run-past";
+  const rowClass = locked
+    ? "run-archived"
+    : !g.lead
+      ? "run-new"
+      : inFlight(g.lead)
+        ? "run-live"
+        : "run-past";
   // The spec name is the way IN, and since spec 150 it opens the SPEC —
   // all four of its files as they stand — rather than whichever job
   // happened to run last. Which means EVERY spec has somewhere to point:
@@ -1795,6 +1829,23 @@ function specHeadRow(
     `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
     `title="${esc(g.project)}:${esc(g.specFolder)}">` +
     `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`;
+  // Spec 193's mark, on the row it belongs to (spec 224 moved it here
+  // from the flat reader row `archivedHeadRow` drew). Beside the link a
+  // reader would follow, because the mark is a reason to follow it: the
+  // spec needs its `archive` run again. It reads `g.archive`, which only
+  // a locked row has, so no other row draws one.
+  //
+  // Spec 220 first: the two marks come from ONE fact — the branch is
+  // still on origin — and a project that reviews its code means that
+  // fact to be true. Reading `notLanded` first would call every working
+  // PR-mode archive stuck.
+  const archiveMark = !g.archive
+    ? ""
+    : g.archive.prOpen
+      ? ` ${prOpenMark(g.archive)}`
+      : g.archive.notLanded
+        ? ` ${badge("refused", NOT_LANDED, notLandedTitle(g.archive.notLandedCheckedAt, now))}`
+        : "";
   // The mark beside each link is about the BRANCH alone (spec 174):
   // whether it landed, and what lands it. What the row's lead job is
   // doing is the State column's answer, said there once.
@@ -1861,11 +1912,43 @@ function specHeadRow(
   // the badge and the button cannot name different phases (spec 191).
   // Worded for a reader here through `stepLabel`, so a phase added to
   // `STEP_LABELS` later reaches this sentence too.
-  const nextStep = nextPhase(g.done);
+  // NOT on a locked row (spec 224). `nextPhase` deletes `archive` from
+  // the done-set before it looks for what is missing — right for a spec
+  // still on the active list, and wrong for one whose folder has already
+  // moved: it resolves to "archive" for every archived spec there is,
+  // and `restingChip` would draw "ready" beside a spec that is finished.
+  const nextStep = locked ? undefined : nextPhase(g.done);
   const readyPhase = nextStep ? stepLabel(nextStep) : undefined;
   // The other thing the State column is built from: the archive that
   // declined to move.
   const heldBack = g.phases.find((p) => p.step === "archive")?.heldBack?.reason;
+  // What the State column says for a locked row, drawn directly rather
+  // than through `stateCell`/`restingChip`: those two answer "what is
+  // happening, and what can happen next", and for this row the answer to
+  // both is that it is over. The two archived states are told apart by
+  // the MARK beside the name, not here — the word in this cell is the
+  // same either way, which is what `ARCHIVED_STATE`'s own note says.
+  const stateBadge = locked
+    ? badge("done", ARCHIVED_STATE)
+    : g.lead
+      ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
+      // A spec with no job in the queue's memory reads the same way
+      // (spec 176). It used to say "not started", which describes
+      // the same kind of situation — nothing running, and here is
+      // what could — while saying nothing useful, and could
+      // contradict the button beside it: a spec whose analyze ran
+      // long enough ago that its job record has aged out still has
+      // its commits, so `readyPhase` is "implement" and the badge
+      // read "not started".
+      : restingChip({ archiveHeldBack: heldBack, readyPhase });
+  // What goes under the name. A locked row's is its DESCRIPTION, behind
+  // the same two-line clamp the archive listing has always used —
+  // `specSummary` has no path for it at all: it draws a title for an
+  // unnamed create job and the dependency list, and an archived row is
+  // `named` with nothing left to depend on.
+  const under = locked
+    ? `<div class="spec-title archive-desc">${esc(g.archive?.description ?? NO_DESCRIPTION)}</div>`
+    : `<div class="spec-title">${specSummary(g)}</div>`;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -1881,8 +1964,9 @@ function specHeadRow(
     // (2026-08-22). A "N runs" count under them said less than they do
     // and went in spec 165.
     `<td colspan="2"><div class="spec-name">${foldControl(g, opts.filter ?? {}, opened)} ${spec}` +
+    archiveMark +
     `<span class="pipslot">${progress}</span></div>` +
-    `<div class="spec-title">${specSummary(g)}</div>` +
+    under +
     // The repo marks on a line of their own: beside the name they took
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
@@ -1907,22 +1991,8 @@ function specHeadRow(
     // reserve a width (mobile does) without stretching the pill inside
     // it — a min-width on the badge itself widened the coloured pill
     // (2026-08-24).
-    `<td><span class="row"><span class="badgeslot">${
-      g.lead
-        ? stateCell(g.lead, {
-            archiveHeldBack: heldBack,
-            readyPhase,
-          })
-        // A spec with no job in the queue's memory reads the same way
-        // (spec 176). It used to say "not started", which describes
-        // the same kind of situation — nothing running, and here is
-        // what could — while saying nothing useful, and could
-        // contradict the button beside it: a spec whose analyze ran
-        // long enough ago that its job record has aged out still has
-        // its commits, so `readyPhase` is "implement" and the badge
-        // read "not started".
-        : restingChip({ archiveHeldBack: heldBack, readyPhase })
-    }</span><span class="actionslot">${stateAction(
+    `<td><span class="row"><span class="badgeslot">${stateBadge}` +
+    `</span><span class="actionslot">${stateAction(
       g,
       opts,
       opened.has(groupKey(g.project, g.specFolder)),
@@ -1934,10 +2004,34 @@ function specHeadRow(
     // a list sorted by it. A dash where git could not date the folder:
     // deliberately not a job's time, which is the movement this change
     // removes.
-    `<td data-col="started">${startedCell(g, now)}</td>` +
+    (locked
+      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!)}</td>`
+      : `<td data-col="started">${startedCell(g, now)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     `</tr>`
   );
+}
+
+/** The same column, a different question (spec 224): a locked row's date
+ *  is when it was ARCHIVED, and the figure beside it is what the whole
+ *  spec cost. `startedCell` reads `g.createdAt`, which comes off a
+ *  target — and an archived spec is no target, so that cell would be a
+ *  bare dash on every row here.
+ *
+ *  "checking…" is a spec nobody has ASKED git about; `date unknown` is
+ *  one git was asked about and could not date. Two different answers,
+ *  and a cell saying the wrong one is a cell that lies about whether
+ *  there is anything still to find out. */
+function archiveDateCell(s: ArchivedSpecView): string {
+  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
+  // Blank, and deliberately not the dash the description uses or the
+  // words the date uses: a spec archived before spec 207 recorded
+  // nothing, and "nothing was recorded" is what an empty cell says.
+  const took =
+    s.durationMs === undefined
+      ? ""
+      : ` <span class="muted small archive-duration">${esc(durationLabel(s.durationMs))}</span>`;
+  return `${date}${took}`;
 }
 
 // The picker a phase line carries, and the caption above the list that
@@ -2014,6 +2108,15 @@ function modelPicker(
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
+  // Nothing at all on a locked row (spec 224), rather than the same
+  // select with `disabled` on it. This control's whole content is a
+  // CHOICE about a run still ahead, and it is pre-filled from the model
+  // the phase last ran on — which for an archived spec is nowhere: the
+  // queue keeps two hundred jobs against an archive of about 150 specs
+  // per project, and `4-status.md` records no per-phase model at all. A
+  // disabled select would therefore show the CONFIGURED model on every
+  // archived row, which is a statement about a run that never happened.
+  if (isArchivedRow(g)) return "";
   const why = busy ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   const chosen = resolveChosenModel(models, configured, used);
@@ -2191,6 +2294,10 @@ function aiPicker(
   // about whichever tool an admin happened to list first.
   const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
   if (tools.length < 2) return "";
+  // Gone with the model select it fills in (spec 224): it says which AI
+  // the model beside it belongs to, and on a locked row there is no
+  // model beside it.
+  if (isArchivedRow(g)) return "";
   const why = busy ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   // The same answer `modelPicker` pre-fills its select with, from the
@@ -2234,6 +2341,10 @@ function aiPicker(
 // spec 157 moved the row's one button beside the state.
 function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
+  // The row is a record, not a control (spec 224). Read once here, like
+  // `busy` beside it, and consulted where a line would otherwise offer a
+  // press the server refuses.
+  const locked = isArchivedRow(g);
   // Row-level, all three: which phases a press would run and why the
   // row will not take a click. Row-level facts, so they are asked once
   // and consulted per phase — the same shape `busy` itself already had.
@@ -2254,7 +2365,10 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
   // state (spec 157), and the phase lines took the left edge it left
   // — which is where "left of the phases" always meant.
   const lines: { tag: string; cells: string }[] = [];
-  if ((opts.modelChoices ?? []).length) {
+  // A caption heads a control. A locked row draws no AI and no model
+  // select (spec 224), so "AI" and "Model" would stand over an empty
+  // cell — the same reason `aiPicker` draws nothing below two tools.
+  if (!locked && (opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
       cells: phaseCaptionCells(opts),
@@ -2277,10 +2391,15 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // subrow, open or shut, so the table's column layout never
       // depends on which rows happen to be open — that inconsistency
       // was the actual bug the first version of this control had.
-      const name =
-        `<label class="phasefold">` +
-        `<input type="checkbox" class="foldphase">` +
-        `<span class="foldchevron">${CHEVRON}</span>${nameLink}</label>`;
+      // Not on a locked row (spec 224): what this folds away is the
+      // `.aimodel` pair, and a locked line draws neither — so the
+      // chevron would be a control that hides nothing, and the one
+      // thing that may take a click on such a row is Reopen.
+      const name = locked
+        ? nameLink
+        : `<label class="phasefold">` +
+          `<input type="checkbox" class="foldphase">` +
+          `<span class="foldchevron">${CHEVRON}</span>${nameLink}</label>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
@@ -2314,7 +2433,30 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       // one phase already behind you. It carries no `name`, so no
       // press can ever post `steps=create` — a disabled input is not
       // submitted either, and this is the belt as well as the braces.
-      const box = QUEUE_STEPS.includes(p.step)
+      const box = locked
+        ? phaseChip({
+            dataAttr: "data-phase",
+            value: p.step,
+            label: "",
+            ariaLabel: `${stepLabel(p.step)} — this spec is archived`,
+            // Nothing to post and no form to post it to: `reopen` is the
+            // one step an archived spec may be asked for, and the row's
+            // Reopen carries it as a hidden field of its own.
+            name: "",
+            // What HAPPENED, not what a press would run next (spec 224).
+            // `preTicked` answers the second question — and for a spec
+            // whose workflow is over it always answers `{archive}`
+            // alone, which would tick the one step this row did not have
+            // and leave the ones it did unticked.
+            checked: g.done.includes(p.step),
+            disabled: true,
+            // Inert, not padlocked — the same reason spec 145 gives for
+            // a phase queued behind the running one: the tick says what
+            // there is to say, and a padlock on all four of them would
+            // be the row saying "archived" a fifth time.
+            plain: true,
+          })
+        : QUEUE_STEPS.includes(p.step)
         ? phaseChip({
             // `data-phase`, not `data-step`: the line already carries
             // `data-step`, and one attribute per question keeps a test
@@ -2516,67 +2658,6 @@ function reopenForm(g: SpecGroup, opts: QueuePageOptions): string {
   );
 }
 
-/** An archived spec's row: everything `/archive` showed, on the list
- *  that now holds it (spec 221) — the link to its own page, the date it
- *  was archived, what it cost, its description behind the same two-line
- *  clamp, spec 193's "not landed" mark, and Reopen.
- *
- *  A row of its own rather than a branch inside `specHeadRow`, because
- *  what it has to be is defined by what it must NOT draw: no fold (there
- *  is nothing under it to open), no pips (its workflow is over and its
- *  phases are on its own page), no model select, no tick box and no Run.
- *  Written as a branch, every one of those would be an `if` that a later
- *  change could get wrong in the direction that draws a control the
- *  server refuses.
- *
- *  The same five cells as every other row, in the same order: a row
- *  short of a cell the header still declares is what shifts a table's
- *  columns sideways. */
-function archivedHeadRow(g: SpecGroup, opts: QueuePageOptions, now: number): string {
-  const s = g.archive!;
-  // Beside the link a reader would follow, because the mark is a reason
-  // to follow it: the spec needs its `archive` run again.
-  // Spec 220 first: the two marks come from ONE fact — the branch is
-  // still on origin — and a project that reviews its code means that
-  // fact to be true. Reading `notLanded` first would call every working
-  // PR-mode archive stuck.
-  const mark = s.prOpen
-    ? ` ${prOpenMark(s)}`
-    : s.notLanded
-      ? ` ${badge("refused", NOT_LANDED, notLandedTitle(s.notLandedCheckedAt, now))}`
-      : "";
-  // "checking…" is a spec nobody has ASKED git about; `date unknown` is
-  // one git was asked about and could not date. Two different answers,
-  // and a cell saying the wrong one is a cell that lies about whether
-  // there is anything still to find out.
-  const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
-  // Blank, and deliberately not the dash the description uses or the
-  // words the date uses: a spec archived before spec 207 recorded
-  // nothing, and "nothing was recorded" is what an empty cell says.
-  const took =
-    s.durationMs === undefined
-      ? ""
-      : ` <span class="muted small archive-duration">${esc(durationLabel(s.durationMs))}</span>`;
-  return (
-    `<tr class="spechead run-archived" id="${esc(rowAnchorId(g))}" data-folder="${esc(g.specFolder)}">` +
-    `<td colspan="2"><div class="spec-name">` +
-    `<a class="label" data-goto href="${esc(s.href)}" ` +
-    `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-    `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>${mark}</div>` +
-    // The whole description, clamped by CSS rather than cut here, so
-    // nothing the reader can search for is missing from the markup.
-    `<div class="spec-title archive-desc">${esc(s.description ?? NO_DESCRIPTION)}</div></td>` +
-    `<td><span class="row">${badge("done", ARCHIVED_STATE)}` +
-    `<span class="actionslot">${reopenForm(g, opts)}</span></span></td>` +
-    `<td class="archive-date" data-col="started">${date}${took}</td>` +
-    // A dash, like every other row that has spent nothing: the queue's
-    // own record is long gone for all but the newest of these, and a
-    // figure for some of them would be a column whose blanks move about.
-    `<td class="num" data-col="cost">–</td>` +
-    `</tr>`
-  );
-}
-
 // A collapsed row OMITS its phase lines and its "more" line rather than
 // hiding them: the state is in the URL, so the server knows before it
 // draws. A `<details>` cannot do this — it breaks the table — and a
@@ -2594,9 +2675,15 @@ function groupRows(
 ): string {
   return groups
     .map((g) => {
-      // A record, and one line of one: it has no phases to open, no job
-      // to have refused anything, and nothing under it to fold.
-      if (isArchivedRow(g)) return archivedHeadRow(g, opts, now);
+      // An archived spec branched to a flat reader row of its own here
+      // until spec 224 — `archivedHeadRow`, a second row builder kept
+      // level with this one by hand, which had already drifted: no fold
+      // and no phase lines on its side alone. There is one builder now
+      // and `isArchivedRow` locks it, so the failure mode spec 193 met
+      // in the other direction — an archived spec drawn as a fully
+      // interactive row, offering a Run the server refuses — cannot be
+      // reached by forgetting a branch.
+      //
       // The panel belongs to the row, not to the phase lines: a
       // collapsed row is told what went wrong without being opened.
       const head = specHeadRow(g, opts, now, opened) + specNoticeRow(g, refusalFor(g, opts));

@@ -48,9 +48,17 @@ const OTHER = "05-the-other-project";
 
 /** Spec 207 added a second machine-written bullet to the same section.
  *  `ms` absent is a spec archived before that existed, which is the
- *  blank-cell case 1-description.md names by hand. */
-const stamp = (date: string, ms?: number) =>
+ *  blank-cell case 1-description.md names by hand.
+ *
+ *  `steps` is spec 224's addition: an archived row's phase lines say
+ *  what this line claims, and nothing else — the git-verified answer a
+ *  live row shows is never warmed for an archived spec
+ *  (`refreshSpecCaches`), so the file's own claim is the only source
+ *  such a row can afford. Absent writes no line at all, which is the
+ *  empty-done case. */
+const stamp = (date: string, ms?: number, steps?: string[]) =>
   `# Status\n\n## Tracking info\n\n` +
+  (steps === undefined ? "" : `- **Workflow steps completed:** ${steps.join(", ")}\n`) +
   (ms === undefined ? "" : `- **Time spent (ms):** \`${ms}\`\n`) +
   `- **Archived:** \`${date}\`\n`;
 
@@ -62,6 +70,11 @@ const STAMPED_MS = 4_530_000;
  *  reason the sort's null-sink cannot be a truthy check. */
 const ZERO_MS = 0;
 const OTHER_MS = 90_000;
+/** What STAMPED's own `4-status.md` claims it has had, and therefore
+ *  what its phase lines have to say. The two it does NOT name are the
+ *  other half of the same assertion. */
+const STAMPED_STEPS = ["create", "analyze"];
+const STAMPED_NOT_RUN = ["implement", "archive"];
 const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
 const described = (title: string, prose: string) =>
@@ -80,7 +93,9 @@ const LONG =
 const ARCHIVED = {
   [STAMPED]: {
     description: described("One page shows the whole spec", "Every spec file on one page."),
-    status: stamp("2026-08-13", STAMPED_MS),
+    // Two of the four steps, deliberately: the phase-line tests need one
+    // row that says "this happened" and "this did not" at the same time.
+    status: stamp("2026-08-13", STAMPED_MS, STAMPED_STEPS),
   },
   [UNSTAMPED]: {
     description: described("The push is branch only", `A run pushes a branch. ${LONG}`),
@@ -155,6 +170,50 @@ const rowFor = (html: string, folder: string): string => {
   const rows = html.split('<tr class="spechead').filter((r) => r.includes(`/${folder}"`));
   expect(rows.length).toBe(1);
   return rows[0]!.slice(0, rows[0]!.indexOf("</tr>"));
+};
+
+/** One spec's row AND everything drawn under it: its notice panel and,
+ *  on an open row, its phase lines. `rowFor` above stops at the head
+ *  row's own `</tr>`; this one runs to the next spec's head row, which
+ *  is what the phase-line assertions need (spec 224). */
+const blockFor = (html: string, folder: string): string => {
+  // On the head row's own `data-folder`, not on a link anywhere in it:
+  // an OPEN row puts its key in every other row's fold href, so a search
+  // for the folder name across the whole block finds all of them.
+  const blocks = html
+    .split('<tr class="spechead')
+    .filter((r) => r.slice(0, r.indexOf(">")).includes(`data-folder="${folder}"`));
+  expect(blocks.length).toBe(1);
+  return blocks[0]!;
+};
+
+/** The phase lines alone, one per step, keyed by the step they name. */
+const phaseLines = (html: string, folder: string): Record<string, string> => {
+  const lines: Record<string, string> = {};
+  for (const m of blockFor(html, folder).matchAll(
+    /<tr class="subrow" data-step="([^"]+)">([\s\S]*?)<\/tr>/g,
+  )) {
+    lines[m[1]!] = m[2]!;
+  }
+  return lines;
+};
+
+/** The row opened, the way the fold chevron opens it: the state is in
+ *  the query string, so the server knows before it draws. */
+const opened = (folder: string, project = "aide"): string => `&open=${project}/${folder}`;
+
+/** Every model the list may offer, so the "nothing on this row takes a
+ *  choice" assertions have something that WOULD have been drawn. Two
+ *  tools, because `aiPicker` draws nothing at all below two. */
+const TWO_TOOLS = {
+  budgetUsd: 5,
+  timeoutSec: { default: 1200 },
+  permissionMode: { default: "acceptEdits" },
+  model: { default: "sonnet" },
+  modelChoices: {
+    sonnet: { budgetUsd: 3 },
+    "codex-fast": { budgetUsd: 5, tool: "codex" },
+  },
 };
 
 /** Spec 208 moved WHEN origin is asked: the render reads whatever a
@@ -240,7 +299,7 @@ describe("an archived spec's row", () => {
   });
 
   test("draws no model select, no tick box and no Run (criterion 3)", async () => {
-    const html = await specsList(start().base, ARCHIVED_VIEW);
+    const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain("<select");
     expect(row).not.toContain('type="checkbox"');
@@ -248,12 +307,54 @@ describe("an archived spec's row", () => {
     // not carry one, nor the button that submits it.
     expect(row).not.toContain('class="rowrun"');
     expect(row).not.toContain("starting…");
-    // And no fold control, because there is nothing under it to open.
-    expect(row).not.toContain('class="fold');
+  });
+
+  // Spec 224 turned this line round. It read `not.toContain('class="fold')`
+  // until then, on the grounds that a reader row had nothing under it to
+  // open — and that was the whole of what made it a second kind of row.
+  test("has the fold chevron every other row has (spec 224)", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
+  });
+
+  test("carries the pip strip beside its name, like every other row", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(
+      '<span class="pipslot">',
+    );
+  });
+
+  // Criterion 7. `stateAction`'s ordinary branches name the phase a
+  // press would run; a locked row's one action is Reopen, open or shut.
+  test("offers no Analyze, Implement or Archive button, open or shut", async () => {
+    for (const query of [ARCHIVED_VIEW, `${ARCHIVED_VIEW}${opened(STAMPED)}`]) {
+      const block = blockFor(await specsList(start().base, query), STAMPED);
+      for (const label of ["Analyze", "Implement", "Archive"]) {
+        expect(block).not.toContain(`>${label}</button>`);
+      }
+      expect(block).toContain(">Reopen</button>");
+    }
   });
 
   test("says what it is, in the column that says what every row is", async () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(">archived<");
+  });
+
+  // Spec 224. `nextPhase` deletes `archive` from the done-set before it
+  // looks for what is missing — deliberately, for a row that is still on
+  // this list — so a FINISHED spec routed through it resolves to
+  // "archive" and its badge would read "ready". Ready for the step it
+  // has already had.
+  test("its badge never says the spec is ready for anything", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    expect(row).not.toContain(">ready<");
+  });
+
+  // `startedCell` reads `g.createdAt`, which an archived row has none
+  // of: routed through it unmodified the cell would be a bare dash.
+  test("its date and duration are in the column every row's date is in", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const cell = row.slice(row.indexOf('data-col="started"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("2026-08-13");
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("1h15m");
   });
 
   // The stamp only started being written at spec 147; the older half of
@@ -287,6 +388,116 @@ describe("an archived spec's row", () => {
 
   test("a spec with no description says so with a dash", async () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED)).toContain("—");
+  });
+});
+
+// --- spec 224: the same row, opened ----------------------------------------
+//
+// The row is the ordinary one with a lock on it, so opening it does
+// what opening any other row does: phase lines, in the workflow's own
+// order, saying what happened. What it must NOT do is offer a press —
+// every step but `reopen` is refused server-side for an archived spec
+// (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
+// control that should not be drawn.
+
+describe("an archived spec's row, opened", () => {
+  const openList = (query = "") =>
+    specsList(start({ queueDefaults: TWO_TOOLS }).base, `${ARCHIVED_VIEW}${opened(STAMPED)}${query}`);
+
+  test("shows a line for every phase, in the workflow's own order", async () => {
+    const steps = Object.keys(phaseLines(await openList(), STAMPED));
+    expect(steps).toEqual(["create", "analyze", "implement", "archive"]);
+  });
+
+  // The file's own claim, and only that: `refreshSpecCaches` never warms
+  // the git-verified answer for an archived spec, so there is no second
+  // source for such a row to read.
+  test("each line says what 4-status.md's own line claims happened", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of STAMPED_STEPS) expect(lines[step]).toContain(">done<");
+    for (const step of STAMPED_NOT_RUN) {
+      expect(lines[step]).not.toContain(">done<");
+      expect(lines[step]).toContain("not run yet");
+    }
+  });
+
+  // `preTicked` answers "what would a press run next", which for a
+  // finished spec is always `{archive}` alone — so routed through it a
+  // locked row would tick the one step it did not have and leave the two
+  // it did unticked. No press is offered, so the box says what happened.
+  test("each box is ticked by what happened, not by what a press would run", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of STAMPED_STEPS) expect(lines[step]).toContain(" checked");
+    for (const step of STAMPED_NOT_RUN) expect(lines[step]).not.toContain(" checked");
+  });
+
+  test("no box can be ticked, and none would post a step if it were", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    // A loop over nothing passes: the row has to HAVE its four lines
+    // before "none of them takes a tick" says anything at all.
+    expect(Object.keys(lines)).toHaveLength(4);
+    for (const [step, line] of Object.entries(lines)) {
+      const box = line.slice(line.indexOf(`data-phase="${step}"`));
+      expect(box.slice(0, box.indexOf("</label>"))).toContain(" disabled");
+      expect(box.slice(0, box.indexOf("</label>"))).not.toContain('name="steps"');
+    }
+  });
+
+  // Criterion 3: what a phase ran ON is in no file, and the queue keeps
+  // two hundred jobs against an archive of about 150 specs — so a
+  // pre-filled select here would name the CONFIGURED model, not the one
+  // that ran. The cell is blank for every archived row, uniformly.
+  test("offers no AI or model choice on any line (criteria 3, 4)", async () => {
+    const block = blockFor(await openList(), STAMPED);
+    expect(block).toContain('data-step="analyze"');
+    expect(block).not.toContain("<select");
+    // And no caption over controls that are not there.
+    expect(block).not.toContain('data-cap="model"');
+  });
+
+  test("its duration and cost cells are blank on every line (criterion 3)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    expect(Object.keys(lines)).toHaveLength(4);
+    for (const line of Object.values(lines)) {
+      expect(line).toContain('<td data-col="started"></td>');
+      expect(line).toContain('<td class="num" data-col="cost"></td>');
+    }
+  });
+
+  test("still carries no Run form when open (criterion 4)", async () => {
+    const block = blockFor(await openList(), STAMPED);
+    expect(block).toContain('data-step="analyze"');
+    expect(block).not.toContain('class="rowrun"');
+  });
+
+  // A live row is not touched by any of this (criterion 8). Opened the
+  // same way, in the same table, it keeps its selects and its tickable
+  // boxes.
+  test("a live spec opened beside it keeps every control it had", async () => {
+    const html = await specsList(
+      start({ queueDefaults: TWO_TOOLS }).base,
+      `${ALL_VIEW}${opened(LIVE)}`,
+    );
+    const block = blockFor(html, LIVE);
+    expect(block).toContain("<select");
+    expect(block).toContain('name="steps"');
+    expect(block).toContain('class="rowrun"');
+  });
+});
+
+// --- spec 224: a Reopen the server turns down --------------------------------
+
+describe("a failed Reopen", () => {
+  // The old flat row bypassed `specNoticeRow` altogether, so a refusal
+  // had nowhere on the list to be read. Routed through the shared row
+  // body, an archived row gets the panel every other row has.
+  test("says why, on the row it was pressed on", async () => {
+    const key = `aide/${STAMPED}`;
+    const html = await specsList(
+      start().base,
+      `${ARCHIVED_VIEW}&error=${encodeURIComponent("already reopened")}&errorSpec=${encodeURIComponent(key)}`,
+    );
+    expect(blockFor(html, STAMPED)).toContain("already reopened");
   });
 });
 
@@ -356,6 +567,18 @@ describe("an archived spec whose branch is still on origin", () => {
     const row = rowFor(html, STAMPED);
     expect(row).not.toContain('class="rowrun"');
     expect(row).toContain("Reopen");
+    // Spec 224: the same row means the same row OPEN too — the fold and
+    // the phase lines under it, not a second shape wearing the mark.
+    expect(row).toContain('class="fold');
+    expect(row).toContain(">archived<");
+    const open = await listUntil(base, "not landed", `${ARCHIVED_VIEW}${opened(STAMPED)}`);
+    expect(Object.keys(phaseLines(open, STAMPED))).toEqual([
+      "create",
+      "analyze",
+      "implement",
+      "archive",
+    ]);
+    expect(blockFor(open, STAMPED)).not.toContain('class="rowrun"');
   });
 
   // The exception the DEFAULT view keeps. "Not archived" is today's
@@ -539,6 +762,9 @@ describe("building the archived rows", () => {
     // makes it a gate rather than a filter over work already done.
     expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedAt(ref.dir)"));
     expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("specDurationMs(ref.dir)"));
+    // Spec 224 added a THIRD read behind the same gate: the phase lines
+    // a locked row now opens come off `4-status.md`'s own claim.
+    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedSteps(ref.dir)"));
   });
 
   test("and the gate answers for every chip there is", async () => {
