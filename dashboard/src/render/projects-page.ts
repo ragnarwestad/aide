@@ -109,6 +109,12 @@ export interface ProjectsPageOptions {
    *  on a configured project's behalf. */
   specsPath?: string;
   worktreeLinks?: string;
+  /** Whether this project's archived code merges into its default branch
+   *  or waits on a pull request (spec 220). The third field on the same
+   *  form, and the one whose answer is a policy rather than a path —
+   *  which is why it is a picker with two named options and not a text
+   *  box: there is no third answer to type. */
+  codeLanding?: "merge" | "pr";
   /** What each offered checkout's two fields would be, worked out by the
    *  server (spec 184): its own lockfile for the links, the other
    *  projects' layout for the specs root. An empty string is a proposal
@@ -334,6 +340,15 @@ export function renderAddProjectPage(
   });
 }
 
+/** The two answers to "what happens to this project's code when a spec
+ *  is archived" (spec 220), in the order the picker offers them: the
+ *  default first, and each with the sentence a reader needs to choose
+ *  without leaving the page. */
+const CODE_LANDINGS: { value: "merge" | "pr"; label: string }[] = [
+  { value: "merge", label: "Merge into the default branch" },
+  { value: "pr", label: "Leave it for a pull request" },
+];
+
 /** The Settings page (spec 184): the same two fields the Add form has,
  *  pre-filled with what the project is configured with, on a page a
  *  reader can reach at any time rather than only in the seconds after
@@ -354,9 +369,9 @@ export function renderProjectSettingsPage(
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     rowMessage(
       "info",
-      "The specs root is this machine's own and stays in .aide/config. The worktree links are the " +
-        "project's, on any machine, and are written to .aide/project.yaml — which is committed, so a " +
-        "clone on the next machine arrives already knowing them.",
+      "The specs root is this machine's own and stays in .aide/config. The worktree links and the " +
+        "code landing are the project's, on any machine, and are written to .aide/project.yaml — " +
+        "which is committed, so a clone on the next machine arrives already knowing them.",
       { tag: "p" },
     ) +
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" ` +
@@ -383,6 +398,19 @@ export function renderProjectSettingsPage(
             opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("") +
             `</datalist>`
           : ""),
+      { wide: true },
+    ) +
+    `</span>` +
+    `<span class="frow">` +
+    field(
+      "Code landing",
+      `<select name="codeLanding">` +
+        CODE_LANDINGS.map(
+          (o) =>
+            `<option value="${esc(o.value)}"` +
+            `${(opts.codeLanding ?? "merge") === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
+        ).join("") +
+        `</select>`,
       { wide: true },
     ) +
     `<span class="factions">` +

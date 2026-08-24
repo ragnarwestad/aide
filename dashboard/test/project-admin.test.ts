@@ -27,7 +27,7 @@ import {
 } from "../src/project-admin.ts";
 import type { GitRunner } from "../src/branch-status.ts";
 import { parseManifest } from "../src/parse-manifest.ts";
-import { configValue, resolveWorktreeLinks } from "../src/discover.ts";
+import { configValue, resolveCodeLanding, resolveWorktreeLinks } from "../src/discover.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const dirs: string[] = [];
@@ -1508,5 +1508,87 @@ describe("readiness answers for the checkout a run uses (spec 205)", () => {
     );
     expect(named(result, "defaultBranch").map((c) => c.subject)).toContain(person);
     expect(result.note).toContain("wip/mine");
+  });
+});
+
+// --- spec 220: merge the code, or open a pull request ------------------------
+//
+// Whether a project's archived code goes straight onto its default
+// branch or waits for a review is a TEAM policy, so it is read from the
+// committed manifest and from nowhere else. The worktree links have a
+// `.aide/config` fallback because they had a spelling to migrate from;
+// this has none, and giving it one would let a gitignored file on one
+// machine quietly overrule what the repo says.
+describe("where a project's code-landing choice is read from (spec 220)", () => {
+  const CASES: {
+    cases: { name: string; manifest: string | null; config: string | null; landing: "merge" | "pr" }[];
+  } = JSON.parse(
+    readFileSync(join(import.meta.dir, "../../tests/fixtures/code-landing-precedence.json"), "utf-8"),
+  );
+
+  /** The same table `aide-run-spec`'s own test iterates over, out of the
+   *  same file — the way `WORKFLOW_STEPS` and the worktree links are
+   *  pinned. The `push` column is the shell's alone: only the run has a
+   *  `--push` flag to default. */
+  for (const c of CASES.cases) {
+    test(`${c.name}: the landing resolves to "${c.landing}"`, () => {
+      const { dir } = checkoutFor(c.name.toLowerCase().replace(/[^a-z]/g, ""));
+      mkdirSync(join(dir, ".aide"), { recursive: true });
+      writeFileSync(
+        join(dir, ".aide", "project.yaml"),
+        `name: x\n${c.manifest ? `codeLanding: ${c.manifest}\n` : ""}`,
+      );
+      if (c.config) writeFileSync(join(dir, ".aide", "config"), `AIDE_CODE_LANDING=${c.config}\n`);
+      expect(resolveCodeLanding(dir)).toBe(c.landing);
+    });
+  }
+
+  test("a project with no manifest at all merges, as it always has", () => {
+    const { dir } = checkoutFor("nomanifest");
+    expect(resolveCodeLanding(dir)).toBe("merge");
+  });
+
+  test("an unparseable manifest merges rather than guessing", () => {
+    const { dir } = checkoutFor("brokenmanifest");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: [x\n  - broken\n");
+    expect(resolveCodeLanding(dir)).toBe("merge");
+  });
+});
+
+describe("saving the code-landing choice (spec 220)", () => {
+  /** The manifest is where it goes — never `.aide/config`, which is
+   *  gitignored: a policy nobody can read out of a fresh clone is not a
+   *  policy the project has. */
+  test("a save writes the manifest and leaves .aide/config alone", async () => {
+    const { dir } = checkoutFor("savespr");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\n");
+    await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "pr" });
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).toContain("codeLanding: pr");
+    expect(configValue(dir, "AIDE_CODE_LANDING")).toBeNull();
+    expect(resolveCodeLanding(dir)).toBe("pr");
+  });
+
+  test("saving it back to merge takes the key out again", async () => {
+    const { dir } = checkoutFor("savesmerge");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\ncodeLanding: pr\n");
+    await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "merge" });
+    // `merge` is the default, so the manifest says nothing rather than
+    // spelling out today's behaviour — the same shape an empty worktree
+    // links value leaves behind.
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
+    expect(resolveCodeLanding(dir)).toBe("merge");
+  });
+
+  test("a value neither side recognizes is refused, not written", async () => {
+    const { dir } = checkoutFor("savesgarbage");
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: x\n");
+    const result = await updateProjectSettings(fakeGit({}).run, dir, { codeLanding: "rebase" });
+    expect(result.ok).toBe(false);
+    expect(result.steps.some((s) => s.step === "codeLanding" && !s.ok)).toBe(true);
+    expect(readFileSync(join(dir, ".aide", "project.yaml"), "utf-8")).not.toContain("codeLanding");
   });
 });

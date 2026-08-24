@@ -70,6 +70,20 @@ export interface StepOutcome {
    *  only the singular neighbour is what left a two-repo job showing
    *  one link and one merge state for both. */
   branchUrls?: BranchRef[];
+  /** The pull request `--push pr` opened for this step's branch (spec
+   *  220). `aide-run-spec` has emitted it since spec 81 and nothing on
+   *  this side read it: the value was dropped the moment the result was
+   *  parsed, so there was no way to see from the dashboard that a
+   *  request had been opened at all. It matters now that a project can
+   *  ask for its code to be LEFT for one. */
+  prUrl?: string;
+  /** Why `gh` opened none. Its own field rather than `error`, because
+   *  the step still SUCCEEDED — `gh` on an unattended machine needs an
+   *  interactive re-auth only a person can do, and a run that failed
+   *  over it would throw away the work it had already done. Spec 220
+   *  gives that failure teeth: a project whose code is deliberately left
+   *  unmerged has nothing describing the branch when this is set. */
+  prError?: string;
   /** The branch this step's work is on. `aide-run-spec` has emitted it
    *  in every result since spec 81 and nothing read it until spec 93 —
    *  a create job's branch is named after a provisional key, so it
@@ -461,6 +475,12 @@ export class Runner {
           ? (job.spentTokens ?? 0) + (tokens?.total ?? 0)
           : undefined,
       branchUrl: outcome.branchUrl ?? job.branchUrl,
+      // Kept across steps the same way `branchUrl` is (spec 220): the
+      // request belongs to the CODE branch, which `implement` pushes and
+      // `archive` never touches, so the step that ends the job is not
+      // the step that opened it.
+      prUrl: outcome.prUrl ?? job.prUrl,
+      prError: outcome.prError ?? job.prError,
       // Accumulated BY ROOT, never replaced: a step that pushed to one
       // repo must not erase the repo an earlier step pushed to.
       branchUrls: mergeBranchRefs(job.branchUrls, outcome.branchUrls),

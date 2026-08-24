@@ -30,6 +30,22 @@ export interface ManifestData {
    *  reads the same line with one anchored `sed`, and the run's own
    *  refusal wording names this key when the value came from here. */
   worktreeLinks?: string;
+  /** Whether this project's archived CODE goes straight onto its default
+   *  branch, or waits for a pull request (spec 220). Absent means
+   *  `merge`, which is what every project did before this key existed.
+   *
+   *  Here rather than in `.aide/config` for a sharper reason than the
+   *  worktree links have: whether code is reviewed before it lands is a
+   *  TEAM policy, and `.aide/config` is dropped by a global ignore rule
+   *  — a policy a fresh clone cannot see is a policy the project does
+   *  not have. It has no `.aide/config` fallback at all, unlike
+   *  `worktreeLinks`, which has one only because it had an older
+   *  spelling to migrate from.
+   *
+   *  A value this does not recognize is left ABSENT rather than carried
+   *  through, so no reader downstream has to decide for itself what a
+   *  word it has never heard means. */
+  codeLanding?: "merge" | "pr";
 }
 
 export type ManifestResult =
@@ -95,6 +111,11 @@ export function parseManifest(text: string): ManifestResult {
   }
   if (r.docs != null) data.docs = toList(r.docs);
   if (r.worktreeLinks != null) data.worktreeLinks = toStr(r.worktreeLinks);
+  // The one field here that is VALIDATED rather than normalized: it is a
+  // two-value enum, and an unrecognized spelling has to fail toward the
+  // safe default the same way an absent key does.
+  const landing = toStr(r.codeLanding)?.trim();
+  if (landing === "merge" || landing === "pr") data.codeLanding = landing;
 
   return { ok: true, data };
 }

@@ -513,6 +513,17 @@ interface SpecGroup {
    *  the same thing by root when the Merge button posts back, and that
    *  one is the authority. Nothing here decides where git runs. */
   branches: BranchView[];
+  /** The pull request a `pr`-mode run opened for this spec's code branch
+   *  (spec 220), off the most recently active job that reported one. A
+   *  project whose code is reviewed archives with that branch still on
+   *  origin, deliberately and for as long as the review takes — so the
+   *  row has to say where the review IS, or a reader has no way to tell
+   *  it from a landing that got stuck. */
+  prUrl?: string;
+  /** Why `gh` opened none. The other half of the same answer, and the
+   *  more urgent one: this is a branch left unmerged with nothing
+   *  describing it, which no amount of waiting will resolve. */
+  prError?: string;
   phases: Phase[];
   /** Steps this spec has already had, from its matching target: what its
    *  own files show, and what the queue actually ran. Marked on the
@@ -710,6 +721,10 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
       ? all.reduce((sum, r) => sum + (r.spentTokens ?? 0), 0)
       : undefined,
     branches: branchesOf(recent),
+    // Newest-first, so the first job that reported one wins — the same
+    // rule `branchesOf` folds branch labels by.
+    prUrl: recent.find((r) => r.prUrl)?.prUrl,
+    prError: recent.find((r) => r.prError)?.prError,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of
     // money — and one figure per phase LINE, not per attempt: a phase
@@ -1450,6 +1465,16 @@ function specHeadRow(
   // whether it landed, and what lands it. What the row's lead job is
   // doing is the State column's answer, said there once.
   const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
+  // Spec 220: where the review is. Beside the branch list because it is
+  // about the same branch — the code is on it and stays on it until
+  // somebody merges the request. A `gh` that opened none says so
+  // instead, and says it as a refusal: an open branch with nothing
+  // describing it is the one outcome nobody is waiting for.
+  const review = g.prUrl
+    ? ` <a class="small" href="${esc(g.prUrl)}" title="the pull request this spec's code is waiting on">pull request</a>`
+    : g.prError
+      ? ` ${badge("refused", "no pull request", g.prError)}`
+      : "";
   // One pip per phase: green for a phase that has run, blue for the one
   // running now, grey for a phase still ahead. The whole workflow in six
   // millimetres, on the line you are already reading.
@@ -1528,6 +1553,7 @@ function specHeadRow(
     // the width the name needed, and clamping it to "124-…" told the
     // reader nothing (2026-08-19).
     diff +
+    review +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence

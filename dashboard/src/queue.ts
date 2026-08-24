@@ -217,6 +217,18 @@ export interface Job {
    *  on a job written before spec 89; the page falls back to
    *  `branchUrl` for those, which is the behaviour they already had. */
   branchUrls?: BranchRef[];
+  /** The pull request a `pr`-mode run opened for this job's code branch
+   *  (spec 220). Accumulated across steps like `branchUrl`: `implement`
+   *  pushes the code and opens the request, `archive` ends the job and
+   *  never touches the project root, so the two are not the same step.
+   *  Absent for every job on a project that merges its code, which is
+   *  every job there was before this spec. */
+  prUrl?: string;
+  /** Why `gh` opened none. Not an `error`: the step succeeded and the
+   *  code is on its branch — what is missing is the request describing
+   *  it, which for a project whose landing deliberately leaves that
+   *  branch open is exactly the thing a reader has to be told. */
+  prError?: string;
   stopReason?: StopReason;
   error?: string;
   /** The one machine-readable class of refusal: a merge that failed on a
@@ -893,6 +905,32 @@ export class QueueStore {
     let out: BranchRef[] = [];
     for (const job of mine) out = mergeBranchRefs(out, job.branchUrls);
     return out;
+  }
+
+  /** What a `pr`-mode run made of this spec's code branch (spec 220):
+   *  the pull request it opened, or why `gh` opened none — off the most
+   *  recent job that reported either.
+   *
+   *  Across the spec's JOBS, not within one, and that is the whole
+   *  reason it exists: `implement` pushes the code and opens the
+   *  request, `archive` ends the spec and never touches the project
+   *  root, so the job a reader is looking at is not the job that knows.
+   *
+   *  A sibling of `branchesFor` above and recent-first for the same
+   *  reason that one is oldest-first: that one FOLDS, so the last write
+   *  wins; this one picks, so the first hit has to be the newest. Empty
+   *  where no job remembers either — the queue keeps two hundred jobs
+   *  and the archive grows past that, so an old spec simply has no link,
+   *  which is a blank rather than a claim. */
+  pullRequestFor(project: string, specFolder: string): { prUrl?: string; prError?: string } {
+    const recency = (job: Job) => Date.parse(job.startedAt ?? job.createdAt) || 0;
+    const mine = [...this.jobs.values()]
+      .filter((j) => j.project === project && j.specFolder === specFolder)
+      .sort((a, b) => recency(b) - recency(a));
+    return {
+      prUrl: mine.find((j) => j.prUrl)?.prUrl,
+      prError: mine.find((j) => j.prError)?.prError,
+    };
   }
 
   get(id: string): Job | undefined {

@@ -4396,3 +4396,86 @@ def test_a_spec_that_has_never_been_reopened_counts_everything(
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
+
+
+# --- spec 220: merge the code, or open a pull request ------------------------
+#
+# The dashboard's global `push` setting applies to every project on the
+# host at once, so a team that reviews its code and a solo project that
+# does not could not both be served. The choice is the PROJECT's now, in
+# the committed manifest, and it forces `--push pr` — a landing left open
+# for review with no pull request describing it is worse than either
+# behaviour on its own. `tests/fixtures/code-landing-precedence.json` is
+# the table the dashboard's own test reads too.
+
+CODE_LANDING = json.loads(
+    (pathlib.Path(__file__).resolve().parents[4] / "fixtures" / "code-landing-precedence.json")
+    .read_text()
+)["cases"]
+
+
+def configure_code_landing(workspace, manifest, config):
+    """Write a case's two files. The `.aide/config` spelling is written
+    only so the run can be shown IGNORING it — unlike the worktree links,
+    this setting has no fallback there."""
+    project = workspace["project"]
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={workspace['specs']}\n"
+        + (f"AIDE_CODE_LANDING={config}\n" if config else "")
+    )
+    (project / ".aide" / "project.yaml").write_text(
+        "name: proj\n" + (f"codeLanding: {manifest}\n" if manifest else "")
+    )
+    git(project, "add", "-f", ".aide/config", ".aide/project.yaml")
+    git(project, "commit", "-q", "-m", "configure the code landing")
+
+
+@pytest.mark.parametrize("case", CODE_LANDING, ids=[c["name"] for c in CODE_LANDING])
+def test_the_code_landing_decides_the_default_push_mode(
+    runner, workspace, fake_claude, fake_gh, origin, case
+):
+    """The `push` column of the shared table: what a run with no `--push`
+    on its command line ends up using. `pr` in the manifest is the only
+    value that changes anything — every other spelling, and the absence
+    of the key, leaves the hand-run default of `none` exactly as it was.
+    """
+    configure_code_landing(workspace, case["manifest"], case["config"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _, err = run_with_gh(
+        runner, workspace, claude, fake_gh(), push=None, return_stderr=True
+    )
+    assert rc == 0, out
+    assert out["push"] == case["push"], f"{case['name']}: {err}"
+    if case["push"] == "pr":
+        # Said out loud, the way the worktree links report their source:
+        # a value that changes how a run publishes must not do it in
+        # silence.
+        assert "codeLanding" in err, err
+
+
+def test_a_typed_push_mode_beats_the_manifest(
+    runner, workspace, fake_claude, fake_gh, origin
+):
+    """The manifest supplies a DEFAULT, not an override. A person typing
+    `--push branch` at a terminal has said what they want, and a file
+    quietly overruling it is the shape of a run nobody can steer."""
+    configure_code_landing(workspace, "pr", None)
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh()
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push="branch")
+    assert rc == 0, out
+    assert out["push"] == "branch", out
+    assert not fake_gh.calls.exists(), "gh is only for `pr`"
+
+
+def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fake_gh, origin):
+    """The whole reason the default is forced rather than merely allowed:
+    without a pull request there is nothing for the dashboard to leave
+    open, so the two halves must travel together."""
+    configure_code_landing(workspace, "pr", None)
+    claude = writing_claude(fake_claude, workspace)
+    gh = fake_gh()
+    rc, out, _ = run_with_gh(runner, workspace, claude, gh, push=None)
+    assert rc == 0, out
+    assert fake_gh.calls.exists(), "a pr landing must open one"
+    assert out["prUrl"], out

@@ -36,6 +36,7 @@ export type ProjectStepName =
   | "manifest"
   | "specsConfig"
   | "worktreeLinks"
+  | "codeLanding"
   | "allowlist"
   | "confirm";
 
@@ -905,7 +906,14 @@ export async function addProject(
   return { ...done(), readiness: await assessProjectReadiness(run, dir) };
 }
 
-/** Change a project's two settings after it was added (spec 184).
+/** What a project may say about where its archived code goes (spec
+ *  220). Two values, not the runner's three: `none` is an operational
+ *  choice about whether this host publishes anything at all, and it
+ *  belongs to the machine's own queue config — this is the team's
+ *  question of whether code is reviewed before it lands. */
+const CODE_LANDINGS = ["merge", "pr"] as const;
+
+/** Change a project's three settings after it was added (spec 184).
  *
  *  Until this existed, the fields lived on the Add form and nowhere
  *  else: a project added with either left blank could only be fixed by
@@ -913,11 +921,13 @@ export async function addProject(
  *  terminal on the serving host and editing a file. The readiness check
  *  already named what was missing; this is the place to act on it.
  *
- *  The two settings go to two different files, and that split is the
+ *  The settings go to two different files, and that split is the
  *  point of the spec: the specs path names a directory on THIS machine
  *  and stays in the gitignored `.aide/config`, while the worktree links
  *  are true of the project on any machine and go in the committed
- *  manifest.
+ *  manifest. Spec 220's code-landing choice joins the manifest half for
+ *  a sharper version of the same reason — a review policy a fresh clone
+ *  cannot read is not a policy the project has.
  *
  *  A field whose submitted value MATCHES what is already stored is not
  *  written at all — that is what makes "change the specs path and leave
@@ -931,12 +941,19 @@ export async function addProject(
 export async function updateProjectSettings(
   run: GitRunner,
   projectDir: string,
-  req: { specsPath?: string; worktreeLinks?: string },
+  req: { specsPath?: string; worktreeLinks?: string; codeLanding?: string },
 ): Promise<ProjectAdminResult> {
   const links = (req.worktreeLinks ?? "").trim();
   if (links) {
     const linkError = worktreeLinksError(links);
     if (linkError) return fail("worktreeLinks", linkError);
+  }
+  // Before either file is opened, exactly like the links above: a value
+  // written and then refused by every reader is worse than one never
+  // written at all.
+  const landing = (req.codeLanding ?? "").trim();
+  if (landing && !(CODE_LANDINGS as readonly string[]).includes(landing)) {
+    return fail("codeLanding", `code landing must be ${CODE_LANDINGS.join(" or ")} — not "${landing}"`);
   }
   const steps: ProjectStep[] = [];
   const done = async (): Promise<ProjectAdminResult> => ({
@@ -991,6 +1008,31 @@ export async function updateProjectSettings(
     } catch (err) {
       steps.push({
         step: "worktreeLinks",
+        ok: false,
+        error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
+  // Spec 220, and the same rule again: compared against what the
+  // MANIFEST says, and written only when it differs. `merge` is the
+  // default, so choosing it takes the key OUT rather than spelling
+  // today's behaviour into every project's manifest — which is exactly
+  // what `upsertManifestScalar` does with an empty value.
+  const storedLanding = existsSync(manifest)
+    ? (() => {
+        const parsed = parseManifest(readFileSync(manifest, "utf-8"));
+        return parsed.ok ? (parsed.data.codeLanding ?? "") : "";
+      })()
+    : "";
+  const wanted = landing === "merge" ? "" : landing;
+  if (req.codeLanding !== undefined && wanted !== storedLanding) {
+    try {
+      upsertManifestScalar(manifest, "codeLanding", wanted);
+      steps.push({ step: "codeLanding", ok: true });
+    } catch (err) {
+      steps.push({
+        step: "codeLanding",
         ok: false,
         error: `could not write ${manifest}: ${err instanceof Error ? err.message : String(err)}`,
       });
