@@ -152,15 +152,17 @@ describe("the header and the two tabs (spec 119)", () => {
     }
   });
 
-  test("About and the theme buttons live inside the menu, nowhere else", () => {
+  test("Settings, About and the theme buttons live inside the menu, nowhere else", () => {
     for (const [path, html] of every) {
       const m = menu(html);
       expect([path, m.includes('href="about.html"')]).toEqual([path, true]);
+      expect([path, m.match(/href="\/settings"/g)?.length]).toEqual([path, 1]);
       expect([path, m.includes("data-theme-choice")]).toEqual([path, true]);
       const outside = html.replace(m, "");
       // The theme SCRIPT names the attribute too, and is not a control.
       const body = outside.slice(outside.indexOf("<body>"));
       expect([path, body.includes('href="about.html"')]).toEqual([path, false]);
+      expect([path, body.includes('href="/settings"')]).toEqual([path, false]);
       expect([path, body.includes("data-theme-choice")]).toEqual([path, false]);
     }
   });

@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
+import { parse as parseJsonc } from "jsonc-parser";
 import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, DEFAULT_TTL_MS,
@@ -50,7 +51,8 @@ import {
 import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
-  QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueProjects,
+  QueueStore, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects, persistQueueModelDefaults,
+  persistQueueProjects, WORKFLOW_STEPS,
   tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
@@ -89,6 +91,8 @@ import {
   renderAddProjectPage,
   renderProjectSettingsPage,
   renderRemoveProjectPage,
+  renderSettingsPage,
+  SETTINGS_ROUTE,
   ADD_PROJECT_ROUTE,
   computeSpecTotalDurationMs,
   projectSettingsRoute,
@@ -514,8 +518,9 @@ function bodyToObject(text: string, contentType: string | null): unknown {
     if (modelKeys.length) {
       const picked: Record<string, string> = {};
       for (const key of modelKeys) {
-        const value = params.get(key);
-        if (value) picked[key.slice("model.".length)] = value;
+        const values = params.getAll(key).filter(Boolean);
+        if (values.length === 1) picked[key.slice("model.".length)] = values[0]!;
+        else if (values.length > 1) (picked as Record<string, unknown>)[key.slice("model.".length)] = values;
         delete out[key];
       }
       if (Object.keys(picked).length) out.model = picked;
@@ -1903,6 +1908,7 @@ export function createServer(opts: ServerOptions) {
     // reason: it carries a real form, and a form's token has to be
     // checked per request.
     path === NEW_SPEC_ROUTE ||
+    path === SETTINGS_ROUTE ||
     path === "/queue" ||
     path === "/specs" ||
     path === "/api/queue" ||
@@ -3040,6 +3046,10 @@ export function createServer(opts: ServerOptions) {
         token: queueToken,
         createProjects: [...allowed].sort(),
         targets: withFreshness(targets()),
+        modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
+          name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+        })),
+        defaultModels: queue.defaults.model,
         script: queueClientScript(),
         // Why the last submission was refused, carried back here by the
         // create route's own redirect.
@@ -3053,6 +3063,19 @@ export function createServer(opts: ServerOptions) {
           `aide_token=${encodeURIComponent(queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
       }
       return new Response(html, { headers });
+    }
+
+    if (path === SETTINGS_ROUTE) {
+      if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+      return new Response(renderSettingsPage(nav(), new Date().toISOString(), {
+        modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
+          name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+        })),
+        defaultModels: queue.defaults.model,
+        script: queueClientScript(),
+        error: url.searchParams.get("error") ?? undefined,
+        notice: url.searchParams.get("notice") ?? undefined,
+      }), { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
     // The Add-project form on a page of its own, and the Remove
@@ -3306,6 +3329,40 @@ export function createServer(opts: ServerOptions) {
       }
       await tickRunner();
       return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect(raw, undefined, "/");
+    }
+
+    if (path === "/api/queue/settings") {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      let raw: unknown;
+      try { raw = bodyToObject(body.text, req.headers.get("content-type")); }
+      catch { return json({ error: "malformed body" }, 400); }
+      const asked = raw as Record<string, unknown> | null;
+      const models = asked?.model;
+      const refuse = (error: string) => wantsJson
+        ? json({ error }, 400)
+        : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?error=${encodeURIComponent(error)}` } });
+      if (!opts.queueConfigFile) return refuse("this server has no queue config file");
+      if (!models || typeof models !== "object" || Array.isArray(models)) return refuse("model defaults are missing");
+      const table = models as Record<string, unknown>;
+      const unknown = Object.keys(table).find((step) => !(WORKFLOW_STEPS as readonly string[]).includes(step));
+      if (unknown) return refuse(`unknown workflow step: ${unknown}`);
+      const next: Record<string, string> = {};
+      for (const step of WORKFLOW_STEPS) {
+        const value = table[step];
+        if (Array.isArray(value)) return refuse(`duplicate model value for ${step}`);
+        if (typeof value !== "string" || !value) return refuse(`missing model for ${step}`);
+        if (!queue.defaults.modelChoices?.[value]) return refuse(`unknown or not-allowed model for ${step}: ${value}`);
+        next[step] = value;
+      }
+      const merged = { ...queue.defaults.model, ...next };
+      const error = persistQueueModelDefaults(opts.queueConfigFile, next);
+      if (error) return refuse(error);
+      queue.defaults.model = merged;
+      return wantsJson
+        ? json({ ok: true, model: next })
+        : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?notice=${encodeURIComponent("Defaults saved")}` } });
     }
 
     // --- the project allowlist (spec 112) -----------------------------
@@ -4343,7 +4400,7 @@ export function parseArgs(argv: string[]): ServerOptions {
     // the tight ones. Failing towards "spends less" is the only safe
     // direction here.
     try {
-      const raw = JSON.parse(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
+      const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
       opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
       // The notify command is an argv ARRAY: it is run with no shell,
       // so a string would have to be split by someone, and that someone

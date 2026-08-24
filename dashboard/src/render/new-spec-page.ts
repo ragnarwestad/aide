@@ -128,13 +128,26 @@ export function dependsOnField(
 // up being CALLED is decided by `/aide-create` alone: nothing here, and
 // nothing in `aide-run-spec`, computes a spec number or a folder slug.
 function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
+  const models = opts.modelChoices ?? [];
+  const configured = opts.defaultModels?.create ?? opts.defaultModels?.default;
+  const chosen = models.length ? resolveChosenModel(models, configured, undefined) : undefined;
+  const chosenTool = models.find((model) => model.name === chosen)?.tool ?? "claude";
+  const tools = [...new Set(models.map((model) => model.tool ?? "claude"))];
+  const modelField = !models.length ? "" : field(
+    "AI / model",
+    (tools.length > 1 ? `<select data-ai="model.create" aria-label="AI for Create" form="new-spec-form">` +
+      tools.map((tool) => `<option value="${tool}" data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
+        `${tool === chosenTool ? " selected" : ""}>${esc(TOOL_NAMES[tool] ?? tool)}</option>`).join("") +
+      `</select>` : "") +
+      `<select name="model.create" form="new-spec-form">${modelOptions(models, chosen)}</select>`,
+  );
   // Three lines, read top to bottom (asked for 2026-08-19): Project and
   // Depends on side by side, Title on a line of its own, Description
   // right under it with Create and Cancel at its right-hand side. Each
   // `.frow` is a full-width row inside the same wrapping flex the Add
   // form shares, so the shared `.newspecform` look is untouched.
   return (
-    `<form method="post" action="/api/queue/create" class="newspecform">${tokenField(opts.token)}` +
+    `<form method="post" action="/api/queue/create" class="newspecform" id="new-spec-form">${tokenField(opts.token)}` +
     `<span class="frow">` +
     field(
       "Project",
@@ -142,8 +155,9 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
         projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
         `</select>`,
     ) +
-    dependsOnField(opts.targets ?? []) +
+    modelField +
     `</span>` +
+    dependsOnField(opts.targets ?? [], new Set(), { wide: true }) +
     field(
       "Title",
       `<input type="text" name="title" maxlength="120" required ` +

@@ -139,7 +139,7 @@ function pageHeader(): string {
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    `<div class="menupanel"><a href="about.html" data-about>About</a>${themeControl()}${unitControl()}</div>` +
+    `<div class="menupanel"><a href="/settings">Settings</a><a href="about.html" data-about>About</a>${themeControl()}${unitControl()}</div>` +
     `</details></header>`
   );
 }

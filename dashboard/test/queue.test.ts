@@ -8,8 +8,36 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   JOB_STATES, PHASE_STEPS, QueueStore, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
-  persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
+  persistQueueModelDefaults, persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
 } from "../src/queue.ts";
+
+describe("persistQueueModelDefaults", () => {
+  test("changes only owned step values in JSONC and keeps fallback, unknown entries and other text", () => {
+    const file = join(dir, "queue-config.json");
+    const before = `{
+  // keep this comment
+  "concurrency": 2,
+  "model": {
+    "default": "sonnet",
+    "future": "leave-me",
+    "analyze": "old"
+  }
+}\n`;
+    writeFileSync(file, before);
+    const models = Object.fromEntries(
+      ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, "codex-fast"]),
+    );
+
+    expect(persistQueueModelDefaults(file, models)).toBeNull();
+    const after = readFileSync(file, "utf-8");
+    expect(after).toContain("// keep this comment");
+    expect(after).toContain('"concurrency": 2');
+    expect(after).toContain('"default": "sonnet"');
+    expect(after).toContain('"future": "leave-me"');
+    for (const step of Object.keys(models)) expect(after).toContain(`"${step}": "codex-fast"`);
+    expect(existsSync(`${file}.tmp`)).toBe(false);
+  });
+});
 // The list of boxes the row DRAWS, read from the render side itself:
 // the two are hand-paired, the way `WORKFLOW_STEPS` is paired with the
 // bash copy in `aide-run-spec`, and a test that reads both is what

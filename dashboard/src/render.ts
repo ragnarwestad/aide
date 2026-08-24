@@ -48,6 +48,9 @@ export type { NewSpecPageOptions } from "./render/new-spec-page.ts";
 
 export type { NavEntry } from "./render/shell.ts";
 
+export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/settings-page.ts";
+export type { SettingsPageOptions } from "./render/settings-page.ts";
+
 // The five answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are
 // what `serve.ts` puts behind /manifest.webmanifest, /sw.js and the
@@ -93,5 +96,4 @@ export {
   specTabPath,
 } from "./render/spec-page.ts";
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
-
 

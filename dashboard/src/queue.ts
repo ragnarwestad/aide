@@ -13,6 +13,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { applyEdits, modify, parse } from "jsonc-parser";
 
 // `core/scripts/aide-run-spec` keeps the same list in a bash string with
 // no shared source between them; a python test (`test_aide_run_spec.py`)
@@ -739,6 +740,32 @@ export function persistQueueProjects(file: string, projects: string[]): string |
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
     writeFileSync(tmp, JSON.stringify(raw, null, 2));
+    renameSync(tmp, file);
+    return null;
+  } catch (err) {
+    return `could not write ${file}: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/** Atomically replace the dashboard-owned workflow defaults while leaving
+ * comments, formatting, the fallback and future model keys intact. */
+export function persistQueueModelDefaults(file: string, models: Record<string, string>): string | null {
+  try {
+    if (!existsSync(file)) return `could not write ${file}: file does not exist`;
+    let source = readFileSync(file, "utf-8");
+    const errors: { error: number; offset: number; length: number }[] = [];
+    const raw = parse(source, errors, { allowTrailingComma: true }) as unknown;
+    if (errors.length || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return `could not write ${file}: invalid JSONC configuration`;
+    }
+    for (const [step, model] of Object.entries(models)) {
+      source = applyEdits(source, modify(source, ["model", step], model, {
+        formattingOptions: { insertSpaces: true, tabSize: 2 },
+      }));
+    }
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.tmp`;
+    writeFileSync(tmp, source);
     renameSync(tmp, file);
     return null;
   } catch (err) {
