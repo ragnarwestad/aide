@@ -623,6 +623,14 @@ table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25r
 table.list tr.subrow .modelcell > .row > [data-cap="ai"],
 table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
 table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem; max-width: 100px; }
+/* The mobile fold control (design handoff, mobile-spec-row): a plain
+   inline wrapper on desktop, where the checkbox and chevron stay
+   invisible and every phase line keeps reading exactly as it did
+   before this control existed. The mobile media query below is what
+   gives the chevron a shape and the checkbox a job. */
+.phasefold { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.phasefold .foldphase { display: none; }
+.phasefold .foldchevron { display: none; }
 .empty { padding: var(--sp-5) var(--sp-3); }
 .listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
@@ -873,27 +881,124 @@ tr.spec-archived td { color: var(--muted); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
 
-  /* Started and Cost are not what a phone is for: the reader is
-     checking whether a run finished and pressing Run or Cancel, and
-     neither figure is needed to do either. Dropped rather than
-     squeezed — six columns in 390px is six unreadable ones. Hidden in
-     all three places the cells are written, or the ones left standing
-     hold two empty columns nothing lines up under. */
-  table.list [data-col="started"], table.list [data-col="cost"] { display: none; }
+  /* Started and Cost are not what a phone is for on a PHASE line: the
+     reader is checking whether a run finished and pressing Run or
+     Cancel, and neither figure is needed to do either. Dropped rather
+     than squeezed — six columns in 390px is six unreadable ones.
+     Scoped to tr.subrow, not every row: the spec's own header line
+     keeps its date/cost, folded onto line 2 with the badge and the
+     button instead (design handoff, mobile-spec-row). */
+  table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
 
-  /* An open row's phase line carries TWO real cells since spec 192 —
-     the name, then the AI select, the model select and the phase's box
-     together. Two selects and a name do not cross 375px side by side,
-     so each cell takes a line of its own: a block-level child of a
-     table row is wrapped in an anonymous cell, and two of them in a row
-     end up in the same one, stacked. The cells after them (the phase's
-     state word) stay real cells and keep their column. */
-  table.list tr.subrow .phasecell,
-  table.list tr.subrow .modelcell { display: block; width: 100%; }
-  /* And the three inside that one cell wrap as the model and the box
-     already did: each takes a line of its own rather than squeezing
-     into the width the stacked cell gives them. */
-  table.list tr.subrow .modelcell > .row { flex-wrap: wrap; }
+  /* The spec header line (design handoff, mobile-spec-row): the mock
+     puts the fold/name/pips alone on the first line and the badge, the
+     Archive button and the date/cost together on a second — one flex
+     row rather than four independent table cells, since a cell cannot
+     wrap around another cell's boundary. tr.spechead becomes the flex
+     container; each td is still a td, just laid out as a flex item
+     instead of a table cell. */
+  table.list tr.spechead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  table.list tr.spechead > td:first-child { flex: 1 1 100%; }
+  table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; }
+  /* The desktop rule (space-between, base stylesheet) spaces the badge
+     and the Archive button apart to fill a table column's own width —
+     a gap that ate into line 2's space here too, for the same reason
+     the auto-margin above did: reserved space a tight line cannot
+     spare. flex-start keeps them side by side with the ordinary gap. */
+  table.list tr.spechead > td > .row { justify-content: flex-start; }
+  /* .actionslot reserves 6.5rem (the widest label, "Implement") so the
+     button does not shift position between rows sharing a desktop
+     column. There is no such column on mobile — every row is its own
+     block — so a shorter label ("Archive") left that width standing
+     empty, which is what was still forcing Cost to wrap even after the
+     other two gaps were closed. */
+  table.list tr.spechead .actionslot { min-width: 0; }
+  /* Not margin-left:auto (removed): pushing date/cost hard to the right
+     reserves that gap even when the line is tight, which is what was
+     forcing Cost to wrap onto a third line despite there being room for
+     it if the gap were not reserved. Plain flow, sharing the row's own
+     gap like every other item on the line, fits all four. */
+  table.list tr.spechead [data-col="started"] { display: block; }
+  table.list tr.spechead [data-col="cost"]::before { content: "· "; }
+
+  /* .spec-name/.spec-title/.archive-desc carry a desktop alignment width
+     (27rem/27rem/34rem) with nothing overriding it below 40rem, so the
+     row was forced wider than the viewport even with Started/Cost
+     already hidden above. Freed here rather than changed at the source:
+     the fixed width is still what lines desktop rows up. */
+  .spec-name, .spec-title, .archive-desc { max-width: none; box-sizing: border-box; }
+
+  /* A long name gets two lines before it clamps to an ellipsis, instead
+     of one. The pips are their own flex item and do not wrap with it —
+     align-items reverts to the top so they sit against the name's
+     FIRST line, not centred against both. The chevron's own margin
+     plus the flex gap stacked into two lots of space between it and
+     the name; the margin is dropped here so only the (smaller) gap
+     remains. flex:1 on the label is not cosmetic: without it the label
+     kept its own intrinsic width and wrapped a line early, leaving the
+     space the auto-margin before the pips was not using empty instead
+     of given to the name. */
+  .spec-name { gap: var(--sp-1); }
+  .spec-name > .fold { margin-right: 0; }
+  /* One line, truncated with an ellipsis against the pips — same rule
+     the base (desktop) style already uses, restated here only for the
+     flex-basis: 0, not auto, is what actually gives the label the
+     row's free width instead of sizing to its own content first (the
+     bug behind the "half the row" width report). */
+  .spec-name > .label { flex: 1 1 0%; min-width: 0; }
+
+  /* No sortable column headings on mobile: "Spec/State/Started/Cost"
+     headed a column layout that is gone at this width (Started and
+     Cost are hidden, State moved onto the spec's own second line), and
+     the mock draws no heading row here at all. */
+  table.list thead { display: none; }
+
+  /* The "Phase | AI Model Select" caption row heads a desktop column
+     layout that no longer exists once a phase's own line carries the
+     chevron, the box and its state together: nothing on mobile stays
+     lined up under "AI" or "Model" until a row is opened, and "Select"
+     is already said inline on every collapsed line. The mock draws no
+     such row on mobile at all. */
+  table.list tr.subrow[data-caption="1"] { display: none; }
+
+  /* The fold control (design handoff, mobile-spec-row): reading the
+     list to check status should not carry the AI and model selects on
+     every line — that is information needed at SETUP, not at reading
+     time. .aimodel is collapsed by default and opened by the phase's
+     own checkbox via CSS :has(), so no client script is needed. The
+     chevron points right (rotated -90deg) closed and down (its drawn
+     orientation) open, matching the fold control on the spec row.
+     Collapsed, .phasecell and .modelcell stay ordinary table cells —
+     the modelcell holds only the tick box then, so chevron, name, box
+     and the state word all fit on the phase's one line. Only once
+     .aimodel actually shows does the row need the extra line, so THAT
+     is what forces .modelcell to its own full-width block, not the
+     phase being a subrow at all (that was the older, always-on rule
+     this replaces — it stacked the box under the name even when there
+     was nothing beside it to make room for). */
+  /* A fixed name column (5.3rem — enough for "implement", the longest)
+     so the chevron/Select/status starting point is the same x on all
+     four phase lines, whichever name is above it. */
+  table.list tr.subrow .phasefold { min-width: 5.3rem; }
+  table.list tr.subrow .phasefold { cursor: pointer; }
+  table.list tr.subrow .phasefold .foldchevron {
+    display: inline-flex; flex-shrink: 0; transform: rotate(-90deg);
+    transition: transform 0.15s;
+  }
+  /* flex-shrink:0 on the wrapping span is not enough on its own: the
+     span is itself a flex container with the SVG as its one child, and
+     a long name ("implement") pushing .phasefold past the fixed column
+     width shrank the SVG itself to a sliver (measured: 13x5px) unless
+     the shrink is refused on the SVG too. */
+  table.list tr.subrow .phasefold .foldchevron svg { flex-shrink: 0; }
+  table.list tr.subrow:has(.foldphase:checked) .phasefold .foldchevron { transform: rotate(0deg); }
+  table.list tr.subrow .modelcell .aimodel { display: none; }
+  table.list tr.subrow:has(.foldphase:checked) .modelcell .aimodel {
+    display: flex; gap: var(--sp-2);
+  }
+  table.list tr.subrow:has(.foldphase:checked) .modelcell .aimodel > * { flex: 1; }
+  table.list tr.subrow:has(.foldphase:checked) .modelcell { display: block; width: 100%; }
+  table.list tr.subrow:has(.foldphase:checked) .modelcell > .row { flex-wrap: wrap; }
   /* And the width the cell reserves on a desktop is given back.
      Reserving it here would put a floor into a 23rem screen and the
      table would scroll — the one thing spec 155 exists to prevent, and
