@@ -12,6 +12,7 @@
   - [Format](#format)
   - [Good examples](#good-examples)
 - [Pushing and push status](#pushing-and-push-status)
+  - [Exception: a spec just agreed on](#exception-a-spec-just-agreed-on)
 - [Summary](#summary)
 
 ---
@@ -164,6 +165,25 @@ state — uncommitted changes, what another session/person has or hasn't landed,
 content — requires running `git status`/`git log` in the same reply the claim is made.** Observations
 from earlier in the conversation are history, not current state.
 
+### Exception: a spec just agreed on
+**The moment the user and the AI agree the AI should create a spec (`/aide-create` or equivalent),
+commit AND push it immediately once the files are written — without being asked separately for either
+step.** This is the one standing exception to "never push unless the current request explicitly asks
+for it": agreeing that a spec should exist IS the request, for that spec's own creation commit only.
+
+Set 2026-08-25, after a spec (240) sat committed-but-unpushed in the specs repo and the user had to
+ask for the push by name right after asking for the commit — two separate asks for one obviously
+single action.
+
+- Applies ONLY to the spec's own creation commit, in the specs repo (or the project repo, when specs
+  live inside it). It does NOT extend to any other commit — implementation work, unrelated fixes,
+  anything else in the same session still follows the normal push rule above.
+- Still narrate what happened plainly (state the commit, state the push) — this exception waives
+  asking permission, not the reporting rules elsewhere in this file.
+- If the user says to create a spec but stops short of agreeing it should be created now (exploring,
+  drafting a description, unsure of the number), this does not fire — only an actual `/aide-create` or
+  hand-written 4-file creation the user has agreed to counts.
+
 ---
 
 ## Summary
@@ -173,5 +193,7 @@ from earlier in the conversation are history, not current state.
 2. ✅ Use `git mv` when renaming files (preserves history)
 3. ✅ Write commit messages in English, in the imperative mood
 4. ❌ Never push, and never mention push/deploy status — the user pushes from the IDE
+   — **except** a spec's own creation commit: commit AND push it right after writing the files,
+   the moment creating it is agreed on, with no separate ask for either step
 
 **This ALWAYS applies - in commands, agents, and normal interaction alike!**
