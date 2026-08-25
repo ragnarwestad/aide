@@ -28,6 +28,7 @@ import {
   type SpecPageView,
 } from "../src/render.ts";
 import type { JobDetailView } from "../src/render.ts";
+import { absTimeLabel } from "../src/render/html.ts";
 
 const NAV = [{ label: "Overview", path: "projects.html" }];
 const GENERATED = "2026-08-21T10:05:00Z";
@@ -101,7 +102,7 @@ describe("spec 212: Overview is the front page, not the four files", () => {
   test("every document is offered as a tab of its own", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["overview", "description", "analysis", "solution", "status", "activity", "steps"]) {
+    for (const tab of ["overview", "description", "analysis", "solution", "status", "steps"]) {
       expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
     }
   });
@@ -209,7 +210,7 @@ describe("spec 212: which tabs reload themselves", () => {
     });
   }
 
-  for (const tab of ["activity", "steps"]) {
+  for (const tab of ["steps"]) {
     test(`${tab} still reloads every ten seconds`, () => {
       expect(page(view(), tab)).toContain('<meta http-equiv="refresh" content="10">');
     });
@@ -231,15 +232,14 @@ describe("a spec with no job at all", () => {
     expect(page(view(), "description")).toContain("The dashboard never shows a spec.");
   });
 
-  test("its Activity and Steps tabs say what an empty job's tabs say", () => {
-    expect(page(view(), "activity")).toContain("Nothing has been captured");
+  test("its Steps tab says what an empty job's tab says", () => {
     expect(page(view(), "steps")).toContain("No step has finished yet");
   });
 
   test("its tabs are offered all the same — an empty tab is still a tab", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["overview", "description", "activity", "steps"]) {
+    for (const tab of ["overview", "description", "steps"]) {
       expect(html).toContain(`href="${base}?tab=${tab}"`);
     }
   });
@@ -253,8 +253,8 @@ describe("a spec with a lead job", () => {
     expect(html).not.toContain("not started");
   });
 
-  test("the Activity tab is the lead job's, word for word", () => {
-    const html = page(withLead({ activity: ["Bash ls"] }), "activity");
+  test("the Steps tab's running row is the lead job's, word for word", () => {
+    const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }), "steps");
     expect(html).toContain("Bash ls");
   });
 
@@ -274,13 +274,13 @@ describe("a spec with a lead job", () => {
   });
 
   test("the tab counts come from the lead job when nothing is selected, so a reader knows before clicking", () => {
-    const html = page(withLead({ activity: ["Bash ls", "Read x"] }));
-    expect(html).toMatch(/>Activity · 2</);
+    const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }));
+    expect(html).toMatch(/>Steps · 1</);
   });
 
   // The page is about the SPEC, so it opens on the spec — even while a
   // step is running. The job page keeps its own rule (a running job
-  // opens on the activity), because that page is about the run.
+  // opens on the steps tab), because that page is about the run.
   test("it opens on the Overview, running or not", () => {
     const html = page(withLead({ state: "running" }));
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
@@ -350,16 +350,21 @@ describe("the spec page is a page of this site like any other", () => {
   });
 });
 
-// The two pages share the tab bar, the activity block and the steps
-// table rather than each carrying a copy — `development.md` names the
-// two-copies-of-one-shape problem three times over (`WORKFLOW_STEPS`,
-// `DEPENDENCY_GATED_STEPS`, project readiness) as this repo's own
-// recurring cost, and a second tab bar would have been the fourth.
-// Byte-for-byte, so a change to one that is not a change to the other
-// is a failure here rather than a drift nobody sees.
-describe("the shared panels are the job page's own", () => {
+// The two pages share the tab bar and the steps table rather than each
+// carrying a copy — `development.md` names the two-copies-of-one-shape
+// problem three times over (`WORKFLOW_STEPS`, `DEPENDENCY_GATED_STEPS`,
+// project readiness) as this repo's own recurring cost, and a second
+// tab bar would have been the fourth.
+//
+// Since spec 240 `stepResults()` takes each caller's own `tabHref` (a
+// job's own id on the job page, the project/folder pair on the spec
+// page) so a step's expand link points back to the right page — so the
+// two panels are no longer byte-identical, the same way the tab bar's
+// own `basePath` never was. What stays shared is the FUNCTION and the
+// facts it renders from the same job data.
+describe("the steps panel renders through the job page's own function", () => {
   const job = lead({
-    activity: ["Bash ls", "Read x"],
+    runningStep: { step: "analyze", logs: ["Bash ls"] },
     results: [
       {
         step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
@@ -372,39 +377,39 @@ describe("the shared panels are the job page's own", () => {
   const panelOf = (html: string): string =>
     html.match(/<div class="tabpanel">([\s\S]*?)<\/div>\s*<\/main>/)?.[1] ?? "NO PANEL";
 
-  for (const tab of ["activity", "steps"] as const) {
-    test(`the ${tab} panel is identical on both pages`, () => {
-      const onSpec = panelOf(renderSpecPage(view({ lead: job }), GENERATED, NAV, { tab, now: NOW }));
-      const onJob = panelOf(renderJobDetailPage(job, GENERATED, NAV, { tab, now: NOW }));
-      expect(onSpec).not.toBe("NO PANEL");
-      expect(onSpec).toBe(onJob);
-    });
-  }
+  test("the same job's steps render the same facts on both pages", () => {
+    const onSpec = panelOf(renderSpecPage(view({ lead: job }), GENERATED, NAV, { tab: "steps", now: NOW }));
+    const onJob = panelOf(renderJobDetailPage(job, GENERATED, NAV, { tab: "steps", now: NOW }));
+    expect(onSpec).not.toBe("NO PANEL");
+    for (const fact of ["Bash ls", "$0.42", "analyze"]) {
+      expect(onSpec).toContain(fact);
+      expect(onJob).toContain(fact);
+    }
+  });
 
-  test("and so are the two empty states, for a spec no job has ever run", () => {
+  test("and so is the empty state, for a spec no job has ever run", () => {
     const empty = view();
-    // Not the extractor failing on both sides and agreeing about it.
     expect(panelOf(renderSpecPage(empty, GENERATED, NAV, { tab: "steps", now: NOW }))).toContain(
       "No step has finished yet",
     );
-    expect(panelOf(renderSpecPage(empty, GENERATED, NAV, { tab: "activity", now: NOW }))).toBe(
-      panelOf(renderJobDetailPage(lead({ activity: [] }), GENERATED, NAV, { tab: "activity", now: NOW })),
-    );
-    expect(panelOf(renderSpecPage(empty, GENERATED, NAV, { tab: "steps", now: NOW }))).toBe(
-      panelOf(renderJobDetailPage(lead(), GENERATED, NAV, { tab: "steps", now: NOW })),
+    expect(panelOf(renderJobDetailPage(lead(), GENERATED, NAV, { tab: "steps", now: NOW }))).toContain(
+      "No step has finished yet",
     );
   });
 });
 
-// --- spec 237: which attempt Activity and Steps are showing -----------------
+// --- spec 237/240: which attempt the Steps tab is showing --------------------
 //
 // A phase's line on the list used to link to the JOB that ran it, so an
 // older attempt was reachable by having been linked to. Since spec 237
 // the line opens this page's own tab instead, and the run a reader came
 // for has to be pickable HERE — otherwise the "2 attempts" the row has
-// counted since spec 86 is a number with nothing behind it.
+// counted since spec 86 is a number with nothing behind it. Since spec
+// 240 there is one tab, Steps, rather than Activity and Steps sharing
+// one hidden selection — the picker's own describe block name and every
+// test below drop the "activity" half accordingly.
 
-describe("spec 237: the attempt picker on Activity and Steps", () => {
+describe("spec 237/240: the attempt picker on Steps", () => {
   const attempt = (id: string, at: string, steps: string[] = ["analyze"]) => ({ id, steps, at });
   const TWO = [
     attempt("newer", "2026-08-21T09:00:00Z"),
@@ -412,31 +417,41 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
   ];
   const picker = (html: string): string =>
     html.match(/<span class="filters" data-filter="attempt">[\s\S]*?<\/a><\/span>/)?.[0] ?? "";
+  /** `n` dummy finished steps — enough to give the Steps tab's own count
+   *  a number to disagree with, without any of them meaning anything
+   *  else to the test. */
+  const dummyResults = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      step: "analyze", ok: true, costUsd: 0, costMeasured: true,
+      terminalReason: "completed", at: `2026-08-19T09:0${i}:00Z`,
+    }));
 
   test("a spec with one job ever run offers nothing to pick between", () => {
     const one = view({ lead: lead(), attempts: [attempt("newer", "2026-08-21T09:00:00Z")] });
-    for (const tab of ["activity", "steps"]) expect(picker(page(one, tab))).toBe("");
+    expect(picker(page(one, "steps"))).toBe("");
   });
 
   test("a spec no job has ever run offers nothing either", () => {
-    for (const tab of ["activity", "steps"]) expect(picker(page(view(), tab))).toBe("");
+    expect(picker(page(view(), "steps"))).toBe("");
   });
 
-  test("two attempts are offered on both tabs, newest first", () => {
-    for (const tab of ["activity", "steps"]) {
-      const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), tab));
-      expect(bar).toContain("Attempt");
-      expect(bar.indexOf("job=newer")).toBeLessThan(bar.indexOf("job=older"));
-    }
+  test("two attempts are offered on the steps tab, newest first", () => {
+    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
+    expect(bar).toContain("Attempt");
+    expect(bar.indexOf("job=newer")).toBeLessThan(bar.indexOf("job=older"));
   });
 
-  test("each pill's visible text is its relative time, and links to the open tab with its own job", () => {
+  test("each pill's visible text is its exact time, and links to the open tab with its own job", () => {
     const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
     expect(bar).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;job=older"');
-    // `NOW` is 2026-08-21T10:05:00Z: the newer ran 65 minutes before it,
-    // the older two days — the pill's VISIBLE text, not the step chain.
-    expect(bar).toContain("65 min ago");
-    expect(bar).toContain("2 d ago");
+    // The pill's VISIBLE text is the EXACT stamp (spec 240), not a
+    // relative one — relative time alone did not let a reader place or
+    // tell two attempts apart in practice. Computed through the same
+    // formatter the page itself uses, since it reads server-local time
+    // and hardcoding an offset here would tie the test to this
+    // machine's zone.
+    expect(bar).toContain(absTimeLabel("2026-08-21T09:00:00Z"));
+    expect(bar).toContain(absTimeLabel("2026-08-19T09:00:00Z"));
     // The step chain moved into a tooltip (spec 239): it is literally
     // the word the Steps table's own rows use one panel down, and
     // nothing told a reader which of the two was naming an attempt and
@@ -474,32 +489,35 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
 
   test("the tab counts follow the selected attempt, not the lead (problem 1)", () => {
     const v = view({
-      lead: lead({ id: "newer", state: "running", activity: ["Bash 1", "Bash 2", "Bash 3", "Bash 4", "Bash 5"] }),
+      lead: lead({ id: "newer", state: "running", results: dummyResults(5) }),
       selected: lead({
         id: "older",
         state: "failed",
-        activity: ["Bash a", "Bash b"],
+        results: dummyResults(2),
       }),
       attempts: TWO,
     });
-    const html = page(v, "activity");
-    expect(html).toMatch(/>Activity · 2</);
-    expect(html).not.toMatch(/>Activity · 5</);
+    const html = page(v, "steps");
+    expect(html).toMatch(/>Steps · 2</);
+    expect(html).not.toMatch(/>Steps · 5</);
   });
 
   test("with nothing picked, the lead is the one marked", () => {
-    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "activity"));
+    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
     expect(bar).toMatch(/job=newer"\s+aria-current="true"/);
     expect(bar).not.toMatch(/job=older"\s+aria-current="true"/);
   });
 
-  test("the picked attempt is what Activity and Steps show, and it is the one marked", () => {
+  test("the picked attempt is what the Steps tab shows, and it is the one marked", () => {
     const v = view({
-      lead: lead({ id: "newer", state: "running", activity: ["Bash lead-ran-this"] }),
+      lead: lead({
+        id: "newer", state: "running",
+        runningStep: { step: "analyze", logs: ["Bash lead-ran-this"] },
+      }),
       selected: lead({
         id: "older",
         state: "failed",
-        activity: ["Bash older-ran-this"],
+        runningStep: { step: "analyze", logs: ["Bash older-ran-this"] },
         results: [
           {
             step: "analyze", ok: false, costUsd: 0.11, costMeasured: true,
@@ -509,11 +527,11 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
       }),
       attempts: TWO,
     });
-    const activity = page(v, "activity");
-    expect(activity).toContain("Bash older-ran-this");
-    expect(activity).not.toContain("Bash lead-ran-this");
-    expect(picker(activity)).toMatch(/job=older"\s+aria-current="true"/);
-    expect(page(v, "steps")).toContain("$0.11");
+    const html = page(v, "steps");
+    expect(html).toContain("Bash older-ran-this");
+    expect(html).not.toContain("Bash lead-ran-this");
+    expect(picker(html)).toMatch(/job=older"\s+aria-current="true"/);
+    expect(html).toContain("$0.11");
   });
 
   // The chip says what the SPEC is doing right now. Reading an older
@@ -527,13 +545,13 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
     });
     // The spec's own banner, not the shell's title line above it: from
     // the last `.pagehead` on the page down to the tab bar.
-    const html = page(v, "activity");
+    const html = page(v, "steps");
     const banner = html.slice(html.lastIndexOf('<div class="pagehead">'), html.indexOf("<nav class=\"tabbar subtabs\""));
     expect(banner).toContain("running");
     expect(banner).not.toContain("failed");
   });
 
-  test("no picker is drawn on any other tab — it is these two panels' control", () => {
+  test("no picker is drawn on any other tab — it is this panel's control", () => {
     const v = view({ lead: lead({ id: "newer" }), attempts: TWO });
     for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
       expect([tab, picker(page(v, tab))]).toEqual([tab, ""]);
@@ -952,14 +970,12 @@ describe("the checks block (specs 182, 188, 212)", () => {
   });
 
   // Spec 212: the Overview PANEL, not the banner. A form that rode the
-  // banner onto Activity would be wiped by that tab's ten-second
-  // reload halfway through being ticked.
+  // banner onto Steps would be wiped by that tab's ten-second reload
+  // halfway through being ticked.
   test("it is on Overview, and on no tab that reloads itself", () => {
     expect(page(withChecks())).toContain("Manual check at 375px in a real browser");
-    for (const tab of ["activity", "steps"]) {
-      const html = page(withChecks(), tab);
-      expect([tab, html.includes("Manual check at 375px in a real browser")]).toEqual([tab, false]);
-    }
+    const html = page(withChecks(), "steps");
+    expect(html.includes("Manual check at 375px in a real browser")).toBe(false);
   });
 
   test("the unticked ones are told apart from the done ones in the markup", () => {

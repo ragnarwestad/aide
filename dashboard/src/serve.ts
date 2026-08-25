@@ -3790,7 +3790,10 @@ export function createServer(opts: ServerOptions) {
         },
         new Date().toISOString(),
         nav(),
-        { tab: url.searchParams.get("tab") ?? undefined },
+        {
+          tab: url.searchParams.get("tab") ?? undefined,
+          step: url.searchParams.get("step") ?? undefined,
+        },
       );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
@@ -4050,6 +4053,7 @@ export function createServer(opts: ServerOptions) {
       if (api) return json({ generatedAt: new Date().toISOString(), job });
       const html = renderJobDetailPage(await jobDetailView(job), new Date().toISOString(), nav(), {
         tab: url.searchParams.get("tab") ?? undefined,
+        step: url.searchParams.get("step") ?? undefined,
       });
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
@@ -4369,9 +4373,6 @@ export function createServer(opts: ServerOptions) {
 
   async function jobDetailView(job: Job): Promise<JobDetailView> {
     const target = targets().find((t) => t.project === job.project && t.specFolder === job.specFolder);
-    // The step running now, or failing that the last one that ran: a
-    // reader opening a finished job still wants to see what it did.
-    const streamFile = job.streamFile ?? job.results[job.results.length - 1]?.streamFile;
     // Which CLI this page is about (spec 125). A running step's tool is
     // not recorded anywhere yet — the result file that would carry it is
     // written when the step ENDS — so it is resolved the same way the
@@ -4384,11 +4385,9 @@ export function createServer(opts: ServerOptions) {
       : job.results[job.results.length - 1]?.tool;
     const tool = named ?? "claude";
     // What this job's step WROTE (spec 150). The step running now, or
-    // failing that the last one that ran — the same choice `streamFile`
-    // above makes, so the file shown and the transcript shown are about
-    // the same step. Read off disk, uncached and ungitted: this page
-    // says what the phase produced, and which VERSION of it is the spec
-    // page's question.
+    // failing that the last one that ran — read off disk, uncached and
+    // ungitted: this page says what the phase produced, and which
+    // VERSION of it is the spec page's question.
     const shownStep = step ?? job.steps[job.steps.length - 1];
     const dir = specDir(job.project, job.specFolder);
     const phase = dir && shownStep ? specPhaseFile(dir, shownStep) : null;
@@ -4397,15 +4396,26 @@ export function createServer(opts: ServerOptions) {
       tool,
       title: target?.title,
       finishedAt: job.finishedAt,
-      results: job.results.map((r) => ({ ...r, tokens: r.tokens?.total })),
+      // Each finished step's OWN transcript (spec 240), read from its
+      // own `streamFile` rather than the job's last one — a three-step
+      // attempt used to make only its last step's log reachable at all.
+      results: job.results.map((r) => ({
+        ...r,
+        tokens: r.tokens?.total,
+        logs: r.streamFile ? summarizeStream(tailFile(r.streamFile), { tool: r.tool ?? named }) : undefined,
+      })),
       phase: phase ?? undefined,
-      // `named`, not `tool`: defaulting to claude here would be a claim,
-      // and a wrong one blanks the list rather than degrading it — the
-      // Claude parser finds nothing at all in a Codex transcript. With
-      // nothing recorded (a config entry since removed, a job older
-      // than the field) the parser recognises the schema itself, which
-      // is exact either way.
-      activity: streamFile ? summarizeStream(tailFile(streamFile), { tool: named }) : [],
+      // The step running RIGHT NOW, when one is: it has no `StepResult`
+      // yet, so it cannot ride along in `results` above, and its
+      // transcript is the job's own live pointer.
+      runningStep:
+        running && step
+          ? {
+              step,
+              sessionId: job.sessionId,
+              logs: job.streamFile ? summarizeStream(tailFile(job.streamFile), { tool: named }) : [],
+            }
+          : undefined,
       archiveHeldBack: target?.archiveHeldBack?.reason,
     };
   }

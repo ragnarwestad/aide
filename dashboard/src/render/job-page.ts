@@ -4,16 +4,17 @@
 // one they came for.
 //
 // It is also where the tabbed-page machinery LIVES: the tab bar, the
-// activity block, the steps table, the file panel and the frame around
-// them are exported, and `spec-page.ts` calls the same functions rather
-// than carrying copies (spec 150). `development.md` names the
-// two-copies-of-one-shape problem three times over as this repo's own
-// recurring cost; a second tab bar would have been the fourth.
+// steps table (each row expanding to its own log, spec 240), the file
+// panel and the frame around them are exported, and `spec-page.ts`
+// calls the same functions rather than carrying copies (spec 150).
+// `development.md` names the two-copies-of-one-shape problem three
+// times over as this repo's own recurring cost; a second tab bar would
+// have been the fourth.
 
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
-import { CHECKING, pips, rowMessage, stepLabel, type PipKind } from "./components.ts";
+import { CHECKING, pips, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -32,6 +33,11 @@ export interface JobStepResultView {
   subtype?: string;
   sessionId?: string;
   at: string;
+  /** This step's OWN transcript, already-escaped (spec 240) — read from
+   *  its own `streamFile` (`queue.ts:143`), never the job's live
+   *  pointer. Absent when the step wrote no transcript of its own (a
+   *  refused run, or one older than the field existing). */
+  logs?: string[];
 }
 
 /** A spec's own file, or one section of one, as it stands on disk
@@ -76,12 +82,15 @@ export interface JobDetailView extends QueueRowView {
    *  outcome. Absent for a step that writes no file of its own — the
    *  page then shows its three facts and nothing else. */
   phase?: SpecFileView;
-  /** Already-escaped lines from `parse-stream.ts`. */
-  activity?: string[];
   /** Why the spec's archive run did not move the folder (spec 108).
    *  Read off the SPEC's `4-status.md`, exactly as the list's row reads
    *  it, so the two pages cannot word the same fact differently. */
   archiveHeldBack?: string;
+  /** The step running RIGHT NOW, when one is (spec 240). It has no
+   *  `JobStepResultView` yet — a step only gets one when it ends — so
+   *  it cannot live in `results`, and its transcript is the job's own
+   *  live pointer, not a finished step's file. */
+  runningStep?: { step: string; sessionId?: string; logs: string[] };
 }
 
 /** A heading that says "Cost" above a column of token counts is the
@@ -115,21 +124,72 @@ function outcome(r: JobStepResultView, archiveHeldBack?: string): string {
   return r.ok ? "ok" : esc(r.terminalReason || "failed");
 }
 
+/** Which row a Steps tab has open, from the raw `step=` query value and
+ *  whether a step is running right now (spec 240). `"none"` is an
+ *  explicit close — the one value a click actually sends to collapse a
+ *  row that defaulted open — and is kept apart from "absent": nothing
+ *  in the URL defaults to the running row when there is one, exactly
+ *  the behaviour `activityPanel` gave a live job before it existed. This
+ *  is what survives the page's own 10-second reload: the open row is a
+ *  property of the URL, never of a client-only widget (`queue-list.ts`'s
+ *  row-fold already rejected `<details>` for the identical reason). */
+export function resolveOpenStep(query: string | undefined, hasRunning: boolean): string | undefined {
+  if (query === "none") return undefined;
+  if (query !== undefined) return query;
+  return hasRunning ? "live" : undefined;
+}
+
+/** What a step row's expanded panel shows: its own transcript, or —
+ *  when it has none — why not. Subsumes `activityPanel`'s one sentence
+ *  for a run the runner refused before it started; every other note
+ *  that function carried is already said elsewhere (`job.error` in the
+ *  banner, `archiveHeldBack` in this same row's Outcome cell). */
+function stepLogPanel(logs: string[] | undefined, terminalReason: string): string {
+  if (logs && logs.length > 0) return `<pre class="specfile">${logs.join("\n")}</pre>`;
+  if (terminalReason === "refused") {
+    return (
+      `<p class="muted">This step was refused before it started, so nothing ran and ` +
+      `no transcript exists.</p>`
+    );
+  }
+  return `<p class="muted">Nothing has been captured from this step.</p>`;
+}
+
 /** Exported since spec 150: the SPEC page's Steps tab is the lead job's
  *  own, and two copies of this table would be a fourth instance of the
  *  hand-paired-lists problem `development.md` already names three times
  *  over. A spec with no job at all renders through the same empty case
- *  an empty job does. */
-export function stepResults(results: JobStepResultView[], archiveHeldBack?: string): string {
+ *  an empty job does.
+ *
+ *  Since spec 240 this is also where the Activity tab's one job lives:
+ *  each row expands to ITS OWN transcript (`r.logs`, read from that
+ *  step's own `streamFile` rather than the job's last one), and a step
+ *  currently running gets a row of its own — `opts.runningStep` — since
+ *  it has no `JobStepResultView` yet. `opts.tabHref` is absent only for
+ *  a caller that wants the bare table with no expand control at all
+ *  (`responsive.test.ts`'s wrap check, which asserts markup nothing
+ *  here changes). */
+export function stepResults(
+  results: JobStepResultView[],
+  archiveHeldBack?: string,
+  opts: { tabHref?: string; openStep?: string; runningStep?: JobDetailView["runningStep"] } = {},
+): string {
   // The list shows one line per SPEC, and attributes a job to the single
   // step it is on — so a three-step job's finished steps are invisible
   // there, even though every one of them is recorded with its cost, its
   // session and how it ended.
-  if (results.length === 0) return `<p class="muted">No step has finished yet.</p>`;
+  if (results.length === 0 && !opts.runningStep) return `<p class="muted">No step has finished yet.</p>`;
+  const open = resolveOpenStep(opts.openStep, !!opts.runningStep);
+  const stepCell = (label: string, key: string, isOpen: boolean): string =>
+    opts.tabHref
+      ? `<a class="steplink" data-nav href="${opts.tabHref}&step=${isOpen ? "none" : esc(key)}">${esc(label)}</a>`
+      : esc(label);
   const rows = results
-    .map(
-      (r) =>
-        `<tr><td>${esc(r.step ? stepLabel(r.step) : "–")}</td>` +
+    .map((r, i) => {
+      const key = String(i);
+      const isOpen = open === key;
+      const main =
+        `<tr><td>${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
@@ -139,23 +199,40 @@ export function stepResults(results: JobStepResultView[], archiveHeldBack?: stri
         `${r.tool === "codex" || r.costMeasured ? "" : ' <span class="muted small">est.</span>'}</td>` +
         `<td>${esc(r.terminalReason)}</td>` +
         `<td class="muted small">${esc(r.sessionId ? r.sessionId.slice(0, 8) : "–")}</td>` +
-        `<td class="muted small">${esc(r.at)}</td></tr>`,
-    )
+        `<td class="muted small">${esc(r.at)}</td></tr>`;
+      const log = isOpen
+        ? `<tr class="steplog"><td colspan="6">${stepLogPanel(r.logs, r.terminalReason)}</td></tr>`
+        : "";
+      return main + log;
+    })
     .join("");
+  const runningRow = ((): string => {
+    if (!opts.runningStep) return "";
+    const isOpen = open === "live";
+    const main =
+      `<tr><td>${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
+      `<td>running</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
+      `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
+      `<td class="muted small">–</td></tr>`;
+    const log = isOpen
+      ? `<tr class="steplog"><td colspan="6">${stepLogPanel(opts.runningStep.logs, "")}</td></tr>`
+      : "";
+    return main + log;
+  })();
   // Six columns of names, figures and timestamps: wider than a phone
   // whatever it is told, so the box scrolls rather than the page
   // (spec 155). The spec page's Steps tab is this same table.
   return (
     `<div class="tablewrap"><table><thead><tr><th>Step</th><th>Outcome</th>` +
     `<th class="num">${unitLabel("Cost", "Tokens")}</th>` +
-    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    `<th>Ended as</th><th>Session</th><th>At</th></tr></thead><tbody>${rows}${runningRow}</tbody></table></div>`
   );
 }
 
 // The page's tabs. The choice lives in the URL, not in script: the page
 // reloads itself every 10 seconds, and a tab held only in memory would
 // snap back to the first one on every reload.
-export const JOB_TABS = ["overview", "activity", "steps"] as const;
+export const JOB_TABS = ["overview", "steps"] as const;
 export type JobTab = (typeof JOB_TABS)[number];
 
 /** A tab name off the query string, or the fallback. Exported with
@@ -262,63 +339,20 @@ export function fileStamp(file: SpecFileView, now: number): string {
   return file.checking ? ` <span class="muted small">${CHECKING}</span>` : "";
 }
 
-/** What the run has been doing, or why there is nothing to show. Takes
- *  the four fields it actually reads, so the spec page can pass its lead
- *  job — or, for a spec nothing has ever run, the empty shape that
- *  produces exactly the message an empty job's tab already shows. */
-export function activityPanel(job: {
-  activity?: string[];
-  results: JobStepResultView[];
-  error?: string;
-  archiveHeldBack?: string;
-}): string {
-  // A run the runner REFUSED never started claude, so there is no
-  // transcript and never will be. "Nothing has been captured" reads as
-  // a lost transcript; the reader opened this tab to find out what
-  // happened, so say what happened.
-  const refused = job.results.some((r) => r.terminalReason === "refused");
-  // Spec 143: whatever the row's panel says about this job is said here
-  // too, at the end of what the run did — the phase's own page is where
-  // a reader goes to find out what that phase did, and the transcript
-  // otherwise ends mid-air with no word of why.
-  //
-  // The held-back note is the SPEC's, not the job's, so it is shown
-  // only on a job that actually ran `archive` — the same gate the Steps
-  // tab already applies (`outcome`). A spec whose archive has never
-  // been attempted has no job and so no page to write it into; the
-  // row's panel is the only place it appears.
-  const archiveNotice = job.results.some((r) => r.step === "archive") ? job.archiveHeldBack : undefined;
-  const trailingNotice = job.error ?? archiveNotice;
-  const streamed = !!job.activity && job.activity.length > 0;
-  return streamed || refused || trailingNotice
-    ? (streamed
-        ? `<ul class="activity">${job.activity!.map((a) => `<li>${a}</li>`).join("")}</ul>`
-        : refused
-          ? `<p class="muted">This run was refused before it started, so nothing ran and ` +
-            `no transcript exists.</p>`
-          : "") +
-        // Not when the transcript's own last line already said it — the
-        // summarizer reads the run, and a run that ends by reporting
-        // its own refusal would otherwise say it twice.
-        (trailingNotice && job.activity?.at(-1) !== trailingNotice
-          ? rowMessage("err", trailingNotice, { hook: "refusal", tag: "p" })
-          : "")
-    : `<p class="muted">Nothing has been captured from this run yet.</p>`;
-}
-
 // Server-rendered in the site's layout. Poll-and-refresh like every
 // other page here — no new transport for one panel.
 export function renderJobDetailPage(
   job: JobDetailView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; now?: number } = {},
+  opts: { tab?: string; step?: string; now?: number } = {},
 ): string {
   const now = opts.now ?? Date.now();
   // While a step is running, what it is DOING is what the page was
   // opened for; a job that has stopped has nothing running, so its
-  // facts open instead.
-  const tab = pickTab(JOB_TABS, opts.tab, job.state === "running" ? "activity" : "overview");
+  // facts open instead. Activity is gone (spec 240) — Steps is the one
+  // tab left that shows a live step.
+  const tab = pickTab(JOB_TABS, opts.tab, job.state === "running" ? "steps" : "overview");
   const progress = pips(
     job.steps.map((s, i) => ({
       kind: (i < job.stepIndex ? "past" : i === job.stepIndex ? "now" : "todo") as PipKind,
@@ -378,18 +412,20 @@ export function renderJobDetailPage(
     // `## Description` prose every other page showed.
     (job.phase ? specFilePanel(job.phase, now) : "");
 
+  const tabHref = `/specs/${esc(job.id)}?tab=steps`;
   const panel =
-    tab === "activity"
-      ? activityPanel(job)
-      : tab === "steps"
-        ? stepResults(job.results, job.archiveHeldBack)
-        : head;
+    tab === "steps"
+      ? stepResults(job.results, job.archiveHeldBack, {
+          tabHref,
+          openStep: opts.step,
+          runningStep: job.runningStep,
+        })
+      : head;
 
   const body = tabbedBody(
     banner,
     tabBar(JOB_TABS, `/specs/${esc(job.id)}`, tab, {
-      activity: job.activity?.length ?? 0,
-      steps: job.results.length,
+      steps: job.results.length + (job.runningStep ? 1 : 0),
     }),
     panel,
   );

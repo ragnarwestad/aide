@@ -72,3 +72,22 @@ export function relTimeLabel(iso: string, now: number): string {
     : `${Math.round(secs / 86400)} d ago`
   );
 }
+
+/** The exact stamp, for the one place relative time is not enough to
+ *  tell two of something apart (spec 240): the attempt picker's pills
+ *  used to share this problem with every other timestamp on the site,
+ *  which only ever needed "is this recent?" — an attempt needs to be
+ *  IDENTIFIED, not just dated. Local time, plain digits, no zone marker
+ *  — the SERVER's local time, not UTC. That is a genuine departure from
+ *  every other exact stamp on the site: `relTime()`'s `title=` is the
+ *  raw stored ISO-8601 string, which is UTC (`new Date().toISOString()`,
+ *  `queue.ts:521,659`). This is the first UTC-to-local conversion here,
+ *  not a passthrough — an acceptable tradeoff for a single-operator
+ *  dashboard where the server and the reader share a timezone, but a
+ *  real one, not "no timezone handling anywhere" repeated unchanged. */
+export function absTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

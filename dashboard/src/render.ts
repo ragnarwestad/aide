@@ -84,8 +84,8 @@ export { renderJobDetailPage } from "./render/job-page.ts";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/job-page.ts";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
-// 150). It shares the job page's tab bar, activity block and steps
-// table rather than carrying copies of them.
+// 150). It shares the job page's tab bar and steps table rather than
+// carrying copies of them.
 export {
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
