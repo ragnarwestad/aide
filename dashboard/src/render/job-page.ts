@@ -226,7 +226,7 @@ export function tabbedBody(banner: string, tabs: string, panel: string): string 
   // it (2026-08-23).
   return (
     `<div class="doc">` +
-    `<p class="intro"><a href="/">← all specs</a></p>\n` +
+    `<p class="intro"><a href="/">← Back</a></p>\n` +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +
