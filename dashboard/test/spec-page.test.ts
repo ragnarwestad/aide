@@ -28,7 +28,6 @@ import {
   type SpecPageView,
 } from "../src/render.ts";
 import type { JobDetailView } from "../src/render.ts";
-import { absTimeLabel } from "../src/render/html.ts";
 
 const NAV = [{ label: "Overview", path: "projects.html" }];
 const GENERATED = "2026-08-21T10:05:00Z";
@@ -259,17 +258,13 @@ describe("a spec with a lead job", () => {
   });
 
   test("the Steps tab is the lead job's, word for word", () => {
-    const html = page(
-      withLead({
-        results: [
-          {
-            step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
-            terminalReason: "completed", at: "2026-08-21T09:01:00Z",
-          },
-        ],
-      }),
-      "steps",
-    );
+    const results = [
+      {
+        step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+        terminalReason: "completed", at: "2026-08-21T09:01:00Z",
+      },
+    ];
+    const html = page(view({ lead: lead({ results }), steps: results }), "steps");
     expect(html).toContain("$0.42");
   });
 
@@ -378,7 +373,9 @@ describe("the steps panel renders through the job page's own function", () => {
     html.match(/<div class="tabpanel">([\s\S]*?)<\/div>\s*<\/main>/)?.[1] ?? "NO PANEL";
 
   test("the same job's steps render the same facts on both pages", () => {
-    const onSpec = panelOf(renderSpecPage(view({ lead: job }), GENERATED, NAV, { tab: "steps", now: NOW }));
+    const onSpec = panelOf(
+      renderSpecPage(view({ lead: job, steps: job.results }), GENERATED, NAV, { tab: "steps", now: NOW }),
+    );
     const onJob = panelOf(renderJobDetailPage(job, GENERATED, NAV, { tab: "steps", now: NOW }));
     expect(onSpec).not.toBe("NO PANEL");
     for (const fact of ["Bash ls", "$0.42", "analyze"]) {
@@ -398,163 +395,91 @@ describe("the steps panel renders through the job page's own function", () => {
   });
 });
 
-// --- spec 237/240: which attempt the Steps tab is showing --------------------
+// --- spec 242: every attempt's steps in one flat list, no picker ------------
 //
-// A phase's line on the list used to link to the JOB that ran it, so an
-// older attempt was reachable by having been linked to. Since spec 237
-// the line opens this page's own tab instead, and the run a reader came
-// for has to be pickable HERE — otherwise the "2 attempts" the row has
-// counted since spec 86 is a number with nothing behind it. Since spec
-// 240 there is one tab, Steps, rather than Activity and Steps sharing
-// one hidden selection — the picker's own describe block name and every
-// test below drop the "activity" half accordingly.
+// The picker showed one attempt's steps at a time and hid the others
+// behind pills a reader had to compare by eye. Direction: remove it.
+// Every step from every attempt in this spec's current work round is
+// shown together, oldest first, each row tagged with the attempt it
+// belongs to — only when there is more than one, exactly as the picker
+// itself drew nothing for a single-attempt spec.
 
-describe("spec 237/240: the attempt picker on Steps", () => {
-  const attempt = (id: string, at: string, steps: string[] = ["analyze"]) => ({ id, steps, at });
-  const TWO = [
-    attempt("newer", "2026-08-21T09:00:00Z"),
-    attempt("older", "2026-08-19T09:00:00Z"),
-  ];
-  const picker = (html: string): string =>
-    html.match(/<span class="filters" data-filter="attempt">[\s\S]*?<\/a><\/span>/)?.[0] ?? "";
-  /** `n` dummy finished steps — enough to give the Steps tab's own count
-   *  a number to disagree with, without any of them meaning anything
-   *  else to the test. */
-  const dummyResults = (n: number) =>
+describe("spec 242: every attempt's steps in one flat list", () => {
+  /** `n` dummy finished steps, each carrying `attempt` when the caller
+   *  passes one — the server always tags a multi-attempt spec's rows,
+   *  never a single-attempt one's. `startIndex` keeps two calls' `at`
+   *  values apart; the render layer never sorts by it, only the array
+   *  order (already the caller's) decides what shows first. */
+  const dummyResults = (n: number, attempt?: number, startIndex = 0) =>
     Array.from({ length: n }, (_, i) => ({
       step: "analyze", ok: true, costUsd: 0, costMeasured: true,
-      terminalReason: "completed", at: `2026-08-19T09:0${i}:00Z`,
+      terminalReason: "completed", at: `2026-08-19T09:${String(startIndex + i).padStart(2, "0")}:00Z`,
+      ...(attempt === undefined ? {} : { attempt }),
     }));
 
-  test("a spec with one job ever run offers nothing to pick between", () => {
-    const one = view({ lead: lead(), attempts: [attempt("newer", "2026-08-21T09:00:00Z")] });
-    expect(picker(page(one, "steps"))).toBe("");
-  });
-
-  test("a spec no job has ever run offers nothing either", () => {
-    expect(picker(page(view(), "steps"))).toBe("");
-  });
-
-  test("two attempts are offered on the steps tab, newest first", () => {
-    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
-    expect(bar).toContain("Attempt");
-    expect(bar.indexOf("job=newer")).toBeLessThan(bar.indexOf("job=older"));
-  });
-
-  test("each pill's visible text is its exact time, and links to the open tab with its own job", () => {
-    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
-    expect(bar).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;job=older"');
-    // The pill's VISIBLE text is the EXACT stamp (spec 240), not a
-    // relative one — relative time alone did not let a reader place or
-    // tell two attempts apart in practice. Computed through the same
-    // formatter the page itself uses, since it reads server-local time
-    // and hardcoding an offset here would tie the test to this
-    // machine's zone.
-    expect(bar).toContain(absTimeLabel("2026-08-21T09:00:00Z"));
-    expect(bar).toContain(absTimeLabel("2026-08-19T09:00:00Z"));
-    // The step chain moved into a tooltip (spec 239): it is literally
-    // the word the Steps table's own rows use one panel down, and
-    // nothing told a reader which of the two was naming an attempt and
-    // which was naming a step.
-    expect(bar).toContain('title="analyze"');
-    expect(bar).not.toMatch(/>analyze</);
-  });
-
-  test("a job that ran two steps says so in the tooltip, in the order it ran them", () => {
-    const bar = picker(
-      page(
-        view({
-          lead: lead({ id: "newer" }),
-          attempts: [attempt("newer", "2026-08-21T09:00:00Z", ["analyze", "implement"]), TWO[1]!],
-        }),
-        "steps",
-      ),
-    );
-    expect(bar).toContain('title="analyze → implement"');
-    expect(bar).not.toMatch(/>analyze → implement</);
-  });
-
-  test("an attempt with no timestamp falls back to the literal word attempt", () => {
-    const bar = picker(
-      page(
-        view({
-          lead: lead({ id: "newer" }),
-          attempts: [{ id: "newer", steps: ["analyze"] }, TWO[1]!],
-        }),
-        "steps",
-      ),
-    );
-    expect(bar).toContain(">attempt</a>");
-  });
-
-  test("the tab counts follow the selected attempt, not the lead (problem 1)", () => {
-    const v = view({
-      lead: lead({ id: "newer", state: "running", results: dummyResults(5) }),
-      selected: lead({
-        id: "older",
-        state: "failed",
-        results: dummyResults(2),
-      }),
-      attempts: TWO,
-    });
+  test("a spec with one job draws no Attempt marker and no picker markup (AC1)", () => {
+    const v = view({ lead: lead(), steps: dummyResults(1) });
     const html = page(v, "steps");
-    expect(html).toMatch(/>Logs \(2\)</);
-    expect(html).not.toMatch(/>Logs \(5\)</);
+    expect(html).not.toContain("Attempt ");
+    expect(html).not.toContain('data-filter="attempt"');
   });
 
-  test("with nothing picked, the lead is the one marked", () => {
-    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
-    expect(bar).toMatch(/job=newer"\s+aria-current="true"/);
-    expect(bar).not.toMatch(/job=older"\s+aria-current="true"/);
+  test("two attempts' steps appear together, tagged, in chronological order (AC2)", () => {
+    const older = dummyResults(1, 1, 0);
+    const newer = dummyResults(3, 2, 10);
+    const v = view({ lead: lead({ id: "newer" }), steps: [...older, ...newer] });
+    const html = page(v, "steps");
+    expect((html.match(/>Attempt 1</g) ?? []).length).toBe(1);
+    expect((html.match(/>Attempt 2</g) ?? []).length).toBe(3);
+    // Chronological: the older job's row (Attempt 1) comes before the
+    // newer job's three rows (Attempt 2).
+    expect(html.indexOf(">Attempt 1<")).toBeLessThan(html.indexOf(">Attempt 2<"));
   });
 
-  test("the picked attempt is what the Steps tab shows, and it is the one marked", () => {
+  test("the tab bar reads the true total across both attempts (AC3 — problem 1)", () => {
+    const older = dummyResults(1, 1, 0);
+    const newer = dummyResults(3, 2, 10);
+    const v = view({ lead: lead({ id: "newer" }), steps: [...older, ...newer] });
+    const html = page(v, "steps");
+    expect(html).toMatch(/>Logs \(4\)</);
+    expect(html).not.toMatch(/>Logs \(1\)</);
+    expect(html).not.toMatch(/>Logs \(3\)</);
+  });
+
+  test("the live row is tagged with the newest attempt's number, and counted (AC4)", () => {
+    const older = dummyResults(1, 1);
     const v = view({
       lead: lead({
         id: "newer", state: "running",
-        runningStep: { step: "analyze", logs: ["Bash lead-ran-this"] },
+        runningStep: { step: "implement", logs: [], attempt: 2 },
       }),
-      selected: lead({
-        id: "older",
-        state: "failed",
-        runningStep: { step: "analyze", logs: ["Bash older-ran-this"] },
-        results: [
-          {
-            step: "analyze", ok: false, costUsd: 0.11, costMeasured: true,
-            terminalReason: "completed", at: "2026-08-19T09:01:00Z",
-          },
-        ],
-      }),
-      attempts: TWO,
+      steps: older,
     });
     const html = page(v, "steps");
-    expect(html).toContain("Bash older-ran-this");
-    expect(html).not.toContain("Bash lead-ran-this");
-    expect(picker(html)).toMatch(/job=older"\s+aria-current="true"/);
-    expect(html).toContain("$0.11");
+    expect(html).toContain(">Attempt 2<");
+    expect(html.indexOf(">Attempt 2<")).toBeLessThan(html.indexOf(" implement</td>"));
+    expect(html).toMatch(/>Logs \(2\)</);
   });
 
-  // The chip says what the SPEC is doing right now. Reading an older
-  // attempt does not change that, and a chip that followed the picker
-  // would say the spec had failed while a step of it was running.
-  test("picking an older attempt does not change what the banner says the spec is doing", () => {
-    const v = view({
-      lead: lead({ id: "newer", state: "running" }),
-      selected: lead({ id: "older", state: "failed" }),
-      attempts: TWO,
-    });
-    // The spec's own banner, not the shell's title line above it: from
-    // the last `.pagehead` on the page down to the tab bar.
+  // The chip says what the SPEC is doing right now. An older, failed
+  // attempt's rows sitting on the same Steps tab must not change that —
+  // a chip that read the oldest row present would say the spec had
+  // failed while a step of it was running.
+  test("the banner reflects the lead job's state, not an older attempt's (AC5)", () => {
+    const older = dummyResults(1, 1);
+    const v = view({ lead: lead({ id: "newer", state: "running" }), steps: older });
     const html = page(v, "steps");
-    const banner = html.slice(html.lastIndexOf('<div class="pagehead">'), html.indexOf("<nav class=\"tabbar subtabs\""));
+    const banner = html.slice(html.lastIndexOf('<div class="pagehead">'), html.indexOf('<nav class="tabbar subtabs"'));
     expect(banner).toContain("running");
     expect(banner).not.toContain("failed");
   });
 
-  test("no picker is drawn on any other tab — it is this panel's control", () => {
-    const v = view({ lead: lead({ id: "newer" }), attempts: TWO });
-    for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
-      expect([tab, picker(page(v, tab))]).toEqual([tab, ""]);
+  test("no picker markup is drawn on any tab — the picker itself is gone", () => {
+    const older = dummyResults(1, 1, 0);
+    const newer = dummyResults(3, 2, 10);
+    const v = view({ lead: lead({ id: "newer" }), steps: [...older, ...newer] });
+    for (const tab of ["overview", "description", "analysis", "solution", "status", "steps"]) {
+      expect([tab, page(v, tab).includes('data-filter="attempt"')]).toEqual([tab, false]);
     }
   });
 });

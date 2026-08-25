@@ -38,6 +38,12 @@ export interface JobStepResultView {
    *  pointer. Absent when the step wrote no transcript of its own (a
    *  refused run, or one older than the field existing). */
   logs?: string[];
+  /** Which attempt (job) ran this step, oldest = 1 (spec 242). Absent
+   *  when the spec this row belongs to has only ever run once — nothing
+   *  to disambiguate, so nothing is drawn. This page's own single-job
+   *  table never sets this; only `spec-page.ts`'s flattened, multi-job
+   *  Steps tab does. */
+  attempt?: number;
 }
 
 /** A spec's own file, or one section of one, as it stands on disk
@@ -90,7 +96,7 @@ export interface JobDetailView extends QueueRowView {
    *  `JobStepResultView` yet — a step only gets one when it ends — so
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
-  runningStep?: { step: string; sessionId?: string; logs: string[] };
+  runningStep?: { step: string; sessionId?: string; logs: string[]; attempt?: number };
 }
 
 /** A heading that says "Cost" above a column of token counts is the
@@ -197,7 +203,8 @@ export function stepResults(
       const key = String(i);
       const isOpen = open === key;
       const main =
-        `<tr><td>${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
+        `<tr><td>${r.attempt === undefined ? "" : `<span class="muted small">Attempt ${r.attempt}</span> `}` +
+        `${stepCell(r.step ? stepLabel(r.step) : "–", key, isOpen)}</td>` +
         `<td>${outcome(r, archiveHeldBack)}</td>` +
         // A Codex step has no dollar figure ANYWHERE in its output, so
         // the money half is a dash rather than the $0.00 its stored
@@ -218,7 +225,8 @@ export function stepResults(
     if (!opts.runningStep) return "";
     const isOpen = open === "live";
     const main =
-      `<tr><td>${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
+      `<tr><td>${opts.runningStep.attempt === undefined ? "" : `<span class="muted small">Attempt ${opts.runningStep.attempt}</span> `}` +
+      `${stepCell(stepLabel(opts.runningStep.step), "live", isOpen)}</td>` +
       `<td>running</td><td class="num">${usdOrTokens(undefined, undefined)}</td><td>–</td>` +
       `<td class="muted small">${esc(opts.runningStep.sessionId ? opts.runningStep.sessionId.slice(0, 8) : "–")}</td>` +
       `<td class="muted small">–</td></tr>`;

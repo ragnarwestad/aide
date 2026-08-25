@@ -679,12 +679,12 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 });
 
-// --- spec 237: an older attempt, picked from the spec page ------------------
+// --- spec 242: every attempt's steps in one flat list, no picker ------------
 //
-// Every phase line on the list opens a tab of this page now, so the run
-// a reader came for has to be pickable here. `?job=` is that pick, read
-// the same permissive way `?tab=` already is: a value naming no job of
-// THIS spec falls back to the lead, and never to an error.
+// The picker used to read `?job=` to decide which attempt's steps to
+// show. Direction: remove the picker, list every attempt's steps
+// together, and stop reading `?job=` at all — a stray one on an old
+// bookmark or shared link now changes nothing rather than filtering.
 
 describe("GET /specs/<project>/<specFolder>?job=", () => {
   const SPEC = "81-queue-and-runner";
@@ -722,49 +722,35 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     return mirror;
   };
 
-  test("the named attempt's steps are what the Steps tab shows", async () => {
+  test("?job= naming a real other attempt changes nothing (AC6)", async () => {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const lead = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
-    expect(lead).toContain("$7.77");
-    expect(lead).not.toContain("$1.11");
-
+    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
     const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth);
     expect(res.status).toBe(200);
-    const older = await res.text();
-    expect(older).toContain("$1.11");
-    expect(older).not.toContain("$7.77");
+    expect(await res.text()).toBe(bare);
   });
 
-  test("both attempts are offered, and the named one is marked", async () => {
+  test("?job= naming no job at all changes nothing (AC6)", async () => {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth)).text();
-    expect(html).toContain("job=older-attempt");
-    expect(html).toContain(`job=${id}`);
-    expect(html).toMatch(/job=older-attempt"\s+aria-current="true"/);
-  });
-
-  test("a job id belonging to no job at all falls back to the lead, not to an error", async () => {
-    const { base, dir } = start();
-    const id = await enqueue(base);
-    const mirror = twoAttempts(dir, id);
-
-    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
     const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`, auth);
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("$7.77");
+    expect(await res.text()).toBe(bare);
   });
 
-  // The candidate is looked for only among THIS spec's own jobs, so a
-  // crafted id cannot make one spec's page show another's transcript.
-  test("a job id belonging to a different spec falls back to the lead too", async () => {
+  // The candidate used to be looked for only among THIS spec's own
+  // jobs, so a crafted id could not make one spec's page show another's
+  // transcript. There is nothing left to select, so the point is now
+  // moot the same way — the response is unaffected either way.
+  test("?job= naming a job of a different spec changes nothing (AC6)", async () => {
     const { base, dir } = start();
     const id = await enqueue(base);
     const mirror = twoAttempts(dir, id);
@@ -785,15 +771,28 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     writeFileSync(mirror, JSON.stringify(jobs));
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${PATH}?tab=steps&job=another-spec`, auth)).text();
-    expect(html).toContain("$7.77");
-    expect(html).not.toContain("$9.99");
+    const bare = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=another-spec`, auth);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(bare);
   });
 
-  test("a spec with one job draws no picker at all", async () => {
+  test("both attempts' cost figures are present together in one response (AC7)", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = twoAttempts(dir, id);
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    expect(html).toContain("$7.77");
+    expect(html).toContain("$1.11");
+  });
+
+  test("a spec with one job shows no Attempt marker (AC1, HTTP level)", async () => {
     const { base } = start();
     await enqueue(base);
     const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
+    expect(html).not.toContain("Attempt ");
     expect(html).not.toContain('data-filter="attempt"');
   });
 });

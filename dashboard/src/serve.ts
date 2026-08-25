@@ -3777,7 +3777,6 @@ export function createServer(opts: ServerOptions) {
         project!,
         specFolder!,
         url.searchParams.get("tab") ?? undefined,
-        url.searchParams.get("job") ?? undefined,
       );
       if (!view) return new Response("not found", { status: 404 });
       const html = renderSpecPage(
@@ -4258,10 +4257,6 @@ export function createServer(opts: ServerOptions) {
     project: string,
     specFolder: string,
     tab?: string,
-    /** Which attempt Activity and Steps should show (spec 237). Read the
-     *  same permissive way `tab` is: a value naming no job of THIS spec
-     *  is not an error, it is a fallback to the lead. */
-    job?: string,
   ): Promise<SpecPageView | null> {
     const found = specDir(project, specFolder);
     if (!found) return null;
@@ -4284,8 +4279,7 @@ export function createServer(opts: ServerOptions) {
     const jobs = currentWorkRoundJobs(matchingJobs)
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
     const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
-    const lead = jobs.find(inFlight) ?? jobs[0];
-    const requestedJob = job ? jobs.find((j) => j.id === job) : undefined;
+    const leadJob = jobs.find(inFlight) ?? jobs[0];
     const files = specFileViews(dir);
     // Off the text `specFileViews` has already read, so the page makes
     // no second git or disk read for the same file.
@@ -4326,6 +4320,24 @@ export function createServer(opts: ServerOptions) {
       targets().filter((t) => t.project === project && t.specFolder === specFolder),
     )[0];
     const jobRows = await Promise.all(jobs.map(jobRow));
+    const jobDetails = await Promise.all(jobs.map(jobDetailView));
+    // jobs is newest-first; oldest = attempt 1. Only tagged when there is
+    // more than one job — a single-attempt spec draws no marker at all
+    // (spec 242's own "nothing to show, show nothing" rule, at row level).
+    const multiAttempt = jobs.length > 1;
+    const attemptNumber = (j: Job): number | undefined =>
+      multiAttempt ? jobs.length - jobs.indexOf(j) : undefined;
+    const leadDetail = leadJob ? jobDetails[jobs.indexOf(leadJob)] : undefined;
+    const lead = leadDetail && {
+      ...leadDetail,
+      runningStep: leadDetail.runningStep && { ...leadDetail.runningStep, attempt: attemptNumber(leadJob!) },
+    };
+    // Spec 242: every step from every job in this work round, oldest job
+    // first — `jobs` is newest-first, so this flattens it in reverse.
+    const steps = jobs
+      .map((j, i) => jobDetails[i]!.results.map((r) => ({ ...r, attempt: attemptNumber(j) })))
+      .reverse()
+      .flat();
     return {
       project,
       specFolder,
@@ -4360,15 +4372,8 @@ export function createServer(opts: ServerOptions) {
       // through that helper, which re-reads the file from disk.
       done: ref?.archived ? parsedStatus.workflowSteps : (target?.done ?? []),
       descriptionBaseSha: descriptionCommit?.sha,
-      lead: lead ? await jobDetailView(lead) : undefined,
-      // Spec 237: every run of this spec, newest first — `jobs` is
-      // already in that order. The facts only; the page words them.
-      attempts: jobs.map((j) => ({ id: j.id, steps: [...j.steps], at: j.startedAt ?? j.createdAt })),
-      // Looked for ONLY among this spec's own jobs, which is what makes
-      // a crafted id inert rather than a way to read another spec's
-      // transcript here. The lead needs no second detail view of itself.
-      selected:
-        requestedJob && requestedJob.id !== lead?.id ? await jobDetailView(requestedJob) : undefined,
+      lead,
+      steps,
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
       updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,

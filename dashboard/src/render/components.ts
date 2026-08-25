@@ -344,10 +344,8 @@ export interface FilterPill {
   count?: number;
   on: boolean;
   href: string;
-  /** Detail on hover, not printed (spec 239) — the attempt picker's own
-   *  use is the step chain, which used to be the pill's visible text and
-   *  read as the same word the Steps table already shows. Omitted where
-   *  nothing needs to ride along; every other caller leaves it out. */
+  /** Detail on hover, not printed (spec 239). Omitted where nothing
+   *  needs to ride along; every other caller leaves it out. */
   title?: string;
 }
 
