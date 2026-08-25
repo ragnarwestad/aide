@@ -23,7 +23,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   if (!models.length) {
     return pageShell("Settings", entries, SETTINGS_ROUTE,
       `<main><h1>Settings</h1><p class="muted">No model choices are configured on this server.</p></main>`,
-      generatedAt, undefined, { script: opts.script });
+      generatedAt, undefined, { script: opts.script, hideHeading: true });
   }
   const rows = SETTINGS_STEPS.map((step) => {
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
@@ -45,5 +45,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     `<p class="refused${opts.error ? " rowmsg warn" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<table><thead><tr><th>Step</th><th>Default AI and model</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="factions"><button class="btn primary" type="submit">Save</button><a class="btn" href="/">Cancel</a></div></form></main>`;
-  return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, { script: opts.script });
+  return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true,
+  });
 }

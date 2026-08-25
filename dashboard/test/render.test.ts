@@ -27,6 +27,7 @@ import {
 import { ICON_LOCK } from "../src/render/components.ts";
 import { stateLabel } from "../src/render/job-state.ts";
 import { resolveOpenStep } from "../src/render/job-page.ts";
+import { CSS } from "../src/render/css.ts";
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published
@@ -164,38 +165,41 @@ describe("nav (criterion 2)", () => {
 });
 
 // Spec 107. The three choices are not a page to go to, so they are not
-// tabs — and since spec 119 they are not on the page at all until the
-// reader opens the "…" menu in the header.
-describe("the theme choice in the … menu (specs 107, 119)", () => {
+// tabs. Spec 119 put them behind the "…" menu; spec 243 moved them back
+// OUT, into the header itself, as a header-level control the reader
+// reaches without opening anything first.
+describe("the theme choice in the header (specs 107, 119, 243)", () => {
+  const header = (html: string) => html.match(/<header>[\s\S]*?<\/header>/)![0];
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
 
-  test("every page offers Dark, Light and Auto", () => {
+  test("every page offers Dark, Light and Auto, outside the … menu", () => {
     for (const page of site) {
+      const h = header(page.html);
       const m = menu(page.html);
-      const choices = [...m.matchAll(/data-theme-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
+      const choices = [...h.matchAll(/data-theme-choice="([^"]+)" aria-label="([^"]+)"/g)].map(
         (x) => [x[1], x[2]],
       );
       expect(choices).toEqual([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]]);
-      expect(m).toContain(">Theme</span>");
+      expect(m).not.toContain("data-theme-choice");
     }
   });
 
   test("the choices are buttons, not links — they go nowhere", () => {
-    const m = menu(site[0]!.html);
-    expect(m).toMatch(/<button type="button" data-theme-choice="dark"/);
-    expect(m).not.toMatch(/<a[^>]*data-theme-choice/);
+    const h = header(site[0]!.html);
+    expect(h).toMatch(/<button type="button" data-theme-choice="dark"/);
+    expect(h).not.toMatch(/<a[^>]*data-theme-choice/);
   });
 
   test("Auto is marked as chosen, because the server cannot know better", () => {
     for (const page of site) {
-      const m = menu(page.html);
-      const marked = [...m.matchAll(/data-theme-choice="([^"]+)" aria-current=/g)].map(
+      const h = header(page.html);
+      const marked = [...h.matchAll(/data-theme-choice="([^"]+)"[^>]*aria-current=/g)].map(
         (x) => x[1],
       );
       expect(marked).toEqual(["auto"]);
       // `aria-current`, never `class="current"`: that class means "the
       // page you are on", and the theme control is not a page.
-      expect(m).not.toMatch(/<button[^>]*class="current"/);
+      expect(h).not.toMatch(/<button[^>]*class="current"/);
     }
   });
 });
@@ -4377,7 +4381,7 @@ describe("spec 116: create is the first phase line", () => {
 describe("spec 118: the Units choice in the … menu", () => {
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
 
-  test("every page offers $ and Tokens, beside Theme", () => {
+  test("every page offers $ and Tokens, wrapped with their label in one row", () => {
     for (const page of site) {
       const m = menu(page.html);
       const choices = [...m.matchAll(/data-unit-choice="([^"]+)"[^>]*>([^<]+)</g)].map(
@@ -4385,9 +4389,39 @@ describe("spec 118: the Units choice in the … menu", () => {
       );
       expect(choices).toEqual([["usd", "$"], ["tokens", "Tokens"]]);
       expect(m).toContain(">Units</span>");
-      // Theme is still there: this joins the menu, it does not replace
-      // anything in it.
-      expect(m).toContain(">Theme</span>");
+      // Theme moved to the header (spec 243) — the menu carries no
+      // trace of it any more.
+      expect(m).not.toContain("data-theme-choice");
+      // Units' label and buttons are children of one shared wrapper, not
+      // two separate direct children of .menupanel — the structural
+      // precondition for them to render on one line rather than
+      // stacking under `.menupanel > * { display: block; }` (criterion 6).
+      expect(m).toMatch(/<span class="row"><span class="lbl">Units<\/span><span class="filters">/);
+    }
+  });
+
+  // The wrapper above sits INSIDE .menupanel, where `.menupanel > * {
+  // display: block; }` (equal specificity, later in css.ts) would
+  // otherwise flatten it right back — losing the flex gap between the
+  // label and the buttons even though the stacking bug is gone
+  // (criterion 6, plan review should-fix).
+  test("css.ts keeps .menupanel > .row flex, or the wrapper above loses its gap", () => {
+    const body = CSS.match(/\.menupanel > \.row\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(body).toContain("display: flex");
+    expect(body).toContain("gap:");
+  });
+
+  // Spec 243, criterion 5: Theme is gone and the remaining three keep a
+  // fixed order.
+  test("the menu panel's children are Units, Settings, About, in that order", () => {
+    for (const page of site) {
+      const panel = menu(page.html).match(/<div class="menupanel">([\s\S]*?)<\/div>/)?.[1] ?? "";
+      const unitsAt = panel.indexOf(">Units</span>");
+      const settingsAt = panel.indexOf('href="/settings"');
+      const aboutAt = panel.indexOf("data-about");
+      expect([unitsAt, settingsAt, aboutAt].every((i) => i >= 0)).toBe(true);
+      expect(unitsAt).toBeLessThan(settingsAt);
+      expect(settingsAt).toBeLessThan(aboutAt);
     }
   });
 
