@@ -1404,9 +1404,21 @@ if [ "$tool" = "codex" ]; then
 else
 result_json="$(jq -Rc 'fromjson? | select(type == "object" and .type == "result")' \
   "$transcript" 2>/dev/null | tail -n 1)"
+# `status: rejected` alone is NOT a stop: it says the subscription
+# window is spent, and the very same event says whether purchased
+# credit is carrying the request anyway. Measured 2026-08-25, when
+# every run for two days was reported stopped while finishing its
+# work — the seven-day window was spent, `overageStatus: allowed`
+# and `isUsingOverage: true` covered every call, and the branch that
+# wins below is ahead of the one that reads the successful result.
+# A real stop has the credit refused beside it
+# (`overageStatus: rejected`, `overageDisabledReason: out_of_credits`,
+# `isUsingOverage: false`), so the credit in use is what tells the two
+# apart. Absent means false: an older CLI emitted neither field.
 provider_limit_json="$(jq -Rc 'fromjson? | select(
   type == "object" and .type == "rate_limit_event" and
-  .rate_limit_info.status == "rejected"
+  .rate_limit_info.status == "rejected" and
+  (.rate_limit_info.isUsingOverage // false) == false
 )' "$transcript" 2>/dev/null | tail -n 1)"
 
 if [ -n "$result_json" ]; then

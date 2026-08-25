@@ -1450,6 +1450,30 @@ def test_a_rejected_provider_limit_overrides_a_contradictory_success(runner, wor
     assert "2026-08-24" in out["error"]
 
 
+def test_credit_carrying_a_spent_window_is_not_a_stop(runner, workspace, fake_claude):
+    """`status: rejected` says the subscription window is spent, not
+    that the call was refused. The event below is verbatim from the
+    07:26 run on 2026-08-25: purchased credit carried every call, the
+    step finished its work, and the run was reported stopped anyway."""
+    limit = {
+        "type": "rate_limit_event",
+        "rate_limit_info": {
+            "status": "rejected",
+            "rateLimitType": "seven_day",
+            "resetsAt": 1787803200,
+            "overageStatus": "allowed",
+            "overageResetsAt": 1788220800,
+            "isUsingOverage": True,
+            "overageInUse": True,
+        },
+    }
+    claude = fake_claude(stream_body(RESULT_OK, before=[limit]))
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    assert out["ok"] is True
+    assert out["terminalReason"] == "completed"
+
+
 def test_is_error_prevents_a_success_subtype_from_completing(runner, workspace, fake_claude):
     result = {**RESULT_OK, "is_error": True, "errors": ["provider request failed"]}
     claude = fake_claude(stream_body(result))
