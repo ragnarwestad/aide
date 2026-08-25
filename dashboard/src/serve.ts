@@ -89,14 +89,12 @@ import {
   renderProjectPage,
   renderProjectsPage,
   renderAddProjectPage,
-  renderProjectSettingsPage,
   renderRemoveProjectPage,
   renderSettingsPage,
   SETTINGS_ROUTE,
   SETTINGS_STEPS,
   ADD_PROJECT_ROUTE,
   computeSpecTotalDurationMs,
-  projectSettingsRoute,
   renderQueuePage,
   renderQueueRows,
   renderSpecPage,
@@ -2842,7 +2840,7 @@ export function createServer(opts: ServerOptions) {
       action === "add-project"
         ? ADD_PROJECT_ROUTE
         : action === "project-settings"
-          ? projectSettingsRoute(project)
+          ? `/projects/${encodeURIComponent(project)}`
           : `/projects/${encodeURIComponent(project)}/remove`;
     if (summary) return specsRedirect(sent, { error: summary }, formPage);
     // A browser with no script gets the readiness answer the only way a
@@ -2853,7 +2851,7 @@ export function createServer(opts: ServerOptions) {
     return specsRedirect(
       sent,
       undefined,
-      PROJECTS_ROUTE,
+      action === "project-settings" ? `/projects/${encodeURIComponent(project)}` : PROJECTS_ROUTE,
       readiness && { note: readiness.note, ok: readiness.canRun },
     );
   }
@@ -3147,9 +3145,7 @@ export function createServer(opts: ServerOptions) {
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
-    // The Settings page (spec 184), beside the two above and guarded the
-    // same way: only a project the allowlist knows has settings to
-    // change, and everything else is a mistyped address.
+    // The former Settings page redirects to the single editing surface.
     const settingsPage = path.match(/^\/projects\/([^/]+)\/settings$/);
     if (settingsPage) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
@@ -3157,19 +3153,10 @@ export function createServer(opts: ServerOptions) {
       if (!opts.projectRoot || !allowed.has(name)) {
         return new Response("no such project\n", { status: 404 });
       }
-      const dir = join(opts.projectRoot, name);
-      const html = renderProjectSettingsPage(name, nav(), new Date().toISOString(), {
-        token: queueToken,
-        script: queueClientScript(),
-        // Read off disk per request, so the form shows what the project
-        // IS rather than what it was when the page was last generated.
-        specsPath: configValue(dir, "AIDE_SPECS_PATH") ?? "",
-        worktreeLinks: resolveWorktreeLinks(dir).links,
-        codeLanding: resolveCodeLanding(dir),
-        worktreeLinkCandidates: gitignoreCandidates(dir),
-        error: url.searchParams.get("error") ?? undefined,
+      return new Response(null, {
+        status: 302,
+        headers: { location: `/projects/${encodeURIComponent(name)}` },
       });
-      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 
     // A project's OWN page, served (spec 185). Below the Add and Remove
@@ -3207,6 +3194,15 @@ export function createServer(opts: ServerOptions) {
         readiness,
         new Date().toISOString(),
         nav(),
+        {
+          token: queueToken,
+          script: queueClientScript(),
+          specsPath: configValue(dir, "AIDE_SPECS_PATH") ?? "",
+          worktreeLinks: resolveWorktreeLinks(dir).links,
+          codeLanding: resolveCodeLanding(dir),
+          worktreeLinkCandidates: gitignoreCandidates(dir),
+          error: url.searchParams.get("error") ?? undefined,
+        },
       );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }

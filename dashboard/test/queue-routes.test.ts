@@ -5959,16 +5959,17 @@ describe("a project's settings route (spec 184)", () => {
     return { base, dir, project: join(dir, "root", "aide") };
   };
 
-  test("the form is served, pre-filled with what the project has today", async () => {
+  test("the legacy form URL redirects to the project detail page", async () => {
     const { base, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\nworktreeLinks: node_modules\n");
     writeFileSync(join(project, ".aide", "config"), "AIDE_SPECS_PATH=/repos/aide-specs/aide\n");
-    const res = await fetch(`${base}/projects/aide/settings`, { headers: { "x-aide-token": TOKEN } });
-    expect(res.status).toBe(200);
-    const html = await res.text();
-    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
-    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/aide-specs\/aide"/);
+    const res = await fetch(`${base}/projects/aide/settings`, {
+      redirect: "manual",
+      headers: { "x-aide-token": TOKEN },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/projects/aide");
   });
 
   test("a project the allowlist does not know is a mistyped address", async () => {
@@ -6024,7 +6025,7 @@ describe("a project's settings route (spec 184)", () => {
   // A browser with no script gets its answer the only way a redirect
   // can carry one — the same handover the Add form has had since spec
   // 138, back to the page the form is ON when it was refused.
-  test("a no-script save lands back on the list, and a refusal on the form", async () => {
+  test("a no-script save and refusal return to the inline editor", async () => {
     const { base, project } = await settled();
     mkdirSync(join(project, "node_modules"), { recursive: true });
     const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
@@ -6035,7 +6036,7 @@ describe("a project's settings route (spec 184)", () => {
       body: new URLSearchParams({ worktreeLinks: "node_modules", specsPath: "" }),
     });
     expect(ok.status).toBe(303);
-    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects");
+    expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects/aide");
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -6043,7 +6044,13 @@ describe("a project's settings route (spec 184)", () => {
       body: new URLSearchParams({ worktreeLinks: "/etc" }),
     });
     expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/projects/aide/settings?error=")).toBe(true);
+    expect(refused.headers.get("location")!.startsWith("/projects/aide?error=")).toBe(true);
+    const refusalPage = await fetch(`${base}${refused.headers.get("location")}`, {
+      headers: { "x-aide-token": TOKEN },
+    });
+    const refusalHtml = await refusalPage.text();
+    expect(refusalHtml).toContain('<details class="project-settings-editor" open>');
+    expect(refusalHtml).toContain("/etc");
   });
 
   // Spec 220, acceptance criterion 5. A third field on the same form,
@@ -6053,7 +6060,7 @@ describe("a project's settings route (spec 184)", () => {
     const { base, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\ncodeLanding: pr\n");
-    const form = await (await fetch(`${base}/projects/aide/settings`, { headers: { "x-aide-token": TOKEN } })).text();
+    const form = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
 

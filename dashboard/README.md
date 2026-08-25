@@ -145,8 +145,10 @@ named anywhere in this repo.
   runs at Add time — now on every load rather than once, in a notice
   gone by the next page. Nothing is executed and nothing is moved: a git
   that cannot answer leaves the manifest, the specs and the settings
-  standing, with no readiness section. Token required, like every other
-  `/projects` path.
+  standing, with no readiness section. Specs root, Worktree links and
+  Code landing can be edited inline on this page; Save and Cancel both
+  return here. The old `/projects/<name>/settings` URL redirects here.
+  Token required, like every other `/projects` path.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address
   carried; no token needed, like every other generated page. The file
@@ -910,15 +912,13 @@ and goes straight into the fields, so a browser with no script gets the
 help too; with several, the proposals ride on the form and the pick
 fills them in.
 
-**A project's settings can be changed after it is added.** Each row on
-`/projects` carries a Settings link to `/projects/<name>/settings`: the
-same two fields, pre-filled with what the project is configured with,
-saving to the same two files the Add form writes (the specs path to
-`.aide/config`, the worktree links to `.aide/project.yaml`). A field
-submitted unchanged is not rewritten, so changing one leaves the other's
-file byte-identical. Until this page existed, a project added without
-either could only be fixed by removing and re-adding it, or by editing a
-file on the serving host.
+**A project's settings can be changed after it is added.** Its own
+`/projects/<name>` page keeps the current values and the read-only settings
+overview visible while Edit opens Specs root, Worktree links and Code landing
+inline. Save and Cancel return to the same project page. The same writer still
+saves the specs path to `.aide/config` and the other two settings to
+`.aide/project.yaml`; unchanged values are not rewritten. The old
+`/projects/<name>/settings` address redirects to the project page.
 
 **And the readiness note is recomputed on every visit.** It used to be
 shown exactly once — in the query string of the redirect an Add landed

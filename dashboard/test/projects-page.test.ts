@@ -10,7 +10,6 @@ import { describe, expect, test } from "bun:test";
 import {
   renderProjectsPage,
   renderAddProjectPage,
-  renderProjectSettingsPage,
   renderRemoveProjectPage,
   type ProjectView,
   type ProjectsPageOptions,
@@ -420,45 +419,6 @@ describe("the Add page helps with what it cannot decide (spec 140)", () => {
   // differs from the checkout they picked.
   test("the Name field says it only settles anything for a clone", () => {
     expect(add()).toContain("only when cloning from a Git URL");
-  });
-});
-
-// --- spec 184: the settings a project can be fixed with, after Add -----------
-describe("a project's Settings page (spec 184)", () => {
-  const settings = (opts: Partial<ProjectsPageOptions> = {}) =>
-    renderProjectSettingsPage("skjer", NAV, AT, opts);
-
-  // Criteria 4 and 8: the two fields the Add form had, and the reason
-  // this page exists — until it did, a project added with either left
-  // blank could only be fixed by removing and re-adding it.
-  test("both settings are on the form, posting to the project's own route", () => {
-    const html = settings();
-    expect(html).toContain('action="/api/queue/projects/skjer/settings"');
-    expect(html).toContain('name="specsPath"');
-    expect(html).toContain('name="worktreeLinks"');
-  });
-
-  test("the fields carry what the project is configured with today", () => {
-    const html = settings({ specsPath: "/repos/aide-specs/skjer", worktreeLinks: "node_modules .venv" });
-    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/aide-specs\/skjer"/);
-    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules \.venv"/);
-  });
-
-  test("a project configured with neither gets empty fields, not a guess", () => {
-    const html = settings();
-    expect(html).not.toMatch(/name="specsPath"[^>]*value="[^"]/);
-    expect(html).not.toMatch(/name="worktreeLinks"[^>]*value="[^"]/);
-  });
-
-  // The same help the Add form has: nothing can derive which gitignored
-  // paths a project's commands need, but its own .gitignore names them.
-  test("the checkout's gitignored paths are offered here too", () => {
-    const html = settings({ worktreeLinkCandidates: ["node_modules", ".venv"] });
-    expect(html).toContain('<option value="node_modules">');
-  });
-
-  test("a refusal is shown on the page the form is on", () => {
-    expect(settings({ error: "worktreeLinks must not escape the root: ../x" })).toContain("../x");
   });
 });
 

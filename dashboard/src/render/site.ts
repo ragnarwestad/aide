@@ -15,7 +15,7 @@ import type { StatusInfo } from "../parse-status.ts";
 import type { ManifestData, ManifestResult } from "../parse-manifest.ts";
 import type { ProjectReadiness } from "../project-admin.ts";
 import type { ProjectSettingsView, SettingRow } from "../project-settings.ts";
-import { rowMessage } from "./components.ts";
+import { btn, field, messageSlot, rowMessage, tokenField } from "./components.ts";
 import { esc, linkOrText } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
@@ -228,6 +228,8 @@ function settingsTable(settings: ProjectSettingsView): string {
 function runConfigurationBlock(
   settings: ProjectSettingsView,
   readiness: ProjectReadiness | null,
+  name: string,
+  opts: ProjectPageOptions,
 ): string {
   // "No file" and "a file that sets nothing" are different states, and
   // the first is the ordinary one for a project cloned onto a second
@@ -255,7 +257,60 @@ function runConfigurationBlock(
               : rowMessage("warn", c.detail),
         )
         .join("");
-  return `<h3>Settings</h3>` + noFile + settingsTable(settings) + checks;
+  const codeLanding = opts.codeLanding ?? "merge";
+  const path = projectPagePath(name);
+  const choices: { value: "merge" | "pr"; label: string }[] = [
+    { value: "merge", label: "Merge into the default branch" },
+    { value: "pr", label: "Leave it for a pull request" },
+  ];
+  const editable =
+    `<div class="project-settings-values">` +
+    `<p><span class="label">Specs root</span> ${esc(opts.specsPath || "its own specs/")} ` +
+    `<span class="muted">This machine's .aide/config.</span></p>` +
+    `<p><span class="label">Worktree links</span> ${esc(opts.worktreeLinks || "–")} ` +
+    `<span class="muted">Gitignored paths linked into each run's worktree.</span></p>` +
+    `<p><span class="label">Code landing</span> ${esc(choices.find((o) => o.value === codeLanding)!.label)} ` +
+    `<span class="muted">What happens to code when a spec is archived.</span></p></div>`;
+  const editor =
+    `<details class="project-settings-editor"${opts.error ? " open" : ""}>` +
+    `<summary class="btn primary">Edit</summary>` +
+    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) : "") +
+    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform">` +
+    tokenField(opts.token) +
+    `<span class="frow">` +
+    field("Specs root", `<input type="text" name="specsPath" maxlength="300" value="${esc(opts.specsPath ?? "")}" placeholder="its own specs/ when empty">`, { wide: true }) +
+    `</span><span class="frow">` +
+    field(
+      "Worktree links",
+      `<input type="text" name="worktreeLinks" maxlength="300" value="${esc(opts.worktreeLinks ?? "")}" ` +
+        (opts.worktreeLinkCandidates.length ? `list="wtlinks" ` : "") +
+        `placeholder="gitignored paths a run must link in: node_modules .venv">` +
+        (opts.worktreeLinkCandidates.length
+          ? `<datalist id="wtlinks">${opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("")}</datalist>`
+          : ""),
+      { wide: true },
+    ) +
+    `</span><span class="frow">` +
+    field(
+      "Code landing",
+      `<select name="codeLanding">${choices.map((o) => `<option value="${o.value}"${codeLanding === o.value ? " selected" : ""}>${esc(o.label)}</option>`).join("")}</select>`,
+      { wide: true },
+    ) +
+    `<span class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
+    `<a class="btn" href="${esc(path)}">Cancel</a></span></span>` +
+    messageSlot("refused") +
+    `</form></details>`;
+  return `<h3>Settings</h3>` + noFile + editable + editor + settingsTable(settings) + checks;
+}
+
+export interface ProjectPageOptions {
+  token?: string;
+  script?: string;
+  specsPath?: string;
+  worktreeLinks?: string;
+  codeLanding?: "merge" | "pr";
+  worktreeLinkCandidates: string[];
+  error?: string;
 }
 
 /** Where a project's own page is SERVED (spec 185). The generated
@@ -272,16 +327,15 @@ export function renderProjectPage(
   readiness: ProjectReadiness | null,
   generatedAt: string,
   nav: NavEntry[],
+  opts: ProjectPageOptions,
 ): string {
   // The settings are added to `projectBody` rather than replacing any
   // of it, and that holds for a project whose manifest will not parse
   // too: `projectBody` is then a single error paragraph, and the
   // config is the rest of what the page has to say.
-  const actions =
-    `<div class="project-actions"><a class="btn" href="${PROJECTS_ROUTE}">← Back</a>` +
-    `<a class="btn primary" href="/projects/${encodeURIComponent(p.name)}/settings">Edit</a></div>`;
-  const body = actions + projectBody(p) + runConfigurationBlock(settings, readiness);
-  return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt);
+  const actions = `<div class="project-actions"><a class="btn" href="${PROJECTS_ROUTE}">← Back</a></div>`;
+  const body = actions + projectBody(p) + runConfigurationBlock(settings, readiness, p.name, opts);
+  return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt, undefined, { script: opts.script });
 }
 
 /** The listing itself: the counts, then one row per project, linking to

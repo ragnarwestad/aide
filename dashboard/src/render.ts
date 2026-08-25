@@ -32,14 +32,12 @@ export {
   // than when the site was last generated.
   projectPagePath, renderProjectPage,
 } from "./render/site.ts";
-export type { Page, ProjectView, SpecView } from "./render/site.ts";
+export type { Page, ProjectPageOptions, ProjectView, SpecView } from "./render/site.ts";
 
 export { renderProjectsPage,
   renderAddProjectPage,
-  renderProjectSettingsPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
-  projectSettingsRoute,
   removeProjectRoute } from "./render/projects-page.ts";
 export type { ProjectsPageOptions, ProjectDrift } from "./render/projects-page.ts";
 
@@ -97,4 +95,3 @@ export {
   specTabPath,
 } from "./render/spec-page.ts";
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
-

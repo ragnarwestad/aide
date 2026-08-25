@@ -84,12 +84,15 @@ const get = (base: string, name: string) =>
   fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
 
 describe("GET /projects/<name> — the project's own page, served", () => {
-  test("the page links back to Projects and to the encoded Edit route", async () => {
+  test("the page links back to Projects and opens the encoded inline editor", async () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const html = await (await get(serve(root, settled(root, name)), name)).text();
     expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
-    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co/settings">Edit</a>');
+    expect(html).toContain('<details class="project-settings-editor"');
+    expect(html).toContain('<summary class="btn primary">Edit</summary>');
+    expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
+    expect(html).toContain('<a class="btn" href="/projects/aide%20%26%20co">Cancel</a>');
   });
 
   test("a known project answers 200 with its manifest, and no spec list", async () => {
@@ -145,6 +148,24 @@ describe("GET /projects/<name> — the project's own page, served", () => {
 });
 
 describe("what the page says about the settings (criteria 1-3, 7)", () => {
+  test("editable values stay visible and are prefilled beside the read-only overview", async () => {
+    const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
+    );
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("Specs root");
+    expect(html).toContain("/repos/specs/aide");
+    expect(html).toContain("Worktree links");
+    expect(html).toContain("node_modules");
+    expect(html).toContain("Code landing");
+    expect(html).toContain("Leave it for a pull request");
+    expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/specs\/aide"/);
+    expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
+    expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
+    expect(html).toContain('<div class="tablewrap"><table class="list">');
+  });
   test("a configured test command is shown as configured (criterion 1)", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();

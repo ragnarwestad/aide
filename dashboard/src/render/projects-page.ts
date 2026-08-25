@@ -30,12 +30,6 @@ import { projectListBody, projectPagePath, projectSummary, type ProjectView } fr
 export const ADD_PROJECT_ROUTE = "/projects/new";
 export const removeProjectRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/remove`;
-/** And where its two settings are CHANGED (spec 184). Until this page
- *  existed the fields were on the Add form and nowhere else, so a
- *  project added without them could only be fixed by removing it and
- *  adding it again, or by editing a file in a terminal. */
-export const projectSettingsRoute = (name: string): string =>
-  `/projects/${encodeURIComponent(name)}/settings`;
 
 /** The last drift answer the server holds for a project (spec 203).
  *  `checkedAt` is `null` only where nothing has ever been asked — a
@@ -331,91 +325,6 @@ export function renderAddProjectPage(
     `</form>`;
   return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
     docTitle: "aide -board — add project",
-    script: opts.script,
-  });
-}
-
-/** The two answers to "what happens to this project's code when a spec
- *  is archived" (spec 220), in the order the picker offers them: the
- *  default first, and each with the sentence a reader needs to choose
- *  without leaving the page. */
-const CODE_LANDINGS: { value: "merge" | "pr"; label: string }[] = [
-  { value: "merge", label: "Merge into the default branch" },
-  { value: "pr", label: "Leave it for a pull request" },
-];
-
-/** The Settings page (spec 184): the same two fields the Add form has,
- *  pre-filled with what the project is configured with, on a page a
- *  reader can reach at any time rather than only in the seconds after
- *  Add.
- *
- *  Deliberately the Add page's own shape — the same `field()` calls, the
- *  same `<datalist>` help, the same Save/Cancel pair — because it is
- *  literally the same two questions, asked of a project that already
- *  exists. Every control works with no script, as everything on these
- *  pages does. */
-export function renderProjectSettingsPage(
-  name: string,
-  entries: NavEntry[],
-  generatedAt: string,
-  opts: ProjectsPageOptions,
-): string {
-  const body =
-    (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
-    rowMessage(
-      "info",
-      "The specs root is this machine's own and stays in .aide/config. The worktree links and the " +
-        "code landing are the project's, on any machine, and are written to .aide/project.yaml — " +
-        "which is committed, so a clone on the next machine arrives already knowing them.",
-      { tag: "p" },
-    ) +
-    `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" ` +
-    `class="newspecform addprojectform">` +
-    tokenField(opts.token) +
-    `<span class="frow">` +
-    field(
-      "Specs root",
-      `<input type="text" name="specsPath" maxlength="300" ` +
-        `value="${esc(opts.specsPath ?? "")}" ` +
-        `placeholder="its own specs/ when empty">`,
-      { wide: true },
-    ) +
-    `</span>` +
-    `<span class="frow">` +
-    field(
-      "Worktree links",
-      `<input type="text" name="worktreeLinks" maxlength="300" ` +
-        `value="${esc(opts.worktreeLinks ?? "")}" ` +
-        (opts.worktreeLinkCandidates?.length ? `list="wtlinks" ` : "") +
-        `placeholder="gitignored paths a run must link in: node_modules .venv">` +
-        (opts.worktreeLinkCandidates?.length
-          ? `<datalist id="wtlinks">` +
-            opts.worktreeLinkCandidates.map((c) => `<option value="${esc(c)}">`).join("") +
-            `</datalist>`
-          : ""),
-      { wide: true },
-    ) +
-    `</span>` +
-    `<span class="frow">` +
-    field(
-      "Code landing",
-      `<select name="codeLanding">` +
-        CODE_LANDINGS.map(
-          (o) =>
-            `<option value="${esc(o.value)}"` +
-            `${(opts.codeLanding ?? "merge") === o.value ? " selected" : ""}>${esc(o.label)}</option>`,
-        ).join("") +
-        `</select>`,
-      { wide: true },
-    ) +
-    `<span class="factions">` +
-    btn({ label: "Save", variant: "primary", pending: "saving…" }) +
-    `<a class="btn" href="/projects">Cancel</a>` +
-    `</span></span>` +
-    messageSlot("refused") +
-    `</form>`;
-  return pageShell(`${name} settings`, entries, "/projects", body, generatedAt, undefined, {
-    docTitle: `aide -board — ${name} settings`,
     script: opts.script,
   });
 }

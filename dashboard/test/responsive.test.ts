@@ -170,6 +170,11 @@ describe("the phase lines stop being pinned columns at phone width", () => {
 // --- criterion 4, 7, 8: a wide table scrolls, the page does not -------------
 
 describe("every wide table scrolls inside its own box", () => {
+  test("the inline project settings form wraps its fields and actions", () => {
+    expect(CSS).toMatch(/\.project-settings-editor \.frow \{[^}]*flex-wrap:\s*wrap/);
+    expect(NARROW).toMatch(/\.project-settings-editor \.factions \{[^}]*flex-wrap:\s*wrap/);
+  });
+
   test(".tablewrap is a scroll box at every width, like .specfile", () => {
     expect(CSS).toMatch(/\.tablewrap \{[^}]*overflow-x:\s*auto/);
     // Unconditional: a table three columns wider than the window is not
