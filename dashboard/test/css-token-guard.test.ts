@@ -288,7 +288,7 @@ const STRUCTURE = [
   // the state, in the page's ordinary "row" container. "tablewrap" is
   // the box a table too wide for the window scrolls inside, so the
   // PAGE never does (spec 155).
-  "row", "fact", "intro", "tabpanel", "activity", "facts", "extra",
+  "row", "intro", "tabpanel", "activity", "facts", "extra",
   "tablewrap",
   // the spec list
   // "modelcell" is where a phase line's three choices sit: the AI, the

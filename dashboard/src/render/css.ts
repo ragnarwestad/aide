@@ -783,8 +783,6 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
    so the COLUMN still moves if the longest badge on the page changes.
    Closing that needs a declared width, which no spec owns yet. */
 table.list tr.spechead > td > .row { justify-content: space-between; }
-.fact { margin: var(--sp-1) 0; }
-.fact ul { margin: 2px 0 var(--sp-2); padding-left: var(--sp-5); }
 td form { margin: 0; display: inline-block; }
 /* Nothing but hidden fields since spec 124: the boxes it posts are on
    the phase lines and the button that submits it stands beside the

@@ -12,11 +12,11 @@
 
 import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
-import type { ManifestData, ManifestResult } from "../parse-manifest.ts";
+import type { ManifestResult } from "../parse-manifest.ts";
 import type { ProjectReadiness } from "../project-admin.ts";
 import type { ProjectSettingsView, SettingRow } from "../project-settings.ts";
 import { btn, field, messageSlot, rowMessage, tokenField } from "./components.ts";
-import { esc, linkOrText } from "./html.ts";
+import { esc } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
 export interface SpecView extends SpecRef {
@@ -33,52 +33,6 @@ export interface Page {
   path: string;
   html: string;
 }
-
-function listRow(label: string, items: string[] | undefined): string {
-  if (!items || items.length === 0) return "";
-  const lis = items.map((i) => `<li>${linkOrText(i)}</li>`).join("");
-  return `<div class="fact"><span class="label">${label}</span><ul>${lis}</ul></div>`;
-}
-
-function textRow(label: string, value: string | undefined): string {
-  if (!value) return "";
-  return `<div class="fact"><span class="label">${label}</span><span>${linkOrText(value)}</span></div>`;
-}
-
-function manifestBlock(data: ManifestData): string {
-  const parts: string[] = [];
-  if (data.description) parts.push(`<p class="desc">${esc(data.description)}</p>`);
-  if (data.stack) {
-    const entries = Object.entries(data.stack)
-      .filter(([, v]) => v && v !== "none")
-      .map(([k, v]) => `<li><span class="label">${esc(k)}</span> ${esc(v)}</li>`);
-    if (entries.length > 0) {
-      parts.push(`<div class="fact"><span class="label">stack</span><ul>${entries.join("")}</ul></div>`);
-    }
-  }
-  parts.push(listRow("dependencies", data.dependencies));
-  if (data.deployment) {
-    const d = data.deployment;
-    const bits = [d.host, d.command, d.note].filter((x): x is string => !!x).map(esc);
-    if (d.url) bits.unshift(`<a href="${esc(d.url)}">${esc(d.url)}</a>`);
-    parts.push(`<div class="fact"><span class="label">deployment</span><span>${bits.join(" — ")}</span></div>`);
-  }
-  parts.push(listRow("logging", data.logging?.where));
-  parts.push(listRow("statistics", data.statistics));
-  if (data.reports && data.reports.length > 0) {
-    const lis = data.reports.map((rep) => {
-      const title = esc(rep.title ?? rep.url ?? "report");
-      const main = rep.url ? `<a href="${esc(rep.url)}">${title}</a>` : title;
-      const recipe = rep.recipe ? ` <span class="muted">(${esc(rep.recipe)})</span>` : "";
-      return `<li>${main}${recipe}</li>`;
-    });
-    parts.push(`<div class="fact"><span class="label">reports</span><ul>${lis.join("")}</ul></div>`);
-  }
-  parts.push(listRow("docs", data.docs));
-  parts.push(textRow("manifest generated", data.generated));
-  return parts.filter(Boolean).join("\n");
-}
-
 
 // Slug assignment: lowercase, non-alphanumeric runs -> one hyphen,
 // trimmed. `projects` is pre-reserved (the overview owns
@@ -175,16 +129,6 @@ function overviewRow(
     drift +
     `</div>${remove}</div>`
   );
-}
-
-function projectBody(p: ProjectView): string {
-  if (!p.manifest.ok) {
-    return `<p class="error-text">Manifest failed to parse: ${esc(p.manifest.error)}</p>`;
-  }
-  // A frozen spec table stood here. The list one tab away is the live
-  // one — filterable, sortable, with the controls — and a copy of it
-  // under the manifest said nothing that page did not (2026-08-22).
-  return manifestBlock(p.manifest.data);
 }
 
 /** Where a setting's value came from, in the words the page uses (spec
@@ -329,12 +273,8 @@ export function renderProjectPage(
   nav: NavEntry[],
   opts: ProjectPageOptions,
 ): string {
-  // The settings are added to `projectBody` rather than replacing any
-  // of it, and that holds for a project whose manifest will not parse
-  // too: `projectBody` is then a single error paragraph, and the
-  // config is the rest of what the page has to say.
   const actions = `<div class="project-actions"><a class="btn" href="${PROJECTS_ROUTE}">← Back</a></div>`;
-  const body = actions + projectBody(p) + runConfigurationBlock(settings, readiness, p.name, opts);
+  const body = actions + runConfigurationBlock(settings, readiness, p.name, opts);
   return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt, undefined, { script: opts.script });
 }
 
