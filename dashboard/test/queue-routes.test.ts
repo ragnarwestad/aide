@@ -6037,6 +6037,15 @@ describe("a project's settings route (spec 184)", () => {
     });
     expect(ok.status).toBe(303);
     expect(ok.headers.get("location")!.split("?")[0]).toBe("/projects/aide");
+    // Criterion 3: the page the save lands on is the page the new value
+    // is on. A redirect to the right address that then renders what the
+    // project used to be would satisfy the line above and nothing else.
+    const saved = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");
+    expect(saved).toContain("worktreeLinks: node_modules");
+    const afterSave = await (await fetch(`${base}${ok.headers.get("location")}`, {
+      headers: { "x-aide-token": TOKEN },
+    })).text();
+    expect(afterSave).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -6051,6 +6060,9 @@ describe("a project's settings route (spec 184)", () => {
     const refusalHtml = await refusalPage.text();
     expect(refusalHtml).toContain('<details class="project-settings-editor" open>');
     expect(refusalHtml).toContain("/etc");
+    // Criterion 5: the refusal wrote nothing — the manifest is still what
+    // the save before it left behind.
+    expect(readFileSync(join(project, ".aide", "project.yaml"), "utf-8")).toBe(saved);
   });
 
   // Spec 220, acceptance criterion 5. A third field on the same form,

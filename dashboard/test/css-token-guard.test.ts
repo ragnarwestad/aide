@@ -324,6 +324,11 @@ const STRUCTURE = [
   "spec-open", "spec-archived",
   // the project overview
   "proj-row", "error-text", "error",
+  // a project's own settings, edited where they are read (spec 236):
+  // the current values in read mode, and the disclosure that turns the
+  // three editable ones into the form. Both are project-scoped because
+  // the layout they need is this page's, not the component's.
+  "project-settings-values", "project-settings-editor",
   // the archive's Description column (spec 170): the one cell on the
   // site holding several paragraphs of prose, bounded to two lines so
   // one spec's description cannot take the row.
