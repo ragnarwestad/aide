@@ -7894,4 +7894,50 @@ describe("no render path runs git or a network command (spec 208)", () => {
     }
     expect(second).toContain("deadbee");
   });
+
+  const pipKind = (html: string, step: string): string =>
+    html.match(new RegExp(`<span class="pip ([a-z]+)"[^>]* title="${step}">`))?.[1] ?? "";
+
+  // Spec 241, criterion 5: `targets()` deliberately excludes an archived
+  // spec (spec 150), so `specPageView()`'s old `done: target?.done ?? []`
+  // always collapsed to `[]` for one — every phase but `create` (which is
+  // coloured from `phases` alone) read `todo` regardless of what the
+  // spec's own `4-status.md` claims. The fix trusts that file's claim for
+  // an archived spec, the same source `archivedSteps()` already trusts
+  // for the front page's archived rows (spec 224).
+  test("an archived spec's Overview tab shows all four phases as past, not just create (criterion 5)", async () => {
+    const { base } = harness.start({
+      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0 },
+      archivedSpecs: {
+        "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
+      },
+    });
+    const html = await (await get(base, "/specs/aide/77-old-thing")).text();
+    expect(pipKind(html, "create")).toBe("past");
+    expect(pipKind(html, "analyze")).toBe("past");
+    expect(pipKind(html, "implement")).toBe("past");
+    expect(pipKind(html, "archive")).toBe("past");
+  });
+
+  // Spec 241, criterion 6: a regression guard for the branch above — a
+  // LIVE spec must keep reading `done` from `target?.done` (the
+  // git-verified `workflowHistory`), never from the file's own claim.
+  // Not expected to be RED on its own: the live branch of the new `done:`
+  // line is byte-for-byte unchanged, but nothing before this task fetched
+  // ANY spec's Overview tab through a real route and inspected its pips —
+  // so a broken conditional (e.g. an inverted `ref?.archived` check) would
+  // otherwise pass unnoticed.
+  test("a live spec's Overview tab still reads its pips from its own git-verified history (criterion 6)", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 40 },
+      status: statusSaying(["create", "analyze", "implement", "archive"]),
+    });
+    ran(dir, ["create", "analyze"]);
+    await new Promise((r) => setTimeout(r, 100));
+    const html = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+    expect(pipKind(html, "create")).toBe("past");
+    expect(pipKind(html, "analyze")).toBe("past");
+    expect(pipKind(html, "implement")).toBe("todo");
+    expect(pipKind(html, "archive")).toBe("todo");
+  });
 });

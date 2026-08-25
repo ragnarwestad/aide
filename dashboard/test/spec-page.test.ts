@@ -822,6 +822,15 @@ describe("spec 239: the phase chain on Overview", () => {
     expect(pipKind(html, "archive")).toBe("todo");
   });
 
+  // Spec 241: `pips()` is caption-free by design (it is shared with the
+  // front page's row, which already has the spec's name beside it) —
+  // hoisted alone onto Overview it needs a label of its own, the same
+  // `checkshead` convention `checklist()` already uses for "Checks".
+  test("the pips carry a 'Progress' caption, the front page row's own name for this call (criterion 1)", () => {
+    const html = page(view({ phases: STEPS.map((step) => phase(step)), done: ["create"] }));
+    expect(html).toContain('<p class="checkshead"><strong>Progress</strong></p>');
+  });
+
   test("a spec with no job ever run still shows the phase chain rather than being omitted (criterion 5)", () => {
     const html = page(view({ phases: STEPS.map((step) => phase(step)), done: [] }));
     expect(html).toContain('class="pips"');
@@ -842,8 +851,10 @@ describe("spec 239: the phase chain on Overview", () => {
     expect(pipKind(html, "archive")).toBe("todo");
   });
 
-  test("nothing is drawn for a view carrying no phase data at all", () => {
-    expect(page(view())).not.toContain('class="pips"');
+  test("nothing is drawn for a view carrying no phase data at all — no pips and no caption (criterion 2)", () => {
+    const html = page(view());
+    expect(html).not.toContain('class="pips"');
+    expect(html).not.toContain('<strong>Progress</strong>');
   });
 });
 
@@ -990,13 +1001,21 @@ describe("the checks block (specs 182, 188, 212)", () => {
 
   // A spec whose 4-status.md has no Phase section at all — never
   // analysed, or a LOW-complexity spec on the simple layout.
-  test("a spec with no rows renders no block at all", () => {
+  // Spec 241: an empty checklist used to render nothing at all — combined
+  // with a phase-chain that has no caption either, a not-yet-analysed
+  // spec's Overview tab showed literally nothing. "no checks yet" is the
+  // third value the existing summary span already carries ("all done" /
+  // "N still open"), not a new kind of message.
+  test("a spec with no rows says 'no checks yet' rather than rendering no block at all (criterion 3)", () => {
     const html = page(view({ checks: { rows: [] } }));
     expect(html).not.toContain('class="checklist"');
+    expect(html).toContain('<p class="checkshead"><strong>Checks</strong> <span class="small muted">no checks yet</span></p>');
   });
 
-  test("a spec whose view carries no checks renders no block at all", () => {
-    expect(page(view())).not.toContain('class="checklist"');
+  test("a spec whose view carries no checks says 'no checks yet' rather than rendering no block at all (criterion 3)", () => {
+    const html = page(view());
+    expect(html).not.toContain('class="checklist"');
+    expect(html).toContain('<p class="checkshead"><strong>Checks</strong> <span class="small muted">no checks yet</span></p>');
   });
 
   // Nothing left to tick — every row done, or the current phase not

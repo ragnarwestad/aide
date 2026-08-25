@@ -343,8 +343,12 @@ function archivedLine(view: SpecPageView): string {
  *  draws for this spec, through the identical `phasePips` call rather
  *  than a second reading of the same jobs: the front page and this tab
  *  can then never disagree about the same spec, because they are the
- *  same function call. Renders through the existing, caption-free
- *  `pips()` component, so no new printed word is introduced. */
+ *  same function call. `pips()` itself is caption-free by design (it
+ *  sits beside the spec's name on the front page's row, which is
+ *  caption enough); hoisted alone onto Overview it needs one of its
+ *  own, so a "Progress" caption is added here — the front page row's
+ *  own name for this call (spec 241) — using the same `checkshead`
+ *  convention `checklist()` already uses for "Checks". */
 function phaseChain(view: SpecPageView): string {
   const phases = view.phases ?? [];
   // "Nothing to show, show nothing" — the same rule `checklist()` and
@@ -353,7 +357,7 @@ function phaseChain(view: SpecPageView): string {
   // still returns the four workflow lines); this is a fallback for a
   // view built before this field existed.
   if (phases.length === 0) return "";
-  return phasePips(phases, view.done ?? []);
+  return `<p class="checkshead"><strong>Progress</strong></p>` + phasePips(phases, view.done ?? []);
 }
 
 /** The spec's checks, on the OVERVIEW tab (specs 182, 188, 212).
@@ -386,7 +390,9 @@ function phaseChain(view: SpecPageView): string {
  *  row: the rows under `Phase 4: REFACTOR` are all Phase 4's. */
 function checklist(view: SpecPageView): string {
   const rows = view.checks?.rows ?? [];
-  if (rows.length === 0) return "";
+  if (rows.length === 0) {
+    return `<p class="checkshead"><strong>Checks</strong> <span class="small muted">no checks yet</span></p>`;
+  }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
   for (const row of rows) {

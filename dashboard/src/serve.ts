@@ -4300,7 +4300,8 @@ export function createServer(opts: ServerOptions) {
     // layout, or one never analysed) and `"done"` when every section is
     // clear; both leave nothing tickable, and the page then draws the
     // rows with no form.
-    const statusPhase = parseStatus(statusText).phase;
+    const parsedStatus = parseStatus(statusText);
+    const statusPhase = parsedStatus.phase;
     const anyTickable = rows.some((row) => !row.done && row.phase === statusPhase);
     // Read out of the DASHBOARD's own checkout, like the text beside it
     // (spec 205): the commit stamp a form compares against and the text
@@ -4315,7 +4316,15 @@ export function createServer(opts: ServerOptions) {
     // second count. The per-job git work `jobRow` does is not new load:
     // the front page already pays it over every job of every spec, and
     // this is one spec's own attempts (typically 1-3).
-    const target = targets().find((t) => t.project === project && t.specFolder === specFolder);
+    // `withFreshness` (never a live git spawn — spec 208 — it only peeks
+    // the `workflowHistory` cache the schedule already warmed) is what
+    // fills a live spec's `done` in from its own commits; the raw
+    // `targets()` entry never carries it. Every other caller of
+    // `targets()` on this route already goes through it (the front
+    // page's row, the job page); this one had not.
+    const target = withFreshness(
+      targets().filter((t) => t.project === project && t.specFolder === specFolder),
+    )[0];
     const jobRows = await Promise.all(jobs.map(jobRow));
     return {
       project,
@@ -4343,7 +4352,13 @@ export function createServer(opts: ServerOptions) {
       // earn spec 166's "cannot depend on itself" refusal.
       dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
       phases: phasesFor(jobRows, target),
-      done: target?.done ?? [],
+      // `targets()` deliberately drops an archived spec (serve.ts:792-796),
+      // so `target` — and `target?.done` — is always empty for one. The
+      // file's own claim is the only answer left, the same one
+      // `archivedSteps()` reads for the front page's archived rows (spec
+      // 224) — read here from the `statusText` already in hand rather than
+      // through that helper, which re-reads the file from disk.
+      done: ref?.archived ? parsedStatus.workflowSteps : (target?.done ?? []),
       descriptionBaseSha: descriptionCommit?.sha,
       lead: lead ? await jobDetailView(lead) : undefined,
       // Spec 237: every run of this spec, newest first — `jobs` is
