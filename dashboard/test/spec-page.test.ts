@@ -23,6 +23,7 @@ import {
   renderJobDetailPage,
   renderResetSpecPage,
   renderSpecPage,
+  type Phase,
   type SpecCheckView,
   type SpecPageView,
 } from "../src/render.ts";
@@ -272,7 +273,7 @@ describe("a spec with a lead job", () => {
     expect(html).toContain("$0.42");
   });
 
-  test("the tab counts come from the lead job, so a reader knows before clicking", () => {
+  test("the tab counts come from the lead job when nothing is selected, so a reader knows before clicking", () => {
     const html = page(withLead({ activity: ["Bash ls", "Read x"] }));
     expect(html).toMatch(/>Activity · 2</);
   });
@@ -429,20 +430,22 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
     }
   });
 
-  test("each entry names its step and when it ran, and links to the open tab with its own job", () => {
+  test("each pill's visible text is its relative time, and links to the open tab with its own job", () => {
     const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
     expect(bar).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;job=older"');
-    // The step's own word, lowercase, exactly as the phase lines and the
-    // pips say it — `stepLabel` is the one translator, and it has no
-    // entry for these.
-    expect(bar).toContain("analyze");
     // `NOW` is 2026-08-21T10:05:00Z: the newer ran 65 minutes before it,
-    // the older two days.
+    // the older two days — the pill's VISIBLE text, not the step chain.
     expect(bar).toContain("65 min ago");
     expect(bar).toContain("2 d ago");
+    // The step chain moved into a tooltip (spec 239): it is literally
+    // the word the Steps table's own rows use one panel down, and
+    // nothing told a reader which of the two was naming an attempt and
+    // which was naming a step.
+    expect(bar).toContain('title="analyze"');
+    expect(bar).not.toMatch(/>analyze</);
   });
 
-  test("a job that ran two steps says both, in the order it ran them", () => {
+  test("a job that ran two steps says so in the tooltip, in the order it ran them", () => {
     const bar = picker(
       page(
         view({
@@ -452,7 +455,36 @@ describe("spec 237: the attempt picker on Activity and Steps", () => {
         "steps",
       ),
     );
-    expect(bar).toContain("analyze → implement");
+    expect(bar).toContain('title="analyze → implement"');
+    expect(bar).not.toMatch(/>analyze → implement</);
+  });
+
+  test("an attempt with no timestamp falls back to the literal word attempt", () => {
+    const bar = picker(
+      page(
+        view({
+          lead: lead({ id: "newer" }),
+          attempts: [{ id: "newer", steps: ["analyze"] }, TWO[1]!],
+        }),
+        "steps",
+      ),
+    );
+    expect(bar).toContain(">attempt</a>");
+  });
+
+  test("the tab counts follow the selected attempt, not the lead (problem 1)", () => {
+    const v = view({
+      lead: lead({ id: "newer", state: "running", activity: ["Bash 1", "Bash 2", "Bash 3", "Bash 4", "Bash 5"] }),
+      selected: lead({
+        id: "older",
+        state: "failed",
+        activity: ["Bash a", "Bash b"],
+      }),
+      attempts: TWO,
+    });
+    const html = page(v, "activity");
+    expect(html).toMatch(/>Activity · 2</);
+    expect(html).not.toMatch(/>Activity · 5</);
   });
 
   test("with nothing picked, the lead is the one marked", () => {
@@ -735,6 +767,65 @@ describe("spec 212: the Depends on line on Overview", () => {
     const html = page(view({ dependsOn: ['<img src=x onerror="alert(1)">'] }));
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img");
+  });
+});
+
+// --- spec 239: the spec's own run history, on Overview -----------------------
+//
+// The front page's row already draws create → analyze → implement →
+// archive for every spec; this tab had nothing of the kind — a reader
+// who wanted the whole-spec history left this page for the front one.
+// `phasePips` is the same function the front page's row calls, fed the
+// same `Phase[]` this spec's own jobs and target already produce
+// server-side, never a second count.
+
+describe("spec 239: the phase chain on Overview", () => {
+  const STEPS = ["create", "analyze", "implement", "archive"];
+  const phase = (step: string, extra: Partial<Phase> = {}): Phase => ({
+    step,
+    attempts: [],
+    history: {},
+    ...extra,
+  });
+  const pipKind = (html: string, step: string): string =>
+    html.match(new RegExp(`<span class="pip ([a-z]+)"[^>]* title="${step}">`))?.[1] ?? "";
+
+  test("a spec that has run create, analyze and implement but not archive shows all four phases (criterion 4)", () => {
+    const html = page(
+      view({
+        phases: STEPS.map((step) => phase(step)),
+        done: ["create", "analyze", "implement"],
+      }),
+    );
+    expect(html).toContain('class="pips"');
+    expect(pipKind(html, "create")).toBe("past");
+    expect(pipKind(html, "analyze")).toBe("past");
+    expect(pipKind(html, "implement")).toBe("past");
+    expect(pipKind(html, "archive")).toBe("todo");
+  });
+
+  test("a spec with no job ever run still shows the phase chain rather than being omitted (criterion 5)", () => {
+    const html = page(view({ phases: STEPS.map((step) => phase(step)), done: [] }));
+    expect(html).toContain('class="pips"');
+    for (const step of STEPS) expect([step, pipKind(html, step)]).not.toEqual([step, ""]);
+  });
+
+  test("an archive held back with a reason reaches the tab the same way the front page's row shows it (criterion 6)", () => {
+    const phases = [
+      ...STEPS.slice(0, 3).map((step) => phase(step)),
+      phase("archive", { heldBack: { reason: "the Slack webhook" } }),
+    ];
+    const html = page(view({ phases, done: ["create", "analyze", "implement"] }));
+    // The pips strip cannot itself tell held-back from not-yet-run apart
+    // — the front page's own row does not either (render.test.ts's
+    // `pipFor` asserts "todo" for both cases, spec 108). What this pins
+    // is that the held-back `Phase` reaches this tab and renders through
+    // the identical composer without throwing.
+    expect(pipKind(html, "archive")).toBe("todo");
+  });
+
+  test("nothing is drawn for a view carrying no phase data at all", () => {
+    expect(page(view())).not.toContain('class="pips"');
   });
 });
 

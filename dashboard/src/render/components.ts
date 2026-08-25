@@ -332,6 +332,11 @@ export interface FilterPill {
   count?: number;
   on: boolean;
   href: string;
+  /** Detail on hover, not printed (spec 239) — the attempt picker's own
+   *  use is the step chain, which used to be the pill's visible text and
+   *  read as the same word the Steps table already shows. Omitted where
+   *  nothing needs to ride along; every other caller leaves it out. */
+  title?: string;
 }
 
 /** "Label · count", because the count is part of the sentence rather
@@ -355,7 +360,8 @@ export function filterPills(
     entries
       .map(
         (e) =>
-          `<a data-nav href="${e.href}"${e.on ? ` aria-current="${current}"` : ""}>` +
+          `<a data-nav href="${e.href}"${e.on ? ` aria-current="${current}"` : ""}` +
+          `${e.title ? ` title="${esc(e.title)}"` : ""}>` +
           `${esc(e.label)}${e.count === undefined ? "" : ` · ${e.count}`}</a>`,
       )
       .join("") +

@@ -95,6 +95,7 @@ import {
   SETTINGS_STEPS,
   ADD_PROJECT_ROUTE,
   computeSpecTotalDurationMs,
+  phasesFor,
   renderQueuePage,
   renderQueueRows,
   renderSpecPage,
@@ -4305,6 +4306,13 @@ export function createServer(opts: ServerOptions) {
     const formDir = tab === "description" ? await machinerySpecDir(project, found) : null;
     const descriptionCommit = formDir ? await lastCommitOf(gitRun, formDir, EDITABLE_SPEC_FILE) : null;
     const descriptionText = formDir ? specFileText(formDir, EDITABLE_SPEC_FILE) : null;
+    // Spec 239: the same join the front page's row composes
+    // (`phasesFor`), over this spec's own jobs and target — never a
+    // second count. The per-job git work `jobRow` does is not new load:
+    // the front page already pays it over every job of every spec, and
+    // this is one spec's own attempts (typically 1-3).
+    const target = targets().find((t) => t.project === project && t.specFolder === specFolder);
+    const jobRows = await Promise.all(jobs.map(jobRow));
     return {
       project,
       specFolder,
@@ -4330,6 +4338,8 @@ export function createServer(opts: ServerOptions) {
       // active specs. Self excluded — the one box that could only ever
       // earn spec 166's "cannot depend on itself" refusal.
       dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
+      phases: phasesFor(jobRows, target),
+      done: target?.done ?? [],
       descriptionBaseSha: descriptionCommit?.sha,
       lead: lead ? await jobDetailView(lead) : undefined,
       // Spec 237: every run of this spec, newest first — `jobs` is

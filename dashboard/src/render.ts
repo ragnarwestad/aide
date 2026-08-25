@@ -72,10 +72,10 @@ export {
 // kept in two places would eventually forget a key on one side.
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, computeSpecTotalDurationMs,
-  filterShowsArchived, renderQueuePage, renderQueueRows,
+  filterShowsArchived, phasePips, phasesFor, renderQueuePage, renderQueueRows,
 } from "./render/queue-list.ts";
 export type {
-  ArchivedSpecView, QueueFilter, QueuePageOptions, QueueTarget,
+  ArchivedSpecView, Phase, QueueFilter, QueuePageOptions, QueueTarget,
 } from "./render/queue-list.ts";
 
 export type { BranchView, QueueRowView } from "./render/job-state.ts";

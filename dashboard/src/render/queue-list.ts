@@ -663,7 +663,21 @@ function specPhases(all: QueueRowView[]): Phase[] {
   }));
 }
 
-interface Phase {
+/** The three-line join `jobGroup` and `emptyGroup` each composed inline
+ *  (spec 239): `specPhases` for the lines themselves, then archive's own
+ *  held-back reason and each phase's git history layered on top. Shared
+ *  now because a third caller — the spec page's own Overview tab —
+ *  needs the identical join, and writing it a third time is the exact
+ *  hand-copied-list shape `development.md` already names six of. */
+export function phasesFor(all: QueueRowView[], target: QueueTarget | undefined): Phase[] {
+  return specPhases(all).map((phase) => ({
+    ...phase,
+    ...heldBackFor(phase.step, target),
+    ...historyFor(phase.step, target),
+  }));
+}
+
+export interface Phase {
   step: string;
   /** Every job whose current/last step is this phase, newest first. A
    *  phase can be re-run — `85-dashboard-into-aide` archived three
@@ -806,12 +820,7 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     branches: [],
-    phases: PHASE_LINES.map((step) => ({
-      step,
-      attempts: [],
-      ...heldBackFor(step, t),
-      ...historyFor(step, t),
-    })),
+    phases: phasesFor([], t),
     ...fromTarget(t),
   };
 }
@@ -992,14 +1001,10 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
   // the front rather than being appended after archive.
   // Built before the group, because the spec's total is a sum over
   // these same lines and re-deriving them would be two answers to one
-  // question. `specPhases` is where that list lives now (spec 207) —
+  // question. `phasesFor` is where that join lives now (spec 239) —
   // the file-side answers this page shows on a line are added on top of
   // it, and the total reads neither.
-  const phases: Phase[] = specPhases(all).map((phase) => ({
-    ...phase,
-    ...heldBackFor(phase.step, target),
-    ...historyFor(phase.step, target),
-  }));
+  const phases: Phase[] = phasesFor(all, target);
   return {
     project: lead.project,
     specFolder: lead.specFolder,
@@ -1799,6 +1804,57 @@ function specNumber(folder: string): string {
   return /^\d+(?=-|$)/.exec(folder)?.[0] ?? folder;
 }
 
+/** One pip per phase: green for a phase that has run, blue for the one
+ *  running now, grey for a phase still ahead. The whole workflow in six
+ *  millimetres, on the line you are already reading — shared by the
+ *  list's own row and the spec page's Overview tab (spec 239), so the
+ *  two can never show a different chain for the same spec.
+ *
+ *  `create` had no pip from spec 116 until spec 167: the glance was
+ *  about the four phases a reader can still RUN. The hole made create
+ *  read as a different kind of thing rather than as the phase already
+ *  behind you — the same reason the phase line got a box of its own on
+ *  2026-08-21 — so it is a pip like the other four now.
+ *
+ *  It does not go through `wordPhase` with them, though: create has
+ *  only two states, past and running. A spec that exists was created,
+ *  so the pip is past unless a create job is in flight right now.
+ *  `done` used to be the reason — it comes from the git history, which
+ *  counts only the runner's own `Run /aide-<step> for <folder>` commits,
+ *  and a spec written by hand has no create commit, so every one of
+ *  those showed a grey pip saying the spec had not been made yet. Spec
+ *  176 closed that gap one layer down (`withFreshness` puts create into
+ *  the set for any spec whose folder is on disk), so the phase LINE
+ *  agrees now; the two states above are what is left. */
+export function phasePips(phases: Phase[], done: string[]): string {
+  const createRunning = phases.find((p) => p.step === "create")?.attempts.some(inFlight);
+  return pips(
+    phases.map((p) => {
+      // One rule, one function: what the FILES say, qualified by the
+      // most relevant attempt (whatever is in flight, else the latest).
+      // The pips used to read the job history alone, so a spec analysed
+      // by hand showed four grey pips and a cancelled re-run turned a
+      // finished phase grey again.
+      const attempt = p.attempts.find(inFlight) ?? p.attempts[0];
+      return {
+        kind:
+          p.step === "create"
+            ? createRunning
+              ? "now"
+              : "past"
+            : wordPhase(done.includes(p.step), p.heldBack, attempt, p.history).pip,
+        title: stepLabel(p.step),
+        // How much of a running implement is behind it (spec 210). The
+        // fallback above is the latest attempt whatever became of it,
+        // so the "only while it runs" half of the rule is what keeps a
+        // stale phase from filling a pip for work that has stopped —
+        // and that half lives in `completedThirds`, once.
+        third: completedThirds(attempt),
+      };
+    }),
+  );
+}
+
 // The header line for one spec: what it is, how far it has got, what it
 // has cost in total, and — beside the state that says why — the one
 // thing that can be done about it (`stateAction`, spec 157). Which
@@ -1884,53 +1940,9 @@ function specHeadRow(
     : g.prError
       ? ` ${badge("refused", "no pull request", g.prError)}`
       : "";
-  // One pip per phase: green for a phase that has run, blue for the one
-  // running now, grey for a phase still ahead. The whole workflow in six
-  // millimetres, on the line you are already reading.
-  // `create` had no pip from spec 116 until spec 167: the glance was
-  // about the four phases a reader can still RUN. The hole made create
-  // read as a different kind of thing rather than as the phase already
-  // behind you — the same reason the phase line got a box of its own on
-  // 2026-08-21 — so it is a pip like the other four now.
-  //
-  // It does not go through `wordPhase` with them, though: create has
-  // only two states, past and running. A spec that exists was created,
-  // so the pip is past unless a create job is in flight right now.
-  // `g.done` used to be the reason — it comes from the git history,
-  // which counts only the runner's own `Run /aide-<step> for <folder>`
-  // commits, and a spec written by hand has no create commit, so every
-  // one of those showed a grey pip saying the spec had not been made
-  // yet. Spec 176 closed that gap one layer down (`withFreshness` puts
-  // create into the set for any spec whose folder is on disk), so the
-  // phase LINE agrees now; the two states above are what is left.
-  const createRunning = g.phases
-    .find((p) => p.step === "create")
-    ?.attempts.some(inFlight);
-  const progress = pips(
-    g.phases.map((p) => {
-      // One rule, one function: what the FILES say, qualified by the
-      // most relevant attempt (whatever is in flight, else the latest).
-      // The pips used to read the job history alone, so a spec analysed
-      // by hand showed four grey pips and a cancelled re-run turned a
-      // finished phase grey again.
-      const attempt = p.attempts.find(inFlight) ?? p.attempts[0];
-      return {
-        kind:
-          p.step === "create"
-            ? createRunning
-              ? "now"
-              : "past"
-            : wordPhase(g.done.includes(p.step), p.heldBack, attempt, p.history).pip,
-        title: stepLabel(p.step),
-        // How much of a running implement is behind it (spec 210). The
-        // fallback above is the latest attempt whatever became of it,
-        // so the "only while it runs" half of the rule is what keeps a
-        // stale phase from filling a pip for work that has stopped —
-        // and that half lives in `completedThirds`, once.
-        third: completedThirds(attempt),
-      };
-    }),
-  );
+  // The whole workflow in six millimetres, on the line you are already
+  // reading — shared with the spec page's Overview tab since spec 239.
+  const progress = phasePips(g.phases, g.done);
   // The earliest phase the spec's own files say has not happened — the
   // same one `preTicked` ticks a box for, from the same function, so
   // the badge and the button cannot name different phases (spec 191).

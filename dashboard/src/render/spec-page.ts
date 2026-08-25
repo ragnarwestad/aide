@@ -42,7 +42,8 @@ import { esc, relTimeLabel } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { notStartedChip, stateChip } from "./job-state.ts";
 import { dependsOnField } from "./new-spec-page.ts";
-import type { QueueTarget } from "./queue-list.ts";
+import { phasePips } from "./queue-list.ts";
+import type { Phase, QueueTarget } from "./queue-list.ts";
 import {
   activityPanel,
   fileStamp,
@@ -123,6 +124,16 @@ export interface SpecPageView {
    *  now, and a chip that followed the picker would say the spec had
    *  failed while a step of it was running. */
   selected?: JobDetailView;
+  /** The spec's own run history, the same four-phase (plus any extra
+   *  step) chain the front page's row draws (spec 239) — read off the
+   *  same source, never recomputed. Absent only for a view built before
+   *  this field existed; the server always sets it, empty jobs list
+   *  included. */
+  phases?: Phase[];
+  /** Steps this spec's own files say have happened, the other half
+   *  `phasePips` needs to mark a phase done rather than todo. From the
+   *  same target `phases` above is built from. */
+  done?: string[];
   /** Whether the spec has been archived (spec 163). Its folder has
    *  moved into `archive/` and the spec is a RECORD: the description's
    *  textarea was built for a description edited while the work is live
@@ -329,6 +340,24 @@ function archivedLine(view: SpecPageView): string {
   );
 }
 
+/** The spec's own run history, on the OVERVIEW tab (spec 239) — the same
+ *  create → analyze → implement → archive chain the front page's row
+ *  draws for this spec, through the identical `phasePips` call rather
+ *  than a second reading of the same jobs: the front page and this tab
+ *  can then never disagree about the same spec, because they are the
+ *  same function call. Renders through the existing, caption-free
+ *  `pips()` component, so no new printed word is introduced. */
+function phaseChain(view: SpecPageView): string {
+  const phases = view.phases ?? [];
+  // "Nothing to show, show nothing" — the same rule `checklist()` and
+  // `dependsOnLine()` already keep. The server always sends four
+  // phases or more, empty jobs list included (`phasesFor([], ...)`
+  // still returns the four workflow lines); this is a fallback for a
+  // view built before this field existed.
+  if (phases.length === 0) return "";
+  return phasePips(phases, view.done ?? []);
+}
+
 /** The spec's checks, on the OVERVIEW tab (specs 182, 188, 212).
  *
  *  Spec 182 put these rows at the top of the page because they were
@@ -525,7 +554,19 @@ function descriptionPanel(view: SpecPageView, now: number): string {
  *
  *  Nothing at all below two attempts. `job` rides beside the open tab
  *  rather than replacing it, so a pick keeps the reader on the panel
- *  they were reading. */
+ *  they were reading.
+ *
+ *  The visible label is the attempt's relative time, not its step chain
+ *  (spec 239): two attempts usually run the *same* steps, so the step
+ *  chain told two pills apart less often than the time did — and it is
+ *  literally the word the Steps table's own rows use one panel down,
+ *  with nothing telling a reader which of the two is naming an attempt
+ *  and which is naming a step. The step chain still rides along, in a
+ *  `title=` tooltip, the same "detail on hover, nothing printed" shape
+ *  `pips()` already uses on this exact page. A typed optional `at` falls
+ *  back to the literal word "attempt" rather than an empty pill — in
+ *  practice every real attempt has one (`serve.ts` sets it from
+ *  `startedAt ?? createdAt`, and a job's `createdAt` is required). */
 function attemptPicker(view: SpecPageView, tab: SpecTab, now: number): string {
   const attempts = view.attempts ?? [];
   if (attempts.length < 2) return "";
@@ -534,9 +575,8 @@ function attemptPicker(view: SpecPageView, tab: SpecTab, now: number): string {
     "attempt",
     "Attempt",
     attempts.map((a) => ({
-      label:
-        a.steps.map(stepLabel).join(" → ") +
-        (a.at ? ` · ${relTimeLabel(a.at, now)}` : ""),
+      label: a.at ? relTimeLabel(a.at, now) : "attempt",
+      title: a.steps.map(stepLabel).join(" → "),
       on: a.id === shownId,
       href: esc(`${specTabPath(view.project, view.specFolder, tab)}&job=${encodeURIComponent(a.id)}`),
     })),
@@ -607,7 +647,7 @@ export function renderSpecPage(
             // checks. The STATE is not among them: the chip on the head
             // line says it, on every tab, and the same word twice on
             // one screen is what this block was made to stop.
-            : archivedLine(view) + dependsOnLine(view) + checklist(view);
+            : archivedLine(view) + dependsOnLine(view) + phaseChain(view) + checklist(view);
 
   const body = tabbedBody(
     banner,
@@ -615,7 +655,7 @@ export function renderSpecPage(
       SPEC_TABS,
       specPagePath(view.project, view.specFolder),
       tab,
-      { activity: lead?.activity?.length ?? 0, steps: lead?.results.length ?? 0 },
+      { activity: shown?.activity?.length ?? 0, steps: shown?.results.length ?? 0 },
     ),
     panel,
   );
