@@ -554,8 +554,18 @@ table.list thead a { color: var(--muted); }
    prefixed trio is what every browser actually implements today. */
 /* Twice the width a search box gets by default, and no caption over it:
    the button beside it says what it is, and the caption made the field
-   the taller of the two (2026-08-23). */
-.archive-q { width: 26rem; max-width: 100%; }
+   the taller of the two (2026-08-23). type="search" carries its own
+   native chrome (a platform-drawn rounded box, sometimes its own
+   magnifying glass and clear button) that border-radius and border only
+   partially override left alone — appearance: none hands the whole box
+   to this CSS instead, the same trade .field select already makes for
+   its own native chevron (found 2026-08-25, when a rounder radius and
+   left padding made the mismatch between native chrome and this rule's
+   border visible for the first time). */
+.archive-q { width: 26rem; max-width: 100%; height: 28px;
+  appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: var(--fs-m)/1 var(--sans); }
 /* The whole date, on one line, never cut. */
 .archive-date { white-space: nowrap; }
 /* And the same for what the spec cost (spec 207): "1h04m" broken over
