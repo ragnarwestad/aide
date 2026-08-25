@@ -314,6 +314,11 @@ const STRUCTURE = [
   // the label, its hidden checkbox, the chevron, and the AI+model pair
   // the checkbox shows and hides. Inert on desktop.
   "phasefold", "foldphase", "foldchevron", "aimodel",
+  // a locked phase's own record of what it ran on (spec 244), beside its
+  // box — deliberately its own class rather than "aimodel", which is
+  // hidden on mobile behind a "foldphase" checkbox a locked line never
+  // draws, so reusing it would hide this permanently on narrow screens.
+  "lockedmodel",
   "spec-name", "spec-title",
   // the row's message panel (spec 143): a full-width row of its own, so
   // a sentence out of a status file or a runner's refusal wraps instead
