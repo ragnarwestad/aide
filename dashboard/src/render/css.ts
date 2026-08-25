@@ -586,7 +586,7 @@ table.list thead a { color: var(--muted); }
 /* Rounder than the shared ".field input" rule gives it (var(--r-s), 4px)
    — the same one-field exception ".field.wide" already makes for width
    (design handoff, 2026-08-25). */
-.searchfield > .archive-q { width: 100%; border-radius: var(--r);
+.searchfield > .archive-q { width: 100%; box-sizing: border-box; border-radius: var(--r);
   padding-left: 28px; padding-right: var(--sp-5); }
 /* The icon sits inside the input via the input's own left padding above,
    not the wrapper's — so it never competes with ".searchclear" at the
