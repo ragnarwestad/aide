@@ -422,45 +422,64 @@ The progress percentage below the line is a different question and is
 still the model's: it says how far the TDD phases inside `implement`
 have got, not whether `implement` ran at all.
 
-#### Model per step
+#### Phase outcome record
 
-One `- **Model (<step>):**` line per step, beside the line above and
-never merged into it:
+Each of the four phases writes its own outcome into the Tracking info
+of the file that is ITS OWN artifact — never into 4-status.md on
+another phase's behalf:
+
+| Phase | Own file | Date field enriched |
+|---|---|---|
+| create | 1-description.md | `Created:` |
+| analyze | 2-analysis.md | `Last analyzed:` |
+| implement | 3-solution.md | `Last updated:` |
+| archive | 4-status.md | `Last updated:` |
+
+The record, beside the file's own existing date field — never a new
+one, the date already exists, only the time of day is new
+(`` `YYYY-MM-DD HH:MM UTC` ``):
 
 ```markdown
-- **Workflow steps completed:** create, analyze
-- **Model (create):** claude claude-opus-5
-- **Model (analyze):** claude claude-sonnet-5
+- **Repo:** `repo-name/branch @ sha`
+- **Model:** claude claude-sonnet-5
+- **Result:** completed
+- **Time spent:** 4m12s
+- **Cost:** $0.1234
 ```
 
-The two answer different questions — that one says whether a step ran,
-this one says who ran it — and putting two facts on one line is what
-caused the Woodstack 22 incident for the first of them. The value is
-the tool, then the model it was given, and the model half is absent
-when the run named none. Steps are the same four, in the same order.
+`Repo` is one line per repo root, matching that root's checkout at the
+start of the run; it is absent for `create`, since nothing has been
+analyzed against yet. `Result` is `completed`, or `stopped (<reason>)`
+with a sanitized, one-line error summary when the run did not finish.
+`Cost` is absent for a tool that reports no cost (codex) — absence
+means unknown, never zero, so a total added up by hand from these five
+figures across all four files can understate itself for a codex-run
+phase.
 
-**Do not edit these lines either. `aide-run-spec` writes them, from the
-same commits**, whose subject carries the model where it carries
-everything else it knows about the run. Before this spec the fact lived
-only in the dashboard's job queue, which holds 200 jobs and evicts the
-rest, so it disappeared from exactly the specs old enough for anyone to
-ask about.
+**Do not edit these lines. `aide-run-spec` writes them**, from the same
+process and commit data it already derives `Workflow steps completed`
+from — the elapsed time, the cost, the repo/branch/sha at the start of
+the run and how the run ended — never from a model's own account of
+itself. Each run OVERWRITES its phase's own block with its own outcome:
+unlike `Workflow steps completed`, nothing here is added to across
+runs, because "how did this run go" has one right answer that changes
+with each attempt, not a set that only grows.
 
-**Each line is its step's newest sighting, and nothing else touches
-it.** A step re-run under a different model reads as that model — this
-field is not add-only the way the line above is, because "who ran it"
-has a right answer that changes and "did it run" does not. A step the
-scan finds no model for in a given pass keeps whatever line it already
-had: a later step's run never erases an earlier step's model.
-
-A subject with no `(model: ...)` in it — every one written before this
-spec, and every commit a step wrote under a descriptive message of its
-own — yields no line at all. **An absent line does not prove the step
-ran without a model, and an absent `Model (create)` line does not prove
+**An absent `Model` line does not prove the phase ran without a
+model, and an absent record on `1-description.md` does not prove
 `create` never ran** — only that no commit could be attributed to it.
 That is the ordinary case for a spec whose `1-description.md` a person
-wrote by hand: nothing is recorded, rather than "human" being inferred
-from the silence.
+wrote by hand and committed under their own message: nothing is
+recorded, rather than "human" being inferred from the silence. The same
+silence applies to any phase finished entirely without `aide-run-spec`
+ever running — no `Repo`/`Model`/`Result`/`Time spent`/`Cost` is
+written for it, ever.
+
+Specs archived before this record existed may still carry the older,
+centralized `Model (create):`/`Model (analyze):`/`Model (implement):`
+lines in their `4-status.md` (spec 217) — those are left exactly as
+they are, not migrated; only `archive`'s own outcome uses this record
+now.
 
 ---
 

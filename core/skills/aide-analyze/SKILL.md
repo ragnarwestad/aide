@@ -161,9 +161,10 @@ is read off the spec's own commits, and `aide-run-spec` writes the
 `Workflow steps completed:` line from them — leave that line exactly as
 you found it.
 
-Which model ran each step is read off those same commits, and the same
-script writes the `Model (<step>):` lines from them — leave those lines
-alone too.
+Which model ran, and how the phase went, are read off the same commit,
+and the same script writes them — a `Repo`/`Model`/`Result`/`Time
+spent`/`Cost` block, plus a time of day on `Last analyzed:` — directly
+into `2-analysis.md`'s own Tracking info. Leave those lines alone too.
 
 A headless run gets its commit for free. Working interactively, ASK
 whether to commit the analysis, and suggest this message so the step is

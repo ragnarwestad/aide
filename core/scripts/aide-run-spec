@@ -1663,6 +1663,41 @@ status_file_for() {   # sets $status_file
   return 0
 }
 
+# Where THIS step's own artifact is (spec 245) — the same two-candidate
+# (active folder, then archive/) resolution `status_file_for` above
+# already does, generalized to the file each phase owns rather than
+# 4-status.md alone.
+phase_file_for() {   # sets $phase_file
+  local step="$1" folder="$2" name=""
+  phase_file=""
+  case "$step" in
+    create)    name="1-description.md" ;;
+    analyze)   name="2-analysis.md" ;;
+    implement) name="3-solution.md" ;;
+    archive)   name="4-status.md" ;;
+  esac
+  [ -n "$name" ] && [ -n "$folder" ] || return 0
+  if [ -f "$specs_root_wt/$folder/$name" ]; then
+    phase_file="$specs_root_wt/$folder/$name"
+  elif [ -f "$specs_root_wt/archive/$folder/$name" ]; then
+    phase_file="$specs_root_wt/archive/$folder/$name"
+  fi
+  return 0
+}
+
+# Which of the file's OWN, already-model-written date fields gets its
+# time of day filled in by this step — never a new field. The
+# description is explicit about this for `create` ("the date already
+# exists as `Created:` — only the time of day is new"), and the same
+# shape holds for every other phase's own date field too.
+date_field_for() {
+  case "$1" in
+    create) printf 'Created' ;;
+    analyze) printf 'Last analyzed' ;;
+    implement|archive) printf 'Last updated' ;;
+  esac
+}
+
 # The steps this spec has COMPLETED, in workflow order, as a comma
 # separated list. This run's own outcome is known directly and is
 # recorded first, so it wins over anything the log says about the same
@@ -1692,17 +1727,11 @@ work_round_boundary_in() {   # sets $work_round_sha
   return 0
 }
 
-completed_steps_for() {   # sets $completed_steps and $model_records
-  local folder="$1" dir="$2" subject step reason step_model seen completed re
+completed_steps_for() {   # sets $completed_steps
+  local folder="$1" dir="$2" subject step reason seen completed re
   local existing_line existing_step
   local boundary_args=()
   completed_steps=""
-  # Spec 217, one `step=<tool> [<model>]` record per line, newest
-  # sighting first — the same "first sighting speaks for the step" rule
-  # the scan below already applies, so a re-run's model supersedes the
-  # attempt before it. `=` is safe as the separator: a step name is
-  # `[a-z-]+` and neither a tool name nor a model id carries one.
-  model_records=""
   # `--not <sha>` excludes every commit REACHABLE from the mark — exactly
   # the earlier round, since the mark is the specs repo's default-branch
   # tip at the moment of reopening and the earlier round's commits were
@@ -1717,13 +1746,6 @@ completed_steps_for() {   # sets $completed_steps and $model_records
     *" $command_name "*)
       seen="|$command_name|"
       [ "$terminal_reason" = "completed" ] && completed="|$command_name|"
-      # THIS run's model comes from the flags it was given, not from the
-      # commit it is about to make. That is what carries the fact
-      # through the amend path (spec 146), where the step committed its
-      # own work under its own subject and the grammar below never sees
-      # it.
-      model_records="$command_name=$model_value
-"
       ;;
   esac
   re="^Run /aide-([a-z][a-z-]*) for ${folder}( \(headless\))?( \(model: ([^)]+)\))?( \(stopped: (.+)\))?$"
@@ -1735,17 +1757,11 @@ completed_steps_for() {   # sets $completed_steps and $model_records
     [ -n "$subject" ] || continue
     [[ "$subject" =~ $re ]] || continue
     step="${BASH_REMATCH[1]}"
-    step_model="${BASH_REMATCH[4]}"
     reason="${BASH_REMATCH[6]}"
     case " $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED " in *" $step "*) ;; *) continue ;; esac
     case "$seen" in *"|$step|"*) continue ;; esac
     seen="$seen$step|"
     [ -n "$reason" ] || completed="$completed$step|"
-    # A subject with no model suffix — every one written before spec 217
-    # — leaves no record, and the write-back leaves that step's line
-    # exactly as it found it. Absence is never filled in with a guess.
-    [ -n "$step_model" ] && model_records="$model_records$step=$step_model
-"
   done <<EOF
 $(git -C "$dir" log --all ${boundary_args[@]+"${boundary_args[@]}"} --format=%s --fixed-strings \
     --grep="Run /aide-" --grep=" for $folder" --all-match 2>/dev/null)
@@ -1799,41 +1815,17 @@ if [ -n "$status_file" ]; then
   # under is left alone too — this writes the value, never the layout.
   if [ -n "$completed_steps" ] && \
      grep -qE '^- \*\*(Workflow steps completed|Task|TODO):\*\*' "$status_file" 2>/dev/null; then
-    # Spec 217's block, built here rather than in awk: one
-    # `- **Model (<step>):**` line per step there is anything to say
-    # about, in workflow order, going in directly under the line above.
-    #
-    # The merge is "fresh sighting wins, no fresh sighting keeps what
-    # the file already had" — the scan sees a model only through the
-    # subject grammar, so a step that committed under a descriptive
-    # message of its own has none, and its line must survive the next
-    # step's recompute the way spec 214's step names do. Unlike that
-    # line the field is not add-ONLY: a step re-run under a different
-    # model is genuinely that model now, so a fresh sighting replaces.
-    : > "$work_dir/model-lines"
-    for step in $WORKFLOW_ARC $WORKFLOW_ARC_RETIRED; do
-      step_model="$(printf '%s\n' "$model_records" | sed -n "s/^$step=//p" | head -1)"
-      [ -n "$step_model" ] || step_model="$(sed -n "s/^- \*\*Model ($step):\*\*[[:space:]]*//p" \
-        "$status_file" 2>/dev/null | tail -1)"
-      [ -n "$step_model" ] || continue
-      printf -- '- **Model (%s):** %s\n' "$step" "$step_model" >> "$work_dir/model-lines"
-    done
-    awk -v line="- **Workflow steps completed:** $completed_steps" \
-        -v models="$work_dir/model-lines" '
-      function emit_models(  ln) {
-        while ((getline ln < models) > 0) print ln
-        close(models)
-      }
+    # Historical `- **Model (<step>):**` lines an old archive still
+    # carries (spec 217, superseded by spec 245's per-file record below)
+    # are left exactly where they sit — no migration pass rewrites old
+    # archives, so this pass touches only the line it owns.
+    awk -v line="- **Workflow steps completed:** $completed_steps" '
       BEGIN { written = 0 }
-      # Dropped wherever they sit and re-emitted as one block below the
-      # line above: this pass owns their order, so a step that gained a
-      # line and a step that already had one end up in the same place.
-      /^- \*\*Model \([a-z][a-z-]*\):\*\*/ { next }
       /^- \*\*Workflow steps completed:\*\*/ {
-        if (!written) { print line; emit_models(); written = 1 }
+        if (!written) { print line; written = 1 }
         next
       }
-      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; emit_models(); written = 1; next }
+      !written && /^- \*\*(Task|TODO):\*\*/ { print; print line; written = 1; next }
       { print }
     ' "$status_file" > "$work_dir/status-line" 2>/dev/null
     # Written back only when it actually differs. The commit loop below
@@ -1844,6 +1836,82 @@ if [ -n "$status_file" ]; then
        ! cmp -s "$work_dir/status-line" "$status_file"; then
       cat "$work_dir/status-line" > "$status_file" 2>/dev/null || true
     fi
+  fi
+fi
+
+# --- this phase's own outcome record (spec 245) ------------------------------
+# `Workflow steps completed` (above) answers "did the SPEC run this
+# step"; this answers "how did THIS phase go" — and is written into the
+# phase's own artifact file, not 4-status.md, for every one of the four
+# phases (archive's own copy IS in 4-status.md, since that file is
+# archive's own artifact).
+phase_file_for "$command_name" "$commit_label"
+if [ -n "$phase_file" ]; then
+  run_stamp="$(date -u -r "$started_at" +'%Y-%m-%d %H:%M UTC')"
+  # Overwrites whatever value the field already had (a plain date the
+  # skill wrote, or a stale placeholder) — the script is authoritative
+  # for this phase's own timestamp from here on, same as it already is
+  # for Workflow steps completed.
+  date_field="$(date_field_for "$command_name")"
+  sed -E "s/(^- \*\*${date_field}:\*\*[[:space:]]*\`)[^\`]*(\`)/\1${run_stamp}\2/" \
+    "$phase_file" > "$work_dir/phase-file-dated" 2>/dev/null && \
+    mv "$work_dir/phase-file-dated" "$phase_file"
+
+  if [ "$terminal_reason" = "completed" ]; then
+    result_line="completed"
+  else
+    result_line="stopped ($terminal_reason)"
+    if [ -n "$error_msg" ]; then
+      summary="$(printf '%s' "$error_msg" | tr '\n' ' ' | tr -d '\`' | cut -c1-200)"
+      result_line="$result_line — $summary"
+    fi
+  fi
+  time_spent_display="$(printf '%dm%02ds' $(( duration / 60 )) $(( duration % 60 )))"
+  cost_line=""
+  if [ "$cost_known" = "true" ]; then
+    cost_line="$(printf '$%.4f' "$cost")"
+    [ "$cost_measured" = "false" ] && cost_line="$cost_line (unmeasured)"
+  fi
+  : > "$work_dir/phase-outcome"
+  # `Repo` is absent for `create`: nothing has been analyzed against yet
+  # (the issue itself lists only creation time as new for that phase).
+  if [ "$command_name" != "create" ]; then
+    i=0
+    for root in "${roots[@]}"; do
+      # A root this run never checked out has no head_before, and an
+      # empty sha is worse than an absent line — absence over a guess,
+      # the same rule already used for Model.
+      if [ -n "${head_before[$i]:-}" ]; then
+        printf -- '- **Repo:** `%s/%s @ %s`\n' \
+          "$(basename "$root")" "$branch" "${head_before[$i]:0:8}" >> "$work_dir/phase-outcome"
+      fi
+      i=$(( i + 1 ))
+    done
+  fi
+  [ -n "$model_value" ] && printf -- '- **Model:** %s\n' "$model_value" >> "$work_dir/phase-outcome"
+  printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
+  printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
+  [ -n "$cost_line" ] && printf -- '- **Cost:** %s\n' "$cost_line" >> "$work_dir/phase-outcome"
+  # Scoped to INSIDE `## Tracking info` only (in_tracking), never the
+  # whole file — a `Result:`-shaped bullet written by the model in
+  # Findings or Risk-analysis prose is not this record and must survive.
+  awk -v block="$work_dir/phase-outcome" '
+    function emit_block(  ln) { while ((getline ln < block) > 0) print ln; close(block) }
+    BEGIN { written = 0; in_tracking = 0 }
+    /^## Tracking info/ {
+      print; in_tracking = 1
+      if ((getline nextline) > 0) {
+        if (nextline ~ /^[ \t]*$/) { print nextline; emit_block(); written = 1 }
+        else { emit_block(); written = 1; print nextline }
+      } else { emit_block(); written = 1 }
+      next
+    }
+    in_tracking && /^## / { in_tracking = 0 }
+    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Cost):\*\*/ { next }
+    { print }
+  ' "$phase_file" > "$work_dir/phase-file-out" 2>/dev/null
+  if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then
+    cat "$work_dir/phase-file-out" > "$phase_file" 2>/dev/null || true
   fi
 fi
 

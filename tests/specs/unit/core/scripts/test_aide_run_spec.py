@@ -14,6 +14,7 @@ the next run can start from.
 import json
 import os
 import pathlib
+import re
 import shlex
 import subprocess
 import time
@@ -3976,181 +3977,39 @@ def test_a_line_that_is_already_right_is_not_rewritten(runner, workspace, fake_c
     assert roots[str(workspace["specs"])]["changedFiles"] == 0
 
 
-# --- spec 217: which model ran each step --------------------------------------
+# --- spec 217: which model ran each step (superseded by spec 245) ------------
 #
 # "Did it run" and "who ran it" are two different facts, and conflating
 # them on one line is what caused the Woodstack 22 incident for the
-# first of them. So the model gets a line of its own per step, derived
-# the same way: from the commit subject, by the runner, never from a
-# model's own account of itself.
-#
-# The suffix sits BEFORE `(stopped: <reason>)`, whose reason is read
-# greedily to the end of the subject — a suffix after it would be
-# swallowed into the reason, and every subject written before this
-# change would start parsing differently.
+# first of them. Spec 217 gave the second its own line, centralized in
+# 4-status.md and derived by scanning EVERY step's commit history on
+# EVERY run. Spec 245 replaces that scan with a per-phase record written
+# only into the phase's OWN file, by the run that phase ran — the tests
+# below pin what is left of the old mechanism: nothing writes its shape
+# anymore, and what already exists in an old archive is untouched.
 
 
-def test_the_step_records_the_model_it_ran_under(runner, workspace, fake_claude):
-    """AC1: the tool and the model named on the command line reach both
-    the commit subject and the file's own line."""
+def test_a_run_no_longer_writes_the_old_per_step_model_line(runner, workspace, fake_claude):
+    """The centralized, scanned `Model (<step>):` line is gone: a fresh
+    run writes this phase's own record into its own file (spec 245's
+    tests above), never a `Model (<step>):` line into 4-status.md."""
     with_status(workspace)
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
     assert rc == 0, out
-    assert git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner") == \
-        subject("analyze", model="claude claude-sonnet-5")
-    assert recorded_model(workspace, "analyze") == "claude claude-sonnet-5"
-
-
-def test_a_run_with_no_model_flag_records_the_tool_alone(runner, workspace, fake_claude):
-    """AC2: the tool is always known — it defaults to `claude` and is
-    validated at parse time — so it is recorded on its own rather than
-    the whole fact being dropped for want of a model name."""
-    with_status(workspace)
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-    assert "(model: claude)" in git(
-        workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner"
-    )
-    assert recorded_model(workspace, "analyze") == "claude"
-
-
-def test_a_subject_with_no_model_suffix_leaves_no_model_line(runner, workspace, fake_claude):
-    """AC3: a commit made before this change says nothing about a model,
-    and nothing is what gets written for it. The step still counts as
-    having run — the two facts are independent."""
-    with_status(workspace)
-    already_ran(workspace, ["create", "analyze"])
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert recorded_line(workspace) == "create, analyze, implement"
-    assert recorded_model(workspace, "create") is None
     assert recorded_model(workspace, "analyze") is None
-    assert recorded_model(workspace, "implement") == "claude"
 
 
-def test_a_hand_written_spec_gets_no_model_line_for_create(runner, workspace, fake_claude):
-    """AC6: `1-description.md` written by a person and committed under
-    their own message leaves no commit to attribute create to, so there
-    is no `Model (create)` line — an absence, never a guess at "human"."""
-    with_status(workspace)
+def test_a_historical_model_line_survives_untouched(runner, workspace, fake_claude):
+    """Risk analysis (3-solution.md, spec 245): specs archived before
+    this change still carry the old, centralized `Model (<step>):` lines
+    — left exactly as they are, not migrated, when a later step's own
+    write touches the rest of the file."""
+    with_status(workspace, ["create"], models={"create": "claude claude-opus-5"})
     claude = writing_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
-    assert rc == 0, out
-    assert recorded_model(workspace, "create") is None
-
-
-def test_a_model_recorded_on_an_earlier_commit_is_read_back(runner, workspace, fake_claude):
-    """The scan is the source for every step but this run's own."""
-    with_status(workspace)
-    already_ran(workspace, ["create"], model="claude claude-opus-5")
-    already_ran(workspace, ["analyze"], model="codex gpt-5")
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement",
-                     model="claude-sonnet-5")
     assert rc == 0, out
     assert recorded_model(workspace, "create") == "claude claude-opus-5"
-    assert recorded_model(workspace, "analyze") == "codex gpt-5"
-    assert recorded_model(workspace, "implement") == "claude claude-sonnet-5"
-
-
-def test_a_stopped_run_still_records_its_model(runner, workspace, fake_claude):
-    """Both suffixes on one subject, in the order that keeps the greedy
-    stop reason last. The step did not finish, so it is not on the
-    completed line — but it ran, and under a model."""
-    with_status(workspace)
-    already_ran(workspace, ["create", "analyze"])
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        'echo "half-written" > "$PWD/half.txt"\n'
-        "trap '' TERM\n"
-        "while true; do sleep 0.2; done"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="implement",
-                     model="claude-sonnet-5", timeout_sec="2", kill_grace_sec="1")
-    assert out["terminalReason"] == "timeout"
-    last = git(workspace["specs"], "log", "-1", "--pretty=%s", "aide/81-queue-and-runner")
-    assert last == subject("implement", model="claude claude-sonnet-5", stopped="timeout"), last
-    assert recorded_line(workspace) == "create, analyze"
-    assert recorded_model(workspace, "implement") == "claude claude-sonnet-5"
-
-
-def test_a_stopped_subject_still_reads_back_as_a_stop(runner, workspace, fake_claude):
-    """The greedy-reason trap, from the reader's side: a stop reason
-    followed by nothing is what the regex must keep seeing. A step whose
-    NEWEST commit stopped is not completed, model suffix or no."""
-    with_status(workspace)
-    already_ran(workspace, ["create"])
-    already_ran(workspace, ["analyze"], model="claude claude-opus-5", stopped="timeout")
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert recorded_line(workspace) == "create, implement"
-    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
-
-
-def test_the_model_line_reaches_a_step_that_committed_its_own_work(
-    runner, workspace, fake_claude
-):
-    """AC10: `archive` resolving a conflict commits with `--no-edit`
-    before the generic loop runs, so the loop AMENDS rather than opening
-    a commit of its own — and the amended subject is the step's, not the
-    grammar's. The model fact must survive that path too: it reaches the
-    commit's body, and the file's line is written regardless, because
-    this run's own step is seeded from the flags rather than scanned
-    for."""
-    with_status(workspace)
-    already_ran(workspace, ["create", "analyze", "implement"])
-    folder = workspace["folder"]
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + f'echo "resolved" > "$specs/{folder}/resolution.txt"\n'
-        + 'git -C "$specs" add -A\n'
-        + 'git -C "$specs" commit -q -m "Resolve the conflict the step was handed"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
-    rc, out, _ = run(runner, workspace, claude, command="archive",
-                     model="claude-sonnet-5")
-    assert rc == 0, out
-    branch = "aide/81-queue-and-runner"
-    assert git(workspace["specs"], "log", "-1", "--pretty=%s", branch) == \
-        "Resolve the conflict the step was handed"
-    body = git(workspace["specs"], "log", "-1", "--pretty=%B", branch)
-    assert "(model: claude claude-sonnet-5)" in body, body
-    assert recorded_model(workspace, "archive") == "claude claude-sonnet-5"
-
-
-def test_a_re_run_under_a_different_model_updates_the_line(runner, workspace, fake_claude):
-    """AC11, first half: newest sighting wins, exactly as it does for
-    done/stopped. The Model lines are NOT add-only — a step re-run under
-    a different model is now recorded as that model."""
-    with_status(workspace, ["create", "analyze"],
-                models={"analyze": "claude claude-haiku-4-5"})
-    already_ran(workspace, ["create"])
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="analyze",
-                     model="claude-opus-5")
-    assert rc == 0, out
-    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
-
-
-def test_a_step_with_no_fresh_sighting_keeps_its_model_line(runner, workspace, fake_claude):
-    """AC11, second half: a later step's run must not erase what an
-    earlier step's line already says. The scan can only see a model
-    through the subject grammar, so a step whose commit carries no
-    suffix has no fresh sighting — and no fresh sighting leaves the line
-    exactly as it was."""
-    with_status(workspace, ["create", "analyze"],
-                models={"analyze": "claude claude-opus-5"})
-    already_ran(workspace, ["create", "analyze"])
-    claude = writing_claude(fake_claude, workspace)
-    rc, out, _ = run(runner, workspace, claude, command="implement")
-    assert rc == 0, out
-    assert recorded_model(workspace, "analyze") == "claude claude-opus-5"
-    assert recorded_model(workspace, "implement") == "claude"
 
 
 def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root):
@@ -4247,6 +4106,237 @@ def test_a_line_naming_something_that_is_not_a_step_drops_it(
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert recorded_line(workspace) == "analyze, implement"
+
+
+# --- spec 245: every phase writes its own Tracking info -----------------------
+#
+# `Workflow steps completed`/`Model (<step>)` (above) answer "did it run"
+# and "who ran it" for the SPEC as a whole, centralized in 4-status.md.
+# This is the fourth fact, and it belongs to the PHASE, not the spec: a
+# `Repo`/`Model`/`Result`/`Time spent`/`Cost` block, written into that
+# phase's own artifact file, plus a time of day on the date field the
+# file already carries.
+
+TIME_OF_DAY_RE = re.compile(r"^`\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC`$")
+TIME_SPENT_RE = re.compile(r"^\d+m\d{2}s$")
+
+
+def tracking_block(text, heading="## Tracking info"):
+    """The bullet lines directly under `## Tracking info`, up to the next
+    `## ` heading — the same region the phase-outcome writer is scoped
+    to."""
+    lines = text.split("\n")
+    start = next(i for i, ln in enumerate(lines) if ln.strip() == heading)
+    end = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+        len(lines),
+    )
+    return "\n".join(lines[start:end])
+
+
+def bullet(text, field, heading="## Tracking info"):
+    """The value of one `- **Field:**` bullet inside Tracking info, or
+    None when it is not there at all."""
+    prefix = f"- **{field}:**"
+    for line in tracking_block(text, heading).split("\n"):
+        if line.startswith(prefix):
+            return line[len(prefix):].strip()
+    return None
+
+
+def with_solution(workspace, last_updated="2026-08-01"):
+    """A committed `3-solution.md` carrying a Tracking info section with
+    the `Last updated:` date field the phase-outcome writer enriches."""
+    (workspace["specs"] / workspace["folder"] / "3-solution.md").write_text(
+        "# Queue - Solution\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        f"- **Last updated:** `{last_updated}`\n\n---\n\n## Scope\n"
+    )
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add solution"], check=True)
+
+
+def analyzing_claude(fake_claude, workspace, last_analyzed="2026-08-01"):
+    """A stand-in `/aide-analyze` that leaves `2-analysis.md` behind with
+    a Tracking info section carrying the `Last analyzed:` date field —
+    unlike `writing_claude`, which writes the file with no Tracking info
+    at all."""
+    folder = workspace["folder"]
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "# Queue - Analysis" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{folder}/\\`" "- **Last analyzed:** \\`{last_analyzed}\\`" '
+        + f'> "$specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def phase_file_text(workspace, path, branch="aide/81-queue-and-runner"):
+    return git(workspace["specs"], "show", f"{branch}:{path}")
+
+
+def test_a_create_run_records_its_own_outcome_and_no_repo_line(
+    runner, workspace, fake_claude
+):
+    """AC1: `create` gains a time of day on `Created:`, and `Model` (when
+    a model was named), `Result: completed` and `Time spent` — but no
+    `Repo` line, since nothing was yet analyzed against."""
+    made = "99-a-brand-new-spec"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'printf "%s\\n" "# New - Description" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{made}/\\`" "- **Created:** \\`2026-08-01\\`" '
+        + f'> "$specs/{made}/1-description.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="create", spec="81",
+                     model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{made}/1-description.md")
+    created = bullet(text, "Created")
+    assert created and TIME_OF_DAY_RE.match(created), created
+    assert bullet(text, "Model") == "claude claude-sonnet-5"
+    assert bullet(text, "Result") == "completed"
+    time_spent = bullet(text, "Time spent")
+    assert time_spent and TIME_SPENT_RE.match(time_spent), time_spent
+    assert bullet(text, "Repo") is None
+
+
+def test_an_analyze_run_writes_one_repo_line_per_root(runner, workspace, fake_claude):
+    """AC2: `Last analyzed:` gains a time of day, and the Tracking info
+    gains one `Repo` line per repo root, each matching that root's own
+    `head_before`."""
+    with_status(workspace)
+    claude = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    last_analyzed = bullet(text, "Last analyzed")
+    assert last_analyzed and TIME_OF_DAY_RE.match(last_analyzed), last_analyzed
+    repo_lines = [
+        ln for ln in tracking_block(text).split("\n") if ln.startswith("- **Repo:**")
+    ]
+    assert len(repo_lines) == 2, repo_lines
+    assert any(ln.startswith("- **Repo:** `proj/aide/81-queue-and-runner @ ") for ln in repo_lines), repo_lines
+    assert any(ln.startswith("- **Repo:** `specs/aide/81-queue-and-runner @ ") for ln in repo_lines), repo_lines
+    assert bullet(text, "Model") == "claude claude-sonnet-5"
+    assert bullet(text, "Result") == "completed"
+
+
+def test_an_implement_run_stopped_by_timeout_records_the_stop(
+    runner, workspace, fake_claude
+):
+    """AC3: a run stopped by its own time limit records that in
+    `3-solution.md`'s `Result` line rather than `completed`."""
+    with_status(workspace)
+    with_solution(workspace)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'echo "half-written" > "$PWD/half.txt"\n'
+        "trap '' TERM\n"
+        "while true; do sleep 0.2; done"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement",
+                     timeout_sec="2", kill_grace_sec="1")
+    assert out["terminalReason"] == "timeout"
+    text = phase_file_text(workspace, f"{workspace['folder']}/3-solution.md")
+    result_line = bullet(text, "Result")
+    assert result_line.startswith("stopped (timeout)"), result_line
+
+
+def test_a_failed_cli_run_records_a_sanitized_error_summary(
+    runner, workspace, fake_claude
+):
+    """AC4: a CLI failure's `Result` line carries `stopped (cli-error)`
+    followed by a one-line, backtick-free summary, truncated to at most
+    200 characters — never the raw multi-line error verbatim."""
+    with_status(workspace)
+    with_solution(workspace)
+    long_error = ("line one with a `backtick`\n" + "x" * 300)
+    result = {**RESULT_OK, "is_error": True, "errors": [long_error]}
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(result)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert out["terminalReason"] == "cli-error"
+    text = phase_file_text(workspace, f"{workspace['folder']}/3-solution.md")
+    result_line = bullet(text, "Result")
+    assert result_line.startswith("stopped (cli-error)"), result_line
+    assert "`" not in result_line, result_line
+    assert "\n" not in result_line, result_line
+    assert len(result_line) <= 200 + len("stopped (cli-error) — "), result_line
+
+
+def test_an_archive_run_keeps_the_steps_line_and_adds_its_own_block(
+    runner, workspace, fake_claude
+):
+    """AC5: `4-status.md` keeps the unchanged `Workflow steps completed:`
+    line AND gains the new outcome block for `archive` itself — with no
+    `Model (create|analyze|implement):` lines written by this run."""
+    with_status(workspace)
+    already_ran(workspace, ["create", "analyze", "implement"])
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="archive",
+                     model="claude-sonnet-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert recorded_line(workspace) == "create, analyze, implement, archive"
+    assert bullet(text, "Model") == "claude claude-sonnet-5"
+    assert bullet(text, "Result") == "completed"
+    assert bullet(text, "Time spent") is not None
+    for step in ("create", "analyze", "implement"):
+        assert f"Model ({step})" not in text, text
+
+
+def test_a_re_run_of_the_same_step_replaces_the_block_not_duplicates_it(
+    runner, workspace, fake_claude
+):
+    """AC6: running the same step twice leaves the phase file's block
+    reflecting only the newest run — no duplicate lines, and the date
+    field's time is overwritten rather than duplicated."""
+    with_status(workspace)
+    claude1 = analyzing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
+    assert rc == 0, out
+    # The second run leaves 2-analysis.md untouched — a re-run whose
+    # file already carries the first run's block by the time THIS run's
+    # own writer processes it, which is exactly the shape a real re-run
+    # has (the file is not rewritten from scratch every time).
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert text.count("- **Model:**") == 1, text
+    assert text.count("- **Result:**") == 1, text
+    assert text.count("- **Time spent:**") == 1, text
+    assert text.count("- **Last analyzed:**") == 1, text
+    assert bullet(text, "Model") == "claude claude-opus-5"
+
+
+def test_a_result_bullet_outside_tracking_info_survives_the_write(
+    runner, workspace, fake_claude
+):
+    """AC7: a `Result:`-shaped bullet the model wrote elsewhere in the
+    same file (e.g. in prose about a past attempt) is not Tracking info,
+    and the phase-outcome writer must not touch it."""
+    with_status(workspace)
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "# Queue - Analysis" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{folder}/\\`" "- **Last analyzed:** \\`2026-08-01\\`" "" '
+        + '"## Findings" "" "- **Result:** the earlier fix worked" '
+        + f'> "$specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{folder}/2-analysis.md")
+    assert "- **Result:** the earlier fix worked" in text, text
+    # And Tracking info still gained its OWN Result line, alongside it.
+    assert bullet(text, "Result") == "completed"
 
 
 # --- spec 198: reopening a spec is one action --------------------------------

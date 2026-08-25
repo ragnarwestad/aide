@@ -22,11 +22,6 @@
 - **Estimate:** [X hours/days]
 - **Last updated:** `{{UPDATE_DATE}}`
 
-<!-- Agent should add repos here after analysis:
-**Repositories used during analysis:**
-- **repo-name:** `branch` @ `commit`
--->
-
 ---
 
 ## Phase 1: RED - Write tests

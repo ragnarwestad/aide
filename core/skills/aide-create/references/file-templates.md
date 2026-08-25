@@ -25,7 +25,11 @@ Structure - follow the spec structure § 1-description:
   prompt states one — Depends on=the stated value, one backticked
   identifier per comma-separated entry, on the line after `Created`
   (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
-  when nothing was stated.
+  when nothing was stated. Nothing about a phase outcome record either:
+  `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no
+  `Repo` — nothing has been analyzed against yet) into this file's own
+  Tracking info once `create` has actually run, plus a time of day onto
+  `Created:` — the template names none of it
 - **Description:** DESC + editable note
 - NO criteria for done-ness here — they are part of the solution (3-solution.md)
 - NO affected files or estimate here — they are commitments about the
@@ -37,8 +41,11 @@ Structure - follow the spec structure § 2-analysis:
 
 - `# TITLE - Analysis`
 - TOC with: Tracking info, Mapping, Findings
-- **Tracking info:** Task=`FOLDER/`, Last analyzed=`[not analyzed yet]`,
-  Repo=`[not analyzed yet]` (filled as `repo/branch @ commit`, one line per repo)
+- **Tracking info:** Task=`FOLDER/`, Last analyzed=`[not analyzed yet]` —
+  and nothing about a phase outcome record: `aide-run-spec` writes
+  `Repo`/`Model`/`Result`/`Time spent`/`Cost` into this file's own
+  Tracking info once `analyze` has actually run, plus a time of day onto
+  `Last analyzed:`
 - **Mapping:** Placeholder for how the analysis was performed - search terms, methods, tools
 - **Findings:** Affected files (numbered list) plus sections for codebase analysis, affected components, patterns, test coverage, API dependencies
 - NOTHING that judges the solution — no grade, estimate or risks (3-solution.md)
@@ -50,8 +57,11 @@ Structure - follow the spec structure § 3-solution:
 - `# TITLE - Solution`
 - TOC with: Tracking info, Scope, Approaches, Recommended solution, Behavior delta, Acceptance criteria, Risk analysis, Implementation plan, Testing
   (a "Plan review" section is added after Acceptance criteria by /aide-analyze's review step)
-- **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]`,
-  Repo=`[not prepared yet]` (filled as `repo/branch @ commit`, one line per repo)
+- **Tracking info:** Task=`FOLDER/`, Last updated=`[not prepared yet]` —
+  and nothing about a phase outcome record: `aide-run-spec` writes
+  `Repo`/`Model`/`Result`/`Time spent`/`Cost` into this file's own
+  Tracking info once `implement` has actually run, plus a time of day
+  onto `Last updated:`
 - **Scope:** Placeholder for files to change, complexity (level + factors), estimate (manual + AI-assisted)
 - **Approaches:** Placeholder for 2 approaches with pros/cons/estimate
 - **Recommended solution:** Placeholder with before/after examples (SEPARATE code blocks)
@@ -69,9 +79,11 @@ Structure - follow the spec structure § 4-status:
 - Total progress: `0% (0 of X completed)`, Estimate: `[X hours/days]`
 - TOC with: Tracking info, Phase 1-4, Notation
 - **Tracking info:** Task=`FOLDER/`, Last updated=`[not started]` — and
-  nothing about which steps the spec has had, nor which model ran them.
-  Both that line and the `Model (<step>):` lines beside it are written
-  by `aide-run-spec` from the spec's own commits (see the spec structure
-  § 4-status), so a new spec starts without any of them
+  nothing about which steps the spec has had, nor about a phase outcome
+  record for `archive` itself. Both the line naming the completed steps
+  and the `Repo`/`Model`/`Result`/`Time spent`/`Cost` block beside it are
+  written by `aide-run-spec` from the spec's own commits and process
+  data (see the spec structure § 4-status), so a new spec starts without
+  any of them
 - **Phase 1-4:** RED/GREEN/GREEN/REFACTOR phases with tables (Task|Status|Notes)
 - **Notation:** Not started, In progress, Completed, Blocked, Waiting

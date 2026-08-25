@@ -669,33 +669,30 @@ class TestWorkflowStepRecord:
 
 
 @pytest.mark.validation
-class TestModelPerStepRecord:
-    """Spec 217: which MODEL ran each step, recorded next to which steps
-    have run — never merged into that line.
+class TestPhaseOutcomeRecord:
+    """Spec 245: every phase writes its own outcome — `Repo`/`Model`/
+    `Result`/`Time spent`/`Cost` — into the Tracking info of the file
+    that is ITS OWN artifact, not centralized in 4-status.md the way
+    spec 217's `Model (<step>):` lines were.
 
-    The two are different facts. `Workflow steps completed` answers "did
-    it run"; `Model (<step>)` answers "who ran it". Conflating two facts
-    on one line is what caused the Woodstack 22 incident for the first
-    of them, so the second gets a line per step.
-
-    Until this spec the answer lived only in the dashboard's job queue,
-    which holds 200 jobs and evicts the rest — so the fact vanished on
-    exactly the specs old enough for anyone to ask about it. It is
-    derived the same way the steps line is: from the spec's own commits,
-    by `aide-run-spec`, never from a model's account of itself. What a
-    test can check in a SKILL.md is that the instruction says so.
+    `Workflow steps completed` (above) still answers "did it run", for
+    the spec as a whole, in 4-status.md. This record answers "how did
+    THIS phase go" — who ran it, what it cost, how long it took, and
+    whether it finished — and each of the four phases owns its own copy,
+    in its own file, derived from the same process/commit data
+    `aide-run-spec` already trusts, never from a model's account of
+    itself.
     """
 
-    # All four stages, `create` included: it has no dashboard model
-    # picker (a spec is already being created by the time it reaches a
-    # row), so its field is filled in after the fact from whatever
-    # commit created it — by the same mechanism, not a bespoke one.
-    WRITERS = {
-        "aide-create": "create",
-        "aide-analyze": "analyze",
-        "aide-implement": "implement",
-        "aide-archive": "archive",
+    # The file each phase's own record lives in, and the date field on
+    # that same file that gains a time of day.
+    OWN_FILE = {
+        "aide-create": ("1-description.md", "Created"),
+        "aide-analyze": ("2-analysis.md", "Last analyzed"),
+        "aide-implement": ("3-solution.md", "Last updated"),
+        "aide-archive": ("4-status.md", "Last updated"),
     }
+    WRITERS = {skill: skill.removeprefix("aide-") for skill in OWN_FILE}
 
     @staticmethod
     def _text(workspace_root, *parts):
@@ -704,20 +701,24 @@ class TestModelPerStepRecord:
             pytest.skip(f"{path.name} not found")
         return path.read_text()
 
-    # AC5: the skill does not write the field. It names it so a model
-    # knows which line not to touch, exactly as it does for the steps
-    # line.
+    # The skill does not write the record itself. It names the field and
+    # the file it lives in, so a model knows which lines not to touch —
+    # exactly as it already does for `Workflow steps completed`.
     @pytest.mark.parametrize("skill", sorted(WRITERS))
-    def test_the_skill_does_not_write_the_model_line_itself(self, workspace_root, skill):
-        lowered = self._text(workspace_root, "core", "skills", skill, "SKILL.md").lower()
-        assert "model (<step>)" in lowered, \
+    def test_the_skill_does_not_write_the_phase_outcome_itself(self, workspace_root, skill):
+        content = self._text(workspace_root, "core", "skills", skill, "SKILL.md")
+        lowered = content.lower()
+        own_file, _ = self.OWN_FILE[skill]
+        assert "model" in lowered, \
             f"{skill} must name the Model field, so a model knows which line not to touch"
+        assert own_file.lower() in lowered, \
+            f"{skill} must name {own_file}, the file its own phase outcome record lives in"
         assert "leave those lines" in lowered, \
-            f"{skill} must say plainly that the Model line is not its to write"
+            f"{skill} must say plainly that those lines are not its to write"
 
-    # AC4: the interactive path keeps the signal by OFFERING it on the
-    # commit — and only when the assistant can actually name its own
-    # model. Omission, never a guess, is the fallback.
+    # The interactive path keeps the signal by OFFERING the model suffix
+    # on the commit it asks to make — unaffected by this spec, and still
+    # true after the record moved files.
     @pytest.mark.parametrize("skill", sorted(WRITERS))
     def test_the_skill_offers_the_model_suffix_only_when_it_knows(self, workspace_root, skill):
         content = self._text(workspace_root, "core", "skills", skill, "SKILL.md")
@@ -732,48 +733,86 @@ class TestModelPerStepRecord:
         assert "never guess" in lowered, \
             f"{skill} must say what to do when it cannot: leave it out, never guess"
 
-    # AC8: a fresh spec has had no step, so it knows no model either.
-    def test_status_template_claims_no_model(self, workspace_root):
-        content = self._template(workspace_root, "4-status.md.template")
-        line = next((ln for ln in content.splitlines() if "**Model (" in ln), None)
-        assert line is None, \
-            "4-status.md.template must not claim a model: the lines are written by " \
-            f"the runner from the commits, and the template said {line!r}"
+    # A fresh spec has had no phase run against it, so no template
+    # claims a phase outcome record for any of the four files.
+    @pytest.mark.parametrize("name", [
+        "1-description.md.template", "2-analysis.md.template",
+        "3-solution.md.template", "4-status.md.template",
+    ])
+    def test_templates_claim_no_phase_outcome(self, workspace_root, name):
+        content = self._template(workspace_root, name)
+        for field in ("Repo", "Model", "Result", "Time spent", "Cost"):
+            line = next(
+                (ln for ln in content.splitlines() if f"**{field}:**" in ln), None
+            )
+            assert line is None, \
+                f"{name} must not claim {field!r}: it is written by aide-run-spec " \
+                f"once the phase has actually run, and the template said {line!r}"
 
-    # AC9, the file-templates half.
-    def test_file_templates_say_the_model_is_not_the_models_to_write(self, workspace_root):
+    # The dormant, unenforced "Repositories used during analysis" HTML
+    # comment is superseded by the script-derived Repo line and removed
+    # outright — like every other field here, nothing is claimed until
+    # aide-run-spec has something true to say.
+    @pytest.mark.parametrize("name", [
+        "2-analysis.md.template", "3-solution.md.template", "4-status.md.template",
+    ])
+    def test_templates_carry_no_dormant_repo_comment(self, workspace_root, name):
+        content = self._template(workspace_root, name)
+        assert "Repositories used during analysis" not in content, \
+            f"{name} must not carry the dormant, unenforced Repo placeholder comment"
+
+    # file-templates.md: each of the four files' section says where its
+    # own phase outcome record lives and who writes it.
+    @pytest.mark.parametrize("stem,own_file", [
+        ("1-description", "1-description.md"), ("2-analysis", "2-analysis.md"),
+        ("3-solution", "3-solution.md"), ("4-status", "4-status.md"),
+    ])
+    def test_file_templates_name_the_phase_outcome_and_its_writer(
+        self, workspace_root, stem, own_file
+    ):
         content = self._text(workspace_root, "core", "skills", "aide-create",
                              "references", "file-templates.md")
-        status = next(chunk for chunk in content.split("\n## ")
-                      if chunk.splitlines()[0].startswith("4-status"))
-        lowered = status.lower()
-        assert "model (<step>)" in lowered, \
-            "file-templates.md must name the Model field the placeholder does not carry"
+        section = next(chunk for chunk in content.split("\n## ")
+                       if chunk.splitlines()[0].startswith(stem))
+        lowered = section.lower()
         assert "aide-run-spec" in lowered, \
-            "file-templates.md must name the runner as the writer of it"
+            f"file-templates.md's {own_file} section must name the runner as the writer"
+        assert "model" in lowered, \
+            f"file-templates.md's {own_file} section must name the Model field"
 
-    # AC9, the rule half — the contract every tool is given.
-    def test_the_rule_defines_the_model_field(self, workspace_root):
+    # The rule — the contract every tool is given — defines the record,
+    # names its writer, its per-file locations, and the update rule.
+    def test_the_rule_defines_the_phase_outcome_record(self, workspace_root):
         section = TestWorkflowStepRecord._status_section(self._rule(workspace_root))
         lowered = section.lower()
-        assert "model (<step>)" in lowered, \
-            "spec-structure.md's 4-status section must define the Model field"
+        for field in ("repo", "model", "result", "time spent", "cost"):
+            assert field in lowered, \
+                f"spec-structure.md's 4-status section must define the {field!r} field"
+        for own_file in ("1-description.md", "2-analysis.md", "3-solution.md"):
+            assert own_file in section, \
+                f"spec-structure.md must say {own_file} carries its own phase outcome record"
         assert "aide-run-spec" in lowered, \
-            "the rule must name the runner as the writer, so nobody edits the field by hand"
-        assert "newest" in lowered, \
-            "the rule must give the update rule: the newest commit for a step wins"
+            "the rule must name the runner as the writer, so nobody edits the fields by hand"
+        assert "newest" in lowered or "overwrite" in lowered, \
+            "the rule must give the update rule: the newest run's outcome is the one kept"
 
-    def test_the_rule_says_an_absent_create_line_proves_nothing(self, workspace_root):
-        """The description's second creation scenario: a person writes
-        `1-description.md` by hand and commits it under their own
+    def test_the_rule_says_an_absent_model_line_proves_nothing(self, workspace_root):
+        """The description's hand-written creation scenario: a person
+        writes `1-description.md` by hand and commits it under their own
         message. No commit can be attributed to `create`, so no line is
         written — and a reader must not read that silence as "create
         never ran", nor the runner invent "human" to fill it."""
         lowered = TestWorkflowStepRecord._status_section(self._rule(workspace_root)).lower()
-        assert "model (create)" in lowered, \
-            "the rule must address create's asymmetry by name"
         assert "does not prove" in lowered, \
-            "the rule must say an absent Model (create) line does not prove create never ran"
+            "the rule must say an absent Model line does not prove the phase never ran"
+
+    def test_the_rule_notes_historical_specs_keep_the_old_field_name(self, workspace_root):
+        """Risk analysis (3-solution.md): specs archived before this
+        record existed still show the old, centralized `Model (<step>):`
+        lines in 4-status.md — undisturbed, not migrated."""
+        lowered = TestWorkflowStepRecord._status_section(self._rule(workspace_root)).lower()
+        assert "model (<step>)" in lowered or "model (create)" in lowered, \
+            "the rule must acknowledge the old per-step Model lines survive in old archives"
 
     @staticmethod
     def _template(workspace_root, name):

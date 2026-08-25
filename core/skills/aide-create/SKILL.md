@@ -134,12 +134,14 @@ is read off the spec's own commits, and `aide-run-spec` writes the
 `Workflow steps completed:` line from them — leave that line exactly as
 you found it in the template.
 
-Which model ran each step is read off those same commits, and the same
-script writes the `Model (<step>):` lines from them — leave those lines
-alone too. `create` is the one stage nobody picks a model for in
-advance: a spec is already being written by the time it reaches a
-dashboard row, so its model is only ever recorded after the fact, from
-whatever commit created the folder.
+Which model ran, and how the phase went, are read off the same commit,
+and the same script writes them — a `Model`/`Result`/`Time spent`/`Cost`
+block, plus a time of day on `Created:` — directly into
+`1-description.md`'s own Tracking info. Leave those lines alone too.
+`create` is the one stage nobody picks a model for in advance: a spec
+is already being written by the time it reaches a dashboard row, so its
+model is only ever recorded after the fact, from whatever commit
+created the folder.
 
 Add the `(model: ...)` part only when you can name your own model with
 certainty. A Claude Code session is told which model it is running in

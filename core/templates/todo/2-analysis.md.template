@@ -19,11 +19,6 @@
 - **TODO:** `todo/{{FOLDER_NAME}}/`
 - **Last analyzed:** `{{ANALYSIS_DATE}}`
 
-<!-- Agent should add repos here after analysis:
-**Repositories used during analysis:**
-- **repo-name:** `branch` @ `commit`
--->
-
 ---
 
 ## Mapping

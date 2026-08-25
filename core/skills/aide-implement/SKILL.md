@@ -101,9 +101,10 @@ is read off the spec's own commits, and `aide-run-spec` writes the
 `Workflow steps completed:` line from them — leave that line exactly as
 you found it.
 
-Which model ran each step is read off those same commits, and the same
-script writes the `Model (<step>):` lines from them — leave those lines
-alone too.
+Which model ran, and how the phase went, are read off the same commit,
+and the same script writes them — a `Repo`/`Model`/`Result`/`Time
+spent`/`Cost` block, plus a time of day on `Last updated:` — directly
+into `3-solution.md`'s own Tracking info. Leave those lines alone too.
 
 The percentage above it is still yours: it says how far
 the TDD phases got, which is the field for partial work.
