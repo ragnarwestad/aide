@@ -787,7 +787,7 @@ describe("the job page is split into tabs", () => {
     // current on a job page.
     const page = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
     expect(page.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(page).toMatch(/aria-current="page"[^>]*>Steps/);
+    expect(page).toMatch(/aria-current="page"[^>]*>Logs/);
   });
 
   // While a step is running, what it is DOING is what you opened the
@@ -795,7 +795,7 @@ describe("the job page is split into tabs", () => {
   // running row (open by default).
   test("a running job opens on the steps tab, without being asked (AC3)", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toMatch(/aria-current="page"[^>]*>Steps/);
+    expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
     expect(html).toContain("Bash ls");
   });
 
@@ -858,7 +858,7 @@ describe("the job page is split into tabs", () => {
   // finished steps + 1 while something is running.
   test("the tab says how much is behind it, so a reader knows before clicking (AC6)", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toMatch(/>Steps · 2</);
+    expect(html).toMatch(/>Logs \(2\)</);
   });
 
   test("an empty tab is still offered, and says why it is empty", () => {
@@ -1944,11 +1944,11 @@ describe("every spec is a row (criteria 1-10)", () => {
     const list = [job("j1", "analyze", { state: "done" })];
     const targets = [target("90-has-run"), target("90-never-run")];
     const html = rows(list, targets);
-    expect(html).toMatch(/>All · 2</);
+    expect(html).toMatch(/>All \(2\)</);
     expect(html).not.toContain(">Not started");
-    expect(html).toMatch(/>Running · 0</);
-    expect(html).toMatch(/>Done · 1</);
-    expect(html).toMatch(/>Problems · 0</);
+    expect(html).toMatch(/>Running \(0\)</);
+    expect(html).toMatch(/>Done \(1\)</);
+    expect(html).toMatch(/>Problems \(0\)</);
 
     expect(html).toContain("90-never-run");
     expect(html).toContain("90-has-run");
@@ -7361,9 +7361,9 @@ describe("spec 221: archived specs on the spec list", () => {
     // shows them — so a chip that would show archived rows counts the
     // keys rather than reading "0" off a set nobody built.
     const html = rows({ targets: [live("60-live")], archived: ["aide/50-archived", "aide/40-archived"] });
-    expect(html).toMatch(/>Archived · 2</);
-    expect(html).toMatch(/>All · 3</);
-    expect(html).toMatch(/>Active · 1</);
+    expect(html).toMatch(/>Archived \(2\)</);
+    expect(html).toMatch(/>All \(3\)</);
+    expect(html).toMatch(/>Active \(1\)</);
   });
 
   test("and never twice, once those rows are actually on the page", () => {
@@ -7373,8 +7373,8 @@ describe("spec 221: archived specs on the spec list", () => {
       archivedSpecs: [archivedSpec("50-archived")],
       filter: { state: "all" },
     });
-    expect(html).toMatch(/>Archived · 1</);
-    expect(html).toMatch(/>All · 2</);
+    expect(html).toMatch(/>Archived \(1\)</);
+    expect(html).toMatch(/>All \(2\)</);
   });
 });
 

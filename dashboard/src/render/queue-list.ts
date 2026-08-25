@@ -29,6 +29,7 @@ import { PHASE_TAB, specPagePath, specTabPath } from "./spec-page.ts";
 import { currentWorkRoundJobs } from "../queue.ts";
 import {
   CHECKING,
+  ICON_CHEVRON,
   badge,
   btn,
   filterPills,
@@ -337,13 +338,6 @@ export interface QueueFilter {
 
 // --- what every form on this page needs ------------------------------------
 
-// One chevron for the fold control; the shut state rotates it in CSS.
-// Stroke-based so it takes the text colour and scales with the flat.
-const CHEVRON =
-  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ' +
-  'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-  '<path d="M4 6l4 4 4-4"></path></svg>';
-
 // Exported since spec 160: `queue.ts` keeps the same list under
 // `PHASE_STEPS` — it decides which steps a running job may still be
 // given — and the render layer does not import that module. A test
@@ -454,7 +448,7 @@ function stateFilter(
 /** Whether one chip admits one state. Written once because `applyFilter`
  *  decides which rows are RENDERED with it and `filterBar` decides what
  *  each chip's count SAYS with it — two answers to one question is how
- *  a chip comes to read "· 0" over a table with rows in it. */
+ *  a chip comes to read "(0)" over a table with rows in it. */
 const matchesState = (
   f: { states?: string[]; excludeStates?: string[] },
   state: string,
@@ -1139,7 +1133,7 @@ function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string 
     // The key is never the visible content — anything in `?open=` is
     // attacker-chosen text, and an icon cannot be mistaken for markup.
     `aria-expanded="${shut ? "false" : "true"}" ` +
-    `title="${shut ? "show" : "hide"} the phases and controls of ${esc(g.specFolder)}">${CHEVRON}</a>`
+    `title="${shut ? "show" : "hide"} the phases and controls of ${esc(g.specFolder)}">${ICON_CHEVRON}</a>`
   );
 }
 
@@ -1187,7 +1181,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   const counted = groups.filter((g) => matchesSearch(g, f));
   // The archived rows are built only where the filter shows them (spec
   // 221), so on the default view there are almost none to count — and
-  // "Archived · 0" beside an archive of a hundred and fifty is the one
+  // "Archived (0)" beside an archive of a hundred and fifty is the one
   // thing a count must not say. The KEYS are cheap and always sent, and
   // there is exactly one reader row per key, so the keys no row was
   // built for are the rest of the count. "Almost" because the default
@@ -1295,7 +1289,7 @@ function sortableHead(f: QueueFilter): string {
     // one, and ascending turns it by a class rather than swapping a
     // glyph, same as the fold control. Which way an unsorted column
     // will go on the first click is what its chevron points.
-    const mark = CHEVRON;
+    const mark = ICON_CHEVRON;
     const linkCls = on
       ? (dir === "asc" ? "sortlink on asc" : "sortlink on")
       : (SORT_DEFAULT_DIR[key] === "asc" ? "sortlink asc" : "sortlink");
@@ -2469,7 +2463,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         ? nameLink
         : `<label class="phasefold">` +
           `<input type="checkbox" class="foldphase">` +
-          `<span class="foldchevron">${CHEVRON}</span>${nameLink}</label>`;
+          `<span class="foldchevron">${ICON_CHEVRON}</span>${nameLink}</label>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.

@@ -151,9 +151,9 @@ describe("the finished steps a job table cannot show (criterion 2)", () => {
   test("the route opens the tab the link asked for", async () => {
     const { base } = start();
     const id = await enqueue(base, ["analyze"]);
-    const html = await (await fetch(`${base}/specs/${id}?tab=activity`, auth)).text();
-    expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
-    expect(html).toContain("Nothing has been captured");
+    const html = await (await fetch(`${base}/specs/${id}?tab=steps`, auth)).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Logs/);
+    expect(html).toContain("No step has finished yet");
   });
 });
 
@@ -527,7 +527,7 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const activity = await (await fetch(`${base2}/specs/${id}?tab=activity`, auth)).text();
+    const activity = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
     expect(activity).toContain("bun test");
     const steps = await (await fetch(`${base2}/specs/${id}?tab=steps`, auth)).text();
     expect(steps).not.toContain("$0.00");
@@ -574,7 +574,7 @@ describe("a Codex step's job page", () => {
     });
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}/specs/${id}?tab=activity`, auth)).text();
+    const html = await (await fetch(`${base2}/specs/${id}?tab=steps&step=0`, auth)).text();
     expect(html).toContain("bun test");
   });
 });
@@ -745,7 +745,7 @@ describe("GET /specs/<project>/<specFolder>?job=", () => {
     const mirror = twoAttempts(dir, id);
 
     const { base: base2 } = start({ queueMirrorPath: mirror });
-    const html = await (await fetch(`${base2}${PATH}?tab=activity&job=older-attempt`, auth)).text();
+    const html = await (await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth)).text();
     expect(html).toContain("job=older-attempt");
     expect(html).toContain(`job=${id}`);
     expect(html).toMatch(/job=older-attempt"\s+aria-current="true"/);

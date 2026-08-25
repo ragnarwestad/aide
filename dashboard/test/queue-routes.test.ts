@@ -1767,10 +1767,10 @@ describe("the job list sorts and filters", () => {
 
   test("the state filter is offered with a count on each choice", () => {
     const html = page([row("a", { state: "running" }), row("b"), row("c", { state: "failed" })]);
-    expect(html).toMatch(/>All · 3</);
-    expect(html).toMatch(/>Running · 1</);
-    expect(html).toMatch(/>Done · 1</);
-    expect(html).toMatch(/>Problems · 1</);
+    expect(html).toMatch(/>All \(3\)</);
+    expect(html).toMatch(/>Running \(1\)</);
+    expect(html).toMatch(/>Done \(1\)</);
+    expect(html).toMatch(/>Problems \(1\)</);
   });
 
   test("asking for active work leaves the finished jobs out", () => {
@@ -2039,9 +2039,9 @@ describe("filtering and sorting work on specs, not jobs", () => {
       job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
       job("b1", "bb-spec", { state: "running" }),
     ]);
-    expect(html).toMatch(/>All · 2</);
-    expect(html).toMatch(/>Running · 1</);
-    expect(html).toMatch(/>Done · 1</);
+    expect(html).toMatch(/>All \(2\)</);
+    expect(html).toMatch(/>Running \(1\)</);
+    expect(html).toMatch(/>Done \(1\)</);
   });
 
   test("sorting by cost uses the spec's total, not one job's (criterion 10)", () => {

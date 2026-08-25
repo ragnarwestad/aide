@@ -14,7 +14,7 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
-import { CHECKING, pips, stepLabel, type PipKind } from "./components.ts";
+import { CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -180,9 +180,17 @@ export function stepResults(
   // session and how it ended.
   if (results.length === 0 && !opts.runningStep) return `<p class="muted">No step has finished yet.</p>`;
   const open = resolveOpenStep(opts.openStep, !!opts.runningStep);
+  // The chevron toggles; the name beside it is plain text — the same
+  // split the specs list's own `.fold` uses, rather than making the
+  // whole name the click target the way this used to (spec 240,
+  // adjusted 2026-08-25): a name with no visible affordance read as
+  // plain text with a hover underline, not as something to press.
   const stepCell = (label: string, key: string, isOpen: boolean): string =>
     opts.tabHref
-      ? `<a class="steplink" data-nav href="${opts.tabHref}&step=${isOpen ? "none" : esc(key)}">${esc(label)}</a>`
+      ? `<a class="fold steplink${isOpen ? "" : " shut"}" data-nav ` +
+        `href="${opts.tabHref}&step=${isOpen ? "none" : esc(key)}" ` +
+        `aria-expanded="${isOpen ? "true" : "false"}" ` +
+        `title="${isOpen ? "hide" : "show"} this step's own log">${ICON_CHEVRON}</a> ${esc(label)}`
       : esc(label);
   const rows = results
     .map((r, i) => {
@@ -249,10 +257,21 @@ export function pickTab<T extends string>(
   return (tabs as readonly string[]).includes(name ?? "") ? (name as T) : fallback;
 }
 
+/** A tab's key is its route (`?tab=steps`) and everywhere else it is
+ *  read as data, so renaming it would ripple into the query string, the
+ *  `JobTab`/`SpecTab` types and every test asserting on either. The
+ *  VISIBLE word only needed to change once — "Steps" sat directly beside
+ *  "Status" on the spec page, and a phase's own task table lives under
+ *  Status, so two tabs both readable as "the steps" was the confusion
+ *  (raised 2026-08-25). "steps" is still exactly the right word for what
+ *  the tab CONTAINS — one row per workflow step — so only the label a
+ *  reader sees changes, not the concept. */
+const TAB_LABELS: Record<string, string> = { steps: "Logs" };
+
 /** The tab bar, over a BASE PATH rather than a job (spec 150). It used
  *  to build its hrefs from `job.id`, which is the one assumption a
  *  spec-scoped page could not share — and copying the bar into the new
- *  page would have been two renderings of "Activity · 12" that nothing
+ *  page would have been two renderings of "Logs (12)" that nothing
  *  keeps in step. */
 export function tabBar<T extends string>(
   tabs: readonly T[],
@@ -261,8 +280,9 @@ export function tabBar<T extends string>(
   /** How much is behind a tab, for the tabs that have a figure at all.
    *  Partial rather than one entry per tab: Description, Analysis,
    *  Solution and Status count nothing, and a tab with no entry renders
-   *  its label with no `· N` suffix — exactly as Activity already does
-   *  for a job that has captured nothing. */
+   *  its label with no `(N)` suffix — exactly as Activity already did
+   *  for a job that had captured nothing, before spec 240 folded it into
+   *  this same tab. */
   counts: Partial<Record<T, number>>,
 ): string {
   // A real tab bar, the same one the site's own two tabs are: the row
@@ -274,18 +294,18 @@ export function tabBar<T extends string>(
   // nothing. Chips are for choosing among values; tabs are for moving
   // between views, and the page has both.
   //
-  // The count rides in the label — "Activity · 12" — rather than in a
+  // The count rides in the label — "Logs (12)" — rather than in a
   // badge sitting on it, because it is part of the sentence.
   return (
     `<nav class="tabbar subtabs">` +
     tabs
       .map((t) => {
-        const label = t[0]!.toUpperCase() + t.slice(1);
+        const label = TAB_LABELS[t] ?? t[0]!.toUpperCase() + t.slice(1);
         const n = counts[t] || undefined;
         return (
           `<a class="tab" data-nav href="${esc(basePath)}?tab=${t}"` +
           `${t === current ? ` aria-current="page"` : ""}>` +
-          `${esc(label)}${n === undefined ? "" : ` · ${n}`}</a>`
+          `${esc(label)}${n === undefined ? "" : ` (${n})`}</a>`
         );
       })
       .join("") +

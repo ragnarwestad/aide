@@ -256,9 +256,9 @@ describe("the default filter", () => {
   test("still counts the archived specs on the chips that would show them", async () => {
     const html = await specsList(start().base);
     // Five archived specs exist and none of them is rendered — a chip
-    // reading "Archived · 0" beside a list that has 150 of them is the
+    // reading "Archived (0)" beside a list that has 150 of them is the
     // one thing a count must not say.
-    expect(html).toMatch(/>Archived · 5</);
+    expect(html).toMatch(/>Archived \(5\)</);
   });
 });
 
@@ -600,7 +600,7 @@ describe("an archived spec whose branch is still on origin", () => {
     const { base } = start({ gitRun: gitWithBranches([STAMPED]) });
     const html = await listUntil(base, "not landed");
     // One row built, four keys with no row: the count is still five.
-    expect(html).toMatch(/>Archived · 5</);
+    expect(html).toMatch(/>Archived \(5\)</);
   });
 });
 

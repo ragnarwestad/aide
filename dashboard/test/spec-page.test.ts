@@ -275,7 +275,7 @@ describe("a spec with a lead job", () => {
 
   test("the tab counts come from the lead job when nothing is selected, so a reader knows before clicking", () => {
     const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }));
-    expect(html).toMatch(/>Steps · 1</);
+    expect(html).toMatch(/>Logs \(1\)</);
   });
 
   // The page is about the SPEC, so it opens on the spec — even while a
@@ -328,7 +328,7 @@ describe("the spec page is a page of this site like any other", () => {
     const html = page(view(), "steps");
     const body = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
     expect(body.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(body).toMatch(/aria-current="page"[^>]*>Steps/);
+    expect(body).toMatch(/aria-current="page"[^>]*>Logs/);
   });
 
   // Real tabs, not chips with a caption beside them (2026-08-23): the
@@ -498,8 +498,8 @@ describe("spec 237/240: the attempt picker on Steps", () => {
       attempts: TWO,
     });
     const html = page(v, "steps");
-    expect(html).toMatch(/>Steps · 2</);
-    expect(html).not.toMatch(/>Steps · 5</);
+    expect(html).toMatch(/>Logs \(2\)</);
+    expect(html).not.toMatch(/>Logs \(5\)</);
   });
 
   test("with nothing picked, the lead is the one marked", () => {

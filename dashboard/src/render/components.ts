@@ -47,6 +47,18 @@ export const ICON_WARN =
 /** Something is happening. A span, not an SVG: it is one CSS rotation. */
 export const SPINNER = `<span class="spin" aria-hidden="true"></span>`;
 
+/** One chevron for every fold control on the site — the specs list's own
+ *  row, a phase, and (since spec 240's Steps tab) a step's own log.
+ *  Shared rather than redefined per file: the `.fold`/`.fold.shut`
+ *  rotate-in-CSS pair in css.ts is already one shared pattern, and a
+ *  second copy of the SVG that drew it would be the same shape of
+ *  duplication one layer up. Stroke-based so it takes the text colour
+ *  and scales with the flat. */
+export const ICON_CHEVRON =
+  '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M4 6l4 4 4-4"></path></svg>';
+
 /** What a page says where an answer has not arrived yet (spec 208).
  *
  *  Every question a render used to block on is a peek now, and a peek
@@ -328,7 +340,7 @@ export function typedConfirm(o: {
 export interface FilterPill {
   label: string;
   /** Omitted where a count would say nothing — a tab that is simply
-   *  there does not need "· 0" after it. */
+   *  there does not need "(0)" after it. */
   count?: number;
   on: boolean;
   href: string;
@@ -339,8 +351,11 @@ export interface FilterPill {
   title?: string;
 }
 
-/** "Label · count", because the count is part of the sentence rather
- *  than a badge sitting on it. The chosen one is marked with
+/** "Label (count)". Used to read "Label · count" — the count as part of
+ *  the sentence rather than a badge sitting on it — until 2026-08-25,
+ *  when the parenthesised form replaced it site-wide: more familiar as a
+ *  count convention, and it reads the same way whether the count is a
+ *  clause of its own or a plain annotation. The chosen one is marked with
  *  `aria-current` and styled off that — a class saying the same thing
  *  twice is a class that can disagree with itself. */
 export function filterPills(
@@ -362,7 +377,7 @@ export function filterPills(
         (e) =>
           `<a data-nav href="${e.href}"${e.on ? ` aria-current="${current}"` : ""}` +
           `${e.title ? ` title="${esc(e.title)}"` : ""}>` +
-          `${esc(e.label)}${e.count === undefined ? "" : ` · ${e.count}`}</a>`,
+          `${esc(e.label)}${e.count === undefined ? "" : ` (${e.count})`}</a>`,
       )
       .join("") +
     `</span>`

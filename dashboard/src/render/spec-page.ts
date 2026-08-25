@@ -86,10 +86,10 @@ export interface SpecChecksView {
   baseSha?: string;
 }
 
-/** One run of this spec, as the Activity/Steps picker offers it (spec
- *  237). The facts, not the wording: this layer says "Analyze →
- *  Implement · 2 d ago", and `relTimeLabel` is the one ladder deciding
- *  when "h" becomes "d" for every other line on this site too. */
+/** One run of this spec, as the Logs tab's attempt picker offers it
+ *  (spec 237, folded into one tab by spec 240). The facts, not the
+ *  wording: this layer says which steps ran and when, and `absTimeLabel`
+ *  is what turns the latter into the picker's visible text. */
 export interface SpecAttemptView {
   id: string;
   /** Every step the job ran, in the order it ran them — a job can carry

@@ -905,14 +905,13 @@ table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
 table.facts td { padding: 2px var(--sp-4) 2px 0; }
 table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
 table.facts .pips { display: inline-flex; margin-left: var(--sp-2); vertical-align: middle; }
-/* Each Steps row expands to its own log (spec 240) rather than one
-   shared Activity tab. .steplink is the expand control — cursor and
-   hover only, no layout change, so the table's columns line up exactly
-   as they did before a row could be clicked. .steplog sits right under
-   its summary row with no top padding, so the pair reads as one unit
-   rather than two unrelated rows of the table. */
-a.steplink { cursor: pointer; }
-a.steplink:hover { text-decoration: underline; }
+/* Each Logs row expands to its own log (spec 240) rather than one
+   shared Activity tab. .steplink carries the same .fold chevron the
+   specs list uses (2026-08-25) — sized and hover-styled entirely by
+   .fold, nothing extra needed here — rather than making the step's own
+   name the click target, which had no visible affordance until hovered.
+   .steplog sits right under its summary row with no top padding, so the
+   pair reads as one unit rather than two unrelated rows of the table. */
 tr.steplog td { padding-top: 0; }
 .tabpanel { padding-top: var(--sp-4); }
 .tabpanel > h2:first-child { margin-top: var(--sp-2); }

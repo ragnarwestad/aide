@@ -2998,7 +2998,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
     /** The same page with one chip count changed — markup outside the
      *  rows, which is what makes `applyGroupDiff` decline. */
     const withCount = (n: number, ...groups: string[]): string =>
-      `<div class="row"><a>Active · ${n}</a></div><div class="tablewrap">` +
+      `<div class="row"><a>Active (${n})</a></div><div class="tablewrap">` +
       `<table class="list"><thead></thead><tbody>${groups.join("")}</tbody></table></div>`;
 
     test("a wholesale replace puts it back where it was", async () => {
@@ -3012,7 +3012,7 @@ describe("a redraw touches only the specs that changed (spec 204)", () => {
       // The fallback fired — the filter bar differs, so the diff
       // declined — and the wrapper is a different object than the one
       // that was scrolled.
-      expect(h.rows.innerHTML).toContain("Active · 2");
+      expect(h.rows.innerHTML).toContain("Active (2)");
       expect(h.wrap().scrollTop).toBe(420);
     });
 
