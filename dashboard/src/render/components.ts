@@ -67,6 +67,25 @@ export const ICON_SEARCH =
   'stroke="currentColor" stroke-width="1.6">' +
   '<circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14" stroke-linecap="round"></path></svg>';
 
+/** The header's theme switch (spec 243, relocated out of the "…"
+ *  menu): a sun, a crescent moon, and a half-filled circle for Auto. */
+export const ICON_THEME_DARK =
+  '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.2 4.2 0 0 0 6.5 6.5z"></path></svg>';
+
+export const ICON_THEME_LIGHT =
+  '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round">' +
+  '<circle cx="8" cy="8" r="3"></circle>' +
+  '<path d="M8 1.5v1.5M8 13v1.5M2.5 8H1M15 8h-1.5M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"></path></svg>';
+
+export const ICON_THEME_AUTO =
+  '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.6">' +
+  '<circle cx="8" cy="8" r="5.5"></circle>' +
+  '<path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" stroke="none"></path></svg>';
+
 /** What a page says where an answer has not arrived yet (spec 208).
  *
  *  Every question a render used to block on is a peek now, and a peek

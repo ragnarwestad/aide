@@ -854,6 +854,9 @@ td form { margin: 0; display: inline-block; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
+/* Settings' Save/Cancel (spec 243): no existing .factions home
+   reaches this page's bare #settings-form. */
+#settings-form .factions { display: flex; gap: var(--sp-2); }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,
@@ -879,6 +882,11 @@ td form { margin: 0; display: inline-block; }
 .menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
 .menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
+/* Units' label and its buttons (spec 243): equal specificity to the
+   rule above and later in the file, so without this it would flatten
+   the row right back to block and the flex gap between them would be
+   lost even though the stacking is fixed. */
+.menupanel > .row { display: flex; align-items: center; gap: var(--sp-2); }
 
 /* The About dialog: opened from the menu, closed by the cross, Escape
    or a click on the backdrop. The panel carries the padding so a click

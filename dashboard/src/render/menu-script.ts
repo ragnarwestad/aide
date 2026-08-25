@@ -1,11 +1,13 @@
-// The "…" menu is a native <details>, which stays open until clicked
-// again — a box, not a menu. A menu closes when the reader clicks
-// anywhere else or presses Escape (PaceUp's header menu is the
-// reference). Same contract as the theme script: one small IIFE on
-// every page, no elements invented, nothing else touched.
+// The "…" menu and the "?" run-info popup are both native <details>,
+// which stay open until clicked again — a box, not a menu. A menu
+// closes when the reader clicks anywhere else or presses Escape
+// (PaceUp's header menu is the reference). Same contract as the theme
+// script: one small IIFE on every page, no elements invented, nothing
+// else touched.
 (() => {
+  const DISCLOSURES = "details.menu, details.intro";
   const closeAll = (except?: Element | null): void => {
-    for (const d of Array.from(document.querySelectorAll("details.menu[open]"))) {
+    for (const d of Array.from(document.querySelectorAll("details.menu[open], details.intro[open]"))) {
       if (d !== except) (d as HTMLDetailsElement).open = false;
     }
   };
@@ -26,7 +28,7 @@
       target.close();
       return;
     }
-    closeAll(target?.closest?.("details.menu") ?? null);
+    closeAll(target?.closest?.(DISCLOSURES) ?? null);
   });
   document.addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).key === "Escape") closeAll();

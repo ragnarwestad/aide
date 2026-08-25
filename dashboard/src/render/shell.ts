@@ -10,6 +10,7 @@ import { CSS } from "./css.ts";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
+import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components.ts";
 
 export interface NavEntry {
   label: string;
@@ -59,24 +60,39 @@ const THEME_CHOICES: [string, string][] = [["dark", "Dark"], ["light", "Light"],
 // ran read the way it always did.
 const UNIT_CHOICES: [string, string][] = [["usd", "$"], ["tokens", "Tokens"]];
 
+// Icons keyed by choice — the header control below draws no text label
+// of its own, so the icon is what says which button is which (the
+// `aria-label`/`title` on each button carry the same word for anyone
+// who cannot see the icon).
+const THEME_ICONS: Record<string, string> = {
+  dark: ICON_THEME_DARK, light: ICON_THEME_LIGHT, auto: ICON_THEME_AUTO,
+};
+
 function unitControl(): string {
   const buttons = UNIT_CHOICES.map(
     ([choice, label]) =>
       `<button type="button" data-unit-choice="${choice}"` +
       `${choice === "usd" ? ' aria-current="true"' : ""}>${label}</button>`,
   );
-  return `<span class="lbl">Units</span><span class="filters">${buttons.join("")}</span>`;
+  // Wrapped in one `.row` so the label and its buttons share a line
+  // instead of stacking under `.menupanel > * { display: block; }` —
+  // css.ts carries a matching `.menupanel > .row` rule to keep the flex
+  // gap once inside that panel.
+  return `<span class="row"><span class="lbl">Units</span><span class="filters">${buttons.join("")}</span></span>`;
 }
 
+// The header-level switch (spec 243, moved out of the "…" menu): icon
+// buttons, no visible text label — `.filters` already lays out three
+// buttons in a row wherever it sits, menu or header.
 function themeControl(): string {
   // Auto is marked here because the server has no way to know what this
   // reader picked — `theme-script.ts` moves the marker once it does.
   const buttons = THEME_CHOICES.map(
     ([choice, label]) =>
-      `<button type="button" data-theme-choice="${choice}"` +
-      `${choice === "auto" ? ' aria-current="true"' : ""}>${label}</button>`,
+      `<button type="button" data-theme-choice="${choice}" aria-label="${label}" title="${label}"` +
+      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}</button>`,
   );
-  return `<span class="lbl">Theme</span><span class="filters">${buttons.join("")}</span>`;
+  return `<span class="filters" role="group" aria-label="Theme">${buttons.join("")}</span>`;
 }
 
 // The mark on the left, the "…" menu on the right. The wordmark is
@@ -133,14 +149,20 @@ function aboutDialog(buildStamp?: string): string {
 function pageHeader(): string {
   return (
     `<header>${WORDMARK}` +
+    // Theme sits beside the "…" trigger, both at the header's right-hand
+    // end (spec 243) — a header-level control the reader reaches
+    // without opening the menu first, not one more item behind it.
+    `<span class="row">${themeControl()}` +
     // The trigger is a QUIET icon — no border, no button chrome; a round
     // hover flat is all (PaceUp's header menu is the reference).
     `<details class="menu"><summary aria-label="More">` +
     `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">` +
     `<circle cx="8" cy="3" r="1.4"></circle><circle cx="8" cy="8" r="1.4"></circle>` +
     `<circle cx="8" cy="13" r="1.4"></circle></svg></summary>` +
-    `<div class="menupanel"><a href="/settings">Settings</a><a href="about.html" data-about>About</a>${themeControl()}${unitControl()}</div>` +
-    `</details></header>`
+    // Units, then Settings, then About: reached-for-constantly first,
+    // reached-for-rarely last (spec 243).
+    `<div class="menupanel">${unitControl()}<a href="/settings">Settings</a><a href="about.html" data-about>About</a></div>` +
+    `</details></span></header>`
   );
 }
 
