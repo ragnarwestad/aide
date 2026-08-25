@@ -90,6 +90,27 @@ const STAMPED_NOT_RUN = ["implement", "archive"];
 const STAMPED_MODEL = "claude claude-sonnet-5";
 const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
+/** One phase's own outcome record (spec 245's write format — spec 247's
+ *  read side): a Tracking-info block inside that phase's OWN file, never
+ *  `4-status.md`. Only the lines a fixture actually wants, mirroring how
+ *  `stamp()` above only writes what it is given. */
+const outcome = (opts: { model?: string; timeSpent?: string; cost?: string } = {}) =>
+  `# Analysis\n\n## Tracking info\n\n` +
+  (opts.model ? `- **Model:** ${opts.model}\n` : "") +
+  `- **Result:** completed\n` +
+  (opts.timeSpent ? `- **Time spent:** ${opts.timeSpent}\n` : "") +
+  (opts.cost ? `- **Cost:** ${opts.cost}\n` : "");
+
+/** What STAMPED's `2-analysis.md` records the analyze phase spent (spec
+ *  247) — `durationLabel`'s own formatting of this is what the phase
+ *  subrow's Time cell has to show. */
+const STAMPED_TIME_SPENT = "5m32s";
+const STAMPED_COST = "$1.5000";
+/** `money()`'s own two-decimal rendering of `STAMPED_COST` — the text
+ *  the cost cell actually shows, never the raw four-decimal figure the
+ *  file spells it as. */
+const STAMPED_COST_LABEL = "$1.50";
+
 const described = (title: string, prose: string) =>
   `# ${title} - Description\n\n## Description\n\n${prose}\n`;
 
@@ -111,6 +132,13 @@ const ARCHIVED = {
     // One `Model (<step>):` line, on the same terms: analyze has one, the
     // other three do not, so the locked-model tests have a line each way.
     status: stamp("2026-08-13", STAMPED_MS, STAMPED_STEPS, { analyze: STAMPED_MODEL }),
+    // Spec 247: analyze's own phase-outcome record — Time spent and Cost,
+    // deliberately no `Model` line here so the OLD-format one above stays
+    // the only source for the locked-model tests below (criterion 6 stays
+    // a regression check, not a merge). `implement`'s `3-solution.md` is
+    // left unwritten, which is what gives criterion 2 (a phase that never
+    // recorded one) something to be blank beside.
+    analysis: outcome({ timeSpent: STAMPED_TIME_SPENT, cost: STAMPED_COST }),
   },
   [UNSTAMPED]: {
     description: described("The push is branch only", `A run pushes a branch. ${LONG}`),
@@ -145,7 +173,10 @@ const gitDated = (dates: Record<string, string>): GitRunner =>
 const harness = queueHarness("aide-archived-specs-");
 afterEach(() => harness.cleanup());
 
-type ArchivedFixture = Record<string, { description?: string; status?: string; project?: string }>;
+type ArchivedFixture = Record<
+  string,
+  { description?: string; status?: string; project?: string; analysis?: string; solution?: string }
+>;
 
 const start = (extra: Record<string, unknown> = {}, archivedSpecs: ArchivedFixture = ARCHIVED) =>
   harness.start({
@@ -491,13 +522,72 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  test("its duration and cost cells are blank on every line (criterion 3)", async () => {
+  // Spec 247: the sibling gap Model's own fix (spec 244) left open —
+  // `2-analysis.md`'s own Tracking info is the analyze phase's only
+  // source for what it cost in time and money, and the fixture gives it
+  // one (spec 247, criteria 1 and 3).
+  test("shows the locked time and cost for a step that recorded them (spec 247, criteria 1, 3)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
-    expect(Object.keys(lines)).toHaveLength(4);
-    for (const line of Object.values(lines)) {
+    const line = lines["analyze"]!;
+    expect(line).toContain(STAMPED_TIME_SPENT);
+    // Dollar-formatted, through the same `costCell()` a live row uses —
+    // never the "est." mark this cost was not flagged with.
+    const cell = line.slice(line.indexOf('data-col="cost"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
+    expect(line).not.toContain("est.");
+  });
+
+  // The three steps that recorded neither (spec 247, criteria 2, 5) —
+  // `create` has a file but no Tracking-info outcome block, `implement`
+  // and `archive` have no phase file at all in this fixture. Nobody
+  // having recorded a figure is not the same as having asked and failed,
+  // so the cell stays empty, never a dash and never `0m00s`/`$0.00`.
+  test("draws no time or cost for a step that recorded neither (spec 247, criteria 2, 5)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of ["create", ...STAMPED_NOT_RUN]) {
+      const line = lines[step]!;
       expect(line).toContain('<td data-col="started"></td>');
       expect(line).toContain('<td class="num" data-col="cost"></td>');
     }
+  });
+
+  // Spec 247, criterion 4: the same "est." mark a live row's own
+  // unmeasured cost already carries, now on a locked phase's cost too.
+  // Its own fixture, so the plain-cost assertion above stays a
+  // single-value check rather than one cost doing double duty.
+  test("carries the est. mark for a cost recorded as unmeasured (spec 247, criterion 4)", async () => {
+    const folder = "155-a-locked-unmeasured-cost";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("A locked unmeasured cost", "One archived spec, one recorded cost."),
+        status: stamp("2026-08-15", 60_000, ["create", "analyze"]),
+        analysis: outcome({ cost: `${STAMPED_COST} (unmeasured)` }),
+      },
+    });
+    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
+    const line = lines["analyze"]!;
+    expect(line).toContain("est.");
+    expect(line).toContain(STAMPED_COST_LABEL);
+  });
+
+  // Spec 247, criterion 7: the OLD `4-status.md` `Model (<step>):` line
+  // and the NEW per-phase-file `Model:` line never both exist for the
+  // same real archive (`2-analysis.md`'s own "Findings"), but the merge
+  // order still has to be deterministic — the new value wins.
+  test("prefers the new-format model over the old when a fixture carries both (spec 247, criterion 7)", async () => {
+    const folder = "156-a-locked-model-merge";
+    const oldModel = "claude claude-sonnet-5";
+    const newModel = "claude claude-opus-5";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("A locked model merge", "One archived spec, two model records."),
+        status: stamp("2026-08-16", 60_000, ["create", "analyze"], { analyze: oldModel }),
+        analysis: outcome({ model: newModel }),
+      },
+    });
+    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
+    expect(lines["analyze"]).toContain(newModel);
+    expect(lines["analyze"]).not.toContain(oldModel);
   });
 
   test("still carries no Run form when open (criterion 4)", async () => {

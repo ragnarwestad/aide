@@ -71,7 +71,7 @@ export {
 // the forms send the view and the server sends it back, and one list
 // kept in two places would eventually forget a key on one side.
 export {
-  FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, computeSpecTotalDurationMs,
+  FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
   filterShowsArchived, phasePips, phasesFor, renderQueuePage, renderQueueRows,
 } from "./render/queue-list.ts";
 export type {

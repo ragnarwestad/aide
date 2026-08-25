@@ -26,8 +26,18 @@ export interface StartOptions {
    *  `4-status.md` and another none. `project` puts one in a project
    *  other than `aide`, which the archive's own suite needs to prove
    *  that its table interleaves projects by date (spec 170); that
-   *  project has to exist, so name it in `alsoProjects` too. */
-  archivedSpecs?: Record<string, { description?: string; status?: string; project?: string }>;
+   *  project has to exist, so name it in `alsoProjects` too. `analysis`
+   *  and `solution` are spec 247's addition: a fixture that wants a
+   *  phase-outcome block (`- **Model:**`/`- **Time spent:**`/`- **Cost:**`,
+   *  spec 245's own write format) on the analyze or implement step writes
+   *  it into `2-analysis.md`/`3-solution.md` here, since that block lives
+   *  in the phase's OWN file, not in `4-status.md`. Absent writes neither
+   *  file, exactly as `description`/`status` absent falls back to a
+   *  default. */
+  archivedSpecs?: Record<
+    string,
+    { description?: string; status?: string; project?: string; analysis?: string; solution?: string }
+  >;
   /** The spec's 1-description.md. A bare heading unless a suite cares. */
   description?: string;
   /** The spec's 4-status.md. Its "Workflow steps completed" line is
@@ -81,6 +91,8 @@ export function queueHarness(prefix: string): QueueHarness {
         mkdirSync(archived, { recursive: true });
         writeFileSync(join(archived, "1-description.md"), spec.description ?? `# ${folder} - Description\n`);
         writeFileSync(join(archived, "4-status.md"), spec.status ?? status);
+        if (spec.analysis !== undefined) writeFileSync(join(archived, "2-analysis.md"), spec.analysis);
+        if (spec.solution !== undefined) writeFileSync(join(archived, "3-solution.md"), spec.solution);
       }
       const server = createServer({
         siteDir: dir,

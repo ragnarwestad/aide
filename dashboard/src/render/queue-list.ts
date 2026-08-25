@@ -23,6 +23,7 @@
 import { esc, relTime, relTimeLabel, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
+import { type PhaseOutcome } from "../parse-phase-outcome.ts";
 // One function, because the server routes on this path and the list
 // links to it (spec 150).
 import { PHASE_TAB, specPagePath, specTabPath } from "./spec-page.ts";
@@ -207,6 +208,14 @@ export interface ArchivedSpecView {
    *  draws nothing at all on a locked row). Keyed by step; a step the
    *  file names nothing for is simply absent from the map. */
   models: Record<string, string>;
+  /** What each phase's OWN file records about its own run (spec 245's
+   *  write side, spec 247's read side): Model, Time spent and Cost,
+   *  keyed by step. A different source from `models` above — spec 245's
+   *  one-record-per-phase-file format, never `4-status.md`'s old
+   *  step-suffixed lines — and the two are merged, new preferred, where
+   *  `readerGroup()` builds `Phase.model`. A step the file names nothing
+   *  for is absent from the map, exactly as `models` leaves one out. */
+  phaseOutcomes: Record<string, PhaseOutcome>;
 }
 
 /** What the date cell says when the spec carries no stamp and git
@@ -358,7 +367,11 @@ export const QUEUE_STEPS = ["analyze", "implement", "archive"];
 // progress pip (`specHeadRow`), and never "the next phase"
 // (`nextStep`/`readyPhase`/`allDone`) — all four of those keep reading
 // `QUEUE_STEPS` directly. Only the phase-line list reads this one.
-const PHASE_LINES = ["create", ...QUEUE_STEPS];
+//
+// Exported (spec 247) so `serve.ts` can iterate the same four steps
+// while reading each one's phase-outcome file, rather than keeping a
+// second, hand-copied list of them.
+export const PHASE_LINES = ["create", ...QUEUE_STEPS];
 
 // Every form on this page posts to the guarded surface, so every one of
 // them carries the token when the page has one. Written once: a form
@@ -697,6 +710,13 @@ export interface Phase {
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read
    *  through the picker's pre-fill instead). */
   model?: string;
+  /** What this LOCKED phase's own record says it cost, in time and
+   *  money (spec 247) — from `ArchivedSpecView.phaseOutcomes`, on the
+   *  same terms as `model` above: never set for a live phase, whose
+   *  duration and cost come from `attempts[0]` instead. */
+  timeSpentMs?: number;
+  cost?: number;
+  costUnmeasured?: boolean;
 }
 
 interface SpecGroup {
@@ -986,7 +1006,23 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     branches: [],
-    phases: PHASE_LINES.map((step) => ({ step, attempts: [], history: {}, model: s.models[step] })),
+    // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
+    // format — wins over `s.models[step]` — spec 244's old,
+    // `4-status.md`-only format — when both could theoretically apply.
+    // They never do for the same real archive (`2-analysis.md`,
+    // "Findings"), so this is a merge order, not a live disagreement.
+    phases: PHASE_LINES.map((step) => {
+      const outcome = s.phaseOutcomes[step];
+      return {
+        step,
+        attempts: [],
+        history: {},
+        model: outcome?.model ?? s.models[step],
+        timeSpentMs: outcome?.timeSpentMs,
+        cost: outcome?.cost,
+        costUnmeasured: outcome?.costUnmeasured,
+      };
+    }),
     done: s.done,
     title: s.title,
     description: s.description,
@@ -2207,6 +2243,17 @@ function lockedModel(model: string | undefined): string {
   return model ? `<span class="muted small lockedmodel">${esc(model)}</span>` : "";
 }
 
+/** A locked phase's own record of what it spent in TIME (spec 247),
+ *  beside `lockedModel` above and on the same terms: blank, not a dash,
+ *  when the phase's own file names no `Time spent:` line — the same
+ *  rule `archiveDateCell`'s duration mark already keeps. No class of its
+ *  own: unlike Model, this column is plain, always-visible data, never
+ *  hidden behind the `.foldphase` fold Model's own class exists to
+ *  survive. */
+function lockedDuration(ms: number | undefined): string {
+  return ms === undefined ? "" : `<span class="muted small">${esc(durationLabel(ms))}</span>`;
+}
+
 /** Every configured model, grouped by the CLI it starts (spec 169).
  *
  *  The grouping is what carries the tool while the list is open, and
@@ -2645,8 +2692,14 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           // which this column already did before, and which is what
           // makes "how long did this take?" readable without a column
           // of its own.
-          `<td data-col="started">${phaseDurationCell(latest, p.step, now)}</td>` +
-          `<td class="num" data-col="cost">${latest ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results)) : ""}</td>`,
+          `<td data-col="started">${locked ? lockedDuration(p.timeSpentMs) : phaseDurationCell(latest, p.step, now)}</td>` +
+          `<td class="num" data-col="cost">${
+            locked
+              ? costCell(p.cost ?? 0, undefined, "", p.costUnmeasured)
+              : latest
+                ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results))
+                : ""
+          }</td>`,
       });
     });
   return lines.map((l) => `${l.tag}${l.cells}</tr>`).join("");

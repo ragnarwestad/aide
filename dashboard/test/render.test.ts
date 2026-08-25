@@ -4127,6 +4127,7 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
             notLanded,
             done: ["create", "analyze", "implement", "archive"],
             models: {},
+            phaseOutcomes: {},
           },
         ],
         filter: { state: "archived" },
@@ -7297,6 +7298,8 @@ describe("spec 221: archived specs on the spec list", () => {
     // model; the route-level suite (`archived-specs.test.ts`) covers the
     // parse-through-render path.
     models: {},
+    // Compile-time default only (spec 247), same terms as `models` above.
+    phaseOutcomes: {},
     ...over,
   });
 

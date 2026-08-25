@@ -43,6 +43,7 @@ import {
   type CodeLanding, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
 import { parseManifest, type ManifestData } from "./parse-manifest.ts";
+import { specPhaseOutcome, type PhaseOutcome } from "./parse-phase-outcome.ts";
 import { projectSettings } from "./project-settings.ts";
 import { previewUrlFor } from "./preview-url.ts";
 import {
@@ -94,6 +95,7 @@ import {
   SETTINGS_ROUTE,
   SETTINGS_STEPS,
   ADD_PROJECT_ROUTE,
+  PHASE_LINES,
   computeSpecTotalDurationMs,
   phasesFor,
   renderQueuePage,
@@ -4153,6 +4155,21 @@ export function createServer(opts: ServerOptions) {
     return status ? parseStatus(status).stepModels : {};
   }
 
+  /** What each of this archived spec's phases recorded about its OWN
+   *  run (spec 245's write side, spec 247's read side) — Model, Time
+   *  spent and Cost, each in the phase's own file rather than
+   *  `4-status.md` alone. Beside `archivedModels` above, on the same
+   *  terms: the file's own claim, an empty entry for a step whose file
+   *  names nothing. */
+  function archivedPhaseOutcomes(dir: string): Record<string, PhaseOutcome> {
+    const result: Record<string, PhaseOutcome> = {};
+    for (const step of PHASE_LINES) {
+      const outcome = specPhaseOutcome(dir, step);
+      if (Object.keys(outcome).length > 0) result[step] = outcome;
+    }
+    return result;
+  }
+
   /** Every archived spec the reader's own chip asks for, as a row for
    *  the Specs list (spec 221; this built the `/archive` page until that
    *  page retired).
@@ -4240,6 +4257,7 @@ export function createServer(opts: ServerOptions) {
         // The row opens now (spec 224), and this is what it opens on.
         done: archivedSteps(ref.dir),
         models: archivedModels(ref.dir),
+        phaseOutcomes: archivedPhaseOutcomes(ref.dir),
       });
     }
     return rows;
