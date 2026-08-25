@@ -132,23 +132,25 @@ named anywhere in this repo.
   nav, labelled "Projects". Token required, like `/`: the panel is a
   mutating control, and a page carrying one needs a server to check the
   token per request.
-- `/projects/<name>` — one project's own page, served (spec 185): its
-  manifest and its specs, as the generated file has always shown, plus
-  the two things a file could not answer — what its `.aide/config` says,
-  and whether a run could start here at all. Each of the seven
-  recognized config keys is marked configured, worked out (naming the
-  lockfile that decided it, hedged as a default rather than a verified
-  command) or not set; a checkout with no `.aide/config` says so in as
-  many words, because "no file" and "a file setting nothing" are
-  different states and the first is what a project cloned onto a second
-  machine is in. Below that, the same checks `assessProjectReadiness`
-  runs at Add time — now on every load rather than once, in a notice
-  gone by the next page. Nothing is executed and nothing is moved: a git
-  that cannot answer leaves the manifest, the specs and the settings
-  standing, with no readiness section. Specs root, Worktree links and
-  Code landing can be edited inline on this page; Save and Cancel both
-  return here. The old `/projects/<name>/settings` URL redirects here.
-  Token required, like every other `/projects` path.
+- `/projects/<name>` — one project's own page, served (spec 185): the
+  two things a generated file could not answer — what its `.aide/config`
+  says, and whether a run could start here at all. The manifest is not
+  repeated here any more (spec 238): the page showed a frozen copy of a
+  file nothing on it could act on, and a manifest that fails to parse
+  already says so on the project's `/projects` row, which is the live
+  view of the same thing. Each of the seven recognized config keys is
+  marked configured, worked out (naming the lockfile that decided it,
+  hedged as a default rather than a verified command) or not set; a
+  checkout with no `.aide/config` says so in as many words, because "no
+  file" and "a file setting nothing" are different states and the first
+  is what a project cloned onto a second machine is in. Below that, the
+  same checks `assessProjectReadiness` runs at Add time — now on every
+  load rather than once, in a notice gone by the next page. Nothing is
+  executed and nothing is moved: a git that cannot answer leaves the
+  settings standing, with no readiness section. Specs root, Worktree
+  links and Code landing can be edited inline on this page; Save and
+  Cancel both return here. The old `/projects/<name>/settings` URL
+  redirects here. Token required, like every other `/projects` path.
 - `/projects.html` — where that overview was generated until it was
   served. Now a redirect to `/projects`, keeping whatever the address
   carried; no token needed, like every other generated page. The file

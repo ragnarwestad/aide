@@ -324,6 +324,12 @@ const STRUCTURE = [
   "spec-open", "spec-archived",
   // the project overview
   "proj-row", "error-text", "error",
+  // the row's name is stretched across the whole row by an ::after
+  // overlay (spec 233), so a press anywhere on it opens the project;
+  // "proj-row-action" lifts the Remove button back above that overlay,
+  // which is the only reason either class exists. "project-actions" is
+  // the line of buttons at the top of a project's own page.
+  "proj-row-link", "proj-row-action", "project-actions",
   // a project's own settings, edited where they are read (spec 236):
   // the current values in read mode, and the disclosure that turns the
   // three editable ones into the form. Both are project-scoped because
@@ -339,6 +345,10 @@ const STRUCTURE = [
   // the same-sized span a done or archived row shows in its place, so
   // the two kinds of row line up.
   "checks", "checkshead", "checklist", "checkphase", "check", "checktask", "checkbox",
+  // the two forms on the spec page that post one of those checks and
+  // the description (spec 229). A class of its own for one rule: their
+  // buttons sit a step lower than an ordinary form's do.
+  "specform",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

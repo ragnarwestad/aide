@@ -1,14 +1,16 @@
-// The static half of the dashboard: projects.html (the overview) and one
-// page per project. Every populated manifest key is shown on the
-// project page; a project whose manifest failed to parse gets an error
-// page and an error row on the overview.
+// The project pages. Two of the three are SERVED: the rows of the
+// `/projects` list (`projectListBody`/`overviewRow`), and a project's
+// own page (`renderProjectPage`, `/projects/<name>`, spec 185). The
+// third, `renderSite`, is what is left of the static half — the
+// redirect projects.html became (spec 115) and the About page. The
+// page per project went on 2026-08-22; the comment on `renderSite`
+// says why.
 //
-// Since spec 185 the project's page has a SERVED variant too
-// (`renderProjectPage`, `/projects/<name>`), which is the same body
-// plus what the config file and a live readiness check say. The static
-// page keeps exactly what it always had: the generator runs only after
-// a merge lands somewhere in the queue, and a settings section written
-// then would be describing a config file as it stood days ago.
+// A project's own page carries what a generated file could not answer:
+// what its `.aide/config` says, and whether a run could start there.
+// It does not repeat the manifest (spec 238) — that was a frozen copy
+// of a file nothing on the page could act on, and a manifest that
+// fails to parse says so on the project's row in the list.
 
 import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
