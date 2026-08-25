@@ -280,7 +280,9 @@ const STRUCTURE = [
   // box's own wrapper and "searchclear" the × inside it (spec 226) —
   // one press back to the whole list, and a link like every other
   // control on this page rather than a script.
-  "specsearch", "searchfield", "searchclear",
+  // "icon-search" is the magnifying glass inside the field, left-aligned
+  // opposite "searchclear" (design handoff, 2026-08-25).
+  "specsearch", "searchfield", "searchclear", "icon-search",
   "u-usd", "u-tok",
   // containers — "stack" was the vertical one (spec 124): the row's
   // action buttons, one under the next, in the list's first column. It

@@ -583,7 +583,16 @@ table.list thead a { color: var(--muted); }
    The field keeps room on its right for the control, so a long term
    does not run underneath it. */
 .searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
-.searchfield > .archive-q { width: 100%; padding-right: var(--sp-5); }
+/* Rounder than the shared ".field input" rule gives it (var(--r-s), 4px)
+   — the same one-field exception ".field.wide" already makes for width
+   (design handoff, 2026-08-25). */
+.searchfield > .archive-q { width: 100%; box-sizing: border-box; border-radius: var(--r);
+  padding-left: 28px; padding-right: var(--sp-5); }
+/* The icon sits inside the input via the input's own left padding above,
+   not the wrapper's — so it never competes with ".searchclear" at the
+   opposite edge. */
+.searchfield > .icon-search { position: absolute; left: 9px; top: 50%;
+  transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .searchclear { position: absolute; right: 0; top: 0; bottom: 0;
   display: inline-flex; align-items: center; padding: 0 var(--sp-2);
   color: var(--muted); text-decoration: none; line-height: 1; }
