@@ -52,10 +52,22 @@
     });
   }
 
+  /** The header trigger's own icon, one of three spans already in the
+   *  DOM (spec 243) rather than markup swapped in — `hidden` is a plain
+   *  attribute the browser already knows how to act on, so there is
+   *  nothing here to undo if this script never runs. */
+  function markIcon(icons: NodeListOf<Element>, choice: string): void {
+    icons.forEach((icon) => {
+      if (icon.getAttribute("data-theme-icon") === choice) icon.removeAttribute("hidden");
+      else icon.setAttribute("hidden", "");
+    });
+  }
+
   apply(stored());
 
   document.addEventListener("DOMContentLoaded", () => {
     const buttons = document.querySelectorAll("[data-theme-choice]");
+    const icons = document.querySelectorAll("[data-theme-icon]");
     buttons.forEach((button) => {
       button.addEventListener("click", () => {
         const choice = button.getAttribute("data-theme-choice") ?? "auto";
@@ -69,9 +81,11 @@
         // re-themes everything already on screen.
         apply(choice);
         mark(buttons, choice);
+        markIcon(icons, choice);
       });
     });
     // The server marked Auto, because it had no way to know. Now we do.
     mark(buttons, stored());
+    markIcon(icons, stored());
   });
 })();

@@ -81,18 +81,32 @@ function unitControl(): string {
   return `<span class="row"><span class="lbl">Units</span><span class="filters">${buttons.join("")}</span></span>`;
 }
 
-// The header-level switch (spec 243, moved out of the "…" menu): icon
-// buttons, no visible text label — `.filters` already lays out three
-// buttons in a row wherever it sits, menu or header.
+// The header-level switch (spec 243, moved out of the "…" menu; a
+// popup of its own since PaceUp's own header is the reference for HOW,
+// not just where — one icon that names the current choice, a dropdown
+// underneath for the other two). Its own `.menu`, distinct from the
+// "…" one, so it gets the same outside-click/Escape close for free:
+// `menu-script.ts`'s `closeAll` already targets every `details.menu`,
+// not one in particular.
 function themeControl(): string {
-  // Auto is marked here because the server has no way to know what this
-  // reader picked — `theme-script.ts` moves the marker once it does.
-  const buttons = THEME_CHOICES.map(
+  // Auto is marked here, on the row AND on the trigger's icon, because
+  // the server has no way to know what this reader picked —
+  // `theme-script.ts` moves both once it does, the same `mark()` call
+  // doing the row's `aria-current` and the trigger's icon together.
+  const trigger = THEME_CHOICES.map(
+    ([choice]) =>
+      `<span data-theme-icon="${choice}"${choice === "auto" ? "" : " hidden"}>${THEME_ICONS[choice]}</span>`,
+  ).join("");
+  const rows = THEME_CHOICES.map(
     ([choice, label]) =>
-      `<button type="button" data-theme-choice="${choice}" aria-label="${label}" title="${label}"` +
-      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}</button>`,
+      `<button type="button" data-theme-choice="${choice}"` +
+      `${choice === "auto" ? ' aria-current="true"' : ""}>${THEME_ICONS[choice]}<span>${label}</span></button>`,
+  ).join("");
+  return (
+    `<details class="menu theme"><summary aria-label="Theme" title="Theme">${trigger}</summary>` +
+    `<div class="menupanel">${rows}</div>` +
+    `</details>`
   );
-  return `<span class="filters" role="group" aria-label="Theme">${buttons.join("")}</span>`;
 }
 
 // The mark on the left, the "…" menu on the right. The wordmark is

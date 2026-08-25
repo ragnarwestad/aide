@@ -166,19 +166,22 @@ describe("nav (criterion 2)", () => {
 
 // Spec 107. The three choices are not a page to go to, so they are not
 // tabs. Spec 119 put them behind the "…" menu; spec 243 moved them back
-// OUT, into the header itself, as a header-level control the reader
-// reaches without opening anything first.
+// OUT, into the header itself — first as three bare icon buttons, then
+// (same spec, revised 2026-08-25 against PaceUp's own header) behind a
+// popup of their own, ".menu.theme", a sibling of the "…" one rather
+// than a row inside it or three buttons loose in the header.
 describe("the theme choice in the header (specs 107, 119, 243)", () => {
   const header = (html: string) => html.match(/<header>[\s\S]*?<\/header>/)![0];
   const menu = (html: string) => html.match(/<details class="menu">[\s\S]*?<\/details>/)![0];
+  const themeMenu = (html: string) => html.match(/<details class="menu theme">[\s\S]*?<\/details>/)![0];
 
-  test("every page offers Dark, Light and Auto, outside the … menu", () => {
+  test("every page offers Dark, Light and Auto, in the header's own popup, outside the … menu", () => {
     for (const page of site) {
-      const h = header(page.html);
       const m = menu(page.html);
-      const choices = [...h.matchAll(/data-theme-choice="([^"]+)" aria-label="([^"]+)"/g)].map(
-        (x) => [x[1], x[2]],
-      );
+      const t = themeMenu(page.html);
+      const choices = [
+        ...t.matchAll(/data-theme-choice="([^"]+)"[^>]*>[\s\S]*?<span>([^<]+)<\/span>[\s\S]*?<\/button>/g),
+      ].map((x) => [x[1], x[2]]);
       expect(choices).toEqual([["dark", "Dark"], ["light", "Light"], ["auto", "Auto"]]);
       expect(m).not.toContain("data-theme-choice");
     }

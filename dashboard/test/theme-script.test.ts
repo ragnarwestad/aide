@@ -65,9 +65,26 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
   // what this reader picked, and Auto is the default.
   const buttons = [button("dark"), button("light"), button("auto", true)];
 
+  // The header trigger's own icon spans (spec 243, revised 2026-08-25):
+  // a plain "hidden" attribute, not a class or a swapped icon, so
+  // there is nothing script-specific for a fake DOM to fail at.
+  const icon = (choice: string, current = false): FakeButton & Record<string, unknown> => {
+    const attrs: Record<string, string> = { "data-theme-icon": choice };
+    if (!current) attrs["hidden"] = "";
+    return {
+      choice,
+      attrs,
+      getAttribute: (name: string) => attrs[name] ?? null,
+      setAttribute: (name: string, value: string) => void (attrs[name] = value),
+      removeAttribute: (name: string) => void delete attrs[name],
+    };
+  };
+  const icons = [icon("dark"), icon("light"), icon("auto", true)];
+
   const document = {
     documentElement: root,
-    querySelectorAll: (sel: string) => (sel.includes("data-theme-choice") ? buttons : []),
+    querySelectorAll: (sel: string) =>
+      sel.includes("data-theme-choice") ? buttons : sel.includes("data-theme-icon") ? icons : [],
     addEventListener: (type: string, fn: () => void) => void (listeners[`document:${type}`] = fn),
   };
 
@@ -81,6 +98,8 @@ function harness(opts: { stored?: string | null; storageThrows?: boolean } = {})
     ready: () => listeners["document:DOMContentLoaded"]!(),
     click: (choice: string) => listeners[`${choice}:click`]!(),
     marked: () => buttons.filter((b) => b.attrs["aria-current"]).map((b) => b.choice),
+    /** Which icon span is NOT hidden — the trigger's own visible choice. */
+    shownIcon: () => icons.filter((i) => !("hidden" in i.attrs)).map((i) => i.choice),
   };
 }
 
@@ -125,6 +144,12 @@ describe("the stored choice, applied on load (criteria 1-3)", () => {
     h.ready();
     expect(h.marked()).toEqual(["auto"]);
   });
+
+  test("the trigger's own icon moves to the stored choice too (spec 243)", () => {
+    const h = harness({ stored: "light" });
+    h.ready();
+    expect(h.shownIcon()).toEqual(["light"]);
+  });
 });
 
 describe("clicking a choice (criterion 4)", () => {
@@ -153,5 +178,12 @@ describe("clicking a choice (criterion 4)", () => {
     h.click("light");
     expect(h.root.dataset.theme).toBe("light");
     expect(h.marked()).toEqual(["light"]);
+  });
+
+  test("the trigger's icon switches on click too, not just the row (spec 243)", () => {
+    const h = harness({ stored: null });
+    h.ready();
+    h.click("dark");
+    expect(h.shownIcon()).toEqual(["dark"]);
   });
 });

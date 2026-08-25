@@ -262,7 +262,10 @@ const STRUCTURE = [
   // The one width a document page shares: banner, tabs and panel
   // (2026-08-23).
   "doc",
-  "menu", "menupanel", "about", "aboutpanel", "aboutclose", "listtop",
+  // "theme" is Theme's own sibling disclosure (spec 243, popup revision
+  // 2026-08-25) — same trigger/panel look as "menu" via the shared
+  // class, this one names which of the two a given "details.menu" is.
+  "menu", "menupanel", "theme", "about", "aboutpanel", "aboutclose", "listtop",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

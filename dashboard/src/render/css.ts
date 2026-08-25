@@ -864,10 +864,14 @@ td form { margin: 0; display: inline-block; }
    "removeform" are what queue-client.ts selects on — laid out here,
    coloured nowhere. */
 .removeform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
-/* The "…" menu (spec 119): About and the theme choices, behind one
+/* The "…" menu (spec 119): Units, Settings and About, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the
-   tab bar and everything under it down. */
+   tab bar and everything under it down. Theme (spec 243) is a SECOND,
+   sibling ".menu" of its own rather than a row inside this one — the
+   shared class is what gives it the same trigger look and the same
+   outside-click/Escape close, since "menu-script.ts"'s closeAll()
+   already reads every "details.menu", not one by name. */
 .menu { position: relative; }
 .menu > summary { display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 999px; border: 0; background: none;
@@ -884,6 +888,16 @@ td form { margin: 0; display: inline-block; }
 .menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
 .menupanel > a { color: var(--text); }
 .menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
+/* Theme's own rows (spec 243): a button, not a link, exactly the
+   reason Units' buttons already needed the same colour/hover pair —
+   nothing about being a <button> instead of an <a> should read as a
+   lesser row in the same menu. The icon and its label share the row
+   the way every other icon-plus-word control on this site does. */
+.menupanel > button { display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; text-align: left; background: none; border: 0; color: var(--text);
+  font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.menupanel > button:hover { background: var(--surface-2); }
+.menupanel > button[aria-current] { font-weight: 600; }
 /* Units' label and its buttons (spec 243): equal specificity to the
    rule above and later in the file, so without this it would flatten
    the row right back to block and the flex gap between them would be
