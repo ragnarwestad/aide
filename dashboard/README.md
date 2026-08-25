@@ -194,21 +194,16 @@ named anywhere in this repo.
   that speaks for it and keeps linking to its own job page. Such a link
   is live whether or not the phase has ever run: the tab belongs to the
   spec, not to the run.
-  **Activity and Steps show ONE run, and which one is a choice** (spec
-  237). By default it is the lead — whatever is in flight, or failing
-  that the most recently active job — exactly as before. A spec that has
-  had more than one job draws an attempt-picker chip row above the
-  panel; picking one puts `?job=<id>` beside the open tab and shows THAT
-  run's transcript and step table. Below two attempts there is no picker
-  at all. The id is looked up only among this spec's own jobs, so a
-  value naming another spec's job, or no job, silently falls back to the
-  lead — the same permissive reading `?tab=` already gets. The banner's
-  state chip is untouched by the pick: it says what the SPEC is doing
-  now, not what the run on screen did.
-  **Only Activity and Steps reload themselves** (`<meta refresh>`, ten
-  seconds): they are the two that move while a step runs, and every
-  other tab carries a form a timer would wipe. The bare refresh keeps
-  the current URL, `?job=` included, so a picked attempt survives it.
+  **The Logs tab lists every step from every attempt in one flat list,
+  no picker** (spec 240 merged the former Activity/Steps split into this
+  one tab; spec 242 removed the attempt-picker chip row that used to sit
+  above it). A spec with more than one job for the same work round tags
+  each row `Attempt N` (oldest = 1); a single-attempt spec shows no
+  marker at all. There is no `?job=` any more — the tab's own count is
+  the true total across every attempt, not just the latest one's.
+  **Only the Logs tab reloads itself** (`<meta refresh>`, ten
+  seconds): it is the one that moves while a step runs, and every
+  other tab carries a form a timer would wipe.
   The price is a state chip
   only as fresh as the last time the page was asked for, with Update
   beside it. An ARCHIVED spec has this page too, and always did — the
