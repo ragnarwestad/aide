@@ -167,11 +167,14 @@ named anywhere in this repo.
   on 2026-08-18: the spec list shows every queued run per row, and
   interactive sessions are claude-usage's own page.)
 - `/specs/<id>` — one job, in full. It did NOT move with the list: every
-  job link already sent out points here.
+  job link already sent out points here. Since spec 237 the LIST no
+  longer sends anyone here — a phase line opens a tab of the spec page
+  instead — but the route, its renderer and its tests are untouched, for
+  the reason above: an old link is a promise.
 - `/specs/<project>/<spec>` — the whole SPEC, as it stands now, in SEVEN
   tabs (spec 212): Overview, one tab per document (Description,
   Analysis, Solution, Status — each stamped with the commit that last
-  changed it), and the lead job's own Activity and Steps. All four files
+  changed it), and Activity and Steps for one of its runs. All four files
   used to be stacked in full on Overview, which for a spec of any size
   was thousands of lines of preformatted text before the reader reached
   what they came for; Overview carries no file text at all now. It is
@@ -180,9 +183,31 @@ named anywhere in this repo.
   the title, what the spec depends on (read-only — the picker that
   CHANGES it is on the Description tab, with the file the line is stored
   in), and the checks, as real boxes with a Save of their own.
+  **A phase line on the spec list opens the tab that shows what that
+  phase MADE** (spec 237): create → Description, analyze → Solution,
+  implement → Status, archive → Overview, since archive writes no file
+  of its own. `PHASE_TAB` in `render/spec-page.ts` is the one place that
+  mapping is written; `queue-list.ts` imports it. A step outside those
+  four — `explore`, or anything not in the fixed workflow — has no tab
+  that speaks for it and keeps linking to its own job page. Such a link
+  is live whether or not the phase has ever run: the tab belongs to the
+  spec, not to the run.
+  **Activity and Steps show ONE run, and which one is a choice** (spec
+  237). By default it is the lead — whatever is in flight, or failing
+  that the most recently active job — exactly as before. A spec that has
+  had more than one job draws an attempt-picker chip row above the
+  panel; picking one puts `?job=<id>` beside the open tab and shows THAT
+  run's transcript and step table. Below two attempts there is no picker
+  at all. The id is looked up only among this spec's own jobs, so a
+  value naming another spec's job, or no job, silently falls back to the
+  lead — the same permissive reading `?tab=` already gets. The banner's
+  state chip is untouched by the pick: it says what the SPEC is doing
+  now, not what the run on screen did.
   **Only Activity and Steps reload themselves** (`<meta refresh>`, ten
   seconds): they are the two that move while a step runs, and every
-  other tab carries a form a timer would wipe. The price is a state chip
+  other tab carries a form a timer would wipe. The bare refresh keeps
+  the current URL, `?job=` included, so a picked attempt survives it.
+  The price is a state chip
   only as fresh as the last time the page was asked for, with Update
   beside it. An ARCHIVED spec has this page too, and always did — the
   scan records every spec's directory before it drops the archived ones

@@ -395,6 +395,120 @@ describe("the shared panels are the job page's own", () => {
   });
 });
 
+// --- spec 237: which attempt Activity and Steps are showing -----------------
+//
+// A phase's line on the list used to link to the JOB that ran it, so an
+// older attempt was reachable by having been linked to. Since spec 237
+// the line opens this page's own tab instead, and the run a reader came
+// for has to be pickable HERE — otherwise the "2 attempts" the row has
+// counted since spec 86 is a number with nothing behind it.
+
+describe("spec 237: the attempt picker on Activity and Steps", () => {
+  const attempt = (id: string, at: string, steps: string[] = ["analyze"]) => ({ id, steps, at });
+  const TWO = [
+    attempt("newer", "2026-08-21T09:00:00Z"),
+    attempt("older", "2026-08-19T09:00:00Z"),
+  ];
+  const picker = (html: string): string =>
+    html.match(/<span class="filters" data-filter="attempt">[\s\S]*?<\/a><\/span>/)?.[0] ?? "";
+
+  test("a spec with one job ever run offers nothing to pick between", () => {
+    const one = view({ lead: lead(), attempts: [attempt("newer", "2026-08-21T09:00:00Z")] });
+    for (const tab of ["activity", "steps"]) expect(picker(page(one, tab))).toBe("");
+  });
+
+  test("a spec no job has ever run offers nothing either", () => {
+    for (const tab of ["activity", "steps"]) expect(picker(page(view(), tab))).toBe("");
+  });
+
+  test("two attempts are offered on both tabs, newest first", () => {
+    for (const tab of ["activity", "steps"]) {
+      const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), tab));
+      expect(bar).toContain("Attempt");
+      expect(bar.indexOf("job=newer")).toBeLessThan(bar.indexOf("job=older"));
+    }
+  });
+
+  test("each entry names its step and when it ran, and links to the open tab with its own job", () => {
+    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "steps"));
+    expect(bar).toContain('href="/specs/aide/150-one-page-shows-the-whole-spec?tab=steps&amp;job=older"');
+    // The step's own word, lowercase, exactly as the phase lines and the
+    // pips say it — `stepLabel` is the one translator, and it has no
+    // entry for these.
+    expect(bar).toContain("analyze");
+    // `NOW` is 2026-08-21T10:05:00Z: the newer ran 65 minutes before it,
+    // the older two days.
+    expect(bar).toContain("65 min ago");
+    expect(bar).toContain("2 d ago");
+  });
+
+  test("a job that ran two steps says both, in the order it ran them", () => {
+    const bar = picker(
+      page(
+        view({
+          lead: lead({ id: "newer" }),
+          attempts: [attempt("newer", "2026-08-21T09:00:00Z", ["analyze", "implement"]), TWO[1]!],
+        }),
+        "steps",
+      ),
+    );
+    expect(bar).toContain("analyze → implement");
+  });
+
+  test("with nothing picked, the lead is the one marked", () => {
+    const bar = picker(page(view({ lead: lead({ id: "newer" }), attempts: TWO }), "activity"));
+    expect(bar).toMatch(/job=newer"\s+aria-current="true"/);
+    expect(bar).not.toMatch(/job=older"\s+aria-current="true"/);
+  });
+
+  test("the picked attempt is what Activity and Steps show, and it is the one marked", () => {
+    const v = view({
+      lead: lead({ id: "newer", state: "running", activity: ["Bash lead-ran-this"] }),
+      selected: lead({
+        id: "older",
+        state: "failed",
+        activity: ["Bash older-ran-this"],
+        results: [
+          {
+            step: "analyze", ok: false, costUsd: 0.11, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-19T09:01:00Z",
+          },
+        ],
+      }),
+      attempts: TWO,
+    });
+    const activity = page(v, "activity");
+    expect(activity).toContain("Bash older-ran-this");
+    expect(activity).not.toContain("Bash lead-ran-this");
+    expect(picker(activity)).toMatch(/job=older"\s+aria-current="true"/);
+    expect(page(v, "steps")).toContain("$0.11");
+  });
+
+  // The chip says what the SPEC is doing right now. Reading an older
+  // attempt does not change that, and a chip that followed the picker
+  // would say the spec had failed while a step of it was running.
+  test("picking an older attempt does not change what the banner says the spec is doing", () => {
+    const v = view({
+      lead: lead({ id: "newer", state: "running" }),
+      selected: lead({ id: "older", state: "failed" }),
+      attempts: TWO,
+    });
+    // The spec's own banner, not the shell's title line above it: from
+    // the last `.pagehead` on the page down to the tab bar.
+    const html = page(v, "activity");
+    const banner = html.slice(html.lastIndexOf('<div class="pagehead">'), html.indexOf("<nav class=\"tabbar subtabs\""));
+    expect(banner).toContain("running");
+    expect(banner).not.toContain("failed");
+  });
+
+  test("no picker is drawn on any other tab — it is these two panels' control", () => {
+    const v = view({ lead: lead({ id: "newer" }), attempts: TWO });
+    for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
+      expect([tab, picker(page(v, tab))]).toEqual([tab, ""]);
+    }
+  });
+});
+
 // --- spec 162, moved onto the page by spec 212: the Description tab ---------
 //
 // One of the four files is a person's to write. `2-analysis.md` and

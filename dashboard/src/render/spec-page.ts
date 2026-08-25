@@ -37,8 +37,8 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring mistake, and a second tab bar would be the fourth.
 
-import { btn, field, rowMessage, tokenField, typedConfirm } from "./components.ts";
-import { esc } from "./html.ts";
+import { btn, field, filterPills, rowMessage, stepLabel, tokenField, typedConfirm } from "./components.ts";
+import { esc, relTimeLabel } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { notStartedChip, stateChip } from "./job-state.ts";
 import { dependsOnField } from "./new-spec-page.ts";
@@ -86,6 +86,20 @@ export interface SpecChecksView {
   baseSha?: string;
 }
 
+/** One run of this spec, as the Activity/Steps picker offers it (spec
+ *  237). The facts, not the wording: this layer says "Analyze →
+ *  Implement · 2 d ago", and `relTimeLabel` is the one ladder deciding
+ *  when "h" becomes "d" for every other line on this site too. */
+export interface SpecAttemptView {
+  id: string;
+  /** Every step the job ran, in the order it ran them — a job can carry
+   *  more than one, and both belong in its name here. */
+  steps: string[];
+  /** When it started, or failing that when it was queued. Absent for a
+   *  job with neither, which is then named by its steps alone. */
+  at?: string;
+}
+
 export interface SpecPageView {
   project: string;
   specFolder: string;
@@ -97,6 +111,18 @@ export interface SpecPageView {
    *  happened. Absent for a spec nothing has ever run — which is the
    *  whole reason this page is keyed on the spec and not on a job id. */
   lead?: JobDetailView;
+  /** Every job this spec has had in its current work round, newest
+   *  first (spec 237) — what the Activity/Steps picker offers. Fewer
+   *  than two, and no picker is drawn: there is nothing to choose
+   *  between, which is the same "nothing to show, show nothing" rule
+   *  `checklist()` and `dependsOnLine()` already keep. */
+  attempts?: SpecAttemptView[];
+  /** The attempt Activity and Steps show, when it is not `lead` (spec
+   *  237). `lead` still drives the banner's state chip on every tab:
+   *  reading an older run does not change what the SPEC is doing right
+   *  now, and a chip that followed the picker would say the spec had
+   *  failed while a step of it was running. */
+  selected?: JobDetailView;
   /** Whether the spec has been archived (spec 163). Its folder has
    *  moved into `archive/` and the spec is a RECORD: the description's
    *  textarea was built for a description edited while the work is live
@@ -235,6 +261,26 @@ const TAB_FILES: Partial<Record<SpecTab, string>> = {
   analysis: "2-analysis.md",
   solution: "3-solution.md",
   status: STATUS_SPEC_FILE,
+};
+
+/** Which tab a phase's own link opens (spec 237): the tab that shows
+ *  what that phase MADE, or — for archive, which writes no file of its
+ *  own — the page's front, Overview.
+ *
+ *  ONE map, exported and imported rather than copied: `queue-list.ts`
+ *  is the only caller, and `development.md` names two copies of one
+ *  shape as this repo's own recurring mistake often enough that a
+ *  fifth would be a choice.
+ *
+ *  A step outside these four — `explore`, `manifest`, `reset`, or
+ *  anything not in the fixed workflow — has no tab that speaks for it,
+ *  so it is absent here and the caller keeps the job page it has always
+ *  linked to. */
+export const PHASE_TAB: Partial<Record<string, SpecTab>> = {
+  create: "description",
+  analyze: "solution",
+  implement: "status",
+  archive: "overview",
 };
 
 /** What the spec depends on, on the front page, in words (spec 212).
@@ -463,6 +509,40 @@ function descriptionPanel(view: SpecPageView, now: number): string {
   );
 }
 
+/** Which run Activity and Steps are showing, and the others on offer
+ *  (spec 237).
+ *
+ *  A phase line on the list opens a tab of this page now rather than
+ *  the job that ran the phase, so the run a reader came for has to be
+ *  reachable HERE — otherwise the "N attempts" a row has counted since
+ *  spec 86 is a number with nothing behind it.
+ *
+ *  Chips, not tabs: `tabBar`'s own note says chips are for choosing
+ *  among values and tabs for moving between views, and an attempt is a
+ *  value. `filterPills` is that control, already styled and already
+ *  marking its chosen one with `aria-current` — so this adds no markup
+ *  of its own and no class the stylesheet has not seen.
+ *
+ *  Nothing at all below two attempts. `job` rides beside the open tab
+ *  rather than replacing it, so a pick keeps the reader on the panel
+ *  they were reading. */
+function attemptPicker(view: SpecPageView, tab: SpecTab, now: number): string {
+  const attempts = view.attempts ?? [];
+  if (attempts.length < 2) return "";
+  const shownId = view.selected?.id ?? view.lead?.id;
+  return filterPills(
+    "attempt",
+    "Attempt",
+    attempts.map((a) => ({
+      label:
+        a.steps.map(stepLabel).join(" → ") +
+        (a.at ? ` · ${relTimeLabel(a.at, now)}` : ""),
+      on: a.id === shownId,
+      href: esc(`${specTabPath(view.project, view.specFolder, tab)}&job=${encodeURIComponent(a.id)}`),
+    })),
+  );
+}
+
 export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
@@ -507,11 +587,16 @@ export function renderSpecPage(
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
 
+  // Spec 237: whichever attempt was picked, and the lead when none was.
+  // The banner above is untouched by it — that chip is the SPEC's state,
+  // not the shown run's.
+  const shown = view.selected ?? lead;
+
   const panel =
     tab === "activity"
-      ? activityPanel(lead ?? { results: [] })
+      ? attemptPicker(view, tab, now) + activityPanel(shown ?? { results: [] })
       : tab === "steps"
-        ? stepResults(lead?.results ?? [], lead?.archiveHeldBack)
+        ? attemptPicker(view, tab, now) + stepResults(shown?.results ?? [], shown?.archiveHeldBack)
         : tab === "description"
           ? descriptionPanel(view, now)
           : TAB_FILES[tab]
