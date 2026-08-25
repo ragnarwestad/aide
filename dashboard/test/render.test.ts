@@ -26,6 +26,7 @@ import {
 // without restating its markup (spec 145).
 import { ICON_LOCK } from "../src/render/components.ts";
 import { stateLabel } from "../src/render/job-state.ts";
+import { resolveOpenStep } from "../src/render/job-page.ts";
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published
@@ -643,12 +644,22 @@ describe("renderJobDetailPage", () => {
   // worked since spec 91. Its absence is asserted in its own block
   // further down ("Live right now is gone").
 
-  test("the activity list is rendered as the parser produced it, already escaped", () => {
+  // Since spec 240 a step's own transcript lives on its own Steps row,
+  // expanded through `step=`, rather than on a job-level Activity tab.
+  test("a step's own log is rendered as the parser produced it, already escaped (AC1)", () => {
     const html = renderJobDetailPage(
-      detail({ activity: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")] }),
+      detail({
+        results: [
+          {
+            step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+            logs: ["Bash <code>ls</code>".replace(/</g, "&lt;").replace(/>/g, "&gt;")],
+          },
+        ],
+      }),
       "2026-08-16T10:05:00Z",
       NAV,
-      { tab: "activity" },
+      { tab: "steps", step: "0" },
     );
     expect(html).toContain("&lt;code&gt;");
     expect(html).not.toContain("<code>ls</code>");
@@ -656,13 +667,13 @@ describe("renderJobDetailPage", () => {
 
   // A run refused by aide-run-spec never starts claude, so there is no
   // transcript to keep — and "nothing has been captured" reads as a
-  // lost transcript rather than a run that never began. The reader is
-  // on this tab precisely because they want to know what happened.
-  test("a run refused before it started says THAT, not that nothing was captured", () => {
+  // lost transcript rather than a run that never began. The reader
+  // expanded this step precisely because they want to know what
+  // happened (AC7).
+  test("a step refused before it started says THAT, not that nothing was captured (AC7)", () => {
     const html = renderJobDetailPage(
       detail({
         state: "failed",
-        activity: [],
         error: "cannot fast-forward main in /x/develop/aide",
         results: [
           {
@@ -673,18 +684,18 @@ describe("renderJobDetailPage", () => {
       }),
       "2026-08-17T10:05:00Z",
       NAV,
-      { tab: "activity" },
+      { tab: "steps", step: "0" },
     );
     expect(html).toContain("refused before it started");
+    // The banner already carries the job's own error, on every tab.
     expect(html).toContain("cannot fast-forward main");
-    expect(html).not.toContain("Nothing has been captured");
+    expect(html).not.toContain("Nothing has been captured from this step");
   });
 
-  test("a refusal with no error text still says the run never started", () => {
+  test("a refusal with no error text still says the step never started", () => {
     const html = renderJobDetailPage(
       detail({
         state: "failed",
-        activity: [],
         results: [
           {
             step: "archive", ok: false, costUsd: 0, costMeasured: false,
@@ -694,16 +705,26 @@ describe("renderJobDetailPage", () => {
       }),
       "2026-08-17T10:05:00Z",
       NAV,
-      { tab: "activity" },
+      { tab: "steps", step: "0" },
     );
     expect(html).toContain("refused before it started");
   });
 
-  test("a job with no stream kept says so, rather than showing a blank panel", () => {
-    const html = renderJobDetailPage(detail({ activity: [] }), "2026-08-16T10:05:00Z", NAV, {
-      tab: "activity",
-    });
-    expect(html).toContain("Nothing has been captured");
+  test("a step with no transcript kept says so, rather than showing a blank panel", () => {
+    const html = renderJobDetailPage(
+      detail({
+        results: [
+          {
+            step: "analyze", ok: true, costUsd: 0.1, costMeasured: true,
+            terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+          },
+        ],
+      }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+      { tab: "steps", step: "0" },
+    );
+    expect(html).toContain("Nothing has been captured from this step");
   });
 
   test("the page is self-contained and carries the shared nav", () => {
@@ -729,14 +750,21 @@ describe("renderJobDetailPage", () => {
   });
 });
 
-// The four things the page says — what the job is, what it is doing,
-// what it has done — ran together under plain headings, so a reader
-// scrolled past the one they came for. One tab each.
+// The two things the page says — what the job is, what it has done and
+// is doing — ran together under plain headings, so a reader scrolled
+// past the one they came for. One tab each.
+//
+// Spec 240 cut this from three tabs to two: Activity and Steps used to
+// be two sibling tabs sharing one hidden attempt selection, with the
+// tab bar's own counts reading off whichever attempt Activity had
+// picked — a coupling invisible on the tab where the pick was made.
+// Steps is now the one tab, and a step's own transcript is reached by
+// expanding that step's row (`step=`) rather than by a tab of its own.
 describe("the job page is split into tabs", () => {
   const withParts = (extra: Partial<JobDetailView> = {}): JobDetailView =>
     detail({
       title: "A running job is a black box",
-      activity: ["Bash ls"],
+      runningStep: { step: "analyze", logs: ["Bash ls"] },
       results: [
         {
           step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
@@ -749,27 +777,26 @@ describe("the job page is split into tabs", () => {
   test("every tab is offered as a link back to this job", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
     expect(html).toContain('href="/specs/job-1234?tab=overview"');
-    expect(html).toContain('href="/specs/job-1234?tab=activity"');
     expect(html).toContain('href="/specs/job-1234?tab=steps"');
   });
 
   test("the open tab is marked, and it is the only one", () => {
-    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "activity" });
+    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
     // The page proper, without the site's own tab bar above it — spec
     // 119 put a second marked tab there, and Specs is legitimately
     // current on a job page.
     const page = html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/, "");
     expect(page.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(page).toMatch(/aria-current="page"[^>]*>Activity/);
+    expect(page).toMatch(/aria-current="page"[^>]*>Steps/);
   });
 
   // While a step is running, what it is DOING is what you opened the
-  // page for. A finished job has nothing running, so the facts open.
-  test("a running job opens on the activity, without being asked", () => {
+  // page for — Steps is the only tab left that shows it, through the
+  // running row (open by default).
+  test("a running job opens on the steps tab, without being asked (AC3)", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toMatch(/aria-current="page"[^>]*>Activity/);
+    expect(html).toMatch(/aria-current="page"[^>]*>Steps/);
     expect(html).toContain("Bash ls");
-    expect(html).not.toContain("$0.42");
   });
 
   test("a job that is not running opens on the overview", () => {
@@ -790,16 +817,13 @@ describe("the job page is split into tabs", () => {
     expect(html).not.toContain("Bash ls");
   });
 
-  test("the activity tab shows the run's lines and nothing else", () => {
-    const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "activity" });
-    expect(html).toContain("Bash ls");
-    expect(html).not.toContain("$0.42");
-  });
-
-  test("the steps tab shows every step that has run", () => {
+  // The coupling spec 239 left behind: a job's finished step and its
+  // running step now sit on the SAME tab, so both are visible together
+  // rather than one hiding behind a count on a tab nobody opened.
+  test("the steps tab shows the running step's own log and every finished step's row", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
+    expect(html).toContain("Bash ls");
     expect(html).toContain("$0.42");
-    expect(html).not.toContain("Bash ls");
   });
 
   test("a tab name nobody offers falls back to the default instead of a blank page", () => {
@@ -813,37 +837,97 @@ describe("the job page is split into tabs", () => {
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
   });
 
-  // Spec 212: the spec page offers seven tabs and the job page three,
-  // through ONE tab-bar renderer that takes the list as an argument.
-  // A job page that grew the spec page's tabs would be that renderer
-  // reading the wrong list, which is exactly what sharing it risks.
-  test("a job has three tabs and only three, whatever the spec page offers", () => {
+  // Spec 212 gave the spec page seven tabs and the job page three,
+  // through ONE tab-bar renderer that takes the list as an argument;
+  // spec 240 drops both to six and two. A job page that grew the spec
+  // page's tabs would be that renderer reading the wrong list, which is
+  // exactly what sharing it risks.
+  test("a job has two tabs and only two, whatever the spec page offers", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
     const bar = html.match(/<nav class="tabbar subtabs">[\s\S]*?<\/nav>/)?.[0] ?? "";
     // No caption beside them since 2026-08-23: these are tabs, and the
     // page they sit on already says what it is about.
     expect(bar).not.toContain('class="lbl"');
-    expect(bar.match(/<a class="tab" data-nav/g)).toHaveLength(3);
-    for (const gone of ["tab=description", "tab=analysis", "tab=solution", "tab=status"]) {
+    expect(bar.match(/<a class="tab" data-nav/g)).toHaveLength(2);
+    for (const gone of ["tab=description", "tab=analysis", "tab=solution", "tab=status", "tab=activity"]) {
       expect([gone, bar.includes(gone)]).toEqual([gone, false]);
     }
   });
 
-  test("the tab says how much is behind it, so a reader knows before clicking", () => {
+  // One finished step, plus the running row (AC6): the count is
+  // finished steps + 1 while something is running.
+  test("the tab says how much is behind it, so a reader knows before clicking (AC6)", () => {
     const html = renderJobDetailPage(withParts(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toMatch(/>Activity · 1</);
-    expect(html).toMatch(/>Steps · 1</);
+    expect(html).toMatch(/>Steps · 2</);
   });
 
   test("an empty tab is still offered, and says why it is empty", () => {
-    const html = renderJobDetailPage(
-      detail({ activity: [] }),
-      "2026-08-16T10:05:00Z",
-      NAV,
-      { tab: "activity" },
-    );
-    expect(html).toContain('href="/specs/job-1234?tab=activity"');
-    expect(html).toContain("Nothing has been captured");
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
+    expect(html).toContain('href="/specs/job-1234?tab=steps"');
+    expect(html).toContain("No step has finished yet");
+  });
+});
+
+// --- spec 240: which Steps row is open survives the page's own reload -------
+//
+// Approach A (a bare `<details>` per row) was rejected in `3-solution.md`
+// for the exact reason `queue-list.ts` already rejected it for its own
+// row-fold: both pages reload themselves every 10 seconds via a real
+// `<meta http-equiv="refresh">`, a full navigation rather than a DOM
+// patch, so a `<details open>` set by a click is gone on the very next
+// refresh. The open row has to be a property of the URL instead.
+describe("spec 240: resolveOpenStep", () => {
+  test("no query and nothing running: nothing is open (AC2)", () => {
+    expect(resolveOpenStep(undefined, false)).toBeUndefined();
+  });
+
+  test("no query but something running: the running row opens by default (AC3)", () => {
+    expect(resolveOpenStep(undefined, true)).toBe("live");
+  });
+
+  test("an explicit step index wins over the running default", () => {
+    expect(resolveOpenStep("0", true)).toBe("0");
+  });
+
+  test("the literal close value wins even while something is running (AC4)", () => {
+    expect(resolveOpenStep("none", true)).toBeUndefined();
+  });
+});
+
+describe("spec 240: a closed step stays closed across the page's own reload", () => {
+  const runningJob = (): JobDetailView =>
+    detail({
+      runningStep: { step: "analyze", logs: ["Bash ls"] },
+      results: [
+        {
+          step: "analyze", ok: true, costUsd: 0.42, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-16T10:01:00Z",
+        },
+      ],
+    });
+
+  test("with no step= at all, the running row opens by default (AC3)", () => {
+    const html = renderJobDetailPage(runningJob(), "2026-08-16T10:05:00Z", NAV, { tab: "steps" });
+    expect(html).toContain("Bash ls");
+  });
+
+  // The regression test for Approach A's rejected failure mode: render
+  // the SAME closed state twice, standing in for the periodic reload,
+  // and confirm it stays closed both times rather than snapping back
+  // open the way a client-only `<details>` would have.
+  test("step=none stays closed across a second render of the same state (AC4)", () => {
+    const first = renderJobDetailPage(runningJob(), "2026-08-16T10:05:00Z", NAV, {
+      tab: "steps",
+      step: "none",
+    });
+    const second = renderJobDetailPage(runningJob(), "2026-08-16T10:05:10Z", NAV, {
+      tab: "steps",
+      step: "none",
+    });
+    for (const html of [first, second]) {
+      expect(html).not.toContain("Bash ls");
+      expect(html).toContain("$0.42");
+    }
   });
 });
 
@@ -5404,49 +5488,22 @@ describe("spec 143: a long message gets a panel row of its own", () => {
   });
 });
 
-// --- spec 143: the same message on the phase's own detail page ---------------
+// --- spec 143: the held-back note belongs to the archive row alone -----------
 //
-// Requirement 2 of 1-description.md: the message is also written into
-// Activity, where that phase already reports what it did. Today only
-// one case reaches it — a run refused before it ever started.
-
-describe("spec 143: the Activity tab carries the message too", () => {
-  const archiveJob = (extra: Partial<JobDetailView> = {}): JobDetailView =>
-    detail({
-      id: "job-archive",
-      state: "done",
-      steps: ["archive"],
-      activity: [],
-      results: [
-        {
-          step: "archive", ok: true, costUsd: 0.1, costMeasured: true,
-          terminalReason: "completed", at: "2026-08-20T10:01:00Z",
-        },
-      ],
-      ...extra,
-    });
-  /** The open tab's own panel. The page's banner already repeats
-   *  `job.error` above the tabs on every tab, so a count taken over the
-   *  whole page would answer a different question than this block asks. */
-  const activityTab = (job: JobDetailView) =>
-    renderJobDetailPage(job, "2026-08-20T10:05:00Z", NAV, { tab: "activity" }).match(
-      /<div class="tabpanel">[\s\S]*?<\/div>/,
-    )?.[0] ?? "";
-
-  // Criterion 4: the archive run that finished successfully and moved
-  // nothing. It neither streamed anything nor was refused, so it fell
-  // through to "nothing captured" and the reason was nowhere.
-  test("an archive job that was held back says so in Activity", () => {
-    const html = activityTab(archiveJob({ archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)" }));
-    expect(html).toContain("the Slack webhook (Phase 4, still unchecked)");
-    expect(html).not.toContain("Nothing has been captured");
-  });
-
-  // The note is the SPEC's, and it belongs to archive. A job that ran
-  // some other step must not report it as its own.
-  test("a job that did not run archive does not show the spec's held-back note", () => {
-    const html = activityTab(
-      archiveJob({
+// Requirement 2 of 1-description.md: whatever the row's panel says about
+// a job is said here too. Since spec 240 there is no job-level Activity
+// transcript to repeat it into — the held-back note lives in the
+// archive row's own Outcome cell (asserted at "the job page's Steps tab
+// says held back where the row does"), and `job.error` lives in the
+// banner on every tab (asserted throughout this file). What is left to
+// check here, once that duplication is gone, is that a job which did
+// NOT run archive never borrows the note.
+describe("spec 143: the held-back note belongs to the archive row alone", () => {
+  test("a job that did not run archive carries no held-back note at all", () => {
+    const html = renderJobDetailPage(
+      detail({
+        id: "job-implement",
+        state: "done",
         steps: ["implement"],
         results: [
           {
@@ -5456,53 +5513,12 @@ describe("spec 143: the Activity tab carries the message too", () => {
         ],
         archiveHeldBack: "the Slack webhook (Phase 4, still unchecked)",
       }),
+      "2026-08-20T10:05:00Z",
+      NAV,
+      { tab: "steps" },
     );
     expect(html).not.toContain("the Slack webhook");
-    expect(html).toContain("Nothing has been captured");
-  });
-
-  // Criterion 5: a job that streamed real work and THEN failed. The
-  // transcript ends mid-air and never says why.
-  test("a job that streamed and then failed ends its Activity with the reason", () => {
-    const html = activityTab(
-      archiveJob({
-        state: "failed",
-        activity: ["Bash ls", "Edit src/render/css.ts"],
-        error: "the specs tree is dirty: /Users/ragnar/develop/aide-specs",
-      }),
-    );
-    expect(html).toContain("Edit src/render/css.ts");
-    expect(html).toContain("the specs tree is dirty");
-  });
-
-  test("the reason is not repeated when the last streamed line already said it", () => {
-    const html = activityTab(
-      archiveJob({
-        state: "failed",
-        activity: ["Bash ls", "the tree is dirty"],
-        error: "the tree is dirty",
-      }),
-    );
-    expect([...html.matchAll(/the tree is dirty/g)]).toHaveLength(1);
-  });
-
-  // Unchanged: a refusal before the run started still reads as one.
-  test("a run refused before it started still says so, with its reason", () => {
-    const html = activityTab(
-      archiveJob({
-        state: "failed",
-        activity: [],
-        results: [
-          {
-            step: "archive", ok: false, costUsd: 0, costMeasured: false,
-            terminalReason: "refused", at: "2026-08-20T10:01:00Z",
-          },
-        ],
-        error: "held back: depends on 80-dependency, whose branch is not merged yet",
-      }),
-    );
-    expect(html).toContain("refused before it started");
-    expect(html).toContain("held back: depends on 80-dependency");
+    expect(html).toContain("<td>ok</td>");
   });
 });
 
@@ -5627,13 +5643,12 @@ describe("a phase's page shows that phase's own file", () => {
     expect(html).toContain("Started");
   });
 
-  test("it belongs to the Overview — the other tabs are unchanged", () => {
+  test("it belongs to the Overview — the other tab is unchanged", () => {
     const job = detail({
       state: "done",
       phase: { label: "4-status.md", text: "## Phase 1: RED" },
-      activity: ["Bash ls"],
     });
-    expect(renderJobDetailPage(job, "2026-08-21T10:05:00Z", NAV, { tab: "activity" })).not.toContain(
+    expect(renderJobDetailPage(job, "2026-08-21T10:05:00Z", NAV, { tab: "steps" })).not.toContain(
       "Phase 1: RED",
     );
   });

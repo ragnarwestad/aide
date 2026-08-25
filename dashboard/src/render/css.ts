@@ -905,10 +905,15 @@ table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
 table.facts td { padding: 2px var(--sp-4) 2px 0; }
 table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
 table.facts .pips { display: inline-flex; margin-left: var(--sp-2); vertical-align: middle; }
-ul.activity { list-style: none; margin: var(--sp-2) 0; padding: 0;
-  font-family: var(--mono); font-size: var(--fs-s); }
-ul.activity li { padding: 2px 0; border-bottom: 1px solid var(--line);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Each Steps row expands to its own log (spec 240) rather than one
+   shared Activity tab. .steplink is the expand control — cursor and
+   hover only, no layout change, so the table's columns line up exactly
+   as they did before a row could be clicked. .steplog sits right under
+   its summary row with no top padding, so the pair reads as one unit
+   rather than two unrelated rows of the table. */
+a.steplink { cursor: pointer; }
+a.steplink:hover { text-decoration: underline; }
+tr.steplog td { padding-top: 0; }
 .tabpanel { padding-top: var(--sp-4); }
 .tabpanel > h2:first-child { margin-top: var(--sp-2); }
 

@@ -38,14 +38,13 @@
 // recurring mistake, and a second tab bar would be the fourth.
 
 import { btn, field, filterPills, rowMessage, stepLabel, tokenField, typedConfirm } from "./components.ts";
-import { esc, relTimeLabel } from "./html.ts";
+import { absTimeLabel, esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { notStartedChip, stateChip } from "./job-state.ts";
 import { dependsOnField } from "./new-spec-page.ts";
 import { phasePips } from "./queue-list.ts";
 import type { Phase, QueueTarget } from "./queue-list.ts";
 import {
-  activityPanel,
   fileStamp,
   pickTab,
   specFilePanel,
@@ -236,16 +235,15 @@ const SPEC_TABS = [
   "analysis",
   "solution",
   "status",
-  "activity",
   "steps",
 ] as const;
 type SpecTab = (typeof SPEC_TABS)[number];
 
-/** Which tabs move on their own, and therefore reload. Activity and
- *  Steps are the two that change while a step runs, and neither holds a
- *  form; every other tab carries one, and a page that reloads on a
- *  timer wipes what was half-typed or half-ticked. */
-const RELOADING_TABS: readonly SpecTab[] = ["activity", "steps"];
+/** Which tabs move on their own, and therefore reload. Steps is the one
+ *  that changes while a step runs, and holds no form; every other tab
+ *  carries one, and a page that reloads on a timer wipes what was
+ *  half-typed or half-ticked. */
+const RELOADING_TABS: readonly SpecTab[] = ["steps"];
 
 /** The one file of the four a person owns (spec 162). `2-analysis.md`
  *  and `3-solution.md` are the analyze step's output —
@@ -556,9 +554,11 @@ function descriptionPanel(view: SpecPageView, now: number): string {
  *  rather than replacing it, so a pick keeps the reader on the panel
  *  they were reading.
  *
- *  The visible label is the attempt's relative time, not its step chain
- *  (spec 239): two attempts usually run the *same* steps, so the step
- *  chain told two pills apart less often than the time did — and it is
+ *  The visible label is the attempt's EXACT time, not a relative one
+ *  (spec 240): relative time alone did not let a reader place or tell
+ *  two attempts apart in actual use. Not its step chain either (spec
+ *  239): two attempts usually run the *same* steps, so the step chain
+ *  told two pills apart less often than the time did — and it is
  *  literally the word the Steps table's own rows use one panel down,
  *  with nothing telling a reader which of the two is naming an attempt
  *  and which is naming a step. The step chain still rides along, in a
@@ -567,7 +567,7 @@ function descriptionPanel(view: SpecPageView, now: number): string {
  *  back to the literal word "attempt" rather than an empty pill — in
  *  practice every real attempt has one (`serve.ts` sets it from
  *  `startedAt ?? createdAt`, and a job's `createdAt` is required). */
-function attemptPicker(view: SpecPageView, tab: SpecTab, now: number): string {
+function attemptPicker(view: SpecPageView, tab: SpecTab): string {
   const attempts = view.attempts ?? [];
   if (attempts.length < 2) return "";
   const shownId = view.selected?.id ?? view.lead?.id;
@@ -575,7 +575,7 @@ function attemptPicker(view: SpecPageView, tab: SpecTab, now: number): string {
     "attempt",
     "Attempt",
     attempts.map((a) => ({
-      label: a.at ? relTimeLabel(a.at, now) : "attempt",
+      label: a.at ? absTimeLabel(a.at) : "attempt",
       title: a.steps.map(stepLabel).join(" → "),
       on: a.id === shownId,
       href: esc(`${specTabPath(view.project, view.specFolder, tab)}&job=${encodeURIComponent(a.id)}`),
@@ -587,7 +587,7 @@ export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; now?: number } = {},
+  opts: { tab?: string; step?: string; now?: number } = {},
 ): string {
   const now = opts.now ?? Date.now();
   // Overview, whatever is running. The JOB page opens on the activity
@@ -632,22 +632,28 @@ export function renderSpecPage(
   // not the shown run's.
   const shown = view.selected ?? lead;
 
+  const tabHref =
+    specTabPath(view.project, view.specFolder, "steps") +
+    (view.selected ? `&job=${encodeURIComponent(view.selected.id)}` : "");
   const panel =
-    tab === "activity"
-      ? attemptPicker(view, tab, now) + activityPanel(shown ?? { results: [] })
-      : tab === "steps"
-        ? attemptPicker(view, tab, now) + stepResults(shown?.results ?? [], shown?.archiveHeldBack)
-        : tab === "description"
-          ? descriptionPanel(view, now)
-          : TAB_FILES[tab]
-            ? documentPanel(view, TAB_FILES[tab]!, now)
-            // Overview: no file text at all. Where the spec stands, what
-            // it is waiting on, and what is still holding it back.
-            // Overview leads with the spec's labelled facts, then its
-            // checks. The STATE is not among them: the chip on the head
-            // line says it, on every tab, and the same word twice on
-            // one screen is what this block was made to stop.
-            : archivedLine(view) + dependsOnLine(view) + phaseChain(view) + checklist(view);
+    tab === "steps"
+      ? attemptPicker(view, tab) +
+        stepResults(shown?.results ?? [], shown?.archiveHeldBack, {
+          tabHref,
+          openStep: opts.step,
+          runningStep: shown?.runningStep,
+        })
+      : tab === "description"
+        ? descriptionPanel(view, now)
+        : TAB_FILES[tab]
+          ? documentPanel(view, TAB_FILES[tab]!, now)
+          // Overview: no file text at all. Where the spec stands, what
+          // it is waiting on, and what is still holding it back.
+          // Overview leads with the spec's labelled facts, then its
+          // checks. The STATE is not among them: the chip on the head
+          // line says it, on every tab, and the same word twice on
+          // one screen is what this block was made to stop.
+          : archivedLine(view) + dependsOnLine(view) + phaseChain(view) + checklist(view);
 
   const body = tabbedBody(
     banner,
@@ -655,7 +661,7 @@ export function renderSpecPage(
       SPEC_TABS,
       specPagePath(view.project, view.specFolder),
       tab,
-      { activity: shown?.activity?.length ?? 0, steps: shown?.results.length ?? 0 },
+      { steps: (shown?.results.length ?? 0) + (shown?.runningStep ? 1 : 0) },
     ),
     panel,
   );
