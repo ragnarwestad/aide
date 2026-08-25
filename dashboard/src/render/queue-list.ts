@@ -30,6 +30,7 @@ import { currentWorkRoundJobs } from "../queue.ts";
 import {
   CHECKING,
   ICON_CHEVRON,
+  ICON_SEARCH,
   badge,
   btn,
   filterPills,
@@ -1253,6 +1254,7 @@ function searchForm(f: QueueFilter): string {
     // Drawn only when there is something to clear; an × over an empty
     // field is a control that does nothing.
     `<span class="searchfield">` +
+    `<span class="icon-search" aria-hidden="true">${ICON_SEARCH}</span>` +
     `<input class="archive-q" type="search" name="q" value="${esc(q)}" ` +
     `placeholder="a word in any of three fields" aria-label="Search the specs">` +
     (q
