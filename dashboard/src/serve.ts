@@ -3772,7 +3772,12 @@ export function createServer(opts: ServerOptions) {
     if (specPage) {
       if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
       const [, project, specFolder] = specPage;
-      const view = await specPageView(project!, specFolder!, url.searchParams.get("tab") ?? undefined);
+      const view = await specPageView(
+        project!,
+        specFolder!,
+        url.searchParams.get("tab") ?? undefined,
+        url.searchParams.get("job") ?? undefined,
+      );
       if (!view) return new Response("not found", { status: 404 });
       const html = renderSpecPage(
         {
@@ -4248,6 +4253,10 @@ export function createServer(opts: ServerOptions) {
     project: string,
     specFolder: string,
     tab?: string,
+    /** Which attempt Activity and Steps should show (spec 237). Read the
+     *  same permissive way `tab` is: a value naming no job of THIS spec
+     *  is not an error, it is a fallback to the lead. */
+    job?: string,
   ): Promise<SpecPageView | null> {
     const found = specDir(project, specFolder);
     if (!found) return null;
@@ -4271,6 +4280,7 @@ export function createServer(opts: ServerOptions) {
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
     const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
     const lead = jobs.find(inFlight) ?? jobs[0];
+    const requestedJob = job ? jobs.find((j) => j.id === job) : undefined;
     const files = specFileViews(dir);
     // Off the text `specFileViews` has already read, so the page makes
     // no second git or disk read for the same file.
@@ -4322,6 +4332,14 @@ export function createServer(opts: ServerOptions) {
       dependsOnOptions: targets().filter((t) => t.project === project && t.specFolder !== specFolder),
       descriptionBaseSha: descriptionCommit?.sha,
       lead: lead ? await jobDetailView(lead) : undefined,
+      // Spec 237: every run of this spec, newest first — `jobs` is
+      // already in that order. The facts only; the page words them.
+      attempts: jobs.map((j) => ({ id: j.id, steps: [...j.steps], at: j.startedAt ?? j.createdAt })),
+      // Looked for ONLY among this spec's own jobs, which is what makes
+      // a crafted id inert rather than a way to read another spec's
+      // transcript here. The lead needs no second detail view of itself.
+      selected:
+        requestedJob && requestedJob.id !== lead?.id ? await jobDetailView(requestedJob) : undefined,
       // Built from the page's own path, so the two cannot drift into a
       // button that posts where nothing listens.
       updateAction: `/api/queue${specPagePath(project, specFolder)}/update`,

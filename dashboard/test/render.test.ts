@@ -397,15 +397,17 @@ describe("the queue row links to the spec (criterion 12)", () => {
     expect(html).not.toContain('<span class="label" title="81-queue-and-runner">');
   });
 
-  // The phase lines are unchanged: a phase's page is that phase's own
-  // RUN, which is a job and is still read at /specs/<job-id>.
-  test("the phase lines still point at the job that ran them", () => {
+  // Spec 237: a phase line no longer leaves the spec. It opens the tab
+  // that shows what that phase MADE — analyze's is 3-solution.md — on
+  // the spec page the reader is already looking at.
+  test("the phase lines point at the tab their phase wrote", () => {
     const html = renderQueueRows([row({ steps: ["analyze"], state: "done" })], {
       runnerAvailable: true,
       targets: [{ project: "aide", specFolder: "81-queue-and-runner" }],
       filter: { open: "aide/81-queue-and-runner" },
     });
-    expect(html).toContain('href="/specs/job-1234"');
+    expect(html).toContain(`href="${SPEC_HREF}?tab=solution"`);
+    expect(html).not.toContain('href="/specs/job-1234"');
   });
 
   // The name is one line with an ellipsis, and the marks carry a
@@ -866,6 +868,9 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     );
 
   const heads = (html: string) => html.match(/<tr class="[^"]*spechead/g) ?? [];
+  /** This block's spec page — where every phase line points since spec
+   *  237, one tab or another. */
+  const GROUPED_HREF = "/specs/aide/86-grouped";
   // The cell for one phase, from its name to the end of the row.
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
@@ -905,7 +910,11 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       job("newer", "analyze", { state: "done", startedAt: "2026-08-16T11:00:00Z" }),
     ]);
     const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('href="/specs/newer"');
+    // Spec 237: the line points at the phase's own tab, not at either
+    // attempt's job page — the count beside it is what says there were
+    // two, and the picker on the page is what opens the older one.
+    expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
+    expect(analyze).not.toContain('href="/specs/newer"');
     expect(analyze).not.toContain('href="/specs/older"');
     expect(analyze).toContain("2 attempts");
     expect(html.match(/data-step="analyze"/g)).toHaveLength(1);
@@ -992,14 +1001,47 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     const html = rows([job("j1", "analyze"), job("j2", "create")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive"]);
-    expect(subRow(html, "create")).toContain('href="/specs/j2"');
+    expect(subRow(html, "create")).toContain(`href="${GROUPED_HREF}?tab=description"`);
   });
 
   test("a step outside the four is still shown, never silently dropped", () => {
     const html = rows([job("j1", "analyze"), job("j2", "explore")]);
     const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
     expect(order).toEqual(["create", "analyze", "implement", "archive", "explore"]);
+    // Spec 237, criterion 3: a step outside the fixed workflow has no
+    // tab that speaks for it, so its line keeps the job page it has
+    // always had.
     expect(subRow(html, "explore")).toContain('href="/specs/j2"');
+  });
+
+  // Spec 237, criteria 1-2: all four legs of the mapping, not just the
+  // two that happened to be asserted elsewhere.
+  test("each of the four phases opens the tab that shows what it made", () => {
+    const html = rows([
+      job("j1", "create"),
+      job("j2", "analyze"),
+      job("j3", "implement"),
+      job("j4", "archive"),
+    ]);
+    const expected: [string, string][] = [
+      ["create", "description"],
+      ["analyze", "solution"],
+      ["implement", "status"],
+      ["archive", "overview"],
+    ];
+    for (const [step, tab] of expected) {
+      expect([step, subRow(html, step).includes(`href="${GROUPED_HREF}?tab=${tab}"`)]).toEqual([step, true]);
+    }
+  });
+
+  // Spec 237, criterion 4: the tab exists whether or not the phase has
+  // run, so there is somewhere honest to point even with no attempt —
+  // which is what made the name plain text before.
+  test("a phase with no attempt at all is a link too", () => {
+    const html = rows([job("j1", "analyze")]);
+    const implement = subRow(html, "implement");
+    expect(implement).toContain("not run yet");
+    expect(implement).toContain(`href="${GROUPED_HREF}?tab=status"`);
   });
 });
 
@@ -1022,6 +1064,8 @@ describe("a multi-step job is shown on every step it ran", () => {
   // speaks for a line, so the file side has to agree the analysis is
   // done — otherwise the line is answering a different question.
   const analysed: QueueTarget[] = [{ project: "aide", specFolder: "90-grouped", done: ["analyze"] }];
+  /** This block's spec page — where its phase lines point since spec 237. */
+  const GROUPED_HREF = "/specs/aide/90-grouped";
   /** A phase's own line — an ordinary row of six cells since spec 157,
    *  with nothing spanning it. */
   const subRow = (html: string, phase: string) =>
@@ -1043,10 +1087,15 @@ describe("a multi-step job is shown on every step it ran", () => {
       ...extra,
     });
 
-  test("both of its steps link to it", () => {
+  // Spec 237: two steps of ONE job used to share one link, because the
+  // link was the job's page. They now open two different tabs of the
+  // same spec page — which is the distinction the reader wanted from
+  // two lines in the first place.
+  test("its two steps open the two tabs they wrote", () => {
     const html = rows([twoStep()]);
-    expect(subRow(html, "analyze")).toContain('href="/specs/both"');
-    expect(subRow(html, "implement")).toContain('href="/specs/both"');
+    expect(subRow(html, "analyze")).toContain(`href="${GROUPED_HREF}?tab=solution"`);
+    expect(subRow(html, "implement")).toContain(`href="${GROUPED_HREF}?tab=status"`);
+    expect(html).not.toContain('href="/specs/both"');
   });
 
   test("an older failed attempt does not speak for a step that has since passed", () => {
@@ -1063,7 +1112,7 @@ describe("a multi-step job is shown on every step it ran", () => {
       twoStep(),
     ], analysed);
     const analyze = subRow(html, "analyze");
-    expect(analyze).toContain('href="/specs/both"');
+    expect(analyze).toContain(`href="${GROUPED_HREF}?tab=solution"`);
     expect(analyze).toContain("b-done");
     expect(analyze).not.toContain("unknown spec");
     expect(analyze).toContain("2 attempts");
@@ -1117,7 +1166,7 @@ describe("a multi-step job is shown on every step it ran", () => {
     const html = rows([
       row({ id: "plain", specFolder: "90-grouped", steps: ["implement"], stepIndex: 0, state: "queued" }),
     ]);
-    expect(subRow(html, "implement")).toContain('href="/specs/plain"');
+    expect(subRow(html, "implement")).toContain(`href="${GROUPED_HREF}?tab=status"`);
     expect(subRow(html, "analyze")).toContain("not run yet");
   });
 });
@@ -1760,7 +1809,7 @@ describe("every spec is a row (criteria 1-10)", () => {
   test("a spec that is both a target and has jobs gets one row (criterion 4)", () => {
     const html = rows([job("j1", "analyze")], [target("90-has-run")]);
     expect(heads(html)).toHaveLength(1);
-    expect(html).toContain('href="/specs/j1"');
+    expect(html).toContain('href="/specs/aide/90-has-run?tab=solution"');
   });
 
   test("a job group whose spec is no longer a target is off the page (criterion 5)", () => {
@@ -4063,14 +4112,20 @@ describe("spec 116: create is the first phase line", () => {
 
   // --- criterion 2: no create job means an inert line, not a missing one -----
 
-  test("a hand-made spec's create line reads done, with nothing to click (criterion 2)", () => {
-    // "Nothing to click" now includes a box that is ticked and
+  test("a hand-made spec's create line reads done, with nothing to RUN (criterion 2)", () => {
+    // "Nothing to run" now includes a box that is ticked and
     // disabled (2026-08-21): it is the line saying the phase is behind
     // you, in the same shape the other four use, and it takes no click.
+    //
+    // Spec 237 left one thing on the line that IS a click: the name,
+    // which opens the Description tab. No job ever ran create here — the
+    // folder was made by hand — and the tab is the spec's rather than a
+    // run's, so it is there to open all the same.
     const html = rows([], [target("116-hand-made", { done: ["create", "analyze"] })]);
     const line = subRow(html, "create");
     expect(line).toContain("b-done");
-    expect(line).not.toContain("href=");
+    expect(line).not.toContain("<form");
+    expect(line).not.toContain("<button");
     expect(line).not.toContain("not run yet");
     // No model note, no elapsed time, no cost — what a finished attempt
     // fills and an attempt-less line leaves empty. Since spec 123 the
@@ -4082,7 +4137,10 @@ describe("spec 116: create is the first phase line", () => {
     // disabled and nameless: the folder being on disk IS its answer,
     // and a line with no box at all read as a different KIND of line.
     expect(line).toMatch(
-      /<td class="phasecell"><label class="phasefold">[\s\S]*?<span class="muted">create<\/span><\/label><\/td>/,
+      new RegExp(
+        `<td class="phasecell"><label class="phasefold">[\\s\\S]*?` +
+          `<a href="/specs/aide/116-hand-made\\?tab=description">create</a></label></td>`,
+      ),
     );
     expect(line).toContain(
       '<label class="phase checked" data-phase="create">' +
@@ -4108,14 +4166,16 @@ describe("spec 116: create is the first phase line", () => {
     expect(line).not.toContain("b-done");
   });
 
-  test("a landed create job's line reads done and links to the run (criterion 4)", () => {
+  test("a landed create job's line reads done and links to the description (criterion 4)", () => {
     const html = rows(
       [createJob("116-landed", { model: "sonnet", spentUsd: 0.42 })],
       [target("116-landed", { done: ["create", "analyze"] })],
     );
     expect(order(html)[0]).toBe("create");
     const line = subRow(html, "create");
-    expect(line).toContain('href="/specs/c1"');
+    // Spec 237: create's own file is `1-description.md`, so its line
+    // opens the Description tab rather than the run's page.
+    expect(line).toContain('href="/specs/aide/116-landed?tab=description"');
     expect(line).toContain("b-done");
     // The model it ran on shows as the select's pre-filled value when
     // choices are configured — no spelled-out text since 2026-08-19,

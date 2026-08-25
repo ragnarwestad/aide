@@ -25,7 +25,7 @@ import { pageShell, type NavEntry } from "./shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
 // One function, because the server routes on this path and the list
 // links to it (spec 150).
-import { specPagePath } from "./spec-page.ts";
+import { PHASE_TAB, specPagePath, specTabPath } from "./spec-page.ts";
 import { currentWorkRoundJobs } from "../queue.ts";
 import {
   CHECKING,
@@ -2420,8 +2420,24 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
     .forEach((p) => {
       const latest = p.attempts[0];
       const word = wordPhase(g.done.includes(p.step), p.heldBack, latest, p.history);
-      const nameLink = latest
-        ? `<a href="/specs/${esc(latest.id)}">${esc(stepLabel(p.step))}</a>`
+      // Spec 237: a phase line opens the tab that shows what the phase
+      // MADE, on the spec page the reader is already on — the four
+      // workflow steps each have one, and `PHASE_TAB` is where the
+      // mapping lives.
+      //
+      // Such a link is live whether or not the phase has ever run: the
+      // tab is the spec's, not the run's, and it exists either way.
+      // That is the same reason spec 150 gave a never-run SPEC somewhere
+      // to point. A step OUTSIDE the four has no tab that speaks for it
+      // and keeps the old rule exactly: its own job page, or plain text
+      // when nothing has run it.
+      const tab = PHASE_TAB[p.step];
+      const href =
+        tab ? specTabPath(g.project, g.specFolder, tab)
+        : latest ? `/specs/${latest.id}`
+        : undefined;
+      const nameLink = href
+        ? `<a href="${esc(href)}">${esc(stepLabel(p.step))}</a>`
         : `<span class="muted">${esc(stepLabel(p.step))}</span>`;
       // On mobile the AI/model selects are folded behind this control by
       // default (design handoff, mobile-spec-row): reading the list to

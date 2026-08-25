@@ -679,6 +679,125 @@ describe("GET /specs/<project>/<specFolder>", () => {
   });
 });
 
+// --- spec 237: an older attempt, picked from the spec page ------------------
+//
+// Every phase line on the list opens a tab of this page now, so the run
+// a reader came for has to be pickable here. `?job=` is that pick, read
+// the same permissive way `?tab=` already is: a value naming no job of
+// THIS spec falls back to the lead, and never to an error.
+
+describe("GET /specs/<project>/<specFolder>?job=", () => {
+  const SPEC = "81-queue-and-runner";
+  const PATH = `/specs/aide/${SPEC}`;
+
+  /** Two finished analyze jobs on one spec, oldest last — which is one
+   *  more than the queue will accept through its own route, so the
+   *  second is written into the mirror the server reads at boot. */
+  const twoAttempts = (dir: string, id: string): string => {
+    const mirror = join(dir, "queue.json");
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    const newer = jobs.find((j) => j.id === id)!;
+    newer.state = "done";
+    newer.startedAt = "2026-08-21T11:00:00Z";
+    newer.results = [
+      {
+        step: "analyze", ok: true, costUsd: 7.77, costMeasured: true,
+        terminalReason: "completed", at: "2026-08-21T11:30:00Z",
+      },
+    ];
+    jobs.push({
+      ...newer,
+      id: "older-attempt",
+      state: "failed",
+      error: "unknown spec",
+      startedAt: "2026-08-19T11:00:00Z",
+      results: [
+        {
+          step: "analyze", ok: false, costUsd: 1.11, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-19T11:30:00Z",
+        },
+      ],
+    });
+    writeFileSync(mirror, JSON.stringify(jobs));
+    return mirror;
+  };
+
+  test("the named attempt's steps are what the Steps tab shows", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = twoAttempts(dir, id);
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const lead = await (await fetch(`${base2}${PATH}?tab=steps`, auth)).text();
+    expect(lead).toContain("$7.77");
+    expect(lead).not.toContain("$1.11");
+
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=older-attempt`, auth);
+    expect(res.status).toBe(200);
+    const older = await res.text();
+    expect(older).toContain("$1.11");
+    expect(older).not.toContain("$7.77");
+  });
+
+  test("both attempts are offered, and the named one is marked", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = twoAttempts(dir, id);
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}${PATH}?tab=activity&job=older-attempt`, auth)).text();
+    expect(html).toContain("job=older-attempt");
+    expect(html).toContain(`job=${id}`);
+    expect(html).toMatch(/job=older-attempt"\s+aria-current="true"/);
+  });
+
+  test("a job id belonging to no job at all falls back to the lead, not to an error", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = twoAttempts(dir, id);
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const res = await fetch(`${base2}${PATH}?tab=steps&job=no-such-job`, auth);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("$7.77");
+  });
+
+  // The candidate is looked for only among THIS spec's own jobs, so a
+  // crafted id cannot make one spec's page show another's transcript.
+  test("a job id belonging to a different spec falls back to the lead too", async () => {
+    const { base, dir } = start();
+    const id = await enqueue(base);
+    const mirror = twoAttempts(dir, id);
+    const jobs = JSON.parse(readFileSync(mirror, "utf-8")) as Record<string, unknown>[];
+    jobs.push({
+      ...jobs[0]!,
+      id: "another-spec",
+      specFolder: "90-somewhere-else",
+      state: "done",
+      startedAt: "2026-08-20T11:00:00Z",
+      results: [
+        {
+          step: "analyze", ok: true, costUsd: 9.99, costMeasured: true,
+          terminalReason: "completed", at: "2026-08-20T11:30:00Z",
+        },
+      ],
+    });
+    writeFileSync(mirror, JSON.stringify(jobs));
+
+    const { base: base2 } = start({ queueMirrorPath: mirror });
+    const html = await (await fetch(`${base2}${PATH}?tab=steps&job=another-spec`, auth)).text();
+    expect(html).toContain("$7.77");
+    expect(html).not.toContain("$9.99");
+  });
+
+  test("a spec with one job draws no picker at all", async () => {
+    const { base } = start();
+    await enqueue(base);
+    const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
+    expect(html).not.toContain('data-filter="attempt"');
+  });
+});
+
 // A phase's own page shows what that phase made, and nothing else of
 // the spec (criteria 5-7).
 describe("a phase job's page shows that phase's file", () => {
