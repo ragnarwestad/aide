@@ -554,7 +554,10 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
   });
 
   test("the select is ours: appearance is reset, and we draw the arrow", () => {
-    const rule = oneRule((r) => r.body.includes("appearance: none"));
+    // "select" in the selector list, not just the body: the search
+    // field's own appearance: none (2026-08-25, native search-field
+    // chrome) is a second rule with the identical body text now.
+    const rule = oneRule((r) => r.body.includes("appearance: none") && r.selectors.includes("select"));
     // Safari has historically wanted the prefixed form spelled out.
     expect(rule.body).toContain("-webkit-appearance: none");
     expect(rule.body).toContain("background-image: var(--chevron)");
@@ -566,7 +569,7 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
   test("the model select and the AI select are ours too", () => {
     // Neither has a `.field` ancestor, so `.field select` alone reaches
     // neither of them.
-    const rule = oneRule((r) => r.body.includes("appearance: none"));
+    const rule = oneRule((r) => r.body.includes("appearance: none") && r.selectors.includes("select"));
     expect(rule.selectors).toContain(".field select");
     expect(rule.selectors).toContain('select[name^="model."]');
     expect(rule.selectors).toContain("select[data-ai]");

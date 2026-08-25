@@ -583,8 +583,10 @@ table.list thead a { color: var(--muted); }
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
 /* The note saying what the field looks in belongs to the field, not to
-   the table under it. */
-.specsearch + .listnote { margin-top: var(--sp-1); }
+   the table under it — margin-top says so. margin-bottom (2026-08-25)
+   is a separate fact: without it the note sat flush against the table
+   right below it, cramped. */
+.specsearch + .listnote { margin-top: var(--sp-1); margin-bottom: var(--sp-2); }
 /* The clear control (spec 226) sits IN the field, at its right edge —
    where every search box a reader has used before puts it. The wrapper
    is what the absolute position is measured from; it takes the field's
