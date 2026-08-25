@@ -2,6 +2,7 @@
 
 ## Table of contents
 
+- [Pulling before new work](#pulling-before-new-work)
 - [Staging new files](#staging-new-files)
   - [Core rule](#core-rule)
   - [Example](#example)
@@ -12,8 +13,39 @@
   - [Format](#format)
   - [Good examples](#good-examples)
 - [Pushing and push status](#pushing-and-push-status)
-  - [Exception: a spec just agreed on](#exception-a-spec-just-agreed-on)
 - [Summary](#summary)
+
+---
+
+## Pulling before new work
+
+### Core rule
+**Before creating anything new in a repo — a file, a spec, a branch — pull it first.**
+
+Another session, another machine, or an automated job (a queued `/aide-analyze`,
+another person's IDE, a CI step) pushing to the same repo while you work is the
+NORMAL case, not an edge case. A repo that has moved since you last read it is
+the default assumption, not a surprise to react to after a push is rejected.
+
+### ✅ CORRECT approach
+1. `git pull --ff-only` (or `git fetch` + inspect, when a merge is in question)
+   the specific repo you are about to add something to — right before writing
+   the first new file, not at the start of the session and never checked since
+2. If the pull brings in changes to files you are about to touch: read what
+   changed before proceeding, exactly as any other "the repo moved" situation
+   in this file
+3. If a later `git push` is still rejected despite this (a push landed in the
+   gap between your pull and your push): rebase onto the new commits and push
+   again — do not force
+
+### Why
+Set 2026-08-25, right after creating a spec, committing it, and having the push
+rejected because someone had queued and finished `/aide-analyze` on a
+different, unrelated spec in the same repo in the meantime. Nothing was lost —
+a rebase fixed it — but a pull before starting would have made the whole
+situation not happen. Specs in particular are shared, frequently-written repos:
+the dashboard, other sessions and the user's own IDE all commit to them
+continuously.
 
 ---
 
@@ -165,35 +197,24 @@ state — uncommitted changes, what another session/person has or hasn't landed,
 content — requires running `git status`/`git log` in the same reply the claim is made.** Observations
 from earlier in the conversation are history, not current state.
 
-### Exception: a spec just agreed on
-**The moment the user and the AI agree the AI should create a spec (`/aide-create` or equivalent),
-commit AND push it immediately once the files are written — without being asked separately for either
-step.** This is the one standing exception to "never push unless the current request explicitly asks
-for it": agreeing that a spec should exist IS the request, for that spec's own creation commit only.
-
-Set 2026-08-25, after a spec (240) sat committed-but-unpushed in the specs repo and the user had to
-ask for the push by name right after asking for the commit — two separate asks for one obviously
-single action.
-
-- Applies ONLY to the spec's own creation commit, in the specs repo (or the project repo, when specs
-  live inside it). It does NOT extend to any other commit — implementation work, unrelated fixes,
-  anything else in the same session still follows the normal push rule above.
-- Still narrate what happened plainly (state the commit, state the push) — this exception waives
-  asking permission, not the reporting rules elsewhere in this file.
-- If the user says to create a spec but stops short of agreeing it should be created now (exploring,
-  drafting a description, unsure of the number), this does not fire — only an actual `/aide-create` or
-  hand-written 4-file creation the user has agreed to counts.
+**One exception lives elsewhere, not here:** creating a spec with `/aide-create`
+commits AND pushes immediately, with no separate ask for either step — see that
+skill's own "Stage in git" instructions (`core/skills/aide-create/SKILL.md`),
+which specify it precisely (message format, when to omit the model suffix,
+what "nothing to stage" means) with no gap left for a general rule to fill.
+Kept in the skill rather than duplicated here so the two copies cannot drift —
+this repo already has enough hand-paired pairs.
 
 ---
 
 ## Summary
 
-**Four golden rules:**
-1. ✅ Use `git add` with explicit file names for NEW files you have created
-2. ✅ Use `git mv` when renaming files (preserves history)
-3. ✅ Write commit messages in English, in the imperative mood
-4. ❌ Never push, and never mention push/deploy status — the user pushes from the IDE
-   — **except** a spec's own creation commit: commit AND push it right after writing the files,
-   the moment creating it is agreed on, with no separate ask for either step
+**Five golden rules:**
+1. ✅ Pull the repo before creating anything new in it
+2. ✅ Use `git add` with explicit file names for NEW files you have created
+3. ✅ Use `git mv` when renaming files (preserves history)
+4. ✅ Write commit messages in English, in the imperative mood
+5. ❌ Never push, and never mention push/deploy status — the user pushes from the IDE
+   — except `/aide-create`'s own commit, per that skill's instructions
 
 **This ALWAYS applies - in commands, agents, and normal interaction alike!**

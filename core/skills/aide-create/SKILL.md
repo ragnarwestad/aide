@@ -60,6 +60,11 @@ Examples:
   (helper: `aide_specs_root` in `_aide-spec-lib.sh` does the whole lookup)
 - If the key is set: use that path as the specs root
 - Otherwise: use `specs/` in the project root
+- `git pull --ff-only` the specs root before Step 2 reads it. The specs root
+  is a shared, frequently-written repo — the dashboard's own queue, other
+  sessions and the user's own IDE all commit to it — and Step 2's number and
+  Step 5's commit both work from whatever is on disk right now, not from
+  whatever it was when this session last looked.
 
 ### Step 2: Find the next available number
 
