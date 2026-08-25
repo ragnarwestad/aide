@@ -70,6 +70,7 @@ const healthy: ProjectView = {
         progress: { percent: 50, done: 1, total: 2 },
         phase: "Phase 2: GREEN",
         workflowSteps: ["create", "analyze", "implement"],
+        stepModels: {},
       },
     },
     {
@@ -83,6 +84,7 @@ const healthy: ProjectView = {
         progress: { percent: 100, done: 4, total: 4 },
         phase: "done",
         workflowSteps: ["create", "analyze", "implement", "archive"],
+        stepModels: {},
       },
     },
   ],
@@ -4124,6 +4126,7 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
             archivedAt: "2026-08-22",
             notLanded,
             done: ["create", "analyze", "implement", "archive"],
+            models: {},
           },
         ],
         filter: { state: "archived" },
@@ -7290,6 +7293,10 @@ describe("spec 221: archived specs on the spec list", () => {
     // What the spec's own 4-status.md claims it has had (spec 224) —
     // the whole workflow, which is what an archived spec normally says.
     done: ["create", "analyze", "implement", "archive"],
+    // Compile-time default only (spec 244) — no fixture here records a
+    // model; the route-level suite (`archived-specs.test.ts`) covers the
+    // parse-through-render path.
+    models: {},
     ...over,
   });
 

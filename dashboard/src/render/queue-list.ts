@@ -200,6 +200,13 @@ export interface ArchivedSpecView {
    *  so reusing the live path here would read `{history: null}` for
    *  every archived row and say "checking…" for ever. */
   done: string[];
+  /** What each phase actually ran on, from `4-status.md`'s own `Model
+   *  (<step>):` lines (spec 244) — never the queue's job history, which
+   *  the archive outlives, and never the configured default, which is a
+   *  fact about a run that never happened (the same reason `modelPicker`
+   *  draws nothing at all on a locked row). Keyed by step; a step the
+   *  file names nothing for is simply absent from the map. */
+  models: Record<string, string>;
 }
 
 /** What the date cell says when the spec carries no stamp and git
@@ -685,6 +692,11 @@ export interface Phase {
    *  (spec 154): why its last run did not finish, and whether
    *  `4-status.md` agrees that it ran at all. */
   history: { stopped?: string; fileDisagrees?: boolean };
+  /** What this phase ran on, when it is a LOCKED phase's own record
+   *  (spec 244) — from `ArchivedSpecView.models`, never set for a live
+   *  phase (whose "what it ran on" is `attempts[0]?.model`, read
+   *  through the picker's pre-fill instead). */
+  model?: string;
 }
 
 interface SpecGroup {
@@ -974,7 +986,7 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     branches: [],
-    phases: PHASE_LINES.map((step) => ({ step, attempts: [], history: {} })),
+    phases: PHASE_LINES.map((step) => ({ step, attempts: [], history: {}, model: s.models[step] })),
     done: s.done,
     title: s.title,
     description: s.description,
@@ -2143,12 +2155,15 @@ function modelPicker(
   if (!models.length) return "";
   // Nothing at all on a locked row (spec 224), rather than the same
   // select with `disabled` on it. This control's whole content is a
-  // CHOICE about a run still ahead, and it is pre-filled from the model
-  // the phase last ran on — which for an archived spec is nowhere: the
-  // queue keeps two hundred jobs against an archive of about 150 specs
-  // per project, and `4-status.md` records no per-phase model at all. A
-  // disabled select would therefore show the CONFIGURED model on every
-  // archived row, which is a statement about a run that never happened.
+  // CHOICE about a run still ahead, and pre-filling it from the model
+  // the phase last ran on would need the queue's own job history — which
+  // for an archived spec is nowhere: the queue keeps two hundred jobs
+  // against an archive of about 150 specs per project. A disabled select
+  // would therefore show the CONFIGURED model on every archived row,
+  // which is a statement about a run that never happened. `4-status.md`
+  // DOES record what a phase actually ran on (spec 244) — that fact is
+  // shown as locked text beside this cell, by `lockedModel`, not through
+  // this select.
   if (isArchivedRow(g)) return "";
   // Spec 225: the same rule the box beside it has followed since spec
   // 160. A phase the running job has not reached is a phase whose
@@ -2177,6 +2192,19 @@ function modelPicker(
     modelOptions(models, chosen) +
     `</select>`
   );
+}
+
+/** A locked phase's own record of what it ran on (spec 244), beside its
+ *  box — read back, never chosen. Deliberately its OWN class rather than
+ *  `.aimodel`: that class is hidden on mobile until a `.foldphase`
+ *  checkbox is ticked, and a locked line never draws that checkbox
+ *  (`phaseSubRows`, `locked ? nameLink : ...`) — reusing it would hide
+ *  this permanently on narrow screens with nothing to reveal it.
+ *  Blank, not a dash, when the file names nothing for this step: the
+ *  same rule `archiveDateCell`'s duration mark already keeps — nobody
+ *  having recorded it is not the same as having asked and failed. */
+function lockedModel(model: string | undefined): string {
+  return model ? `<span class="muted small lockedmodel">${esc(model)}</span>` : "";
 }
 
 /** Every configured model, grouped by the CLI it starts (spec 169).
@@ -2340,8 +2368,9 @@ function aiPicker(
   const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
   if (tools.length < 2) return "";
   // Gone with the model select it fills in (spec 224): it says which AI
-  // the model beside it belongs to, and on a locked row there is no
-  // model beside it.
+  // a CHOSEN model belongs to, and a locked row offers no choice —
+  // `4-status.md`'s own record (spec 244) is shown as locked text
+  // instead, by `lockedModel`, with nothing beside it to name the AI of.
   if (isArchivedRow(g)) return "";
   // Spec 225, and the same `live` the model select beside it takes.
   // This one carries no `data-post-to`: it posts nothing itself, and a
@@ -2599,7 +2628,9 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
       const pickCell =
         `<td class="modelcell"><span class="row">` +
         `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model)}` +
-        `${modelPicker(g, opts, p.step, busy, live, latest?.model)}</span>${box}</span></td>`;
+        `${modelPicker(g, opts, p.step, busy, live, latest?.model)}</span>` +
+        (locked ? lockedModel(p.model) : "") +
+        `${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:

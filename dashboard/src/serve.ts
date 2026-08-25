@@ -4143,6 +4143,16 @@ export function createServer(opts: ServerOptions) {
     return status ? parseStatus(status).workflowSteps : [];
   }
 
+  /** What each of this archived spec's phases actually ran on, from its
+   *  own `4-status.md` (spec 244) — the model reader beside
+   *  `archivedSteps`' step reader, on the same terms: the file's own
+   *  claim, and an empty map for a spec that predates the line or names
+   *  nothing. */
+  function archivedModels(dir: string): Record<string, string> {
+    const status = specFileText(dir, "4-status.md");
+    return status ? parseStatus(status).stepModels : {};
+  }
+
   /** Every archived spec the reader's own chip asks for, as a row for
    *  the Specs list (spec 221; this built the `/archive` page until that
    *  page retired).
@@ -4229,6 +4239,7 @@ export function createServer(opts: ServerOptions) {
         durationMs: specDurationMs(ref.dir) ?? undefined,
         // The row opens now (spec 224), and this is what it opens on.
         done: archivedSteps(ref.dir),
+        models: archivedModels(ref.dir),
       });
     }
     return rows;

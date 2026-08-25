@@ -23,6 +23,12 @@ export interface StatusInfo {
    *  is the boundary every reader of the commit grammar excludes with
    *  `--not`. */
   reopenedAfter?: string;
+  /** What each phase actually ran on, from its own `- **Model (<step>):**`
+   *  line (spec 217's write side, spec 244's read side) — keyed by step,
+   *  absent for a step the file names nothing for. Never a guess: an
+   *  archived spec from before spec 217 wrote nothing, and this returns
+   *  `{}` for it exactly as `parseWorkflowSteps` returns `[]`. */
+  stepModels: Record<string, string>;
 }
 
 const PROGRESS_RE =
@@ -108,7 +114,29 @@ export function parseStatus(content: string): StatusInfo {
     phase,
     workflowSteps: parseWorkflowSteps(content),
     reopenedAfter: parseReopenedAfter(content) ?? undefined,
+    stepModels: parseStepModels(content),
   };
+}
+
+const MODEL_LINE_RE = /^- \*\*Model \(([a-z][a-z-]*)\):\*\*[ \t]*(.*)$/gm;
+
+/** The model each recorded step actually ran on (spec 244) — the same
+ *  informal reading `parseWorkflowSteps` already gives the sibling line
+ *  beside this one. Unknown step names (a retired step such as
+ *  `review-plan`) are dropped, matching that function's own rule: "a
+ *  typo must not become a phase." An empty value after the colon is
+ *  dropped too, the same care `specDurationMs` (discover.ts) takes with
+ *  its own stamp. The LAST line for a given step wins, though the
+ *  writer never emits more than one. */
+function parseStepModels(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const m of content.matchAll(MODEL_LINE_RE)) {
+    const step = m[1]!;
+    const value = m[2]!.trim();
+    if (!WORKFLOW_STEPS.includes(step) || !value) continue;
+    result[step] = value;
+  }
+  return result;
 }
 
 /** The commit the current work round starts after, or null.

@@ -266,6 +266,84 @@ describe("spec 139: workflow steps completed", () => {
   });
 });
 
+// --- spec 244: what each phase actually ran on -------------------------------
+
+// `aide-run-spec` has written one `- **Model (<step>):** <tool> [<model>]`
+// line per completed workflow step since spec 217, beside the `Workflow
+// steps completed` line above — and until now nothing read it back.
+describe("spec 244: step models", () => {
+  const withLine = (line: string) =>
+    ["# 244 - Status", "", "## Tracking info", "", line, ""].join("\n");
+
+  test("a recorded line comes back keyed by step (criterion 1)", () => {
+    expect(parseStatus(withLine("- **Model (analyze):** claude claude-sonnet-5")).stepModels).toEqual({
+      analyze: "claude claude-sonnet-5",
+    });
+  });
+
+  test("a bare tool with no model id is kept as written", () => {
+    expect(parseStatus(withLine("- **Model (create):** claude")).stepModels).toEqual({
+      create: "claude",
+    });
+  });
+
+  test("no such line at all means nothing is known (criterion 2)", () => {
+    expect(parseStatus("# 244 - Status\n\nProse only.\n").stepModels).toEqual({});
+  });
+
+  test("an unknown or retired step name is dropped (criterion 3)", () => {
+    expect(parseStatus(withLine("- **Model (review-plan):** claude")).stepModels).toEqual({});
+  });
+
+  test("nothing after the colon is dropped, not kept as an empty string (criterion 3)", () => {
+    expect(parseStatus(withLine("- **Model (analyze):**")).stepModels).toEqual({});
+  });
+
+  test("every recorded step comes back, not just the first", () => {
+    const content = [
+      "# 244 - Status",
+      "",
+      "## Tracking info",
+      "",
+      "- **Model (create):** claude",
+      "- **Model (analyze):** claude claude-sonnet-5",
+      "- **Model (implement):** codex codex-fast",
+      "- **Model (archive):** claude sonnet",
+      "",
+    ].join("\n");
+    expect(parseStatus(content).stepModels).toEqual({
+      create: "claude",
+      analyze: "claude claude-sonnet-5",
+      implement: "codex codex-fast",
+      archive: "claude sonnet",
+    });
+  });
+
+  test("progress, phase and workflowSteps are untouched by the new field", () => {
+    const content = [
+      "# 244 - Status",
+      "",
+      "## Tracking info",
+      "",
+      "- **Workflow steps completed:** create, analyze",
+      "- **Model (analyze):** claude sonnet",
+      "- **Total progress:** `95% (21 of 22 completed)`",
+      "",
+      "## Phase 1: RED",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      "| a    | ⬜     |       |",
+      "",
+    ].join("\n");
+    const status = parseStatus(content);
+    expect(status.progress).toEqual({ percent: 95, done: 21, total: 22 });
+    expect(status.phase).toBe("Phase 1: RED");
+    expect(status.workflowSteps).toEqual(["create", "analyze"]);
+    expect(status.stepModels).toEqual({ analyze: "claude sonnet" });
+  });
+});
+
 // --- spec 182: the rows a person can tick off from the page -----------------
 //
 // `4-status.md`'s Phase sections each carry one `| Task | Status |

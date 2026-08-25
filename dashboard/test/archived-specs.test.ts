@@ -55,10 +55,19 @@ const OTHER = "05-the-other-project";
  *  live row shows is never warmed for an archived spec
  *  (`refreshSpecCaches`), so the file's own claim is the only source
  *  such a row can afford. Absent writes no line at all, which is the
- *  empty-done case. */
-const stamp = (date: string, ms?: number, steps?: string[]) =>
+ *  empty-done case.
+ *
+ *  `models` is spec 244's addition: `aide-run-spec` has written one
+ *  `- **Model (<step>):**` line per completed step since spec 217, and
+ *  this is where a fixture can say a step recorded one. Absent from the
+ *  map writes no line for that step, exactly as `steps` absent writes
+ *  none for `done`. */
+const stamp = (date: string, ms?: number, steps?: string[], models?: Record<string, string>) =>
   `# Status\n\n## Tracking info\n\n` +
   (steps === undefined ? "" : `- **Workflow steps completed:** ${steps.join(", ")}\n`) +
+  Object.entries(models ?? {})
+    .map(([step, value]) => `- **Model (${step}):** ${value}\n`)
+    .join("") +
   (ms === undefined ? "" : `- **Time spent (ms):** \`${ms}\`\n`) +
   `- **Archived:** \`${date}\`\n`;
 
@@ -75,6 +84,10 @@ const OTHER_MS = 90_000;
  *  other half of the same assertion. */
 const STAMPED_STEPS = ["create", "analyze"];
 const STAMPED_NOT_RUN = ["implement", "archive"];
+/** What STAMPED's `4-status.md` records analyze ran on (spec 244) — the
+ *  one step this fixture gives a `Model (<step>):` line, so the other
+ *  three lines have something to be blank BESIDE. */
+const STAMPED_MODEL = "claude claude-sonnet-5";
 const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
 const described = (title: string, prose: string) =>
@@ -95,7 +108,9 @@ const ARCHIVED = {
     description: described("One page shows the whole spec", "Every spec file on one page."),
     // Two of the four steps, deliberately: the phase-line tests need one
     // row that says "this happened" and "this did not" at the same time.
-    status: stamp("2026-08-13", STAMPED_MS, STAMPED_STEPS),
+    // One `Model (<step>):` line, on the same terms: analyze has one, the
+    // other three do not, so the locked-model tests have a line each way.
+    status: stamp("2026-08-13", STAMPED_MS, STAMPED_STEPS, { analyze: STAMPED_MODEL }),
   },
   [UNSTAMPED]: {
     description: described("The push is branch only", `A run pushes a branch. ${LONG}`),
@@ -443,16 +458,37 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  // Criterion 3: what a phase ran ON is in no file, and the queue keeps
-  // two hundred jobs against an archive of about 150 specs — so a
-  // pre-filled select here would name the CONFIGURED model, not the one
-  // that ran. The cell is blank for every archived row, uniformly.
-  test("offers no AI or model choice on any line (criteria 3, 4)", async () => {
+  // Criterion 5: the interactive picker is a CHOICE about a run still
+  // ahead, and a locked phase's run already happened — so no select and
+  // no caption over it, whether or not that phase recorded a model.
+  test("offers no AI or model choice on any line (criterion 5)", async () => {
     const block = blockFor(await openList(), STAMPED);
     expect(block).toContain('data-step="analyze"');
     expect(block).not.toContain("<select");
     // And no caption over controls that are not there.
     expect(block).not.toContain('data-cap="model"');
+    expect(block).not.toContain('data-cap="ai"');
+  });
+
+  // Criterion 4: what a phase ran ON is not in the queue's job history —
+  // capped at two hundred jobs against an archive of about 150 specs —
+  // but it IS in `4-status.md`'s own `Model (<step>):` line, and this is
+  // the fixture's one recorded step.
+  test("shows the locked text for a step that recorded a model (criterion 4)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    expect(lines["analyze"]).toContain(STAMPED_MODEL);
+  });
+
+  // The other three lines have no such line in `4-status.md` — nobody
+  // having recorded it is not the same as having asked and failed, so
+  // this draws no locked-model span at all (the same rule
+  // `archiveDateCell`'s duration mark already keeps: blank, not a
+  // dash).
+  test("draws no locked-model span for a step that recorded no model (criterion 4)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of STAMPED_NOT_RUN) {
+      expect(lines[step]).not.toContain("lockedmodel");
+    }
   });
 
   test("its duration and cost cells are blank on every line (criterion 3)", async () => {
