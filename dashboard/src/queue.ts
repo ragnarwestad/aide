@@ -31,8 +31,21 @@ import { applyEdits, modify, parse } from "jsonc-parser";
 // list, the bash `WORKFLOW_ARC`) — it is not a stage a spec passes
 // through and it draws no phase box, exactly as `explore` and `manifest`
 // do not.
+//
+// `schedule` joined it in spec 259: a project's own recurring job — a
+// cron entry naming a prompt file in its repo, not an aide skill — runs
+// through this same store, runner and render machinery. Its
+// `specFolder` is a `schedule-<name>` tracking key that never resolves
+// under the specs root, the same SHAPE `create`'s provisional key
+// already has, though the exemption is separate new logic in
+// `parseJobRequest` below rather than a copy of `create`'s (which lives
+// in a wholly different parser, `parseCreateRequest`). Queueable and,
+// like `explore`/`manifest`/`reopen`/`reset`, deliberately not part of
+// the workflow arc: a schedule run is not a stage any spec passes
+// through.
 export const WORKFLOW_STEPS = [
   "explore", "create", "analyze", "implement", "archive", "manifest", "reopen", "reset",
+  "schedule",
 ] as const;
 export type WorkflowStep = (typeof WORKFLOW_STEPS)[number];
 
@@ -386,10 +399,24 @@ export function parseJobRequest(
   if (typeof r.specFolder !== "string" || !FOLDER_RE.test(r.specFolder)) {
     return { ok: false, error: "invalid specFolder" };
   }
+  // A `schedule` job never resolves under the specs root — a schedule
+  // entry is not a spec, and its tracking key is a `schedule-<name>` key
+  // instead (spec 259), the same SHAPE `create`'s provisional
+  // `new-<8hex>` key already has (though this exemption is new logic,
+  // not a copy of `create`'s own — that one lives in a wholly separate
+  // parser, `parseCreateRequest`). Gated on the STEPS actually being
+  // exactly `["schedule"]`, never on the key's shape alone: a
+  // specFolder that merely looks like a schedule key must not let
+  // another step skip the "must already exist" check below.
+  const isScheduleJob =
+    Array.isArray(r.steps) && r.steps.length === 1 && r.steps[0] === "schedule";
+  if (isScheduleJob && !r.specFolder.startsWith("schedule-")) {
+    return { ok: false, error: "invalid specFolder: a schedule job's tracking key must start with schedule-" };
+  }
   const archivedOnly =
     !resolved.specFolders.includes(r.specFolder) &&
     (resolved.archivedFolders ?? []).includes(r.specFolder);
-  if (!resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
+  if (!isScheduleJob && !resolved.specFolders.includes(r.specFolder) && !archivedOnly) {
     return { ok: false, error: `unknown specFolder: ${r.specFolder}` };
   }
 

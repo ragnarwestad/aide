@@ -5,7 +5,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest } from "./parse-manifest.ts";
+import { parseManifest, type ScheduleEntry } from "./parse-manifest.ts";
 import { projectNameError } from "./project-admin.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
 import type { ProjectView } from "./render/site.ts";
@@ -113,6 +113,25 @@ export function resolveCodeLanding(projectDir: string): CodeLanding {
   if (!existsSync(manifestFile)) return "merge";
   const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
   return (parsed.ok ? parsed.data.codeLanding : undefined) ?? "merge";
+}
+
+/** This project's own recurring jobs (spec 259), read fresh off the
+ *  MACHINERY's checkout — the same root `resolveCodeLanding` reads,
+ *  never the dashboard's read-only display clone, and never cached: the
+ *  poll that acts on this wants the config a run would actually see,
+ *  not a copy that can go stale between a Save and the next tick.
+ *
+ *  The committed manifest and nothing else, for the same reason
+ *  `codeLanding` has no `.aide/config` fallback: a schedule is a team
+ *  policy, and a gitignored file on one machine cannot state one.
+ *  Absent, unparseable, or no manifest at all → an empty list, which
+ *  reads the same as "this project has no schedule" everywhere else
+ *  does. */
+export function resolveSchedule(projectDir: string): ScheduleEntry[] {
+  const manifestFile = join(projectDir, ".aide", "project.yaml");
+  if (!existsSync(manifestFile)) return [];
+  const parsed = parseManifest(readFileSync(manifestFile, "utf-8"));
+  return parsed.ok ? (parsed.data.schedule ?? []) : [];
 }
 
 function specTitle(dir: string): string | null {

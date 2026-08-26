@@ -102,3 +102,71 @@ describe("codeLanding (spec 220)", () => {
     }
   });
 });
+
+// Spec 259: a project's own recurring jobs. Committed, like codeLanding
+// — no .aide/config fallback — and each entry is validated on its own,
+// so one malformed entry never takes a whole project's schedule with it.
+describe("schedule (spec 259)", () => {
+  test("a valid entry parses", () => {
+    const result = parseManifest(
+      "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+    );
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toEqual([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" }]);
+  });
+
+  test("several entries all parse", () => {
+    const result = parseManifest(
+      "name: x\nschedule:\n" +
+        "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n" +
+        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs/weekly.md\n",
+    );
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toHaveLength(2);
+    expect(result.data.schedule?.[1]).toEqual({ name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md" });
+  });
+
+  test("a malformed cron drops that entry, not the whole list", () => {
+    const result = parseManifest(
+      "name: x\nschedule:\n" +
+        "  - name: nightly\n    cron: not-a-cron\n    prompt: docs/nightly.md\n" +
+        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs/weekly.md\n",
+    );
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toEqual([{ name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md" }]);
+  });
+
+  test("a prompt path that escapes the project root drops that entry (acceptance criterion 8)", () => {
+    for (const prompt of ["../../etc/passwd", "/etc/passwd", "a/../../b"]) {
+      const result = parseManifest(
+        `name: x\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: ${prompt}\n`,
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule).toBeUndefined();
+    }
+  });
+
+  test("a prompt path with an internal .. that stays inside the root is kept", () => {
+    const result = parseManifest(
+      "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/../docs/nightly.md\n",
+    );
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toEqual([
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/../docs/nightly.md" },
+    ]);
+  });
+
+  test("an entry missing a required field is dropped", () => {
+    const result = parseManifest("name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n");
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toBeUndefined();
+  });
+
+  test("a manifest without it leaves it undefined — aide's and PaceUp's do", () => {
+    for (const name of ["paceup.yaml", "atlasaurus.yaml"]) {
+      const result = parseManifest(fixture(name));
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule).toBeUndefined();
+    }
+  });
+});

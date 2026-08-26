@@ -38,11 +38,12 @@ import {
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, resolveCodeLanding, specArchivedDate, specDependsOn,
+  gitignoreCandidates, resolveCodeLanding, resolveSchedule, specArchivedDate, specDependsOn,
   specDurationMs, specFileText, specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine,
   type CodeLanding, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
-import { parseManifest, type ManifestData } from "./parse-manifest.ts";
+import { parseManifest, type ManifestData, type ScheduleEntry } from "./parse-manifest.ts";
+import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "./schedule.ts";
 import { specPhaseOutcome, type PhaseOutcome } from "./parse-phase-outcome.ts";
 import { projectSettings } from "./project-settings.ts";
 import { previewUrlFor } from "./preview-url.ts";
@@ -244,6 +245,15 @@ export interface ServerOptions {
    *  checkers' own TTL, which is the window each answer was already
    *  considered current for. */
   specCachePollMs?: number;
+  /** How often each project's own `schedule:` entries are checked for a
+   *  due fire (spec 259). It is a SCHEDULE, not a cache window, like
+   *  `driftPollMs` and `specCachePollMs`: nothing but this timer ever
+   *  asks the question, and a manual "run now" goes through the ordinary
+   *  queue form instead. `0` turns it off entirely — a test seam, for
+   *  observing a schedule that has never been polled without racing a
+   *  timer. Omitted, it is `DEFAULT_TTL_MS`, the same default the other
+   *  two schedules share. */
+  scheduleCheckMs?: number;
   runnerAvailable?: boolean;
 }
 
@@ -664,6 +674,11 @@ export function runnerArgv(
      *  knows no path convention that could send it anywhere else. */
     projectDir: string;
     push: string;
+    /** The file a `schedule` step's prompt is read from, relative to the
+     *  project root (spec 259). Meaningless, and omitted, for every
+     *  other step — `aide-run-spec` only ever reads `--prompt-file` for
+     *  `--command schedule`. */
+    promptFile?: string;
     /** The config's own table (spec 125). What a job stores per step is
      *  a NAME the request picked; what the CLI is handed — which tool,
      *  which model string — is looked up here, where the grants
@@ -705,6 +720,10 @@ export function runnerArgv(
     // because that is the shape the `Depends on:` line itself has on
     // disk — nothing downstream has to rejoin a list.
     ...(job.createDependsOn?.length ? ["--depends-on", job.createDependsOn.join(",")] : []),
+    // Only a `schedule` step has this, and cannot run without it: its
+    // `--spec` is a tracking key, never a folder on disk, so the file
+    // is the whole of what the step is for.
+    ...(o.promptFile ? ["--prompt-file", o.promptFile] : []),
     ...(model ? ["--model", model] : []),
     // Only when it says something new. `aide-run-spec` defaults to
     // claude, so a choice that names no tool must produce byte-for-byte
@@ -1375,6 +1394,22 @@ export function createServer(opts: ServerOptions) {
    *  should see the next job honour it rather than the next restart. */
   const codeLanding = (project: string): CodeLanding => resolveCodeLanding(machineryProjectDir(project));
 
+  /** The file a `schedule` step's prompt is read from (spec 259),
+   *  resolved fresh off the manifest at spawn time — the same
+   *  per-call, off-disk reading `codeLanding` above already does, so an
+   *  edit to an entry's `prompt:` path takes effect on the next run
+   *  rather than the next restart. `undefined` for every step but
+   *  `schedule`, and for a schedule job whose entry has since been
+   *  removed from the manifest: `aide-run-spec` refuses by name when
+   *  `--prompt-file` is missing or the file is gone, rather than this
+   *  guessing at one. */
+  const promptFileFor = (job: Job, step: string): string | undefined => {
+    if (step !== "schedule") return undefined;
+    if (!job.specFolder.startsWith("schedule-")) return undefined;
+    const name = job.specFolder.slice("schedule-".length);
+    return resolveSchedule(machineryProjectDir(job.project)).find((e) => e.name === name)?.prompt;
+  };
+
   /** What `ensureCheckout` last worked out, so the SYNC readers can ask
    *  where a project's own specs are without awaiting a clone. Empty
    *  until the first ensure settles, which is what the fallback below is
@@ -1622,6 +1657,50 @@ export function createServer(opts: ServerOptions) {
         })()
       : null;
   specCacheTimer?.unref?.();
+
+  /** Spec 259: does any project's own `schedule:` entry have a fire due
+   *  right now, and if so enqueue it. `refreshDrift`'s shape again — a
+   *  SCHEDULE, not a cache window, and nothing but this timer ever asks
+   *  the question (a manual "run now" goes through the ordinary queue
+   *  form instead, `POST /api/queue`, and is unaffected by this).
+   *
+   *  Each project's manifest is read fresh on every tick
+   *  (`resolveSchedule`, off the MACHINERY checkout), never cached: an
+   *  operator who edits a cron expression sees the next tick honour it,
+   *  not the next restart. Due-ness is `isDue`'s alone (acceptance
+   *  criteria 1-3) — this loop supplies it the queue's own job history
+   *  for the entry's tracking key and nothing else. `queue.enqueue`'s
+   *  own refusal (an unknown project, a clash, a cap) is swallowed: a
+   *  poll that cannot start a job this tick tries again next tick, the
+   *  same as every other best-effort schedule in this file. */
+  async function refreshSchedules(): Promise<void> {
+    if (!opts.projectRoot) return;
+    const now = new Date();
+    for (const project of allowed) {
+      const entries = resolveSchedule(machineryProjectDir(project));
+      for (const entry of entries) {
+        const key = scheduleTrackingKey(entry.name);
+        const jobs: ScheduleJobRef[] = queue
+          .list()
+          .filter((j) => j.project === project && j.specFolder === key)
+          .map((j) => ({ specFolder: j.specFolder, createdAt: j.createdAt, startedAt: j.startedAt }));
+        if (!isDue(entry, now, jobs)) continue;
+        queue.enqueue({ project, specFolder: key, steps: ["schedule"] });
+      }
+    }
+  }
+  // The checker's own default TTL, the same as `driftPollMs`'s.
+  const scheduleCheckMs = opts.scheduleCheckMs ?? DEFAULT_TTL_MS;
+  // `.unref()`'d and cleared in `stop()`, like every other timer here.
+  const scheduleTimer =
+    scheduleCheckMs > 0
+      ? (() => {
+          void refreshSchedules();
+          return setInterval(() => void refreshSchedules(), scheduleCheckMs);
+        })()
+      : null;
+  scheduleTimer?.unref?.();
+
   const runner = opts.queueRunnerBin
     ? new Runner({
         store: queue,
@@ -1671,6 +1750,7 @@ export function createServer(opts: ServerOptions) {
                 // takes effect on the next job rather than the next
                 // deploy.
                 push: codeLanding(job.project) === "pr" ? "pr" : (opts.queuePush ?? "branch"),
+                promptFile: promptFileFor(job, step),
                 modelChoices: queue.defaults.modelChoices,
                 timeoutSec: queue.defaults.timeoutSec,
                 permissionMode: queue.defaults.permissionMode,
@@ -3247,6 +3327,7 @@ export function createServer(opts: ServerOptions) {
           // cells straight off those same rows — one read per row's
           // data, not two that could drift.
           codeLanding: resolveCodeLanding(dir),
+          schedule: resolveSchedule(dir),
           worktreeLinkCandidates: gitignoreCandidates(dir),
           editing: url.searchParams.get("edit") === "1",
           error: url.searchParams.get("error") ?? undefined,
@@ -3296,6 +3377,14 @@ export function createServer(opts: ServerOptions) {
           driftByProject[p.name] = branchStatus.peekDrift(root);
         }
       }
+      // Spec 259: straight off each project's already-parsed manifest —
+      // no read of its own, and no schedule to keep it current, since
+      // `nextFireTime` below is pure arithmetic against the page's own
+      // clock rather than a network question.
+      const scheduleByProject: Record<string, readonly ScheduleEntry[]> = {};
+      for (const p of projects) {
+        if (p.manifest.ok && p.manifest.data.schedule?.length) scheduleByProject[p.name] = p.manifest.data.schedule;
+      }
       // Spec 184: whether a run could start in each project, asked on
       // every visit. The Add flow answered this exactly once, in the
       // query string of the redirect it landed on — so an operator who
@@ -3328,6 +3417,7 @@ export function createServer(opts: ServerOptions) {
         nav(),
         {
           driftByProject,
+          scheduleByProject,
           readinessByProject,
           token: queueToken,
           // The RAW allowlist, like the New-spec dropdown: a project
@@ -4573,6 +4663,7 @@ export function createServer(opts: ServerOptions) {
       if (timer) clearInterval(timer);
       if (driftTimer) clearInterval(driftTimer);
       if (specCacheTimer) clearInterval(specCacheTimer);
+      if (scheduleTimer) clearInterval(scheduleTimer);
       clearInterval(keepAlive);
       closeSpecWatchers();
       // Every watching page, let go of deliberately: `server.stop(true)`

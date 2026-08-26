@@ -285,6 +285,29 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
   });
 });
 
+// Spec 259: a project's own recurring jobs, shown on its own page —
+// acceptance criteria 6 and 7.
+describe("what the page says about its schedule (spec 259, acceptance criteria 6-7)", () => {
+  test("a manifest with schedule entries shows each one's fields (criterion 7)", async () => {
+    const root = projectsRoot({ aide: null });
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\nschedule:\n  - name: nightly-report\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+    );
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("Schedule");
+    expect(html).toContain("nightly-report");
+    expect(html).toContain("0 3 * * *");
+    expect(html).toContain("docs/nightly.md");
+  });
+
+  test("a manifest with no schedule key renders no Schedule section (criterion 6)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).not.toContain("<h3>Schedule</h3>");
+  });
+});
+
 // Spec 255: the edit/save/cancel controls the unified table gained.
 describe("editing the unified settings table (spec 255)", () => {
   const POST_AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };

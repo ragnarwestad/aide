@@ -14,8 +14,9 @@
 
 import type { SpecRef } from "../discover.ts";
 import type { StatusInfo } from "../parse-status.ts";
-import type { ManifestResult } from "../parse-manifest.ts";
+import type { ManifestResult, ScheduleEntry } from "../parse-manifest.ts";
 import type { ProjectReadiness } from "../project-admin.ts";
+import { nextFireTime } from "../schedule.ts";
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../project-settings.ts";
 import { backLink, btn, messageSlot, rowMessage, tokenField } from "./components.ts";
 import { esc } from "./html.ts";
@@ -309,13 +310,48 @@ function runConfigurationBlock(
               : rowMessage("warn", c.detail),
         )
         .join("");
-  return `<h3>Settings</h3>` + noFile + unifiedSettingsTable(settings, name, opts.editing, opts) + checks;
+  return (
+    `<h3>Settings</h3>` +
+    noFile +
+    unifiedSettingsTable(settings, name, opts.editing, opts) +
+    checks +
+    scheduleSection(opts.schedule ?? [])
+  );
+}
+
+/** The Schedule section (spec 259): each entry's name, cron expression,
+ *  prompt path and next fire time. Absent entirely when the project has
+ *  none — acceptance criterion 6 — so a project that has never adopted
+ *  the feature shows nothing new on its page. Read-only: a schedule is
+ *  edited in the committed manifest, not through this form, the same
+ *  way `codeLanding` is a form field but `worktreeLinks`'s SOURCE (which
+ *  of the two files) is not. */
+function scheduleSection(entries: readonly ScheduleEntry[]): string {
+  if (entries.length === 0) return "";
+  const now = new Date();
+  const rows = entries
+    .map((e) => {
+      const next = nextFireTime(e.cron, now);
+      return (
+        `<tr><td>${esc(e.name)}</td><td><code>${esc(e.cron)}</code></td>` +
+        `<td>${esc(e.prompt)}</td><td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td></tr>`
+      );
+    })
+    .join("");
+  return (
+    `<h3>Schedule</h3>` +
+    `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Cron</th>` +
+    `<th>Prompt</th><th>Next run</th></tr></thead><tbody>${rows}</tbody></table></div>`
+  );
 }
 
 export interface ProjectPageOptions {
   token?: string;
   script?: string;
   codeLanding?: "merge" | "pr";
+  /** This project's own recurring jobs (spec 259). Absent or empty
+   *  means no Schedule section renders at all. */
+  schedule?: readonly ScheduleEntry[];
   worktreeLinkCandidates: string[];
   /** From the request's own `?edit=1` (spec 255) — never stored, so a
    *  page reload with no query string always lands back on the

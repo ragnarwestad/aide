@@ -1547,6 +1547,56 @@ describe("PHASE_STEPS", () => {
   });
 });
 
+// Spec 259: a project's own recurring job, queued through the same
+// store as every other step. Queueable like `explore`/`manifest`/
+// `reopen`/`reset`, but never a phase a spec passes through.
+describe("WORKFLOW_STEPS — schedule (spec 259)", () => {
+  test("is a workflow step but not a phase", () => {
+    expect((WORKFLOW_STEPS as readonly string[]).includes("schedule")).toBe(true);
+    expect((PHASE_STEPS as readonly string[]).includes("schedule")).toBe(false);
+  });
+});
+
+describe("parseJobRequest — the schedule step (spec 259)", () => {
+  test("a schedule-<name> tracking key needs no existing spec folder", () => {
+    const r = parseJobRequest(
+      { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.job.specFolder).toBe("schedule-nightly-report");
+    expect(r.job.steps).toEqual(["schedule"]);
+  });
+
+  test("a tracking key that does not start with schedule- is refused", () => {
+    const r = parseJobRequest(
+      { project: "aide", specFolder: "not-a-schedule-key", steps: ["schedule"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("specFolder");
+  });
+
+  test("the exemption never widens another step: schedule combined with analyze still needs a real folder", () => {
+    const r = parseJobRequest(
+      { project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule", "analyze"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("unknown specFolder");
+  });
+
+  test("a schedule job for an unallowed project is still refused", () => {
+    const r = parseJobRequest(
+      { project: "not-a-project", specFolder: "schedule-nightly-report", steps: ["schedule"] },
+      { resolve, defaults: DEFAULTS },
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("project");
+  });
+});
+
 // Spec 193, criterion 11. `errorReason` is declared twice — once on the
 // stored job and once on the view the render layer builds — for the
 // same reason `PHASE_STEPS` is: the two layers do not import each
