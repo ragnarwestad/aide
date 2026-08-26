@@ -60,11 +60,9 @@ Examples:
   (helper: `aide_specs_root` in `_aide-spec-lib.sh` does the whole lookup)
 - If the key is set: use that path as the specs root
 - Otherwise: use `specs/` in the project root
-- `git pull --ff-only` the specs root before Step 2 reads it. The specs root
-  is a shared, frequently-written repo — the dashboard's own queue, other
-  sessions and the user's own IDE all commit to it — and Step 2's number and
-  Step 5's commit both work from whatever is on disk right now, not from
-  whatever it was when this session last looked.
+- `git pull --ff-only` the specs root before Step 2 reads it — Step 2's
+  number and Step 5's commit both work from whatever is on disk right
+  now, not from whatever it was when this session last looked.
 
 ### Step 2: Find the next available number
 
@@ -123,22 +121,17 @@ Run /aide-create for <spec-folder> (model: <tool> <model>)
 
 Do not ask first: the user's request to create the spec was the
 approval, and a follow-up question here is how a finished folder sits
-staged-but-uncommitted for hours while everyone believes it was queued
-(spec 220, 2026-08-24). Commit only once the 5 files have actually been
+staged-but-uncommitted for hours while everyone believes it was queued.
+Commit only once the 5 files have actually been
 created — nothing to stage means nothing to commit. If origin has moved,
 `git pull --rebase` and push again; a push that still fails is reported
 out loud, never left silent.
 
-Nothing in Tracking info records the step. Which steps a spec has had
-is read off the spec's own commits, and `aide-run-spec` writes the
-`Workflow steps completed:` line from them — leave that line exactly as
-you found it in the template.
-
-Which model ran, and how the phase went, are read off the same commit,
-and the same script writes them — a `Model`/`Result`/`Time spent`/`Cost`
-block, plus a time of day on `Created:` — directly into
-`1-description.md`'s own Tracking info. Leave those lines alone too.
-`create` is the one stage nobody picks a model for in advance: a spec
+`aide-run-spec` writes `Workflow steps completed:` from the spec's own
+commits — leave that line exactly as you found it in the template. The
+same script writes this phase's `Model`/`Result`/`Time spent`/`Cost`
+block into `1-description.md`'s own Tracking info — leave those lines
+alone too. `create` is the one stage nobody picks a model for in advance: a spec
 is already being written by the time it reaches a dashboard row, so its
 model is only ever recorded after the fact, from whatever commit
 created the folder.

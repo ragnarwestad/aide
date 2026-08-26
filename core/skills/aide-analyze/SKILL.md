@@ -74,7 +74,7 @@ See `references/complexity-and-analysis.md` for detailed steps per level.
 
 A step stopped by its own time limit still commits what it wrote, and
 that work is landed on the default branch rather than left on a branch
-nobody can see (spec 187) — so the three files may already hold an
+nobody can see — so the three files may already hold an
 earlier run's answers. Read `specs/XX-slug/2-analysis.md`,
 `3-solution.md` and `4-status.md` as they stand before writing anything.
 
@@ -156,15 +156,10 @@ Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
 
 Sections already filled in per Step 4 are left untouched.
 
-Nothing in Tracking info records the step. Which steps a spec has had
-is read off the spec's own commits, and `aide-run-spec` writes the
-`Workflow steps completed:` line from them — leave that line exactly as
-you found it.
-
-Which model ran, and how the phase went, are read off the same commit,
-and the same script writes them — a `Repo`/`Model`/`Result`/`Time
-spent`/`Cost` block, plus a time of day on `Last analyzed:` — directly
-into `2-analysis.md`'s own Tracking info. Leave those lines alone too.
+`aide-run-spec` writes `Workflow steps completed:` from the spec's own
+commits — leave that line exactly as you found it. The same script
+writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
+into `2-analysis.md`'s own Tracking info — leave those lines alone too.
 
 A headless run gets its commit for free. Working interactively, ASK
 whether to commit the analysis, and suggest this message so the step is

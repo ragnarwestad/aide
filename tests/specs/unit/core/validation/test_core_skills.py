@@ -742,3 +742,31 @@ class TestMarkdownHookDefaultsAreLocalOnly:
         settings_path = CORE_SKILLS_DIR.parents[1] / "implementations" / "claude-code" / "settings.json"
         settings = settings_path.read_text(encoding="utf-8")
         assert "npx markdownlint-cli2" not in settings
+
+
+NARRATION_PATTERN = re.compile(r"\bspec\s+\d+\b")
+
+
+def _strip_fenced_code_blocks(text: str) -> str:
+    return re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+
+
+@pytest.mark.validation
+class TestNoHistoricalSpecCitations:
+    """A bare 'spec N' citation in a SKILL.md body is always attribution,
+    never an instruction — every occurrence found in spec 249's audit
+    read the same or better with the citation deleted. Guards against a
+    future skill edit reintroducing the pattern this spec removed.
+    """
+
+    @pytest.mark.parametrize("skill_dir", get_skill_dirs(), ids=lambda d: d.name)
+    def test_skill_body_has_no_spec_number_citation(self, skill_dir):
+        content = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+        body = re.sub(r"^---\n.*?\n---\n", "", content, count=1, flags=re.DOTALL)
+        body = _strip_fenced_code_blocks(body)
+        match = NARRATION_PATTERN.search(body)
+        assert match is None, (
+            f"{skill_dir.name}/SKILL.md cites a spec number "
+            f"({match.group(0)!r}) — state the instruction directly, "
+            f"without the historical citation"
+        )
