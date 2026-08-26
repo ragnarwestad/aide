@@ -34,12 +34,10 @@ import {
 } from "../git/dashboard-checkout.ts";
 import { LiveEnricher } from "../integrations/live.ts";
 import {
-  SPEC_FILES, buildProjectViews, configValue, discoverProjects,
-  resolveCodeLanding, resolveSchedule, specArchivedDate, specDependsOn,
+  discoverProjects, resolveCodeLanding, resolveSchedule, specDependsOn,
   type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
 import { parseManifest, type ManifestData } from "../project/parse-manifest.ts";
-import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedule.ts";
 import { previewUrlFor } from "../git/preview-url.ts";
 import {
   archiveHeldBackReason, parseStatus,
@@ -59,10 +57,8 @@ import {
   APPLE_TOUCH_ICON,
   APP_ICON,
   APP_ICON_MASKABLE,
-  NEW_SPEC_ROUTE,
   PROJECTS_ROUTE,
   navEntries,
-  SETTINGS_ROUTE,
   ADD_PROJECT_ROUTE,
   SERVICE_WORKER,
   WEBMANIFEST,
@@ -74,10 +70,10 @@ import {
 import {
   QUEUE_DEFAULTS,
   json, readBounded, createRootLock,
-  specsRedirect, logRefusal, navFromSite, tokenMatches, cookieValue,
+  specsRedirect, logRefusal, navFromSite,
   serveStatic,
   resolveTimeoutSec, resolveStepModel, runnerArgv,
-  DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, GATED, resolveDependencyFolder,
+  DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, resolveDependencyFolder,
 } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
@@ -96,6 +92,15 @@ import {
   withFreshness as withFreshnessImpl,
   type LandContext,
 } from "./land-branch.ts";
+import {
+  refreshDrift as refreshDriftImpl,
+  warmSpec as warmSpecImpl,
+  refreshSpecCaches as refreshSpecCachesImpl,
+  refreshSchedules as refreshSchedulesImpl,
+  tickRunner as tickRunnerImpl,
+  type ScheduleContext,
+} from "./schedules.ts";
+import { isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -904,17 +909,49 @@ export function createServer(opts: ServerOptions) {
   // Asked only of the projects that expect an install to have happened
   // — deploying is a known hand step where none is configured, and a
   // banner there would be noise on every row forever.
-  async function refreshDrift(): Promise<void> {
-    if (!opts.projectRoot) return;
-    await Promise.all(
-      buildProjectViews(opts.projectRoot).map(async (p) => {
-        const root = machineryProjectDir(p.name);
-        if (!configValue(root, "AIDE_INSTALL_CMD")) return;
-        // Each call try/catches internally and degrades to null, so one
-        // project's unreachable origin never takes the others with it.
-        await branchStatus.commitsBehindOrigin(root);
-      }),
-    );
+  // Built once, from the same locals the schedules in schedules.ts used
+  // to close over directly. Five fields ride as getters rather than
+  // values — see `ScheduleContext`'s own doc comment — because this is
+  // built here, before the checkers and the runner it reads are
+  // constructed a little further down, so that `refreshDrift`'s wrapper
+  // can be called immediately below, exactly where the inline function
+  // used to be called.
+  let warming = false;
+  const scheduleCtx: ScheduleContext = {
+    projectRoot: opts.projectRoot,
+    machineryProjectDir,
+    branchStatus,
+    readWorkflowHistory: () => workflowHistory,
+    readFreshness: () => freshness,
+    readSpecCreatedAt: () => specCreatedAt,
+    readSpecFileCommits: () => specFileCommits,
+    targets,
+    readScan: () => scan,
+    allowed,
+    ensureCheckout,
+    getWarming: () => warming,
+    setWarming: (v) => {
+      warming = v;
+    },
+    queue,
+    specRoots,
+    readRunner: () => runner,
+    checkoutEnsurer,
+  };
+  function refreshDrift() {
+    return refreshDriftImpl(scheduleCtx);
+  }
+  function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }) {
+    return warmSpecImpl(scheduleCtx, t);
+  }
+  function refreshSpecCaches() {
+    return refreshSpecCachesImpl(scheduleCtx);
+  }
+  function refreshSchedules() {
+    return refreshSchedulesImpl(scheduleCtx);
+  }
+  function tickRunner() {
+    return tickRunnerImpl(scheduleCtx);
   }
   // The checker's own TTL by default: the window the answer was already
   // considered current for is the window worth re-taking it in.
@@ -950,100 +987,6 @@ export function createServer(opts: ServerOptions) {
   // every sibling already had.
   const specFileCommits = new SpecFileCommitChecker({ run: gitRun, ttlMs: specCacheTtlMs });
 
-  /** Everything git can say about ONE spec, asked and cached. Written
-   *  once because two callers need it: the schedule below walks every
-   *  live spec through it, and `stampTotalDuration` warms the single
-   *  archived spec it is about before reading the peeks (spec 208 —
-   *  that path is a landing, not a render, and it needs a real answer
-   *  rather than "not yet known"). */
-  async function warmSpec(t: { dir?: string; specFolder: string; reopenedAfter?: string }): Promise<void> {
-    if (!t.dir) return;
-    const dir = t.dir;
-    await Promise.all([
-      workflowHistory.read(dir, t.specFolder, t.reopenedAfter),
-      freshness.isStale(dir, t.specFolder, t.reopenedAfter),
-      specCreatedAt.createdAt(dir, t.specFolder),
-      ...SPEC_FILES.map((file) => specFileCommits.commitFor(dir, file)),
-    ]);
-  }
-
-  /** Spec 208: the ONE schedule that feeds every peek on every page.
-   *
-   *  This is `refreshDrift`'s shape (spec 203) applied to the rest of
-   *  the app. The same fix had been made three times, one page each —
-   *  178 wrote it for the whole app and was never merged, 203 shipped
-   *  it for `/projects`, and 193 put a network `ls-remote` back on the
-   *  spec list's render path the next day. What each of those loops
-   *  did inside a request, this does on a schedule; nothing about the
-   *  questions changed, only when they are asked.
-   *
-   *  Two sweeps, and the difference between them is deliberate:
-   *
-   *  - Every LIVE spec, in full. That set is bounded by what is on the
-   *    board, and it is the set every row of `/` draws from.
-   *  - Every root that holds an archived spec, for the one network
-   *    question (`openSpecBranches`), plus the archive DATE of an
-   *    archived spec whose `4-status.md` carries no stamp — a small and
-   *    shrinking set, since the archive step has written the stamp
-   *    since spec 147. Warming an archived spec the way a live one is
-   *    warmed is the unbounded cost spec 178's own plan review
-   *    rejected, and is not done.
-   *
-   *  The roots go out CONCURRENTLY, unlike the `for`-loop this
-   *  replaces: that loop paid one TCP/TLS round trip to GitHub per
-   *  root, one after another, inside `GET /`. Nothing is holding its
-   *  breath for the answer any more, so there is no reason to.
-   *
-   *  A spec that leaves `targets()` — archived, or removed — simply
-   *  stops being walked; its last cached answer is left where it is
-   *  and nothing asks about it again. */
-  let warming = false;
-  async function refreshSpecCaches(): Promise<void> {
-    // The tick does strictly more work than `refreshDrift`, so the
-    // single-flight guard is explicit rather than implied: two ticks
-    // running at once would double the in-flight subprocess and network
-    // count on a machine that also runs the jobs.
-    if (warming) return;
-    warming = true;
-    try {
-      const live = targets();
-      const archivedKeys = scan?.archived ?? [];
-      const roots = new Set<string>();
-      const archivedDirs: string[] = [];
-      for (const key of archivedKeys) {
-        const cut = key.indexOf("/");
-        for (const root of specRoots(key.slice(0, cut))) roots.add(root);
-        const dir = scan?.dirs.get(key);
-        // Only the ones git would be asked about anyway: a spec whose
-        // status file already stamps the date never reaches git at all.
-        if (dir && !specArchivedDate(dir)) archivedDirs.push(dir);
-      }
-      await Promise.all([
-        // Each call try/catches internally and degrades to null or to
-        // nothing-known, so one unreachable origin never takes the
-        // others with it.
-        ...[...roots].map((root) => branchStatus.openSpecBranches(root)),
-        ...archivedDirs.map((dir) => specFileCommits.commitFor(dir, ".")),
-        ...live.map((t) => warmSpec(t)),
-        // And the checkout the LIST is read from (spec 218). Every other
-        // caller of `ensureCheckout` is a project that has something
-        // going on — a job queued (spec 216's `tickRunner`), a spec page
-        // open, a Save. A project with none of that had its checkout
-        // fetched once at boot and never again, so a spec pushed from
-        // another machine would have sat unlisted for as long as the
-        // server ran rather than until the next poll.
-        //
-        // Here rather than in the routes, for the same reason as
-        // everything else in this function: a render reads what the
-        // schedule last found, and never waits on git itself.
-        // `ensureCheckout` deduplicates per project and fails open, so a
-        // project whose origin is unreachable costs one complaint, once.
-        ...[...allowed].map((project) => ensureCheckout(project)),
-      ]);
-    } finally {
-      warming = false;
-    }
-  }
   // `.unref()`'d and cleared in `stop()` like every other timer in this
   // file — `bun test` runs many suites in one process, and a timer from
   // a stopped test's server would go on firing into the next one.
@@ -1071,22 +1014,6 @@ export function createServer(opts: ServerOptions) {
    *  own refusal (an unknown project, a clash, a cap) is swallowed: a
    *  poll that cannot start a job this tick tries again next tick, the
    *  same as every other best-effort schedule in this file. */
-  async function refreshSchedules(): Promise<void> {
-    if (!opts.projectRoot) return;
-    const now = new Date();
-    for (const project of allowed) {
-      const entries = resolveSchedule(machineryProjectDir(project));
-      for (const entry of entries) {
-        const key = scheduleTrackingKey(entry.name);
-        const jobs: ScheduleJobRef[] = queue
-          .list()
-          .filter((j) => j.project === project && j.specFolder === key)
-          .map((j) => ({ specFolder: j.specFolder, createdAt: j.createdAt, startedAt: j.startedAt }));
-        if (!isDue(entry, now, jobs)) continue;
-        queue.enqueue({ project, specFolder: key, steps: ["schedule"] });
-      }
-    }
-  }
   // The checker's own default TTL, the same as `driftPollMs`'s.
   const scheduleCheckMs = opts.scheduleCheckMs ?? DEFAULT_TTL_MS;
   // `.unref()`'d and cleared in `stop()`, like every other timer here.
@@ -1262,97 +1189,6 @@ export function createServer(opts: ServerOptions) {
       })
     : null;
 
-  /** Which queued jobs are waiting on a dependency that has not merged
-   *  yet (spec 122) — job id → the folder it is waiting for.
-   *
-   *  The same question `aide-run-spec`'s guard asks, asked HERE so the
-   *  answer arrives before a job is spawned rather than after: a job
-   *  that reached the script was refused, marked `failed`, and had to be
-   *  pressed again by hand (97 three times, 102 twice, against
-   *  dependencies that merged minutes later).
-   *
-   *  Computed fresh immediately before every `tick()`, never cached
-   *  across calls: a job enqueued a line of code ago must be judged
-   *  against data that existed after it did. And since spec 213 the
-   *  merge answer under it is asked fresh too (`isMerged(..., true)`),
-   *  which is what makes that sentence true: a 30 s cached answer
-   *  released two jobs against a dependency that had not landed, and
-   *  the script — which asks origin every time — refused them. Only
-   *  `targets()` is still cached here, for 5 s, and it decides nothing
-   *  on its own: a spec that names no dependency is the cheap half. */
-  async function blockedDependencies(): Promise<Map<string, string>> {
-    const blocked = new Map<string, string>();
-    if (!opts.projectRoot) return blocked;
-    const waiting = queue.list().filter((job) => {
-      if (job.state !== "queued") return false;
-      const step = job.steps[job.stepIndex];
-      return step !== undefined && GATED.has(step);
-    });
-    if (waiting.length === 0) return blocked;
-    // The cheap half first, off the scan the page already keeps: a spec
-    // that names nothing costs neither a walk of the specs root nor a
-    // git call, the same way a spec without the field asks origin
-    // nothing in the script.
-    const named = new Map(targets().map((t) => [`${t.project}/${t.specFolder}`, t.dependsOn ?? []]));
-    if (!waiting.some((j) => (named.get(`${j.project}/${j.specFolder}`) ?? []).length > 0)) return blocked;
-
-    // Not `targets()`: that drops archived specs, and an archived
-    // dependency is precisely the case that must resolve — to
-    // "satisfied", without asking origin anything.
-    const projects = new Map(discoverProjects(opts.projectRoot).map((p) => [p.name, p]));
-    for (const job of waiting) {
-      const project = projects.get(job.project);
-      const spec = project?.specs.find((s) => s.folder === job.specFolder && !s.archived);
-      if (!project || !spec) continue;
-      for (const id of spec.dependsOn) {
-        const dep = resolveDependencyFolder(project, id);
-        // An unknown identifier, or the spec itself: both are refusals
-        // the script makes on its own, and neither is something waiting
-        // could ever fix. Parking on one would hide a typo forever.
-        if (!dep || dep.folder === spec.folder) continue;
-        // Archiving only ever happens to finished work, so an archived
-        // dependency is merged by definition — the script's own
-        // shortcut, and it costs no network.
-        if (dep.archived) continue;
-        const branch = specBranch(dep.folder);
-        // Every root a run of this spec touches, as the script asks
-        // across `roots`: a dependency merged in the code repo but not
-        // in the specs repo is not merged. Both are asked either way —
-        // `&&` short-circuiting would leave the second answer uncached
-        // and the next tick asking again.
-        let merged = true;
-        for (const root of specRoots(job.project)) {
-          merged = (await branchStatus.isMerged(root, branch, true)) && merged;
-        }
-        if (!merged) {
-          blocked.set(job.id, dep.folder);
-          break;
-        }
-      }
-    }
-    return blocked;
-  }
-
-  /** Every `tick()` goes through here: the map has to be computed with
-   *  the queue as it is at that instant, so there is no version of this
-   *  that a caller may skip. */
-  async function tickRunner(): Promise<void> {
-    if (!runner) return;
-    // Spec 205: nothing may be STARTED in a checkout that is not there.
-    // Every project with a job waiting, and only those — a clone is
-    // made once and the call is a map lookup ever after, so this costs
-    // one `existsSync` per waiting project per tick.
-    //
-    // Spec 216: `fresh`, not `get`. This is the one caller that may not
-    // be handed a bring-up-to-date that was already running when it
-    // asked — such a fetch took its picture of origin before this job
-    // was queued, and a spec pushed in between is one the step will
-    // refuse as unknown. `CheckoutEnsurer` explains what that costs.
-    await Promise.all([...new Set(queue.list().filter((j) => j.state === "queued").map((j) => j.project))]
-      .map((project) => checkoutEnsurer.fresh(project)));
-    runner.tick(await blockedDependencies());
-  }
-
   // And on boot, before anything is queued: an already-added project
   // meets this spec for the first time on some restart, and the clone
   // it needs should not land in the middle of the first request that
@@ -1387,56 +1223,8 @@ export function createServer(opts: ServerOptions) {
   keepAlive.unref?.();
 
   const queueToken = opts.queueToken;
-  // `/specs/<id>` joins the guarded set HERE, never as a special case
-  // further down: a read route outside the guard is exactly the silent
-  // bypass this check exists to prevent. The retired `/queue` paths are
-  // guarded too — a redirect that answers before the token is checked
-  // would tell an unauthenticated caller the page exists.
-  const isQueuePath = (path: string) =>
-    path === "/" ||
-    // The overview is a served page since spec 115, and it carries the
-    // Add and Remove forms — so it is guarded exactly as `/` is. The
-    // GENERATED `projects.html` stays outside the guard, as every
-    // generated page does: it is a redirect and carries nothing.
-    path === PROJECTS_ROUTE ||
-    // The Add and Remove pages carry real forms too (2026-08-19).
-    path.startsWith("/projects/") ||
-    // And the New-spec form's own page (spec 121), for the same
-    // reason: it carries a real form, and a form's token has to be
-    // checked per request.
-    path === NEW_SPEC_ROUTE ||
-    path === SETTINGS_ROUTE ||
-    path === "/queue" ||
-    path === "/specs" ||
-    path === "/api/queue" ||
-    path.startsWith("/api/queue/") ||
-    path.startsWith("/queue/") ||
-    path.startsWith("/specs/");
-
-  // The WHOLE queue surface is behind the token, read routes included:
-  // a token that a page hands to anyone who can load the page is not a
-  // secret. `POST /api/aide-run` is exempt on purpose — spec 80's
-  // emitter sends no credential and swallows the answer, so a 401 there
-  // would silently empty /live.
   function queueGuard(req: Request, url: URL): Response | null {
-    if (!queueToken) {
-      return new Response("the queue is off: no token is configured on this server\n", {
-        status: 503,
-        headers: { "content-type": "text/plain; charset=utf-8" },
-      });
-    }
-    const provided =
-      req.headers.get("x-aide-token") ??
-      url.searchParams.get("token") ??
-      cookieValue(req.headers.get("cookie"), "aide_token");
-    if (tokenMatches(provided, queueToken)) return null;
-    return new Response(
-      "unauthorized\n\n" +
-        "This needs its token. Open /?token=<the token> once and the\n" +
-        "browser keeps it in a cookie; API callers send it as X-Aide-Token.\n" +
-        "The token lives in the file this server was started with.\n",
-      { status: 401, headers: { "content-type": "text/plain; charset=utf-8" } },
-    );
+    return queueGuardImpl(req, url, queueToken);
   }
 
   // Built once, from the same locals `handleQueue` always closed over
