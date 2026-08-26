@@ -49,7 +49,7 @@ describe("persistQueueSettings", () => {
 // bash copy in `aide-run-spec`, and a test that reads both is what
 // keeps them from drifting.
 import { QUEUE_STEPS } from "../../src/render/pages/queue-list.ts";
-import { parseArgs, resolveStepModel } from "../../src/serve.ts";
+import { parseArgs, resolveStepModel } from "../../src/serve/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,

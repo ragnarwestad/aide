@@ -10,7 +10,7 @@ export interface PlistOptions {
   label: string;
   /** Absolute path to bun on the TARGET host — bare `bun` is not on launchd's PATH. */
   bunPath: string;
-  /** Absolute path to src/serve.ts in the target's checkout. */
+  /** Absolute path to src/serve/serve.ts in the target's checkout. */
   script: string;
   workingDirectory: string;
   /** Both stdout and stderr go here: one log to read, in order. */

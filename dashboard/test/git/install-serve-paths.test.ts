@@ -51,7 +51,7 @@ describe("install-serve deploys from the machinery's checkout, not a person's", 
 
   test("the rendered plist points at the nested source", () => {
     expect(recipe).toContain(
-      '--script "$home/aide-dashboard-checkouts/aide/code/dashboard/src/serve.ts"',
+      '--script "$home/aide-dashboard-checkouts/aide/code/dashboard/src/serve/serve.ts"',
     );
     expect(recipe).toContain(
       '--working-directory "$home/aide-dashboard-checkouts/aide/code/dashboard"',
@@ -95,7 +95,7 @@ describe("serve-local still runs from the checkout it is invoked in", () => {
   const recipe = dryRun("serve-local");
 
   test("it serves straight from this checkout", () => {
-    expect(recipe).toContain("bun run src/serve.ts serve --site out --port 8788");
+    expect(recipe).toContain("bun run src/serve/serve.ts serve --site out --port 8788");
   });
 
   test("no second host, no clone, no launchd", () => {

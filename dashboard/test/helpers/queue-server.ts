@@ -7,7 +7,7 @@
 import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer, type ServerOptions } from "../../src/serve.ts";
+import { createServer, type ServerOptions } from "../../src/serve/serve.ts";
 
 /** claude-usage unreachable: the queue must work without it. */
 export const failFetch = (async () => {
