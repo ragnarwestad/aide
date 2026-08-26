@@ -442,6 +442,7 @@ describe("caps are checked before a step starts", () => {
     const after = store.get(job.id)!;
     expect(after.state).toBe("stopped");
     expect(after.error).toContain("job cap");
+    expect(after.stopReason).toBe("job-cap");
   });
 
   test("a day boundary clears the daily total", () => {

@@ -280,6 +280,12 @@ describe("a spec with a lead job", () => {
     const html = page(withLead({ state: "running" }));
     expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
   });
+
+  test("a stopped lead job's banner carries its reason on the state badge", () => {
+    const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
+    const html = page(withLead({ state: "stopped", stopReason: "timeout", error } as never));
+    expect(html).toContain(`title="${error}"`);
+  });
 });
 
 // --- criteria 3, 4: the Update button ---------------------------------------

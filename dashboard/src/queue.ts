@@ -94,7 +94,7 @@ export type JobState = (typeof JOB_STATES)[number];
 // Why a run ended early. `stopped` is deliberately not `failed`: with
 // tight caps a cap-stop is a common, healthy outcome, and a reader who
 // cannot tell it from a broken agent will start ignoring both.
-export type StopReason = "budget" | "timeout" | "provider-limit";
+export type StopReason = "budget" | "timeout" | "provider-limit" | "job-cap";
 
 /** States where a job still owns its work. Anything else has released
  *  it, and the same step may be queued again.

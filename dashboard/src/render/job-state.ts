@@ -52,7 +52,7 @@ export interface QueueRowView {
   timeoutSec: number;
   createdAt: string;
   startedAt?: string;
-  stopReason?: "budget" | "timeout" | "provider-limit";
+  stopReason?: "budget" | "timeout" | "provider-limit" | "job-cap";
   /** Every repo this job pushed to, one entry each — a list even when it
    *  holds one, because `paceup` and `atlasaurus` (specs inside the
    *  project repo, one branch per job) are the NORMAL shape and must
@@ -143,7 +143,9 @@ export function anyCostUnmeasured(results: StepResultView[] | undefined): boolea
 export function stateLabel(r: QueueRowView): string {
   if (r.state === "stopped") {
     if (r.stopReason === "timeout") return `stopped — ${Math.round(r.timeoutSec / 60)} min`;
-    return r.stopReason === "provider-limit" ? "stopped — provider limit" : "stopped — budget";
+    if (r.stopReason === "provider-limit") return "stopped — provider limit";
+    if (r.stopReason === "job-cap") return "stopped — job cap";
+    return "stopped — budget";
   }
   return r.state;
 }
@@ -197,7 +199,7 @@ export const BADGE_VARIANT: Record<QueueRowView["state"], BadgeVariant> = {
 };
 
 export function stateChip(r: QueueRowView): string {
-  return badge(BADGE_VARIANT[r.state], stateLabel(r));
+  return badge(BADGE_VARIANT[r.state], stateLabel(r), r.state === "stopped" ? r.error : undefined);
 }
 
 /** What the badge says when nothing is running: the resting state and

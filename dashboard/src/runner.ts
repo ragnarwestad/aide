@@ -308,6 +308,7 @@ export class Runner {
       const reason = `the job cap ($${job.jobCapUsd}) would be exceeded by the next step`;
       const stopped = this.o.store.update(job.id, {
         state: "stopped",
+        stopReason: "job-cap",
         finishedAt: this.o.now(),
         error: reason,
       });

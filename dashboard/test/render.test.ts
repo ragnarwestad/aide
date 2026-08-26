@@ -25,7 +25,7 @@ import {
 // The padlock itself, so a test can say a box does NOT carry one
 // without restating its markup (spec 145).
 import { ICON_LOCK } from "../src/render/components.ts";
-import { stateLabel } from "../src/render/job-state.ts";
+import { stateChip, stateLabel } from "../src/render/job-state.ts";
 import { resolveOpenStep } from "../src/render/job-page.ts";
 import { CSS } from "../src/render/css.ts";
 
@@ -5716,6 +5716,34 @@ describe("provider-limit presentation", () => {
     const stopped = row({ state: "stopped", stopReason: "provider-limit", error } as never);
     expect(renderQueueRows([stopped], { runnerAvailable: true, targets: [] })).toContain(error);
     expect(renderJobDetailPage(detail({ ...stopped } as never), "2026-08-24T10:00:00Z", NAV)).toContain(error);
+  });
+});
+
+describe("job-cap presentation", () => {
+  test("the stopped label identifies the job cap, distinct from a budget stop", () => {
+    expect(stateLabel(row({ state: "stopped", stopReason: "job-cap" } as never))).toBe(
+      "stopped — job cap",
+    );
+  });
+});
+
+describe("the stopped badge carries its error as a tooltip", () => {
+  test("a stopped row with an error gets the error as the badge's title", () => {
+    const error = "the job cap ($4) would be exceeded by the next step";
+    const html = stateChip(row({ state: "stopped", stopReason: "job-cap", error } as never));
+    expect(html).toContain(`title="${error}"`);
+  });
+
+  test("a stopped row with no error gets no title attribute", () => {
+    const html = stateChip(row({ state: "stopped", stopReason: "timeout" } as never));
+    expect(html).not.toContain("title=");
+  });
+
+  test("a queued row parked with a held-back error gets no title attribute", () => {
+    const html = stateChip(
+      row({ state: "queued", error: "held back: the daily cap ($20) would be exceeded" } as never),
+    );
+    expect(html).not.toContain("title=");
   });
 });
 
