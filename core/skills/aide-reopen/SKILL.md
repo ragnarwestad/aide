@@ -21,24 +21,6 @@ write the mark that makes everything counting steps start over.
 
 ---
 
-## Why this is one action
-
-Reopening used to be done by hand in a terminal — move the folder out of
-`archive/`, overwrite three files with the templates, delete the branch
-in two repositories and in two places each. It was done twice, on
-2026-08-22 and 2026-08-23, and both times something was missed. The
-first left a local branch behind and the next run refused to start on a
-conflict nobody could see. The second came back with every phase showing
-done and the status file claiming four completed steps, before anything
-had run.
-
-The commits from the earlier round are NOT deleted and must not be: they
-happened, and the archive is a record. What changes is that everything
-counting phases, attempts and completed steps starts from the mark this
-skill writes, rather than from the folder's whole history.
-
----
-
 ## Workflow
 
 ### Step 1: Find the spec
@@ -71,13 +53,9 @@ Every deletion tolerates "already gone". A spec whose branch was cleaned
 up by the landing that archived it is the normal case, not a failure,
 and an origin that cannot be reached is not a reason to stop either.
 
-**In a headless run this is already done.** `aide-run-spec` deletes all
-four before the step starts, because the run then checks
-`aide/<NN>-slug` out in a worktree of its own and git refuses to delete
-a branch that is checked out — a skill inside the step could not do it
-if it tried. So: check first, and do nothing when there is nothing to
-do. This step exists for `/aide-reopen` typed at a keyboard, where no
-worktree stands in the way.
+**In a headless run this is already done.** Check first, and do nothing
+when there is nothing to do. This step exists for `/aide-reopen` typed
+at a keyboard, where no worktree stands in the way.
 
 ### Step 3: Record where the new round starts
 
@@ -102,7 +80,7 @@ spec.
 exactly as `/aide-create` Step 4 would for a new spec — from
 `core/skills/aide-create/references/file-templates.md`, with the same
 placeholders replaced (TITLE, FOLDER, DATE). Do not describe the layout
-here; a second copy of it is how spec 82's bug got rebuilt.
+here.
 
 **Leave `1-description.md` and `0-README.md` byte for byte as they are.**
 The description is why the spec exists, and it is what the new round is
@@ -120,10 +98,8 @@ Two lines in Tracking info, both of them:
 - The `**Archived:**` line is carried over from the file being replaced,
   verbatim, with every earlier one it already had. The spec's archive
   trail still has to read.
-- The `**Reopened:**` line is new, in exactly that grammar. Four readers
-  parse it — `completed_steps_for` in `core/scripts/aide-run-spec`,
-  `parse-status.ts`, `workflow-history.ts` and
-  `description-freshness.ts` — and a line that does not carry a
+- The `**Reopened:**` line is new, in exactly that grammar — this exact
+  grammar matters to several readers, and a line that does not carry a
   backticked SHA is not a boundary to any of them. The date is
   today's, `YYYY-MM-DD`.
 - A spec reopened twice keeps both `**Reopened:**` lines. The last one

@@ -12,6 +12,7 @@ production use).
 - [Skill types](#skill-types)
 - [What separates good skills from mediocre ones](#what-separates-good-skills-from-mediocre-ones)
 - [Anti-patterns matter most](#anti-patterns-matter-most)
+- [Load-bearing why vs. narration](#load-bearing-why-vs-narration)
 - [Debugging queries](#debugging-queries)
 - [Size and depth](#size-and-depth)
 - [Checklist for new and existing skills](#checklist-for-new-and-existing-skills)
@@ -215,6 +216,32 @@ Dated claims let future readers judge whether they are still relevant.
 
 ---
 
+## Load-bearing why vs. narration
+
+Not every "why" belongs in a skill's body. Two things read like
+documentation but cost tokens on *every* invocation without helping the
+reader do the job at hand:
+
+1. **Narrating another component** — what a different script, session,
+   or UI does, when it does not change what THIS skill's reader should
+   do next.
+2. **Bare historical attribution** — "spec N did X" or "(spec N)" used as
+   color, with no actionable content in the citation itself.
+
+**The test:** delete the sentence. Does any instruction in the skill
+become wrong, ambiguous, or newly risky to follow? If no, it's
+narration — cut it, or move it to `references/` if a reader might need
+it occasionally. If yes, it's load-bearing — keep it, as short as
+possible.
+
+This does not conflict with "Anti-patterns matter most" above: a dated,
+evidence-based pitfall about the skill's *own* subject matter (a race
+condition in the domain it covers) is exactly the kind of "why" that
+helps a reader judge edge cases, and should stay. The difference is
+what the sentence is about — the skill's own domain, or somebody else's.
+
+---
+
 ## Debugging queries
 
 Backend skills should have ready-made SQL queries. Frontend skills should have
@@ -282,6 +309,7 @@ One deep skill > four shallow skills.
 - [ ] Includes examples (input → output or before → after)
 - [ ] Cross-references to related skills
 - [ ] Dates evidence-based claims
+- [ ] No bare "(spec N)" citations or other-component narration — see "Load-bearing why vs. narration"
 
 ---
 

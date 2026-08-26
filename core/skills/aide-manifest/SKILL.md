@@ -68,7 +68,7 @@ inventing values.
   project, verify `.aide/` is not swallowed by an ignore rule — only
   `.aide/config` should be ignored)
 - **Leave a `worktreeLinks:` key exactly as found — never propose one,
-  never remove one.** It is the dashboard's to write (spec 184), and it
+  never remove one.** It is the dashboard's to write, and it
   names the gitignored paths a headless run symlinks into its worktree.
   Dropping it on a refresh breaks every OTHER machine's runs the next
   time they pull, while this one carries on working — a manifest is

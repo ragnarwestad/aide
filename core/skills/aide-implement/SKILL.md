@@ -49,7 +49,7 @@ Usage:
    section: suggest re-running `/aide-analyze` first (proceed if the
    user declines)
 4. Read the relevant coding standard (frontend or backend)
-5. Read `specs/XX-slug/4-status.md`'s phase table (spec 187). A step
+5. Read `specs/XX-slug/4-status.md`'s phase table. A step
    stopped by its time limit commits what it wrote, and that work is
    landed rather than left on a branch — so an earlier run may already
    have finished some of the phases below. A phase whose tasks are all
@@ -96,15 +96,10 @@ gives — `✅`, `⬜`, `🔄` — never the word beside it. The dashboard reads
 both, but a file that spells the same state two ways is a file whose
 own legend has stopped describing it.
 
-Nothing in Tracking info records the step. Which steps a spec has had
-is read off the spec's own commits, and `aide-run-spec` writes the
-`Workflow steps completed:` line from them — leave that line exactly as
-you found it.
-
-Which model ran, and how the phase went, are read off the same commit,
-and the same script writes them — a `Repo`/`Model`/`Result`/`Time
-spent`/`Cost` block, plus a time of day on `Last updated:` — directly
-into `3-solution.md`'s own Tracking info. Leave those lines alone too.
+`aide-run-spec` writes `Workflow steps completed:` from the spec's own
+commits — leave that line exactly as you found it. The same script
+writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
+into `3-solution.md`'s own Tracking info — leave those lines alone too.
 
 The percentage above it is still yours: it says how far
 the TDD phases got, which is the field for partial work.

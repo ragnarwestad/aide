@@ -109,7 +109,7 @@ with `#` comments. Recognized keys:
 | `AIDE_TEST_CMD`       | Overrides the detected test command                                                                                           |
 | `AIDE_LINT_CMD`       | Overrides the detected lint command                                                                                           |
 | `AIDE_BUILD_CMD`      | Overrides the detected build command                                                                                          |
-| `AIDE_WORKTREE_LINKS` | LEGACY (spec 184). Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                    |
+| `AIDE_WORKTREE_LINKS` | LEGACY. Read only when `.aide/project.yaml` has no `worktreeLinks:` — see below                                    |
 | `AIDE_INSTALL_CMD`    | What installing this project means on THIS machine — run by the dashboard after the project's own code is merged              |
 
 The worktree links live in the project's **manifest**, not here:
@@ -131,16 +131,15 @@ matter cannot be derived without guessing, so the project states them.
 
 They are in the manifest rather than in `.aide/config` because they are
 true of the project on ANY machine, while `.aide/config` is kept out of
-git — so the answer was lost every time the project met a new machine
-(spec 184). `.aide/config`'s older `AIDE_WORKTREE_LINKS` is still read
+git — so the answer was lost every time the project met a new machine.
+`.aide/config`'s older `AIDE_WORKTREE_LINKS` is still read
 when the manifest names none; the manifest wins where both do, and the
 run's own output says which file it read.
 
 `AIDE_INSTALL_CMD` exists because merged is not deployed. For a project
 that installs itself somewhere — aide puts its scripts in
 `~/.local/bin` — code reaching the default branch changes nothing on
-the machine until the install runs, and the dashboard once said
-"merged" while the host went on running the old version. The value
+the machine until the install runs. The value
 is an argv, split on whitespace and run with **no shell**, in the
 project's own checkout, bounded by a timeout; a failure is reported
 beside the merge and never turns a completed merge back into a failed

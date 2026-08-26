@@ -107,7 +107,7 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   present — because a run cuts its branch from origin/main and would
   otherwise build on a main without that work
 - The line holds back only the steps that BUILD on merged code —
-  `implement`, `archive` (spec 122). `analyze` and `create` write only
+  `implement`, `archive`. `analyze` and `create` write only
   the spec's own folder in the specs repo, so a whole chain of dependent
   specs can be analysed in parallel the moment it is queued. The
   trade-off is stated rather than hidden: a plan analysed before its
@@ -118,14 +118,6 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   merge from the page triggers one). It is cancellable like anything
   queued. A run started by hand still gets the immediate refusal —
   there is no scheduler there to park it against
-- The dashboard's New-spec form can write this line too (spec 110): a
-  Depends-on chip set, scoped to the chosen project's active specs, goes
-  through `aide-run-spec --depends-on` to a stated value in the
-  `/aide-create` prompt. The line is parsed by two independent readers —
-  `aide_spec_dependencies` in `_aide-spec-lib.sh` (shell) and
-  `specDependsOn` in `dashboard/src/discover.ts` (TypeScript) — kept
-  deliberately unshared as a two-line duplication; a future change to
-  this line's format has to update both
 
 ---
 
@@ -396,37 +388,26 @@ remembered to update it. A step run interactively counts once it is
 committed with the same subject — the four step skills offer exactly
 that commit, and ask first.
 
-**The line is added to, never subtracted from** (spec 214). What the
+**The line is added to, never subtracted from.** What the
 commits prove joins what the line already names; a step the line
 already names stays there even when no commit corroborates it. The
 scan recognizes a step only by the subject above, so a step committed
-under a descriptive subject of its own is invisible to it — Woodstack
-22's implement committed as "Record the implementation of ...", the
-next step recomputed the line, and `analyze, implement` came back
-`analyze, archive` for a spec whose code was already on `main`.
+under a descriptive subject of its own is invisible to it.
 Dropping a step there erases the only record that it ran.
 `aide-reopen` and `aide-reset` are the places a step comes off the line, and they do
 that by regenerating the file without the line at all.
 
-Why it stopped being the model's to write: on 2026-08-21 the line was
-wrong in both directions on the same day. One spec's implement had RED
-and GREEN done and was killed by the step's time limit before the model
-reached the instruction, so the line lagged behind a finished branch.
-Another spec's four files were copied from a sibling, so a folder
-minutes old claimed three steps it had never had. A commit cannot be
-copied into existence and does not depend on reaching the last
-instruction. Only the first of those two is still corrected on its own:
-since spec 214 a copied claim stands until the line is deleted by hand
-or `aide-reopen`/`aide-reset` regenerates the file. That is the deliberate price of
-never erasing a step that really ran — the scan cannot tell a copied
-claim from the last surviving record of one.
+A copied claim (a spec's four files copied from a sibling, carrying
+steps it never had) stands until the line is deleted by hand or
+`aide-reopen`/`aide-reset` regenerates the file — the scan cannot tell
+a copied claim from the last surviving record of a step that really
+ran, so it errs toward never erasing one.
 
 The dashboard reads the same commits, live, to mark a spec's phases
-done and to pre-tick the step to run next; a `4-status.md` that
-disagrees with them is said out loud on the row rather than believed.
-The progress percentage below the line is a different question and is
-still the model's: it says how far the TDD phases inside `implement`
-have got, not whether `implement` ran at all.
+done — a `4-status.md` that disagrees with them is said out loud on the
+row rather than believed. The progress percentage below the line is a
+different question and is still the model's: it says how far the TDD
+phases inside `implement` have got, not whether `implement` ran at all.
 
 #### Phase outcome record
 
@@ -483,7 +464,7 @@ written for it, ever.
 
 Specs archived before this record existed may still carry the older,
 centralized `Model (create):`/`Model (analyze):`/`Model (implement):`
-lines in their `4-status.md` (spec 217) — those are left exactly as
+lines in their `4-status.md` — those are left exactly as
 they are, not migrated; only `archive`'s own outcome uses this record
 now.
 

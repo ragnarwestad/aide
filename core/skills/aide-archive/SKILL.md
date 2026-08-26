@@ -19,16 +19,6 @@ project's living documentation.
 
 **Input:** $ARGUMENTS (a JIRA key, a task number, or a full folder ID)
 
-## Why this step exists
-
-Specs are write-only until they are archived: the analysis and the
-decisions stay buried in the spec folder. Archiving closes the loop —
-the folder moves out of the active list, and the durable knowledge moves
-into documentation that future work actually reads.
-
-Archive is also the step that LANDS the spec's branch, which is why a
-merge that fails is its problem and not a phase of its own (spec 171).
-
 ## Workflow
 
 ### Step 1: Run the mechanical script
@@ -36,7 +26,7 @@ merge that fails is its problem and not a phase of its own (spec 171).
 Everything mechanical — resolving the argument to a folder, checking
 whether a merge is open, reading `4-status.md`'s tables, and (when the
 work is done) stamping and moving the folder — is a script now, not
-something this session reasons about by hand (spec 251):
+something this session reasons about by hand:
 
 ```bash
 aide-archive-spec --project-dir <project root> --spec <argument> \
@@ -52,12 +42,12 @@ Branch on the JSON's `terminalReason`:
 
 - **`refused`:** report the script's own `error` message and stop.
 - **`already-archived`:** the folder is already under `archive/`. If the
-  script's own JSON also carries a `specFolder` (spec 251's dual-call
-  case — `aide-run-spec`'s own pre-check may have just archived this
-  spec seconds ago, before spawning this very session), treat that
-  exactly like a fresh `archived` result below and continue to Step 2.
-  Otherwise this is a plain re-run against work that was already
-  finished long ago: say so and stop.
+  script's own JSON also carries a `specFolder` (`aide-run-spec`'s own
+  pre-check may have just archived this spec seconds ago, before
+  spawning this very session), treat that exactly like a fresh
+  `archived` result below and continue to Step 2. Otherwise this is a
+  plain re-run against work that was already finished long ago: say so
+  and stop.
 - **`conflict-open`:** the branch would not merge cleanly with the
   default branch. Follow
   [references/resolve-conflict.md](./references/resolve-conflict.md) in
@@ -72,11 +62,11 @@ Branch on the JSON's `terminalReason`:
   Step 3, and write nothing else to `4-status.md`.
 - **`held-back`:** an open row is genuinely blocked, or `implement` has
   started while a row is still open. The script has already written the
-  `## Archive held back` section itself, with its one bullet — since
-  spec 182 that bullet is a real checkbox on the spec's own page, and
-  ticking it is what makes the next archive run see the work as done.
-  Report the hold-back plainly (the script's own `note` names it) and
-  stop: do not continue to Step 2 or Step 3.
+  `## Archive held back` section itself, with its one bullet — that
+  bullet is a real checkbox on the spec's own page, and ticking it is
+  what makes the next archive run see the work as done. Report the
+  hold-back plainly (the script's own `note` names it) and stop: do not
+  continue to Step 2 or Step 3.
 - **`archived`:** the work was done, and the script has already stamped
   `4-status.md` and moved the folder to `specFolder` (the new
   `archive/NN-slug/` path). Continue straight to Step 2, reading from
@@ -90,9 +80,7 @@ it on the spec's page (or by editing `4-status.md` directly) and running
 archive again, not by talking a session into skipping the check.
 
 The folder keeps its `NN-slug` name once moved — the date lives in
-`4-status.md`. Numbers are never reused: `aide_next_spec_number` (in
-`_aide-spec-lib.sh`) scans `archive/` too, and `aide-generate-pdf`/
-`aide-generate-html` still find archived specs.
+`4-status.md`. Numbers are never reused.
 
 ### Step 2: Close the loop
 
@@ -110,10 +98,7 @@ Otherwise, propose where each item belongs — the project's docs,
 
 Then decide how to close the loop. **If the prompt said the run is
 headless, or `AIDE_HEADLESS` is set, nobody can answer** — do not ask.
-The prompt is the reliable signal of the two: an archive run on
-2026-08-17 was told to check the variable, grepped the repo for it while
-reading the spec that introduced it, never checked its own, and stopped
-to ask a question no one could hear.
+The prompt is the reliable signal of the two.
 
 - **Someone is there (interactive):** ask for confirmation, then write
   it — the judgment call is worth having when someone can make it.
@@ -134,16 +119,11 @@ working directory — Step 1's script did the stamp-and-move, and Step 2
 either wrote the docs directly or appended the deferred-feedback
 proposal. This step is only about getting that onto a commit.
 
-Nothing in Tracking info records the step by name. Which steps a spec
-has had is read off the spec's own commits, and `aide-run-spec` writes
-the `Workflow steps completed:` line from them — leave that line exactly
-as you found it, at whichever address the folder now has.
-
-Which model ran, and how the phase went, are read off the same commit,
-and the same script writes them — a `Repo`/`Model`/`Result`/`Time
-spent`/`Cost` block, plus a time of day on `Last updated:` — directly
-into `4-status.md`'s own Tracking info, alongside the line above —
-leave those lines alone too.
+`aide-run-spec` writes `Workflow steps completed:` from the spec's own
+commits, at whichever address the folder now has — leave that line
+exactly as you found it. The same script writes this phase's `Repo`/
+`Model`/`Result`/`Time spent`/`Cost` block into `4-status.md`'s own
+Tracking info — leave those lines alone too.
 
 A headless run gets its commit for free. Working interactively, ASK
 whether to commit the move, and suggest this message so the step is
