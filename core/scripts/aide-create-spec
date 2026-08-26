@@ -1,0 +1,310 @@
+#!/usr/bin/env bash
+# aide-create-spec — the mechanical step of /aide-create's Step 4 (spec
+# 248): creates a spec's directory and its 5 files given
+# specs-root/number/slug/title/description/depends-on.
+#
+# This is what lets file creation stay on a Bash-only path: before this
+# script existed, /aide-create's Step 4 wrote the 5 files with the Write
+# tool, which is indistinguishable, at the permission layer, from an AI
+# assistant mistakenly hand-writing spec files outside any skill. Once
+# this script is the only path a legitimate write takes, a Write/Edit
+# permission rule can be scoped to the specs-repo path with no
+# legitimate /aide-create case left to break.
+#
+# Prints ONE JSON line to stdout and, if given, to --result-file:
+#   {ok, exitCode, terminalReason, error?, specFolder?, files?}
+#
+# terminalReason: refused | created
+#
+# Usage:
+#   aide-create-spec --specs-root <path> --number <NN> --slug <slug>
+#                     --title <title> --description <text>
+#                     [--depends-on <value>] [--result-file <path>]
+
+set -uo pipefail
+
+specs_root=""; number=""; slug=""; title=""; description=""
+depends_on=""; depends_on_given="no"; result_file=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    --number) number="${2:-}"; shift 2 ;;
+    --slug) slug="${2:-}"; shift 2 ;;
+    --title) title="${2:-}"; shift 2 ;;
+    --description) description="${2:-}"; shift 2 ;;
+    --depends-on) depends_on="${2:-}"; depends_on_given="yes"; shift 2 ;;
+    --result-file) result_file="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+# Same guard aide-archive-spec uses, before either helper below can be
+# called — without it, a missing jq turns every refusal into a raw shell
+# error instead of the one-JSON-line contract every caller relies on.
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  local msg="$1" line
+  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 2
+}
+
+emit_ok() {
+  local extra="$1" line
+  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 0
+}
+
+[ -n "$specs_root" ] || refuse "missing --specs-root"
+[ -n "$number" ] || refuse "missing --number"
+[ -n "$slug" ] || refuse "missing --slug"
+[ -n "$title" ] || refuse "missing --title"
+[ -n "$description" ] || refuse "missing --description"
+
+folder="${number}-${slug}"
+dest="$specs_root/$folder"
+[ -d "$dest" ] && refuse "spec folder already exists: $dest"
+
+today="$(date -u +%Y-%m-%d)"
+
+depends_line=""
+if [ "$depends_on_given" = "yes" ] && [ -n "$depends_on" ]; then
+  # paste -sd cycles through a multi-character delimiter one character
+  # per join, rather than repeating the whole string — so ", " would
+  # come out as a bare "," between every pair. Joined with a single
+  # comma instead, then widened to ", " afterwards.
+  formatted="$(printf '%s' "$depends_on" | tr ',' '\n' \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' \
+    | sed 's/^/`/; s/$/`/' | paste -sd, - | sed 's/,/, /g')"
+  [ -n "$formatted" ] && depends_line=$'\n- **Depends on:** '"$formatted"
+fi
+
+mkdir -p "$dest" || refuse "could not create $dest"
+
+# The heredoc delimiter below is deliberately unquoted (<<AIDE_EOF, not
+# <<'AIDE_EOF') so ${title}/${folder}/${today}/${depends_line}/
+# ${description} are substituted. This is safe: bash performs parameter
+# expansion exactly once, over the heredoc's own literal template text —
+# a substituted value is inserted as data and is never re-scanned for
+# further expansion. A description containing backticks or $(...) is
+# written out verbatim, not executed (the same reason
+# `x='$(cmd)'; echo "$x"` prints text instead of running cmd — bash does
+# not double-evaluate; eval exists precisely because ordinary
+# substitution never does this). Literal backticks that belong to the
+# template itself (not to a substituted value) are escaped as \` so an
+# unquoted heredoc does not read them as command substitution.
+
+cat > "$dest/0-README.md" <<AIDE_EOF
+# Documentation
+
+## Table of contents
+
+1. [Description](1-description.md) - Tracking info and the problem
+2. [Analysis](2-analysis.md) - Mapping and findings
+3. [Solution](3-solution.md) - Scope, plan, criteria and risk
+4. [Status](4-status.md) - Progress tracking
+AIDE_EOF
+
+cat > "$dest/1-description.md" <<AIDE_EOF
+# ${title} - Description
+
+## Table of contents
+
+- [Tracking info](#tracking-info)
+- [Description](#description)
+
+---
+
+## Tracking info
+
+- **Task:** \`${folder}/\`
+- **Created:** \`${today}\`${depends_line}
+
+---
+
+## Description
+
+${description}
+
+*This description can be edited before /aide-analyze runs.*
+AIDE_EOF
+
+cat > "$dest/2-analysis.md" <<AIDE_EOF
+# ${title} - Analysis
+
+## Table of contents
+
+- [Tracking info](#tracking-info)
+- [Mapping](#mapping)
+- [Findings](#findings)
+
+---
+
+## Tracking info
+
+- **Task:** \`${folder}/\`
+- **Last analyzed:** \`[not analyzed yet]\`
+
+---
+
+## Mapping
+
+*(Filled in by /aide-analyze: search terms, methods, tools used to locate affected code.)*
+
+---
+
+## Findings
+
+### Affected files
+
+*(Filled in by /aide-analyze.)*
+
+### Codebase analysis
+
+*(Filled in by /aide-analyze.)*
+
+### Affected components
+
+*(Filled in by /aide-analyze.)*
+
+### Patterns
+
+*(Filled in by /aide-analyze.)*
+
+### Test coverage
+
+*(Filled in by /aide-analyze.)*
+
+### API dependencies
+
+*(Filled in by /aide-analyze.)*
+AIDE_EOF
+
+cat > "$dest/3-solution.md" <<AIDE_EOF
+# ${title} - Solution
+
+## Table of contents
+
+- [Tracking info](#tracking-info)
+- [Scope](#scope)
+- [Approaches](#approaches)
+- [Recommended solution](#recommended-solution)
+- [Behavior delta](#behavior-delta)
+- [Acceptance criteria](#acceptance-criteria)
+- [Risk analysis](#risk-analysis)
+- [Implementation plan](#implementation-plan)
+- [Testing](#testing)
+
+---
+
+## Tracking info
+
+- **Task:** \`${folder}/\`
+- **Last updated:** \`[not prepared yet]\`
+
+---
+
+## Scope
+
+*(Filled in by /aide-analyze: files to change, complexity level and
+factors, estimate.)*
+
+---
+
+## Approaches
+
+*(Filled in by /aide-analyze: at least 2 approaches with pros/cons/estimate.)*
+
+---
+
+## Recommended solution
+
+*(Filled in by /aide-analyze: before/after examples, in separate code blocks.)*
+
+---
+
+## Behavior delta
+
+*(Filled in by /aide-analyze: what the solution adds, modifies and removes.)*
+
+---
+
+## Acceptance criteria
+
+*(Filled in by /aide-analyze: testable given/when/then scenarios.)*
+
+---
+
+## Risk analysis
+
+*(Filled in by /aide-analyze: risks with consequence/probability/mitigation.)*
+
+---
+
+## Implementation plan
+
+*(Filled in by /aide-analyze: TDD Red-Green-Refactor, 4 phases.)*
+
+---
+
+## Testing
+
+*(Filled in by /aide-analyze: unit, integration, e2e, and a manual testing note.)*
+AIDE_EOF
+
+cat > "$dest/4-status.md" <<AIDE_EOF
+# ${title} - Status
+
+Total progress: 0% (0 of X completed)
+Estimate: [X hours/days]
+
+## Table of contents
+
+1. [Tracking info](#tracking-info)
+2. [Phase 1: RED](#phase-1-red)
+3. [Phase 2: GREEN](#phase-2-green)
+4. [Phase 3: GREEN](#phase-3-green)
+5. [Phase 4: REFACTOR](#phase-4-refactor)
+6. [Notation](#notation)
+
+## Tracking info
+
+- **Task:** \`${folder}/\`
+- **Last updated:** \`[not started]\`
+
+## Phase 1: RED
+
+| Task | Status | Notes |
+|------|--------|-------|
+
+## Phase 2: GREEN
+
+| Task | Status | Notes |
+|------|--------|-------|
+
+## Phase 3: GREEN
+
+| Task | Status | Notes |
+|------|--------|-------|
+
+## Phase 4: REFACTOR
+
+| Task | Status | Notes |
+|------|--------|-------|
+
+## Notation
+
+- Not started
+- In progress
+- Completed
+- Blocked
+- Waiting
+AIDE_EOF
+
+emit_ok "$(jq -cn --arg f "$folder" --argjson files '["0-README.md","1-description.md","2-analysis.md","3-solution.md","4-status.md"]' \
+  '{terminalReason:"created", specFolder:$f, files:$files}')"

@@ -82,34 +82,61 @@ Examples:
 
 ### Step 4: Create the directory and 5 files
 
-- Create the directory: `<specs-root>/NN-slug/`
-- Create the files with content from `references/file-templates.md`
-- Replace placeholders: TITLE, FOLDER, DATE, DESC
-- **Depends on:** if the prompt states a Depends-on value (the "New spec"
-  form on the dashboard passes one as
-  `Use exactly this Depends-on value in Tracking info: <value>`), write it
-  into `1-description.md`'s Tracking info as a `Depends on:` line directly
-  after `Created`, using the value EXACTLY as stated — one backticked
-  identifier per comma-separated entry:
+Call the script — never the Write tool — so file creation stays on a
+Bash-only path (this is what lets a Write/Edit permission rule be
+scoped to the specs-repo path later, with no legitimate case left to
+break):
 
-  ```markdown
-  - **Depends on:** `105`, `92-a-spec-can-depend`
-  ```
+```bash
+aide-create-spec \
+  --specs-root "<specs-root>" \
+  --number "<NN>" \
+  --slug "<slug>" \
+  --title "<title>" \
+  --description "$(cat <<'AIDE_DESC'
+<the description text, verbatim>
+AIDE_DESC
+)" \
+  --depends-on "<value>"   # omit this flag entirely when the prompt states none
+```
 
-  When the prompt states no such value, write no such line. Never infer a
-  dependency from the description.
+**Depends on:** if the prompt states a Depends-on value (the "New spec"
+form on the dashboard passes one as
+`Use exactly this Depends-on value in Tracking info: <value>`), pass it
+via `--depends-on`, using the value EXACTLY as stated, comma-separated.
+The script writes it into `1-description.md`'s Tracking info as a
+`Depends on:` line directly after `Created`, one backticked identifier
+per entry:
+
+```markdown
+- **Depends on:** `105`, `92-a-spec-can-depend`
+```
+
+When the prompt states no such value, omit the `--depends-on` flag
+entirely. Never infer a dependency from the description.
+
+The script creates `<specs-root>/NN-slug/` and its 5 files, refuses
+(non-zero exit, `terminalReason: "refused"`) rather than overwriting an
+existing folder at that path, and prints one JSON line:
+`{"ok":true,"exitCode":0,"specFolder":"NN-slug","files":[...]}`. Read
+`specFolder` and `files` from that line for Steps 5 and 6 below — do
+not assume the 5 filenames.
 
 Markdown validation uses `markdownlint-cli2` only when it is installed locally.
 Rely on the automatic hook where present; otherwise check for the executable
 with `command -v markdownlint-cli2` before running it. If it is unavailable,
 report that validation was skipped and continue. Validation must not invoke `npx`
-or another package-download fallback.
+or another package-download fallback. This validation stays a Bash invocation
+in the skill, not moved into the script — it already carries none of the
+permission-layer ambiguity this change removes, and folding it in would add an
+external-tool dependency to a script whose only other dependencies are `bash`
+and `jq`, for no reduction in that ambiguity.
 
 ### Step 5: Stage in git
 
-`git add <specs-root>/NN-slug/*.md` — the specs root is a working
-directory the skill can operate in, whether or not it sits inside the
-project root.
+`git add <specs-root>/<specFolder>/*.md`, using the `specFolder` the
+script's JSON reported — the specs root is a working directory the
+skill can operate in, whether or not it sits inside the project root.
 
 A headless run gets its commit for free. Working interactively, commit
 and push RIGHT AWAY, with this message so the step is recognised the
@@ -146,7 +173,8 @@ no `Model (create)` line is written — an absence, never a guess.
 
 ### Step 6: Confirm
 
-Show a summary and the next step:
+Show a summary and the next step, built from Step 4's `specFolder` and
+`files` — not assumed:
 
 ```text
 Task created: 55-clean-up-console-log

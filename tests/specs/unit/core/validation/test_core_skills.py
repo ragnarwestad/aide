@@ -546,6 +546,35 @@ class TestCreateSkillStagesAndOffersToCommit:
 
 
 @pytest.mark.validation
+class TestCreateSkillStep4CallsTheScript:
+    """Spec 248, AC8. Step 4 used to write the 5 spec files with the
+    Write tool directly — indistinguishable, at the permission layer,
+    from an AI assistant mistakenly hand-writing spec files outside any
+    skill. It now calls aide-create-spec over Bash instead, so a future
+    edit cannot silently regress Step 4 back to inline Write-tool
+    instructions without a test noticing.
+    """
+
+    SKILL = CORE_SKILLS_DIR / "aide-create" / "SKILL.md"
+
+    def _step_4_text(self) -> str:
+        text = self.SKILL.read_text(encoding="utf-8")
+        start = text.index("### Step 4:")
+        end = text.index("### Step 5:", start)
+        return text[start:end]
+
+    def test_step_4_invokes_the_script_over_bash(self):
+        step4 = self._step_4_text()
+        assert "aide-create-spec" in step4
+        assert "```bash" in step4
+
+    def test_step_4_contains_no_write_tool_instruction(self):
+        step4 = self._step_4_text()
+        assert "never the Write tool" in step4
+        assert "Create the files with content from" not in step4
+
+
+@pytest.mark.validation
 class TestMarkdownHookDefaultsAreLocalOnly:
     def test_claude_hook_does_not_use_npx_for_markdownlint(self):
         settings_path = CORE_SKILLS_DIR.parents[1] / "implementations" / "claude-code" / "settings.json"

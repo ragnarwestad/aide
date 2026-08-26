@@ -115,6 +115,22 @@ class TestInstallCommonBin:
         assert (tmp_path / ".local" / "bin" / "validate-env").is_file(), \
             "validate-env is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
 
+    def test_aide_create_spec_is_installed(self, workspace_root, tmp_path):
+        """Spec 248, AC9. aide-create-spec is /aide-create's own Step 4
+        script — if it drops out of COMMON_BIN_SCRIPTS, install-all.sh
+        stops shipping it and every Step 4 invocation breaks."""
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path)}
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (tmp_path / ".local" / "bin" / "aide-create-spec").is_file(), \
+            "aide-create-spec is not in COMMON_BIN_SCRIPTS, so it never reaches ~/.local/bin"
+
 
 # Codex reads at most project_doc_max_bytes of AGENTS.md and appends
 # nothing past it. 32768 is the documented default (see the
