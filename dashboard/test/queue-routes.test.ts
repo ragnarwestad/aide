@@ -2167,39 +2167,40 @@ describe("filtering and sorting work on specs, not jobs", () => {
     expect(html).not.toContain("not shown.");
   });
 
-  // Spec 226's item 4, which the code already satisfied when the spec
-  // was written — so this is a regression guard and nothing else. The
-  // "?" and New spec used to sit in a band of their own above the
-  // chips; they belong beside them, on the line immediately above the
-  // list. What actually right-aligns the pair is `margin-left: auto` on
-  // `details.intro` (css.ts), which no string test can observe; what a
-  // string test CAN say is that the three are in one `.row`, in that
-  // order, ahead of the search form and the table.
-  test('the "?" and New spec sit in the chips\' own row (criterion 6)', () => {
+  // Spec 261 moved the "?" and New spec off the chips' own row and onto
+  // the search field's row beside it — readers look for them next to
+  // the field they are about to use, not above it. This replaces the
+  // spec-226 guard for the OLD placement: the chips' `<div class="row">`
+  // now holds only the chips, and both controls live inside
+  // `<form class="specsearch">`, help before New spec.
+  test('the "?" and New spec sit on the search field\'s own row (spec 261)', () => {
     const html = renderQueuePage(
       [job("a1", "aa-spec")],
       "2026-08-16T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       { runnerAvailable: true, targets: [], createProjects: ["aide"] },
     );
-    // The row the search form follows, read by its two ends rather than
-    // by a regex: `<div class="row">` occurs elsewhere on the page, and
-    // a pattern that backtracked past one of those would be reading a
-    // region nobody meant.
-    const at = html.indexOf('<form class="specsearch"');
-    expect(at).toBeGreaterThan(-1);
-    const opens = html.lastIndexOf('<div class="row">', at);
+    const formStart = html.indexOf('<form class="specsearch"');
+    expect(formStart).toBeGreaterThan(-1);
+    const formEnd = html.indexOf("</form>", formStart);
+    expect(formEnd).toBeGreaterThan(-1);
+    const form = html.slice(formStart, formEnd);
+    // The chips' own row, read by its two ends rather than by a regex:
+    // `<div class="row">` occurs elsewhere on the page, and a pattern
+    // that backtracked past one of those would be reading a region
+    // nobody meant.
+    const opens = html.lastIndexOf('<div class="row">', formStart);
     expect(opens).toBeGreaterThan(-1);
-    const inside = html.slice(opens, at);
-    expect(inside.slice(inside.indexOf("</div>"))).toMatch(/^<\/div>\s*$/);
-    expect(inside).toContain('data-filter="state"');
-    expect(inside.indexOf('<details class="intro">')).toBeGreaterThan(
-      inside.indexOf('data-filter="state"'),
-    );
-    expect(inside.indexOf(">New spec</a>")).toBeGreaterThan(
-      inside.indexOf('<details class="intro">'),
-    );
-    // And the whole row is ahead of the list it labels.
+    const chipsRow = html.slice(opens, formStart);
+    expect(chipsRow).toContain('data-filter="state"');
+    expect(chipsRow).not.toContain('<details class="intro">');
+    expect(chipsRow).not.toContain(">New spec</a>");
+    // Both controls now live inside the search form's own row, help
+    // before New spec.
+    expect(form).toContain('<details class="intro">');
+    expect(form).toContain(">New spec</a>");
+    expect(form.indexOf('<details class="intro">')).toBeLessThan(form.indexOf(">New spec</a>"));
+    // And the whole row is still ahead of the list it labels.
     expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
       html.indexOf('<div class="tablewrap">'),
     );
