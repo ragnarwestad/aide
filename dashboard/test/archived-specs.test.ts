@@ -93,12 +93,13 @@ const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:**
  *  read side): a Tracking-info block inside that phase's OWN file, never
  *  `4-status.md`. Only the lines a fixture actually wants, mirroring how
  *  `stamp()` above only writes what it is given. */
-const outcome = (opts: { model?: string; timeSpent?: string; cost?: string } = {}) =>
+const outcome = (opts: { model?: string; timeSpent?: string; cost?: string; tokens?: string } = {}) =>
   `# Analysis\n\n## Tracking info\n\n` +
   (opts.model ? `- **Model:** ${opts.model}\n` : "") +
   `- **Result:** completed\n` +
   (opts.timeSpent ? `- **Time spent:** ${opts.timeSpent}\n` : "") +
-  (opts.cost ? `- **Cost:** ${opts.cost}\n` : "");
+  (opts.cost ? `- **Cost:** ${opts.cost}\n` : "") +
+  (opts.tokens ? `- **Tokens:** ${opts.tokens}\n` : "");
 
 /** What STAMPED's `2-analysis.md` records the analyze phase spent (spec
  *  247) — `durationLabel`'s own formatting of this is what the phase
@@ -441,6 +442,26 @@ describe("an archived spec's row", () => {
     expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
   });
 
+  // Spec 260: an archived spec whose only recorded figure is tokens (a
+  // Codex-only run — no `Cost:` line anywhere) must still show something
+  // in the head row's Cost cell, not the blank dash a `spentUsd` of `0`
+  // used to leave behind.
+  test("carries the sum of its phases' recorded tokens when no phase recorded a cost (spec 260, AC7)", async () => {
+    const folder = "260-a-codex-only-archive";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("A Codex-only archive", "One archived spec, no dollar figure at all."),
+        status: stamp("2026-08-26", 60_000, ["create", "analyze"]),
+        analysis: outcome({ tokens: "9562" }),
+      },
+    });
+    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
+    const cell = row.slice(row.indexOf('data-col="cost"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain('<span class="u-tok">9.6k tok</span>');
+    expect(body).not.toContain("$0.00");
+  });
+
   // Spec 257: the description no longer shows under the title at all —
   // recorded or not, long or short. It stays SEARCHABLE (see the search
   // tests below), only the on-page display goes.
@@ -608,6 +629,26 @@ describe("an archived spec's row, opened", () => {
     const line = lines["analyze"]!;
     expect(line).toContain("est.");
     expect(line).toContain(STAMPED_COST_LABEL);
+  });
+
+  // Spec 260: the locked-phase-line call site used to hardcode
+  // `undefined` for tokens regardless of what the phase file recorded —
+  // independent of the header-row roll-up test above, which goes
+  // through `readerGroup`'s `spentTokens` sum rather than this per-phase
+  // `Phase.tokens` field.
+  test("shows the locked tokens for a step whose only recorded figure is tokens (spec 260, AC7)", async () => {
+    const folder = "260-a-locked-tokens-only-cost";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("A locked tokens-only cost", "One archived spec, one Codex phase."),
+        status: stamp("2026-08-26", 60_000, ["create", "analyze"]),
+        analysis: outcome({ tokens: "9562" }),
+      },
+    });
+    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
+    const line = lines["analyze"]!;
+    const cell = line.slice(line.indexOf('data-col="cost"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain('<span class="u-tok">9.6k tok</span>');
   });
 
   // Spec 247, criterion 7: the OLD `4-status.md` `Model (<step>):` line

@@ -2063,6 +2063,12 @@ if [ -n "$phase_file" ]; then
     cost_line="$(printf '$%.4f' "$cost")"
     [ "$cost_measured" = "false" ] && cost_line="$cost_line (unmeasured)"
   fi
+  # The step's total token count, off the same `tokens_json` the result
+  # JSON already carries (spec 118/125) — absent, never 0, on the same
+  # "measured or not written at all" terms as Cost. Written independently
+  # of Cost: a Codex phase gets Tokens with no Cost line at all.
+  tokens_line=""
+  [ -n "$tokens_json" ] && tokens_line="$(jq -r '.total // empty' <<<"$tokens_json" 2>/dev/null)"
   : > "$work_dir/phase-outcome"
   # `Repo` is absent for `create`: nothing has been analyzed against yet
   # (the issue itself lists only creation time as new for that phase).
@@ -2083,6 +2089,7 @@ if [ -n "$phase_file" ]; then
   printf -- '- **Result:** %s\n' "$result_line" >> "$work_dir/phase-outcome"
   printf -- '- **Time spent:** %s\n' "$time_spent_display" >> "$work_dir/phase-outcome"
   [ -n "$cost_line" ] && printf -- '- **Cost:** %s\n' "$cost_line" >> "$work_dir/phase-outcome"
+  [ -n "$tokens_line" ] && printf -- '- **Tokens:** %s\n' "$tokens_line" >> "$work_dir/phase-outcome"
   # Scoped to INSIDE `## Tracking info` only (in_tracking), never the
   # whole file — a `Result:`-shaped bullet written by the model in
   # Findings or Risk-analysis prose is not this record and must survive.
@@ -2098,7 +2105,7 @@ if [ -n "$phase_file" ]; then
       next
     }
     in_tracking && /^## / { in_tracking = 0 }
-    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Cost):\*\*/ { next }
+    in_tracking && /^- \*\*(Repo|Model|Result|Time spent|Cost|Tokens):\*\*/ { next }
     { print }
   ' "$phase_file" > "$work_dir/phase-file-out" 2>/dev/null
   if [ -s "$work_dir/phase-file-out" ] && ! cmp -s "$work_dir/phase-file-out" "$phase_file"; then

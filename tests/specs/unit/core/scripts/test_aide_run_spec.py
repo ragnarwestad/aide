@@ -4741,6 +4741,21 @@ def with_solution(workspace, last_updated="2026-08-01"):
     subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add solution"], check=True)
 
 
+def with_analysis(workspace, last_analyzed="2026-08-01"):
+    """The sibling of `with_solution` above, for `2-analysis.md` — a
+    file for `phase_file_for` to find without needing a fake CLI that
+    writes one, which a Codex phase-outcome test has no other use for
+    (its `emits()` body is a fixed stdout stream, not a script that can
+    also touch a file)."""
+    (workspace["specs"] / workspace["folder"] / "2-analysis.md").write_text(
+        "# Queue - Analysis\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        f"- **Last analyzed:** `{last_analyzed}`\n\n---\n\n## Findings\n"
+    )
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add analysis"], check=True)
+
+
 def analyzing_claude(fake_claude, workspace, last_analyzed="2026-08-01"):
     """A stand-in `/aide-analyze` that leaves `2-analysis.md` behind with
     a Tracking info section carrying the `Last analyzed:` date field —
@@ -4923,6 +4938,74 @@ def test_a_result_bullet_outside_tracking_info_survives_the_write(
     assert "- **Result:** the earlier fix worked" in text, text
     # And Tracking info still gained its OWN Result line, alongside it.
     assert bullet(text, "Result") == "completed"
+
+
+# --- spec 260: the phase-outcome writer also records a phase's tokens --------
+#
+# `tokens_json` (spec 118/125) is already computed for both tools by the
+# time the block above is written, but nothing put it in the file. A
+# Codex phase never gets a `Cost:` line (`cost_known` stays `false`), so
+# Tokens is its own field, written independently of Cost — never
+# "alongside" it the way Model/Result/Time spent are for every phase.
+
+def test_a_codex_run_writes_a_tokens_line_with_no_cost_line(runner, workspace, fake_codex):
+    """AC3: a Codex phase's own file gains a `Tokens:` bullet off the
+    same `tokens_json` the result JSON already carries, with no `Cost:`
+    line at all."""
+    with_status(workspace)
+    with_analysis(workspace)
+    codex = fake_codex(emits(CODEX_STREAM_OK))
+    rc, out, _ = run(runner, workspace, tool="codex", codex=codex)
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    u = CODEX_USAGE
+    total = u["input_tokens"] + u["output_tokens"] + u["reasoning_output_tokens"] + u["cached_input_tokens"]
+    assert bullet(text, "Tokens") == str(total)
+    assert bullet(text, "Cost") is None
+
+
+def test_a_run_with_no_usage_block_writes_no_tokens_line(runner, workspace, fake_codex):
+    """AC4: a CLI that reported no usage block at all (a failed turn,
+    here) leaves no `Tokens:` line — absence, not a `0`, mirroring how
+    `Cost:` already behaves for an unmeasured figure."""
+    with_status(workspace)
+    with_analysis(workspace)
+    codex = fake_codex(emits(CODEX_STREAM_FAILED))
+    run(runner, workspace, tool="codex", codex=codex)
+    text = phase_file_text(workspace, f"{workspace['folder']}/2-analysis.md")
+    assert bullet(text, "Tokens") is None, text
+
+
+def test_a_re_run_of_the_same_step_replaces_the_tokens_line_too(runner, workspace, fake_claude):
+    """AC5: the same replace-not-duplicate guarantee AC6 above already
+    gives Model/Result/Time spent/Cost extends to Tokens — the awk
+    allowlist has to name it too, or a re-run would leave the first
+    run's stale Tokens line in place alongside nothing new (`.match()`
+    on the dashboard's read side returns the FIRST match, so a stale
+    line would win over the fresh figure silently)."""
+    with_status(workspace)
+    result = {**RESULT_OK, "usage": FLAT_USAGE}
+    folder = workspace["folder"]
+    claude1 = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'printf "%s\\n" "# Queue - Analysis" "" "## Tracking info" "" '
+        + f'"- **Task:** \\`{folder}/\\`" "- **Last analyzed:** \\`2026-08-01\\`" '
+        + f'> "$specs/{folder}/2-analysis.md"\n'
+        + f"echo '{json.dumps(result)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude1, model="claude-haiku-4-5")
+    assert rc == 0, out
+    claude2 = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(result)}'")
+    rc, out, _ = run(runner, workspace, claude2, model="claude-opus-5")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{folder}/2-analysis.md")
+    assert text.count("- **Tokens:**") == 1, text
+    total = (
+        FLAT_USAGE["input_tokens"] + FLAT_USAGE["output_tokens"]
+        + FLAT_USAGE["cache_read_input_tokens"] + FLAT_USAGE["cache_creation_input_tokens"]
+    )
+    assert bullet(text, "Tokens") == str(total)
 
 
 # --- spec 198: reopening a spec is one action --------------------------------

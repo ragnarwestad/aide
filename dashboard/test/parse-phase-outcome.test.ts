@@ -66,6 +66,33 @@ describe("parsePhaseOutcome", () => {
     expect(parsePhaseOutcome(content).cost).toBeUndefined();
   });
 
+  // Spec 260: the same write/read pair as Cost, on its own terms — a
+  // Codex phase gets Tokens with no Cost line at all, so the two must
+  // parse independently of each other.
+  test("a Tokens line becomes a number (spec 260, AC6)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Tokens:** 9562")).tokens).toBe(9562);
+  });
+
+  test("no Tokens line at all means no figure, never 0 (spec 260, AC6)", () => {
+    expect(parsePhaseOutcome(withTracking("- **Result:** completed")).tokens).toBeUndefined();
+  });
+
+  test("a look-alike Tokens bullet outside Tracking info is ignored (spec 260, AC6)", () => {
+    const content = [
+      "# 247 - Analysis",
+      "",
+      "## Tracking info",
+      "",
+      "- **Result:** completed",
+      "",
+      "## Risk analysis",
+      "",
+      "- **Tokens:** 999999",
+      "",
+    ].join("\n");
+    expect(parsePhaseOutcome(content).tokens).toBeUndefined();
+  });
+
   test("no Tracking info section at all yields nothing", () => {
     expect(parsePhaseOutcome("# 247 - Analysis\n\nProse only.\n")).toEqual({});
   });
