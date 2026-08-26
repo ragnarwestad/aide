@@ -14,7 +14,7 @@
 import { esc, relTime, usdOrTokens } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
-import { CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "./components.ts";
+import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "./components.ts";
 
 export interface JobStepResultView {
   step?: string;
@@ -97,6 +97,10 @@ export interface JobDetailView extends QueueRowView {
    *  it cannot live in `results`, and its transcript is the job's own
    *  live pointer, not a finished step's file. */
   runningStep?: { step: string; sessionId?: string; logs: string[]; attempt?: number };
+  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+   *  request's own `Referer`, same-origin only. Absent falls back to
+   *  `/`, today's exact hardcoded destination. */
+  backHref?: string;
 }
 
 /** A heading that says "Cost" above a column of token counts is the
@@ -324,14 +328,17 @@ export function tabBar<T extends string>(
 /** The frame a tabbed page sits in: the way back, then the banner, the
  *  tabs, and whatever the open tab holds. Shared with `spec-page.ts`
  *  (spec 150) so the last three literals the two pages had in common
- *  are written once — the panels themselves already are. */
-export function tabbedBody(banner: string, tabs: string, panel: string): string {
+ *  are written once — the panels themselves already are.
+ *
+ *  `backHref` is resolved by the server, from the request's own
+ *  `Referer` (spec 252) — this layer only draws it. */
+export function tabbedBody(banner: string, tabs: string, panel: string, backHref: string): string {
   // One wrapper, one right edge: the head line's buttons used to sit at
   // the frame's width while the open tab's text stopped well short of
   // it (2026-08-23).
   return (
     `<div class="doc">` +
-    `<p class="intro"><a href="/">← Back</a></p>\n` +
+    backLink(backHref) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +
@@ -456,6 +463,7 @@ export function renderJobDetailPage(
       steps: job.results.length + (job.runningStep ? 1 : 0),
     }),
     panel,
+    job.backHref ?? "/",
   );
 
   // `/`, not this page's own address: the nav entry it belongs under is

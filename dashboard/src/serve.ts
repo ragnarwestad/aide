@@ -85,6 +85,7 @@ import {
   FROM_LIST_FIELD,
   filterShowsArchived,
   navEntries,
+  resolveBackHref,
   renderJobDetailPage,
   renderNewSpecPage,
   renderProjectPage,
@@ -3050,6 +3051,7 @@ export function createServer(opts: ServerOptions) {
         token: queueToken,
         createProjects: [...allowed].sort(),
         targets: withFreshness(targets()),
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
         script: queueClientScript(),
         modelChoices: Object.entries(queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
           name,
@@ -3078,6 +3080,7 @@ export function createServer(opts: ServerOptions) {
           name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
         })),
         defaultModels: queue.defaults.model,
+        backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
         script: queueClientScript(),
         error: url.searchParams.get("error") ?? undefined,
         notice: url.searchParams.get("notice") ?? undefined,
@@ -3788,6 +3791,7 @@ export function createServer(opts: ServerOptions) {
           notice: url.searchParams.get("notice")
             ? { note: url.searchParams.get("notice")!, ok: url.searchParams.get("noticeOk") === "1" }
             : undefined,
+          backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
         },
         new Date().toISOString(),
         nav(),
@@ -4052,10 +4056,15 @@ export function createServer(opts: ServerOptions) {
         return api ? json({ error: "no such job" }, 404) : new Response("not found", { status: 404 });
       }
       if (api) return json({ generatedAt: new Date().toISOString(), job });
-      const html = renderJobDetailPage(await jobDetailView(job), new Date().toISOString(), nav(), {
-        tab: url.searchParams.get("tab") ?? undefined,
-        step: url.searchParams.get("step") ?? undefined,
-      });
+      const html = renderJobDetailPage(
+        { ...(await jobDetailView(job)), backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/") },
+        new Date().toISOString(),
+        nav(),
+        {
+          tab: url.searchParams.get("tab") ?? undefined,
+          step: url.searchParams.get("step") ?? undefined,
+        },
+      );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
 

@@ -37,7 +37,7 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring mistake, and a second tab bar would be the fourth.
 
-import { btn, field, rowMessage, tokenField, typedConfirm } from "./components.ts";
+import { backLink, btn, field, rowMessage, tokenField, typedConfirm } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import { notStartedChip, stateChip } from "./job-state.ts";
@@ -164,6 +164,10 @@ export interface SpecPageView {
    *  Merge already use. */
   error?: string;
   notice?: { note: string; ok: boolean };
+  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+   *  request's own `Referer`, same-origin only. Absent falls back to
+   *  `/`, today's exact hardcoded destination. */
+  backHref?: string;
 }
 
 /** The path this page lives at. One function, because the server routes
@@ -180,6 +184,7 @@ export function renderResetSpecPage(
 ): string {
   const back = specPagePath(project, specFolder);
   const body =
+    backLink(back) +
     (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
@@ -195,7 +200,6 @@ export function renderResetSpecPage(
       button: "Reset",
       pending: "resetting…",
     }) +
-    `<a class="btn" href="${esc(back)}">Cancel</a>` +
     `</span></form>`;
   return pageShell(`Reset ${specFolder}`, entries, "/", body, generatedAt, undefined, { script: opts.script });
 }
@@ -599,6 +603,7 @@ export function renderSpecPage(
       { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
     ),
     panel,
+    view.backHref ?? "/",
   );
 
   return pageShell(

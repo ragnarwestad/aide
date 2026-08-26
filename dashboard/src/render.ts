@@ -46,6 +46,8 @@ export type { NewSpecPageOptions } from "./render/new-spec-page.ts";
 
 export type { NavEntry } from "./render/shell.ts";
 
+export { backLink, resolveBackHref } from "./render/components.ts";
+
 export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/settings-page.ts";
 export type { SettingsPageOptions } from "./render/settings-page.ts";
 

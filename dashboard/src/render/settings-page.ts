@@ -1,5 +1,6 @@
 import { pageShell, type NavEntry } from "./shell.ts";
 import { esc } from "./html.ts";
+import { backLink } from "./components.ts";
 import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
 
 export const SETTINGS_ROUTE = "/settings";
@@ -11,6 +12,11 @@ export interface SettingsPageOptions {
   script?: string;
   error?: string;
   notice?: string;
+  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+   *  request's own `Referer`, same-origin only. Absent falls back to
+   *  `/`, today's exact hardcoded destination. Settings is reachable
+   *  from every page's "…" menu, so this is genuinely unbounded. */
+  backHref?: string;
 }
 
 const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
@@ -20,9 +26,10 @@ const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
 
 export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
   const models = opts.modelChoices;
+  const back = backLink(opts.backHref ?? "/");
   if (!models.length) {
     return pageShell("Settings", entries, SETTINGS_ROUTE,
-      `<main><h1>Settings</h1><p class="muted">No model choices are configured on this server.</p></main>`,
+      `<main>${back}<h1>Settings</h1><p class="muted">No model choices are configured on this server.</p></main>`,
       generatedAt, undefined, { script: opts.script, hideHeading: true });
   }
   const rows = SETTINGS_STEPS.map((step) => {
@@ -41,10 +48,10 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
       `</td></tr>`;
   }).join("");
   const message = opts.error ?? opts.notice ?? "";
-  const body = `<main><h1>Settings</h1><form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
+  const body = `<main>${back}<h1>Settings</h1><form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg warn" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<table><thead><tr><th>Step</th><th>Default AI and model</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<div class="factions"><button class="btn primary" type="submit">Save</button><a class="btn" href="/">Cancel</a></div></form></main>`;
+    `<div class="factions"><button class="btn primary" type="submit">Save</button></div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true,
   });

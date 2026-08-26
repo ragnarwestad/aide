@@ -1079,6 +1079,18 @@ describe("spec 198: the Reopen control", () => {
   });
 });
 
+describe("spec 252: the spec page's own Back link", () => {
+  test("← Back tracks the given backHref", () => {
+    const html = page(view({ backHref: "/?state=all&q=archive" }));
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  test("← Back falls back to / when nothing was given", () => {
+    const html = page();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+});
+
 describe("spec 231: the Reset control", () => {
   test("an active spec offers Reset immediately before Update", () => {
     const html = page(view({ resetAction: "/reset-confirm" }));
@@ -1104,5 +1116,14 @@ describe("spec 231: the Reset control", () => {
     expect(html).toContain(`data-confirm="${view().specFolder}"`);
     expect(html).toContain('name="confirm"');
     expect(html).toContain('name="token" value="t0ken"');
+  });
+
+  // Spec 252, Criteria 7, 8: the bottom Cancel beside Reset is gone —
+  // the top-left "← Back" is the one way out, at the spec's own page,
+  // reached only from that page's Overview banner (no Referer needed).
+  test("no bottom Cancel beside Reset — Back is the one way out, to the spec's own page", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    expect(html).toContain(`<a class="btn" href="/specs/aide/${view().specFolder}">← Back</a>`);
+    expect(html).not.toContain(">Cancel<");
   });
 });

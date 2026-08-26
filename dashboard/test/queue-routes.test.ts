@@ -79,6 +79,86 @@ describe("spec 231: Reset confirmation routes", () => {
   });
 });
 
+describe("spec 252: the spec page's own Back link, read off the Referer header", () => {
+  const auth = { "x-aide-token": TOKEN };
+  const folder = "81-queue-and-runner";
+
+  // Criterion 1.
+  test("a same-origin Referer round-trips into ← Back", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/specs/aide/${folder}`, { headers: { ...auth, referer: `${base}/?state=all&q=archive` } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  // Criterion 4: absent Referer keeps today's exact fallback.
+  test("no Referer at all falls back to /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (await fetch(`${base}/specs/aide/${folder}`, { headers: auth })).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+
+  // Criterion 5.
+  test("a foreign-origin Referer is discarded, falling back to /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/specs/aide/${folder}`, { headers: { ...auth, referer: "https://evil.example/" } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+
+  // Criterion 6: a same-origin Referer carrying a query-string token is
+  // not reflected into the rendered link.
+  test("a Referer carrying token= has it stripped from ← Back", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/specs/aide/${folder}`, {
+        headers: { ...auth, referer: `${base}/?token=${TOKEN}&state=all` },
+      })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/?state=all">← Back</a>');
+  });
+});
+
+describe("spec 252: the job page's own Back link, read off the Referer header", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  const jobId = async (base: string): Promise<string> => {
+    const made = await fetch(`${base}/api/queue`, { method: "POST", headers: AUTH, body: JSON.stringify(JOB) });
+    const { job } = (await made.json()) as { job: { id: string } };
+    return job.id;
+  };
+
+  // Criterion 1.
+  test("a same-origin Referer round-trips into ← Back", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const id = await jobId(base);
+    const html = await (
+      await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN, referer: `${base}/?state=all&q=archive` } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  // Criterion 4: absent Referer keeps today's exact fallback.
+  test("no Referer at all falls back to /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const id = await jobId(base);
+    const html = await (await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+
+  // Criterion 5.
+  test("a foreign-origin Referer is discarded, falling back to /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const id = await jobId(base);
+    const html = await (
+      await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN, referer: "https://evil.example/" } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+});
+
 /** A claude-usage that records the merges the dashboard reports to it
  *  (spec 158). The URL is never reached: what is under test is what the
  *  server decides to send, and to whom. */
@@ -2836,9 +2916,31 @@ describe("GET /new (spec 121)", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('action="/api/queue/create"');
-    expect(html).toContain('<a class="btn" href="/">Cancel</a>');
+    // Spec 252: the bottom Cancel beside Create is gone — the top-left
+    // "← Back" is the one way out, falling back to `/` with no Referer.
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).not.toContain(">Cancel<");
     // No rows, and so nothing for the five-second swap to reach for.
     expect(html).not.toContain('id="jobrows"');
+  });
+
+  // Spec 252, Criterion 2: a reader who pressed "New spec" from a
+  // filtered specs list returns to that exact filter, not to bare `/`.
+  test("with a same-origin Referer, ← Back tracks it instead of the bare fallback", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/new`, { headers: { ...auth.headers, referer: `${base}/?state=all&q=archive` } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  // Criterion 5: a foreign-origin Referer is never followed.
+  test("a foreign-origin Referer is discarded, falling back to /", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const html = await (
+      await fetch(`${base}/new`, { headers: { ...auth.headers, referer: "https://evil.example/" } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
   });
 
   test("the chips name every spec the new one may build on", async () => {
@@ -5716,6 +5818,33 @@ describe("Settings routes (spec 232)", () => {
     const res = await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(200);
     expect(await res.text()).toContain('name="model.implement"');
+  });
+
+  // Spec 252, Criterion 3: Settings is reachable from every page's "…"
+  // menu, so "← Back" tracks whichever one the reader opened it from —
+  // read off the standard Referer header, never a bare `/`.
+  test("← Back tracks a same-origin Referer, criterion 3", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const html = await (
+      await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: `${base}/projects/aide` } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/projects/aide">← Back</a>');
+  });
+
+  // Criterion 4: no Referer at all falls back to today's exact default.
+  test("← Back falls back to / with no Referer, criterion 4", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const html = await (await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
+
+  // Criterion 5: a foreign-origin Referer is discarded, not followed.
+  test("← Back discards a foreign-origin Referer, criterion 5", async () => {
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
+    const html = await (
+      await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: "https://evil.example/" } })
+    ).text();
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {

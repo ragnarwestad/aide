@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { renderSettingsPage } from "../src/render.ts";
-import { CSS } from "../src/render/css.ts";
 
 const MODELS = [
   { name: "sonnet", budgetUsd: 3, tool: "claude" as const },
@@ -52,12 +51,24 @@ describe("Settings page", () => {
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
   });
 
-  // Spec 243: `.factions` (Save/Cancel) carries no gap rule scoped to
-  // this page anywhere in css.ts — every existing home is scoped under
-  // a different parent class.
-  test("Save and Cancel have a visible gap", () => {
-    const body = CSS.match(/#settings-form \.factions\s*\{([^}]*)\}/)?.[1] ?? "";
-    expect(body).toContain("display: flex");
-    expect(body).toContain("gap:");
+  // Spec 252, Criteria 3, 4, 7: the top-left "← Back" replaces the
+  // bottom Cancel this page used to draw beside Save — one control, not
+  // two, and it tracks wherever the reader opened Settings from.
+  test("← Back tracks the given backHref, and there is no bottom Cancel", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+      backHref: "/projects/aide",
+    });
+    expect(html).toContain('<a class="btn" href="/projects/aide">← Back</a>');
+    expect(html).not.toContain(">Cancel<");
+  });
+
+  test("← Back falls back to / when no backHref was given (no Referer)", () => {
+    const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
+      modelChoices: MODELS,
+      defaultModels: { default: "sonnet" },
+    });
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
   });
 });
