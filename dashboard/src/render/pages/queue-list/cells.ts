@@ -274,8 +274,8 @@ const costCell = (
   blank: string,
   unmeasured?: boolean,
 ): string =>
-  spentUsd > 0
-    ? usdOrTokens(spentUsd, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
+  spentUsd > 0 || (spentTokens ?? 0) > 0
+    ? usdOrTokens(spentUsd || undefined, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
     : blank;
 
 /** Whether a job is in flight on this spec — queued, running, or parked
@@ -1075,7 +1075,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           `<td data-col="started">${locked ? lockedDuration(p.timeSpentMs) : phaseDurationCell(latest, p.step, now)}</td>` +
           `<td class="num" data-col="cost">${
             locked
-              ? costCell(p.cost ?? 0, undefined, "", p.costUnmeasured)
+              ? costCell(p.cost ?? 0, p.tokens, "", p.costUnmeasured)
               : latest
                 ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results))
                 : ""

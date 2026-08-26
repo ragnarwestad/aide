@@ -585,9 +585,11 @@ table.list thead a { color: var(--muted); }
    in the row. */
 .archive-duration { white-space: nowrap; }
 /* The search on the Specs list (spec 221), the field the archive page
-   had. A line of its own UNDER the chips rather than on the end of
-   them: that line already carries six chips, the (?) and New spec, and
-   a 26rem field after them wrapped the button onto a row by itself. */
+   had. A line of its own UNDER the chips: at six chips wide, a 26rem
+   field on the same line wrapped the button onto a row by itself. The
+   (?) and New spec moved onto THIS line instead (spec 261) — readers
+   look for them beside the field they are about to use, not above it —
+   and this row already tolerates the extra width by wrapping. */
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
 /* The note saying what the field looks in belongs to the field, not to
@@ -921,22 +923,22 @@ dialog.about::backdrop { background: var(--backdrop); }
 .aboutclose:hover { background: var(--surface-2); color: var(--text); }
 
 /* How runs work: a small question mark at the right-hand end of the
-   filter row, not a block between the page's title and the list the
+   search field's own row (spec 261 moved it there from the filter
+   chips' row), not a block between the page's title and the list the
    reader came for. */
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
 /* The question mark carries the auto margin, so it and the New spec
-   button sit together at the row's right-hand end. */
-#jobrows > .row:first-child > details.intro { margin-left: auto; }
-.row > details.intro { position: relative; }
-.row > details.intro > summary { display: inline-flex; align-items: center;
+   link sit together at the row's right-hand end. */
+.specsearch > details.intro { margin-left: auto; position: relative; }
+.specsearch > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid var(--line-strong); color: var(--muted);
   font-size: var(--fs-s); font-weight: 600; list-style: none; cursor: pointer; }
-.row > details.intro > summary::-webkit-details-marker { display: none; }
-.row > details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
-.row > details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
+.specsearch > details.intro > summary::-webkit-details-marker { display: none; }
+.specsearch > details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
+.specsearch > details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
   z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
   background: var(--surface); border: 1px solid var(--line-strong);
   border-radius: var(--r); box-shadow: var(--overlay-shadow); }

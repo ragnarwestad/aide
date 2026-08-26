@@ -354,7 +354,7 @@ export const isArchivedRow = (g: SpecGroup): boolean =>
  *  an archived one — the "across active AND archived" half of spec 221
  *  falls out of there being one row shape rather than two. */
 const haystack = (g: SpecGroup): string =>
-  `${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
+  `${g.project}:${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
 
 /** A term of nothing but spaces is no search at all: it must not empty
  *  the list. */
@@ -570,6 +570,7 @@ export interface Phase {
   timeSpentMs?: number;
   cost?: number;
   costUnmeasured?: boolean;
+  tokens?: number;
 }
 
 export interface SpecGroup {
@@ -858,6 +859,13 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     state: s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
     spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
     costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
+    // Spec 260: the sibling roll-up for a Codex-only archive, which has
+    // no `cost` on any phase outcome to sum above — `undefined` (never
+    // 0) when nothing recorded a token figure either, same "absent, not
+    // zero" rule `cost` already follows.
+    spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
+      ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
+      : undefined,
     branches: [],
     // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
     // format — wins over `s.models[step]` — spec 244's old,
@@ -874,6 +882,7 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
         timeSpentMs: outcome?.timeSpentMs,
         cost: outcome?.cost,
         costUnmeasured: outcome?.costUnmeasured,
+        tokens: outcome?.tokens,
       };
     }),
     done: s.done,
