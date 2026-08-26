@@ -1,5 +1,6 @@
-// The six things this dashboard is built from: a button, a status
-// badge, a phase chip, a row-level message, a field and a filter pill.
+// The seven things this dashboard is built from: a button, a status
+// badge, a phase chip, a row-level message, a field, a filter pill and
+// a back link.
 //
 // They live in ONE file with one call site each, because the problem
 // they solve was not that the stylesheet was ugly — it was that every
@@ -322,6 +323,48 @@ export function field(
  *  every form on it needs the same field the spec list's do. */
 export const tokenField = (token?: string): string =>
   token ? `<input type="hidden" name="token" value="${esc(token)}">` : "";
+
+// --- back link -------------------------------------------------------------------
+
+/** The one back-navigation control every subpage carries, top-left,
+ *  labelled "← Back" (spec 252) — replacing the three different
+ *  treatments this dashboard drew for it (a bare `<a>` inside `.intro`,
+ *  a `.btn` anchor with no wrapper, a `.btn` "Cancel" beside the primary
+ *  action) with one. `.intro` is reused rather than invented: it is
+ *  already the spacing rule `tabbedBody()` relies on for exactly this
+ *  line. */
+export function backLink(href: string): string {
+  return `<p class="intro"><a class="btn" href="${esc(href)}">← Back</a></p>`;
+}
+
+/** Where "← Back" actually goes, from the standard `Referer` request
+ *  header (spec 252) — never from a query parameter a reader could put
+ *  in a shared link, which is why `serve.ts` is the only caller. A
+ *  string ultimately sourced from the client, reflected into a link the
+ *  reader's own browser will follow, is a standard open-redirect
+ *  surface; same-origin is the guard.
+ *
+ *  `token` is stripped from a kept referer: the server prefers the
+ *  header, the query string and the cookie for it (`tokenField`'s own
+ *  comment), and reflecting one page's query-string token into another
+ *  page's link would put a credential-shaped value where it does not
+ *  need to be, sent again on the next click. */
+export function resolveBackHref(
+  referer: string | null,
+  requestOrigin: string,
+  fallback: string,
+): string {
+  if (!referer) return fallback;
+  let refUrl: URL;
+  try {
+    refUrl = new URL(referer);
+  } catch {
+    return fallback;
+  }
+  if (refUrl.origin !== requestOrigin) return fallback;
+  refUrl.searchParams.delete("token");
+  return refUrl.pathname + refUrl.search;
+}
 
 // --- typed confirmation ----------------------------------------------------------
 

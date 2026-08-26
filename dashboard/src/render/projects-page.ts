@@ -14,6 +14,7 @@
 // "Projects", hid both.
 
 import {
+  backLink,
   btn,
   field,
   messageSlot,
@@ -225,6 +226,7 @@ export function renderAddProjectPage(
     return proposed ? `value="${esc(proposed)}" ` : "";
   };
   const body =
+    backLink("/projects") +
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // The copy 1-description.md asks for, before the form rather than
     // in a doc nobody has open: what is written here is the least a
@@ -319,7 +321,6 @@ export function renderAddProjectPage(
     ) +
     `<span class="factions">` +
     btn({ label: "Save", variant: "primary", pending: "saving…" }) +
-    `<a class="btn" href="/projects">Cancel</a>` +
     `</span></span>` +
     messageSlot("refused") +
     `</form>`;
@@ -340,6 +341,7 @@ export function renderRemoveProjectPage(
   opts: ProjectsPageOptions,
 ): string {
   const body =
+    backLink("/projects") +
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     rowMessage(
       "info",
@@ -351,7 +353,6 @@ export function renderRemoveProjectPage(
     tokenField(opts.token) +
     `<span class="frow">` +
     typedConfirm({ target: name, label: "Type the name to remove it", button: "Remove", pending: "removing…" }) +
-    `<a class="btn" href="/projects">Cancel</a>` +
     `</span>` +
     messageSlot("refused") +
     `</form>`;

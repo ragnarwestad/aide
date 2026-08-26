@@ -17,7 +17,7 @@ import type { StatusInfo } from "../parse-status.ts";
 import type { ManifestResult } from "../parse-manifest.ts";
 import type { ProjectReadiness } from "../project-admin.ts";
 import type { ProjectSettingsView, SettingRow } from "../project-settings.ts";
-import { btn, field, messageSlot, rowMessage, tokenField } from "./components.ts";
+import { backLink, btn, field, messageSlot, rowMessage, tokenField } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
@@ -275,8 +275,7 @@ export function renderProjectPage(
   nav: NavEntry[],
   opts: ProjectPageOptions,
 ): string {
-  const actions = `<div class="project-actions"><a class="btn" href="${PROJECTS_ROUTE}">← Back</a></div>`;
-  const body = actions + runConfigurationBlock(settings, readiness, p.name, opts);
+  const body = backLink(PROJECTS_ROUTE) + runConfigurationBlock(settings, readiness, p.name, opts);
   return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt, undefined, { script: opts.script });
 }
 

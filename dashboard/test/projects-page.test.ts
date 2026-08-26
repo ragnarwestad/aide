@@ -241,10 +241,15 @@ describe("the Add page", () => {
     expect(html).toContain('class="refused rowmsg err"');
   });
 
-  test("Save and Cancel — Save posts, Cancel is a plain link to the list", () => {
+  // Spec 252: the bottom Cancel beside Save is gone — the top-left
+  // "← Back" is the one way out, at the destination Cancel used to be
+  // hardcoded to (this page is reached only from the query-param-free
+  // Projects list, so there is no state a dynamic Referer read would add).
+  test("Save posts, and Back — not a bottom Cancel — is the one way out", () => {
     const html = add();
     expect(html).toContain(">Save</button>");
-    expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
+    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).not.toContain(">Cancel<");
   });
 
   test("it says the manifest it writes is minimal", () => {
@@ -309,7 +314,10 @@ describe("the Remove page", () => {
     expect(html).toContain('data-confirm="atlasaurus"');
     expect(html).toContain('action="/api/queue/projects/atlasaurus/remove"');
     expect(html).not.toContain("disabled");
-    expect(html).toContain('<a class="btn" href="/projects">Cancel</a>');
+    // Spec 252: the bottom Cancel beside Remove is gone — the top-left
+    // "← Back" is the one way out.
+    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).not.toContain(">Cancel<");
   });
 
   // Spec 161 made every row action on the queue primary, Cancel

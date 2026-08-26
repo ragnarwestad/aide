@@ -340,9 +340,8 @@ const STRUCTURE = [
   // the row's name is stretched across the whole row by an ::after
   // overlay (spec 233), so a press anywhere on it opens the project;
   // "proj-row-action" lifts the Remove button back above that overlay,
-  // which is the only reason either class exists. "project-actions" is
-  // the line of buttons at the top of a project's own page.
-  "proj-row-link", "proj-row-action", "project-actions",
+  // which is the only reason either class exists.
+  "proj-row-link", "proj-row-action",
   // a project's own settings, edited where they are read (spec 236):
   // the current values in read mode, and the disclosure that turns the
   // three editable ones into the form. Both are project-scoped because

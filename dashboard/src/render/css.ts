@@ -867,9 +867,6 @@ td form { margin: 0; display: inline-block; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
-/* Settings' Save/Cancel (spec 243): no existing .factions home
-   reaches this page's bare #settings-form. */
-#settings-form .factions { display: flex; gap: var(--sp-2); }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,
@@ -983,7 +980,6 @@ tr.steplog td { padding-top: 0; }
 .proj-row > div:first-child { flex: 1; min-width: 0; }
 .proj-row-link::after { content: ""; position: absolute; inset: 0; }
 .proj-row-action { position: relative; z-index: 1; }
-.project-actions { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-4); }
 .project-settings-values { margin-bottom: var(--sp-3); }
 .project-settings-values p { margin: var(--sp-1) 0; }
 .project-settings-editor { margin: var(--sp-3) 0 var(--sp-4); }

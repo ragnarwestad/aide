@@ -18,7 +18,7 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "./components.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "./components.ts";
 import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
 import {
@@ -60,6 +60,10 @@ export interface NewSpecPageOptions {
    *  (or the table's `default`) can matter here: a create job runs that
    *  one step. */
   defaultModels?: QueuePageOptions["defaultModels"];
+  /** Where "← Back" goes (spec 252) — resolved by `serve.ts` from the
+   *  request's own `Referer`, same-origin only. Absent falls back to
+   *  `/`, today's exact hardcoded destination. */
+  backHref?: string;
 }
 
 // What a spec builds on (spec 110). One chip per active spec, newest
@@ -187,9 +191,6 @@ function newSpecForm(opts: NewSpecPageOptions, projects: string[]): string {
     ) +
     `<span class="factions">` +
     btn({ label: "Create", variant: "primary", pending: "creating…" }) +
-    // Out, having done nothing. A plain link, so it needs no script and
-    // cannot post: there is nothing for a Cancel to send.
-    `<a class="btn" href="/">Cancel</a>` +
     `</span></span>` +
     // The slot a refusal is written into. A rejected create names a spec
     // that was never made, so there is no row for the reason to land on
@@ -207,7 +208,7 @@ export function renderNewSpecPage(
 ): string {
   const projects = opts.createProjects ?? [];
   const body =
-    `<a class="btn" href="/">← Back</a>\n` +
+    backLink(opts.backHref ?? "/") +
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     (projects.length

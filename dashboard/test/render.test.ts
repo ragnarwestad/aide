@@ -758,6 +758,23 @@ describe("renderJobDetailPage", () => {
     );
     expect(html).not.toContain("Live right now");
   });
+
+  // Spec 252, Criterion 1: the page's own "← Back" tracks wherever the
+  // reader came from, rather than the bare `/` it always fell back to —
+  // the first test this control has ever had.
+  test("← Back tracks the given backHref", () => {
+    const html = renderJobDetailPage(
+      detail({ backHref: "/?state=all&q=archive" }),
+      "2026-08-16T10:05:00Z",
+      NAV,
+    );
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  test("← Back falls back to / when nothing was given", () => {
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+  });
 });
 
 // The two things the page says — what the job is, what it has done and
@@ -2495,7 +2512,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // which in the markup means after it. Reworked again by spec 228:
   // Project shares its row with the Model choice instead, and Depends
   // on drops to a full-width row of its own.
-  test("the page carries Project, Depends on, Title, Description, Create, Cancel — in that order", () => {
+  test("the page carries Project, Depends on, Title, Description, Create — in that order", () => {
     const html = newPage({
       targets: [
         { project: "aide", specFolder: "92-a-spec-can-depend" },
@@ -2513,7 +2530,6 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
       '<input type="text" name="title"',
       '<textarea name="description"',
       "Create</button>",
-      "Cancel</a>",
     ].map(at);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // The rows themselves: Project leads the first, Description+actions
@@ -2540,9 +2556,12 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // Criterion 5: Cancel does nothing but leave. A plain `<a href="/">`
   // is what makes "no request against /api/queue/create" true
   // structurally — there is no script for it to depend on.
-  test("Cancel is a plain link home, not a button", () => {
+  // Spec 252: the bottom Cancel beside Create is gone — the top Back
+  // link is the one plain link home now, and it is a link either way,
+  // never a button that could post.
+  test("no bottom Cancel beside Create — Back is the one way out", () => {
     const html = newPage();
-    expect(html).toContain('<a class="btn" href="/">Cancel</a>');
+    expect(html).not.toContain('<a class="btn" href="/">Cancel</a>');
     expect(html).not.toContain('name="cancel"');
   });
 
@@ -2578,6 +2597,22 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html.indexOf("← Back</a>")).toBeLessThan(
       html.indexOf('action="/api/queue/create"'),
     );
+  });
+
+  // Spec 252, Criterion 2: the filtered specs-list URL a reader pressed
+  // "New spec" from survives the round trip.
+  test("Back tracks the given backHref", () => {
+    const html = newPage({ backHref: "/?state=all&q=archive" });
+    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+  });
+
+  // Criteria 2, 7: one back-navigation control, never two — the bottom
+  // Cancel this page used to draw beside Create is gone, its job done by
+  // the top Back link.
+  test("exactly one back-navigation control, no separate Cancel", () => {
+    const html = newPage();
+    expect(html.match(/← Back/g)).toHaveLength(1);
+    expect(html).not.toContain(">Cancel<");
   });
 
   // Criterion 1.
