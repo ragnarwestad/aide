@@ -10,11 +10,11 @@ import {
   existsSync, mkdirSync, readFileSync, rmSync, watch,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import { AideRunStore, parseAideRun } from "../queue/aide-run-store.ts";
 import {
-  BranchStatusChecker, createGitRunner, projectCheckout, specBranch, DEFAULT_TTL_MS,
+  BranchStatusChecker, createGitRunner, projectCheckout, DEFAULT_TTL_MS,
   type GitRunner,
 } from "../git/branch-status.ts";
 import {
@@ -28,13 +28,12 @@ import {
   CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
   dashboardCheckoutRoot,
-  dashboardSpecDir,
   ensureDashboardCheckout,
   type DashboardCheckout,
 } from "../git/dashboard-checkout.ts";
 import { LiveEnricher } from "../integrations/live.ts";
 import {
-  discoverProjects, resolveCodeLanding, resolveSchedule, specDependsOn,
+  discoverProjects, resolveCodeLanding, resolveSchedule,
   type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
 import {
@@ -65,7 +64,7 @@ import {
   navFromSite,
   serveStatic,
   runnerArgv,
-  DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, resolveDependencyFolder,
+  DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency,
 } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
@@ -97,6 +96,19 @@ import { jobRow as jobRowImpl, type JobRowContext } from "./job-row.ts";
 import {
   persistAllowlist as persistAllowlistImpl, answerProjectChange, type ProjectActionsContext,
 } from "./project-actions.ts";
+import {
+  specRoots as specRootsImpl,
+  rootsStillHolding as rootsStillHoldingImpl,
+  peekUnlanded as peekUnlandedImpl,
+  peekUnlandedCheckedAt as peekUnlandedCheckedAtImpl,
+  specDir as specDirImpl,
+  specRef as specRefImpl,
+  dependencyFolders as dependencyFoldersImpl,
+  specsRoot as specsRootImpl,
+  machinerySpecDir as machinerySpecDirImpl,
+  peekMachinerySpecDir as peekMachinerySpecDirImpl,
+  type SpecLookupContext,
+} from "./spec-lookup.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -364,237 +376,6 @@ export function createServer(opts: ServerOptions) {
    *  catch. */
   let prOpen: string[] = [];
 
-  /** The two repositories a spec's work can be open in — the same pair
-   *  the dependency gate asks across, and for the same reason: a spec
-   *  merged in the code repo but not in the specs repo is not merged. */
-  const specRoots = (project: string): string[] => {
-    const code = machineryProjectDir(project);
-    const specs = machinerySpecsRoot(project);
-    const both = specs && resolve(specs) !== resolve(code) ? [code, specs] : [code];
-    // Only roots that are THERE. A project with no specs root configured
-    // resolves to `<project>/specs`, and two projects on this host have
-    // never had one — asking git about a directory that does not exist
-    // is not an unanswerable question, it is a question about nothing.
-    return both.filter((d) => existsSync(d));
-  };
-
-  /** Which of a project's roots still have `branch` on origin. A root
-   *  that cannot be ASKED contributes nothing: an unanswerable question
-   *  is not evidence, either way. */
-  const rootsStillHolding = async (
-    project: string,
-    branch: string,
-    fresh: boolean,
-  ): Promise<string[]> => {
-    const held: string[] = [];
-    for (const root of specRoots(project)) {
-      const open = await branchStatus.openSpecBranches(root, fresh);
-      if (open?.has(branch)) held.push(root);
-    }
-    return held;
-  };
-
-  /** Rebuild `unlanded` from one `ls-remote` per ROOT — never one per
-   *  spec. The archived keys come off the scan the page already keeps,
-   *  and the intersection is done in memory. */
-  const peekUnlanded = (): string[] => {
-    targets();
-    const keys = scan?.archived ?? [];
-    if (keys.length === 0) {
-      prOpen = [];
-      return (unlanded = []);
-    }
-    const byProject = new Map<string, string[]>();
-    for (const key of keys) {
-      const cut = key.indexOf("/");
-      const project = key.slice(0, cut);
-      const list = byProject.get(project);
-      if (list) list.push(key.slice(cut + 1));
-      else byProject.set(project, [key.slice(cut + 1)]);
-    }
-    const found: string[] = [];
-    const reviewing: string[] = [];
-    for (const [project, folders] of byProject) {
-      const open = new Set<string>();
-      // Kept apart from the union above (spec 220): which ROOT holds a
-      // branch is what tells "waiting on a review" from "the landing did
-      // not finish", and folding the roots together loses it.
-      const elsewhere = new Set<string>();
-      const codeRoot = machineryProjectDir(project);
-      const pr = codeLanding(project) === "pr";
-      // A specs root INSIDE the project is the same repository, so it
-      // holds the same one branch and answers `ls-remote` identically —
-      // `specRoots` asks it separately because it compares paths, not
-      // repos. Counting that as a second root would call every
-      // single-repo project's review a failed landing, and paceup and
-      // atlasaurus are both shaped that way.
-      const separate = (root: string): boolean =>
-        root !== codeRoot && !resolve(root).startsWith(resolve(codeRoot) + sep);
-      for (const root of specRoots(project)) {
-        // A root nobody has asked about yet peeks `null`, and `?? []`
-        // makes it contribute nothing — the same way an unanswerable
-        // one already did. That is what keeps this failing closed
-        // without any new logic to get wrong.
-        for (const branch of branchStatus.peekOpenSpecBranches(root).open ?? []) {
-          open.add(branch);
-          if (separate(root)) elsewhere.add(branch);
-        }
-      }
-      for (const folder of folders) {
-        const branch = specBranch(folder);
-        if (!open.has(branch)) continue;
-        found.push(`${project}/${folder}`);
-        if (pr && !elsewhere.has(branch)) reviewing.push(`${project}/${folder}`);
-      }
-    }
-    prOpen = reviewing;
-    return (unlanded = found);
-  };
-
-  /** When the set was last taken, for the archive page's own label: an
-   *  answer this old is SHOWN with its age rather than withheld, the
-   *  same treatment `driftNote` gives the commits-behind count. The
-   *  OLDEST of the roots asked, because the badge speaks for all of
-   *  them, and `null` where any root has never been asked at all. */
-  const peekUnlandedCheckedAt = (): number | null => {
-    targets();
-    const keys = scan?.archived ?? [];
-    let oldest: number | null = null;
-    for (const key of keys) {
-      for (const root of specRoots(key.slice(0, key.indexOf("/")))) {
-        const { checkedAt } = branchStatus.peekOpenSpecBranches(root);
-        if (checkedAt === null) return null;
-        oldest = oldest === null ? checkedAt : Math.min(oldest, checkedAt);
-      }
-    }
-    return oldest;
-  };
-
-  /** A spec's folder on this host, archived or not. Goes through
-   *  `targets()` so it shares the 5-second scan rather than walking the
-   *  projects root again — but what it returns is only WHERE the files
-   *  are; the files themselves are read fresh on every request, which
-   *  is the whole point of the Update button. */
-  const specDir = (project: string, specFolder: string): string | undefined => {
-    targets();
-    return scan?.dirs.get(`${project}/${specFolder}`);
-  };
-  /** What that spec IS — its title, and whether it has been archived
-   *  (spec 163). Through the same 5-second scan `specDir` goes through,
-   *  and unlike `targets()` it answers for an archived spec too. */
-  const specRef = (project: string, specFolder: string): SpecRef | undefined => {
-    targets();
-    return scan?.refs.get(`${project}/${specFolder}`);
-  };
-  /** What a spec's `Depends on:` line RESOLVES to, folder by folder
-   *  (spec 174) — which boxes the Edit page's picker ticks.
-   *
-   *  Through `resolveDependencyFolder`, the same reader the save route
-   *  and the runtime gate use, because the line is written by hand as
-   *  often as by the page and `164` is what a person types. An
-   *  identifier nothing matches simply ticks nothing: this is a form
-   *  being drawn, not a run being gated, and the refusal for a typo
-   *  belongs to Save and to `aide-run-spec`.
-   *
-   *  Not `targets()`: an entry may name an already-archived spec, which
-   *  that scan drops. Such an entry ticks no box either — the picker
-   *  offers live specs only — but it must not be mistaken for one that
-   *  resolves to a live one. */
-  const dependencyFolders = (project: string, dir: string): string[] => {
-    const ids = specDependsOn(dir);
-    if (ids.length === 0 || !opts.projectRoot) return [];
-    const discovered = discoverProjects(opts.projectRoot).find((p) => p.name === project);
-    if (!discovered) return [];
-    return ids.flatMap((id) => {
-      const dep = resolveDependencyFolder(discovered, id);
-      return dep && !dep.archived ? [dep.folder] : [];
-    });
-  };
-
-  /** The checkout a spec folder sits in — the lock key for everything
-   *  that touches the specs repository (spec 162).
-   *
-   *  `createRootLock`'s own docstring says what it is for: "per repo
-   *  ROOT, not global: two requests that touch no directory in common
-   *  cannot collide." The Update button was locking on `specDir(...)`,
-   *  the individual spec's subfolder, and every project and every spec
-   *  in a specs checkout shares ONE `.git` — so two presses on
-   *  different specs were given different keys and ran two git
-   *  sequences in one working tree. Latent while the only write was a
-   *  fast-forward merge; not latent beside a Save that writes, commits
-   *  and pushes.
-   *
-   *  Read-only and outside the lock, which is where it has to be: it is
-   *  what decides which lock to take. A directory git will not answer
-   *  for keys on itself, which is what the routes did before and is no
-   *  worse — the save's own first question refuses it by name. */
-  const specsRoot = async (dir: string): Promise<string> => {
-    const top = await gitRun(dir, ["rev-parse", "--show-toplevel"]);
-    return top.code === 0 && top.stdout.trim() ? top.stdout.trim() : dir;
-  };
-
-  /** The dashboard's own copy of the spec folder the display found
-   *  (spec 205). Save COMMITS and PUSHES, and Update merges — all three
-   *  are writes, and the checkout a person edits stopped taking writes
-   *  from the dashboard.
-   *
-   *  The translation is needed rather than a second closure because the
-   *  routes do not resolve a project root at all: `specDir()` hands them
-   *  a directory off the scan of the projects root, and what they need
-   *  is the same folder inside the clone the dashboard owns.
-   *
-   *  Falls back to the person's folder when there is no such clone —
-   *  see `ensureCheckout`: a project the dashboard cannot clone keeps
-   *  working exactly as it did before this spec. */
-  const machinerySpecDir = async (project: string, dir: string): Promise<string> => {
-    // The cached answer where there is one: this runs on every spec
-    // page, every edit form and every save, and `ensureDashboardCheckout`
-    // spawns git twice to work out where a project's specs are. Boot,
-    // the runner's tick and the Settings route all re-ensure, so a
-    // specs root that moves still reaches this map.
-    const checkout = resolvedCheckouts.get(project) ?? (await ensureCheckout(project));
-    if (!checkout) return dir;
-    targets();
-    const personSpecs = scan?.specsRoots.get(project);
-    const translated = personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null;
-    return translated ?? dir;
-  };
-
-  /** The same translation, without ever awaiting a clone (spec 208).
-   *
-   *  `ensureCheckout` is started at boot for every allowed project, but
-   *  a clone of this very repo measured 4.3 s (spec 205's own analysis)
-   *  — so a spec page opened during the first minutes of a restart
-   *  joined that promise and held the reader for its whole duration,
-   *  showing the OLD page unchanged while it did. That is the literal
-   *  shape of "the app answers at once and never waits on git" stated
-   *  as a bug.
-   *
-   *  So "not made yet" now behaves exactly as "cannot be made" already
-   *  did: fall back to the person's own folder, which is what every
-   *  project used before spec 205 existed and what a project the
-   *  dashboard cannot clone still uses. The clone goes on in the
-   *  background and the next view reads through it.
-   *
-   *  READ paths only, and only the ones with no form on them.
-   *  `machinerySpecDir` is untouched and its other callers still await:
-   *  the spec page's own Description TAB (spec 212, where `/edit` used
-   *  to be) has to read through the SAME checkout Save will later write
-   *  through, or Save's compare-stamp check refuses as "changed since
-   *  you opened it" the first time anyone edits a spec shortly after a
-   *  restart. */
-  const peekMachinerySpecDir = (project: string, dir: string): string => {
-    const checkout = resolvedCheckouts.get(project);
-    if (!checkout) {
-      // Started, not waited on — so a page opened before the boot-time
-      // ensure settles still gets the clone going for the next one.
-      void ensureCheckout(project);
-      return dir;
-    }
-    targets();
-    const personSpecs = scan?.specsRoots.get(project);
-    return (personSpecs ? dashboardSpecDir(checkout, personSpecs, dir) : null) ?? dir;
-  };
 
   const resolveProject: ProjectResolver = (project) => {
     if (!allowed.has(project)) return null;
@@ -882,6 +663,53 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+
+  const specLookupCtx: SpecLookupContext = {
+    machineryProjectDir,
+    machinerySpecsRoot,
+    branchStatus,
+    codeLanding,
+    targets,
+    readScan: () => scan,
+    projectRoot: opts.projectRoot,
+    gitRun,
+    resolvedCheckouts,
+    ensureCheckout,
+  };
+  function specRoots(project: string) {
+    return specRootsImpl(specLookupCtx, project);
+  }
+  function rootsStillHolding(project: string, branch: string, fresh: boolean) {
+    return rootsStillHoldingImpl(specLookupCtx, project, branch, fresh);
+  }
+  function peekUnlanded(): string[] {
+    const result = peekUnlandedImpl(specLookupCtx);
+    unlanded = result.unlanded;
+    prOpen = result.prOpen;
+    return unlanded;
+  }
+  function peekUnlandedCheckedAt() {
+    return peekUnlandedCheckedAtImpl(specLookupCtx);
+  }
+  function specDir(project: string, specFolder: string) {
+    return specDirImpl(specLookupCtx, project, specFolder);
+  }
+  function specRef(project: string, specFolder: string) {
+    return specRefImpl(specLookupCtx, project, specFolder);
+  }
+  function dependencyFolders(project: string, dir: string) {
+    return dependencyFoldersImpl(specLookupCtx, project, dir);
+  }
+  function specsRoot(dir: string) {
+    return specsRootImpl(specLookupCtx, dir);
+  }
+  function machinerySpecDir(project: string, dir: string) {
+    return machinerySpecDirImpl(specLookupCtx, project, dir);
+  }
+  function peekMachinerySpecDir(project: string, dir: string) {
+    return peekMachinerySpecDirImpl(specLookupCtx, project, dir);
+  }
+
   // How long ONE spec answer stands, and how often it is retaken, are
   // the same number since spec 208 — because nothing but the schedule
   // takes them any more. Two numbers here is how a fast schedule
