@@ -78,6 +78,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
       backHref: "/projects/aide",
     });
     expect(html).toContain('<a class="btn" href="/projects/aide">← Back</a>');
@@ -88,6 +89,7 @@ describe("Settings page", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
+      budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
     expect(html).toContain('<a class="btn" href="/">← Back</a>');
   });

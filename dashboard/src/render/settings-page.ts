@@ -69,7 +69,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     `name="jobCapUsd" value="${opts.jobCapUsd}"></label></p>` +
     noModelsNote +
     `<table><thead><tr><th>Step</th>${modelHeader}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
-    `<div class="factions"><button class="btn primary" type="submit">Save</button><a class="btn" href="/">Cancel</a></div></form></main>`;
+    `<div class="factions"><button class="btn primary" type="submit">Save</button></div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true,
   });
