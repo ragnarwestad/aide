@@ -242,6 +242,8 @@ const JS_HOOKS = [
   // spec 112: the Projects panel — the Add form and one Remove per
   // allowlisted project.
   "addprojectform", "removeform",
+  // spec 258: the Deploy button on a project's own page.
+  "deployform",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks

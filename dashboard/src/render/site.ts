@@ -18,7 +18,7 @@ import type { ManifestResult } from "../parse-manifest.ts";
 import type { ProjectReadiness } from "../project-admin.ts";
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../project-settings.ts";
 import { backLink, btn, messageSlot, rowMessage, tokenField } from "./components.ts";
-import { esc } from "./html.ts";
+import { esc, relTimeLabel } from "./html.ts";
 import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
 
 export interface SpecView extends SpecRef {
@@ -270,6 +270,69 @@ function unifiedSettingsTable(
   );
 }
 
+/** The last drift answer the server holds for a project (spec 203).
+ *  `checkedAt` is `null` only where nothing has ever been asked — a
+ *  fresh boot, or a project just added; `behind: null` with a real
+ *  `checkedAt` is the fail-open case, asked and unanswerable. */
+export interface ProjectDrift {
+  behind: number | null;
+  checkedAt: number | null;
+}
+
+/** And what a project's row says for a check the schedule has not
+ *  reached yet. A count nobody has taken is not zero. */
+export const UNCHECKED_NOTE = "origin drift not checked yet";
+
+/** The shared half of the drift sentence — one wording source, two
+ *  endings (spec 258): the list's own `driftNote` in `projects-page.ts`
+ *  appends " — deploy is a hand step", which would contradict the
+ *  Deploy button this file draws right beside the same words. */
+export const driftPrefix = (behind: number, checkedAt: number, now: number): string =>
+  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
+  `${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
+
+/** Plainly whether this checkout is behind origin, and — only when it
+ *  is, and only when a deploy step is configured — a button that brings
+ *  it up to date and deploys it in one action (spec 258).
+ *
+ *  `drift` undefined means ungated: no `AIDE_INSTALL_CMD`. Unlike the
+ *  `/projects` list — which omits an ungated project's row-note
+ *  entirely, to avoid noise on every row — this page keeps the section
+ *  and says plainly why there is nothing to act on.
+ *
+ *  A real `drift` still carries three further states, never collapsed
+ *  into one: unchecked (`checkedAt === null`), level (`behind === 0`),
+ *  and asked-but-unanswerable (`behind === null` with a real
+ *  `checkedAt` — the fail-open case). The last of those draws no
+ *  message and no button at all — the same silence the list's own
+ *  `note` computation falls back to for it. */
+function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
+  const drift = opts.drift;
+  if (!drift) {
+    return `<h3>Deploy</h3>` +
+      rowMessage(
+        "info",
+        "No AIDE_INSTALL_CMD is configured for this project, so its origin drift is not tracked here.",
+      );
+  }
+  const behind = drift.checkedAt !== null ? drift.behind : null;
+  const message =
+    drift.checkedAt === null ? rowMessage("warn", UNCHECKED_NOTE)
+    : behind ? rowMessage("warn", driftPrefix(behind, drift.checkedAt, now))
+    : behind === 0 ? rowMessage("info", "This checkout is level with origin.")
+    : ""; // asked, unanswerable — no claim, never a guess
+  const button = behind
+    ? `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/deploy" class="deployform">` +
+      tokenField(opts.token) +
+      btn({ label: "Deploy", variant: "primary", pending: "deploying…" }) +
+      messageSlot("refused") +
+      `</form>`
+    : "";
+  return `<h3>Deploy</h3>` +
+    (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
+    message + button;
+}
+
 /** The settings the config file decides, and whether a run could start
  *  here at all — the two things a project's page never said (spec 185).
  *
@@ -282,6 +345,7 @@ function runConfigurationBlock(
   readiness: ProjectReadiness | null,
   name: string,
   opts: ProjectPageOptions,
+  now: number,
 ): string {
   // "No file" and "a file that sets nothing" are different states, and
   // the first is the ordinary one for a project cloned onto a second
@@ -309,7 +373,8 @@ function runConfigurationBlock(
               : rowMessage("warn", c.detail),
         )
         .join("");
-  return `<h3>Settings</h3>` + noFile + unifiedSettingsTable(settings, name, opts.editing, opts) + checks;
+  return `<h3>Settings</h3>` + noFile + unifiedSettingsTable(settings, name, opts.editing, opts) +
+    deploySection(name, opts, now) + checks;
 }
 
 export interface ProjectPageOptions {
@@ -322,6 +387,13 @@ export interface ProjectPageOptions {
    *  read-only view. */
   editing: boolean;
   error?: string;
+  /** This checkout's last drift answer (spec 258), `undefined` when no
+   *  `AIDE_INSTALL_CMD` is configured — the same gate `/projects`' own
+   *  drift map uses. */
+  drift?: ProjectDrift;
+  /** Why the last Deploy press was refused, or what its install step
+   *  reported — carried back in the query string, like `error`. */
+  deployError?: string;
 }
 
 /** Where a project's own page is SERVED (spec 185). The generated
@@ -340,7 +412,12 @@ export function renderProjectPage(
   nav: NavEntry[],
   opts: ProjectPageOptions,
 ): string {
-  const body = backLink(PROJECTS_ROUTE) + runConfigurationBlock(settings, readiness, p.name, opts);
+  // The clock the drift note's freshness label is measured against —
+  // the page's own stamp, the same way `renderProjectsPage` derives one
+  // from `generatedAt` rather than taking a second "now" nobody asked for.
+  const stamped = Date.parse(generatedAt);
+  const now = Number.isNaN(stamped) ? Date.now() : stamped;
+  const body = backLink(PROJECTS_ROUTE) + runConfigurationBlock(settings, readiness, p.name, opts, now);
   return pageShell(p.name, nav, projectPagePath(p.name), body, generatedAt, undefined, { script: opts.script });
 }
 

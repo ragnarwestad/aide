@@ -16,7 +16,7 @@
 // `aide-run-spec` (2-analysis.md, "the merge shape to reuse").
 
 import { describe, expect, test } from "bun:test";
-import { mergeBranchIntoDefault } from "../src/branch-merge.ts";
+import { fastForwardToOrigin, mergeBranchIntoDefault } from "../src/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "./helpers/fake-git.ts";
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
@@ -540,5 +540,74 @@ describe("mergeBranchIntoDefault: reason is set at exactly two refusals", () => 
     const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
     expect(result.ok).toBe(true);
     expect(result.reason).toBeUndefined();
+  });
+});
+
+// Spec 258: the Deploy button's whole job — a checkout that fell behind
+// because a merge landed somewhere other than this dashboard's own
+// Merge button, so there is nothing to merge IN, only to fast-forward.
+// Steps 2-3 of `mergeBranchIntoDefault` alone, with no feature branch.
+describe("fastForwardToOrigin", () => {
+  test("fetches and fast-forwards, and merges or pushes nothing", async () => {
+    const git = fakeGit({
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+    });
+    const result = await fastForwardToOrigin(git.run, ROOT, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(argv(git.calls)).toContain("fetch --quiet origin master");
+    expect(ran(git.calls, "merge")).toBe(false);
+    expect(ran(git.calls, "push")).toBe(false);
+  });
+
+  test("refuses, naming both branches, when not standing on base (criterion 7)", async () => {
+    const git = fakeGit({ "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature-x\n" } });
+    const result = await fastForwardToOrigin(git.run, ROOT, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("feature-x");
+    expect(result.error).toContain("master");
+    expect(ran(git.calls, "fetch")).toBe(false);
+    expect(ran(git.calls, "pull")).toBe(false);
+  });
+
+  test("refuses when the pull fails", async () => {
+    const git = fakeGit({
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "master\n" },
+      fetch: { code: 0 },
+      pull: { code: 1, stderr: "fatal: Not possible to fast-forward, aborting." },
+    });
+    const result = await fastForwardToOrigin(git.run, ROOT, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(ROOT);
+  });
+
+  test("the index-lock retry: a lock that clears lets the pull through", async () => {
+    let pulls = 0;
+    const calls: GitCall[] = [];
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (a.startsWith("pull")) {
+        pulls++;
+        return pulls <= 1
+          ? { code: 1, stdout: "", stderr: "fatal: Unable to create '/repos/aide/.git/index.lock': File exists." }
+          : { code: 0, stdout: "" };
+      }
+      return { code: 0, stdout: "" };
+    };
+    const result = await fastForwardToOrigin(run, ROOT, "master");
+    expect(result).toEqual({ root: ROOT, ok: true });
+    expect(pulls).toBe(2);
+  });
+
+  test("a git that throws resolves to a refusal", async () => {
+    const run = async (): Promise<never> => {
+      throw new Error("no such directory");
+    };
+    const result = await fastForwardToOrigin(run, ROOT, "master");
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain(ROOT);
   });
 });

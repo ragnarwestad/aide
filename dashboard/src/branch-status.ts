@@ -228,11 +228,16 @@ export class BranchStatusChecker {
    *  makes the count current, and is the same call `isMerged` already
    *  makes; nothing here merges, pulls or moves the checkout, because
    *  a page load that changed the code under a running server is the
-   *  very thing nobody asked for. */
-  async commitsBehindOrigin(projectDir: string): Promise<number | null> {
+   *  very thing nobody asked for.
+   *
+   *  `fresh` bypasses the cache AND replaces the entry, the same escape
+   *  hatch `isMerged`'s own `fresh` gives (spec 258): the Deploy route
+   *  needs to re-check the count right after it changes the checkout,
+   *  not wait out the TTL. */
+  async commitsBehindOrigin(projectDir: string, fresh = false): Promise<number | null> {
     const at = this.now();
     const hit = this.driftCache.get(projectDir);
-    if (hit && at - hit.at < this.ttlMs) return hit.behind;
+    if (!fresh && hit && at - hit.at < this.ttlMs) return hit.behind;
 
     let behind: number | null = null;
     try {

@@ -25,7 +25,7 @@ import {
   lastCommitOf,
 } from "./description-freshness.ts";
 import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
-import { mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
+import { fastForwardToOrigin, mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
 import { pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
 import {
   CheckoutEnsurer,
@@ -3232,6 +3232,14 @@ export function createServer(opts: ServerOptions) {
       // all: the reader came for the project's page, and the half of it
       // that needs no git is still worth serving.
       const readiness = await assessProjectReadiness(gitRun, dir, machineryProjectDir(name)).catch(() => null);
+      // Read-only, like `/projects`' own drift map: `peekDrift` is a
+      // cache lookup, never a git call — the page's own "never merges,
+      // pulls, fetches or checks anything out" contract
+      // (project-detail-route.test.ts) must hold here too (spec 258).
+      const driftRoot = machineryProjectDir(name);
+      const drift = configValue(driftRoot, "AIDE_INSTALL_CMD")
+        ? branchStatus.peekDrift(driftRoot)
+        : undefined;
       const html = renderProjectPage(
         view,
         projectSettings(dir, readiness),
@@ -3250,6 +3258,8 @@ export function createServer(opts: ServerOptions) {
           worktreeLinkCandidates: gitignoreCandidates(dir),
           editing: url.searchParams.get("edit") === "1",
           error: url.searchParams.get("error") ?? undefined,
+          drift,
+          deployError: url.searchParams.get("deployError") ?? undefined,
         },
       );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -3585,6 +3595,61 @@ export function createServer(opts: ServerOptions) {
           )
         : result.readiness;
       return answerProjectChange("project-settings", name, result.steps, raw, wantsJson, readiness);
+    }
+
+    // Spec 258: the button behind the drift note on a project's own
+    // page. Answered directly rather than through
+    // `answerProjectChange`/`ProjectStep[]` — that machinery's `ok =
+    // steps.every(...)` does not fit `installAfterMerge`'s own "a
+    // failed install never turns a landed change back into a failure"
+    // rule. A pull failure refuses outright (the checkout did not
+    // move); an install failure is reported beside a real success (the
+    // checkout DID move, so the drift count is refreshed either way).
+    const deployPost = path.match(/^\/api\/queue\/projects\/([^/]+)\/deploy$/);
+    if (deployPost) {
+      if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const name = decodeURIComponent(deployPost[1]!);
+      const body = await readBounded(req);
+      if ("refusal" in body) return body.refusal;
+      const refuse = (error: string): Response => {
+        logRefusal("project-deploy", name, error);
+        return wantsJson
+          ? json({ ok: false, error }, 400)
+          : new Response(null, {
+              status: 303,
+              headers: { location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(error)}` },
+            });
+      };
+      if (!opts.projectRoot || !allowed.has(name)) {
+        return refuse(`"${name}" is not a project this dashboard knows`);
+      }
+      const root = machineryProjectDir(name);
+      if (!configValue(root, "AIDE_INSTALL_CMD")) {
+        return refuse(`${name} has no AIDE_INSTALL_CMD configured — deploying stays a hand step`);
+      }
+      const base = await branchStatus.defaultBranch(root);
+      if (!base) return refuse(`cannot work out the default branch in ${root}`);
+      const result = await mergeLock.run(root, () => fastForwardToOrigin(gitRun, root, base));
+      if (!result.ok) return refuse(result.error ?? `cannot bring ${root} up to date`);
+      await installAfterMerge(result);
+      // Fresh, not cached: the checkout just moved, and the next reader
+      // of this project's page must not see the old count for up to
+      // driftPollMs longer.
+      await branchStatus.commitsBehindOrigin(root, true);
+      if (result.installError) {
+        console.error(`queue: deploy ${name} in ${root} — ${result.installError}`);
+        return wantsJson
+          ? json({ ok: true, installError: result.installError })
+          : new Response(null, {
+              status: 303,
+              headers: {
+                location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(result.installError)}`,
+              },
+            });
+      }
+      return wantsJson
+        ? json({ ok: true })
+        : new Response(null, { status: 303, headers: { location: `/projects/${encodeURIComponent(name)}` } });
     }
 
     const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);

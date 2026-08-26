@@ -210,3 +210,39 @@ export async function mergeBranchIntoDefault(
     return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
+
+/** Bring `base` in `root` level with what origin has — no feature
+ *  branch involved (spec 258). This is steps 2-3 of `mergeBranchIntoDefault`
+ *  alone: the deploy button's whole job is a checkout that fell behind
+ *  because a merge landed somewhere other than this dashboard's own
+ *  Merge button, so there is nothing to merge IN, only to fast-forward.
+ *
+ *  Refuses rather than guesses when the checkout is not standing on
+ *  `base`: `commitsBehindOrigin` only ever reports a real count for a
+ *  checkout it found there, so a caller reaching here on the strength of
+ *  that count is refused, cleanly, if the checkout moved on since. */
+export async function fastForwardToOrigin(
+  run: GitRunner,
+  root: string,
+  base: string,
+): Promise<RepoMergeResult> {
+  try {
+    const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const on = current.stdout.trim();
+    if (current.code !== 0 || on !== base) {
+      return refuse(root, `${root} is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first`);
+    }
+    await run(root, ["fetch", "--quiet", "origin", base]);
+    let pulled = await run(root, ["pull", "-q", "--ff-only"]);
+    for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
+      await sleep(LOCK_WAIT_MS);
+      pulled = await run(root, ["pull", "-q", "--ff-only"]);
+    }
+    if (pulled.code !== 0) {
+      return refuse(root, `cannot fast-forward ${base} in ${root} — bring it up to date by hand`);
+    }
+    return { root, ok: true };
+  } catch (err) {
+    return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}

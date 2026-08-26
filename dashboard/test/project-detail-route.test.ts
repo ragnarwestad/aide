@@ -74,14 +74,69 @@ const stranded = (root: string, name: string) =>
     "show-ref": { code: 1 },
   });
 
-function serve(root: string, git: { run: GitRunner }): string {
+function serve(root: string, git: { run: GitRunner }, driftPollMs?: number): string {
   return harness.start({
-    extra: { projectRoot: root, queueProjectRoot: root, gitRun: git.run, queueToken: TOKEN },
+    extra: {
+      projectRoot: root,
+      queueProjectRoot: root,
+      gitRun: git.run,
+      queueToken: TOKEN,
+      ...(driftPollMs !== undefined ? { driftPollMs } : {}),
+    },
   }).base;
 }
 
 const get = (base: string, name: string) =>
   fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
+
+/** What a checkout on its default branch, `n` commits behind origin,
+ *  answers to every call the drift check and the readiness check make —
+ *  the two callers ask "which branch is the default" in different
+ *  shapes (`--short` for readiness, plain `--quiet` for drift), so both
+ *  get their own full-path answer rather than one generic "symbolic-ref"
+ *  entry that would only ever suit one of them. */
+const behindBy = (root: string, name: string, n: number) =>
+  fakeGit({
+    "rev-parse --show-toplevel": { code: 0, stdout: `${join(root, name)}\n` },
+    "symbolic-ref --short": { code: 0, stdout: "origin/main\n" },
+    "symbolic-ref --quiet": { code: 0, stdout: "refs/remotes/origin/main\n" },
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+    "show-ref": { code: 0 },
+    fetch: { code: 0 },
+    "rev-list --count": { code: 0, stdout: `${n}\n` },
+  });
+
+/** A checkout the drift check asks about and cannot get an answer from
+ *  — origin unreachable at the `rev-list` step — the fail-open case:
+ *  asked, unanswerable. */
+const unanswerable = (root: string, name: string) =>
+  fakeGit({
+    "rev-parse --show-toplevel": { code: 0, stdout: `${join(root, name)}\n` },
+    "symbolic-ref --short": { code: 0, stdout: "origin/main\n" },
+    "symbolic-ref --quiet": { code: 0, stdout: "refs/remotes/origin/main\n" },
+    "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+    "show-ref": { code: 0 },
+    fetch: { code: 0 },
+    "rev-list --count": { code: 128, stdout: "" },
+  });
+
+const INSTALLS = "AIDE_INSTALL_CMD=deploy/install-after-merge.sh\n";
+
+/** Poll a project's own page until it says `text`, or give up — the
+ *  drift check runs on a schedule of its own (spec 203), so the answer
+ *  arrives a moment after the server starts rather than during the
+ *  first request. The same bounded-loop idiom `projects-route.test.ts`
+ *  uses for its own background check. */
+async function loadUntil(base: string, name: string, text: string, budgetMs = 2000): Promise<string> {
+  const deadline = Date.now() + budgetMs;
+  let html = "";
+  while (Date.now() < deadline) {
+    html = await (await get(base, name)).text();
+    if (html.includes(text)) return html;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return html;
+}
 
 describe("GET /projects/<name> — the project's own page, served", () => {
   test("the page links back to Projects and links to the edit state", async () => {
@@ -408,6 +463,81 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     const root = projectsRoot({ aide: null });
     const git = settled(root, "aide");
     await get(serve(root, git), "aide");
+    for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+  });
+});
+
+// Spec 258: the Deploy section — always present, whether or not the
+// project is gated, so a project with no AIDE_INSTALL_CMD says plainly
+// why there is nothing to act on rather than showing nothing at all.
+describe("the Deploy section on a project's own page (spec 258)", () => {
+  test("a project with no AIDE_INSTALL_CMD keeps the section, with no count and no button (criterion 5)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).toContain("origin drift is not tracked here");
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  test("a project with AIDE_INSTALL_CMD but no drift check yet shows 'not checked' and no button (criterion 2)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    // The schedule is off entirely, so the answer never arrives: exactly
+    // the state a fresh boot or a project just added is in.
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide")).text();
+    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).toContain("origin drift not checked yet");
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  test("a project behind origin shows the count and a Deploy button (criterion 1)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, behindBy(root, "aide", 3), 25);
+    const html = await loadUntil(base, "aide", "commits behind origin");
+    expect(html).toContain("3 commits behind origin, checked");
+    expect(html).toContain('class="deployform"');
+    expect(html).toContain('action="/api/queue/projects/aide/deploy"');
+    // The list's own wording ends "— deploy is a hand step", which
+    // would contradict the button right beside it here.
+    expect(html).not.toContain("deploy is a hand step");
+  });
+
+  test("a project level with origin says so, with no button (criterion 3)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, behindBy(root, "aide", 0), 25);
+    const html = await loadUntil(base, "aide", "level with origin");
+    expect(html).toContain("This checkout is level with origin.");
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  // The fail-open case: asked, unanswerable. Never "level" — that would
+  // be a guess dressed as an answer.
+  test("an unanswerable drift check draws no claim and no button (criterion 4)", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const base = serve(root, unanswerable(root, "aide"), 25);
+    // Poll until the "not checked yet" state has cleared — a real,
+    // timestamped `null` has replaced it — rather than asserting on the
+    // very first load, which would still be in the unchecked state.
+    const deadline = Date.now() + 2000;
+    let html = await (await get(base, "aide")).text();
+    while (html.includes("origin drift not checked yet") && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 25));
+      html = await (await get(base, "aide")).text();
+    }
+    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).not.toContain("commits behind origin");
+    expect(html).not.toContain("level with origin");
+    expect(html).not.toContain("origin drift not checked yet");
+    expect(html).not.toContain('class="deployform"');
+  });
+
+  // Criterion 9: the request itself spawns no git — with the schedule
+  // disabled, any call at all could only have come from the GET handler.
+  test("the request spawns no fetch, pull, merge or checkout, even when the project is gated", async () => {
+    const root = projectsRoot({ aide: INSTALLS });
+    const git = settled(root, "aide");
+    await get(serve(root, git, 0), "aide");
     for (const forbidden of ["merge", "pull", "reset", "checkout", "fetch", "switch"]) {
       expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
     }

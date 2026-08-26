@@ -1149,6 +1149,28 @@ for (const el of document.querySelectorAll("form.addprojectform, form.removeform
   form.addEventListener("submit", ((event: Event) => submitProjectChange(form, event)) as EventListener);
 }
 
+/** The Deploy button (spec 258): a plain POST that fast-forwards the
+ *  checkout and re-runs its install. Bound on its own — not through
+ *  `submitProjectChange` — because its success means "reload this same
+ *  page and show the new drift state," which is neither of that
+ *  function's two endings (Add's readiness note, or Remove's navigate to
+ *  the list). Not reached through `NEW_SPEC_FORM` either: this form
+ *  deliberately does not carry the `newspecform` class. */
+async function submitDeploy(form: HTMLFormElement, event: Event): Promise<void> {
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  await postForm(
+    form,
+    async () => { location.reload(); },
+    (why) => formNote(form, why),
+  );
+}
+
+for (const el of document.querySelectorAll("form.deployform")) {
+  const form = el as HTMLFormElement;
+  form.addEventListener("submit", ((event: Event) => submitDeploy(form, event)) as EventListener);
+}
+
 const settingsCandidate = document.querySelector("form[data-settings-form]") as HTMLFormElement | null;
 const settingsForm = settingsCandidate?.hasAttribute?.("data-settings-form") ? settingsCandidate : null;
 settingsForm?.addEventListener("change", ((event: Event) => {

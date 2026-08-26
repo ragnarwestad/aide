@@ -406,6 +406,51 @@ describe("BranchStatusChecker.commitsBehindOrigin", () => {
   });
 });
 
+// Spec 258: the Deploy route re-checks the count right after it changes
+// the checkout, and must not report the old answer for the rest of the
+// TTL — the same escape hatch `isMerged`'s own `fresh` tests prove.
+describe("BranchStatusChecker.commitsBehindOrigin: fresh", () => {
+  test("`fresh` bypasses the cache and re-asks git", async () => {
+    let count = 3;
+    const run: GitRunner = async (_dir, args) => {
+      const joined = args.join(" ");
+      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("fetch")) return { code: 0, stdout: "" };
+      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: `${count}\n` };
+      return { code: 1, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
+    count = 0; // origin now says: level
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3); // still cached, clock unmoved
+    expect(await checker.commitsBehindOrigin("/repo", true)).toBe(0);
+    // Refreshed, not merely bypassed: the next ordinary reader sees it too.
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(0);
+  });
+
+  test("an unanswerable fresh check does not leave the old answer standing", async () => {
+    let reachable = true;
+    const run: GitRunner = async (_dir, args) => {
+      if (!reachable) throw new Error("no route to host");
+      const joined = args.join(" ");
+      if (joined.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (joined.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
+      if (joined.startsWith("fetch")) return { code: 0, stdout: "" };
+      if (joined.startsWith("rev-list --count")) return { code: 0, stdout: "3\n" };
+      return { code: 0, stdout: "" };
+    };
+    const checker = new BranchStatusChecker({ run, ttlMs: 30_000, now: () => 1000 });
+    expect(await checker.commitsBehindOrigin("/repo")).toBe(3);
+    reachable = false;
+    // Fail-open is unchanged by `fresh`: an unanswerable question is
+    // `null`, and it overwrites the cached `3` rather than letting it
+    // stand for the rest of the TTL.
+    expect(await checker.commitsBehindOrigin("/repo", true)).toBeNull();
+    expect(await checker.commitsBehindOrigin("/repo")).toBeNull();
+  });
+});
+
 // Spec 203: the page render reads this cache and never fills it. The
 // filling is a background schedule's job, so what the request path
 // needs is a read that asks git nothing at all — and one that hands

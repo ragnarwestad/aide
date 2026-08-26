@@ -6449,6 +6449,145 @@ describe("a project's settings route (spec 184)", () => {
   });
 });
 
+// --- spec 258: the button behind the drift note --------------------------
+//
+// Everything below it already exists: the fast-forward is
+// `fastForwardToOrigin`, the install is `installAfterMerge`, and the lock
+// is `mergeLock`. This route is the wiring that puts a button on top of
+// them — see `deploySection` in `site.ts` for the markup it answers to.
+describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  /** A checkout that answers `main` for both `defaultBranch`'s own
+   *  `symbolic-ref` and `fastForwardToOrigin`'s `rev-parse` check, then
+   *  the fast-forward and (unless told otherwise) reports level with
+   *  origin afterwards — the state criterion 6 asks the next page load
+   *  to show. */
+  const onMain = (behindAfter = 0) =>
+    gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" },
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "main\n" },
+      fetch: { code: 0 },
+      pull: { code: 0 },
+      "rev-list --count": { code: 0, stdout: `${behindAfter}\n` },
+    });
+
+  const movedOffMain = () =>
+    gitFake({
+      "symbolic-ref": { code: 0, stdout: "refs/remotes/origin/main\n" },
+      "rev-parse --abbrev-ref HEAD": { code: 0, stdout: "feature-x\n" },
+    });
+
+  const projectDir = (dir: string): string => join(dir, "root", "aide");
+
+  /** The install the project runs once its checkout is current — a
+   *  `touch`, so the test can ask whether it ran by asking the
+   *  filesystem, exactly the pattern `installs()` uses elsewhere in
+   *  this file. */
+  function installsOk(project: string): string {
+    const marker = join(project, "installed");
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
+    return marker;
+  }
+
+  function installFails(project: string): void {
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/false\n");
+  }
+
+  test("success: the checkout moves, the install runs, and the very next load shows level (criterion 6)", async () => {
+    const git = onMain(0);
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const project = projectDir(dir);
+    const marker = installsOk(project);
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; installError?: string };
+    expect(body.ok).toBe(true);
+    expect(body.installError).toBeUndefined();
+    expect(existsSync(marker)).toBe(true);
+    const page = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(page).toContain("This checkout is level with origin.");
+  });
+
+  test("refuses, naming both branches, when the checkout moved off its default branch (criterion 7)", async () => {
+    const git = movedOffMain();
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const project = projectDir(dir);
+    const marker = installsOk(project);
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toContain("feature-x");
+    expect(body.error).toContain("main");
+    expect(existsSync(marker)).toBe(false);
+    for (const forbidden of ["fetch", "pull"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+  });
+
+  test("an install failure is reported as installError, distinct from a pull refusal (criterion 8)", async () => {
+    const git = onMain(0);
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    const project = projectDir(dir);
+    installFails(project);
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; error?: string; installError?: string };
+    expect(body.ok).toBe(true);
+    expect(body.error).toBeUndefined();
+    expect(body.installError).toBeDefined();
+    // The checkout DID move, so the drift count is refreshed either way.
+    const page = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(page).toContain("This checkout is level with origin.");
+  });
+
+  test("refuses when no AIDE_INSTALL_CMD is configured — deploying stays a hand step", async () => {
+    const git = onMain(0);
+    const { base } = start({ queueToken: TOKEN, gitRun: git.run });
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+    expect(body.error).toContain("AIDE_INSTALL_CMD");
+    for (const forbidden of ["fetch", "pull"]) {
+      expect(git.calls.some((c) => c.args[0] === forbidden)).toBe(false);
+    }
+  });
+
+  test("refuses for a project this dashboard does not know", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue/projects/nosuch/deploy`, { method: "POST", headers: AUTH });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { ok: boolean; error?: string };
+    expect(body.ok).toBe(false);
+  });
+
+  test("a no-script press gets the answer as a redirect carrying deployError", async () => {
+    const git = movedOffMain();
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    installsOk(projectDir(dir));
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: "",
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/projects/aide?deployError=")).toBe(true);
+    expect(decodeURIComponent(location)).toContain("feature-x");
+  });
+
+  test("only POST — the button's route takes no other method", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, { headers: AUTH });
+    expect(res.status).toBe(405);
+  });
+});
+
 // --- spec 138: the Add says whether a run can start ---------------------------
 //
 // Adding a project answered "added" and left the operator to press Run to

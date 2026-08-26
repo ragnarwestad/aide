@@ -22,9 +22,17 @@ import {
   tokenField,
   typedConfirm,
 } from "./components.ts";
-import { esc, relTimeLabel } from "./html.ts";
+import { esc } from "./html.ts";
 import { pageShell, type NavEntry } from "./shell.ts";
-import { projectListBody, projectPagePath, projectSummary, type ProjectView } from "./site.ts";
+import {
+  driftPrefix,
+  projectListBody,
+  projectPagePath,
+  projectSummary,
+  UNCHECKED_NOTE,
+  type ProjectDrift,
+  type ProjectView,
+} from "./site.ts";
 
 /** Where a project is added (its own page, like `/new`), and where one
  *  is removed — the confirm page each row's Remove links to. */
@@ -32,14 +40,7 @@ export const ADD_PROJECT_ROUTE = "/projects/new";
 export const removeProjectRoute = (name: string): string =>
   `/projects/${encodeURIComponent(name)}/remove`;
 
-/** The last drift answer the server holds for a project (spec 203).
- *  `checkedAt` is `null` only where nothing has ever been asked — a
- *  fresh boot, or a project just added; `behind: null` with a real
- *  `checkedAt` is the fail-open case, asked and unanswerable. */
-export interface ProjectDrift {
-  behind: number | null;
-  checkedAt: number | null;
-}
+export type { ProjectDrift };
 
 export interface ProjectsPageOptions {
   /** Carried into every form on the page, for a browser that got here
@@ -129,17 +130,12 @@ export interface ProjectsPageOptions {
  *
  *  The freshness clause is spec 203's half: the count is whatever a
  *  background schedule last found, so how OLD it is decides how much of
- *  it to believe. `relTimeLabel`, not `relTime` — this note is escaped
- *  by `rowMessage` on its way out, and the markup version would show as
- *  literal tags. `checkedAt` is epoch ms (the checker's cache stamp);
- *  the label takes an ISO string, hence the conversion. */
+ *  it to believe — `driftPrefix` (spec 258, moved to `site.ts` so the
+ *  project's own page can share the wording) does that conversion. This
+ *  list has no Deploy button, so its own ending says so, unlike the
+ *  project page's shared prefix. */
 const driftNote = (behind: number, checkedAt: number, now: number): string =>
-  `${behind} ${behind === 1 ? "commit" : "commits"} behind origin, checked ` +
-  `${relTimeLabel(new Date(checkedAt).toISOString(), now)} — deploy is a hand step`;
-
-/** And what it says for a project the schedule has not reached yet. A
- *  count nobody has taken is not zero. */
-const UNCHECKED_NOTE = "origin drift not checked yet";
+  `${driftPrefix(behind, checkedAt, now)} — deploy is a hand step`;
 
 export function renderProjectsPage(
   projects: ProjectView[],
