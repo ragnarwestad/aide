@@ -420,9 +420,9 @@ describe("the queue row links to the spec (criterion 12)", () => {
     expect(html).not.toContain('href="/specs/job-1234"');
   });
 
-  // The name is one line with an ellipsis, and the marks carry a
-  // lead-in — a wrapped name-tail used to land in front of bare repo
-  // names and read as one of them (2026-08-19).
+  // The name clamps to two lines with an ellipsis, and the marks carry
+  // a lead-in (reworked 2026-08-26 from a one-line clamp that hid most
+  // of a long folder name behind a click).
   test("the marks say what they are, and the stylesheet clamps the name", async () => {
     const html = renderQueueRows(
       [row({ branchUrls: [{ label: "aide", url: "https://example.test/compare" }] })],
@@ -433,7 +433,8 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // is affected by it, which is why it is listed.
     expect(html).not.toContain("Affected repos");
     const { CSS } = await import("../src/render/css.ts");
-    expect(CSS).toContain(".spec-name > .label { overflow: hidden; text-overflow: ellipsis;");
+    expect(CSS).toContain(".spec-name > .label { overflow: hidden;");
+    expect(CSS).toContain("-webkit-line-clamp: 2;");
   });
 
   test("an existing branch link stays beside it, never replaced by it", () => {

@@ -512,14 +512,20 @@ table.list thead a { color: var(--muted); }
 .sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
 .sortlink.on svg, .sortlink:hover svg { opacity: 1; }
 .sortlink.asc svg { transform: rotate(180deg); }
-/* One line, always: the name is clamped with an ellipsis rather than
-   wrapped — a wrapped tail landed in front of the branch marks and
-   read as one of them (2026-08-19). The full name is in the title. */
+/* Up to two lines, then an ellipsis (asked for again 2026-08-26): one
+   clamped line hid most of a long folder name behind a click. The
+   2026-08-19 regression this replaces was the wrapped second line
+   landing at the same height as the marks beside it — align-items was
+   "center" then, so a badge floated between the name's two lines and
+   read as one more mark in the list. Fixed here by aligning the row to
+   its own top instead, so a mark or the pips sit against the name's
+   FIRST line only, never the second. The full name is still in the
+   title, for anything past two lines. */
 /* Hard against the end of the fixed-width name line, so every row's
    pips start at the same x whatever its name is. */
 .pipslot { margin-left: auto; padding-left: var(--sp-2); }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
-  display: flex; align-items: center; gap: var(--sp-2); min-width: 0;
+  display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* 27rem since the pips joined this line and the Progress column went
      with them (2026-08-22): the row is one column shorter, and 18rem
      clamped a name to "194-archive-decides-on-th…" with the width
@@ -529,7 +535,12 @@ table.list thead a { color: var(--muted); }
      down the column instead of forming one. The name still truncates
      at the same place; what is fixed is where the line ends. */
   width: 27rem; }
-.spec-name > .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* The second line lands flush with the first — it is the same box, not
+   a hanging indent — because the box's own left edge already sits
+   right after the fold control, exactly where the first line starts. */
+.spec-name > .label { overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; line-clamp: 2;
   min-width: 0; }
 /* The summary wraps at a sensible measure instead of dragging the
    whole column wide: the phase lines start where this column ends, so

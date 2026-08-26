@@ -1936,10 +1936,9 @@ function specHeadRow(
   // a phase's page is that phase's own run.
   // The diff link sits beside it rather than replacing it — nothing a
   // reader uses today disappears.
-  // `.label` so the name can be clamped to one line with an ellipsis
-  // (asked for 2026-08-19): a long folder name used to wrap, and its
-  // tail landed in front of the branch marks — "refusing, aide-specs,
-  // aide" read as a list of three marks.
+  // `.label` so the name clamps to two lines with an ellipsis
+  // (src/render/css.ts `.spec-name > .label`, reworked 2026-08-26): a
+  // one-line clamp hid most of a long folder name behind a click.
   // `<project>:<folder>` since 2026-08-21. The project used to open the
   // line under the name, beside the title; it belongs to the NAME — a
   // folder number is only unique within its project — and the line
