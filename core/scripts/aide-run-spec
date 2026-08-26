@@ -919,7 +919,7 @@ keep_stream() {
   fi
   return 0
 }
-trap 'keep_stream; remove_worktrees; delete_empty_branches; rm -rf "$work_dir"' EXIT
+trap 'keep_stream; remove_worktrees; delete_empty_branches; release_worktree_lock; rm -rf "$work_dir"' EXIT
 # TERM and INT get a handler of their own, and NOT because the EXIT trap
 # is skipped without one — measured, bash 3.2.57 runs the EXIT trap on an
 # untrapped SIGTERM. The reason is the opposite: with an explicit handler
@@ -1118,6 +1118,63 @@ link_worktree_deps() {
   return 0
 }
 
+# --- per-root worktree lock --------------------------------------------
+# `git worktree add -b` is not one atomic step: it writes the branch ref,
+# then registers a new entry under the root's $GIT_DIR/worktrees/, named
+# from the checkout path's basename — and two specs against the same
+# project share that basename (`wt_dir` differs only in the spec folder).
+# Two runs racing that registration is what produced "cannot create
+# $branch in a worktree of $root" for one run while another ran
+# concurrently against the same checkout (spec 256).
+# `sync_branch_with_origin` and `branch_already_landed` share the same
+# exposure through a second, independent race: both fetch into a FIXED
+# ref name un-parameterized by branch (refs/aide-branch/tip,
+# refs/aide-branch/landed-base), so this lock covers them too, not only
+# the worktree add — it wraps the whole per-root loop body below.
+#
+# mkdir is the primitive because this script has nowhere it can assume
+# flock(1) exists — it is not installed on this machine or the serving
+# host. Lives inside the root's own .git/ so it needs no hashing scheme
+# to stay unique per root, matching mergeLock's "one repo, one merge at a
+# time" scope (dashboard/src/serve.ts) reimplemented for a cross-process
+# caller mergeLock's in-memory Map cannot reach.
+#
+# A run SIGKILLed mid-section cannot release this the way remove_worktrees
+# etc. cannot run either — so a waiter checks the recorded owner's pid and
+# steals the lock the moment that pid is gone, the same next-run-cleans-up
+# shape sweep_worktree already uses for a killed run's leftover worktree.
+#
+# $worktree_lock is set ONLY once this process has actually created the
+# lock dir (the line right after mkdir succeeds, never before it): a
+# losing waiter that times out calls refuse (which exits 2, firing the
+# EXIT trap below) and must not delete the WINNER's still-live lock,
+# which is exactly what setting this variable early would do.
+worktree_lock=""
+acquire_worktree_lock() {
+  local root="$1" lock deadline owner_pid
+  lock="$root/.git/aide-run-spec-worktree.lock"
+  deadline=$(( $(date +%s) + 120 ))
+  while ! mkdir "$lock" 2>/dev/null; do
+    owner_pid="$(cat "$lock/pid" 2>/dev/null || true)"
+    if [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
+      rm -rf "$lock" 2>/dev/null || true
+      continue
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      worktree_lock=""
+      refuse "timed out waiting for the worktree lock on $root (pid ${owner_pid:-unknown} may be stuck)"
+    fi
+    sleep 0.2
+  done
+  echo $$ > "$lock/pid" 2>/dev/null || true
+  worktree_lock="$lock"
+}
+release_worktree_lock() {
+  [ -n "$worktree_lock" ] && rm -rf "$worktree_lock" 2>/dev/null
+  worktree_lock=""
+  return 0
+}
+
 # --- new work round: the branch goes first -----------------------------------
 #
 # An archived spec whose work has to be done again leaves its branch
@@ -1164,6 +1221,7 @@ fi
 mkdir -p "$wt_dir" 2>/dev/null || refuse "cannot create the worktree directory at $wt_dir"
 work_roots=()
 for root in "${roots[@]}"; do
+  acquire_worktree_lock "$root"
   base="$(default_branch "$root")"
   unique_basename "$(basename "$root")"
   wt="$wt_dir/$wt_name"
@@ -1191,6 +1249,7 @@ for root in "${roots[@]}"; do
   fi
   link_worktree_deps "$root" "$wt"
   work_roots+=("$wt")
+  release_worktree_lock
 done
 
 project_wt="${work_roots[0]}"
