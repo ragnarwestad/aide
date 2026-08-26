@@ -8,11 +8,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   JOB_STATES, PHASE_STEPS, QueueStore, currentWorkRoundJobs, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
-  persistQueueModelDefaults, persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
+  persistQueueSettings, persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
 } from "../src/queue.ts";
 
-describe("persistQueueModelDefaults", () => {
-  test("changes only owned step values in JSONC and keeps fallback, unknown entries and other text", () => {
+describe("persistQueueSettings", () => {
+  test("changes only owned step/budget/job-cap/timeout values in JSONC and keeps fallback, unknown entries and other text", () => {
     const file = join(dir, "queue-config.json");
     const before = `{
   // keep this comment
@@ -24,17 +24,23 @@ describe("persistQueueModelDefaults", () => {
   }
 }\n`;
     writeFileSync(file, before);
-    const models = Object.fromEntries(
+    const model = Object.fromEntries(
       ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, "codex-fast"]),
     );
+    const timeoutSec = Object.fromEntries(
+      ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"].map((step) => [step, 1800]),
+    );
 
-    expect(persistQueueModelDefaults(file, models)).toBeNull();
+    expect(persistQueueSettings(file, { model, budgetUsd: 7, jobCapUsd: 20, timeoutSec })).toBeNull();
     const after = readFileSync(file, "utf-8");
     expect(after).toContain("// keep this comment");
     expect(after).toContain('"concurrency": 2');
     expect(after).toContain('"default": "sonnet"');
     expect(after).toContain('"future": "leave-me"');
-    for (const step of Object.keys(models)) expect(after).toContain(`"${step}": "codex-fast"`);
+    for (const step of Object.keys(model)) expect(after).toContain(`"${step}": "codex-fast"`);
+    expect(after).toContain('"budgetUsd": 7');
+    expect(after).toContain('"jobCapUsd": 20');
+    for (const step of Object.keys(timeoutSec)) expect(after).toContain(`"${step}": 1800`);
     expect(existsSync(`${file}.tmp`)).toBe(false);
   });
 });

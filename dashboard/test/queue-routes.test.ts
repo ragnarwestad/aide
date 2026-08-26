@@ -5806,18 +5806,31 @@ describe("Settings routes (spec 232)", () => {
   const STEPS = ["explore", "create", "analyze", "implement", "archive", "manifest", "reopen"];
   const DEFAULTS = {
     budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
-    timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+    timeoutSec: { default: 1200, implement: 5400 }, permissionMode: { default: "acceptEdits" },
     model: { default: "sonnet" },
     modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
   };
   const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const validModel = Object.fromEntries(STEPS.map((step) => [step, "sonnet"]));
+  const validTimeoutSec = Object.fromEntries(STEPS.map((step) => [step, 30]));
+  const validBody = { model: validModel, budgetUsd: 5, jobCapUsd: 15, timeoutSec: validTimeoutSec };
 
   test("GET is guarded and renders the live defaults", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
     expect((await fetch(`${base}/settings`)).status).toBe(401);
     const res = await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain('name="model.implement"');
+    const html = await res.text();
+    expect(html).toContain('name="model.implement"');
+    expect(html).toContain('value="3"');
+    expect(html).toContain('value="10"');
+    // implement's own 5400s (90 min) differs from every other step's
+    // 1200s (20 min) fallback (job-state.ts:145's minutes convention).
+    const implementRow = html.match(/<tr[^>]*data-step="implement"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(implementRow).toContain('name="timeoutSec.implement"');
+    expect(implementRow).toContain('value="90"');
+    const analyzeRow = html.match(/<tr[^>]*data-step="analyze"[\s\S]*?<\/tr>/)?.[0] ?? "";
+    expect(analyzeRow).toContain('value="20"');
   });
 
   // Spec 252, Criterion 3: Settings is reachable from every page's "…"
@@ -5856,7 +5869,7 @@ describe("Settings routes (spec 232)", () => {
     const first = (await accepted.json()) as { job: { model: Record<string, string> } };
     const model = Object.fromEntries(STEPS.map((step) => [step, "codex-fast"]));
     const saved = await fetch(`${base}/api/queue/settings`, {
-      method: "POST", headers: AUTH, body: JSON.stringify({ model }),
+      method: "POST", headers: AUTH, body: JSON.stringify({ model, budgetUsd: 6, jobCapUsd: 18, timeoutSec: validTimeoutSec }),
     });
     expect(saved.status).toBe(200);
     expect(first.job.model.analyze).toBe("sonnet");
@@ -5869,8 +5882,22 @@ describe("Settings routes (spec 232)", () => {
       method: "POST", headers: AUTH, body: JSON.stringify({ project: "aide", title: "Later", description: "Later job" }),
     });
     expect(later.status).toBe(400);
-    expect(((await created.json()) as { job: { model: Record<string, string> } }).job.model.create).toBe("codex-fast");
+    const createdBody = (await created.json()) as { job: { model: Record<string, string>; budgetUsd: number; jobCapUsd: number } };
+    expect(createdBody.job.model.create).toBe("codex-fast");
+    expect(createdBody.job.budgetUsd).toBe(6);
+    expect(createdBody.job.jobCapUsd).toBe(18);
     expect(readFileSync(file, "utf-8")).toContain('"future": "keep"');
+  });
+
+  test("a save with jobCapUsd below budgetUsd is refused and changes nothing", async () => {
+    const file = ownConfig({ model: { default: "sonnet" } });
+    const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS, queueConfigFile: file });
+    const res = await fetch(`${base}/api/queue/settings`, {
+      method: "POST", headers: AUTH,
+      body: JSON.stringify({ ...validBody, budgetUsd: 20, jobCapUsd: 10 }),
+    });
+    expect(res.status).toBe(400);
+    expect(readFileSync(file, "utf-8")).not.toContain('"budgetUsd": 20');
   });
 
   test("invalid input and missing config leave live defaults unchanged", async () => {
@@ -5881,13 +5908,33 @@ describe("Settings routes (spec 232)", () => {
       { ...Object.fromEntries(STEPS.map((step) => [step, "sonnet"])), extra: "sonnet" },
       Object.fromEntries(STEPS.map((step) => [step, step === "archive" ? "missing" : "sonnet"])),
     ]) {
-      const res = await fetch(`${base}/api/queue/settings`, { method: "POST", headers: AUTH, body: JSON.stringify({ model }) });
+      const res = await fetch(`${base}/api/queue/settings`, {
+        method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, model }),
+      });
       expect(res.status).toBe(400);
     }
+    // Out-of-range / non-numeric budgetUsd, jobCapUsd and per-step timeout.
+    for (const overrides of [
+      { budgetUsd: 0 },
+      { budgetUsd: -1 },
+      { budgetUsd: "nope" },
+      { budgetUsd: 101 },
+      { jobCapUsd: 0 },
+      { jobCapUsd: 301 },
+      { timeoutSec: { ...validTimeoutSec, analyze: 0 } },
+      { timeoutSec: { ...validTimeoutSec, analyze: 361 } },
+      { timeoutSec: {} },
+    ]) {
+      const res = await fetch(`${base}/api/queue/settings`, {
+        method: "POST", headers: AUTH, body: JSON.stringify({ ...validBody, ...overrides }),
+      });
+      expect(res.status).toBe(400);
+    }
+    expect(readFileSync(file, "utf-8")).toEqual(JSON.stringify({ model: { default: "sonnet" } }, null, 2));
+
     const without = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
     const res = await fetch(`${without.base}/api/queue/settings`, {
-      method: "POST", headers: AUTH,
-      body: JSON.stringify({ model: Object.fromEntries(STEPS.map((step) => [step, "sonnet"])) }),
+      method: "POST", headers: AUTH, body: JSON.stringify(validBody),
     });
     expect(res.status).toBe(400);
   });

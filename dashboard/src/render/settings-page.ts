@@ -9,6 +9,9 @@ export const SETTINGS_STEPS = ["explore", "create", "analyze", "implement", "arc
 export interface SettingsPageOptions {
   modelChoices: { name: string; budgetUsd: number; tool?: "claude" | "codex" }[];
   defaultModels: Record<string, string>;
+  budgetUsd: number;
+  jobCapUsd: number;
+  timeoutSec: Record<string, number>;
   script?: string;
   error?: string;
   notice?: string;
@@ -24,15 +27,23 @@ const LABELS: Record<(typeof SETTINGS_STEPS)[number], string> = {
   archive: "Archive", manifest: "Manifest", reopen: "Reopen",
 };
 
+// The only other place this codebase already displays a timeout
+// (render/job-state.ts:145) shows it in minutes, not seconds.
+const toMinutes = (sec: number): number => Math.round(sec / 60);
+
 export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
   const models = opts.modelChoices;
   const back = backLink(opts.backHref ?? "/");
-  if (!models.length) {
-    return pageShell("Settings", entries, SETTINGS_ROUTE,
-      `<main>${back}<h1>Settings</h1><p class="muted">No model choices are configured on this server.</p></main>`,
-      generatedAt, undefined, { script: opts.script, hideHeading: true });
-  }
+  // budgetUsd/jobCapUsd/timeoutSec are meaningful and already enforced
+  // (runner.ts) even on a server with no modelChoices configured — only
+  // the AI/model columns depend on a choice actually being offered.
   const rows = SETTINGS_STEPS.map((step) => {
+    const timeout = opts.timeoutSec[step] ?? opts.timeoutSec.default ?? 1200;
+    const timeoutCell = `<td><input type="number" min="1" max="360" aria-label="Timeout in minutes for ${LABELS[step]}" ` +
+      `form="settings-form" name="timeoutSec.${step}" value="${toMinutes(timeout)}"></td>`;
+    if (!models.length) {
+      return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th>${timeoutCell}</tr>`;
+    }
     const configured = opts.defaultModels[step] ?? opts.defaultModels.default;
     const chosen = resolveChosenModel(models, configured, undefined);
     const tool = models.find((model) => model.name === chosen)?.tool ?? "claude";
@@ -45,12 +56,19 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
     return `<tr data-step="${step}"><th scope="row">${LABELS[step]}</th><td>` +
       `<select aria-label="AI for ${LABELS[step]}" form="settings-form" data-ai="model.${step}">${ai}</select>` +
       `<select aria-label="Model for ${LABELS[step]}" form="settings-form" name="model.${step}">${modelOptions(models, chosen)}</select>` +
-      `</td></tr>`;
+      `</td>${timeoutCell}</tr>`;
   }).join("");
   const message = opts.error ?? opts.notice ?? "";
+  const modelHeader = models.length ? "<th>Default AI and model</th>" : "";
+  const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
   const body = `<main>${back}<h1>Settings</h1><form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg warn" : ""}" aria-live="polite">${esc(message)}</p>` +
-    `<table><thead><tr><th>Step</th><th>Default AI and model</th></tr></thead><tbody>${rows}</tbody></table>` +
+    `<p><label>Budget per job (USD) <input type="number" min="0.01" max="100" step="0.01" ` +
+    `name="budgetUsd" value="${opts.budgetUsd}"></label></p>` +
+    `<p><label>Job cap (USD) <input type="number" min="0.01" max="300" step="0.01" ` +
+    `name="jobCapUsd" value="${opts.jobCapUsd}"></label></p>` +
+    noModelsNote +
+    `<table><thead><tr><th>Step</th>${modelHeader}<th>Timeout (min)</th></tr></thead><tbody>${rows}</tbody></table>` +
     `<div class="factions"><button class="btn primary" type="submit">Save</button></div></form></main>`;
   return pageShell("Settings", entries, SETTINGS_ROUTE, body, generatedAt, undefined, {
     script: opts.script, hideHeading: true,

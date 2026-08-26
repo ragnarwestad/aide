@@ -53,7 +53,7 @@ import { Notifier } from "./notify.ts";
 import { MergeEventReporter } from "./merge-event.ts";
 import {
   QueueStore, currentWorkRoundJobs, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects,
-  persistQueueModelDefaults, persistQueueProjects,
+  persistQueueSettings, persistQueueProjects,
   tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
@@ -528,6 +528,21 @@ function bodyToObject(text: string, contentType: string | null): unknown {
         delete out[key];
       }
       if (Object.keys(picked).length) out.model = picked;
+    }
+    // The settings form's per-step timeout column, folded the same way
+    // `model.<step>` is just above — a `timeoutSec.<step>` field per
+    // row rather than the flat, seconds-denominated `timeoutSec` the
+    // job-creation routes post. Run before the flat-numeric loop below,
+    // which only fires while `out.timeoutSec` is still a string.
+    const timeoutKeys = [...new Set(params.keys())].filter((k) => k.startsWith("timeoutSec."));
+    if (timeoutKeys.length) {
+      const picked: Record<string, number> = {};
+      for (const key of timeoutKeys) {
+        const value = params.get(key);
+        if (value) picked[key.slice("timeoutSec.".length)] = Number(value);
+        delete out[key];
+      }
+      if (Object.keys(picked).length) out.timeoutSec = picked;
     }
     for (const numeric of ["budgetUsd", "jobCapUsd", "timeoutSec"]) {
       if (typeof out[numeric] === "string") out[numeric] = Number(out[numeric]);
@@ -3080,6 +3095,9 @@ export function createServer(opts: ServerOptions) {
           name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
         })),
         defaultModels: queue.defaults.model,
+        budgetUsd: queue.defaults.budgetUsd,
+        jobCapUsd: queue.defaults.jobCapUsd,
+        timeoutSec: queue.defaults.timeoutSec,
         backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
         script: queueClientScript(),
         error: url.searchParams.get("error") ?? undefined,
@@ -3363,12 +3381,47 @@ export function createServer(opts: ServerOptions) {
         if (!queue.defaults.modelChoices?.[value]) return refuse(`unknown or not-allowed model for ${step}: ${value}`);
         next[step] = value;
       }
+
+      // budgetUsd/jobCapUsd/timeoutSec: the ceilings a per-job request
+      // can only tighten (`tighten()` above), never loosen — these
+      // ranges catch an operator's typo well above the highest value
+      // already live in production (spec 250's own analysis: $35).
+      const numField = (v: unknown, name: string, min: number, max: number): number | { error: string } => {
+        if (typeof v !== "number" || !Number.isFinite(v)) return { error: `invalid ${name}` };
+        if (v < min || v > max) return { error: `${name} must be between ${min} and ${max}` };
+        return v;
+      };
+      const budgetUsd = numField(asked?.budgetUsd, "budgetUsd", 0.01, 100);
+      if (typeof budgetUsd !== "number") return refuse(budgetUsd.error);
+      const jobCapUsd = numField(asked?.jobCapUsd, "jobCapUsd", 0.01, 300);
+      if (typeof jobCapUsd !== "number") return refuse(jobCapUsd.error);
+      if (jobCapUsd < budgetUsd) return refuse("jobCapUsd may not be lower than budgetUsd");
+
+      const askedTimeout = asked?.timeoutSec;
+      if (!askedTimeout || typeof askedTimeout !== "object" || Array.isArray(askedTimeout)) {
+        return refuse("timeoutSec is missing");
+      }
+      const minutesTable = askedTimeout as Record<string, unknown>;
+      const timeoutSec: Record<string, number> = {};
+      for (const step of SETTINGS_STEPS) {
+        // Minutes on this route (matching the form and the existing
+        // render/job-state.ts:145 display convention) — converted to
+        // seconds, the unit every reader of `queue.defaults.timeoutSec`
+        // already expects.
+        const minutes = numField(minutesTable[step], `timeoutSec.${step}`, 1, 360);
+        if (typeof minutes !== "number") return refuse(minutes.error);
+        timeoutSec[step] = minutes * 60;
+      }
+
       const merged = { ...queue.defaults.model, ...next };
-      const error = persistQueueModelDefaults(opts.queueConfigFile, next);
+      const error = persistQueueSettings(opts.queueConfigFile, { model: next, budgetUsd, jobCapUsd, timeoutSec });
       if (error) return refuse(error);
       queue.defaults.model = merged;
+      queue.defaults.budgetUsd = budgetUsd;
+      queue.defaults.jobCapUsd = jobCapUsd;
+      queue.defaults.timeoutSec = { ...queue.defaults.timeoutSec, ...timeoutSec };
       return wantsJson
-        ? json({ ok: true, model: next })
+        ? json({ ok: true, model: next, budgetUsd, jobCapUsd, timeoutSec })
         : new Response(null, { status: 303, headers: { location: `${SETTINGS_ROUTE}?notice=${encodeURIComponent("Defaults saved")}` } });
     }
 
