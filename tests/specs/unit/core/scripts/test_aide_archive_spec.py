@@ -81,6 +81,13 @@ def phase(heading, rows):
     ])
 
 
+def checklist(rows):
+    return "\n".join([
+        "## Checklist", "", "| Task | Status | Notes |",
+        "|------|--------|-------|", *rows, "", "---", "",
+    ])
+
+
 def status_md(claims="", body=""):
     text = "# X - Status\n\n## Tracking info\n\n"
     if claims:
@@ -294,6 +301,47 @@ def test_every_row_done_archives_the_spec(script, project, specs):
     assert (specs / "archive" / "81-x").exists()
     text = (specs / "archive" / "81-x" / "4-status.md").read_text()
     assert "**Archived:**" in text, text
+
+
+# --- the status-table read, through a ## Checklist heading (spec 262) ----
+
+
+def test_checklist_every_row_done_archives_the_spec(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze, implement", checklist(["| a | ✅ | |", "| b | Completed | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert rc == 0, out
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+    assert (specs / "archive" / "81-x").exists()
+
+
+def test_checklist_an_open_row_is_held_back(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze", checklist(["| a | 🔄 | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "held-back", out
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert "- a (Checklist) — tick it on the spec's page" in text, text
+    assert (specs / "81-x").exists(), "a held-back decline must not move the folder"
+
+
+def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze", checklist(["| a | ⬜ | |", "| b | Not started | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "not-implemented-yet", out
+
+
+def test_checklist_implement_present_with_an_unstarted_row_is_still_held_back(script, project, specs):
+    configure(project, specs)
+    body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "held-back", out
 
 
 def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, specs):

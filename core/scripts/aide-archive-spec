@@ -150,13 +150,20 @@ for dir in "${check_dirs[@]}"; do
 done
 
 # --- the status-table read -------------------------------------------------
-# Matches dashboard/src/parse-status.ts's isDoneMark/tableCells/
-# phaseSections exactly (see the comment beside isDoneMark there): a row
-# is done when its Status cell is "✅" or the Notation table's own word
-# for it ("Completed", case-insensitively); anything else is open. Two
-# independent implementations of that same rule is a known risk (spec
-# 190) — mitigated by testing both against the same set of inputs, not by
-# sharing code between a bash script and a TypeScript module.
+# isDoneMark/tableCells match dashboard/src/parse-status.ts exactly (see
+# the comment beside isDoneMark there): a row is done when its Status
+# cell is "✅" or the Notation table's own word for it ("Completed",
+# case-insensitively); anything else is open. Two independent
+# implementations of that same rule is a known risk (spec 190) —
+# mitigated by testing both against the same set of inputs, not by
+# sharing code between a bash script and a TypeScript module. The
+# heading test below is intentionally WIDER than parse-status.ts's
+# phaseSections(): it also recognizes a `## Checklist` heading (the
+# section a LOW-complexity spec's status file uses instead of `##
+# Phase*`), because archive-readiness is a different question from
+# whether the dashboard's tick-a-box editing UI offers a checkbox for
+# this row — it deliberately does not, for a Checklist section (spec
+# 262).
 status_file="$specs_root/$spec_folder/4-status.md"
 
 is_done_mark() {   # $1 = trimmed mark cell
@@ -206,7 +213,7 @@ if [ -f "$status_file" ]; then
       '## '*)
         heading="${line#\#\# }"
         case "$heading" in
-          [Pp]hase*|[Ff]ase*) in_phase="yes"; cur_phase="$heading"; saw_phase="yes" ;;
+          [Pp]hase*|[Ff]ase*|[Cc]hecklist*) in_phase="yes"; cur_phase="$heading"; saw_phase="yes" ;;
           *) in_phase="no" ;;
         esac
         continue
