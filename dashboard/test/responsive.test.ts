@@ -170,9 +170,14 @@ describe("the phase lines stop being pinned columns at phone width", () => {
 // --- criterion 4, 7, 8: a wide table scrolls, the page does not -------------
 
 describe("every wide table scrolls inside its own box", () => {
-  test("the inline project settings form wraps its fields and actions", () => {
-    expect(CSS).toMatch(/\.project-settings-editor \.frow \{[^}]*flex-wrap:\s*wrap/);
-    expect(NARROW).toMatch(/\.project-settings-editor \.factions \{[^}]*flex-wrap:\s*wrap/);
+  // Spec 255: the settings form's own `.project-settings-editor`
+  // wrapper (and its narrow-only overrides) is gone with the `<details>`
+  // it used to scope. Save/Cancel and the settings table now each sit
+  // in a bare `.newspecform .frow`, whose `flex-basis: 100%` already
+  // stacks them full-width at every screen size — a stronger guarantee
+  // than a narrow-only wrap, not a narrower one.
+  test("the inline project settings form's rows each take their own full-width line", () => {
+    expect(CSS).toMatch(/\.newspecform \.frow \{[^}]*flex-basis:\s*100%/);
   });
 
   test(".tablewrap is a scroll box at every width, like .specfile", () => {
