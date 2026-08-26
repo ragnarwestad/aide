@@ -4752,6 +4752,167 @@ describe("every step lands its own work (spec 149)", () => {
   });
 });
 
+// Spec 254: `Runner.complete()` writes `state: "done"` and `landing: true`
+// in the same update — the merge into the default branch has not
+// happened yet. This holds that merge open the way
+// `cache-warmer.test.ts`'s `recordingGit({ hold })` holds `ls-remote`,
+// long enough to observe the job mid-landing.
+describe("a step reads busy for the whole landing window (spec 254)", () => {
+  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+  const SPEC = "81-queue-and-runner";
+
+  function own(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    ownDirs.push(dir);
+    return dir;
+  }
+
+  function repos(dir: string): { root: string; specs: string } {
+    const projectsRoot = join(dir, "root");
+    const project = join(projectsRoot, "aide");
+    const specs = join(dir, "aide-specs");
+    mkdirSync(join(project, ".aide"), { recursive: true });
+    writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\n");
+    mkdirSync(join(project, "specs", SPEC), { recursive: true });
+    writeFileSync(join(project, "specs", SPEC, "1-description.md"), "# 81 - Description\n");
+    writeFileSync(join(project, "specs", SPEC, "4-status.md"), statusSaying(["create", "analyze"]));
+    mkdirSync(specs, { recursive: true });
+    return { root: projectsRoot, specs };
+  }
+
+  /** A git whose merge does not return until `release()` is called — the
+   *  window between a step's own result arriving and the merge that
+   *  lands it actually resolving, held open long enough to observe it. */
+  function heldGit() {
+    const calls: { dir: string; args: string[] }[] = [];
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const run = async (dir: string, args: string[]) => {
+      calls.push({ dir, args });
+      const a = args.join(" ");
+      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+      if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) {
+        await gate;
+        return { code: 0, stdout: "" };
+      }
+      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+      return { code: 0, stdout: "" };
+    };
+    return { run, calls, release: () => release() };
+  }
+
+  async function runStep(base: string, specFolder: string, step: string): Promise<{ id: string }> {
+    const made = (await (
+      await fetch(`${base}/api/queue`, {
+        method: "POST",
+        headers: AUTH,
+        body: JSON.stringify({ project: "aide", specFolder, steps: [step] }),
+      })
+    ).json()) as { job: { id: string } };
+    return made.job;
+  }
+
+  async function settle(
+    base: string,
+    id: string,
+    done: (job: Record<string, unknown>) => boolean,
+  ): Promise<Record<string, unknown>> {
+    for (let n = 0; n < 100; n++) {
+      const body = (await (await fetch(`${base}/api/queue/${id}`, { headers: AUTH })).json()) as {
+        job: Record<string, unknown>;
+      };
+      if (done(body.job)) return body.job;
+      await Bun.sleep(50);
+    }
+    throw new Error("the job never settled");
+  }
+
+  function serverWithHeldMerge(dir: string, paths: { root: string }, git: { run: GitRunner }) {
+    const results = join(dir, "jobs");
+    mkdirSync(results, { recursive: true });
+    return { ...harness.start({
+      extra: {
+        queueToken: TOKEN,
+        projectRoot: paths.root,
+        queueProjectRoot: paths.root,
+        gitRun: git.run,
+        queueRunnerBin: "/usr/bin/true",
+        queueResultDir: results,
+      },
+    }), results };
+  }
+
+  const ANALYZE_RESULT = (specs: string) => ({
+    ok: true,
+    exitCode: 0,
+    costUsd: 0.2,
+    costMeasured: true,
+    terminalReason: "completed",
+    branch: `aide/${SPEC}`,
+    repos: [],
+    branchUrls: [{ root: specs, url: "https://example.test/aide-specs" }],
+  });
+
+  // Criteria 1 and 2. `job.landing` is already true the instant the
+  // step's own result arrives — well before the merge below returns.
+  test("mid-landing the job reads landing:true and a same-spec enqueue is refused", async () => {
+    const dir = own("aide-254-landing-");
+    const paths = repos(dir);
+    const git = heldGit();
+    const { base, results } = serverWithHeldMerge(dir, paths, git);
+
+    const job = await runStep(base, SPEC, "analyze");
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(paths.specs)));
+
+    const midLanding = await settle(base, job.id, (j) => j.state === "done");
+    expect(midLanding.landing).toBe(true);
+
+    const refused = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: AUTH,
+      body: JSON.stringify({ project: "aide", specFolder: SPEC, steps: ["implement"] }),
+    });
+    expect(refused.status).toBe(400);
+    const body = (await refused.json()) as { error?: string };
+    expect(String(body.error ?? "")).toContain(SPEC);
+
+    git.release();
+    await settle(base, job.id, (j) => !j.landing);
+  });
+
+  // Criterion 5. A newer job that has already settled (cancelled, in
+  // this case) must not push a still-landing job out of the lead slot
+  // by coincidence of sort order.
+  test("the single-spec page picks the still-landing job as lead, not a newer settled one", async () => {
+    const dir = own("aide-254-lead-");
+    const paths = repos(dir);
+    const git = heldGit();
+    const { base, results } = serverWithHeldMerge(dir, paths, git);
+
+    const job = await runStep(base, SPEC, "analyze");
+    // Wait for the analyze job to actually start, so the decoy below is
+    // enqueued — and therefore timestamped — after it.
+    await settle(base, job.id, (j) => j.state === "running");
+    const decoy = await runStep(base, SPEC, "implement");
+    const cancelled = await fetch(`${base}/api/queue/${decoy.id}/cancel`, { method: "POST", headers: AUTH });
+    expect(cancelled.status).toBe(200);
+    await settle(base, decoy.id, (j) => j.state === "cancelled");
+
+    writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ANALYZE_RESULT(paths.specs)));
+    await settle(base, job.id, (j) => j.state === "done");
+
+    const html = await (await fetch(`${base}/specs/aide/${SPEC}`, { headers: AUTH })).text();
+    const banner = html.match(/<div class="pagehead">([\s\S]*?)<span class="row">/)?.[1] ?? "";
+    expect(banner).toContain('class="badge b-done">');
+    expect(banner).not.toContain('b-idle">cancelled');
+
+    git.release();
+    await settle(base, job.id, (j) => !j.landing);
+  });
+});
+
 // Spec 207: a landed archive writes what the spec cost in time.
 //
 // The figure the spec list shows is worked out from the queue's own job

@@ -1561,7 +1561,7 @@ const specBusy = (g: SpecGroup): boolean => !!g.lead && inFlight(g.lead);
  *  sentence for the whole row: about the JOB, so every locked control
  *  says the same thing rather than each wording it freshly. */
 const busyReason = (g: SpecGroup): string =>
-  g.lead ? `${stepLabel(currentStep(g.lead))} is ${stateLabel(g.lead)}` : "";
+  g.lead ? `${stepLabel(currentStep(g.lead))} is ${g.lead.landing ? "landing" : stateLabel(g.lead)}` : "";
 
 // THE phase a spec is still waiting on — one fact, read by both halves
 // of the State column, so the badge and the button beside it cannot
