@@ -96,3 +96,15 @@ export const dated = (html: string): boolean =>
 export const rowSaysDone = (step: string, folder = "81-queue-and-runner") => (html: string): boolean =>
   phaseDone(specControls(html, folder), step);
 
+/** A claude-usage that records the merges the dashboard reports to it
+ *  (spec 158). The URL is never reached: what is under test is what the
+ *  server decides to send, and to whom. */
+export function mergeEventSink(answer: () => Response | Promise<Response> = () => new Response("{}")) {
+  const posted: Record<string, unknown>[] = [];
+  const mergeEventFetch = (async (_url: unknown, init: unknown) => {
+    posted.push(JSON.parse((init as RequestInit).body as string) as Record<string, unknown>);
+    return answer();
+  }) as unknown as typeof fetch;
+  return { posted, mergeEventFetch, mergeEventUrl: "http://claude-usage.test/api/merge-event" };
+}
+
