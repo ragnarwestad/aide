@@ -11,33 +11,153 @@
 // thin wrapper in serve.ts does the two assignments. Every other
 // function here is a plain read.
 
-import { existsSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve, sep, join } from "node:path";
 import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
 import { specBranch } from "../git/branch-status.ts";
 import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
+import { archiveHeldBackReason, parseStatus } from "../project/parse-status.ts";
 import type { QueueTarget } from "../render.ts";
 import { resolveDependencyFolder } from "./serve-helpers.ts";
+
+/** What `targets()` caches for five seconds and every other lookup in
+ *  this file reads a slice of. */
+export interface ScanState {
+  at: number;
+  targets: QueueTarget[];
+  archived: string[];
+  dirs: Map<string, string>;
+  refs: Map<string, SpecRef>;
+  specsRoots: Map<string, string>;
+}
 
 export interface SpecLookupContext {
   machineryProjectDir: (project: string) => string;
   machinerySpecsRoot: (project: string) => string | undefined;
   branchStatus: BranchStatusChecker;
   codeLanding: (project: string) => CodeLanding;
+  /** `undefined` for a normal call; `targets()` itself supplies this
+   *  when it rebuilds the scan, so every OTHER function in this file
+   *  keeps calling `ctx.targets()` with no argument and gets the same
+   *  five-second cache `targets()` has always kept. */
   targets: () => QueueTarget[];
-  readScan: () => {
-    archived: string[];
-    dirs: Map<string, string>;
-    refs: Map<string, SpecRef>;
-    specsRoots: Map<string, string>;
-  } | null;
+  readScan: () => ScanState | null;
+  writeScan: (scan: ScanState | null) => void;
   projectRoot: string | undefined;
+  allowed: Set<string>;
+  ownedSpecsRoot: (project: string) => string | undefined;
   gitRun: GitRunner;
   resolvedCheckouts: Map<string, DashboardCheckout>;
   ensureCheckout: (project: string) => Promise<DashboardCheckout | undefined>;
+}
+
+/** Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
+ *  150). `targets` deliberately drops an archived spec — a ghost row
+ *  outliving the spec is what that costs — but the archive job that
+ *  moved it still has a page, and that page's whole content is the
+ *  stamp in the folder it moved to.
+ *
+ *  Cached for five seconds off `ctx.readScan()`/`ctx.writeScan()` —
+ *  the same `scan` `let` every other function in this file peeks
+ *  through `readScan()`. */
+export function targets(ctx: SpecLookupContext): QueueTarget[] {
+  const now = Date.now();
+  const cached = ctx.readScan();
+  if (cached && now - cached.at < 5000) return cached.targets;
+  const found: QueueTarget[] = [];
+  const gone: string[] = [];
+  // And WHAT each of them is, from the same walk (spec 163). `targets`
+  // is live-only by design, so the page of an ARCHIVED spec looked its
+  // title up in a list that could not hold it and rendered no
+  // description line at all — silently, because the H1 comes from the
+  // folder name. One lookup answers the title and whether the spec is
+  // archived, for every spec there is.
+  const refs = new Map<string, SpecRef>();
+  const dirs = new Map<string, string>();
+  const specsRoots = new Map<string, string>();
+  if (ctx.projectRoot) {
+    for (const p of discoverProjects(ctx.projectRoot, ctx.ownedSpecsRoot)) {
+      if (!ctx.allowed.has(p.name)) continue;
+      specsRoots.set(p.name, p.specsRoot);
+      for (const s of p.specs) {
+        dirs.set(`${p.name}/${s.folder}`, s.dir);
+        refs.set(`${p.name}/${s.folder}`, s);
+        // Remembered by key: a create job keeps its group visible
+        // while its spec has not landed, and "archived" is the one
+        // proof that it HAS — without it the ghost row outlives the
+        // spec (seen with 111/112 on 2026-08-19).
+        if (s.archived) {
+          gone.push(`${p.name}/${s.folder}`);
+          continue;
+        }
+        // What a reader needs to CHOOSE a spec: what it is called and
+        // how far it has got. Both are already on disk.
+        let statusText = "";
+        try {
+          statusText = readFileSync(join(s.dir, "4-status.md"), "utf-8");
+        } catch {
+          statusText = "";
+        }
+        const status = statusText ? parseStatus(statusText) : null;
+        // Read from the SAME content, not a second pass over the file:
+        // both answers come out of `4-status.md` and there is no
+        // reason for the page to open it twice.
+        const heldBack = statusText ? archiveHeldBackReason(statusText) : null;
+        found.push({
+          project: p.name,
+          specFolder: s.folder,
+          // Where the freshness check runs git. Never rendered — the
+          // page has no use for an absolute path, and `targets` is
+          // server-side only.
+          dir: s.dir,
+          title: s.title ?? undefined,
+          description: s.description ?? undefined,
+          // What its own 1-description.md says it builds on (spec 92),
+          // shown on its row in the same words the run's dependency
+          // refusal uses.
+          dependsOn: s.dependsOn,
+          phase: status?.phase ?? undefined,
+          // The FILES, and nothing else (spec 108). It used to be
+          // unioned with the queue's own record of what it ran, so
+          // either one being true was enough — which is how an
+          // archive job that finished without moving anything counted
+          // as an archived spec, and how a phase could read "done" on
+          // a row whose files said otherwise. What a job reported is
+          // still shown, as a qualifier — in the row's own panel since
+          // spec 195, not on the phase's line.
+          //
+          // One line of that file, and no inference from any other
+          // (spec 139): each step writes its own name into
+          // `4-status.md` once it has succeeded. The three heuristics
+          // this replaces — the size of 2-analysis.md, a heading in
+          // 3-solution.md, and 4-status.md's own progress percentage,
+          // which used to be read on this line — each answered a
+          // question next to the one being asked, and the first of
+          // them marked spec 138 analysed before any analyze had run.
+          // The percentage left the row entirely in spec 167.
+          //
+          // Since spec 154 the line is no longer the ANSWER, only a
+          // claim: a model has to reach its last instruction to write
+          // it and a copied folder brings a sibling's version along.
+          // `withFreshness` fills `done` in from the runner's own
+          // commits, and this is what it compares them against.
+          fileSteps: status?.workflowSteps ?? [],
+          // Where this spec's history starts, when it has been
+          // reopened (spec 198). Read off the same content as
+          // `fileSteps` and `heldBack`, for the same reason: three
+          // answers out of `4-status.md` and no second pass over the
+          // file.
+          reopenedAfter: status?.reopenedAfter,
+          archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
+        });
+      }
+    }
+  }
+  ctx.writeScan({ at: now, targets: found, archived: gone, dirs, refs, specsRoots });
+  return found;
 }
 
 /** The two repositories a spec's work can be open in — the same pair

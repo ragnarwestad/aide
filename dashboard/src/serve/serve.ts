@@ -6,12 +6,7 @@
 //
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
-import {
-  readFileSync, watch,
-} from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { parse as parseJsonc } from "jsonc-parser";
+import { watch } from "node:fs";
 import { AideRunStore, parseAideRun } from "../queue/aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, DEFAULT_TTL_MS,
@@ -35,24 +30,15 @@ import {
   discoverProjects,
   type SpecRef,
 } from "../project/discover.ts";
-import {
-  archiveHeldBackReason, parseStatus,
-} from "../project/parse-status.ts";
 import { Notifier } from "../integrations/notify.ts";
 import { MergeEventReporter } from "../integrations/merge-event.ts";
 import {
-  QueueStore, mergeQueueDefaults, parseQueueProjects,
+  QueueStore,
   type Job, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
 } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import {
-  APPLE_TOUCH_ICON,
-  APP_ICON,
-  APP_ICON_MASKABLE,
-  navEntries,
-  SERVICE_WORKER,
-  WEBMANIFEST,
   type NavEntry,
   type QueueTarget,
 } from "../render.ts";
@@ -62,7 +48,8 @@ import {
   json, readBounded, createRootLock,
   navFromSite,
   serveStatic,
-  parseQueueConcurrency,
+  parseArgs,
+  servePwaAsset,
 } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
@@ -95,6 +82,7 @@ import {
   persistAllowlist as persistAllowlistImpl, answerProjectChange, type ProjectActionsContext,
 } from "./project-actions.ts";
 import {
+  targets as targetsImpl,
   specRoots as specRootsImpl,
   rootsStillHolding as rootsStillHoldingImpl,
   peekUnlanded as peekUnlandedImpl,
@@ -248,107 +236,6 @@ export function createServer(opts: ServerOptions) {
         specsRoots: Map<string, string>;
       }
     | null = null;
-  const targets = (): QueueTarget[] => {
-    const now = Date.now();
-    if (scan && now - scan.at < 5000) return scan.targets;
-    const found: QueueTarget[] = [];
-    const gone: string[] = [];
-    // Where every spec's four files are, ARCHIVED ONES INCLUDED (spec
-    // 150). `targets` deliberately drops an archived spec — a ghost row
-    // outliving the spec is what that costs — but the archive job that
-    // moved it still has a page, and that page's whole content is the
-    // stamp in the folder it moved to.
-    const dirs = new Map<string, string>();
-    // And WHAT each of them is, from the same walk (spec 163). `targets`
-    // is live-only by design, so the page of an ARCHIVED spec looked its
-    // title up in a list that could not hold it and rendered no
-    // description line at all — silently, because the H1 comes from the
-    // folder name. One lookup answers the title and whether the spec is
-    // archived, for every spec there is.
-    const refs = new Map<string, SpecRef>();
-    const specsRoots = new Map<string, string>();
-    if (opts.projectRoot) {
-      for (const p of discoverProjects(opts.projectRoot, ownedSpecsRoot)) {
-        if (!allowed.has(p.name)) continue;
-        specsRoots.set(p.name, p.specsRoot);
-        for (const s of p.specs) {
-          dirs.set(`${p.name}/${s.folder}`, s.dir);
-          refs.set(`${p.name}/${s.folder}`, s);
-          // Remembered by key: a create job keeps its group visible
-          // while its spec has not landed, and "archived" is the one
-          // proof that it HAS — without it the ghost row outlives the
-          // spec (seen with 111/112 on 2026-08-19).
-          if (s.archived) {
-            gone.push(`${p.name}/${s.folder}`);
-            continue;
-          }
-          // What a reader needs to CHOOSE a spec: what it is called and
-          // how far it has got. Both are already on disk.
-          let statusText = "";
-          try {
-            statusText = readFileSync(join(s.dir, "4-status.md"), "utf-8");
-          } catch {
-            statusText = "";
-          }
-          const status = statusText ? parseStatus(statusText) : null;
-          // Read from the SAME content, not a second pass over the file:
-          // both answers come out of `4-status.md` and there is no
-          // reason for the page to open it twice.
-          const heldBack = statusText ? archiveHeldBackReason(statusText) : null;
-          found.push({
-            project: p.name,
-            specFolder: s.folder,
-            // Where the freshness check runs git. Never rendered — the
-            // page has no use for an absolute path, and `targets` is
-            // server-side only.
-            dir: s.dir,
-            title: s.title ?? undefined,
-            description: s.description ?? undefined,
-            // What its own 1-description.md says it builds on (spec 92),
-            // shown on its row in the same words the run's dependency
-            // refusal uses.
-            dependsOn: s.dependsOn,
-            phase: status?.phase ?? undefined,
-            // The FILES, and nothing else (spec 108). It used to be
-            // unioned with the queue's own record of what it ran, so
-            // either one being true was enough — which is how an
-            // archive job that finished without moving anything counted
-            // as an archived spec, and how a phase could read "done" on
-            // a row whose files said otherwise. What a job reported is
-            // still shown, as a qualifier — in the row's own panel since
-            // spec 195, not on the phase's line.
-            //
-            // One line of that file, and no inference from any other
-            // (spec 139): each step writes its own name into
-            // `4-status.md` once it has succeeded. The three heuristics
-            // this replaces — the size of 2-analysis.md, a heading in
-            // 3-solution.md, and 4-status.md's own progress percentage,
-            // which used to be read on this line — each answered a
-            // question next to the one being asked, and the first of
-            // them marked spec 138 analysed before any analyze had run.
-            // The percentage left the row entirely in spec 167.
-            //
-            // Since spec 154 the line is no longer the ANSWER, only a
-            // claim: a model has to reach its last instruction to write
-            // it and a copied folder brings a sibling's version along.
-            // `withFreshness` fills `done` in from the runner's own
-            // commits, and this is what it compares them against.
-            fileSteps: status?.workflowSteps ?? [],
-            // Where this spec's history starts, when it has been
-            // reopened (spec 198). Read off the same content as
-            // `fileSteps` and `heldBack`, for the same reason: three
-            // answers out of `4-status.md` and no second pass over the
-            // file.
-            reopenedAfter: status?.reopenedAfter,
-            archiveHeldBack: heldBack ? { reason: heldBack } : undefined,
-          });
-        }
-      }
-    }
-    scan = { at: now, targets: found, archived: gone, dirs, refs, specsRoots };
-    return found;
-  };
-
   /** `project/folder` of every ARCHIVED spec whose own `aide/<folder>`
    *  is STILL on origin in one of its two roots (spec 193).
    *
@@ -619,11 +506,19 @@ export function createServer(opts: ServerOptions) {
     codeLanding,
     targets,
     readScan: () => scan,
+    writeScan: (s) => {
+      scan = s;
+    },
     projectRoot: opts.projectRoot,
+    allowed,
+    ownedSpecsRoot,
     gitRun,
     resolvedCheckouts,
     ensureCheckout,
   };
+  function targets() {
+    return targetsImpl(specLookupCtx);
+  }
   function specRoots(project: string) {
     return specRootsImpl(specLookupCtx, project);
   }
@@ -945,39 +840,8 @@ export function createServer(opts: ServerOptions) {
         return new Response("method not allowed", { status: 405 });
       }
 
-      // What makes this page an app you install (spec 173): five
-      // answers built in `render/pwa.ts` and served from memory, the
-      // same shape /api/aide-run has — a computed string, an explicit
-      // content type, no file on disk. None of them is behind the
-      // token, deliberately: the manifest fetch that drives the install
-      // prompt does not always carry the cookie, and a worker whose
-      // script answers 401 never installs at all. There is nothing in
-      // any of them a reader could not already see in the page's own
-      // <head>.
-      if (path === "/manifest.webmanifest") {
-        return new Response(WEBMANIFEST, {
-          headers: { "content-type": "application/manifest+json" },
-        });
-      }
-      if (path === "/sw.js") {
-        return new Response(SERVICE_WORKER, {
-          headers: {
-            "content-type": "text/javascript; charset=utf-8",
-            // A worker the browser is holding on to is a worker a fix
-            // cannot reach; this makes it revalidate first.
-            "cache-control": "no-cache",
-          },
-        });
-      }
-      if (path === "/icon-512.svg" || path === "/icon-512-maskable.svg") {
-        // "512" names the size a launcher asks for, not the file: the
-        // mark is vector, so one SVG answers every size.
-        const icon = path === "/icon-512.svg" ? APP_ICON : APP_ICON_MASKABLE;
-        return new Response(icon, { headers: { "content-type": "image/svg+xml; charset=utf-8" } });
-      }
-      if (path === "/apple-touch-icon.png") {
-        return new Response(APPLE_TOUCH_ICON, { headers: { "content-type": "image/png" } });
-      }
+      const pwaAsset = servePwaAsset(path);
+      if (pwaAsset) return pwaAsset;
 
       return serveStatic(opts.siteDir, path);
     },
@@ -1102,94 +966,6 @@ export function createServer(opts: ServerOptions) {
       void server.stop(true);
     },
   };
-}
-
-export function parseArgs(argv: string[]): ServerOptions {
-  const opts: ServerOptions = { siteDir: join(homedir(), "aide-dashboard", "site"), port: 8788 };
-  let root: string | undefined;
-  let tokenFile: string | undefined;
-  let queueConfigFile: string | undefined;
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    const v = argv[i + 1];
-    if (a === "--site" && v) opts.siteDir = argv[++i]!;
-    else if (a === "--port" && v) opts.port = Number(argv[++i]);
-    else if (a === "--claude-usage" && v) opts.claudeUsageUrl = argv[++i];
-    else if (a === "--mirror" && v) opts.mirrorPath = argv[++i];
-    else if (a === "--root" && v) root = argv[++i];
-    else if (a === "--bind" && v) opts.bindHost = argv[++i];
-    else if (a === "--queue-mirror" && v) opts.queueMirrorPath = argv[++i];
-    else if (a === "--queue-projects" && v) opts.queueProjects = argv[++i]!.split(",").map((s) => s.trim());
-    else if (a === "--runner-bin" && v) opts.queueRunnerBin = argv[++i];
-    else if (a === "--result-dir" && v) opts.queueResultDir = argv[++i];
-    // Where the dashboard keeps the clones it works in (spec 205).
-    // `~/aide-dashboard-checkouts` unless a host wants them elsewhere.
-    else if (a === "--dashboard-checkouts" && v) opts.dashboardCheckoutRoot = argv[++i];
-    else if (a === "--queue-config" && v) queueConfigFile = argv[++i];
-    // The token is read from a FILE, never an argument: `ps` shows
-    // arguments to every user on the machine.
-    else if (a === "--token-file" && v) tokenFile = argv[++i];
-    else throw new Error(`unknown argument: ${a}`);
-  }
-  if (!opts.mirrorPath) opts.mirrorPath = join(homedir(), "aide-dashboard", "aide-runs.json");
-  if (!opts.queueMirrorPath) opts.queueMirrorPath = join(homedir(), "aide-dashboard", "aide-queue.json");
-  if (tokenFile) {
-    // A missing or unreadable token file must not crash the server:
-    // launchd would restart it in a loop and take the whole dashboard
-    // down over a feature that is meant to fail closed, not loud.
-    try {
-      const token = readFileSync(tokenFile, "utf-8").trim();
-      if (token) opts.queueToken = token;
-      else console.error(`token file ${tokenFile} is empty — the queue stays off`);
-    } catch {
-      console.error(`cannot read ${tokenFile} — the queue stays off`);
-    }
-  }
-  if (queueConfigFile) {
-    // Kept whether or not the file is readable: the Add/Remove routes
-    // write the allowlist back here, and a first install has no such
-    // file yet (spec 112).
-    opts.queueConfigFile = queueConfigFile;
-    // A missing or broken config leaves the built-in caps in place —
-    // the tight ones. Failing towards "spends less" is the only safe
-    // direction here.
-    try {
-      const raw = parseJsonc(readFileSync(queueConfigFile, "utf-8")) as Record<string, unknown>;
-      opts.queueDefaults = mergeQueueDefaults(QUEUE_DEFAULTS, raw);
-      // The notify command is an argv ARRAY: it is run with no shell,
-      // so a string would have to be split by someone, and that someone
-      // would get quoting wrong.
-      if (Array.isArray(raw.notifyCommand) && raw.notifyCommand.every((a) => typeof a === "string")) {
-        opts.queueNotifyCommand = raw.notifyCommand as string[];
-      }
-      // Where a landed branch is reported (spec 158). Off unless the
-      // file names a URL — the same direction every other key here
-      // fails in, and the reason this one has no built-in default.
-      if (typeof raw.mergeEventUrl === "string" && raw.mergeEventUrl) opts.mergeEventUrl = raw.mergeEventUrl;
-      if (raw.push === "none" || raw.push === "branch" || raw.push === "pr") opts.queuePush = raw.push;
-      opts.queueConcurrency = parseQueueConcurrency(raw.concurrency);
-      // The allowlist WINS over `--queue-projects` when the file has
-      // one: the flag is the seed for a first install, and the file is
-      // what every Add and Remove since has written (spec 112). A
-      // malformed field is ignored entirely, leaving the flag — the
-      // same direction every other key here fails in.
-      const projects = parseQueueProjects(raw.projects);
-      if (projects) opts.queueProjects = projects;
-    } catch {
-      console.error(`cannot read ${queueConfigFile} — keeping the built-in caps`);
-    }
-  }
-  if (root) {
-    opts.projectRoot = root;
-    // The checkouts and the manifests live under the same root here.
-    opts.queueProjectRoot = root;
-  }
-  // The nav is the same three tabs whatever the projects are — a
-  // project is reached from the Projects page, not from the bar. The
-  // `navFromSite()` fallback below is what a server with no project
-  // root uses, and it reads the site directory instead.
-  if (root) opts.navEntries = navEntries();
-  return opts;
 }
 
 if (import.meta.main) {
