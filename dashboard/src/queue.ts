@@ -764,9 +764,16 @@ export function persistQueueProjects(file: string, projects: string[]): string |
   }
 }
 
+export interface QueueSettingsUpdate {
+  model: Record<string, string>;
+  budgetUsd: number;
+  jobCapUsd: number;
+  timeoutSec: Record<string, number>;
+}
+
 /** Atomically replace the dashboard-owned workflow defaults while leaving
  * comments, formatting, the fallback and future model keys intact. */
-export function persistQueueModelDefaults(file: string, models: Record<string, string>): string | null {
+export function persistQueueSettings(file: string, next: QueueSettingsUpdate): string | null {
   try {
     if (!existsSync(file)) return `could not write ${file}: file does not exist`;
     let source = readFileSync(file, "utf-8");
@@ -775,10 +782,14 @@ export function persistQueueModelDefaults(file: string, models: Record<string, s
     if (errors.length || raw === null || typeof raw !== "object" || Array.isArray(raw)) {
       return `could not write ${file}: invalid JSONC configuration`;
     }
-    for (const [step, model] of Object.entries(models)) {
-      source = applyEdits(source, modify(source, ["model", step], model, {
-        formattingOptions: { insertSpaces: true, tabSize: 2 },
-      }));
+    const opts = { formattingOptions: { insertSpaces: true, tabSize: 2 } };
+    for (const [step, model] of Object.entries(next.model)) {
+      source = applyEdits(source, modify(source, ["model", step], model, opts));
+    }
+    source = applyEdits(source, modify(source, ["budgetUsd"], next.budgetUsd, opts));
+    source = applyEdits(source, modify(source, ["jobCapUsd"], next.jobCapUsd, opts));
+    for (const [step, sec] of Object.entries(next.timeoutSec)) {
+      source = applyEdits(source, modify(source, ["timeoutSec", step], sec, opts));
     }
     mkdirSync(dirname(file), { recursive: true });
     const tmp = `${file}.tmp`;
