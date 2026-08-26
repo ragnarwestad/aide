@@ -3176,6 +3176,75 @@ def test_create_reports_no_folder_when_none_appeared(runner, workspace, fake_cla
     assert "specFolder" not in out, out
 
 
+# --- Spec 259: schedule, a job with no spec at all ----------------------------
+#
+# A schedule entry names no aide skill and no spec folder — its whole
+# "job" is the contents of a file in the project's own repo, sent as the
+# prompt verbatim. The tracking key names only a branch and a worktree,
+# the same SHAPE `create`'s provisional key already has, though the
+# exemption is new code rather than a copy of `create`'s own branch (see
+# the script's own comment on the `schedule` arm).
+
+SCHEDULE_KEY = "schedule-nightly-report"
+
+
+def schedule(runner, ws, claude, **kwargs):
+    kwargs.setdefault("command", "schedule")
+    kwargs.setdefault("spec", SCHEDULE_KEY)
+    kwargs.setdefault("prompt_file", "docs/nightly-report.md")
+    return run(runner, ws, claude, **kwargs)
+
+
+def test_schedule_runs_with_no_spec_folder_and_sends_the_file_verbatim(
+    runner, workspace, fake_claude
+):
+    """AC4: `--command schedule --prompt-file <path>` with no folder for
+    the tracking key under the specs root must not refuse with `unknown
+    spec: ...`, and the prompt is the named file's own contents, not an
+    aide slash command."""
+    (workspace["project"] / "docs").mkdir()
+    (workspace["project"] / "docs" / "nightly-report.md").write_text(
+        "Summarize last night's traffic.\n"
+    )
+    claude = fake_claude("cat > /dev/null\nexit 1")
+    rc, out, _ = schedule(runner, workspace, claude, dry_run=True)
+    assert rc == 0, out
+    assert "unknown spec" not in out.get("error", ""), out
+    prompt = out["prompt"]
+    assert prompt.startswith("Summarize last night's traffic."), prompt
+    assert "headless" in prompt.lower()
+    assert "/aide-" not in prompt, prompt
+
+
+def test_schedule_requires_a_prompt_file(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = schedule(runner, workspace, claude, prompt_file=None)
+    assert rc == 2
+    assert out["ok"] is False
+    assert "prompt-file" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_schedule_refuses_a_missing_prompt_file(runner, workspace, fake_claude):
+    claude = fake_claude("exit 1")
+    rc, out, _ = schedule(runner, workspace, claude, prompt_file="docs/does-not-exist.md")
+    assert rc == 2
+    assert out["ok"] is False
+    assert "prompt-file" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
+def test_every_other_step_still_refuses_the_schedule_tracking_key(runner, workspace, fake_claude):
+    """The exemption is additive: `analyze` on a schedule-shaped key that
+    names no real spec folder is refused exactly as any other unknown
+    spec would be."""
+    claude = fake_claude("exit 1")
+    rc, out, _ = run(runner, workspace, claude, command="analyze", spec=SCHEDULE_KEY)
+    assert rc == 2
+    assert "unknown spec" in out["error"], out
+    assert not fake_claude.calls.exists()
+
+
 # --- Spec 171: archive meets the conflict ------------------------------------
 # Every other step treats a conflict between its branch and the default
 # branch as a human's problem and refuses. `archive` is the step that

@@ -96,7 +96,7 @@ rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
 
-WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset"
+WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"
 # The steps a dependency actually holds back (spec 122): the ones that
 # BUILD on merged code. analyze and create write only the
 # spec's own folder in the specs repo and conflict with nothing, so
@@ -135,6 +135,12 @@ title=""; description=""
 # exactly the shape the line has on disk — stated in the create prompt,
 # meaningless everywhere else.
 depends_on=""
+# The file whose contents become the prompt VERBATIM, for `--command
+# schedule` alone (spec 259). A schedule entry names no aide skill and
+# no spec folder — its whole "job" is the text at this path, read from
+# $project_root before the worktree is cut (see the prompt-construction
+# branch below). Meaningless for every other command.
+prompt_file=""
 # Where to keep the claude transcript. Opt-in: without it the captured
 # output goes with the rest of $work_dir, exactly as it always has, so
 # no existing caller changes behaviour.
@@ -169,6 +175,7 @@ while [ $# -gt 0 ]; do
     --title) title="${2:-}"; shift 2 ;;
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; shift 2 ;;
+    --prompt-file) prompt_file="${2:-}"; shift 2 ;;
     --budget-usd) budget_usd="${2:-}"; shift 2 ;;
     --timeout-sec) timeout_sec="${2:-}"; shift 2 ;;
     --permission-mode) permission_mode="${2:-}"; shift 2 ;;
@@ -399,6 +406,14 @@ if [ -z "$spec_folder" ] && [ "$command_name" = "create" ]; then
   # argument — a create without these two has nothing to create.
   [ -n "$title" ] || refuse "missing --title (required for create)"
   [ -n "$description" ] || refuse "missing --description (required for create)"
+elif [ -z "$spec_folder" ] && [ "$command_name" = "schedule" ]; then
+  # A second, unrelated exemption from "the folder must already exist"
+  # (spec 259) — not a copy of `create`'s, which is a different shape
+  # entirely: a schedule entry never becomes a spec folder, so its
+  # tracking key names only a branch and a worktree, for as long as the
+  # entry exists.
+  [[ "$spec_arg" =~ ^[A-Za-z0-9._-]{1,128}$ ]] || refuse "invalid --spec: $spec_arg"
+  [ -n "$prompt_file" ] || refuse "missing --prompt-file (required for schedule)"
 else
   [ -n "$spec_folder" ] || refuse "unknown spec: $spec_arg (not under $specs_root)"
 fi
@@ -630,7 +645,18 @@ codex_safety_flags() {
 headless_note="(This run is headless: no one is at a keyboard and no question can be
 answered. Never stop to ask for confirmation — decide, or write down
 what you would have asked, and finish the step.)"
-if [ -n "$spec_folder" ]; then
+if [ "$command_name" = "schedule" ]; then
+  # The prompt is the file's contents, verbatim — no aide skill, no spec
+  # id, nothing invented on either side (spec 259). Read from
+  # $project_root rather than the worktree: at this point in the script
+  # the worktree has not been cut yet, and $project_root was already
+  # pulled to origin/$base a few lines above, so the two are identical
+  # content-wise and only one of them exists yet.
+  [ -f "$project_root/$prompt_file" ] \
+    || refuse "no such --prompt-file: $prompt_file (under $project_root)"
+  prompt="$(cat "$project_root/$prompt_file")
+$headless_note"
+elif [ -n "$spec_folder" ]; then
   prompt="/aide-$command_name $spec_id
 $headless_note"
 else

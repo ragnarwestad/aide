@@ -11,6 +11,7 @@
   - [The token](#the-token)
   - [Caps](#caps)
   - [Which AI runs a step (spec 125)](#which-ai-runs-a-step-spec-125)
+  - [Running a job on a schedule (spec 259)](#running-a-job-on-a-schedule-spec-259)
   - [Adding and removing a project](#adding-and-removing-a-project)
     - [Whether a run can start there (spec 138)](#whether-a-run-can-start-there-spec-138)
     - [What Add finishes itself (spec 140)](#what-add-finishes-itself-spec-140)
@@ -760,6 +761,48 @@ read-only`. A mode with no entry in that table refuses the run rather
 than being guessed at. (`codex exec` is non-interactive and has no
 `--ask-for-approval` flag at all — that one belongs to the interactive
 command — so the sandbox mode is the whole of what there is to say.)
+
+### Running a job on a schedule (spec 259)
+
+A project can name recurring work of its own — a periodic analysis or
+report — in a `schedule:` list in its committed `.aide/project.yaml`:
+
+```yaml
+schedule:
+  - name: nightly-report
+    cron: "0 3 * * *"
+    prompt: docs/nightly-report.md
+```
+
+Each entry is a name (becomes the job's `schedule-<name>` tracking key,
+never a spec folder), a standard five-field cron expression, and a
+prompt file's path, relative to the project's own root. A background
+poll checks every project's entries and enqueues a `schedule` step
+through the same queue, runner and worktree machinery every other step
+uses — on whichever AI the queue's own `modelChoices` picks for it —
+whenever an entry is due and nothing is already queued or running for
+it. The step sends the named file's contents to the model verbatim,
+with no aide skill or spec folder involved at all; write it the way you
+would write a prompt by hand.
+
+**Due is computed from the most recent fire time alone — there is no
+backfill.** If the dashboard is down across a whole scheduled window,
+that occurrence simply does not happen; nothing catches up retroactively
+the next time the poll runs. A project's own page shows each entry's
+name, cron expression, prompt path and next computed fire time, and the
+projects overview names the soonest across a project's entries.
+
+**A cron expression is evaluated in the SERVING HOST's local timezone**,
+the same as an ordinary crontab — there is no `tz:` field. Check what
+"3am" means on the machine actually running the poll before relying on
+it across a daylight-saving transition.
+
+**A schedule is a committed, reviewed setting, like `codeLanding` — it
+has no `.aide/config` fallback and no edit form.** Change it by editing
+`.aide/project.yaml` directly. A `prompt:` path that would resolve
+outside the project root (an absolute path, or one whose `..` climbs
+past it) is dropped at parse time, and a malformed `cron:` drops that
+one entry — never the whole list.
 
 ### Adding and removing a project
 
