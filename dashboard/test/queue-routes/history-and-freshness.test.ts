@@ -676,7 +676,7 @@ describe("what a spec cost in time is written when its archive lands (spec 207)"
 
     expect(archive.error).toBeFalsy();
     const stamped = stampedMs(statusFile);
-    expect(stamped).not.toBeNull();
+    expect(stamped).not.  toBeNull();
     expect(stamped).toBe(expectedMs([analyze, implement, archive]));
     // The file is committed and pushed like any other spec edit — the
     // stamp is no use to anyone sitting in a working tree.

@@ -436,7 +436,7 @@ export function renderJobDetailPage(
       [
         unitLabel("Cost so far", "Tokens so far"),
         usdOrTokens(job.spentUsd, job.spentTokens) +
-          (job.results.some((r) => r.tool !== "codex" && r.costMeasured === false)
+          (job.results.some((r) => !r.costMeasured)
             ? ' <span class="muted small">est.</span>'
             : ""),
       ],

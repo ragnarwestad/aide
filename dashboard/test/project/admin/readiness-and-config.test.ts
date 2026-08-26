@@ -1,15 +1,11 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import {
-  addProject,
-  type AddProjectRequest,
-  type ProjectAdminResult,
-} from "../../../src/project/project-admin.ts";
-import type { GitRunner } from "../../../src/git/branch-status.ts";
-import { configValue, resolveWorktreeLinks } from "../../../src/project/discover.ts";
-import { fakeGit } from "../../helpers/fake-git.ts";
+import {afterEach, describe, expect, test} from "bun:test";
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {addProject, type AddProjectRequest, type ProjectAdminResult,} from "../../../src/project/project-admin.ts";
+import type {GitRunner} from "../../../src/git/branch-status.ts";
+import {configValue, resolveWorktreeLinks} from "../../../src/project/discover.ts";
+import {fakeGit} from "../../helpers/fake-git.ts";
 
 const dirs: string[] = [];
 const root = (): string => {
@@ -77,12 +73,11 @@ describe("whether a run could start there (spec 138)", () => {
       }
       return { code: 1, stdout: "" };
     };
-    const result = await addProject(run, projectsRoot, {
+    return await addProject(run, projectsRoot, {
       name: dir.split("/").pop()!,
       existingPath: dir,
       ...req,
     });
-    return result;
   }
 
   /** A checkout under a projects root, with a specs directory beside it

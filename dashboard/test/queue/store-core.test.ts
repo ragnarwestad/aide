@@ -509,7 +509,7 @@ describe("spec 198: reopen", () => {
         { resolve: withArchived, defaults: DEFAULTS },
       );
       expect(r.ok).toBe(false);
-      expect(r.ok === false && r.error).toContain("archived");
+      expect(!r.ok && r.error).toContain("archived");
     }
   });
 
@@ -530,7 +530,7 @@ describe("spec 198: reopen", () => {
       { resolve: withArchived, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
-    expect(r.ok === false && r.error).toContain("unknown specFolder");
+    expect(!r.ok && r.error).toContain("unknown specFolder");
   });
 
   // A resolver that names no archived folders at all — every caller
@@ -541,7 +541,7 @@ describe("spec 198: reopen", () => {
       { resolve, defaults: DEFAULTS },
     );
     expect(r.ok).toBe(false);
-    expect(r.ok === false && r.error).toContain("unknown specFolder");
+    expect(!r.ok && r.error).toContain("unknown specFolder");
   });
 });
 
@@ -565,7 +565,7 @@ describe("spec 231: reset", () => {
       },
     );
     expect(r.ok).toBe(false);
-    expect(r.ok === false && r.error).toContain("archived");
+    expect(!r.ok && r.error).toContain("archived");
   });
 
   test("only jobs after a successfully landed Reset belong to the current round", () => {

@@ -334,7 +334,7 @@ describe("the per-repo lock lets go once its chain has settled (criterion 10)", 
     const failed = lock.run("/repo", async () => {
       throw new Error("git blew up");
     });
-    await expect(failed).rejects.toThrow("git blew up");
+    expect(failed).rejects.toThrow("git blew up");
     expect(await lock.run("/repo", async () => "fine")).toBe("fine");
   });
 });

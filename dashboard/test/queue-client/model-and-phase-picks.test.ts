@@ -119,7 +119,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   // afterwards starting the step on a model nobody chose.
   test("what an AI pick wrote survives the five-second swap", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeAi(1, "codex");
+    await h.changeAi(1, "codex");
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
@@ -136,7 +136,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   test("a chosen MODEL survives it too, and an untouched one is the server's", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
     // One phase moved by hand; the other four left exactly as drawn.
-    h.changeModel(1, "sonnet");
+    await h.changeModel(1, "sonnet");
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
@@ -175,7 +175,7 @@ describe("an AI picked on a phase line fills that phase's model (spec 179)", () 
   // remembered at all.
   test("the AI select is not filed in the map the model selects use", async () => {
     const h = harness(() => ({ ok: true, text: "<tr>fresh</tr>" }));
-    h.changeAi(1, "codex");
+    await h.changeAi(1, "codex");
     h.document.visibilityState = "visible";
     h.tick();
     await flush();
@@ -580,7 +580,7 @@ describe("a live model pick posts itself (spec 225)", () => {
     const h = harness(() => ({ ok: true, body: OK }));
     await h.changeModel(1, "sonnet");
     expect(posts(h)).toHaveLength(0);
-    h.changeAi(1, "codex");
+    await h.changeAi(1, "codex");
     expect(posts(h)).toHaveLength(0);
   });
 
