@@ -25,7 +25,7 @@
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { configValue } from "./discover.ts";
+import { configValue, resolveWorktreeLinks } from "./discover.ts";
 import { detectProjectCommands, type CommandKind } from "./detect-commands.ts";
 import type { ProjectReadiness, ReadinessCheckName } from "./project-admin.ts";
 
@@ -42,7 +42,10 @@ export interface SettingRow {
   value: string | null;
   origin: SettingOrigin;
   /** For a derived value: the file in the project root that decided
-   *  it. Absent on every other origin — nothing was worked out. */
+   *  it. For the Worktree links row's `"configured"` origin: which of
+   *  the two files the value came from (`resolveWorktreeLinks()`'s own
+   *  `source`) — the row can be configured in either, and a reader
+   *  cannot tell which without this. Absent on every other origin. */
   source?: string;
   /** For a derived value: what that file says the project is built
    *  with. The page names it, because the risk a worked-out command
@@ -90,8 +93,14 @@ const PURPOSE: Record<string, string> = {
   AIDE_JIRA_BASE_URL: "the JIRA root that turns an issue key into a link",
 };
 
-/** The three keys a lockfile can answer, and which command each is. */
-const DERIVABLE: Record<string, CommandKind> = {
+/** The three keys a lockfile can answer, and which command each is.
+ *  Exported so `render/site.ts` can gate a row's edit-mode input on KEY
+ *  membership here, rather than on the row's current `origin` — a key
+ *  that is momentarily `unset` (no lockfile found yet) must stay
+ *  read-only exactly as a `derived` one does, and a second,
+ *  hand-duplicated list of these three names would drift from this one
+ *  the moment a fourth derivable key is added. */
+export const DERIVABLE: Record<string, CommandKind> = {
   AIDE_TEST_CMD: "test",
   AIDE_LINT_CMD: "lint",
   AIDE_BUILD_CMD: "build",
@@ -104,6 +113,23 @@ const RESOLVED_BY: Record<string, ReadinessCheckName> = {
   AIDE_SPECS_PATH: "specsRoot",
   AIDE_WORKTREE_LINKS: "worktreeLinks",
 };
+
+/** What `key`'s file(s) say is configured, and — for the one key with
+ *  two possible files — which one answered. `null` when nothing is
+ *  configured, exactly as `configValue()` alone used to answer for
+ *  every key including this one, before the Worktree links row started
+ *  reading `resolveWorktreeLinks()` instead: raw `configValue()` skips
+ *  the manifest's `worktreeLinks:` entirely, so on a project where both
+ *  files name a value the row could show one a run would never use
+ *  (spec 255). */
+function configuredValue(projectDir: string, key: string): { value: string; source?: string } | null {
+  if (key === "AIDE_WORKTREE_LINKS") {
+    const { links, source } = resolveWorktreeLinks(projectDir);
+    return links ? { value: links, source: source ?? undefined } : null;
+  }
+  const value = configValue(projectDir, key);
+  return value !== null ? { value } : null;
+}
 
 /** One row per recognized key, for `projectDir`.
  *
@@ -118,14 +144,21 @@ export function projectSettings(
   const detected = detectProjectCommands(projectDir);
   const rows = SETTING_KEYS.map((key): SettingRow => {
     const purpose = PURPOSE[key]!;
-    const configured = configValue(projectDir, key);
+    const configured = configuredValue(projectDir, key);
     if (configured !== null) {
       const check = RESOLVED_BY[key];
       // Read verbatim, and only from a check that FAILED: the
       // worktree-links check reports the unset case too, and "no links
       // are configured" is not a value that failed to resolve.
       const failed = check ? readiness?.checks.find((c) => c.check === check && !c.ok) : undefined;
-      return { key, purpose, value: configured, origin: "configured", ...(failed ? { problem: failed.detail } : {}) };
+      return {
+        key,
+        purpose,
+        value: configured.value,
+        origin: "configured",
+        ...(configured.source ? { source: configured.source } : {}),
+        ...(failed ? { problem: failed.detail } : {}),
+      };
     }
     const kind = DERIVABLE[key];
     const found = kind ? detected[kind] : undefined;

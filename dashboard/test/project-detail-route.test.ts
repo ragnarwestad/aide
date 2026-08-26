@@ -14,7 +14,7 @@
 // hedged as a default rather than shown as a promise, and that a git
 // which cannot answer leaves a page behind rather than a stack trace.
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { navEntries } from "../src/render.ts";
@@ -84,15 +84,23 @@ const get = (base: string, name: string) =>
   fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
 
 describe("GET /projects/<name> — the project's own page, served", () => {
-  test("the page links back to Projects and opens the encoded inline editor", async () => {
+  test("the page links back to Projects and links to the edit state", async () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const html = await (await get(serve(root, settled(root, name)), name)).text();
     expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
-    expect(html).toContain('<details class="project-settings-editor"');
-    expect(html).toContain('<summary class="btn primary">Edit</summary>');
+    expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=1">Edit</a>');
+  });
+
+  test("?edit=1 renders the one table as a form posting to the settings route", async () => {
+    const name = "aide & co";
+    const root = projectsRoot({ [name]: null });
+    const base = serve(root, settled(root, name));
+    const res = await fetch(`${base}/projects/${encodeURIComponent(name)}?edit=1`, { headers: AUTH });
+    const html = await res.text();
     expect(html).toContain('action="/api/queue/projects/aide%20%26%20co/settings"');
     expect(html).toContain('<a class="btn" href="/projects/aide%20%26%20co">Cancel</a>');
+    expect(html).toContain(">Save<");
   });
 
   test("a known project answers 200 with actions and settings, and no manifest or spec list", async () => {
@@ -164,23 +172,67 @@ describe("GET /projects/<name> — the project's own page, served", () => {
 });
 
 describe("what the page says about the settings (criteria 1-3, 7)", () => {
-  test("editable values stay visible and are prefilled beside the read-only overview", async () => {
+  test("read-only view shows every row's value, and Worktree links names its file (criteria 1, 2)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
     writeFileSync(
       join(root, "aide", ".aide", "project.yaml"),
       "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
     );
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("Specs root");
+    expect(html).toContain("AIDE_SPECS_PATH");
     expect(html).toContain("/repos/specs/aide");
-    expect(html).toContain("Worktree links");
+    expect(html).toContain("AIDE_WORKTREE_LINKS");
     expect(html).toContain("node_modules");
     expect(html).toContain("Code landing");
     expect(html).toContain("Leave it for a pull request");
+    // Criterion 2: the manifest's value wins over `.aide/config`'s (there
+    // is none here to conflict with), and the Comment column names which
+    // file it came from.
+    expect(html).toMatch(/node_modules[\s\S]{0,300}configured, from \.aide\/project\.yaml/);
+    // Exactly one settings table (criterion 1) — no leftover second one
+    // from the removed plain-text summary or `<details>` editor.
+    expect((html.match(/<table class="list">/g) ?? []).length).toBe(1);
+  });
+
+  test("?edit=1 pre-fills the editable inputs with the current values (criterion 3)", async () => {
+    const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/repos/specs/aide\n" }, ["node_modules"]);
+    writeFileSync(
+      join(root, "aide", ".aide", "project.yaml"),
+      "name: aide\ndescription: the aide project\nworktreeLinks: node_modules\ncodeLanding: pr\n",
+    );
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
     expect(html).toMatch(/name="specsPath"[^>]*value="\/repos\/specs\/aide"/);
     expect(html).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
     expect(html).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
-    expect(html).toContain('<div class="tablewrap"><table class="list">');
+  });
+
+  test("?edit=1 keeps the three derivable keys read-only, even when one is unset (criterion 3)", async () => {
+    // No lockfile at all: AIDE_LINT_CMD, a DERIVABLE key, is `unset` —
+    // the gate must read key membership, not the row's current origin.
+    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    expect(html).not.toContain('name="AIDE_TEST_CMD"');
+    expect(html).not.toContain('name="AIDE_LINT_CMD"');
+    expect(html).not.toContain('name="AIDE_BUILD_CMD"');
+    // Meanwhile a non-derivable, currently-unset key does become an input.
+    expect(html).toMatch(/name="jiraBaseUrl"[^>]*value=""/);
+  });
+
+  test("the table has one row per SETTING_KEYS entry plus Code landing, under Name/Value/Comment (criterion 1)", async () => {
+    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain("<th>Name</th><th>Value</th><th>Comment</th>");
+    expect(html).not.toContain("<th>Setting</th>");
+    expect(html).not.toContain("<th>Where from</th>");
+    for (const key of [
+      "AIDE_SPECS_PATH", "AIDE_WORKTREE_LINKS", "AIDE_TEST_CMD", "AIDE_LINT_CMD",
+      "AIDE_BUILD_CMD", "AIDE_INSTALL_CMD", "AIDE_JIRA_BASE_URL",
+    ]) {
+      expect(html).toContain(`<td>${key}</td>`);
+    }
+    expect(html).toContain("<td>Code landing</td>");
   });
   test("a configured test command is shown as configured (criterion 1)", async () => {
     const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
@@ -221,6 +273,81 @@ describe("what the page says about the settings (criteria 1-3, 7)", () => {
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/AIDE_BUILD_CMD[\s\S]{0,200}not set/);
     expect(html).not.toContain("not a verified command");
+  });
+
+  // Spec 255's own criterion 7: a regression guard, not a new bug fix —
+  // `noFile` was already a single top-level block before the unified
+  // table existed, and this protects that property through the refactor.
+  test("the no-config notice appears exactly once, above the one table (spec 255 criterion 7)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect((html.match(/no \.aide\/config/g) ?? []).length).toBe(1);
+  });
+});
+
+// Spec 255: the edit/save/cancel controls the unified table gained.
+describe("editing the unified settings table (spec 255)", () => {
+  const POST_AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+
+  test("Cancel is a plain link back to the page with no ?edit and posts nothing (criterion 4)", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    expect(html).toContain('<a class="btn" href="/projects/aide">Cancel</a>');
+  });
+
+  test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode (criterion 5)", async () => {
+    const root = projectsRoot({ aide: null });
+    const project = join(root, "aide");
+    const base = serve(root, settled(root, "aide"));
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: POST_AUTH,
+      body: JSON.stringify({ installCmd: "make install", specsPath: "", worktreeLinks: "" }),
+    });
+    expect(res.status).toBe(200);
+    expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toContain("AIDE_INSTALL_CMD=make install");
+    const view = await (await fetch(`${base}/projects/aide`, { headers: AUTH })).text();
+    expect(view).toContain("make install");
+    expect(view).not.toContain('name="installCmd"');
+  });
+
+  test("saving AIDE_JIRA_BASE_URL left unchanged rewrites nothing (criterion 6)", async () => {
+    const root = projectsRoot({ aide: "AIDE_JIRA_BASE_URL=https://jira.example.com\n" });
+    const project = join(root, "aide");
+    const before = readFileSync(join(project, ".aide", "config"), "utf-8");
+    const base = serve(root, settled(root, "aide"));
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      headers: POST_AUTH,
+      body: JSON.stringify({
+        jiraBaseUrl: "https://jira.example.com",
+        specsPath: "",
+        worktreeLinks: "",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { results: { step: string }[] };
+    expect(body.results.map((r) => r.step)).not.toContain("jiraBaseUrl");
+    expect(readFileSync(join(project, ".aide", "config"), "utf-8")).toBe(before);
+  });
+
+  test("a no-script save that is refused reopens the edit state, not the read-only view", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const FORM = { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN };
+    const res = await fetch(`${base}/api/queue/projects/aide/settings`, {
+      method: "POST",
+      redirect: "manual",
+      headers: FORM,
+      body: new URLSearchParams({ worktreeLinks: "/etc" }),
+    });
+    expect(res.status).toBe(303);
+    const location = res.headers.get("location")!;
+    expect(location.startsWith("/projects/aide?edit=1")).toBe(true);
+    const refusalHtml = await (await fetch(`${base}${location}`, { headers: AUTH })).text();
+    expect(refusalHtml).toContain("/etc");
+    expect(refusalHtml).toContain(">Save<");
   });
 });
 

@@ -17,7 +17,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProjectReadiness, ReadinessCheck } from "../src/project-admin.ts";
-import { SETTING_KEYS, projectSettings } from "../src/project-settings.ts";
+import { DERIVABLE, SETTING_KEYS, projectSettings } from "../src/project-settings.ts";
 
 const dirs: string[] = [];
 
@@ -177,5 +177,42 @@ describe("a value that does not resolve is marked, in the words readiness alread
     const r = row(project(""), "AIDE_WORKTREE_LINKS", readiness(unsetNote));
     expect(r.origin).toBe("unset");
     expect(r.problem).toBeUndefined();
+  });
+});
+
+// Spec 255: the Worktree links row moved from raw `configValue()` to
+// `resolveWorktreeLinks()`'s manifest-then-config precedence, and
+// `DERIVABLE` is now exported so `render/site.ts` can gate edit-mode on
+// key membership rather than a second, hand-duplicated list.
+describe("the Worktree links row is sourced from resolveWorktreeLinks() (spec 255)", () => {
+  test("DERIVABLE's export names exactly the three command keys, and touches no row shape", () => {
+    expect(Object.keys(DERIVABLE).sort()).toEqual(["AIDE_BUILD_CMD", "AIDE_LINT_CMD", "AIDE_TEST_CMD"]);
+    const view = projectSettings(project(null), null);
+    expect(view.rows.map((r) => r.key)).toEqual([...SETTING_KEYS]);
+  });
+
+  test("the manifest's worktreeLinks: wins when both files set it, and the row names that file (criterion 2)", () => {
+    const dir = project("AIDE_WORKTREE_LINKS=other-deps\n");
+    writeFileSync(join(dir, ".aide", "project.yaml"), "name: p\nworktreeLinks: deps\n");
+    const r = row(dir, "AIDE_WORKTREE_LINKS");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("deps");
+    expect(r.source).toBe("project.yaml");
+  });
+
+  test("a legacy value in .aide/config alone still resolves, and the row names that file", () => {
+    const dir = project("AIDE_WORKTREE_LINKS=deps\n");
+    const r = row(dir, "AIDE_WORKTREE_LINKS");
+    expect(r.origin).toBe("configured");
+    expect(r.value).toBe("deps");
+    expect(r.source).toBe(".aide/config");
+  });
+
+  test("neither file setting it reads unset, same as before", () => {
+    const dir = project("");
+    const r = row(dir, "AIDE_WORKTREE_LINKS");
+    expect(r.origin).toBe("unset");
+    expect(r.value).toBeNull();
+    expect(r.source).toBeUndefined();
   });
 });

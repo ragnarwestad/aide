@@ -6224,10 +6224,12 @@ describe("a project's settings route (spec 184)", () => {
     // project used to be would satisfy the line above and nothing else.
     const saved = readFileSync(join(project, ".aide", "project.yaml"), "utf-8");
     expect(saved).toContain("worktreeLinks: node_modules");
+    // Spec 255: the redirect lands on the read-only view — the value is
+    // plain text in the table now, not an editable input.
     const afterSave = await (await fetch(`${base}${ok.headers.get("location")}`, {
       headers: { "x-aide-token": TOKEN },
     })).text();
-    expect(afterSave).toMatch(/name="worktreeLinks"[^>]*value="node_modules"/);
+    expect(afterSave).toContain("<td>node_modules</td>");
     const refused = await fetch(`${base}/api/queue/projects/aide/settings`, {
       method: "POST",
       redirect: "manual",
@@ -6235,12 +6237,15 @@ describe("a project's settings route (spec 184)", () => {
       body: new URLSearchParams({ worktreeLinks: "/etc" }),
     });
     expect(refused.status).toBe(303);
-    expect(refused.headers.get("location")!.startsWith("/projects/aide?error=")).toBe(true);
+    // Spec 255: `?edit=1` carries the reader back into edit mode, so the
+    // refusal is shown on the form it was submitted from — not on the
+    // read-only view, where nothing could show it.
+    expect(refused.headers.get("location")!.startsWith("/projects/aide?edit=1")).toBe(true);
     const refusalPage = await fetch(`${base}${refused.headers.get("location")}`, {
       headers: { "x-aide-token": TOKEN },
     });
     const refusalHtml = await refusalPage.text();
-    expect(refusalHtml).toContain('<details class="project-settings-editor" open>');
+    expect(refusalHtml).toContain(">Save<");
     expect(refusalHtml).toContain("/etc");
     // Criterion 5: the refusal wrote nothing — the manifest is still what
     // the save before it left behind.
@@ -6254,7 +6259,8 @@ describe("a project's settings route (spec 184)", () => {
     const { base, project } = await settled();
     mkdirSync(join(project, ".aide"), { recursive: true });
     writeFileSync(join(project, ".aide", "project.yaml"), "name: aide\ncodeLanding: pr\n");
-    const form = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
+    // Spec 255: Code landing's `<select>` only exists in edit mode now.
+    const form = await (await fetch(`${base}/projects/aide?edit=1`, { headers: { "x-aide-token": TOKEN } })).text();
     expect(form).toContain('name="codeLanding"');
     expect(form).toMatch(/value="pr"[^>]*selected|selected[^>]*value="pr"/);
 

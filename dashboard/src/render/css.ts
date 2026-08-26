@@ -980,13 +980,6 @@ tr.steplog td { padding-top: 0; }
 .proj-row > div:first-child { flex: 1; min-width: 0; }
 .proj-row-link::after { content: ""; position: absolute; inset: 0; }
 .proj-row-action { position: relative; z-index: 1; }
-.project-settings-values { margin-bottom: var(--sp-3); }
-.project-settings-values p { margin: var(--sp-1) 0; }
-.project-settings-editor { margin: var(--sp-3) 0 var(--sp-4); }
-.project-settings-editor > summary { list-style: none; width: max-content; }
-.project-settings-editor > summary::-webkit-details-marker { display: none; }
-.project-settings-editor .newspecform { margin-top: var(--sp-3); }
-.project-settings-editor .frow { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
 .proj-row.error { border-color: var(--danger); }
 .error-text { color: var(--danger); }
 /* Whether the spec's FOLDER has been archived on disk — a different
@@ -1006,7 +999,6 @@ tr.spec-archived td { color: var(--muted); }
   header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
   body > nav { padding: 0 var(--sp-4) var(--sp-2); }
   main { padding: var(--sp-4); }
-  .project-settings-editor .factions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 
   /* Started and Cost are not what a phone is for on a PHASE line: the
      reader is checking whether a run finished and pressing Run or

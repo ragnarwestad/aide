@@ -38,7 +38,7 @@ import {
 import { LiveEnricher } from "./live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
-  gitignoreCandidates, resolveCodeLanding, resolveWorktreeLinks, specArchivedDate, specDependsOn,
+  gitignoreCandidates, resolveCodeLanding, specArchivedDate, specDependsOn,
   specDurationMs, specFileText, specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine,
   type CodeLanding, type DiscoveredProject, type SpecRef,
 } from "./discover.ts";
@@ -2859,7 +2859,11 @@ export function createServer(opts: ServerOptions) {
       action === "add-project"
         ? ADD_PROJECT_ROUTE
         : action === "project-settings"
-          ? `/projects/${encodeURIComponent(project)}`
+          // `?edit=1`: the settings table's edit state is server-rendered
+          // (spec 255), so a refused save that dropped it would reopen on
+          // the read-only view with the error attached to a form that is
+          // no longer there.
+          ? `/projects/${encodeURIComponent(project)}?edit=1`
           : `/projects/${encodeURIComponent(project)}/remove`;
     if (summary) return specsRedirect(sent, { error: summary }, formPage);
     // A browser with no script gets the readiness answer the only way a
@@ -3221,10 +3225,14 @@ export function createServer(opts: ServerOptions) {
         {
           token: queueToken,
           script: queueClientScript(),
-          specsPath: configValue(dir, "AIDE_SPECS_PATH") ?? "",
-          worktreeLinks: resolveWorktreeLinks(dir).links,
+          // Specs root and Worktree links are no longer read a second
+          // time here (spec 255): `projectSettings(dir, readiness)`
+          // above already resolved both, and the table draws its Value
+          // cells straight off those same rows — one read per row's
+          // data, not two that could drift.
           codeLanding: resolveCodeLanding(dir),
           worktreeLinkCandidates: gitignoreCandidates(dir),
+          editing: url.searchParams.get("edit") === "1",
           error: url.searchParams.get("error") ?? undefined,
         },
       );
@@ -3535,10 +3543,13 @@ export function createServer(opts: ServerOptions) {
       const result = await updateProjectSettings(gitRun, join(opts.projectRoot, name), {
         specsPath: str(asked.specsPath),
         worktreeLinks: str(asked.worktreeLinks),
-        // Only when the form actually sent one (spec 220): a caller
-        // posting the two older fields alone must not be read as
-        // choosing `merge` and quietly taking the key back out.
+        // Only when the form actually sent one (spec 220, then 255 for
+        // the two that joined it): a caller posting only the older
+        // fields must not be read as clearing the ones it never
+        // mentioned.
         ...("codeLanding" in asked && { codeLanding: str(asked.codeLanding) }),
+        ...("installCmd" in asked && { installCmd: str(asked.installCmd) }),
+        ...("jiraBaseUrl" in asked && { jiraBaseUrl: str(asked.jiraBaseUrl) }),
       });
       // The specs root a save just named is where the scan goes looking
       // for this project's specs — without this the very next request
