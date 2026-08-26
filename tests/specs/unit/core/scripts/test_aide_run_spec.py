@@ -4781,3 +4781,222 @@ def test_a_pr_landing_opens_the_pull_request(runner, workspace, fake_claude, fak
     assert rc == 0, out
     assert fake_gh.calls.exists(), "a pr landing must open one"
     assert out["prUrl"], out
+
+
+# --- spec 246: the Total progress header is recomputed, not narrated ---------
+#
+# `Workflow steps completed` (above) says whether the SPEC ran a step;
+# `Total progress` is a different question — how far the file's OWN
+# Phase tables have got — and until now it was written once by
+# `/aide-analyze` and never touched again. This block is the row-
+# counting recompute, run at the end of every `WORKFLOW_ARC` step,
+# using the identical done/open rule `parseStatusChecks`/`isDoneMark`
+# (dashboard/src/parse-status.ts) already use.
+
+
+def write_raw_status(workspace, content):
+    """A committed `4-status.md` with EXACTLY the text given — no
+    `with_status()` shape assumed, since these tests exercise the header
+    format and Phase-table row shapes the recompute has to agree with
+    directly, in each test's own words."""
+    (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(content)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
+
+
+def test_open_rows_recompute_the_header_percentage(runner, workspace, fake_claude):
+    """AC1: a header reading `0% (0 of 4 completed)` next to 4 real rows
+    (2 done, 2 open) is rewritten to the real split."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Total progress:** 0% (0 of 4 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| one | ✅ | |\n"
+        "| two | ✅ | |\n"
+        "| three | ⬜ | |\n"
+        "| four | ⬜ | |\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
+
+
+def test_a_header_that_already_matches_is_not_rewritten(runner, workspace, fake_claude):
+    """AC2: a header already agreeing with the real row count produces no
+    change and no commit — the same `cmp -s` guard `Workflow steps
+    completed` already uses."""
+    rows = "\n".join(f"| task {i} | ✅ | |" for i in range(1, 13))
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Workflow steps completed:** analyze\n"
+        "- **Total progress:** 100% (12 of 12 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        f"{rows}\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    roots = {r["root"]: r for r in out["repos"]}
+    assert roots[str(workspace["specs"])]["changedFiles"] == 0
+
+
+def test_both_numerator_and_denominator_are_corrected(runner, workspace, fake_claude):
+    """AC3: spec 245's own real, archived staleness — a header of `73%
+    (11 of 15 completed)` next to 19 real, all-✅ rows becomes `100% (19
+    of 19 completed)`. Both numbers were wrong, not the denominator
+    alone."""
+    rows = "\n".join(f"| task {i} | ✅ | |" for i in range(1, 20))
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Total progress:** 73% (11 of 15 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        f"{rows}\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert bullet(text, "Total progress") == "100% (19 of 19 completed)"
+
+
+def test_a_fresh_status_file_with_no_rows_yet_is_left_untouched(runner, workspace, fake_claude):
+    """AC4: a status file straight from the template — Phase tables with
+    no rows yet, header still the literal `X` placeholder `/aide-create`
+    writes — has nothing to derive from, so `create` leaves the line
+    exactly as found."""
+    made = "99-a-brand-new-spec"
+    body = (
+        "# New - Status\n\n"
+        "Total progress: 0% (0 of X completed)\n\n"
+        "## Tracking info\n\n"
+        f"- **Task:** `{made}/`\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+    )
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'mkdir -p "$specs/{made}"\n'
+        + f'cat > "$specs/{made}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{made}/4-status.md")
+    assert "Total progress: 0% (0 of X completed)" in text
+
+
+def test_the_bare_unbolded_format_survives_the_rewrite(runner, workspace, fake_claude):
+    """AC5: real specs write `Total progress: X% (Y of Z completed)`
+    directly under the title, unbolded, no bullet — not the documented
+    bold/bulleted form. Only the digits change; the rest of the line and
+    its position survive."""
+    rows = "\n".join(f"| task {i} | ✅ | |" for i in range(1, 20))
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n"
+        "Total progress: 73% (11 of 15 completed)\n"
+        "Estimate: 4-6 hours (AI-assisted)\n\n"
+        "## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        f"{rows}\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert "Total progress: 100% (19 of 19 completed)" in text
+    assert "Estimate: 4-6 hours (AI-assisted)" in text
+
+
+def test_the_bold_bulleted_format_survives_the_rewrite(runner, workspace, fake_claude):
+    """AC6: the documented bold/bulleted form — `- **Total progress:**`
+    inside `## Tracking info`, the exact shape `with_status()`'s own
+    fixture writes — keeps its markup; only the digits change."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Total progress:** 0% (0 of 4 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n**Status:** ✅ Completed\n\n### Tasks\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| one | ✅ | |\n"
+        "| two | ✅ | |\n"
+        "| three | ⬜ | |\n"
+        "| four | ⬜ | |\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert bullet(text, "Total progress") == "50% (2 of 4 completed)"
+
+
+def test_a_non_checkbox_status_row_counts_as_one_task(runner, workspace, fake_claude):
+    """AC7: a three-column row with a bare status word instead of a
+    checkbox mark (spec 245's own real `Plan review` row) counts the
+    same as any ordinary row."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Total progress:** 0% (0 of 2 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| Plan review (feasibility, scope guardian, coherence) | ✅ | Three blind subagents; 2 must-fix |\n"
+        "| ordinary task | ⬜ | |\n",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    assert bullet(text, "Total progress") == "50% (1 of 2 completed)"
+
+
+STATUS_ROW_COUNTING = json.loads(
+    (pathlib.Path(__file__).resolve().parents[4] / "fixtures" / "status-row-counting.json")
+    .read_text()
+)["cases"]
+
+
+@pytest.mark.parametrize(
+    "case", STATUS_ROW_COUNTING, ids=[c["name"] for c in STATUS_ROW_COUNTING]
+)
+def test_the_shared_row_counting_fixture_matches_the_bash_side(
+    runner, workspace, fake_claude, case
+):
+    """AC8, bash half: `tests/fixtures/status-row-counting.json` is the
+    same table `dashboard/test/parse-status.test.ts` reads for the
+    TypeScript half — both must report the identical done/total split
+    for every case."""
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Total progress:** 0% (0 of 999 completed)\n\n---\n\n"
+        f"{case['body']}",
+    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
+    if case["total"] == 0:
+        assert bullet(text, "Total progress") == "0% (0 of 999 completed)"
+    else:
+        pct = (case["done"] * 100 + case["total"] // 2) // case["total"]
+        assert bullet(text, "Total progress") == f"{pct}% ({case['done']} of {case['total']} completed)"

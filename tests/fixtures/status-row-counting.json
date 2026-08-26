@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Spec 246: the row-counting rule `4-status.md`'s recomputed `Total",
+    "progress` header must agree on. `core/scripts/aide-run-spec` (bash,",
+    "total_progress_for) and `dashboard/src/parse-status.ts`",
+    "(parseStatusChecks/isDoneMark) implement this rule independently — the",
+    "pair is hand-kept, like WORKFLOW_STEPS and the code-landing table, so",
+    "the agreement is asserted rather than assumed.",
+    "",
+    "Each case's `body` is the Phase-section text of a `4-status.md` (one",
+    "or more `## Phase`/`## Fase` headings and their Tasks tables). `done`",
+    "and `total` are the counts BOTH implementations must produce for it."
+  ],
+  "cases": [
+    {
+      "name": "ordinary-checked-and-unchecked-rows",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n| two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
+    },
+    {
+      "name": "a-non-checkbox-status-row-counts-like-any-other",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| Plan review (feasibility, scope guardian, coherence) | ✅ | Three blind subagents, one must-fix |\n| ordinary task | ⬜ | |\n",
+      "done": 1,
+      "total": 2
+    },
+    {
+      "name": "an-oversized-mark-is-excluded",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n| two | this mark is far too long to be a real status word | |\n",
+      "done": 1,
+      "total": 1
+    },
+    {
+      "name": "a-comma-containing-mark-is-excluded",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n| two | yes, done | |\n",
+      "done": 1,
+      "total": 1
+    },
+    {
+      "name": "a-heading-with-no-space-is-not-a-phase-section",
+      "body": "## Phase1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n",
+      "done": 0,
+      "total": 0
+    },
+    {
+      "name": "two-phase-sections-are-summed",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n\n## Phase 2: GREEN\n\n| Task | Status | Notes |\n|------|--------|-------|\n| two | ✅ | |\n| three | ⬜ | |\n",
+      "done": 2,
+      "total": 3
+    }
+  ]
+}

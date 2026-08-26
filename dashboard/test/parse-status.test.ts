@@ -704,3 +704,24 @@ describe("spec 231: the work-round boundary", () => {
     expect(status.reopenedAfter).toBe("bbbbbbb");
   });
 });
+
+// --- spec 246: the Total progress header is recomputed, not narrated --------
+//
+// The row-counting rule `core/scripts/aide-run-spec`'s new
+// `total_progress_for()` reimplements in awk, checked against the same
+// shared table it is: one file, read by a test on each side, the way
+// WORKFLOW_STEPS and the code-landing precedence table already are.
+describe("spec 246: the shared row-counting fixture (AC8, TypeScript half)", () => {
+  const FIXTURE: { cases: { name: string; body: string; done: number; total: number }[] } =
+    JSON.parse(
+      readFileSync(join(import.meta.dir, "../../tests/fixtures/status-row-counting.json"), "utf-8"),
+    );
+
+  for (const c of FIXTURE.cases) {
+    test(`${c.name}: ${c.done} of ${c.total}`, () => {
+      const checks = parseStatusChecks(`# X - Status\n\n${c.body}`);
+      expect(checks.length).toBe(c.total);
+      expect(checks.filter((check) => check.done).length).toBe(c.done);
+    });
+  }
+});

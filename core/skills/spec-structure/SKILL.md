@@ -405,9 +405,36 @@ ran, so it errs toward never erasing one.
 
 The dashboard reads the same commits, live, to mark a spec's phases
 done — a `4-status.md` that disagrees with them is said out loud on the
-row rather than believed. The progress percentage below the line is a
-different question and is still the model's: it says how far the TDD
-phases inside `implement` have got, not whether `implement` ran at all.
+row rather than believed. The progress percentage below the line
+answers a different question — how far the file's own Phase tables
+have got — and is recomputed the same way (see #### Total progress
+below), not narrated by the model that last touched the file.
+
+#### Total progress
+
+One line, near the top of the file, saying how many of the file's own
+Phase-table rows are done:
+
+```markdown
+- **Total progress:** 50% (2 of 4 completed)
+```
+
+**Do not edit this line by hand. It is recomputed by `aide-run-spec`**,
+at the end of every step, by counting the file's own `## Phase`/`##
+Fase` section rows — the identical done/open rule the dashboard's own
+`parseStatusChecks`/`isDoneMark` use: a well-formed three-column row
+counts as one task, its Status cell is done when it reads `✅` or the
+word `Completed`, and everything else (header rows, separators, free
+commentary) is skipped. A row with no checkbox at all — a status word
+like a "Plan review" row's bare `✅` — counts exactly like any other
+row.
+
+The rewrite is format-agnostic: it only touches the digits, wherever
+the line sits and whatever else it looks like (bold and bulleted inside
+`## Tracking info`, or bare text under the title) — its own formatting
+and position always survive. A file whose Phase tables have no rows yet
+(fresh from the template) is left alone entirely: there is nothing yet
+to derive.
 
 #### Phase outcome record
 
