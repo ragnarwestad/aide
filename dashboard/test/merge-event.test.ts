@@ -2,7 +2,7 @@
 // says a branch landed. The reporter is how it says so itself — opt-in,
 // bounded, and never able to turn a merge that happened into a failure.
 import { describe, expect, test } from "bun:test";
-import { MergeEventReporter, type MergeEvent } from "../src/merge-event.ts";
+import { MergeEventReporter, type MergeEvent } from "../src/integrations/merge-event.ts";
 
 const event: MergeEvent = {
   project: "aide",

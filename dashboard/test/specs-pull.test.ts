@@ -17,7 +17,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pullFastForward, saveSpecFile, saveSpecFiles } from "../src/specs-pull.ts";
+import { pullFastForward, saveSpecFile, saveSpecFiles } from "../src/git/specs-pull.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const DIR = "/host/aide-specs/aide/150-one-page-shows-the-whole-spec";

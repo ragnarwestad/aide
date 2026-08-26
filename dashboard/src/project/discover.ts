@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { parseManifest, type ScheduleEntry } from "./parse-manifest.ts";
 import { projectNameError } from "./project-admin.ts";
 import { archiveHeldBackReason, parseStatus } from "./parse-status.ts";
-import type { ProjectView } from "./render/site.ts";
+import type { ProjectView } from "../render/pages/site.ts";
 
 export interface SpecRef {
   folder: string;

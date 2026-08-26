@@ -24,9 +24,9 @@ import {
   dashboardSpecsRepo,
   ensureDashboardCheckout,
   type DashboardCheckout,
-} from "../src/dashboard-checkout.ts";
-import { createGitRunner } from "../src/branch-status.ts";
-import { configValue } from "../src/discover.ts";
+} from "../src/git/dashboard-checkout.ts";
+import { createGitRunner } from "../src/git/branch-status.ts";
+import { configValue } from "../src/project/discover.ts";
 
 const run = createGitRunner();
 const dirs: string[] = [];

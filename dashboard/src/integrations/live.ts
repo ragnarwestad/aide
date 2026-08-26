@@ -4,7 +4,7 @@
 // for, so this server never drives claude-usage's live fold (and its
 // notifications) on a timer. Unreachable → rows degrade, never throw.
 
-import type { AideRunStore, StoredRun } from "./aide-run-store.ts";
+import type { AideRunStore, StoredRun } from "../queue/aide-run-store.ts";
 
 export type LiveState = "unknown" | "not-live" | string;
 

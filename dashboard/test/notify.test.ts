@@ -6,7 +6,7 @@
 // JSON on stdin, spawn-and-forget, SIGTERM at 10 s and SIGKILL a second
 // later, and absent entirely unless configured.
 import { describe, expect, test } from "bun:test";
-import { Notifier, type NotifyEvent, type NotifyChild } from "../src/notify.ts";
+import { Notifier, type NotifyEvent, type NotifyChild } from "../src/integrations/notify.ts";
 
 const EVENT: NotifyEvent = {
   event: "finished",

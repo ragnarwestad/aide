@@ -9,7 +9,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ServerOptions } from "../src/serve.ts";
-import type { QueueDefaults } from "../src/queue.ts";
+import type { QueueDefaults } from "../src/queue/queue.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";

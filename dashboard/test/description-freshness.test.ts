@@ -19,7 +19,7 @@ import {
   lastAnalyzeCommit,
   lastCommitAt,
   lastCommitOf,
-} from "../src/description-freshness.ts";
+} from "../src/git/description-freshness.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const DIR = "/specs/aide/96-merge-button-says-what-it-merges";

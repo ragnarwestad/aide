@@ -3,7 +3,7 @@
 // The one place that rule lives is `previewUrlFor`, so the one place it
 // is checked is here.
 import { describe, expect, test } from "bun:test";
-import { previewUrlFor } from "../src/preview-url.ts";
+import { previewUrlFor } from "../src/git/preview-url.ts";
 
 const TEMPLATE = "https://{branch}.example.pages.dev";
 

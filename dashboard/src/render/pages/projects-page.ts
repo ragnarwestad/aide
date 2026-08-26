@@ -21,11 +21,11 @@ import {
   rowMessage,
   tokenField,
   typedConfirm,
-} from "./components.ts";
-import { esc } from "./html.ts";
-import type { ScheduleEntry } from "../parse-manifest.ts";
-import { nextFireTime } from "../schedule.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
+} from "../ui/components.ts";
+import { esc } from "../ui/html.ts";
+import type { ScheduleEntry } from "../../project/parse-manifest.ts";
+import { nextFireTime } from "../../queue/schedule.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
 import {
   driftPrefix,
   projectListBody,

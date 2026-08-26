@@ -23,7 +23,7 @@ import {
   type QueueRowView,
   type QueueTarget,
 } from "../src/render.ts";
-import { ICON_LINKS, WORDMARK } from "../src/render/brand.ts";
+import { ICON_LINKS, WORDMARK } from "../src/render/ui/brand.ts";
 
 const NAV = [{ label: "Overview", path: "projects.html" }];
 const AT = "2026-08-18T12:00:00Z";
@@ -280,7 +280,7 @@ describe("the row's one action rides beside the state, not in a column of its ow
 // the phases (2026-08-19). The text wraps at a measure instead.
 describe("the spec column is capped, so the phases sit close", () => {
   test("the name, the summary and the repo marks all wrap at a measure", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).toMatch(/\.spec-title \{[^}]*max-width: \d+rem/);
     // A WIDTH on the name line since 2026-08-23, not a maximum: a short
     // name let the pips beside it sit further left than a long one's,
@@ -301,7 +301,7 @@ describe("the spec column is capped, so the phases sit close", () => {
 // other width the row takes is the width its controls happen to need.
 describe("the phase lines line up in columns", () => {
   test("the stylesheet declares the columns, not pinned flex children", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).not.toContain(".phasecell > .row");
     expect(CSS).not.toContain("td.toolcell");
     expect(CSS).toContain("table.list tr.subrow .modelcell > .row {");
@@ -328,7 +328,7 @@ describe("the phase lines line up in columns", () => {
 // on (spec 167).
 describe("an open spec's last phase line has air under it", () => {
   test("the padding rule reaches a spec's own last subrow, not just the table's", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const rule =
       CSS.match(/([^\n}]*tr\.subrow:last-child td[^{]*)\{([^}]*)\}/) ??
       ([] as unknown as RegExpMatchArray);
@@ -350,7 +350,7 @@ describe("an open spec's last phase line has air under it", () => {
 // same 14x4 glyph, taking no space and needing no new element.
 describe("the running phase's pip carries the motion, not the checkbox", () => {
   test("the pip skims along the bar rather than pulsing in place", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const pipNow = CSS.match(/\.pip\.now\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(pipNow).toMatch(/animation:\s*\S+/);
     // Matched by the animation's own NAME, never as "the first
@@ -369,7 +369,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   // move everything on the line beside it, and the page's rule is that
   // nothing moves because something else changed.
   test("the pip is wide enough for a third to be visible, and divisible by three", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const pip = CSS.match(/\n\.pip \{([^}]*)\}/)?.[1] ?? "";
     const width = Number(pip.match(/width:\s*(\d+)px/)?.[1]);
     expect(width).toBe(21);
@@ -377,7 +377,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   });
 
   test("the project row link covers its row below independent actions", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const row = CSS.match(/\.proj-row \{([^}]*)\}/)?.[1] ?? "";
     const overlay = CSS.match(/\.proj-row-link::after \{([^}]*)\}/)?.[1] ?? "";
     const action = CSS.match(/\.proj-row-action \{([^}]*)\}/)?.[1] ?? "";
@@ -389,7 +389,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   });
 
   test("the fill covers the thirds already behind the run, and only those", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     // Keyed off `.pip.now`: a third belongs to the phase that is
     // RUNNING. A past or future pip carrying a fill would be the mark
     // answering a question nobody asked of it.
@@ -407,7 +407,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   });
 
   test("a machine set to reduce motion gets none, and can still tell running from waiting", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const reduced = CSS.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
     expect(reduced).toContain(".pip.now");
     expect(reduced).toContain("animation: none");
@@ -422,7 +422,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     // starts together by construction; a delay keyed off a row index or
     // a job's own start time is exactly what would make a list of
     // running specs shimmer at random instead of moving as one.
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     // The DECLARATION, not the word: the rule's own comment says why
     // there is no delay, and a guard tripped by prose that agrees with
     // it would only teach the next reader to delete the prose.
@@ -437,7 +437,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     // content, so its own explanation of why there is no delay is text
     // this loop would read as a declaration.
     const files = [
-      ...[...new Bun.Glob("src/render/*.ts").scanSync(root)].filter((f) => f !== "src/render/css.ts"),
+      ...[...new Bun.Glob("src/render/**/*.ts").scanSync(root)].filter((f) => f !== "src/render/ui/css.ts"),
       "src/queue-client.ts",
     ];
     expect(files.length).toBeGreaterThan(4);
@@ -448,7 +448,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
   });
 
   test("the spinner is off the checkbox entirely", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     // Two signals for one fact, and the wrong one of the two: a box is
     // a control, so a spinner on it read as "this box is working"
     // rather than "this phase is running".
@@ -489,7 +489,7 @@ describe("the four states with no example on the design sheet", () => {
 
 describe("refused and running are told apart by more than the word", () => {
   test("the refused badge carries a border the running one does not", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const refused = CSS.match(/\.b-refused\s*\{([^}]*)\}/)?.[1] ?? "";
     const running = CSS.match(/\.b-running\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(refused).toContain("border-color: var(--danger)");
@@ -668,7 +668,7 @@ describe("no Resolve control (spec 171)", () => {
 // one.
 describe("the button component works on a link too (spec 121)", () => {
   const rules = async (): Promise<[string, string]> => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     return [
       CSS.match(/(?<![-.\w])\.btn \{[^}]*\}/)?.[0] ?? "",
       CSS.match(/\.btn:hover \{[^}]*\}/)?.[0] ?? "",
@@ -710,14 +710,14 @@ describe("every token has a dark-surface value (acceptance criterion 13)", () =>
   ];
 
   test("the dark block overrides every colour token", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const dark = CSS.match(/@media \(prefers-color-scheme: dark\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
     expect(dark).not.toBe("");
     for (const token of PAIRED) expect(dark).toContain(`${token}:`);
   });
 
   test("the mark swaps to its dark-surface copy", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).toContain(".mark-d");
     expect(CSS).toContain(".mark-l");
   });
@@ -770,7 +770,7 @@ describe("the row's message panel is the component, not new markup", () => {
     });
     const panel = html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
     expect(panel).toContain("rowmsg warn");
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS.match(/\.rowmsg\.warn\s*\{([^}]*)\}/)?.[1] ?? "").toContain("var(--warn)");
   });
 });

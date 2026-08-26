@@ -18,9 +18,9 @@
 // Modelled on `projects-page.ts`, which is the other served page with
 // real forms on it: same shell, same guard, same top-of-page refusal.
 
-import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "./components.ts";
-import { esc } from "./html.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
+import { backLink, btn, field, messageSlot, phaseChip, phases, rowMessage, tokenField } from "../ui/components.ts";
+import { esc } from "../ui/html.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
 import {
   defaultModelForTool,
   modelOptions,

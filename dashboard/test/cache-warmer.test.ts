@@ -18,7 +18,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "./helpers/queue-server.ts";
 import type { GitCall } from "./helpers/fake-git.ts";
-import type { GitRunner } from "../src/branch-status.ts";
+import type { GitRunner } from "../src/git/branch-status.ts";
 
 const harness = queueHarness("aide-cache-warmer-");
 

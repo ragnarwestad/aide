@@ -20,14 +20,14 @@
 // filters and the sort are ordinary links, and every Run control is a
 // plain form.
 
-import { esc, relTime, relTimeLabel, usdOrTokens } from "./html.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
+import { esc, relTime, relTimeLabel, usdOrTokens } from "../ui/html.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { NEW_SPEC_ROUTE } from "./site.ts";
-import { type PhaseOutcome } from "../parse-phase-outcome.ts";
+import { type PhaseOutcome } from "../../project/parse-phase-outcome.ts";
 // One function, because the server routes on this path and the list
 // links to it (spec 150).
 import { PHASE_TAB, specPagePath, specTabPath } from "./spec-page.ts";
-import { currentWorkRoundJobs } from "../queue.ts";
+import { currentWorkRoundJobs } from "../../queue/queue.ts";
 import {
   CHECKING,
   ICON_CHEVRON,
@@ -40,7 +40,7 @@ import {
   rowMessage,
   stepLabel,
   tokenField,
-} from "./components.ts";
+} from "../ui/components.ts";
 import {
   IN_FLIGHT,
   anyCostUnmeasured,
@@ -57,7 +57,7 @@ import {
   type BranchView,
   type PhaseWord,
   type QueueRowView,
-} from "./job-state.ts";
+} from "../ui/job-state.ts";
 
 export interface QueueTarget {
   project: string;

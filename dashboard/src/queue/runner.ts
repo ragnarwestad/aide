@@ -23,7 +23,7 @@
 // The spawner, the clock and the liveness check are injected, so the
 // tests start no processes.
 
-import type { NotifyEvent } from "./notify.ts";
+import type { NotifyEvent } from "../integrations/notify.ts";
 import {
   mergeBranchRefs,
   type BranchRef,

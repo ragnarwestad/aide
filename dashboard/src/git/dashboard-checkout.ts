@@ -32,8 +32,8 @@ import { copyFileSync, existsSync, mkdirSync, realpathSync, rmSync, symlinkSync 
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GitRunner } from "./branch-status.ts";
-import { configValue, resolveWorktreeLinks } from "./discover.ts";
-import { writeAideConfig } from "./project-admin.ts";
+import { configValue, resolveWorktreeLinks } from "../project/discover.ts";
+import { writeAideConfig } from "../project/project-admin.ts";
 
 /** Where the dashboard keeps its own clones when nothing says otherwise.
  *  Beside `aide-dashboard/`, not inside the projects root: a directory

@@ -1,8 +1,8 @@
 // Criterion 3 (spec 80): merging stored runs with claude-usage's
 // /api/live rows — one fetch, injected; degrade without error.
 import { describe, expect, test } from "bun:test";
-import { AideRunStore } from "../src/aide-run-store.ts";
-import { LiveEnricher } from "../src/live.ts";
+import { AideRunStore } from "../src/queue/aide-run-store.ts";
+import { LiveEnricher } from "../src/integrations/live.ts";
 
 const run = {
   host: "laptop",

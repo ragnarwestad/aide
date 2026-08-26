@@ -24,10 +24,10 @@ import {
   upsertManifestScalar,
   type AddProjectRequest,
   type ProjectAdminResult,
-} from "../src/project-admin.ts";
-import type { GitRunner } from "../src/branch-status.ts";
-import { parseManifest } from "../src/parse-manifest.ts";
-import { configValue, resolveCodeLanding, resolveWorktreeLinks } from "../src/discover.ts";
+} from "../src/project/project-admin.ts";
+import type { GitRunner } from "../src/git/branch-status.ts";
+import { parseManifest } from "../src/project/parse-manifest.ts";
+import { configValue, resolveCodeLanding, resolveWorktreeLinks } from "../src/project/discover.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const dirs: string[] = [];

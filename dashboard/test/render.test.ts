@@ -24,10 +24,10 @@ import {
 } from "../src/render.ts";
 // The padlock itself, so a test can say a box does NOT carry one
 // without restating its markup (spec 145).
-import { ICON_LOCK } from "../src/render/components.ts";
-import { stateChip, stateLabel } from "../src/render/job-state.ts";
-import { resolveOpenStep } from "../src/render/job-page.ts";
-import { CSS } from "../src/render/css.ts";
+import { ICON_LOCK } from "../src/render/ui/components.ts";
+import { stateChip, stateLabel } from "../src/render/ui/job-state.ts";
+import { resolveOpenStep } from "../src/render/pages/job-page.ts";
+import { CSS } from "../src/render/ui/css.ts";
 
 /** Every <link> on a page that is a second REQUEST rather than a data
  *  URI — what "self-contained" means here, since the site is published
@@ -432,7 +432,7 @@ describe("the queue row links to the spec (criterion 12)", () => {
     // Spec 161: "Affected" said nothing — a repo listed on a spec's row
     // is affected by it, which is why it is listed.
     expect(html).not.toContain("Affected repos");
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).toContain(".spec-name > .label { overflow: hidden;");
     expect(CSS).toContain("-webkit-line-clamp: 2;");
   });
@@ -3741,7 +3741,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // button share the page's own `row` container, which wraps — so a
   // long pairing becomes two lines instead of a wider column.
   test("the pairing they moved into wraps rather than widening the table", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).not.toContain("data-more");
     expect(CSS).not.toContain("data-controls");
     expect(CSS).not.toContain("stackcell");
@@ -3753,7 +3753,7 @@ describe("spec 109: an expanded row reveals its controls below the header line",
   // two-line shape spec 117 exists to remove, rebuilt in CSS. They
   // have to sit BESIDE it, which is what `inline-flex` buys.
   test("the rarely-set fields sit beside the run form, not under it (spec 117)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const rule = CSS.match(/\n\.extra \{[^}]*\}/)![0];
     expect(rule).toContain("display: inline-flex");
     expect(rule).toContain("font-size: var(--fs-s)");
@@ -6410,7 +6410,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
       expect([step, cellTags(subRow(html, step))[0]]).toEqual([step, '<td class="phasecell">']);
     }
     // And the indent that used to hold the box's place goes with it.
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).not.toContain("table.list tr.subrow .phasecell { padding-left");
   });
 
@@ -6503,7 +6503,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
   // --- criterion 6: the model select keeps its cap, wherever it sits --------
 
   test("the model select's width is capped by what it IS, not where it sits (criterion 6)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     // The floor and the cap the caption line and the boxes are lined
     // up by, unchanged in value from before the merge.
     expect(CSS).toContain(
@@ -6571,7 +6571,7 @@ describe("spec 192: the phase line's controls share one cell", () => {
   // --- criterion 5: a folded phase line at phone width ----------------------
 
   test("at phone width the AI/model pair folds behind the phase's chevron (criterion 5)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     const narrow = CSS.slice(CSS.indexOf("@media (max-width: 40rem) {"));
     // Since the mobile-spec-row handoff (2026-08-24) a phase line is a
     // flex row at this width — identical open or shut — with the cells
@@ -7080,7 +7080,7 @@ describe("spec 173: every page says how it is installed", () => {
 // phase line's aside note goes.
 describe("spec 176: the phase chip frames nothing", () => {
   test("a phase line's label-less chip draws no border (criterion 1)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS).toContain(".phase[data-phase] { border-color: transparent; }");
   });
 
@@ -7090,7 +7090,7 @@ describe("spec 176: the phase chip frames nothing", () => {
   // new-spec form's "Depends on" (`data-depends`) — frames something,
   // and keeps its frame.
   test("the transparent border reaches no chip that has a label (criterion 1)", async () => {
-    const { CSS } = await import("../src/render/css.ts");
+    const { CSS } = await import("../src/render/ui/css.ts");
     expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("border: 1px solid var(--line)");
     expect(CSS.match(/^[^\n]*border-color: transparent[^\n]*$/gm)).toEqual([
       ".phase[data-phase] { border-color: transparent; }",
@@ -7397,20 +7397,20 @@ describe("spec 210: a running implement says which third it is in", () => {
 // page, and the mark is only ever about the pip that is running.
 describe("spec 210: pips() marks the completed thirds", () => {
   test("a now pip with a third carries the attribute", async () => {
-    const { pips } = await import("../src/render/components.ts");
+    const { pips } = await import("../src/render/ui/components.ts");
     expect(pips([{ kind: "now", title: "implement", third: 1 }])).toContain('data-third="1"');
     expect(pips([{ kind: "now", title: "implement", third: 2 }])).toContain('data-third="2"');
   });
 
   test("a now pip without a third carries nothing, exactly as before", async () => {
-    const { pips } = await import("../src/render/components.ts");
+    const { pips } = await import("../src/render/ui/components.ts");
     expect(pips([{ kind: "now", title: "implement" }])).toBe(
       `<div class="pips"><span class="pip now" title="implement"></span></div>`,
     );
   });
 
   test("a past or todo pip never carries the mark, whatever it is handed", async () => {
-    const { pips } = await import("../src/render/components.ts");
+    const { pips } = await import("../src/render/ui/components.ts");
     expect(pips([{ kind: "past", title: "analyze", third: 2 }])).not.toContain("data-third");
     expect(pips([{ kind: "todo", title: "archive", third: 1 }])).not.toContain("data-third");
   });

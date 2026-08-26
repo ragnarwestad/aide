@@ -3,8 +3,8 @@
 // recent fire time is after the newest tracked job's
 // `startedAt ?? createdAt`, and not before.
 import { describe, expect, test } from "bun:test";
-import { isDue, mostRecentFireTime, nextFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../src/schedule.ts";
-import type { ScheduleEntry } from "../src/parse-manifest.ts";
+import { isDue, mostRecentFireTime, nextFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../src/queue/schedule.ts";
+import type { ScheduleEntry } from "../src/project/parse-manifest.ts";
 
 const ENTRY: ScheduleEntry = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
 

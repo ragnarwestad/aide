@@ -19,7 +19,7 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { stringify } from "yaml";
-import type { GitRunner } from "./branch-status.ts";
+import type { GitRunner } from "../git/branch-status.ts";
 import { configValue, resolveWorktreeLinks } from "./discover.ts";
 import { parseManifest } from "./parse-manifest.ts";
 

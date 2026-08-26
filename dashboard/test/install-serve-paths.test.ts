@@ -16,7 +16,7 @@ import { describe, expect, test } from "bun:test";
 import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../src/dashboard-checkout.ts";
+import { DEFAULT_DASHBOARD_CHECKOUT_ROOT, dashboardCheckoutRoot } from "../src/git/dashboard-checkout.ts";
 
 const ROOT = join(import.meta.dir, "..");
 

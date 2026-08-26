@@ -23,7 +23,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "./helpers/queue-server.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
-import type { GitRunner } from "../src/branch-status.ts";
+import type { GitRunner } from "../src/git/branch-status.ts";
 
 const harness = queueHarness("aide-projects-route-");
 const ownDirs: string[] = [];

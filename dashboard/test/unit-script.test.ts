@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "src", "render", "unit-script.ts"), "utf-8"),
+  readFileSync(join(import.meta.dir, "..", "src", "render", "scripts", "unit-script.ts"), "utf-8"),
 );
 
 interface FakeButton {

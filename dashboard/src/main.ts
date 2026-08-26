@@ -6,7 +6,7 @@
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { buildProjectViews } from "./discover.ts";
+import { buildProjectViews } from "./project/discover.ts";
 import { renderSite, type Page } from "./render.ts";
 
 // Write every page and remove ONLY .html files not in the produced

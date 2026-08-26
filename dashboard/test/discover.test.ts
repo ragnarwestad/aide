@@ -10,7 +10,7 @@ import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
   gitignoreCandidates, markdownSection, resolveSchedule, specDependsOn, specDescription, specFileText,
   specArchivedDate, specDurationMs, specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine,
-} from "../src/discover.ts";
+} from "../src/project/discover.ts";
 
 let root: string;
 let externalSpecs: string;

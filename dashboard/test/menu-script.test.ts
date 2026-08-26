@@ -23,7 +23,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(
-  readFileSync(join(import.meta.dir, "..", "src", "render", "menu-script.ts"), "utf-8"),
+  readFileSync(join(import.meta.dir, "..", "src", "render", "scripts", "menu-script.ts"), "utf-8"),
 );
 
 class HTMLDialogElement {}

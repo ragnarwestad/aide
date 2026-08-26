@@ -31,25 +31,25 @@ export {
   // what it says about the config file is true when it is read rather
   // than when the site was last generated.
   projectPagePath, renderProjectPage,
-} from "./render/site.ts";
-export type { Page, ProjectPageOptions, ProjectView, SpecView } from "./render/site.ts";
+} from "./render/pages/site.ts";
+export type { Page, ProjectPageOptions, ProjectView, SpecView } from "./render/pages/site.ts";
 
 export { renderProjectsPage,
   renderAddProjectPage,
   renderRemoveProjectPage,
   ADD_PROJECT_ROUTE,
-  removeProjectRoute } from "./render/projects-page.ts";
-export type { ProjectsPageOptions, ProjectDrift } from "./render/projects-page.ts";
+  removeProjectRoute } from "./render/pages/projects-page.ts";
+export type { ProjectsPageOptions, ProjectDrift } from "./render/pages/projects-page.ts";
 
-export { renderNewSpecPage } from "./render/new-spec-page.ts";
-export type { NewSpecPageOptions } from "./render/new-spec-page.ts";
+export { renderNewSpecPage } from "./render/pages/new-spec-page.ts";
+export type { NewSpecPageOptions } from "./render/pages/new-spec-page.ts";
 
-export type { NavEntry } from "./render/shell.ts";
+export type { NavEntry } from "./render/ui/shell.ts";
 
-export { backLink, resolveBackHref } from "./render/components.ts";
+export { backLink, resolveBackHref } from "./render/ui/components.ts";
 
-export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/settings-page.ts";
-export type { SettingsPageOptions } from "./render/settings-page.ts";
+export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
+export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
 
 // The five answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are
@@ -62,7 +62,7 @@ export {
   APP_ICON_MASKABLE,
   SERVICE_WORKER,
   WEBMANIFEST,
-} from "./render/pwa.ts";
+} from "./render/ui/pwa.ts";
 
 
 // `stepBoxes` and `specSummary` used to be exported alongside these
@@ -75,15 +75,15 @@ export {
 export {
   FILTER_FIELD_PREFIX, FILTER_KEYS, FROM_LIST_FIELD, PHASE_LINES, computeSpecTotalDurationMs,
   filterShowsArchived, phasePips, phasesFor, renderQueuePage, renderQueueRows,
-} from "./render/queue-list.ts";
+} from "./render/pages/queue-list.ts";
 export type {
   ArchivedSpecView, Phase, QueueFilter, QueuePageOptions, QueueTarget,
-} from "./render/queue-list.ts";
+} from "./render/pages/queue-list.ts";
 
-export type { BranchView, QueueRowView } from "./render/job-state.ts";
+export type { BranchView, QueueRowView } from "./render/ui/job-state.ts";
 
-export { renderJobDetailPage } from "./render/job-page.ts";
-export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/job-page.ts";
+export { renderJobDetailPage } from "./render/pages/job-page.ts";
+export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/pages/job-page.ts";
 
 // `/specs/<project>/<specFolder>` — the SPEC, not one of its runs (spec
 // 150). It shares the job page's tab bar and steps table rather than
@@ -95,5 +95,5 @@ export {
   renderResetSpecPage,
   specPagePath,
   specTabPath,
-} from "./render/spec-page.ts";
-export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/spec-page.ts";
+} from "./render/pages/spec-page.ts";
+export type { SpecCheckView, SpecChecksView, SpecPageView } from "./render/pages/spec-page.ts";

@@ -22,7 +22,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GitRunner } from "../src/branch-status.ts";
+import type { GitRunner } from "../src/git/branch-status.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";

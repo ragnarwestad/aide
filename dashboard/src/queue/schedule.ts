@@ -6,7 +6,7 @@
 // leaves an answer stale until the next tick.
 
 import { CronExpressionParser } from "cron-parser";
-import type { ScheduleEntry } from "./parse-manifest.ts";
+import type { ScheduleEntry } from "../project/parse-manifest.ts";
 
 /** The job-store tracking key a schedule entry's runs are filed under —
  *  never a spec folder, and never resolved under the specs root

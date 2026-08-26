@@ -12,15 +12,15 @@
 // of a file nothing on the page could act on, and a manifest that
 // fails to parse says so on the project's row in the list.
 
-import type { SpecRef } from "../discover.ts";
-import type { StatusInfo } from "../parse-status.ts";
-import type { ManifestResult, ScheduleEntry } from "../parse-manifest.ts";
-import type { ProjectReadiness } from "../project-admin.ts";
-import { nextFireTime } from "../schedule.ts";
-import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../project-settings.ts";
-import { backLink, btn, messageSlot, rowMessage, tokenField } from "./components.ts";
-import { esc, relTimeLabel } from "./html.ts";
-import { pageShell, type NavEntry, aboutProse, buildStampLine } from "./shell.ts";
+import type { SpecRef } from "../../project/discover.ts";
+import type { StatusInfo } from "../../project/parse-status.ts";
+import type { ManifestResult, ScheduleEntry } from "../../project/parse-manifest.ts";
+import type { ProjectReadiness } from "../../project/project-admin.ts";
+import { nextFireTime } from "../../queue/schedule.ts";
+import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../project/project-settings.ts";
+import { backLink, btn, messageSlot, rowMessage, tokenField } from "../ui/components.ts";
+import { esc, relTimeLabel } from "../ui/html.ts";
+import { pageShell, type NavEntry, aboutProse, buildStampLine } from "../ui/shell.ts";
 
 export interface SpecView extends SpecRef {
   status: StatusInfo | null;

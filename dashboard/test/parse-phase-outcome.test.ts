@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parsePhaseOutcome, specPhaseOutcome } from "../src/parse-phase-outcome.ts";
+import { parsePhaseOutcome, specPhaseOutcome } from "../src/project/parse-phase-outcome.ts";
 
 const withTracking = (...lines: string[]) =>
   ["# 247 - Analysis", "", "## Tracking info", "", ...lines, "", "## Findings", ""].join("\n");

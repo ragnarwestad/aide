@@ -22,8 +22,8 @@ import {
   WorkflowHistoryChecker,
   readWorkflowSubjects,
   workflowLogArgs,
-} from "../src/workflow-history.ts";
-import { createGitRunner } from "../src/branch-status.ts";
+} from "../src/git/workflow-history.ts";
+import { createGitRunner } from "../src/git/branch-status.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const FOLDER = "154-the-runner-owns-the-record-of-what-has-run";

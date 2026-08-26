@@ -4,7 +4,7 @@
 // degrades to — so a harness kept in two copies would be a harness that
 // one day disagrees with itself about what git said.
 
-import type { GitRunner } from "../../src/branch-status.ts";
+import type { GitRunner } from "../../src/git/branch-status.ts";
 
 export interface GitCall {
   dir: string;

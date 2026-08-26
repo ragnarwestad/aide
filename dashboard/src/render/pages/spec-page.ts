@@ -37,10 +37,10 @@
 // two-copies-of-one-shape problem three times over as this repo's own
 // recurring mistake, and a second tab bar would be the fourth.
 
-import { backLink, btn, field, rowMessage, tokenField, typedConfirm } from "./components.ts";
-import { esc } from "./html.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
-import { notStartedChip, stateChip } from "./job-state.ts";
+import { backLink, btn, field, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
+import { esc } from "../ui/html.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { notStartedChip, stateChip } from "../ui/job-state.ts";
 import { dependsOnField } from "./new-spec-page.ts";
 import { phasePips } from "./queue-list.ts";
 import type { Phase, QueueTarget } from "./queue-list.ts";

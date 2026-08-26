@@ -16,8 +16,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ProjectReadiness, ReadinessCheck } from "../src/project-admin.ts";
-import { DERIVABLE, SETTING_KEYS, projectSettings } from "../src/project-settings.ts";
+import type { ProjectReadiness, ReadinessCheck } from "../src/project/project-admin.ts";
+import { DERIVABLE, SETTING_KEYS, projectSettings } from "../src/project/project-settings.ts";
 
 const dirs: string[] = [];
 

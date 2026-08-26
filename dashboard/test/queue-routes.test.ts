@@ -19,8 +19,8 @@ import {
   runnerArgv,
   type ServerOptions,
 } from "../src/serve.ts";
-import { createGitRunner, type GitRunner } from "../src/branch-status.ts";
-import { ensureDashboardCheckout } from "../src/dashboard-checkout.ts";
+import { createGitRunner, type GitRunner } from "../src/git/branch-status.ts";
+import { ensureDashboardCheckout } from "../src/git/dashboard-checkout.ts";
 import {
   computeSpecTotalDurationMs,
   renderNewSpecPage,

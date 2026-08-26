@@ -22,7 +22,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import type { GitRunner } from "../src/branch-status.ts";
+import type { GitRunner } from "../src/git/branch-status.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
@@ -974,7 +974,7 @@ describe("building the archived rows", () => {
   });
 
   test("and the gate answers for every chip there is", async () => {
-    const { filterShowsArchived } = await import("../src/render/queue-list.ts");
+    const { filterShowsArchived } = await import("../src/render/pages/queue-list.ts");
     expect(filterShowsArchived(undefined)).toBe(false);
     expect(filterShowsArchived("not-archived")).toBe(false);
     expect(filterShowsArchived("all")).toBe(true);

@@ -4,7 +4,7 @@
 // more than prettiness: the list can never grow without limit, and
 // nothing in it can leave the page as markup.
 import { describe, expect, test } from "bun:test";
-import { summarizeStream } from "../src/parse-stream.ts";
+import { summarizeStream } from "../src/queue/parse-stream.ts";
 
 const line = (o: unknown) => JSON.stringify(o);
 

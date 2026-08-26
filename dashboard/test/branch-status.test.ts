@@ -5,7 +5,7 @@
 // is asked at all.
 
 import { describe, expect, test } from "bun:test";
-import { BranchStatusChecker, specBranch, type GitRunner } from "../src/branch-status.ts";
+import { BranchStatusChecker, specBranch, type GitRunner } from "../src/git/branch-status.ts";
 import { fakeGit } from "./helpers/fake-git.ts";
 
 const SYMREF_MASTER = {

@@ -9,7 +9,7 @@ import { join } from "node:path";
 import {
   JOB_STATES, PHASE_STEPS, QueueStore, currentWorkRoundJobs, mergeQueueDefaults, parseCreateRequest, parseJobRequest,
   persistQueueSettings, persistQueueProjects, tailEdits, WORKFLOW_STEPS, type QueueDefaults,
-} from "../src/queue.ts";
+} from "../src/queue/queue.ts";
 
 describe("persistQueueSettings", () => {
   test("changes only owned step/budget/job-cap/timeout values in JSONC and keeps fallback, unknown entries and other text", () => {
@@ -48,7 +48,7 @@ describe("persistQueueSettings", () => {
 // the two are hand-paired, the way `WORKFLOW_STEPS` is paired with the
 // bash copy in `aide-run-spec`, and a test that reads both is what
 // keeps them from drifting.
-import { QUEUE_STEPS } from "../src/render/queue-list.ts";
+import { QUEUE_STEPS } from "../src/render/pages/queue-list.ts";
 import { parseArgs, resolveStepModel } from "../src/serve.ts";
 
 const DEFAULTS: QueueDefaults = {
@@ -1620,8 +1620,8 @@ describe("errorReason", () => {
   };
 
   test("names the same members on the job and on the row's view", () => {
-    const stored = declaredIn("queue.ts");
-    expect(stored).toEqual(declaredIn("render/job-state.ts"));
+    const stored = declaredIn("queue/queue.ts");
+    expect(stored).toEqual(declaredIn("render/ui/job-state.ts"));
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `unlanded` is spec 193's refusal — the
     // spec was archived and a branch of its own is still on origin.

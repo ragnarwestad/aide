@@ -20,8 +20,8 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SPINNER } from "../src/render/components.ts";
-import { durationLabel } from "../src/render/job-state.ts";
+import { SPINNER } from "../src/render/ui/components.ts";
+import { durationLabel } from "../src/render/ui/job-state.ts";
 
 const RAW = readFileSync(join(import.meta.dir, "..", "src", "queue-client.ts"), "utf-8");
 const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(RAW);

@@ -1,6 +1,6 @@
-import { pageShell, type NavEntry } from "./shell.ts";
-import { esc } from "./html.ts";
-import { backLink } from "./components.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { esc } from "../ui/html.ts";
+import { backLink } from "../ui/components.ts";
 import { defaultModelForTool, modelOptions, resolveChosenModel } from "./queue-list.ts";
 
 export const SETTINGS_ROUTE = "/settings";

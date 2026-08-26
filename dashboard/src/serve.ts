@@ -13,20 +13,20 @@ import {
 import { homedir } from "node:os";
 import { dirname, join, normalize, resolve, sep } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
-import { AideRunStore, parseAideRun } from "./aide-run-store.ts";
+import { AideRunStore, parseAideRun } from "./queue/aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, projectCheckout, specBranch, DEFAULT_TTL_MS,
   type GitRunner,
-} from "./branch-status.ts";
+} from "./git/branch-status.ts";
 import {
   DescriptionFreshnessChecker,
   SpecCreatedAtChecker,
   SpecFileCommitChecker,
   lastCommitOf,
-} from "./description-freshness.ts";
-import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./workflow-history.ts";
-import { fastForwardToOrigin, mergeBranchIntoDefault, type RepoMergeResult } from "./branch-merge.ts";
-import { pullFastForward, saveSpecFile, saveSpecFiles } from "./specs-pull.ts";
+} from "./git/description-freshness.ts";
+import { WorkflowHistoryChecker, stepsFileDisagreesOn } from "./git/workflow-history.ts";
+import { fastForwardToOrigin, mergeBranchIntoDefault, type RepoMergeResult } from "./git/branch-merge.ts";
+import { pullFastForward, saveSpecFile, saveSpecFiles } from "./git/specs-pull.ts";
 import {
   CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
@@ -34,31 +34,31 @@ import {
   dashboardSpecDir,
   ensureDashboardCheckout,
   type DashboardCheckout,
-} from "./dashboard-checkout.ts";
-import { LiveEnricher } from "./live.ts";
+} from "./git/dashboard-checkout.ts";
+import { LiveEnricher } from "./integrations/live.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, discoverUnclaimedDirectories,
   gitignoreCandidates, resolveCodeLanding, resolveSchedule, specArchivedDate, specDependsOn,
   specDurationMs, specFileText, specPhaseFile, stampDuration, stripDependsOnLine, withDependsOnLine,
   type CodeLanding, type DiscoveredProject, type SpecRef,
-} from "./discover.ts";
-import { parseManifest, type ManifestData, type ScheduleEntry } from "./parse-manifest.ts";
-import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "./schedule.ts";
-import { specPhaseOutcome, type PhaseOutcome } from "./parse-phase-outcome.ts";
-import { projectSettings } from "./project-settings.ts";
-import { previewUrlFor } from "./preview-url.ts";
+} from "./project/discover.ts";
+import { parseManifest, type ManifestData, type ScheduleEntry } from "./project/parse-manifest.ts";
+import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "./queue/schedule.ts";
+import { specPhaseOutcome, type PhaseOutcome } from "./project/parse-phase-outcome.ts";
+import { projectSettings } from "./project/project-settings.ts";
+import { previewUrlFor } from "./git/preview-url.ts";
 import {
   archiveHeldBackReason, clearArchiveHeldBack, parseStatus, parseStatusChecks, tickStatusLine,
-} from "./parse-status.ts";
-import { Notifier } from "./notify.ts";
-import { MergeEventReporter } from "./merge-event.ts";
+} from "./project/parse-status.ts";
+import { Notifier } from "./integrations/notify.ts";
+import { MergeEventReporter } from "./integrations/merge-event.ts";
 import {
   QueueStore, currentWorkRoundJobs, mergeBranchRefs, mergeQueueDefaults, parseQueueProjects,
   persistQueueSettings, persistQueueProjects,
   tailEdits,
   type BranchRef, type Job, type ModelChoice, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
-} from "./queue.ts";
+} from "./queue/queue.ts";
 import {
   addProject,
   addProjectTarget,
@@ -70,9 +70,9 @@ import {
   updateProjectSettings,
   type ProjectReadiness,
   type ProjectStep,
-} from "./project-admin.ts";
-import { Runner, type StepOutcome } from "./runner.ts";
-import { summarizeStream } from "./parse-stream.ts";
+} from "./project/project-admin.ts";
+import { Runner, type StepOutcome } from "./queue/runner.ts";
+import { summarizeStream } from "./queue/parse-stream.ts";
 import {
   ABOUT_PAGE,
   APPLE_TOUCH_ICON,

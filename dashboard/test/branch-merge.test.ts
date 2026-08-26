@@ -16,7 +16,7 @@
 // `aide-run-spec` (2-analysis.md, "the merge shape to reuse").
 
 import { describe, expect, test } from "bun:test";
-import { fastForwardToOrigin, mergeBranchIntoDefault } from "../src/branch-merge.ts";
+import { fastForwardToOrigin, mergeBranchIntoDefault } from "../src/git/branch-merge.ts";
 import { fakeGit, CLEAN_MASTER, type GitCall } from "./helpers/fake-git.ts";
 
 const BRANCH = "aide/89-merge-from-the-dashboard";

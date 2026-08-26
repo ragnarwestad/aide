@@ -4,7 +4,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseManifest } from "../src/parse-manifest.ts";
+import { parseManifest } from "../src/project/parse-manifest.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "fixtures", "manifests", name), "utf-8");

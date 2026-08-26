@@ -12,7 +12,7 @@
 // with no directory — and it was thrown, not returned, so it took the
 // page with it.
 import { describe, expect, test } from "bun:test";
-import { createGitRunner } from "../src/branch-status.ts";
+import { createGitRunner } from "../src/git/branch-status.ts";
 
 describe("a directory that is not there is an answer, not a crash", () => {
   test("git somewhere that does not exist returns a failure naming the path", async () => {

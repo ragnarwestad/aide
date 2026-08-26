@@ -11,10 +11,10 @@
 // times over as this repo's own recurring cost; a second tab bar would
 // have been the fourth.
 
-import { esc, relTime, usdOrTokens } from "./html.ts";
-import { pageShell, type NavEntry } from "./shell.ts";
-import { completedThirds, stateChip, type QueueRowView } from "./job-state.ts";
-import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "./components.ts";
+import { esc, relTime, usdOrTokens } from "../ui/html.ts";
+import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { completedThirds, stateChip, type QueueRowView } from "../ui/job-state.ts";
+import { backLink, CHECKING, ICON_CHEVRON, pips, stepLabel, type PipKind } from "../ui/components.ts";
 
 export interface JobStepResultView {
   step?: string;

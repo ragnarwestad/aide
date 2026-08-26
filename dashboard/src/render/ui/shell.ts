@@ -26,22 +26,22 @@ const transpile = (file: string): string =>
     readFileSync(join(import.meta.dir, file), "utf-8"),
   );
 
-const THEME_SCRIPT = transpile("theme-script.ts");
+const THEME_SCRIPT = transpile("../scripts/theme-script.ts");
 // Spec 118's sibling to it: which UNIT the reader wants consumption in.
 // Its own file and its own IIFE, concatenated into the one <script> tag
 // below rather than given a second — the guard test counts tags, and
 // what it is guarding against is page code drifting back onto the
 // generated pages, not a second small setting sharing the allowance.
-const UNIT_SCRIPT = transpile("unit-script.ts");
+const UNIT_SCRIPT = transpile("../scripts/unit-script.ts");
 // Close-on-outside-click and Escape for the "…" menu: what makes the
 // disclosure BEHAVE as a menu rather than a box that stays open.
-const MENU_SCRIPT = transpile("menu-script.ts");
+const MENU_SCRIPT = transpile("../scripts/menu-script.ts");
 // Spec 173's fourth: the two lines that register the service worker,
 // which is what a browser wants to see before it offers to install the
 // page. It shares the one <script> tag for the reason UNIT_SCRIPT
 // does — the guard counts tags, and what it guards against is page
 // code drifting back onto the generated pages.
-const SW_REGISTER_SCRIPT = transpile("sw-register.ts");
+const SW_REGISTER_SCRIPT = transpile("../scripts/sw-register.ts");
 // The fifth: a pressed Save that looks pressed on the pages that post a
 // real form and wait — the spec editor's takes two or three seconds to
 // commit and push. Same tag as the others, for the same reason.

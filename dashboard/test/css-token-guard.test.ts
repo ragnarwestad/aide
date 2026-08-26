@@ -33,11 +33,11 @@ import { join } from "node:path";
 // the sentinels are. Every check below that reads css.ts's CONTENT
 // reads this string; the class-name checks further down still glob
 // the render files as text, which is a different question.
-import { CSS } from "../src/render/css.ts";
+import { CSS } from "../src/render/ui/css.ts";
 
 const ROOT = join(import.meta.dir, "..");
 
-const RENDER_FILES = [...new Bun.Glob("src/render/*.ts").scanSync(ROOT)].sort();
+const RENDER_FILES = [...new Bun.Glob("src/render/**/*.ts").scanSync(ROOT)].sort();
 
 const TOKEN_START = "/* tokens:start */";
 const TOKEN_END = "/* tokens:end */";
@@ -67,7 +67,7 @@ const COLOUR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\boklch\(/g;
 
 describe("css.ts uses tokens and nothing else", () => {
   test("the stylesheet is where the test thinks it is", () => {
-    expect(RENDER_FILES).toContain("src/render/css.ts");
+    expect(RENDER_FILES).toContain("src/render/ui/css.ts");
   });
 
   test("no colour literal outside the token block", () => {

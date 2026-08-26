@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AideRunStore, parseAideRun } from "../src/aide-run-store.ts";
+import { AideRunStore, parseAideRun } from "../src/queue/aide-run-store.ts";
 
 const valid = {
   host: "laptop",

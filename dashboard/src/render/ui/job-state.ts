@@ -3,7 +3,7 @@
 // owns it.
 
 import { badge, stepLabel, type BadgeVariant, type MessageVariant, type PipKind } from "./components.ts";
-import { TDD_PHASES, type TddPhase } from "../aide-run-store.ts";
+import { TDD_PHASES, type TddPhase } from "../../queue/aide-run-store.ts";
 
 /** One repo a spec pushed a branch to, as a page sees it: a NAME and a
  *  link, never the path git will be run in. The server re-derives every

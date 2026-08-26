@@ -11,7 +11,7 @@ import {
   parseStatus,
   parseStatusChecks,
   tickStatusLine,
-} from "../src/parse-status.ts";
+} from "../src/project/parse-status.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "fixtures", "status", name), "utf-8");

@@ -10,9 +10,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { QueueStore, type QueueDefaults } from "../src/queue.ts";
-import type { NotifyEvent } from "../src/notify.ts";
-import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../src/runner.ts";
+import { QueueStore, type QueueDefaults } from "../src/queue/queue.ts";
+import type { NotifyEvent } from "../src/integrations/notify.ts";
+import { Runner, type RunnerOptions, type SpawnResult, type Spawner } from "../src/queue/runner.ts";
 
 const DEFAULTS: QueueDefaults = {
   budgetUsd: 3,
