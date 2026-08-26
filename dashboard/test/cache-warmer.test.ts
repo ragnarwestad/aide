@@ -13,6 +13,9 @@
 // in `queue-routes.test.ts`.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { queueHarness } from "./helpers/queue-server.ts";
 import type { GitCall } from "./helpers/fake-git.ts";
 import type { GitRunner } from "../src/branch-status.ts";
@@ -221,4 +224,87 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
     expect((await res.text()).toLowerCase()).toContain("archived");
     expect(lsRemotes(git.calls).length).toBe(0);
   });
+
+  // Spec 254, criterion 3: `landBranch()` invalidates the disk-scan
+  // cache the instant a merge lands (`scan = null`), but nothing did the
+  // same for `workflowHistory` — the schedule above was the only thing
+  // that ever warmed it. A CREATE landing, deliberately: its folder does
+  // not exist until the merge lands, so — unlike an existing live spec —
+  // the boot-time sweep above can never have warmed it already, and a
+  // `log --all` call for it can only have come from the landing itself.
+  // `specCachePollMs` is set far past this test's own patience, so the
+  // schedule cannot be the source either.
+  test("a create landing warms its own (never-before-warmed) spec immediately (criterion 3)", async () => {
+    const jobs = mkdtempSync(join(tmpdir(), "aide-254-jobs-"));
+    try {
+      const git = recordingGit();
+      // `recordingGit` only answers the warmer's own questions
+      // (ls-remote, log); every call is routed through it first so it
+      // still RECORDS the landing's plumbing commands, then the ones a
+      // real merge needs are overridden with a plain success.
+      const landingGit: GitRunner = async (dir, args) => {
+        const recorded = await git.run(dir, args);
+        const a = args.join(" ");
+        if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+        if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+        if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+        if (a.startsWith("switch")) return { code: 0, stdout: "" };
+        if (a.startsWith("fetch")) return { code: 0, stdout: "" };
+        if (a.startsWith("pull")) return { code: 0, stdout: "" };
+        if (a.startsWith("remote get-url")) return { code: 0, stdout: "https://example.test/aide\n" };
+        if (a.startsWith("push")) return { code: 0, stdout: "" };
+        if (a.startsWith("branch -d")) return { code: 0, stdout: "" };
+        if (a.startsWith("merge -q --ff-only") || a.startsWith("merge -q --no-edit")) return { code: 0, stdout: "" };
+        if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+        return recorded;
+      };
+      const { base, dir } = harness.start({
+        extra: {
+          gitRun: landingGit,
+          queueToken: TOKEN,
+          driftPollMs: 0,
+          specCachePollMs: 60_000,
+          queueRunnerBin: "/usr/bin/true",
+          queueResultDir: jobs,
+        },
+      });
+      const made = (await (
+        await fetch(`${base}/api/queue/create`, {
+          method: "POST",
+          headers: { ...AUTH, "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ project: "aide", title: "A new spec", description: "Do the thing" }),
+        })
+      ).json()) as { job: { id: string } };
+      // The merge really does put the folder on disk, which is the
+      // whole reason the landing step exists (mirrors
+      // "a landed spec is an ordinary row" in queue-routes.test.ts).
+      const specDir = join(dir, "root", "aide", "specs", "94-a-new-spec");
+      mkdirSync(specDir, { recursive: true });
+      writeFileSync(join(specDir, "1-description.md"), "# A new spec - Description\n");
+      writeFileSync(
+        join(specDir, "4-status.md"),
+        "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n",
+      );
+      writeFileSync(
+        join(jobs, `${made.job.id}.json`),
+        JSON.stringify({
+          ok: true,
+          exitCode: 0,
+          costUsd: 0.4,
+          costMeasured: true,
+          terminalReason: "completed",
+          branch: "aide/new-abc123de",
+          specFolder: "94-a-new-spec",
+          branchUrls: [{ root: join(dir, "root", "aide"), url: "https://example.test/aide" }],
+          repos: [],
+        }),
+      );
+      const logAllForSpec = () =>
+        git.calls.filter((c) => c.args.join(" ").startsWith("log --all") && c.dir.includes("94-a-new-spec")).length;
+      const warmed = await until(() => logAllForSpec() > 0, 5000);
+      expect(warmed).toBe(true);
+    } finally {
+      rmSync(jobs, { recursive: true, force: true });
+    }
+  }, 10000);
 });

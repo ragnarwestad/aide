@@ -1358,6 +1358,46 @@ describe("editing a running job's tail (spec 160)", () => {
   });
 });
 
+// --- spec 254: an enqueue is refused while the spec's last step lands ---------
+
+// `Runner.complete()` writes `state: "done"` and `landing: true` in the
+// same update — the merge into the default branch has not happened yet.
+// Nothing before this refused a fresh job for that same spec: `clashing()`
+// only fires on an OVERLAPPING step name, and "done" is not in
+// `UNFINISHED`. A job could enqueue and sit `queued` behind a landing it
+// never named.
+describe("refusing an enqueue while the spec's last job is still landing (spec 254)", () => {
+  const store = () => new QueueStore({ defaults: DEFAULTS, resolve, mirrorPath: join(dir, "queue.json") });
+
+  test("a new job for the same spec is refused while the prior one is landing (criterion 2)", () => {
+    const s = store();
+    const create = s.enqueue({ ...REQ, steps: ["create"] });
+    if (!create.ok) throw new Error(create.error);
+    s.update(create.job.id, { state: "done", landing: true });
+    const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
+    expect(answer.ok).toBe(false);
+    if (!answer.ok) expect(answer.error).toContain(REQ.specFolder);
+  });
+
+  test("an unrelated spec is unaffected while this one is landing", () => {
+    const s = store();
+    const create = s.enqueue({ ...REQ, steps: ["create"] });
+    if (!create.ok) throw new Error(create.error);
+    s.update(create.job.id, { state: "done", landing: true });
+    const answer = s.enqueue({ project: "aide-dashboard", specFolder: "01-first", steps: ["analyze"] });
+    expect(answer.ok).toBe(true);
+  });
+
+  test("once landing has cleared, a new job enqueues as before", () => {
+    const s = store();
+    const create = s.enqueue({ ...REQ, steps: ["create"] });
+    if (!create.ok) throw new Error(create.error);
+    s.update(create.job.id, { state: "done", landing: false });
+    const answer = s.enqueue({ ...REQ, steps: ["analyze"] });
+    expect(answer.ok).toBe(true);
+  });
+});
+
 // --- spec 225: the model a phase still ahead will run on ----------------------
 
 // Spec 160 let a reader add or drop a step on a running job. The AI and

@@ -2425,6 +2425,22 @@ export function createServer(opts: ServerOptions) {
       scan = null;
       // After `scan = null`, so anything this reads sees the landing
       // rather than the five-second-old picture of the world before it.
+      //
+      // `specFolder` is read from the landing, not the job, for the same
+      // reason the merge-event report two lines above already does
+      // (serve.ts:2291-2296): a create step's job still carries its
+      // provisional key here, and is only renamed once every repo is
+      // through the loop. Without this substitution the warm silently
+      // no-ops for every create landing — no directory exists yet under
+      // the provisional key.
+      const landedFolder = what.landed?.specFolder ?? job.specFolder;
+      const landedRoot = machinerySpecsRoot(job.project);
+      const landedDir = landedRoot
+        ? [join(landedRoot, "archive", landedFolder), join(landedRoot, landedFolder)].find(
+            (candidate) => specFileText(candidate, STATUS_SPEC_FILE) !== null,
+          )
+        : undefined;
+      if (landedDir) await warmSpec({ dir: landedDir, specFolder: landedFolder });
       if (what.onLanded) {
         try {
           await what.onLanded();
@@ -4316,7 +4332,7 @@ export function createServer(opts: ServerOptions) {
       .filter((j) => j.project === project && j.specFolder === specFolder);
     const jobs = currentWorkRoundJobs(matchingJobs)
       .sort((a, b) => (Date.parse(b.startedAt ?? b.createdAt) || 0) - (Date.parse(a.startedAt ?? a.createdAt) || 0));
-    const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running";
+    const inFlight = (j: Job): boolean => j.state === "queued" || j.state === "running" || !!j.landing;
     const leadJob = jobs.find(inFlight) ?? jobs[0];
     const files = specFileViews(dir);
     // Off the text `specFileViews` has already read, so the page makes

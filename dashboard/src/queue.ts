@@ -930,6 +930,22 @@ export class QueueStore {
     return this.insert(parsed);
   }
 
+  /** A job for the same spec whose last step is still landing (spec
+   *  254): `state` already reads "done" the instant a landing starts
+   *  (`Runner.complete()` writes both in the same update), so
+   *  `UNFINISHED`/`clashing()` — built on `state` alone — never see it.
+   *  Unlike `clashing()` this fires regardless of step overlap: a
+   *  landing is a merge in progress in the spec's own files, and a
+   *  fresh job of ANY step would enqueue behind a half-merged working
+   *  tree. */
+  private landingJob(job: Job): Job | null {
+    for (const other of this.jobs.values()) {
+      if (other.project !== job.project || other.specFolder !== job.specFolder) continue;
+      if (other.landing) return other;
+    }
+    return null;
+  }
+
   /** Clash check, insert, cap, mirror — the tail every enqueue shares.
    *  A create job never clashes (its key is unique by construction), but
    *  it goes through the same door for the same reason the cap and the
@@ -942,6 +958,15 @@ export class QueueStore {
         error:
           `${clash.step} on ${parsed.job.specFolder} is already ${clash.job.state} ` +
           `(job ${clash.job.id.slice(0, 8)}) — cancel that one first if you want to start over`,
+      };
+    }
+    const landing = this.landingJob(parsed.job);
+    if (landing) {
+      return {
+        ok: false,
+        error:
+          `${parsed.job.steps[0]} on ${parsed.job.specFolder} cannot start while its last step is still landing ` +
+          `(job ${landing.id.slice(0, 8)}) — try again in a moment`,
       };
     }
     this.jobs.set(parsed.job.id, parsed.job);

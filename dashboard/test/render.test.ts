@@ -4407,6 +4407,83 @@ describe("spec 116: create is the first phase line", () => {
   });
 });
 
+// --- spec 254: a landed step reads busy until its branch actually lands -------
+//
+// `Runner.complete()` writes `state: "done"` and `landing: true` in the
+// same update — the merge into the default branch has not happened yet.
+// A row that reads `state` alone sees "done" the instant the step
+// finishes, well before the merge settles, and offers "ready" with a
+// Run/Analyze button for a spec whose files do not exist yet.
+describe("spec 254: a step still landing reads busy, not ready", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, ...opts },
+      Date.parse("2026-08-26T12:00:00Z"),
+    );
+  const head = (html: string, folder: string) =>
+    html.match(new RegExp(`<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">.*?</tr>`))?.[0] ?? "";
+  /** The row's own controls line: since spec 109 the run form and
+   *  Cancel are a `<tr>` under the header, not a cell inside it. */
+  const controlsLine = (html: string, folder: string) =>
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
+  /** Where a row's one button is: the State cell — the head row's
+   *  THIRD — since spec 157, open or shut alike. */
+  const actionCell = (chunk: string) => {
+    const headRow = chunk.match(/<tr class="[^"]*spechead[\s\S]*?<\/tr>/)?.[0] ?? chunk;
+    const cells = [...headRow.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
+    return cells[1] ?? "";
+  };
+
+  // Criterion 1: a create job whose result has just arrived
+  // (`state: "done"`) but whose `landBranch()` merge has not yet
+  // resolved (`landing: true`) — the row must read busy, the same as a
+  // genuinely running job, and offer Cancel rather than Analyze.
+  test("a job done but still landing reads busy and offers Cancel, not Analyze (criterion 1)", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "254-landing", steps: ["create"], stepIndex: 0, state: "done", landing: true })],
+      [target("254-landing")],
+    );
+    const line = head(html, "254-landing");
+    expect(line).toContain('class="badge b-running"');
+    expect(line).toContain("creating");
+    expect(line).not.toContain('class="badge b-ready"');
+    const cell = actionCell(controlsLine(html, "254-landing"));
+    expect(cell).toContain(">Cancel</button>");
+    expect(cell).not.toContain(">Analyze</button>");
+  });
+
+  // Criterion 4, the regression guard: once `landing` has cleared (the
+  // ordinary, already-correct case today), the row is exactly what it
+  // is today — no visible change for the settled state.
+  test("a job done and no longer landing reads ready, as before (criterion 4)", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "254-landed", steps: ["create"], stepIndex: 0, state: "done", landing: false })],
+      [target("254-landed")],
+    );
+    const line = head(html, "254-landed");
+    expect(line).toContain('class="badge b-ready"');
+    expect(line).not.toContain('class="badge b-running"');
+    const cell = actionCell(controlsLine(html, "254-landed"));
+    expect(cell).toContain(">Analyze</button>");
+    expect(cell).not.toContain(">Cancel</button>");
+  });
+});
+
 // --- spec 118: dollars or tokens, the reader's choice -------------------------
 //
 // Every consumption figure on the page is rendered TWICE — once in

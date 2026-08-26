@@ -263,6 +263,11 @@ export function restingChip(resting: RestingState = {}): string {
 export function specStateChip(r: QueueRowView, resting: RestingState = {}): string {
   if (r.state === "running") return badge("running", gerund(currentStep(r)));
   if (r.state === "queued") return badge("idle", `${gerund(currentStep(r))} queued`);
+  // The step finished and `state` already reads "done", but its branch
+  // has not landed yet (`Runner.complete()` writes both in the same
+  // update — `runner.ts`). A row that fell through to `restingChip`
+  // here would offer "ready" for a spec whose files do not exist yet.
+  if (r.state === "done" && r.landing) return badge("running", gerund(currentStep(r)));
   if (r.state === "done") return restingChip(resting);
   return stateChip(r);
 }
@@ -289,7 +294,7 @@ export const notStartedChip = (): string => badge("idle", "not started");
  *  the list's filter vocabulary. */
 export const IN_FLIGHT: QueueRowView["state"][] = ["queued", "running"];
 
-export const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state);
+export const inFlight = (r: QueueRowView): boolean => IN_FLIGHT.includes(r.state) || !!r.landing;
 
 /** The step a job is on, or — once it has stopped — the last one it
  *  reached. */
