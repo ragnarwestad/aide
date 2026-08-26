@@ -1032,9 +1032,13 @@ describe("building the archived rows", () => {
   // elsewhere for the same reason — `queue.test.ts` reads two
   // `errorReason` declarations as text and asserts they agree.
   const serveSrc = readFileSync(new URL("../src/serve/serve.ts", import.meta.url), "utf-8");
+  // The declaration stays in serve.ts; the one call site is
+  // handleQueue's, extracted into its own file since spec: split
+  // serve.ts, step 2.
+  const handleQueueSrc = readFileSync(new URL("../src/serve/handle-queue.ts", import.meta.url), "utf-8");
 
   test("is asked for by the reader's own chip and by nothing else", () => {
-    const calls = [...serveSrc.matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
+    const calls = [...(serveSrc + handleQueueSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
