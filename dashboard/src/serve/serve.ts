@@ -7,14 +7,14 @@
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
 import {
-  existsSync, mkdirSync, readFileSync, rmSync, watch,
+  mkdirSync, readFileSync, rmSync, watch,
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { parse as parseJsonc } from "jsonc-parser";
 import { AideRunStore, parseAideRun } from "../queue/aide-run-store.ts";
 import {
-  BranchStatusChecker, createGitRunner, projectCheckout, DEFAULT_TTL_MS,
+  BranchStatusChecker, createGitRunner, DEFAULT_TTL_MS,
   type GitRunner,
 } from "../git/branch-status.ts";
 import {
@@ -27,14 +27,13 @@ import type { RepoMergeResult } from "../git/branch-merge.ts";
 import {
   CheckoutEnsurer,
   DEFAULT_DASHBOARD_CHECKOUT_ROOT,
-  dashboardCheckoutRoot,
   ensureDashboardCheckout,
   type DashboardCheckout,
 } from "../git/dashboard-checkout.ts";
 import { LiveEnricher } from "../integrations/live.ts";
 import {
-  discoverProjects, resolveCodeLanding, resolveSchedule,
-  type CodeLanding, type SpecRef,
+  discoverProjects,
+  type SpecRef,
 } from "../project/discover.ts";
 import {
   archiveHeldBackReason, parseStatus,
@@ -109,6 +108,23 @@ import {
   peekMachinerySpecDir as peekMachinerySpecDirImpl,
   type SpecLookupContext,
 } from "./spec-lookup.ts";
+import {
+  writeTo as writeToImpl,
+  notifyQueueChanged as notifyQueueChangedImpl,
+  scheduleNotify as scheduleNotifyImpl,
+  closeSpecWatchers as closeSpecWatchersImpl,
+  type SseWatchersContext,
+} from "./sse-watchers.ts";
+import {
+  displayProjectDir as displayProjectDirImpl,
+  machineryProjectDir as machineryProjectDirImpl,
+  codeLanding as codeLandingImpl,
+  promptFileFor as promptFileForImpl,
+  ownedSpecsRoot as ownedSpecsRootImpl,
+  machinerySpecsRoot as machinerySpecsRootImpl,
+  complain as complainImpl,
+  type ProjectCheckoutContext,
+} from "./project-checkout.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -420,26 +436,32 @@ export function createServer(opts: ServerOptions) {
   const encoder = new TextEncoder();
   const watchers = new Set<ReadableStreamDefaultController<Uint8Array>>();
 
-  /** Write to one watcher, and forget it the moment it refuses. A tab
-   *  that has gone away throws on enqueue, and a broadcast that let
-   *  that through would stop at the first dead page and leave every
-   *  live one unaware — the same fail-open the rest of this surface
-   *  keeps (`LiveEnricher`, `branch-status`). */
-  const writeTo = (c: ReadableStreamDefaultController<Uint8Array>, text: string): void => {
-    try {
-      c.enqueue(encoder.encode(text));
-    } catch {
-      watchers.delete(c);
-    }
+  const sseWatchersCtx: SseWatchersContext = {
+    encoder,
+    watchers,
+    get specWatchers() {
+      return specWatchers;
+    },
+    readNotifySoon: () => notifySoon,
+    writeNotifySoon: (v) => {
+      notifySoon = v;
+    },
+    invalidateScan: () => {
+      scan = null;
+    },
   };
-
-  /** Something a row is drawn from moved. Called from the queue's own
-   *  write hook below and from `POST /api/aide-run` — the two sources a
-   *  row reads, and the second is invisible to the first. A copy of the
-   *  set is walked because `writeTo` removes from it. */
-  const notifyQueueChanged = (): void => {
-    for (const c of [...watchers]) writeTo(c, "event: changed\ndata: {}\n\n");
-  };
+  function writeTo(c: ReadableStreamDefaultController<Uint8Array>, text: string) {
+    return writeToImpl(sseWatchersCtx, c, text);
+  }
+  function notifyQueueChanged() {
+    return notifyQueueChangedImpl(sseWatchersCtx);
+  }
+  function scheduleNotify() {
+    return scheduleNotifyImpl(sseWatchersCtx);
+  }
+  function closeSpecWatchers() {
+    return closeSpecWatchersImpl(sseWatchersCtx);
+  }
 
   // --- spec 204: a spec is a folder, and a folder changes no job -----------
   //
@@ -464,19 +486,6 @@ export function createServer(opts: ServerOptions) {
   // and a page opened afterwards never hears it.
   const specWatchers = new Map<string, ReturnType<typeof watch>>();
   let notifySoon: ReturnType<typeof setTimeout> | null = null;
-  /** A `git pull` writes a hundred files; the page needs telling once. */
-  const scheduleNotify = (): void => {
-    if (notifySoon) clearTimeout(notifySoon);
-    notifySoon = setTimeout(() => {
-      notifySoon = null;
-      // Before the event, never after: the page answers by asking for
-      // the rows, and those come off a scan cached for five seconds.
-      // Told to redraw and handed the same list it already had, it
-      // would sit there with nothing further coming.
-      scan = null;
-      notifyQueueChanged();
-    }, 300);
-  };
   if (opts.projectRoot) {
     for (const p of discoverProjects(opts.projectRoot)) {
       if (!allowed.has(p.name)) continue;
@@ -490,21 +499,6 @@ export function createServer(opts: ServerOptions) {
       }
     }
   }
-  /** Every watcher opened above, closed. Called by `stop()`, which runs
-   *  before a test removes the directories they point at. */
-  const closeSpecWatchers = (): void => {
-    if (notifySoon) clearTimeout(notifySoon);
-    notifySoon = null;
-    for (const w of specWatchers.values()) {
-      try {
-        w.close();
-      } catch {
-        // already gone, which is the outcome either way
-      }
-    }
-    specWatchers.clear();
-  };
-
   // Built after `resolveProject`, which it takes. Nothing above it reads
   // it any more: `targets` used to ask the queue what it had run, and
   // spec 108 made the spec's own files the only answer to that.
@@ -541,96 +535,50 @@ export function createServer(opts: ServerOptions) {
   // it: a run that branched, merged and pushed from the directory
   // somebody was working in is what stranded three specs' code on
   // 2026-08-23.
-  const displayProjectDir = (project: string) => projectCheckout(opts.queueProjectRoot, project);
   // Where the dashboard's OWN clones live. Named as an option so a test
   // can put them in a temp directory; there is no other reason to move
   // them.
   const checkoutBase = opts.dashboardCheckoutRoot ?? DEFAULT_DASHBOARD_CHECKOUT_ROOT;
-  // The other resolution: the checkout a RUN is cut from, a landing
-  // merges into, and Save commits in. One `existsSync`, so the readers
-  // that only need to know WHERE it is — the drift poll's key, the
-  // origin check's root — cost nothing and await nothing.
-  //
-  // FALLS BACK to the person's checkout while the dashboard has none of
-  // its own. That is not a shortcut, it is the upgrade path: a project
-  // added before this spec, or one whose clone cannot be made at all,
-  // goes on working exactly as it did instead of losing its runs, its
-  // Save and its Update the day this ships. `ensureCheckout` is what
-  // moves it over, and the readiness check is where a clone that cannot
-  // be made is reported by name.
-  const machineryProjectDir = (project: string): string => {
-    const owned = dashboardCheckoutRoot(checkoutBase, project);
-    return existsSync(join(owned, ".git")) ? owned : displayProjectDir(project);
-  };
-  /** Whether this project's archived code merges into its default branch
-   *  or waits for a pull request (spec 220), read fresh off the
-   *  MACHINERY's checkout — the one a run is cut from and a landing
-   *  merges in, so the answer is the one the work is actually done
-   *  against.
-   *
-   *  Read per call rather than cached: it is one small YAML file, the
-   *  same cost class as the `4-status.md` reads `targets()` already does
-   *  per spec, and an operator changing the choice on the settings page
-   *  should see the next job honour it rather than the next restart. */
-  const codeLanding = (project: string): CodeLanding => resolveCodeLanding(machineryProjectDir(project));
-
-  /** The file a `schedule` step's prompt is read from (spec 259),
-   *  resolved fresh off the manifest at spawn time — the same
-   *  per-call, off-disk reading `codeLanding` above already does, so an
-   *  edit to an entry's `prompt:` path takes effect on the next run
-   *  rather than the next restart. `undefined` for every step but
-   *  `schedule`, and for a schedule job whose entry has since been
-   *  removed from the manifest: `aide-run-spec` refuses by name when
-   *  `--prompt-file` is missing or the file is gone, rather than this
-   *  guessing at one. */
-  const promptFileFor = (job: Job, step: string): string | undefined => {
-    if (step !== "schedule") return undefined;
-    if (!job.specFolder.startsWith("schedule-")) return undefined;
-    const name = job.specFolder.slice("schedule-".length);
-    return resolveSchedule(machineryProjectDir(job.project)).find((e) => e.name === name)?.prompt;
-  };
-
   /** What `ensureCheckout` last worked out, so the SYNC readers can ask
    *  where a project's own specs are without awaiting a clone. Empty
    *  until the first ensure settles, which is what the fallback below is
    *  for. */
   const resolvedCheckouts = new Map<string, DashboardCheckout>();
-  /** Where a project's spec folders are LISTED from (spec 218): the
-   *  dashboard's own checkout once one has been resolved, and nothing
-   *  otherwise — `discoverProjects` then walks the person's own, exactly
-   *  as everything did before spec 205.
-   *
-   *  The same source a run resolves `--spec` against, which is the whole
-   *  point: a folder committed in the person's checkout and never pushed
-   *  used to get a row offering four steps, and every one of them
-   *  refused with `unknown spec`. Sync and cache-only on purpose — a
-   *  render never waits on a clone (spec 208), and `refreshSpecCaches`
-   *  is what keeps the answer current.
-   *
-   *  Passed to every walk that lists specs FOR A READER, and to no
-   *  other: the `fs.watch` loop watches the person's own checkout for
-   *  local edits and must go on watching it, and `refreshDrift` reads
-   *  nothing off the walk but `p.name`. */
-  const ownedSpecsRoot = (project: string): string | undefined => resolvedCheckouts.get(project)?.specs;
-  /** The specs root the machinery works in: the dashboard's own once it
-   *  has one, and otherwise the scan's answer — the person's, which is
-   *  the root everything used before this spec. */
-  const machinerySpecsRoot = (project: string): string | undefined => {
-    const owned = resolvedCheckouts.get(project);
-    if (owned) return owned.specs;
-    targets();
-    return scan?.specsRoots.get(project);
-  };
   /** The last thing said about each project, so a refusal that has not
    *  changed is not said again. Every tick asks, and a project whose
    *  origin is unreachable would otherwise fill the log with one line
    *  every two seconds for as long as the server runs. */
   const saidAbout = new Map<string, string>();
-  const complain = (project: string, said: string): void => {
-    if (saidAbout.get(project) === said) return;
-    saidAbout.set(project, said);
-    console.error(`queue: the dashboard's own checkout of ${project} — ${said}`);
+
+  const projectCheckoutCtx: ProjectCheckoutContext = {
+    queueProjectRoot: opts.queueProjectRoot,
+    checkoutBase,
+    resolvedCheckouts,
+    saidAbout,
+    targets,
+    readScan: () => scan,
   };
+  function displayProjectDir(project: string) {
+    return displayProjectDirImpl(projectCheckoutCtx, project);
+  }
+  function machineryProjectDir(project: string) {
+    return machineryProjectDirImpl(projectCheckoutCtx, project);
+  }
+  function codeLanding(project: string) {
+    return codeLandingImpl(projectCheckoutCtx, project);
+  }
+  function promptFileFor(job: Job, step: string) {
+    return promptFileForImpl(projectCheckoutCtx, job, step);
+  }
+  function ownedSpecsRoot(project: string) {
+    return ownedSpecsRootImpl(projectCheckoutCtx, project);
+  }
+  function machinerySpecsRoot(project: string) {
+    return machinerySpecsRootImpl(projectCheckoutCtx, project);
+  }
+  function complain(project: string, said: string) {
+    return complainImpl(projectCheckoutCtx, project, said);
+  }
   const checkoutEnsurer = new CheckoutEnsurer((project) =>
     ensureDashboardCheckout(gitRun, {
       base: checkoutBase,
