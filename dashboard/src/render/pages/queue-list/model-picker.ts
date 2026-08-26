@@ -1,6 +1,8 @@
 import { esc } from "../../ui/html.ts";
 import { durationLabel } from "../../ui/job-state.ts";
-import { busyReason, isArchivedRow, runFormId, type QueuePageOptions, type SpecGroup } from "../queue-list.ts";
+import type { QueuePageOptions } from "../queue-list.ts";
+import { isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { busyReason, runFormId } from "./cells.ts";
 
 // The picker a phase line carries, and the caption above the list that
 // says what the two things on that line are. One `<select>` per phase

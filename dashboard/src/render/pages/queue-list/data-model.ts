@@ -219,6 +219,25 @@ export interface QueueFilter {
   open?: string;
 }
 
+/** How the list is cut and ordered. One list, exported so `serve.ts`
+ *  builds the redirect after a POST from the same five keys the forms
+ *  send — two copies would eventually disagree about what "the view" is. */
+export const FILTER_KEYS = ["state", "project", "sort", "dir", "open", "q"] as const;
+
+/** The prefix a filter key rides under as a form field. Prefixed
+ *  because one of the five is `project`, which is ALSO what the Run
+ *  form posts to say which spec to run: two fields of that name arrive
+ *  as a list, and the enqueue refuses the whole request as "invalid
+ *  project". */
+export const FILTER_FIELD_PREFIX = "view.";
+
+/** What tells `POST /api/queue` that the press came from a row on THIS
+ *  list (spec 221). Reopen is offered in two places — an archived
+ *  spec's own page and its row here — and the two want the answer on
+ *  different pages. A marker rather than a redirect target: where to go
+ *  back to is the server's decision, and a page that took the
+ *  destination from the browser would take it from anyone. */
+export const FROM_LIST_FIELD = "fromList";
 
 // Exported since spec 160: `queue.ts` keeps the same list under
 // `PHASE_STEPS` — it decides which steps a running job may still be
