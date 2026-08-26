@@ -712,6 +712,7 @@ export interface Phase {
   timeSpentMs?: number;
   cost?: number;
   costUnmeasured?: boolean;
+  tokens?: number;
 }
 
 interface SpecGroup {
@@ -1000,6 +1001,13 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     state: s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
     spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
     costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
+    // Spec 260: the sibling roll-up for a Codex-only archive, which has
+    // no `cost` on any phase outcome to sum above — `undefined` (never
+    // 0) when nothing recorded a token figure either, same "absent, not
+    // zero" rule `cost` already follows.
+    spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
+      ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
+      : undefined,
     branches: [],
     // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
     // format — wins over `s.models[step]` — spec 244's old,
@@ -1016,6 +1024,7 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
         timeSpentMs: outcome?.timeSpentMs,
         cost: outcome?.cost,
         costUnmeasured: outcome?.costUnmeasured,
+        tokens: outcome?.tokens,
       };
     }),
     done: s.done,
@@ -1537,8 +1546,8 @@ const costCell = (
   blank: string,
   unmeasured?: boolean,
 ): string =>
-  spentUsd > 0
-    ? usdOrTokens(spentUsd, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
+  spentUsd > 0 || (spentTokens ?? 0) > 0
+    ? usdOrTokens(spentUsd || undefined, spentTokens) + (unmeasured ? ' <span class="muted small">est.</span>' : "")
     : blank;
 
 /** Whether a job is in flight on this spec — queued, running, or parked
@@ -2708,7 +2717,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
           `<td data-col="started">${locked ? lockedDuration(p.timeSpentMs) : phaseDurationCell(latest, p.step, now)}</td>` +
           `<td class="num" data-col="cost">${
             locked
-              ? costCell(p.cost ?? 0, undefined, "", p.costUnmeasured)
+              ? costCell(p.cost ?? 0, p.tokens, "", p.costUnmeasured)
               : latest
                 ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results))
                 : ""

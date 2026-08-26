@@ -18,6 +18,11 @@ export interface PhaseOutcome {
   /** Dollars. Absent means the script wrote no `Cost:` line — never 0. */
   cost?: number;
   costUnmeasured?: boolean;
+  /** The step's total token count. Absent means the script wrote no
+   *  Tokens: line — the CLI reported no usage block at all, same rule as
+   *  `cost`. Written independently of `cost`: a Codex phase carries this
+   *  with no `cost` at all. */
+  tokens?: number;
 }
 
 // The same four-file mapping `core/scripts/aide-run-spec`'s own
@@ -34,6 +39,7 @@ const PHASE_OUTCOME_FILE: Record<string, string> = {
 const MODEL_RE = /^- \*\*Model:\*\*[ \t]*(.*)$/m;
 const TIME_SPENT_RE = /^- \*\*Time spent:\*\*[ \t]*(\d+)m(\d{2})s\s*$/m;
 const COST_RE = /^- \*\*Cost:\*\*[ \t]*\$(\d+(?:\.\d+)?)( \(unmeasured\))?\s*$/m;
+const TOKENS_RE = /^- \*\*Tokens:\*\*[ \t]*(\d+)\s*$/m;
 
 /** Scoped to `## Tracking info` only, same as the writer's own
  *  `in_tracking` awk guard — a `- **Cost:**`-shaped bullet in a
@@ -50,6 +56,8 @@ export function parsePhaseOutcome(content: string): PhaseOutcome {
     outcome.cost = Number(cost[1]);
     if (cost[2]) outcome.costUnmeasured = true;
   }
+  const tokens = section.match(TOKENS_RE);
+  if (tokens) outcome.tokens = Number(tokens[1]);
   return outcome;
 }
 

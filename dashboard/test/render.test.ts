@@ -4640,6 +4640,51 @@ describe("spec 118: every consumption figure carries both units", () => {
   });
 });
 
+// A Codex-only spec's `spentUsd` is genuinely `0` — never absent, never
+// negative (`runner.ts:425` folds an absent `costUsd` into the literal
+// number `0`) — while its `spentTokens` is a real, positive figure. The
+// block above never exercises that shape: `spentUsd: 0` there always
+// comes with no `spentTokens` either.
+describe("spec 260: the Cost cell draws on either figure, not just the dollar one", () => {
+  const rows = (extra: Partial<QueueRowView>) =>
+    renderQueueRows([row({ specFolder: "81-queue-and-runner", ...extra })], {
+      runnerAvailable: true,
+      targets: [],
+      filter: { open: "aide/81-queue-and-runner" },
+    });
+
+  // AC1: the spec row's own Cost cell.
+  test("the spec row's Cost cell shows tokens, and a dash never $0.00, for a Codex-only spec", () => {
+    const html = rows({ spentUsd: 0, spentTokens: 5234 });
+    expect(html).toContain('<span class="u-tok">5.2k tok</span>');
+    expect(html).toContain('<span class="u-usd">–</span>');
+    expect(html).not.toContain("$0.00");
+  });
+
+  // AC2: the same shape on a live phase line, fed by `attemptFor()`
+  // (that step's own `costUsd`/`tokens`) rather than the job's running
+  // total.
+  test("a live Codex phase line shows tokens rather than being empty", () => {
+    const html = rows({
+      state: "done",
+      steps: ["analyze"],
+      spentUsd: 0,
+      spentTokens: 9562,
+      results: [{ step: "analyze", ok: true, costUsd: 0, tokens: 9562 }],
+    });
+    const line = html.match(/data-step="analyze"[\s\S]*?<\/tr>/)![0];
+    expect(line).toContain('<span class="u-tok">9.6k tok</span>');
+  });
+
+  // The regression the relaxed gate could lose: nothing measured at all
+  // must still be a plain dash, not a token figure conjured from
+  // `undefined`.
+  test("nothing spent and no tokens still shows a plain dash", () => {
+    const html = rows({ spentUsd: 0 });
+    expect(html).toContain('<td class="num" data-col="cost">–</td>');
+  });
+});
+
 describe("spec 118: the job page's figures carry both units", () => {
   const page = (extra: Partial<JobDetailView> = {}, tab: "overview" | "steps" = "overview") =>
     renderJobDetailPage(detail(extra), "2026-08-17T10:00:00Z", NAV, { tab });
