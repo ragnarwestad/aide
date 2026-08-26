@@ -241,7 +241,7 @@ export const PR_OPEN = "PR open";
 /** The three fields the search reads. Named in one place because the
  *  page says them out loud under the field — a filter whose reach is a
  *  guess is a filter nobody trusts. */
-const SEARCHED = ["folder", "title", "description"];
+const SEARCHED = ["project:folder", "title", "description"];
 
 /** This page's own pseudo-states for an archived spec (spec 221). No job
  *  ever carries either: they are what a reader ROW is, and they are the
@@ -496,7 +496,7 @@ const isArchivedRow = (g: SpecGroup): boolean =>
  *  an archived one — the "across active AND archived" half of spec 221
  *  falls out of there being one row shape rather than two. */
 const haystack = (g: SpecGroup): string =>
-  `${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
+  `${g.project}:${g.specFolder}\n${g.title ?? ""}\n${g.description ?? ""}`.toLowerCase();
 
 /** A term of nothing but spaces is no search at all: it must not empty
  *  the list. */
@@ -1192,10 +1192,10 @@ function foldControl(g: SpecGroup, f: QueueFilter, opened: Set<string>): string 
 
 // What the page used to say in a paragraph above the list: how runs
 // work here. A front page does not open with four sentences a returning
-// reader has read, so the same facts sit behind a "?" beside the filter
-// chips instead. It is inside `#jobrows`, so it shuts again on the
-// five-second refresh, and fine for that: nothing here is being typed
-// into.
+// reader has read, so the same facts sit behind a "?" beside the search
+// field instead (spec 261 moved it there from the filter chips' own
+// row). It is inside `#jobrows`, so it shuts again on the five-second
+// refresh, and fine for that: nothing here is being typed into.
 function runsHelp(): string {
   return (
     `<details class="intro"><summary title="How runs work here" ` +
@@ -1273,7 +1273,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  return `<div class="row">${states}${runsHelp()}${newSpecLink(opts)}</div>` + searchForm(f);
+  return `<div class="row">${states}</div>` + searchForm(f, opts);
 }
 
 /** The search field (spec 221). It came off `/archive`, which had the
@@ -1286,7 +1286,7 @@ function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions):
  *  so everything else in the view travels as hidden fields — without
  *  them, searching would silently throw away the chip and the column the
  *  reader had just chosen. */
-function searchForm(f: QueueFilter): string {
+function searchForm(f: QueueFilter, opts: QueuePageOptions): string {
   const keep = FILTER_KEYS.filter((k) => k !== "q")
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
@@ -1316,6 +1316,8 @@ function searchForm(f: QueueFilter): string {
     `</span>` +
     keep +
     `<button class="btn" type="submit">Search</button>` +
+    runsHelp() +
+    newSpecLink(opts) +
     `</form>\n` +
     // Said out loud, because the one thing a reader cannot see about a
     // filter is what it looked in.
@@ -1796,10 +1798,11 @@ function stateAction(g: SpecGroup, opts: QueuePageOptions, open: boolean): strin
 //
 // A link, not a form and not a disclosure (spec 121): the form has a
 // page of its own at `NEW_SPEC_ROUTE`, with a Create and a Cancel on
-// it. It sits at the right-hand end of the filter chips' own row,
-// beside the "?" — inside `#jobrows`, since spec 221 moved the filter
-// bar in there — and keeps the primary-button look spec 113 gave it.
-// It stood in a band of its own above the table before that.
+// it. It sits at the right-hand end of the search field's own row,
+// beside the "?" (spec 261; it used to sit at the end of the filter
+// chips' row instead) — inside `#jobrows`, since spec 221 moved the
+// filter bar in there — and keeps the primary-button look spec 113 gave
+// it. It stood in a band of its own above the table before that.
 // Not offered at all when no project on this machine may have a spec
 // made in it, exactly as the panel was not.
 function newSpecLink(opts: QueuePageOptions): string {
