@@ -23,7 +23,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../src/branch-status.ts";
-import { CSS } from "../src/render/css.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
 const TOKEN = "s3cret-token";
@@ -399,8 +398,20 @@ describe("an archived spec's row", () => {
   test("its date and duration are in the column every row's date is in", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("2026-08-13");
-    expect(cell.slice(0, cell.indexOf("</td>"))).toContain("1h15m");
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain("2026-08-13");
+    expect(body).toContain("1h15m");
+    // The duration is the figure worth leading with (spec 257) — the
+    // archive date is secondary, muted context beside it.
+    expect(body.indexOf("1h15m")).toBeLessThan(body.indexOf("2026-08-13"));
+  });
+
+  test("the column header reads Time, not Started (spec 257)", async () => {
+    const html = await specsList(start().base, ARCHIVED_VIEW);
+    const start_ = html.indexOf('<th class="" data-col="started"');
+    const th = html.slice(start_, html.indexOf("</th>", start_));
+    expect(th).toContain(">Time<");
+    expect(th).not.toContain("Started");
   });
 
   // The stamp only started being written at spec 147; the older half of
@@ -420,20 +431,29 @@ describe("an archived spec's row", () => {
     expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain("1h15m");
   });
 
-  test("holds the whole description behind the clamp the archive used", async () => {
-    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
-    expect(row).toContain('class="spec-title archive-desc"');
-    expect(row).toContain(LONG_TAIL);
+  // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even
+  // though each phase's own real cost was already available — summed
+  // here off the same phases that already carry it (the analyze phase
+  // is STAMPED's only one with a recorded cost).
+  test("carries the sum of its phases' recorded costs in the head row's Cost cell", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const cell = row.slice(row.indexOf('data-col="cost"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
   });
 
-  test("that clamp is a real rule: two lines and a bounded width", () => {
-    const rule = CSS.slice(CSS.indexOf(".archive-desc {"));
-    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/line-clamp:\s*2/);
-    expect(rule.slice(0, rule.indexOf("}"))).toMatch(/max-width:/);
+  // Spec 257: the description no longer shows under the title at all —
+  // recorded or not, long or short. It stays SEARCHABLE (see the search
+  // tests below), only the on-page display goes.
+  test("shows no description text under the title, recorded or not", async () => {
+    const withDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
+    expect(withDescription).not.toContain("archive-desc");
+    expect(withDescription).not.toContain(LONG_TAIL);
   });
 
-  test("a spec with no description says so with a dash", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED)).toContain("—");
+  test("shows no dash placeholder either, for a spec with no description", async () => {
+    const withoutDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
+    expect(withoutDescription).not.toContain("archive-desc");
+    expect(withoutDescription).not.toContain("—");
   });
 });
 
@@ -490,15 +510,35 @@ describe("an archived spec's row, opened", () => {
   });
 
   // Criterion 5: the interactive picker is a CHOICE about a run still
-  // ahead, and a locked phase's run already happened — so no select and
-  // no caption over it, whether or not that phase recorded a model.
-  test("offers no AI or model choice on any line (criterion 5)", async () => {
+  // ahead, and a locked phase's run already happened — so no caption
+  // over the model cell, whether or not that phase recorded a model.
+  // The cell itself (spec 257) now draws a real, but LOCKED, control for
+  // a step that recorded one — see the two tests below.
+  test("offers no caption over the model cell on any line (criterion 5)", async () => {
     const block = blockFor(await openList(), STAMPED);
     expect(block).toContain('data-step="analyze"');
-    expect(block).not.toContain("<select");
-    // And no caption over controls that are not there.
     expect(block).not.toContain('data-cap="model"');
     expect(block).not.toContain('data-cap="ai"');
+  });
+
+  test("offers no select at all for a step that recorded no model (criterion 5, spec 257)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of STAMPED_NOT_RUN) {
+      expect(lines[step]).not.toContain("<select");
+    }
+  });
+
+  // The live Specs page always draws a real select/model-choice control;
+  // an archived phase line must look the same, but LOCKED — disabled,
+  // pre-filled with only the model the phase's own record names, never
+  // the currently configured default.
+  test("shows exactly one disabled, one-option select for a step that recorded a model (criterion 5, spec 257)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    const line = lines["analyze"]!;
+    expect([...line.matchAll(/<select\b/g)]).toHaveLength(1);
+    expect([...line.matchAll(/<option\b/g)]).toHaveLength(1);
+    expect(line).toContain(" disabled");
+    expect(line).toContain(STAMPED_MODEL);
   });
 
   // Criterion 4: what a phase ran ON is not in the queue's job history —

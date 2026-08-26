@@ -238,11 +238,6 @@ export const NOT_LANDED = "not landed";
  *  one is an instruction to go and review something. */
 export const PR_OPEN = "PR open";
 
-/** What the description says when `1-description.md` has no
- *  `## Description` section. A dash, not a blank: the same reason the
- *  date says `date unknown`. */
-const NO_DESCRIPTION = "—";
-
 /** The three fields the search reads. Named in one place because the
  *  page says them out loud under the field — a filter whose reach is a
  *  guess is a filter nobody trusts. */
@@ -1003,8 +998,8 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     named: true,
     // The one place the two archived states are told apart.
     state: s.notLanded ? ARCHIVED_OPEN_STATE : ARCHIVED_STATE,
-    spentUsd: 0,
-    costUnmeasured: false,
+    spentUsd: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.cost ?? 0), 0),
+    costUnmeasured: Object.values(s.phaseOutcomes).some((o) => o.costUnmeasured),
     branches: [],
     // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
     // format — wins over `s.models[step]` — spec 244's old,
@@ -1371,7 +1366,7 @@ function sortableHead(f: QueueFilter): string {
     // names, which are short, floating in a cell as wide as a folder
     // name. Spanning lets the phase names size their own column.
     `<thead><tr>${th("spec", "Spec", "", undefined, ' colspan="2"')}${th("state", "State")}` +
-    `${th("started", "Started", "", undefined, ' data-col="started"')}` +
+    `${th("started", "Time", "", undefined, ' data-col="started"')}` +
     `${th("cost", "Cost", "num", '<span class="u-usd">Cost</span><span class="u-tok">Tokens</span>', ' data-col="cost"')}` +
     `</tr></thead>`
   );
@@ -2020,14 +2015,13 @@ function specHeadRow(
       // its commits, so `readyPhase` is "implement" and the badge
       // read "not started".
       : restingChip({ archiveHeldBack: heldBack, readyPhase });
-  // What goes under the name. A locked row's is its DESCRIPTION, behind
-  // the same two-line clamp the archive listing has always used —
-  // `specSummary` has no path for it at all: it draws a title for an
-  // unnamed create job and the dependency list, and an archived row is
-  // `named` with nothing left to depend on.
-  const under = locked
-    ? `<div class="spec-title archive-desc">${esc(g.archive?.description ?? NO_DESCRIPTION)}</div>`
-    : `<div class="spec-title">${specSummary(g)}</div>`;
+  // What goes under the name. A locked row draws nothing here (spec
+  // 257) — `specSummary` has no path for it at all: it draws a title
+  // for an unnamed create job and the dependency list, and an archived
+  // row is `named` with nothing left to depend on. The description
+  // stays searchable (`g.description`, read by `matchesSearch`); only
+  // showing it under the title goes.
+  const under = locked ? "" : `<div class="spec-title">${specSummary(g)}</div>`;
   return (
     // `data-folder`, not `data-spec`: the attribute NAME would otherwise
     // end in the same "a-spec" that half the fixtures use as a folder,
@@ -2103,14 +2097,14 @@ function specHeadRow(
  *  there is anything still to find out. */
 function archiveDateCell(s: ArchivedSpecView): string {
   const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
-  // Blank, and deliberately not the dash the description uses or the
-  // words the date uses: a spec archived before spec 207 recorded
-  // nothing, and "nothing was recorded" is what an empty cell says.
-  const took =
-    s.durationMs === undefined
-      ? ""
-      : ` <span class="muted small archive-duration">${esc(durationLabel(s.durationMs))}</span>`;
-  return `${date}${took}`;
+  // A spec archived before spec 207 recorded no duration at all, which
+  // is the one case that draws the date alone — not the dash the
+  // description uses or the words a missing date uses elsewhere.
+  if (s.durationMs === undefined) return date;
+  return (
+    `<span class="archive-duration">${esc(durationLabel(s.durationMs))}</span>` +
+    ` <span class="muted small">${date}</span>`
+  );
 }
 
 // The picker a phase line carries, and the caption above the list that
@@ -2238,8 +2232,28 @@ function modelPicker(
  *  Blank, not a dash, when the file names nothing for this step: the
  *  same rule `archiveDateCell`'s duration mark already keeps — nobody
  *  having recorded it is not the same as having asked and failed. */
-function lockedModel(model: string | undefined): string {
-  return model ? `<span class="muted small lockedmodel">${esc(model)}</span>` : "";
+function lockedModel(step: string, model: string | undefined): string {
+  if (!model) return "";
+  // The recorded string is always "<tool> <model>" — written verbatim
+  // by aide-run-spec (`model_value="$tool${model:+ $model}"`,
+  // core/scripts/aide-run-spec:1628) into both the old-format
+  // `Model (<step>):` line and the new-format phase-file `Model:` line,
+  // and read back verbatim by `parseStepModels`/`parsePhaseOutcome`
+  // (no split on either side). The tool is therefore the string's own
+  // first word — never a lookup against `opts.modelChoices`, whose
+  // `name`s are bare ("sonnet", "codex-fast") and would never match a
+  // value like "claude claude-sonnet-5". A locked spec's config may
+  // also have moved on since the run, so the tool has to come from the
+  // record itself, not from what is configured today.
+  const tool = model.split(" ")[0] || "claude";
+  return (
+    // `name="model.<step>"` on a `disabled` select is never submitted —
+    // it exists so `select[name^="model."]` (css.ts:699) sizes this
+    // control exactly like the live one, at zero new CSS.
+    `<select class="lockedmodel" name="model.${esc(step)}" disabled data-tool="${esc(tool)}">` +
+    `<option value="${esc(model)}" selected>${esc(model)}</option>` +
+    `</select>`
+  );
 }
 
 /** A locked phase's own record of what it spent in TIME (spec 247),
@@ -2675,7 +2689,7 @@ function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string
         `<td class="modelcell"><span class="row">` +
         `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model)}` +
         `${modelPicker(g, opts, p.step, busy, live, latest?.model)}</span>` +
-        (locked ? lockedModel(p.model) : "") +
+        (locked ? lockedModel(p.step, p.model) : "") +
         `${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,

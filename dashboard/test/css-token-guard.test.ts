@@ -344,10 +344,6 @@ const STRUCTURE = [
   // "proj-row-action" lifts the Remove button back above that overlay,
   // which is the only reason either class exists.
   "proj-row-link", "proj-row-action",
-  // the archive's Description column (spec 170): the one cell on the
-  // site holding several paragraphs of prose, bounded to two lines so
-  // one spec's description cannot take the row.
-  "archive-desc",
   // a spec's remaining checks, at the top of its page (spec 182): the
   // Tasks-table rows of 4-status.md, grouped by phase, each undone one
   // carrying the button that ticks it. "checkbox" is that button — and

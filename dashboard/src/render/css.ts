@@ -584,9 +584,6 @@ table.list thead a { color: var(--muted); }
    whose archive never recorded a figure, which is a blank and not a gap
    in the row. */
 .archive-duration { white-space: nowrap; }
-.archive-desc { color: var(--muted); font-size: var(--fs-s); max-width: 34rem;
-  display: -webkit-box; -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 /* The search on the Specs list (spec 221), the field the archive page
    had. A line of its own UNDER the chips rather than on the end of
    them: that line already carries six chips, the (?) and New spec, and
@@ -620,11 +617,6 @@ table.list thead a { color: var(--muted); }
   display: inline-flex; align-items: center; padding: 0 var(--sp-2);
   color: var(--muted); text-decoration: none; line-height: 1; }
 .searchclear:hover { color: var(--text); }
-/* An archived spec's reader row (spec 221). Its description cell wears
-   both classes — the archive's own two-line clamp, and the spec
-   column's measure — and the measure has to win, or the one row on the
-   list that is a record would be a hand wider than every row above it. */
-table.list tr.run-archived .spec-title.archive-desc { max-width: 27rem; }
 /* One line per SPEC, with its phases beneath it: the rule goes ABOVE
    each spec rather than under every row, so a reader sees eight specs
    rather than forty rows. */
@@ -1122,16 +1114,13 @@ tr.spec-archived td { color: var(--muted); }
      dot every time the cost wrapped alone or the date showed the
      checking bar. The flex gap already separates the two. */
 
-  /* .spec-name/.spec-title/.archive-desc carry a desktop alignment width
-     (27rem/27rem/34rem), and it MUST be overridden here — width: auto,
-     put back 2026-08-24 after being dropped in an earlier round: the
-     27rem (432px) held below ~480px viewports and pushed the pips out
-     of the right edge. It looked fine at the window width it happened
-     to be tested at, which is how the regression slipped through. */
-  .spec-name, .spec-title, .archive-desc { width: auto; max-width: none; box-sizing: border-box; }
-  /* Including the reader row's, whose desktop measure is written with a
-     specificity this line could not otherwise reach (spec 221). */
-  table.list tr.run-archived .spec-title.archive-desc { max-width: none; }
+  /* .spec-name/.spec-title carry a desktop alignment width (27rem
+     each), and it MUST be overridden here — width: auto, put back
+     2026-08-24 after being dropped in an earlier round: the 27rem
+     (432px) held below ~480px viewports and pushed the pips out of the
+     right edge. It looked fine at the window width it happened to be
+     tested at, which is how the regression slipped through. */
+  .spec-name, .spec-title { width: auto; max-width: none; box-sizing: border-box; }
 
   /* A long name gets two lines before it clamps to an ellipsis, instead
      of one. The pips are their own flex item and do not wrap with it —
