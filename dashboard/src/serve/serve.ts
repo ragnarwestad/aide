@@ -37,8 +37,6 @@ import {
   discoverProjects, resolveCodeLanding, resolveSchedule, specDependsOn,
   type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
-import { parseManifest, type ManifestData } from "../project/parse-manifest.ts";
-import { previewUrlFor } from "../git/preview-url.ts";
 import {
   archiveHeldBackReason, parseStatus,
 } from "../project/parse-status.ts";
@@ -46,33 +44,27 @@ import { Notifier } from "../integrations/notify.ts";
 import { MergeEventReporter } from "../integrations/merge-event.ts";
 import {
   QueueStore, mergeQueueDefaults, parseQueueProjects,
-  persistQueueProjects,
-  tailEdits,
-  type BranchRef, type Job, type QueueDefaults, type ProjectResolver,
+  type Job, type QueueDefaults, type ProjectResolver,
   type WorkflowStep,
 } from "../queue/queue.ts";
-import { type ProjectReadiness, type ProjectStep } from "../project/project-admin.ts";
 import { Runner, type StepOutcome } from "../queue/runner.ts";
 import {
   APPLE_TOUCH_ICON,
   APP_ICON,
   APP_ICON_MASKABLE,
-  PROJECTS_ROUTE,
   navEntries,
-  ADD_PROJECT_ROUTE,
   SERVICE_WORKER,
   WEBMANIFEST,
   type NavEntry,
-  type QueueRowView,
   type QueueTarget,
 } from "../render.ts";
 
 import {
   QUEUE_DEFAULTS,
   json, readBounded, createRootLock,
-  specsRedirect, logRefusal, navFromSite,
+  navFromSite,
   serveStatic,
-  resolveTimeoutSec, resolveStepModel, runnerArgv,
+  runnerArgv,
   DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, resolveDependencyFolder,
 } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
@@ -101,6 +93,10 @@ import {
   type ScheduleContext,
 } from "./schedules.ts";
 import { isQueuePath, queueGuard as queueGuardImpl } from "./queue-guard.ts";
+import { jobRow as jobRowImpl, type JobRowContext } from "./job-row.ts";
+import {
+  persistAllowlist as persistAllowlistImpl, answerProjectChange, type ProjectActionsContext,
+} from "./project-actions.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -1354,122 +1350,9 @@ export function createServer(opts: ServerOptions) {
     },
   });
 
-  // Which repos this ONE job has a branch in. A job written before spec
-  // 89 has `branchUrl` and no `branchUrls`; synthesising a one-entry
-  // list from it reproduces the old single-repo behaviour verbatim,
-  // rather than making every pre-existing job's link vanish on deploy.
-  const jobBranches = (job: Job): BranchRef[] =>
-    job.branchUrls?.length
-      ? job.branchUrls
-      : job.branchUrl
-        ? [{ root: machineryProjectDir(job.project), url: job.branchUrl }]
-        : [];
-
-  // A repo's directory basename — `aide`, `aide-specs` — which is the
-  // vocabulary the problem was described in. The full path is never sent
-  // to the browser: the server re-derives every root itself on a POST.
-  const repoLabel = (root: string): string => root.split(sep).filter(Boolean).pop() ?? root;
-
-  // Read FRESH, per render, not once at startup: adding
-  // `deployment.preview` to a manifest is an edit to a text file, and it
-  // should show on the next page load rather than the next deploy. Same
-  // cost class as the `4-status.md` reads `targets()` already does per
-  // spec. No manifest, or an unreadable one, is not an error worth a
-  // page over — it simply means this project has nothing to preview.
-  const projectManifest = (project: string): ManifestData | undefined => {
-    try {
-      const text = readFileSync(join(displayProjectDir(project), ".aide", "project.yaml"), "utf-8");
-      const result = parseManifest(text);
-      return result.ok ? result.data : undefined;
-    } catch {
-      return undefined;
-    }
-  };
-
-  async function jobRow(job: ReturnType<QueueStore["list"]>[number]): Promise<QueueRowView> {
-    // The step whose model the row is about: the one running, or the
-    // last one for a job that has finished.
-    const step = job.steps[job.stepIndex] ?? job.steps[job.steps.length - 1];
-    // Asked of EACH repo's own checkout. Asking the project's own root
-    // about a branch that lives in the specs repo was not merely a
-    // missing warning: a stale remote-tracking ref of the same name in
-    // the project answered it cleanly, and the page said "merged" about
-    // work that was not (1-description.md, "Measured again").
-    const branch = specBranch(job.specFolder);
-    // Asked of the project's OWN checkout only. A spec pushes a branch
-    // of the same name to the repo holding its plan, and a plan is not
-    // something anyone can open and try — the same distinction the merge
-    // button already draws, drawn the same way, by comparing roots.
-    const codeRoot = machineryProjectDir(job.project);
-    const preview = projectManifest(job.project)?.deployment?.preview;
-    const branchUrls = await Promise.all(
-      jobBranches(job).map(async (b) => ({
-        label: repoLabel(b.root),
-        url: b.url,
-        ...(b.root === codeRoot && { previewUrl: previewUrlFor(preview, branch) }),
-      })),
-    );
-    return {
-      id: job.id,
-      project: job.project,
-      specFolder: job.specFolder,
-      // What a create job's row is called while its folder is still a
-      // provisional key: `new-abc123de` says nothing to anyone.
-      createTitle: job.createTitle,
-      steps: job.steps,
-      stepIndex: job.stepIndex,
-      // Spec 160: which of them the row may still be given or relieved
-      // of. Asked of the queue's own module, so the box and the route
-      // that takes its tick cannot disagree about where the tail
-      // starts.
-      editableSteps: tailEdits(job),
-      state: job.state,
-      landing: job.landing,
-      model: step ? resolveStepModel(job, step, queue.defaults.model) : job.modelChoice,
-      spentUsd: job.spentUsd,
-      // The stored split is five numbers; the page shows one. Flattened
-      // here, at the boundary, so no render file has to know what a
-      // result file looks like (spec 118).
-      spentTokens: job.spentTokens,
-      // One number, for the step this row speaks for: `stateLabel` puts
-      // it into words ("stopped — 45 min") and has no step to resolve
-      // against of its own.
-      timeoutSec: resolveTimeoutSec(job.timeoutSec, step ?? "default", queue.defaults.timeoutSec),
-      createdAt: job.createdAt,
-      startedAt: job.startedAt,
-      branchUrls,
-      // Spec 220: stored on the job, not derived here like `branchUrls`
-      // — only the run that called `gh` knows the URL, and there is
-      // nothing on this machine to work it out from.
-      prUrl: job.prUrl,
-      prError: job.prError,
-      stopReason: job.stopReason,
-      error: job.error,
-      // Why the landing was refused, when it was refused for something
-      // the row can act on. Stored on the job (spec 149), because a
-      // landing has no browser to redirect the reason to.
-      errorReason: job.errorReason,
-      // Which third of an implement is running (spec 210). Only for
-      // `implement`, which is the one step that reports its phases, and
-      // only off the job's LIVE `sessionId` — the queue clears that the
-      // moment a step ends, so a finished job cannot pick up a leftover
-      // row from the session it once used.
-      tddPhase:
-        step === "implement" && job.state === "running" && job.sessionId
-          ? store.get(job.sessionId)?.phase
-          : undefined,
-      results: job.results.map((r) => ({
-        step: r.step, ok: r.ok, costUsd: r.costUsd, tokens: r.tokens?.total,
-        // When the step ENDED (spec 199). The only per-step instant
-        // there is — a job has one `startedAt` however many steps it
-        // ran — so it is what a phase's own duration is sliced out of.
-        at: r.at,
-        // Carried, not dropped: the totals the list and the overview tab
-        // build out of these results have no other way to know a figure
-        // they are summing was over-charged (spec 152).
-        costMeasured: r.costMeasured,
-      })),
-    };
+  const jobRowCtx: JobRowContext = { machineryProjectDir, displayProjectDir, queue, store };
+  function jobRow(job: Job) {
+    return jobRowImpl(jobRowCtx, job);
   }
 
   // Built once, from the same locals landBranch and its helpers in
@@ -1516,78 +1399,9 @@ export function createServer(opts: ServerOptions) {
     return withFreshnessImpl(landCtx, list);
   }
 
-  /** Write the allowlist back to the file the server reads on the way
-   *  up, so an Add or a Remove survives a restart. Derived from the
-   *  live `Set` and never from a copy of the file, which is what stops
-   *  two changes a millisecond apart from losing each other.
-   *
-   *  Never fatal: the clone already happened, and the project IS on the
-   *  allowlist in this process. But it is not silent either — a change
-   *  that will vanish on the next restart is exactly the thing the
-   *  operator has to be told, so it comes back as a failed step with
-   *  the reason in it. */
-  function persistAllowlist(what: string): ProjectStep {
-    if (!opts.queueConfigFile) {
-      return {
-        step: "allowlist",
-        ok: true,
-        note: `${what}; this server has no --queue-config file, so the list is not saved across a restart`,
-      };
-    }
-    const error = persistQueueProjects(opts.queueConfigFile, [...allowed].sort());
-    return error
-      ? { step: "allowlist", ok: false, error: `${what}, but it could not be saved and will be lost on restart: ${error}` }
-      : { step: "allowlist", ok: true };
-  }
-
-  /** One answer shape for both project routes — the merge route's, step
-   *  for step: `results[]` with `ok = every(...)`, so the page's own
-   *  `refusalText()` renders an Add refusal exactly as it renders a
-   *  merge's. Every refusal reaches `serve.log` too, which is the only
-   *  record left once the page has moved on. */
-  function answerProjectChange(
-    action: string,
-    project: string,
-    steps: ProjectStep[],
-    sent: unknown,
-    wantsJson: boolean,
-    /** What an Add that SUCCEEDED found out about the project it just
-     *  registered (spec 138). It travels beside `results` and never
-     *  inside it: `ok` says the registration completed, `canRun` says
-     *  whether a run would start, and folding the second into the first
-     *  would report a checkout that IS on disk as an add to retry. */
-    readiness?: ProjectReadiness,
-  ): Response {
-    const ok = steps.every((s) => s.ok);
-    for (const s of steps) if (s.error) logRefusal(action, project, s.error);
-    if (wantsJson) {
-      return json({ ok, project, results: steps, ...(readiness ? { readiness } : {}) }, ok ? 200 : 400);
-    }
-    const summary = steps.map((s) => s.error).filter(Boolean).join("; ");
-    // A refusal goes back to the page the FORM is on — the Add page or
-    // the row's own Remove page (2026-08-19) — a success to the list.
-    const formPage =
-      action === "add-project"
-        ? ADD_PROJECT_ROUTE
-        : action === "project-settings"
-          // `?edit=1`: the settings table's edit state is server-rendered
-          // (spec 255), so a refused save that dropped it would reopen on
-          // the read-only view with the error attached to a form that is
-          // no longer there.
-          ? `/projects/${encodeURIComponent(project)}?edit=1`
-          : `/projects/${encodeURIComponent(project)}/remove`;
-    if (summary) return specsRedirect(sent, { error: summary }, formPage);
-    // A browser with no script gets the readiness answer the only way a
-    // redirect can carry one: in the query string of the page it lands
-    // on. Without this the whole of it dies in a response body nobody
-    // ever sees — which is how Skjer came to look added and be unable
-    // to run.
-    return specsRedirect(
-      sent,
-      undefined,
-      action === "project-settings" ? `/projects/${encodeURIComponent(project)}` : PROJECTS_ROUTE,
-      readiness && { note: readiness.note, ok: readiness.canRun },
-    );
+  const projectActionsCtx: ProjectActionsContext = { queueConfigFile: opts.queueConfigFile, allowed };
+  function persistAllowlist(what: string) {
+    return persistAllowlistImpl(projectActionsCtx, what);
   }
 
   // Built once, from the same locals the view builders in
