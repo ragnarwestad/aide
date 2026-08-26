@@ -284,7 +284,13 @@ const MAX_MARK_LENGTH = 30;
  *  One predicate, asked by `parseStatusChecks`, `tickStatusLine` and
  *  (through the first of those) `parseStatus`. Spec 190: three separate
  *  string comparisons answering this same question is exactly how a fix
- *  in one of them stayed invisible to the other two. */
+ *  in one of them stayed invisible to the other two.
+ *
+ *  A FOURTH implementation of this same rule exists in bash, in
+ *  `core/scripts/aide-archive-spec` (spec 251) — `is_done_mark`/
+ *  `is_unstarted_mark`/`table_row`, checked against the same set of
+ *  inputs this file's own tests use. No shared source between the two
+ *  languages; change one and check the other. */
 function isDoneMark(mark: string): boolean {
   const trimmed = mark.trim();
   return trimmed === DONE_MARK || /^completed$/i.test(trimmed);

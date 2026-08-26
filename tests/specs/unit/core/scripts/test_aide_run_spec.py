@@ -3343,6 +3343,7 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
 ):
     """The fork must only bite on a real conflict. An `archive` run on a
     branch that merges cleanly is an ordinary step."""
+    with_status(workspace, done=True)
     project = workspace["project"]
     branch = "aide/81-queue-and-runner"
     git(project, "switch", "-q", "-c", branch)
@@ -3357,6 +3358,93 @@ def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert is_ancestor(project, "main", branch)
+
+
+# --- spec 251: the mechanical pre-check skips the model entirely --------
+# core/scripts/aide-archive-spec answers "is this spec's work done, and is
+# anything conflicted" without a model. When the answer is "not done yet"
+# aide-run-spec never spawns claude/codex at all — the same "a script
+# decides success and reports it, no session ever runs" shape
+# already_landed() already has (test_archive_reports_an_already_landed_
+# spec_as_done_not_refused, above), extended to two new outcomes.
+
+
+def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
+    runner, workspace, fake_claude
+):
+    """Criterion 1. No 4-status.md at all reads as "nothing started yet"
+    — ordinary progression, never a warning — and costs nothing."""
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["exitCode"] == 0, out
+    assert out["terminalReason"] == "not-implemented-yet", out
+    assert not fake_claude.calls.exists(), "nothing to decide costs nothing"
+    assert "costUsd" not in out or out.get("costUsd") == 0, out
+
+
+def test_archive_skips_the_model_when_a_row_is_genuinely_held_back(
+    runner, workspace, fake_claude
+):
+    """Criterion 2. A row that is `🔄`/`❌`/`⚠️` — genuinely blocked, not
+    merely unstarted — declines the same way, and writes the `## Archive
+    held back` section itself rather than asking a model to."""
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        "- **Workflow steps completed:** create, analyze, implement\n\n"
+        "---\n\n## Phase 2: GREEN\n\n### Tasks\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| the Slack webhook | 🔄 | still wiring it up |\n"
+    )
+    (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(body)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
+
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "held-back", out
+    assert not fake_claude.calls.exists(), "nothing to decide costs nothing"
+    # The decline is real, committed work — read off the BRANCH, not the
+    # main checkout, which this run never touches.
+    branch = "aide/81-queue-and-runner"
+    text = git(workspace["specs"], "show", f"{branch}:{workspace['folder']}/4-status.md")
+    assert "## Archive held back" in text, text
+    assert "the Slack webhook" in text, text
+    assert git(workspace["specs"], "log", "-1", "--format=%s", branch) \
+        .startswith("Run /aide-archive for 81-queue-and-runner")
+
+
+def test_the_declined_result_carries_the_full_shape_a_completed_run_has(
+    runner, workspace, fake_claude
+):
+    """Both skip-the-model outcomes must be indistinguishable, shape-
+    wise, from any other step's successful JSON — a caller that only
+    ever branches on `ok`/`ok`+`terminalReason` must not be surprised by
+    a missing field."""
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, result_stdout = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    for field in ("ok", "exitCode", "terminalReason", "durationSec", "branch", "repos"):
+        assert field in out, out
+    assert out["durationSec"] == 0, out
+
+
+def test_other_commands_still_spawn_the_model_with_no_status_file_at_all(
+    runner, workspace, fake_claude
+):
+    """The new fast path is gated on the literal string `archive`, like
+    every other archive-only fork in this script — a spec with no
+    4-status.md is `analyze`'s and `implement`'s normal starting point,
+    not a reason to skip them."""
+    claude = writing_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["terminalReason"] == "completed", out
+    assert fake_claude.calls.exists()
 
 
 def test_resolve_is_no_longer_a_command_this_script_will_run(runner, workspace, fake_claude):
@@ -3671,7 +3759,7 @@ def subject(step, folder="81-queue-and-runner", headless=True, stopped=None, mod
     )
 
 
-def with_status(workspace, claims=None, reopened=None, models=None):
+def with_status(workspace, claims=None, reopened=None, models=None, done=False):
     """Give the spec a 4-status.md, committed, optionally CLAIMING steps
     on the line this change takes over.
 
@@ -3680,16 +3768,32 @@ def with_status(workspace, claims=None, reopened=None, models=None):
 
     `models={step: value}` adds spec 217's per-step Model lines, in the
     place the runner writes them: directly under the steps line.
+
+    `done=True` (spec 251) gives the file one already-✅ Phase section, so
+    an `archive` run's own mechanical pre-check (core/scripts/
+    aide-archive-spec) reads the spec's work as finished — and therefore
+    still spawns the model for Step 4 — rather than declining before
+    anything runs. Every test in this file that runs `command="archive"`
+    against a bare `with_status()` file (no Phase section at all) needs
+    this, since a status file with nothing to read as "started" is
+    exactly the shape the mechanical check now declines on its own.
     """
     line = f"- **Workflow steps completed:** {', '.join(claims)}\n" if claims else ""
     for step, value in (models or {}).items():
         line += f"- **Model ({step}):** {value}\n"
     mark = reopen_line(reopened) if reopened else ""
+    phase_block = (
+        "\n---\n\n## Phase 1: RED\n\n**Status:** ✅ Completed\n\n### Tasks\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| already done | ✅ | |\n"
+        if done else ""
+    )
     (workspace["specs"] / workspace["folder"] / "4-status.md").write_text(
         "# Queue - Status\n\n## Tracking info\n\n"
         f"- **Task:** `{workspace['folder']}/`\n"
         f"{line}{mark}"
         "- **Total progress:** 0% (0 of 4 completed)\n"
+        f"{phase_block}"
     )
     subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
     subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
@@ -3896,19 +4000,14 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
 
 
 def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, fake_claude):
-    """`/aide-archive` does a `git mv` of the whole folder into
-    `archive/` before the runner's commit loop ever runs, so the path
-    the line has to be written at is not the one the run started with."""
-    with_status(workspace)
+    """The mechanical pre-check (spec 251, core/scripts/aide-archive-spec)
+    does the `git mv` of the whole folder into `archive/` before the
+    runner's commit loop, or the model, ever runs — so the path the line
+    has to be written at is not the one the run started with."""
+    with_status(workspace, done=True)
     already_ran(workspace, ["create", "analyze", "implement"])
     folder = workspace["folder"]
-    claude = fake_claude(
-        "cat > /dev/null\n"
-        + READ_SPECS
-        + 'mkdir -p "$specs/archive"\n'
-        + f'git -C "$specs" mv "{folder}" "archive/{folder}"\n'
-        + f"echo '{json.dumps(RESULT_OK)}'"
-    )
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert (
@@ -4070,18 +4169,19 @@ def test_a_step_only_the_line_knows_about_survives_a_later_recompute(
     """Acceptance criterion 1, and the Woodstack 22 shape exactly: a
     MULTI-step line, one of whose steps has no commit matching the
     subject grammar anywhere in history, recomputed by a later step."""
-    with_status(workspace, ["analyze", "implement"])
+    with_status(workspace, ["analyze", "implement"], done=True)
     already_ran(workspace, ["analyze"])  # implement committed under its own subject
     subprocess.run(
         ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
          "-m", f"Record the implementation of {workspace['folder']}"],
         check=True,
     )
-    claude = writing_claude(fake_claude, workspace)
+    folder = workspace["folder"]
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     # Workflow order, not the order the two sources found them in.
-    assert recorded_line(workspace) == "analyze, implement, archive"
+    assert recorded_line(workspace, path=f"archive/{folder}/4-status.md") == "analyze, implement, archive"
 
 
 def test_a_step_both_sources_find_is_named_once(runner, workspace, fake_claude):
@@ -4274,14 +4374,15 @@ def test_an_archive_run_keeps_the_steps_line_and_adds_its_own_block(
     """AC5: `4-status.md` keeps the unchanged `Workflow steps completed:`
     line AND gains the new outcome block for `archive` itself — with no
     `Model (create|analyze|implement):` lines written by this run."""
-    with_status(workspace)
+    with_status(workspace, done=True)
     already_ran(workspace, ["create", "analyze", "implement"])
-    claude = writing_claude(fake_claude, workspace)
+    folder = workspace["folder"]
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive",
                      model="claude-sonnet-5")
     assert rc == 0, out
-    text = phase_file_text(workspace, f"{workspace['folder']}/4-status.md")
-    assert recorded_line(workspace) == "create, analyze, implement, archive"
+    text = phase_file_text(workspace, f"archive/{folder}/4-status.md")
+    assert recorded_line(workspace, path=f"archive/{folder}/4-status.md") == "create, analyze, implement, archive"
     assert bullet(text, "Model") == "claude claude-sonnet-5"
     assert bullet(text, "Result") == "completed"
     assert bullet(text, "Time spent") is not None

@@ -121,9 +121,11 @@ Never skip this run, and never report a resolution as done without it.
 ### Step 5: Carry on, or undo
 
 **Tests green:** the resolution is finished. Go back to
-`/aide-archive`'s Step 2 and archive the spec as an ordinary run does.
-`aide-run-spec` commits anything still uncommitted, pushes the BRANCH,
-and reports the run. There is nothing to push by hand.
+`/aide-archive`'s Step 1 and run `aide-archive-spec` again — now past the
+conflict, it reads the status tables and decides the rest exactly as an
+ordinary run does. `aide-run-spec` commits anything still uncommitted,
+pushes the BRANCH, and reports the run. There is nothing to push by
+hand.
 
 **Tests red, or you decided in Step 2 not to resolve:** put the branch
 back exactly where you found it, then report why. Archive stops here —

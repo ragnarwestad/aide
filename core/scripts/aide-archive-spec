@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+# aide-archive-spec — the mechanical steps of /aide-archive (spec 251):
+# resolving the spec argument to a folder, checking whether a merge
+# conflict is open, reading 4-status.md's Tasks tables to decide whether
+# the work is done, and (when it is) stamping and moving the folder.
+#
+# Only two things here need a model's judgment, and neither is this
+# script's job: resolving an actual merge conflict, and deciding what
+# documentation should outlive the spec (Step 4 of the skill). Every
+# other archive run used to spend a full AI session reasoning about
+# 4-status.md's tables by hand, purely to conclude "not yet" — this
+# script answers that without spawning one.
+#
+# Callable directly by a person running /aide-archive interactively, and
+# by aide-run-spec as a pre-check before it decides whether to spawn the
+# model at all. Idempotent: calling it twice for the same spec (once
+# from each caller, in the same archive step) must never error or
+# double-write — a folder already under archive/ is reported as
+# already-archived rather than moved again, and a held-back section
+# already matching the current verdict is left exactly as it is.
+#
+# Prints ONE JSON line to stdout and, if given, to --result-file:
+#   {ok, exitCode, terminalReason, error?, note?, specFolder?,
+#    needsDocFeedback?}
+#
+# terminalReason, checked in this order:
+#   refused | already-archived | conflict-open | not-implemented-yet
+#   | held-back | archived
+#
+# Usage:
+#   aide-archive-spec --project-dir <path> --spec <arg>
+#                      [--specs-dir <path>] [--result-file <path>]
+#
+# --specs-dir names a directory in the specs repo, when that repo is
+# separate from the project — checked for an open merge alongside
+# --project-dir. The specs ROOT (where the spec folders actually live)
+# is worked out the same way every other aide skill does: AIDE_SPECS_PATH
+# from --project-dir's own .aide/config, or <project-dir>/specs.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+
+project_dir=""; spec_arg=""; specs_dir=""; result_file=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --project-dir) project_dir="${2:-}"; shift 2 ;;
+    --spec) spec_arg="${2:-}"; shift 2 ;;
+    --specs-dir) specs_dir="${2:-}"; shift 2 ;;
+    --result-file) result_file="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  local msg="$1" line
+  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 2
+}
+
+# One shape for every non-refusal outcome: ok:true, exitCode:0, plus
+# whatever fields that outcome adds. $1 is a JSON object literal already
+# carrying terminalReason and any extra fields.
+emit_ok() {
+  local extra="$1" line
+  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 0
+}
+
+[ -n "$project_dir" ] || refuse "missing --project-dir"
+[ -n "$spec_arg" ] || refuse "missing --spec"
+[ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
+
+if declare -f aide_specs_root >/dev/null 2>&1; then
+  specs_root="$(aide_specs_root "$project_dir")"
+else
+  specs_root="$project_dir/specs"
+fi
+[ -d "$specs_root" ] || refuse "no specs root at $specs_root"
+
+spec_folder=""
+if declare -f aide_resolve_spec >/dev/null 2>&1; then
+  spec_folder="$(aide_resolve_spec "$spec_arg" "$specs_root")"
+fi
+# aide_resolve_spec's own "assume a full folder ID" branch (the one a
+# spelled-out `NN-slug` falls into, as opposed to a bare number or a JIRA
+# key) never checks archive/ — it only ever echoes the input back. A
+# folder that exists only under archive/, given by its full name, comes
+# out here as a guess that does not exist, so it is checked and — for
+# exactly this case — looked up under archive/ directly, the same way
+# aide-run-spec's own inline resolver already does for its recovery path.
+if [ -n "$spec_folder" ] && [ ! -d "$specs_root/$spec_folder" ]; then
+  spec_folder=""
+fi
+if [ -z "$spec_folder" ] && [ -d "$specs_root/archive" ]; then
+  if [ -d "$specs_root/archive/$spec_arg" ]; then
+    spec_folder="archive/$spec_arg"
+  else
+    for candidate in "$specs_root/archive"/*/; do
+      base="$(basename "$candidate")"
+      case "$base" in "$spec_arg"-*) spec_folder="archive/$base"; break ;; esac
+    done
+  fi
+fi
+if [ -z "$spec_folder" ]; then
+  active="$(find "$specs_root" -maxdepth 1 -mindepth 1 -type d ! -name archive \
+    -exec basename {} \; 2>/dev/null | sort | paste -sd', ' -)"
+  refuse "unknown spec: $spec_arg (not under $specs_root)${active:+ — active folders: $active}"
+fi
+
+# --- already archived ---------------------------------------------------
+# Covers a genuine re-run against finished work AND the dual-call-site
+# case: aide-run-spec's own pre-check may have just done the stamp-and-
+# move below, and the SKILL.md session's Step 1 then calls this script a
+# second time for the same archive step. specFolder/needsDocFeedback are
+# reported here too, same as the fresh `archived` outcome, so a caller
+# that reaches this on that second call still knows where Step 4 reads
+# from.
+case "$spec_folder" in
+  archive/*)
+    folder_name="${spec_folder#archive/}"
+    emit_ok "$(jq -cn --arg n "spec $folder_name is already archived — nothing to do" \
+      --arg f "$spec_folder" \
+      '{terminalReason:"already-archived", note:$n, specFolder:$f, needsDocFeedback:true}')"
+    ;;
+esac
+
+# --- the conflict check ---------------------------------------------------
+# aide-run-spec's own update_branch_to_base leaves MERGE_HEAD set for an
+# archive step rather than aborting, so this can be running in a worktree
+# that is mid-merge. Checked in every directory the caller named — the
+# specs repo has a branch of its own and can conflict independently of
+# the project (SKILL.md's own Step 1 already said so before this script
+# existed).
+check_dirs=("$project_dir")
+[ -n "$specs_dir" ] && [ -d "$specs_dir" ] && check_dirs+=("$specs_dir")
+for dir in "${check_dirs[@]}"; do
+  if git -C "$dir" rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
+    emit_ok '{"terminalReason":"conflict-open"}'
+  fi
+done
+
+# --- the status-table read -------------------------------------------------
+# Matches dashboard/src/parse-status.ts's isDoneMark/tableCells/
+# phaseSections exactly (see the comment beside isDoneMark there): a row
+# is done when its Status cell is "✅" or the Notation table's own word
+# for it ("Completed", case-insensitively); anything else is open. Two
+# independent implementations of that same rule is a known risk (spec
+# 190) — mitigated by testing both against the same set of inputs, not by
+# sharing code between a bash script and a TypeScript module.
+status_file="$specs_root/$spec_folder/4-status.md"
+
+is_done_mark() {   # $1 = trimmed mark cell
+  case "$1" in
+    "✅") return 0 ;;
+    *) [ "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" = "completed" ] ;;
+  esac
+}
+is_unstarted_mark() {   # $1 = trimmed mark cell
+  case "$1" in
+    "⬜") return 0 ;;
+    *) [ "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" = "not started" ] ;;
+  esac
+}
+# tableCells equivalent: a row is a line with exactly 5 pipe fields
+# ("", task, mark, notes, ""); sets $row_task/$row_mark, or returns 1.
+table_row() {
+  local line="$1" task mark
+  case "$line" in
+    '|'*'|') ;;
+    *) return 1 ;;
+  esac
+  IFS='|' read -r _ task mark _ _ <<<"$line"
+  task="$(printf '%s' "$task" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  mark="$(printf '%s' "$mark" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  [ -n "$task" ] || return 1
+  case "$task" in *[!-]*) ;; *) return 1 ;; esac
+  [ -n "$mark" ] && [ "${#mark}" -le 30 ] || return 1
+  case "$mark" in *,*) return 1 ;; esac
+  [ "$(printf '%s' "$mark" | tr '[:upper:]' '[:lower:]')" != "status" ] || return 1
+  row_task="$task"; row_mark="$mark"
+}
+
+saw_phase="no"; any_open="no"; all_unstarted="yes"
+held_task=""; held_phase=""; implement_present="no"
+in_phase="no"; cur_phase=""
+
+if [ -f "$status_file" ]; then
+  workflow_line="$(sed -n 's/^-[[:space:]]*\*\*Workflow steps completed:\*\*//p' "$status_file" | tail -1)"
+  for step in $(printf '%s' "$workflow_line" | tr ',' ' '); do
+    step="$(printf '%s' "$step" | tr -d '[:space:]`' | tr '[:upper:]' '[:lower:]')"
+    [ "$step" = "implement" ] && implement_present="yes"
+  done
+
+  while IFS= read -r line; do
+    case "$line" in
+      '## '*)
+        heading="${line#\#\# }"
+        case "$heading" in
+          [Pp]hase*|[Ff]ase*) in_phase="yes"; cur_phase="$heading"; saw_phase="yes" ;;
+          *) in_phase="no" ;;
+        esac
+        continue
+        ;;
+    esac
+    [ "$in_phase" = "yes" ] || continue
+    table_row "$line" || continue
+    is_done_mark "$row_mark" && continue
+    any_open="yes"
+    if ! is_unstarted_mark "$row_mark"; then
+      all_unstarted="no"
+      if [ -z "$held_task" ]; then
+        held_task="$row_task"; held_phase="$cur_phase"
+      fi
+    fi
+  done < "$status_file"
+fi
+
+status_done="yes"
+{ [ "$saw_phase" = "yes" ] && [ "$any_open" = "no" ]; } || status_done="no"
+
+# --- removing or writing the "## Archive held back" section ----------------
+# One section, replaced in place — a spec declined twice carries its
+# CURRENT reason, not a growing list of stale ones (SKILL.md's own Step
+# 3). Both functions are no-ops (no write at all) when the file already
+# reads the way this run would leave it, which is what keeps the second
+# of two calls in the same archive step from dirtying the tree again.
+remove_held_back_section() {
+  grep -q '^## Archive held back[[:space:]]*$' "$status_file" 2>/dev/null || return 0
+  local tmp="$status_file.aide-tmp"
+  awk '
+    BEGIN { skip = 0 }
+    /^## Archive held back[ \t]*$/ { skip = 1; next }
+    skip && /^#{1,6}[ \t]/ { skip = 0 }
+    skip && /^---[ \t]*$/ { skip = 0; next }
+    skip { next }
+    { print }
+  ' "$status_file" > "$tmp" && mv "$tmp" "$status_file"
+}
+
+write_held_back_section() {   # $1 = task, $2 = phase
+  local bullet="- $1 ($2) — tick it on the spec's page"
+  if grep -q '^## Archive held back[[:space:]]*$' "$status_file" 2>/dev/null; then
+    # Already the same bullet: nothing to change.
+    grep -qF "$bullet" "$status_file" 2>/dev/null && return 0
+    remove_held_back_section
+  fi
+  {
+    [ -s "$status_file" ] && [ -n "$(tail -c1 "$status_file")" ] && printf '\n'
+    printf '\n## Archive held back\n\n%s\n\n---\n' "$bullet"
+  } >> "$status_file"
+}
+
+if [ "$status_done" = "no" ]; then
+  if [ "$saw_phase" = "no" ] || { [ "$all_unstarted" = "yes" ] && [ "$implement_present" = "no" ]; }; then
+    [ -f "$status_file" ] && remove_held_back_section
+    emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
+  else
+    write_held_back_section "$held_task" "$held_phase"
+    emit_ok "$(jq -cn --arg n "held back: $held_task ($held_phase) is still open" \
+      '{terminalReason:"held-back", note:$n}')"
+  fi
+fi
+
+# --- archived: stamp and move ----------------------------------------------
+today="$(date -u +%Y-%m-%d)"
+printf '\n**Archived:** %s\n' "$today" >> "$status_file"
+
+mkdir -p "$specs_root/archive"
+if git -C "$specs_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git -C "$specs_root" mv "$spec_folder" "archive/$spec_folder"
+else
+  mv "$specs_root/$spec_folder" "$specs_root/archive/$spec_folder"
+fi
+
+emit_ok "$(jq -cn --arg f "archive/$spec_folder" \
+  '{terminalReason:"archived", needsDocFeedback:true, specFolder:$f}')"

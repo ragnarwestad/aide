@@ -1306,40 +1306,74 @@ printf '%s' "$prompt" > "$work_dir/prompt"
 
 started_at="$(date +%s)"
 
-# `set -m` puts the child in its OWN process group, so the deadline can
-# take down claude's children too — a kill that only reaches the parent
-# is not a bound. No pipeline here: with one, $! is the last command and
-# the group id would be someone else's.
-set -m
-# cd into the project's WORKTREE first. A skill resolves the project from
-# its working directory, so inheriting the caller's cwd (a server's, say)
-# makes the run analyse the wrong repository — measured on the first
-# real job, 2026-08-16, which cost $0.45 to discover. Since spec 91 the
-# directory is the throwaway checkout, which is the tree this run will
-# commit from. `exec` keeps the pid, so $! is still the process group we
-# later signal.
-( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
-child=$!
-set +m
+# --- the mechanical archive pre-check (spec 251) -----------------------------
+# Most of what `/aide-archive` used to spend a full AI session on is pure
+# logic — folder resolution, the conflict check, reading 4-status.md's
+# tables to decide whether the work is done. aide-archive-spec does that
+# in bash and prints a verdict; when the verdict is "nothing to do yet",
+# spawning claude/codex for it would cost tokens and time on the common
+# path for no judgment actually needed. Literal string `archive`, like
+# every other archive-only fork in this file (update_branch_to_base
+# above is the same shape) — this must run AFTER worktree setup, since
+# the conflict half of the check needs MERGE_HEAD, which only exists once
+# update_branch_to_base has had its chance to leave it set.
+skip_ai=""; archive_terminal_reason=""; archive_note=""
+if [ "$command_name" = "archive" ]; then
+  archive_args=(--project-dir "$project_wt" --spec "$spec_folder")
+  [ -n "$specs_wt" ] && [ "$specs_wt" != "$project_wt" ] && archive_args+=(--specs-dir "$specs_wt")
+  archive_check="$("$SCRIPT_DIR/aide-archive-spec" "${archive_args[@]}" 2>/dev/null)"
+  archive_terminal_reason="$(jq -r '.terminalReason // empty' <<<"$archive_check" 2>/dev/null)"
+  archive_note="$(jq -r '.note // empty' <<<"$archive_check" 2>/dev/null)"
+  [ -n "$archive_note" ] && echo "aide-run-spec: $archive_note" >&2
+  case "$archive_terminal_reason" in
+    not-implemented-yet|held-back) skip_ai="yes" ;;
+  esac
+fi
 
-stopped=""
-deadline=$(( started_at + ${timeout_sec%.*} ))
-while kill -0 "$child" 2>/dev/null; do
-  if [ "$(date +%s)" -ge "$deadline" ]; then
-    stopped="timeout"
-    # SIGTERM first, always: a run being asked to stop is exactly when a
-    # few extra seconds are cheapest.
-    kill_group TERM
-    grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
-    while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
-    kill -0 "$child" 2>/dev/null && kill_group KILL
-    break
-  fi
-  sleep 0.2
-done
-wait "$child" 2>/dev/null
-exit_code=$?
-duration=$(( $(date +%s) - started_at ))
+if [ -n "$skip_ai" ]; then
+  # No child spawned: every variable the commit loop, the phase-outcome
+  # writer and the final JSON result read from a completed run is given
+  # the same zero/absent shape already_landed() already uses above for
+  # the same reason — a decline costs nothing.
+  stopped=""; exit_code=0; duration=0
+  session_out=""; subtype=""; cost="0"; cost_measured="false"; tokens_json=""
+  cost_known="true"
+  terminal_reason="$archive_terminal_reason"; error_msg=""
+else
+  # `set -m` puts the child in its OWN process group, so the deadline can
+  # take down claude's children too — a kill that only reaches the parent
+  # is not a bound. No pipeline here: with one, $! is the last command and
+  # the group id would be someone else's.
+  set -m
+  # cd into the project's WORKTREE first. A skill resolves the project from
+  # its working directory, so inheriting the caller's cwd (a server's, say)
+  # makes the run analyse the wrong repository — measured on the first
+  # real job, 2026-08-16, which cost $0.45 to discover. Since spec 91 the
+  # directory is the throwaway checkout, which is the tree this run will
+  # commit from. `exec` keeps the pid, so $! is still the process group we
+  # later signal.
+  ( cd "$project_wt" && AIDE_HEADLESS=1 exec "${argv[@]}" ) < "$work_dir/prompt" > "$transcript" 2> "$work_dir/err" &
+  child=$!
+  set +m
+
+  stopped=""
+  deadline=$(( started_at + ${timeout_sec%.*} ))
+  while kill -0 "$child" 2>/dev/null; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      stopped="timeout"
+      # SIGTERM first, always: a run being asked to stop is exactly when a
+      # few extra seconds are cheapest.
+      kill_group TERM
+      grace_end=$(( $(date +%s) + ${kill_grace_sec%.*} ))
+      while kill -0 "$child" 2>/dev/null && [ "$(date +%s)" -lt "$grace_end" ]; do sleep 0.2; done
+      kill -0 "$child" 2>/dev/null && kill_group KILL
+      break
+    fi
+    sleep 0.2
+  done
+  wait "$child" 2>/dev/null
+  exit_code=$?
+  duration=$(( $(date +%s) - started_at ))
 
 # --- reading what came back --------------------------------------------------
 session_out=""; subtype=""; cost="0"; cost_measured="false"; terminal_reason=""; error_msg=""
@@ -1510,9 +1544,14 @@ else
   error_msg="$(tail -c 400 "$work_dir/err" 2>/dev/null | tr '\n' ' ')"
   [ -n "$error_msg" ] || error_msg="$tool produced no result JSON (exit $exit_code)"
 fi
+fi
 
 ok="false"
 [ "$terminal_reason" = "completed" ] && ok="true"
+# A mechanical decline is success with nothing more to do, the same rule
+# already_landed() applies above: no judgment was needed, so nothing
+# failed.
+[ -n "$skip_ai" ] && ok="true"
 
 # Exactly one new folder is an answer; zero or several is not, and is
 # left unreported rather than guessed at. The spec still lands either

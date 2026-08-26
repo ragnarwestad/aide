@@ -299,6 +299,39 @@ the skill behaves well. One consequence to keep in mind: `archive` used
 to be a short, cheap step, and a run that meets a conflict is now as big
 a piece of work as a resolution ever was.
 
+**Most of what `archive` does is a script now, not an AI session (spec
+251).** `core/scripts/aide-archive-spec` resolves the spec argument to a
+folder, checks whether a merge is open, reads `4-status.md`'s Tasks
+tables, and — when every row is done — stamps and moves the folder,
+before any model is ever asked to. The two things left that genuinely
+need judgment stay with the skill: resolving an actual merge conflict,
+and deciding what documentation should outlive the spec
+(`core/skills/aide-archive/SKILL.md`'s Step 2). `aide-run-spec` calls the
+same script once, right after worktree setup, purely to decide whether
+spawning `claude`/`codex` is worth doing at all — its `terminalReason`
+of `not-implemented-yet` or `held-back` skips the spawn entirely, the
+same "a script decides success and reports it, no session runs" shape
+`already_landed()` already had for a landed spec. Every other outcome
+(`conflict-open`, `archived`) still spawns the model normally, because
+Step 2's doc-feedback judgment needs it whenever the work is done,
+conflict or not. Two things not to get backwards:
+
+- **The script runs twice in one archive step, and that is by design,
+  not a bug to fix.** `aide-run-spec`'s own pre-check may already have
+  moved the folder into `archive/` by the time the skill's own Step 1
+  calls the script again — idempotency is the guard, not "call it
+  once": a folder already under `archive/` is reported as
+  `already-archived` (carrying the same `specFolder`/
+  `needsDocFeedback` the fresh `archived` outcome does, so Step 2 still
+  runs) rather than moved, or erroring, a second time.
+- **The status-mark rule (`is_done_mark`/`is_unstarted_mark` in the
+  script) is a fourth implementation of the same rule
+  `dashboard/src/parse-status.ts`'s `isDoneMark` already carries in
+  TypeScript — the exact drift spec 190 fixed once, in different
+  clothes.** No shared source between bash and TypeScript; each file
+  points at the other in a comment, and both are tested against the
+  same set of Notation-legend inputs.
+
 **A run reaches the project and its specs root, and nothing else.** A
 third repository could be named with `--extra-project-dir`, and got the
 same treatment as the other roots — branched, committed, pushed (spec
