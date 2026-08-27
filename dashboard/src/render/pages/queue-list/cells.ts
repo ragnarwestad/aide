@@ -53,7 +53,6 @@ import { queueHref } from "./filter-bar.ts";
 import {
   aiPicker,
   lockedDuration,
-  lockedModel,
   modelPicker,
   phaseCaptionCells,
 } from "./model-picker.ts";
@@ -871,10 +870,11 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
   // state (spec 157), and the phase lines took the left edge it left
   // — which is where "left of the phases" always meant.
   const lines: { tag: string; cells: string }[] = [];
-  // A caption heads a control. A locked row draws no AI and no model
-  // select (spec 224), so "AI" and "Model" would stand over an empty
-  // cell — the same reason `aiPicker` draws nothing below two tools.
-  if (!locked && (opts.modelChoices ?? []).length) {
+  // A caption heads a control (spec 265): a locked row draws the same AI
+  // and model selects a live one does now, so it heads them the same
+  // way — the only reason this stays conditional at all is `aiPicker`'s
+  // own rule, one tool configured is nothing to choose between.
+  if ((opts.modelChoices ?? []).length) {
     lines.push({
       tag: `<tr class="subrow" data-caption="1">`,
       cells: phaseCaptionCells(opts),
@@ -913,15 +913,13 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // subrow, open or shut, so the table's column layout never
       // depends on which rows happen to be open — that inconsistency
       // was the actual bug the first version of this control had.
-      // Not on a locked row (spec 224): what this folds away is the
-      // `.aimodel` pair, and a locked line draws neither — so the
-      // chevron would be a control that hides nothing, and the one
-      // thing that may take a click on such a row is Reopen.
-      const name = locked
-        ? nameLink
-        : `<label class="phasefold">` +
-          `<input type="checkbox" class="foldphase">` +
-          `<span class="foldchevron">${ICON_CHEVRON}</span>${nameLink}</label>`;
+      // On a locked row too (spec 265): what this folds away is the
+      // `.aimodel` pair, and a locked line draws it now exactly as a
+      // live one does, so the chevron has the same thing to hide.
+      const name =
+        `<label class="phasefold">` +
+        `<input type="checkbox" class="foldphase">` +
+        `<span class="foldchevron">${ICON_CHEVRON}</span>${nameLink}</label>`;
       // The latest attempt, with a count when there have been more —
       // three archive runs on one spec is a real history, not a row to
       // repeat three times.
@@ -1052,11 +1050,15 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // needed now: every line writes this cell, whichever step it
       // names, and `aiPicker` simply draws nothing when there is one
       // configured AI and nothing to choose between.
+      // The recorded string is always "<tool> <model>" (spec 244's
+      // `aide-run-spec` format), so the model half — the one the live
+      // picker's own options are keyed on — is everything after the
+      // first word.
+      const recordedModel = p.model?.split(" ").slice(1).join(" ") || undefined;
       const pickCell =
         `<td class="modelcell"><span class="row">` +
-        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model)}` +
-        `${modelPicker(g, opts, p.step, busy, live, latest?.model)}</span>` +
-        (locked ? lockedModel(p.step, p.model) : "") +
+        `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}` +
+        `${modelPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}</span>` +
         `${box}</span></td>`;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,

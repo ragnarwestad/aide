@@ -47,6 +47,21 @@ export function resolveChosenModel(
   return has(used) ? used! : has(configured) ? configured! : models[0]!.name;
 }
 
+/** What an archived phase's own record wins with (spec 265). A locked
+ *  row's select is a record, not a choice, so a genuine record always
+ *  wins here — valid choice today or not — unlike `resolveChosenModel`'s
+ *  `used`, which is dropped the moment it falls outside `models`. Absent
+ *  a record (a step that never ran, `create` above all — no archived
+ *  spec's `1-description.md` has ever recorded one), the phase reads
+ *  exactly as a live, not-yet-run phase would: the configured default. */
+export function resolveRecordedModel(
+  models: NonNullable<QueuePageOptions["modelChoices"]>,
+  configured: string | undefined,
+  recorded: string | undefined,
+): string {
+  return recorded ?? resolveChosenModel(models, configured, undefined);
+}
+
 /** The model an AI choice fills in for one step (spec 179).
  *
  *  The step's configured default when that default belongs to the tool
@@ -76,29 +91,28 @@ export function modelPicker(
   busy: boolean,
   live: boolean,
   used?: string,
+  recordedModel?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   if (!models.length) return "";
-  // Nothing at all on a locked row (spec 224), rather than the same
-  // select with `disabled` on it. This control's whole content is a
-  // CHOICE about a run still ahead, and pre-filling it from the model
-  // the phase last ran on would need the queue's own job history — which
-  // for an archived spec is nowhere: the queue keeps two hundred jobs
-  // against an archive of about 150 specs per project. A disabled select
-  // would therefore show the CONFIGURED model on every archived row,
-  // which is a statement about a run that never happened. `4-status.md`
-  // DOES record what a phase actually ran on (spec 244) — that fact is
-  // shown as locked text beside this cell, by `lockedModel`, not through
-  // this select.
-  if (isArchivedRow(g)) return "";
+  // Spec 265: an archived row draws the SAME select, disabled, instead
+  // of a second, hand-rolled rendering (`lockedModel`, removed). Its
+  // value is the phase's own record when it has one, and — same as a
+  // live phase that has not run yet — the configured default when it
+  // does not, `create` above all: no archived spec's `1-description.md`
+  // has ever recorded a model, and a blank cell there read as a bug
+  // rather than as "nothing recorded yet".
+  const archived = isArchivedRow(g);
   // Spec 225: the same rule the box beside it has followed since spec
   // 160. A phase the running job has not reached is a phase whose
   // model can still be chosen, so the row-level lock is narrowed by
   // the server's own per-phase answer rather than applied wholesale.
-  const locked = busy && !live;
+  const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
-  const chosen = resolveChosenModel(models, configured, used);
+  const chosen = archived
+    ? resolveRecordedModel(models, configured, recordedModel)
+    : resolveChosenModel(models, configured, used);
   return (
     `<select name="model.${esc(step)}" form="${esc(runFormId(g))}"` +
     // Where a live pick goes: the running job's own route, the same
@@ -116,39 +130,6 @@ export function modelPicker(
     (locked ? ` disabled title="${esc(why)}"` : "") +
     `>` +
     modelOptions(models, chosen) +
-    `</select>`
-  );
-}
-
-/** A locked phase's own record of what it ran on (spec 244), beside its
- *  box — read back, never chosen. Deliberately its OWN class rather than
- *  `.aimodel`: that class is hidden on mobile until a `.foldphase`
- *  checkbox is ticked, and a locked line never draws that checkbox
- *  (`phaseSubRows`, `locked ? nameLink : ...`) — reusing it would hide
- *  this permanently on narrow screens with nothing to reveal it.
- *  Blank, not a dash, when the file names nothing for this step: the
- *  same rule `archiveDateCell`'s duration mark already keeps — nobody
- *  having recorded it is not the same as having asked and failed. */
-export function lockedModel(step: string, model: string | undefined): string {
-  if (!model) return "";
-  // The recorded string is always "<tool> <model>" — written verbatim
-  // by aide-run-spec (`model_value="$tool${model:+ $model}"`,
-  // core/scripts/aide-run-spec:1628) into both the old-format
-  // `Model (<step>):` line and the new-format phase-file `Model:` line,
-  // and read back verbatim by `parseStepModels`/`parsePhaseOutcome`
-  // (no split on either side). The tool is therefore the string's own
-  // first word — never a lookup against `opts.modelChoices`, whose
-  // `name`s are bare ("sonnet", "codex-fast") and would never match a
-  // value like "claude claude-sonnet-5". A locked spec's config may
-  // also have moved on since the run, so the tool has to come from the
-  // record itself, not from what is configured today.
-  const tool = model.split(" ")[0] || "claude";
-  return (
-    // `name="model.<step>"` on a `disabled` select is never submitted —
-    // it exists so `select[name^="model."]` (css.ts:699) sizes this
-    // control exactly like the live one, at zero new CSS.
-    `<select class="lockedmodel" name="model.${esc(step)}" disabled data-tool="${esc(tool)}">` +
-    `<option value="${esc(model)}" selected>${esc(model)}</option>` +
     `</select>`
   );
 }
@@ -190,7 +171,7 @@ export function lockedDuration(ms: number | undefined): string {
  *  admin happened to list first. A tool with nothing configured draws
  *  no group at all. */
 export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"]>, chosen?: string): string {
-  return Object.keys(TOOL_NAMES)
+  const groups = Object.keys(TOOL_NAMES)
     .map((tool) => {
       const group = models.filter((m) => (m.tool ?? "claude") === tool);
       if (!group.length) return "";
@@ -207,6 +188,14 @@ export function modelOptions(models: NonNullable<QueuePageOptions["modelChoices"
       );
     })
     .join("");
+  // Spec 265: an archived phase's own record wins unconditionally
+  // (`resolveRecordedModel`), including a model retired or renamed since
+  // the run — which no group above lists any more. Rather than let that
+  // name silently vanish from the select, one bare option carries it,
+  // selected, outside any tool's group.
+  const known = chosen !== undefined && models.some((m) => m.name === chosen);
+  const stale = chosen && !known ? `<option value="${esc(chosen)}" selected>${esc(chosen)}</option>` : "";
+  return groups + stale;
 }
 
 // What the phase columns under this line are. TWO of them: the phase's
@@ -317,6 +306,7 @@ export function aiPicker(
   busy: boolean,
   live: boolean,
   used?: string,
+  recordedModel?: string,
 ): string {
   const models = opts.modelChoices ?? [];
   // `TOOL_NAMES`'s own key order, like the option groups in
@@ -324,22 +314,24 @@ export function aiPicker(
   // about whichever tool an admin happened to list first.
   const tools = Object.keys(TOOL_NAMES).filter((t) => models.some((m) => (m.tool ?? "claude") === t));
   if (tools.length < 2) return "";
-  // Gone with the model select it fills in (spec 224): it says which AI
-  // a CHOSEN model belongs to, and a locked row offers no choice —
-  // `4-status.md`'s own record (spec 244) is shown as locked text
-  // instead, by `lockedModel`, with nothing beside it to name the AI of.
-  if (isArchivedRow(g)) return "";
+  // Spec 265: drawn, disabled, on an archived row too — same reasoning
+  // as `modelPicker`'s own archived branch, since this select says which
+  // AI the model BESIDE it belongs to, and that model is drawn now
+  // whether or not the row is locked.
+  const archived = isArchivedRow(g);
   // Spec 225, and the same `live` the model select beside it takes.
   // This one carries no `data-post-to`: it posts nothing itself, and a
   // pick made on it reaches the server through the model select it
   // writes into.
-  const locked = busy && !live;
+  const locked = archived || (busy && !live);
   const why = locked ? busyReason(g) : "";
   const configured = opts.defaultModels?.[step] ?? opts.defaultModels?.["default"];
   // The same answer `modelPicker` pre-fills its select with, from the
   // same helper: the AI shown is the tool of the model this line is on,
   // so the two controls cannot disagree about it.
-  const on = resolveChosenModel(models, configured, used);
+  const on = archived
+    ? resolveRecordedModel(models, configured, recordedModel)
+    : resolveChosenModel(models, configured, used);
   const restingTool = models.find((m) => m.name === on)?.tool ?? "claude";
   return (
     `<select data-ai="model.${esc(step)}" form="${esc(runFormId(g))}"` +

@@ -85,8 +85,11 @@ const STAMPED_STEPS = ["create", "analyze"];
 const STAMPED_NOT_RUN = ["implement", "archive"];
 /** What STAMPED's `4-status.md` records analyze ran on (spec 244) — the
  *  one step this fixture gives a `Model (<step>):` line, so the other
- *  three lines have something to be blank BESIDE. */
-const STAMPED_MODEL = "claude claude-sonnet-5";
+ *  three lines have the configured default to show instead (spec 265).
+ *  Bare "sonnet" so the recorded value lands on a real, configured
+ *  choice — `phaseSubRows` splits the "<tool> " prefix off before either
+ *  picker ever sees the rest. */
+const STAMPED_MODEL = "claude sonnet";
 const noStamp = "# Status\n\n## Tracking info\n\n- **Workflow steps completed:** create\n";
 
 /** One phase's own outcome record (spec 245's write format — spec 247's
@@ -261,6 +264,15 @@ const TWO_TOOLS = {
     "codex-fast": { budgetUsd: 5, tool: "codex" },
   },
 };
+
+/** `TWO_TOOLS`, with one more choice named — for a fixture whose recorded
+ *  model has to land as a KNOWN choice rather than the synthetic,
+ *  no-longer-configured one `modelOptions` draws for anything else
+ *  (spec 265). */
+const modelChoicesWith = (extra: Record<string, { budgetUsd: number; tool?: string }>) => ({
+  ...TWO_TOOLS,
+  modelChoices: { ...TWO_TOOLS.modelChoices, ...extra },
+});
 
 /** Spec 208 moved WHEN origin is asked: the render reads whatever a
  *  background schedule last found, so the page is polled until the
@@ -530,57 +542,77 @@ describe("an archived spec's row, opened", () => {
     }
   });
 
-  // Criterion 5: the interactive picker is a CHOICE about a run still
-  // ahead, and a locked phase's run already happened — so no caption
-  // over the model cell, whether or not that phase recorded a model.
-  // The cell itself (spec 257) now draws a real, but LOCKED, control for
-  // a step that recorded one — see the two tests below.
-  test("offers no caption over the model cell on any line (criterion 5)", async () => {
+  // Spec 265 reverses spec 224/257's own rule here: a locked phase line
+  // now draws the SAME AI/model controls a live one does, disabled —
+  // never a second, hand-rolled rendering — so the caption over them and
+  // the mobile fold that shows and hides them both come back too.
+
+  test("shows an AI/Model caption row over an archived group's phase lines, same as a live one (criterion 4)", async () => {
     const block = blockFor(await openList(), STAMPED);
     expect(block).toContain('data-step="analyze"');
-    expect(block).not.toContain('data-cap="model"');
-    expect(block).not.toContain('data-cap="ai"');
+    expect(block).toContain('data-cap="model"');
+    expect(block).toContain('data-cap="ai"');
   });
 
-  test("offers no select at all for a step that recorded no model (criterion 5, spec 257)", async () => {
+  test("shows the mobile fold checkbox on every archived phase line, same as a live one (criterion 4)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
-    for (const step of STAMPED_NOT_RUN) {
-      expect(lines[step]).not.toContain("<select");
+    for (const line of Object.values(lines)) {
+      expect(line).toContain('class="foldphase"');
+      expect(line).toContain('class="foldchevron"');
     }
   });
 
-  // The live Specs page always draws a real select/model-choice control;
-  // an archived phase line must look the same, but LOCKED — disabled,
-  // pre-filled with only the model the phase's own record names, never
-  // the currently configured default.
-  test("shows exactly one disabled, one-option select for a step that recorded a model (criterion 5, spec 257)", async () => {
+  // A phase that never ran (or whose file simply names no model — every
+  // archived spec's `create` line, today) reads exactly as a live,
+  // not-yet-run phase does: the configured default, never blank.
+  test("shows a disabled select pre-filled with the configured default for a step that recorded no model (criterion 2)", async () => {
+    const lines = phaseLines(await openList(), STAMPED);
+    for (const step of STAMPED_NOT_RUN) {
+      const line = lines[step]!;
+      expect(line).toContain(`name="model.${step}"`);
+      expect(line).toContain(" disabled");
+      expect(line).toContain(
+        '<option value="sonnet" data-tool="claude" title="$3 per step" selected>sonnet</option>',
+      );
+    }
+  });
+
+  // The live Specs page always draws a real select through `modelOptions`
+  // — every configured choice, one marked `selected` — and a locked phase
+  // line now draws the exact same markup, disabled, with the bare
+  // recorded name selected: never the "<tool> <model>" record itself,
+  // which is what used to clip to "claude so" (spec 265's own bug).
+  test("shows the bare recorded model name, not the tool-prefixed string, in a locked select (criterion 1)", async () => {
     const lines = phaseLines(await openList(), STAMPED);
     const line = lines["analyze"]!;
-    expect([...line.matchAll(/<select\b/g)]).toHaveLength(1);
-    expect([...line.matchAll(/<option\b/g)]).toHaveLength(1);
+    // The AI select plus the model select — the same two a live row with
+    // two configured tools draws, never a single, hand-rolled one.
+    expect([...line.matchAll(/<select\b/g)]).toHaveLength(2);
     expect(line).toContain(" disabled");
-    expect(line).toContain(STAMPED_MODEL);
+    expect(line).toContain(
+      '<option value="sonnet" data-tool="claude" title="$3 per step" selected>sonnet</option>',
+    );
+    expect(line).not.toContain(STAMPED_MODEL);
+    expect(line).not.toContain("claude sonnet");
   });
 
-  // Criterion 4: what a phase ran ON is not in the queue's job history —
-  // capped at two hundred jobs against an archive of about 150 specs —
-  // but it IS in `4-status.md`'s own `Model (<step>):` line, and this is
-  // the fixture's one recorded step.
-  test("shows the locked text for a step that recorded a model (criterion 4)", async () => {
-    const lines = phaseLines(await openList(), STAMPED);
-    expect(lines["analyze"]).toContain(STAMPED_MODEL);
-  });
-
-  // The other three lines have no such line in `4-status.md` — nobody
-  // having recorded it is not the same as having asked and failed, so
-  // this draws no locked-model span at all (the same rule
-  // `archiveDateCell`'s duration mark already keeps: blank, not a
-  // dash).
-  test("draws no locked-model span for a step that recorded no model (criterion 4)", async () => {
-    const lines = phaseLines(await openList(), STAMPED);
-    for (const step of STAMPED_NOT_RUN) {
-      expect(lines[step]).not.toContain("lockedmodel");
-    }
+  // A model a spec ran on can be retired or renamed by the time anyone
+  // reads the archive back — the record must still win, verbatim,
+  // rather than being silently swapped for whatever is configured today.
+  test("still shows the exact recorded model when it is no longer a configured choice (criterion 3)", async () => {
+    const folder = "70-a-retired-model";
+    const staleModel = "claude gpt-9000-old";
+    const { base } = start({ queueDefaults: TWO_TOOLS }, {
+      [folder]: {
+        description: described("A retired model", "Ran on a model nobody configures any more."),
+        status: stamp("2026-08-15", 30_000, ["create", "analyze"], { analyze: staleModel }),
+      },
+    });
+    const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
+    const line = lines["analyze"]!;
+    expect(line).toContain(' disabled');
+    expect(line).toContain('<option value="gpt-9000-old" selected>gpt-9000-old</option>');
+    expect(line).not.toContain(staleModel);
   });
 
   // Spec 247: the sibling gap Model's own fix (spec 244) left open —
@@ -659,16 +691,21 @@ describe("an archived spec's row, opened", () => {
     const folder = "156-a-locked-model-merge";
     const oldModel = "claude claude-sonnet-5";
     const newModel = "claude claude-opus-5";
-    const { base } = start({}, {
-      [folder]: {
-        description: described("A locked model merge", "One archived spec, two model records."),
-        status: stamp("2026-08-16", 60_000, ["create", "analyze"], { analyze: oldModel }),
-        analysis: outcome({ model: newModel }),
+    const { base } = start(
+      { queueDefaults: modelChoicesWith({ "claude-opus-5": { budgetUsd: 15 } }) },
+      {
+        [folder]: {
+          description: described("A locked model merge", "One archived spec, two model records."),
+          status: stamp("2026-08-16", 60_000, ["create", "analyze"], { analyze: oldModel }),
+          analysis: outcome({ model: newModel }),
+        },
       },
-    });
+    );
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
-    expect(lines["analyze"]).toContain(newModel);
-    expect(lines["analyze"]).not.toContain(oldModel);
+    // The bare model half, not the "<tool> <model>" record — spec 265
+    // moved this cell onto the live picker's own markup.
+    expect(lines["analyze"]).toContain("claude-opus-5");
+    expect(lines["analyze"]).not.toContain("claude-sonnet-5");
   });
 
   test("still carries no Run form when open (criterion 4)", async () => {
