@@ -1951,7 +1951,7 @@ total_progress_for() {   # sets $progress_done, $progress_total
       # "## Phase1: RED" (no space) is not a phase heading on either
       # side. Pinned by tests/fixtures/status-row-counting.json.
       rest = heading
-      sub(/^([Pp]hase|[Ff]ase)/, "", rest)
+      sub(/^([Pp]hase|[Ff]ase|[Cc]hecklist)/, "", rest)
       in_phase = (rest != heading && rest ~ /^([^A-Za-z0-9]|$)/) ? 1 : 0
       next
     }
@@ -1987,6 +1987,31 @@ case " $WORKFLOW_ARC " in
   *" $command_name "*) status_file_for "$commit_label" ;;
 esac
 if [ -n "$status_file" ]; then
+  # --- spec 268: a "completed" implement claim is cross-checked ------------
+  # The CLI's own turn-subtype is not enough on its own: a step that reports
+  # success while leaving no real trace must not count as `implement` for
+  # "Workflow steps completed", or archive's own gate (which now asks only
+  # whether implement ran, never what the checklist says) would let a vacuous
+  # run through.
+  if [ "$command_name" = "implement" ] && [ "$terminal_reason" = "completed" ]; then
+    proj_changed="no"
+    proj_head_now="$(git -C "$project_wt" rev-parse HEAD 2>/dev/null || echo "")"
+    if [ "$proj_head_now" != "${head_before[0]}" ]; then
+      proj_changed="yes"
+    else
+      proj_dirty="$(git -C "$project_wt" status --porcelain -- . \
+        ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
+      [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
+    fi
+    total_progress_for "$status_file"
+    if [ "$proj_changed" != "yes" ] || [ "$progress_done" -eq 0 ]; then
+      terminal_reason="no-progress"
+      ok="false"
+      suffix=" (stopped: no-progress)"
+      error_msg="the step reported success but left no real progress — no change in the project and/or no task row ticked"
+    fi
+  fi
+
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file"
   # Nothing derived leaves the file alone: an empty line says less than
   # the one already there.

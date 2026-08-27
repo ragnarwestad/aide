@@ -51,7 +51,9 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
 2. **REVISE the plan for every must-fix** — the sections of
    `3-solution.md` are updated, not just commented on. Should-fix items
    are revised or explicitly declined with a reason.
-3. Add a review row to `4-status.md`.
+3. Add a review row to `4-status.md`, ticked ✅ at write time — the review
+   the two steps above just finished is already-done work, not something
+   left for a person to confirm later.
 
 A review with zero findings is a review that happened, and is offered
 like any other. Say so plainly and record the verdict. Never invent
