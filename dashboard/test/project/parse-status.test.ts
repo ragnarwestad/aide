@@ -86,6 +86,28 @@ describe("phase (criterion 3)", () => {
     const words = openPhase.replace("| c    | ⬜     |       |", "| c    | Completed |       |");
     expect(parseStatus(words).phase).toBe("done");
   });
+
+  // Spec 266: a LOW-complexity spec's `4-status.md` uses `## Checklist`
+  // instead of `## Phase N: ...` — treated the same as `## Phase`/`##
+  // Fase`, not as "no phase sections at all".
+  const openChecklist = [
+    "# X - Status",
+    "",
+    "## Checklist",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| a    | ⬜     |       |",
+    "",
+  ].join("\n");
+
+  test("a ## Checklist heading with an open row is the current phase, named 'Checklist'", () => {
+    expect(parseStatus(openChecklist).phase).toBe("Checklist");
+  });
+
+  test("a ## Checklist heading with every row done is 'done', same as ## Phase", () => {
+    expect(parseStatus(openChecklist.replace("⬜", "✅")).phase).toBe("done");
+  });
 });
 
 // --- spec 108: an archive run that declined says so in the file --------------
@@ -473,6 +495,22 @@ describe("parseStatusChecks (spec 182)", () => {
 
   test("Norwegian `## Fase` sections count the same as `## Phase`", () => {
     expect(parseStatusChecks(phase("Fase 1: RED", ["| Skriv testen | ⬜ | |"]))).toHaveLength(1);
+  });
+
+  // Spec 266: `## Checklist` sections count the same as `## Phase`/`##
+  // Fase` — a LOW-complexity spec's status file uses this heading
+  // instead, and its rows must be offered as checks too.
+  test("## Checklist sections count the same as ## Phase (spec 266)", () => {
+    const checklist = [
+      "## Checklist",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      "| a task | ⬜ | |",
+      "",
+    ].join("\n");
+    const checks = parseStatusChecks(checklist);
+    expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false }]);
   });
 });
 

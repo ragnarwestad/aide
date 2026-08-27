@@ -157,13 +157,12 @@ done
 # implementations of that same rule is a known risk (spec 190) —
 # mitigated by testing both against the same set of inputs, not by
 # sharing code between a bash script and a TypeScript module. The
-# heading test below is intentionally WIDER than parse-status.ts's
-# phaseSections(): it also recognizes a `## Checklist` heading (the
+# heading test below also recognizes a `## Checklist` heading (the
 # section a LOW-complexity spec's status file uses instead of `##
-# Phase*`), because archive-readiness is a different question from
-# whether the dashboard's tick-a-box editing UI offers a checkbox for
-# this row — it deliberately does not, for a Checklist section (spec
-# 262).
+# Phase*`), and since spec 266 so does parse-status.ts's phaseSections()
+# — the two agree again on what a phase is, after spec 262 widened only
+# this side and left the dashboard's tick-a-box UI unable to draw a
+# checkbox for a Checklist row.
 status_file="$specs_root/$spec_folder/4-status.md"
 
 is_done_mark() {   # $1 = trimmed mark cell
@@ -198,7 +197,8 @@ table_row() {
 }
 
 saw_phase="no"; any_open="no"; all_unstarted="yes"
-held_task=""; held_phase=""; implement_present="no"
+held_task=""; held_phase=""; first_open_task=""; first_open_phase=""
+implement_present="no"
 in_phase="no"; cur_phase=""
 
 if [ -f "$status_file" ]; then
@@ -223,6 +223,11 @@ if [ -f "$status_file" ]; then
     table_row "$line" || continue
     is_done_mark "$row_mark" && continue
     any_open="yes"
+    # Named regardless of mark: the fallback a held-back verdict falls
+    # back on when every open row turns out to be unstarted (below).
+    if [ -z "$first_open_task" ]; then
+      first_open_task="$row_task"; first_open_phase="$cur_phase"
+    fi
     if ! is_unstarted_mark "$row_mark"; then
       all_unstarted="no"
       if [ -z "$held_task" ]; then
@@ -272,8 +277,9 @@ if [ "$status_done" = "no" ]; then
     [ -f "$status_file" ] && remove_held_back_section
     emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
   else
-    write_held_back_section "$held_task" "$held_phase"
-    emit_ok "$(jq -cn --arg n "held back: $held_task ($held_phase) is still open" \
+    task="${held_task:-$first_open_task}"; phase_name="${held_phase:-$first_open_phase}"
+    write_held_back_section "$task" "$phase_name"
+    emit_ok "$(jq -cn --arg n "held back: $task ($phase_name) is still open" \
       '{terminalReason:"held-back", note:$n}')"
   fi
 fi
