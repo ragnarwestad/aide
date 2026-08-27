@@ -1,0 +1,57 @@
+/* --- the page ------------------------------------------------------ */
+
+/* The full-viewport-height floor used to sit on the .layout wrapper
+   the sidebar shared with main (spec 119 removed it). It belongs on
+   the body now, or a short page stops painting the background where
+   its content ends. */
+body { font: var(--fs-m)/var(--lh) var(--sans); margin: 0; min-height: 100vh;
+  background: var(--bg); color: var(--text); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-strong); text-decoration: underline; }
+/* One ring for everything focusable, declared here rather than on each
+   component: the page had no focus style anywhere, so every control
+   focused in the browser's default blue — the one hue the palette does
+   not contain, and which spec 102 took out of the stylesheet on
+   purpose. :focus-visible and not :focus, or a mouse press leaves a
+   ring behind it. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The mark left, the "…" menu right — space-between is what puts the
+   menu at the right-hand end; DOM order alone would leave it beside
+   the mark. */
+header { display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-3); padding: var(--sp-4) var(--sp-6) var(--sp-3); }
+header .brand { margin: 0; padding: 0; }
+/* The two tabs: a real tab bar — the row sits ON the hairline, and the
+   current tab is marked by an underline in the accent colour, PaceUp's
+   tab bar being the reference (2026-08-19). */
+body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--line); }
+/* The SAME bar one level in: a spec's own seven tabs, and a job's
+   three. They were filter pills with a caption beside them until
+   2026-08-23 — chips choose among values, tabs move between views, and
+   these are views. Inside main, so the row takes the page's width
+   rather than the frame's, which is why it is a rule of its own and
+   not the body-child one above. */
+nav.tabbar.subtabs { display: flex; flex-wrap: wrap; gap: var(--sp-4);
+  border-bottom: 1px solid var(--line); }
+/* Narrower than the site's two: seven tabs at 7rem each do not fit a
+   laptop, and these labels are one word. They keep the row's own
+   rhythm by their padding instead. */
+nav.tabbar.subtabs .tab { min-width: 0; }
+.tabbar .tab { padding: var(--sp-2) 2px calc(var(--sp-2) + 1px); margin-bottom: -1px;
+  min-width: 7rem; text-align: center;
+  color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; }
+.tabbar .tab:hover { color: var(--text); text-decoration: none; }
+.tabbar .tab[aria-current] { color: var(--text); font-weight: 600;
+  border-bottom-color: var(--accent); }
+main { padding: var(--sp-5) var(--sp-6); }
+/* The frame is CENTRED: header, tabs and page share one width and sit
+   in the middle of the window instead of flush against its left edge. */
+header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
+h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
+h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
+.pagehead { display: flex; justify-content: space-between; align-items: baseline;
+  flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
+.stamp { color: var(--muted); font-size: var(--fs-s); }
+

@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createServer } from "../src/serve.ts";
+import { createServer } from "../src/serve/serve.ts";
 import { renderSite } from "../src/render.ts";
 import { queueHarness } from "./helpers/queue-server.ts";
 
@@ -226,30 +226,30 @@ describe("resolveDependencyFolder (spec 122)", () => {
   };
 
   test("a number resolves through the `<id>-` prefix", async () => {
-    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const { resolveDependencyFolder } = await import("../src/serve/serve.ts");
     expect(resolveDependencyFolder(project, "80")?.folder).toBe("80-dependency");
   });
 
   test("the full folder name resolves as well as the number", async () => {
-    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const { resolveDependencyFolder } = await import("../src/serve/serve.ts");
     expect(resolveDependencyFolder(project, "80-dependency")?.folder).toBe("80-dependency");
   });
 
   test("an archived spec resolves too, and says it is archived", async () => {
-    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const { resolveDependencyFolder } = await import("../src/serve/serve.ts");
     const found = resolveDependencyFolder(project, "77");
     expect(found?.folder).toBe("77-old");
     expect(found?.archived).toBe(true);
   });
 
   test("a live spec wins over an archived one with the same number", async () => {
-    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const { resolveDependencyFolder } = await import("../src/serve/serve.ts");
     const both = { ...project, specs: [...project.specs, spec("77-still-here")] };
     expect(resolveDependencyFolder(both, "77")?.folder).toBe("77-still-here");
   });
 
   test("an unknown id resolves to nothing — that refusal belongs to the run", async () => {
-    const { resolveDependencyFolder } = await import("../src/serve.ts");
+    const { resolveDependencyFolder } = await import("../src/serve/serve.ts");
     expect(resolveDependencyFolder(project, "99")).toBeUndefined();
   });
 });

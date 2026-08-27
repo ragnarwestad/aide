@@ -1,0 +1,30 @@
+/* --- a spec's remaining checks (spec 182) ---------------------------- */
+
+/* The list sits in the spec page's banner, above the tab bar. Its job
+   is that an OPEN row cannot be mistaken for a settled one at a glance:
+   the open rows keep the full text colour and a button, the done ones
+   go muted and struck through. Nothing here depends on the mark's
+   colour alone. */
+.checks { margin: var(--sp-4) 0 0; }
+/* The generic ".specform .factions" gap (var(--sp-1), 4px) reads as the
+   Save button sitting on top of the checklist's last row — this form's
+   list is taller and denser than the other specforms that rule serves. */
+.checks .factions { margin-top: var(--sp-3); }
+.checkshead { margin: 0 0 var(--sp-2); }
+.checklist { list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--sp-1); }
+.checklist .checkphase { color: var(--muted); font-size: var(--fs-s); font-weight: 600;
+  margin-top: var(--sp-2); }
+.checklist .checkphase:first-child { margin-top: 0; }
+.check { display: flex; align-items: baseline; gap: var(--sp-2); }
+.check.done .checktask { color: var(--muted); text-decoration: line-through; }
+/* One box-sized slot, whichever of the two things is in it: the mark a
+   row on the spec page shows, and the real checkbox the Edit form draws
+   for a row that is still open (spec 188). Fixed width so every row
+   lines up whether it is a mark or a control. */
+.checkbox { display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; min-width: 18px; height: 18px; padding: 0; flex: none;
+  font-size: var(--fs-m); line-height: 1; }
+label.checkbox { cursor: pointer; }
+label.checkbox input { margin: 0; cursor: pointer; }
+

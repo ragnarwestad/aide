@@ -1,0 +1,317 @@
+/* --- the list ---------------------------------------------------------- */
+
+/* A table has a width of its own and no way to give it up: six columns
+   of dates and figures are wider than a phone whatever the CSS says.
+   The box scrolls instead of the page, the same self-contained answer
+   .specfile already gives for a preformatted file too wide to wrap
+   (spec 155). Unconditional, not phone-only — a narrow WINDOW on a
+   desktop has the same problem. */
+.tablewrap { overflow-x: auto; }
+
+/* And the spec list scrolls DOWN inside the same box (spec 226). The
+   25-row cap that kept this list short is gone, so it is as long as the
+   archive is; bounding it here is what keeps the chips, the (?), New
+   spec and the search field where the reader left them while the rows
+   move under them.
+
+   Scoped to #jobrows rather than to .tablewrap at large: the job page's
+   Steps table and the settings table wear the same class, and nobody
+   asked for either of them to be given a height.
+
+   Unconditional, like the horizontal rule above it — the wrapper is
+   present in the phone layout too, where .speclist is stacked blocks
+   rather than a table, and a box that scrolled only on a desktop would
+   be a page that ran off the bottom on a phone. 70vh leaves the row of
+   controls and the page's own header in view above it. */
+#jobrows .tablewrap { overflow-y: auto; max-height: 70vh; }
+
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
+  vertical-align: top; }
+thead th { font-size: var(--fs-s); font-weight: 500; color: var(--muted);
+  border-bottom: 1px solid var(--line); }
+table.list { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); }
+table.list th { padding: var(--sp-2) var(--sp-3); background: var(--surface-2); }
+table.list td { padding: 10px var(--sp-3); border-bottom: 1px solid var(--line);
+  vertical-align: middle; }
+table.list thead a { color: var(--muted); }
+/* A column header is a control: a flat that shows on hover, and on the
+   sorted column a chevron that the ascending state turns round. */
+.sortlink { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px;
+  margin: -2px -6px; border-radius: var(--r-s); text-decoration: none; }
+.sortlink:hover { background: var(--surface); color: var(--text); text-decoration: none; }
+.sortlink.on { color: var(--text); font-weight: 600; }
+.sortlink svg { transition: transform 120ms ease, opacity 120ms ease; opacity: 0.35; }
+.sortlink.on svg, .sortlink:hover svg { opacity: 1; }
+.sortlink.asc svg { transform: rotate(180deg); }
+/* Up to two lines, then an ellipsis (asked for again 2026-08-26): one
+   clamped line hid most of a long folder name behind a click. The
+   2026-08-19 regression this replaces was the wrapped second line
+   landing at the same height as the marks beside it — align-items was
+   "center" then, so a badge floated between the name's two lines and
+   read as one more mark in the list. Fixed here by aligning the row to
+   its own top instead, so a mark or the pips sit against the name's
+   FIRST line only, never the second. The full name is still in the
+   title, for anything past two lines. */
+/* Hard against the end of the fixed-width name line, so every row's
+   pips start at the same x whatever its name is. */
+.pipslot { margin-left: auto; padding-left: var(--sp-2); }
+.spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
+  display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
+  /* 27rem since the pips joined this line and the Progress column went
+     with them (2026-08-22): the row is one column shorter, and 18rem
+     clamped a name to "194-archive-decides-on-th…" with the width
+     standing empty to the right of it.
+     A WIDTH, not a maximum (2026-08-23): a short name left the pips
+     sitting further left than a long one's, so they stepped in and out
+     down the column instead of forming one. The name still truncates
+     at the same place; what is fixed is where the line ends. */
+  width: 27rem; }
+/* The second line lands flush with the first — it is the same box, not
+   a hanging indent — because the box's own left edge already sits
+   right after the fold control, exactly where the first line starts. */
+.spec-name > .label { overflow: hidden;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; line-clamp: 2;
+  min-width: 0; }
+/* The summary wraps at a sensible measure instead of dragging the
+   whole column wide: the phase lines start where this column ends, so
+   an un-capped line of text put a hand's width of nothing between the
+   buttons and the phases (2026-08-19). */
+/* Indented to the NAME, not to the cell: the fold control stands in
+   front of the name, and the two lines under it began at the cell's
+   own left edge — a step to the left of everything they belong to
+   (asked for 2026-08-23). The offset is the control's own footprint:
+   its width, its margin, and the flex gap after it. */
+.spec-title, .branchlist {
+  margin-left: calc(24px + var(--sp-1) + var(--sp-2)); }
+.spec-title { color: var(--muted); font-size: var(--fs-s); margin-top: 2px;
+  max-width: 27rem; }
+/* The archive's Description column (spec 170). A spec's Description
+   section runs to several paragraphs — the whole of it is in the cell, because
+   the search reads the whole of it — so the cell is bounded here rather
+   than left to the browser: two lines, and a measure that stops one
+   paragraph from taking the width the other three columns need. Clamped
+   rather than cut on the server, so nothing the reader can search for is
+   missing from the markup. -webkit- prefixed as well as plain: the
+   prefixed trio is what every browser actually implements today. */
+/* Twice the width a search box gets by default, and no caption over it:
+   the button beside it says what it is, and the caption made the field
+   the taller of the two (2026-08-23). type="search" carries its own
+   native chrome (a platform-drawn rounded box, sometimes its own
+   magnifying glass and clear button) that border-radius and border only
+   partially override left alone — appearance: none hands the whole box
+   to this CSS instead, the same trade .field select already makes for
+   its own native chevron (found 2026-08-25, when a rounder radius and
+   left padding made the mismatch between native chrome and this rule's
+   border visible for the first time). */
+.archive-q { width: 26rem; max-width: 100%; height: 28px;
+  appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: var(--fs-m)/1 var(--sans); }
+/* The whole date, on one line, never cut. */
+.archive-date { white-space: nowrap; }
+/* And the same for what the spec cost (spec 207): "1h04m" broken over
+   two lines reads as two numbers, not one. The cell is empty for a spec
+   whose archive never recorded a figure, which is a blank and not a gap
+   in the row. */
+.archive-duration { white-space: nowrap; }
+/* The search on the Specs list (spec 221), the field the archive page
+   had. A line of its own UNDER the chips: at six chips wide, a 26rem
+   field on the same line wrapped the button onto a row by itself. The
+   (?) and New spec moved onto THIS line instead (spec 261) — readers
+   look for them beside the field they are about to use, not above it —
+   and this row already tolerates the extra width by wrapping. */
+.specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  margin: var(--sp-2) 0 0; }
+/* The note saying what the field looks in belongs to the field, not to
+   the table under it — margin-top says so. margin-bottom (2026-08-25)
+   is a separate fact: without it the note sat flush against the table
+   right below it, cramped. */
+.specsearch + .listnote { margin-top: var(--sp-1); margin-bottom: var(--sp-2); }
+/* The clear control (spec 226) sits IN the field, at its right edge —
+   where every search box a reader has used before puts it. The wrapper
+   is what the absolute position is measured from; it takes the field's
+   own width so the flex row lays it out as the field it holds.
+
+   The field keeps room on its right for the control, so a long term
+   does not run underneath it. */
+.searchfield { position: relative; display: inline-flex; width: 26rem; max-width: 100%; }
+/* Rounder than the shared ".field input" rule gives it (var(--r-s), 4px)
+   — the same one-field exception ".field.wide" already makes for width
+   (design handoff, 2026-08-25). */
+.searchfield > .archive-q { width: 100%; box-sizing: border-box; border-radius: var(--r);
+  padding-left: 28px; padding-right: var(--sp-5); }
+/* The icon sits inside the input via the input's own left padding above,
+   not the wrapper's — so it never competes with ".searchclear" at the
+   opposite edge. */
+.searchfield > .icon-search { position: absolute; left: 9px; top: 50%;
+  transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.searchclear { position: absolute; right: 0; top: 0; bottom: 0;
+  display: inline-flex; align-items: center; padding: 0 var(--sp-2);
+  color: var(--muted); text-decoration: none; line-height: 1; }
+.searchclear:hover { color: var(--text); }
+/* One line per SPEC, with its phases beneath it: the rule goes ABOVE
+   each spec rather than under every row, so a reader sees eight specs
+   rather than forty rows. */
+table.list tr.spechead td { border-bottom: none; border-top: 2px solid var(--line-strong);
+  padding-top: var(--sp-3); }
+/* An OPEN spec is one thing, not a header and some loose lines under it:
+   its own faint ground holds the phase lines and the button together, so
+   a reader can see which group a control belongs to (asked for
+   2026-08-23). Faint on purpose — the separator above is what divides
+   the specs; this only gathers what is already inside one. */
+table.list tr.spechead:has(+ tr.subrow) td,
+table.list tr.subrow td,
+table.list tr.specnotice:has(+ tr.subrow) td { background: var(--surface-2); }
+table.list tbody tr.spechead:first-child td { border-top: none; }
+/* The row's message panel (spec 143): part of the row above it, not a
+   row of its own. It draws no rule and adds no padding the message's
+   own box already brings — the separator a reader sees is still the
+   next spec's top border. */
+table.list tr.specnotice td { border-bottom: none; border-top: none;
+  padding-top: 0; padding-bottom: var(--sp-2); }
+table.list tr.specnotice .rowmsg { margin: 0; }
+table.list tr.subrow td { border-bottom: none; padding-top: 2px; padding-bottom: 2px;
+  font-size: var(--fs-s); }
+/* Air under an OPEN spec's last phase line, so it does not sit hard
+   against the next spec's name. The rule read :last-child alone until
+   spec 167, and :last-child means the last row in the TABLE — so it
+   fired only when the open spec happened to be the bottom one, and any
+   spec below it left the last phase line on its ordinary 2px. A
+   collapsed row looks right because its air comes from ABOVE: the head
+   row has its own border-top and padding-top.
+   :has() reads FORWARD from the subrow to the head row that follows it,
+   which is the only direction a flat, unwrapped tbody allows without a
+   wrapper element per spec. A browser without :has() keeps the 2px —
+   the rule does nothing rather than erroring, which is an acceptable
+   way for a spacing detail to degrade. */
+table.list tr.subrow:last-child td,
+table.list tr.subrow:has(+ tr.spechead) td { padding-bottom: var(--sp-3); }
+/* A phase line is TWO cells since spec 192 — the name, then the three
+   choices the line offers together. It was three real columns from spec
+   165 (the name, the phase's AI, the model with the box beside it), and
+   three flex children of one cell up to then, each pinned to a fixed
+   width so every select started at the same x.
+   A real column ended the hand-pinning, and charged a reserved width
+   and a cell's padding for it — three columns is two lots of both
+   between the name and the box, which is the gap that made the three
+   controls read as three separate things. They share a cell again, and
+   the pinned widths do NOT come back: the one width reserved below is
+   stated on the model select itself.
+   The name stands hard left with nothing in front of it: it is what
+   the eye lands on first, and it began 2.5rem in, behind the box. */
+table.list tr.subrow .phasecell { white-space: nowrap; }
+/* The AI select, the model select and the phase's box, in the column
+   the head row's pips leave empty on a phase line: they claim the width
+   they need rather than wrapping, or the cell squeezes them into two
+   lines. */
+table.list tr.subrow .modelcell > .row { flex-wrap: nowrap; }
+/* The one width this cell does reserve: it holds the column still when
+   the row's AI changes, since a browser sizes a select by its widest
+   OPTION and the models one tool offers are not the width of the
+   other's. A floor, not a fix — a model name longer than any real
+   configuration widens the select and takes the box with it, which is
+   better than clipping the name.
+   6.25rem, not the 10rem it was: the list used to carry every model
+   under both tools, and now carries one tool's at a time (spec 179's
+   filter), so the floor no longer has to clear the widest name in the
+   whole configuration. Asked for 2026-08-22 — the reserved width was
+   pushing the phase, the AI and the model apart.
+   Selected by the select's own NAME, never by its position: the AI
+   select sits in front of it whenever two tools are configured, so
+   a :first-child rule would cap that one instead and let the model select
+   regrow to its widest option — the exact crowding spec 192 removes. */
+table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 6.25rem; max-width: 100px; }
+/* A caption is as wide as the control under it, so "AI" stands over the
+   AI select and "Model" over the model select rather than the three
+   words running together at the left edge of the cell. Same numbers as
+   the controls themselves, one line apart, because a caption that
+   drifts from its control is worse than no caption. */
+table.list tr.subrow .modelcell > .row > [data-cap="ai"],
+table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 8rem; max-width: 8rem; }
+table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem; max-width: 100px; }
+/* The mobile fold control (design handoff, mobile-spec-row): a plain
+   inline wrapper on desktop, where the checkbox and chevron stay
+   invisible and every phase line keeps reading exactly as it did
+   before this control existed. The mobile media query below is what
+   gives the chevron a shape and the checkbox a job. */
+.phasefold { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.phasefold .foldphase { display: none; }
+.phasefold .foldchevron { display: none; }
+.empty { padding: var(--sp-5) var(--sp-3); }
+.listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
+/* A real control: a 24px flat with a chevron, in front of the spec's
+   name. Quiet at rest, obvious on hover, and the shut state turns the
+   chevron rather than swapping a glyph. */
+.fold { display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: var(--r-s); color: var(--muted);
+  vertical-align: middle; margin-right: var(--sp-1); }
+.fold:hover { background: var(--surface-2); color: var(--text); }
+.fold svg { transition: transform 120ms ease; }
+.fold.shut svg { transform: rotate(-90deg); }
+.branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
+  font-weight: 400; font-family: var(--sans); }
+.branch { white-space: nowrap; }
+.pips { display: flex; gap: 3px; }
+/* 21px, not 14: a third of the bar has to be a thing a reader can see,
+   and 21 is the smallest width divisible by three that stays a mark
+   rather than a bar (spec 210). Widened ONCE, for every pip, rather
+   than while a run is going — a pip that grew mid-run would move
+   everything on the line beside it. The position and overflow are what
+   the fill below is drawn inside. */
+.pip { width: 21px; height: 4px; border-radius: 2px; background: var(--line-strong);
+  position: relative; overflow: hidden; }
+.pip.past { background: var(--ok); }
+/* The one moving thing on the page that says a phase is RUNNING (spec
+   168). It was a spinner on that phase's checkbox, which only exists
+   on an open row — so the closed row, the whole interface for the
+   ordinary case since spec 157, showed no motion at all. The mark
+   already answers half the question in --accent alone: WHICH phase.
+   A lighter band travelling along it says "and it is alive" in the
+   same 14x4 glyph, taking no space and needing no new element.
+   Movement ALONG the bar, in the direction the four marks already
+   read, rather than a pulse — a pulse reads as an alert.
+   No animation-delay, ever: every row's pip is torn down and rebuilt
+   in one innerHTML swap (queue-client.ts), so a plain infinite
+   animation starts them all together. A delay keyed off a row's index
+   or a job's start time is what would make four running specs shimmer
+   at random instead of moving as one. */
+.pip.now { background: linear-gradient(90deg, var(--accent), var(--pip-skim), var(--accent));
+  background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
+@keyframes pipskim { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+/* The "still checking" mark: a pulsing bar where a fact will land once
+   the cache warms, instead of the word it replaced reading like a fact
+   itself (asked for 2026-08-24; the word is deliberately NOT quoted in
+   this comment — the stylesheet is page content, and a test asking
+   whether a page still says it would find the comment). It survives
+   inside the bar, visually hidden, for screen readers. Same sweep
+   mechanics as .pip.now above; amber, the waiting family's colour. */
+.checking { display: inline-block; vertical-align: middle; width: 3.75rem; height: 0.55em;
+  border-radius: var(--r-s);
+  background: linear-gradient(90deg, var(--warn-soft), var(--warn), var(--warn-soft));
+  background-size: 260% 100%; animation: pipskim 1.6s linear infinite; }
+.checking .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
+/* Motion off, and the reader can still tell a running phase from a
+   waiting one: --accent stays, the mark simply stands still. */
+@media (prefers-reduced-motion: reduce) {
+  .pip.now { animation: none; background: var(--accent); }
+  .checking { animation: none; background: var(--warn); }
+}
+/* Which THIRD of a running implement is behind it (spec 210). The parts
+   already done stand still in solid --accent; the rest goes on
+   shimmering underneath, so the pip says "this much is finished, and it
+   is still working" in the one glyph. Inside the pip, never around it:
+   the box is the same 21x4 whatever the fill.
+   The colour keeps its one meaning — blue for running — and the fill is
+   what says how far. A second colour here would make one pip answer two
+   questions.
+   Keyed off the running pip and not off every pip: a third belongs to
+   the phase that is running, and only a running phase has one. */
+.pip.now[data-third]::after { content: ""; position: absolute; inset: 0 auto 0 0;
+  background: var(--accent); }
+.pip.now[data-third="1"]::after { width: 33%; }
+.pip.now[data-third="2"]::after { width: 67%; }
+

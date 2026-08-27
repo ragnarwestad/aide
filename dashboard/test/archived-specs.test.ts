@@ -1068,10 +1068,16 @@ describe("building the archived rows", () => {
   // would both pass a test that only read the HTML. The repo does this
   // elsewhere for the same reason — `queue.test.ts` reads two
   // `errorReason` declarations as text and asserts they agree.
-  const serveSrc = readFileSync(new URL("../src/serve.ts", import.meta.url), "utf-8");
+  // The declaration and its body live in spec-views.ts; the one call
+  // site is handleQueue's, extracted into its own file since spec:
+  // split serve.ts, step 2. Both moved out of serve.ts itself in step 3.
+  // handleQueue's own body moved on again into handle-queue/page-routes.ts
+  // (split of split serve.ts, step 3) — that is where the call site lives now.
+  const specViewsSrc = readFileSync(new URL("../src/serve/spec-views.ts", import.meta.url), "utf-8");
+  const pageRoutesSrc = readFileSync(new URL("../src/serve/handle-queue/page-routes.ts", import.meta.url), "utf-8");
 
   test("is asked for by the reader's own chip and by nothing else", () => {
-    const calls = [...serveSrc.matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
+    const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
@@ -1079,13 +1085,13 @@ describe("building the archived rows", () => {
   });
 
   test("skips a row before it reads anything for it (criterion 10)", () => {
-    const body = serveSrc.slice(serveSrc.indexOf("function archivedSpecRows"));
-    const fn = body.slice(0, body.indexOf("\n  }\n"));
+    const body = specViewsSrc.slice(specViewsSrc.indexOf("function archivedSpecRows"));
+    const fn = body.slice(0, body.indexOf("\n}\n"));
     // The gate is the resolved filter's own answer...
     expect(fn).toContain("filterShowsArchived(state)");
     // ...and it stands in front of the per-row file reads, which is what
     // makes it a gate rather than a filter over work already done.
-    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedAt(ref.dir)"));
+    expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("archivedAt(ctx, ref.dir)"));
     expect(fn.indexOf("continue;")).toBeLessThan(fn.indexOf("specDurationMs(ref.dir)"));
     // Spec 224 added a THIRD read behind the same gate: the phase lines
     // a locked row now opens come off `4-status.md`'s own claim.

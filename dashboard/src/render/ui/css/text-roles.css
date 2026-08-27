@@ -1,0 +1,35 @@
+/* --- text roles ----------------------------------------------------- */
+
+.small { font-size: var(--fs-s); }
+.muted { color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.label { font-weight: 600; margin-right: var(--sp-1); }
+.desc { margin-top: 0; }
+.summary { color: var(--muted); }
+.counts { color: var(--muted); margin-left: var(--sp-2); font-size: var(--fs-s); }
+.specdesc { white-space: pre-wrap; max-width: 46rem; }
+/* A whole spec file, shown as written (spec 150). Markdown is
+   deliberately not rendered, so this carries what a reader needs to
+   read one anyway: the file's own line breaks, a measure that does not
+   run to the window's edge, and a scrollbar for the one thing wrapping
+   cannot save — a table three columns wider than the box. */
+/* One right edge for a document page (2026-08-23). The frame is 72rem
+   and a tab's text stopped at 60, so the buttons on the head line sat a
+   hand's width clear of everything they act on — "så ikke knappene
+   forsvinner ut til høyre". The banner, the tabs and the panel
+   share this one width; the site's own header and top tab bar keep the
+   frame's, because the spec LIST is a table that wants all of it.
+   Declared for both selectors at once so the number has one home. */
+.doc, .specfile { max-width: 60rem; }
+.specfile { white-space: pre-wrap; overflow-x: auto;
+  font: var(--fs-s)/1.5 var(--mono); color: var(--text);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r); padding: var(--sp-3); }
+/* The small caption over a group of controls: Repos, Show, Theme, Units.
+   It shouted in capitals until 2026-08-23 — four words in a row that a
+   reader has to slow down for, saying nothing the ordinary spelling did
+   not. The weight and the colour already set it apart from what it
+   heads. */
+.lbl { font-size: var(--fs-s); font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em; }
+

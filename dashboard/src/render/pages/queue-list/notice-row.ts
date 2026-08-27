@@ -1,0 +1,52 @@
+// The panel a row's long messages go into (spec 143): a row of its own,
+// spanning the table, wrapping rather than overflowing. Everything the
+// State column used to hold and could not — the runner's refusal, the
+// spec's own reason for an archive that declined — is said here, once
+// for the whole row, in the message component the page already has.
+//
+// Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
+// but an empty `<tr>` is still a row of padding.
+//
+// Split out of cells.ts (split cells.ts by theme).
+
+import { rowMessage, stepLabel } from "../../ui/components.ts";
+import { esc } from "../../ui/html.ts";
+import { specNotice, wordPhase } from "../../ui/job-state.ts";
+import type { SpecGroup } from "./data-model.ts";
+import { LIST_COLUMNS } from "./row-shared.ts";
+
+/** The one phase whose own record disagrees with the files, worded for
+ *  the panel (spec 195). The sentence used to be drawn under that
+ *  phase's badge, where it was the last thing on this page that could
+ *  make one line taller than another.
+ *
+ *  The EARLIEST phase in workflow order, and only that one: the panel
+ *  holds one message, and three disagreements listed in it would be the
+ *  same growing block of text in a new place. It carries the phase's
+ *  own name because a sentence moved out of the line it belonged to
+ *  must say which line that was.
+ *
+ *  `p.attempts[0]`, not the in-flight-first pick the pips use: this is
+ *  a RELOCATION of what `phaseSubRows` computes for that same phase's
+ *  badge, so it has to read the same attempt that function does. */
+function phaseDisagreement(g: SpecGroup): string | undefined {
+  for (const p of g.phases) {
+    const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], p.history);
+    if (word.qualifier) return `${stepLabel(p.step)}: ${word.qualifier}`;
+  }
+  return undefined;
+}
+
+export function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {
+  const notice = specNotice(
+    g.lead,
+    g.phases.find((p) => p.step === "archive")?.heldBack?.reason,
+    refusal,
+    phaseDisagreement(g),
+  );
+  if (!notice) return "";
+  return (
+    `<tr class="specnotice" data-folder="${esc(g.specFolder)}">` +
+    `<td colspan="${LIST_COLUMNS}">${rowMessage(notice.variant, notice.text, { hook: notice.hook })}</td></tr>`
+  );
+}

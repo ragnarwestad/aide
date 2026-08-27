@@ -439,6 +439,7 @@ describe("the running phase's pip carries the motion, not the checkbox", () => {
     const files = [
       ...[...new Bun.Glob("src/render/**/*.ts").scanSync(root)].filter((f) => f !== "src/render/ui/css.ts"),
       "src/queue-client.ts",
+      ...new Bun.Glob("src/queue-client/**/*.ts").scanSync(root),
     ];
     expect(files.length).toBeGreaterThan(4);
     for (const file of files) {

@@ -47,7 +47,7 @@ TAILSCALE ?= /usr/local/bin/tailscale
 # ROOT is optional — serve.ts only needs it to build the project nav,
 # and a built-in default would name someone's checkout location.
 serve-local: generate
-	bun run src/serve.ts serve --site out --port $(PORT) $(if $(ROOT),--root $(ROOT))
+	bun run src/serve/serve.ts serve --site out --port $(PORT) $(if $(ROOT),--root $(ROOT))
 
 # --- Serving on a second host ------------------------------------------
 # MINI is the ssh target and has NO default: a deploy aimed at a machine
@@ -106,7 +106,7 @@ install-serve: require-host
 	bun run deploy/render-plist.ts \
 		--label $(LABEL) \
 		--bun-path "$$home/$(REMOTE_BUN)" \
-		--script "$$home/$(MINI_SRC)/src/serve.ts" \
+		--script "$$home/$(MINI_SRC)/src/serve/serve.ts" \
 		--working-directory "$$home/$(MINI_SRC)" \
 		--log-path "$$home/Library/Logs/aide-dashboard/serve.log" \
 		-- serve \
