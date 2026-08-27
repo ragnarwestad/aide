@@ -7,10 +7,8 @@
 // a fake document instead — see the file this was cut from for the
 // full rationale.
 
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const RAW = readFileSync(join(import.meta.dir, "..", "..", "src", "queue-client.ts"), "utf-8");
 const built = await Bun.build({
   entrypoints: [join(import.meta.dir, "..", "..", "src", "queue-client.ts")],
   target: "browser",

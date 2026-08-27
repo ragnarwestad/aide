@@ -387,8 +387,16 @@ describe("render files use the component vocabulary and nothing else", () => {
     });
   }
 
+  // Split across an entry point and its themed folder (split
+  // queue-client.ts into a bundled folder) — both are globbed, so a
+  // class written in any of the split files is caught the same as one
+  // in the entry.
   test("the browser code writes no class of its own either", async () => {
-    const source = await Bun.file(join(ROOT, "src/queue-client.ts")).text();
+    const files = [
+      "src/queue-client.ts",
+      ...new Bun.Glob("src/queue-client/**/*.ts").scanSync(ROOT),
+    ];
+    const source = (await Promise.all(files.map((f) => Bun.file(join(ROOT, f)).text()))).join("\n");
     const unknown = [...new Set(classesIn(source))].filter((c) => !ALLOWED.has(c));
     expect(unknown).toEqual([]);
   });

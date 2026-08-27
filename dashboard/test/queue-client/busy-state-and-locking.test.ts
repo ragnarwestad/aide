@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { SPINNER } from "../../src/render/ui/components.ts";
 import {
-  RAW,
   SOURCE,
   CONTROLS,
   harness,
@@ -141,12 +140,13 @@ describe("a pressed row button holds its size (spec 104)", () => {
     expect(h.button.classList.contains("primary")).toBe(true);
   });
 
-  // `queue-client.ts` can neither import nor export (the server
-  // transpiles it into an inline script), so the spinner it writes is a
-  // hand-copied literal. Nothing but this would notice the two drifting
-  // apart — one file cannot even name the other.
+  // One runs server-side (`components.ts`) and the other is bundled for
+  // the browser (`queue-client/press.ts`), so the spinner is a
+  // hand-copied literal on each side. Checked against the bundled
+  // SOURCE rather than the raw entry file: the literal itself lives in
+  // one of the split files, not in queue-client.ts.
   test("the spinner it writes is the one components.ts renders", () => {
-    expect(RAW).toContain(SPINNER);
+    expect(SOURCE).toContain(SPINNER);
   });
 });
 
