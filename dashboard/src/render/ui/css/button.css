@@ -1,0 +1,43 @@
+/* --- button --------------------------------------------------------- */
+/* One button. Bare is secondary, and the variants are modifiers on it —
+   there used to be three different buttons depending on which form they
+   sat in. */
+
+.btn { display: inline-flex; align-items: center; gap: var(--sp-2);
+  height: 28px; padding: 0 var(--sp-3); border-radius: var(--r);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: 500 var(--fs-m)/1 var(--sans);
+  cursor: pointer; white-space: nowrap;
+  /* Two of these are links, not buttons (spec 121): New spec on the
+     spec list, and Cancel on /new. Both GO somewhere and do nothing
+     else, which is what a link is for — but the page's own a-rule
+     underlines on hover, and a button that grows an underline under
+     the pointer stops looking like one. .brand, .filters and .sortlink
+     each say the same thing for the same reason. */
+  text-decoration: none; }
+.btn:hover { border-color: var(--muted); text-decoration: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+.btn.ok { background: var(--ok); border-color: var(--ok); color: var(--on-accent); }
+.btn.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+.btn.busy { color: var(--muted); border-color: var(--line); cursor: progress; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+/* Spec 208: the two kinds of waiting .btn.busy does not cover. A
+   press has always changed the button that was pressed; opening a row,
+   folding the list and moving between tabs changed nothing at all, and
+   seven silent seconds read as a dead app.
+
+   Deliberately quiet — a dim and a progress cursor, no spinner and no
+   reserved space. The rows are about to be replaced or the document is
+   about to change; anything louder would flash on every fast answer,
+   which is most of them now. */
+.awaiting { opacity: 0.55; cursor: progress; }
+/* Deliberately not a second button of the same size: the merge override
+   is a way out for someone who means it, and must not be the thing a
+   mouse lands on. */
+.btn.small { height: 22px; padding: 0 var(--sp-2); font-size: var(--fs-s); font-weight: 400; }
+.spin { width: 12px; height: 12px; border-radius: 50%; flex: none;
+  border: 2px solid var(--line-strong); border-top-color: var(--accent);
+  animation: sp 0.9s linear infinite; }
+@keyframes sp { to { transform: rotate(360deg); } }
+

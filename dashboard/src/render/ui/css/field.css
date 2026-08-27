@@ -1,0 +1,73 @@
+/* --- field ----------------------------------------------------------- */
+
+.field { display: inline-flex; flex-direction: column; gap: var(--sp-1); }
+.field > span { font-size: var(--fs-s); color: var(--muted); font-weight: 500; }
+/* The two selects on a phase line are named here alongside the fields
+   because neither one is inside a field: modelPicker renders into a
+   span.row and aiPicker straight into the AI column's own cell
+   (queue-list.ts), so the .field selector reached neither, and both
+   carried no height, border, background or colour from the design
+   system at all. Attribute selectors rather than a wrapper — both
+   attributes are already in the markup, so this stays a stylesheet
+   change.
+   The pair sits side by side since spec 179, and the four rules below
+   are what makes them read as a pair: same height, same border, same
+   arrow, same disabled look. The one thing that differs is the face
+   the text is set in, further down, and that is about what they HOLD
+   — a model name is a value, an AI is a thing's name. */
+.field input, .field select, .field textarea,
+select[name^="model."], select[data-ai] {
+  height: 28px; padding: 0 var(--sp-2); border-radius: var(--r-s);
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--text); font: var(--fs-m)/1 var(--sans); }
+/* Without appearance: none the browser goes on drawing its own control
+   on top of ours — its chevron, its inner edge, and a height that is
+   advisory rather than binding. -webkit-appearance is spelled out
+   alongside because Safari has historically wanted it. The right-hand
+   padding is what keeps our arrow BESIDE a long option label, such as
+   claude-sonnet-4-6, instead of over the end of it. The background is
+   set piece by piece: the shorthand would drop the var(--surface)
+   ground the rule above gives it. */
+.field select, select[name^="model."], select[data-ai] {
+  appearance: none; -webkit-appearance: none;
+  padding-right: 26px;
+  background-image: var(--chevron);
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 12px; }
+/* A disabled field had no look of its own at all, so a model picker
+   disabled for the length of a run still read as pressable and the
+   reason for it was only findable by hovering. The button keeps its own
+   opacity: 0.45 — a button and a field fail differently, and on a
+   select a blanket opacity dims the border into invisibility.
+   background-color rather than the shorthand, for the same reason as
+   above. */
+.field input:disabled, .field select:disabled, .field textarea:disabled,
+select[name^="model."]:disabled, select[data-ai]:disabled {
+  background-color: var(--surface-2); color: var(--muted);
+  border-color: var(--line); cursor: default; }
+.field select:disabled, select[name^="model."]:disabled, select[data-ai]:disabled {
+  background-image: none; }
+/* A model name is a value, like a spec id, a duration or a branch name,
+   and its version digits are what a reader is actually comparing. The
+   project and checkout pickers name a thing rather than a value and
+   stay in the sans face. --fs-s because mono runs wider at the same
+   nominal size, and these sit in a table column whose width is argued
+   over in the comments around .phasecell.
+   select[data-ai] is deliberately NOT here (spec 179), although it
+   stands right beside the model select and shares every other rule
+   above with it: "Claude Code" is a thing's NAME, which is the case
+   the sentence above already carves out for the project and checkout
+   pickers. */
+select[name^="model."] {
+  font-family: var(--mono); font-size: var(--fs-s); }
+/* border-box, or width:100% means "100% plus padding and border" and
+   the box sticks 18px out of its own field — which is exactly the gap
+   to whatever stands beside it (seen against Create, 2026-08-19). */
+.field textarea { height: auto; padding: var(--sp-2); line-height: var(--lh);
+  min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
+.newspecform textarea { overflow-x: auto; }
+.specform .factions { margin-top: var(--sp-1); }
+.field.wide { flex-basis: 100%; max-width: 48rem; }
+.field input[name="title"] { min-width: 18rem; }
+

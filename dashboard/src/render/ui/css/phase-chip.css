@@ -1,0 +1,28 @@
+/* --- phase chip ----------------------------------------------------- */
+
+.phases { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); }
+.phase { display: inline-flex; align-items: center; gap: 6px; min-height: 24px;
+  padding: 0 var(--sp-2); border-radius: var(--r-s); border: 1px solid var(--line);
+  background: var(--surface); font-size: var(--fs-s); color: var(--text); cursor: pointer; }
+.phase input { accent-color: var(--accent); margin: 0; }
+.phase .box { display: inline-flex; width: 12px; height: 12px; color: var(--ok); }
+.phase svg { width: 12px; height: 12px; }
+.phase.checked { border-color: var(--line-strong); }
+.phase.done { color: var(--muted); }
+.phase.off { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+/* The lock REPLACES the checkbox, never stands beside it: the mark is
+   checkbox-sized, so the chip keeps its width (asked for repeatedly,
+   last 2026-08-19). The input stays in the markup for the form's sake
+   — it is disabled and posts nothing. A running phase had a spinner
+   here on the same terms until spec 168, which moved that signal to
+   the row's own Progress marker. */
+.phase.off input { display: none; }
+.phase.off .box { color: var(--muted); }
+/* A phase LINE's box has no label of its own — the phase's name leads
+   the line, and the chip holds the checkbox and nothing else — so the
+   frame outlined nothing (spec 176). Selected on the data attribute
+   rather than on .phase itself: the chips that DO carry a label, the
+   "Also touches" repos (data-project) and the new-spec form's
+   "Depends on" (data-depends), frame something and keep their frame. */
+.phase[data-phase] { border-color: transparent; }
+

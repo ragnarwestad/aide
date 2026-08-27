@@ -1,0 +1,234 @@
+/* --- narrow: one screen, one place (spec 155) ------------------------- */
+/* Every rule the phone layout needs is in this one block, and each one
+   repeats the selector of the desktop rule it overrides rather than
+   writing a shorter one — the override wins by coming later, and a
+   selector with one class more or fewer would change the specificity
+   and quietly stop applying. */
+
+@media (max-width: 40rem) {
+  header { padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+  body > nav { padding: 0 var(--sp-4) var(--sp-2); }
+  main { padding: var(--sp-4); }
+
+  /* Started and Cost are not what a phone is for on a PHASE line: the
+     reader is checking whether a run finished and pressing Run or
+     Cancel, and neither figure is needed to do either. Dropped rather
+     than squeezed — six columns in 390px is six unreadable ones.
+     Scoped to tr.subrow, not every row: the spec's own header line
+     keeps its date/cost, folded onto line 2 with the badge and the
+     button instead (design handoff, mobile-spec-row). */
+  table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
+
+  /* The filter bar, on a phone: no "Show" caption (the chips say what
+     they are), and the chips drop BELOW the "?" and New spec line —
+     order on the already-flex row, scoped by data-filter="state" so
+     other .lbl captions ("Repos:") and other pill groups keep theirs. */
+  .filters[data-filter="state"] > .lbl { display: none; }
+  .row:has(> .filters[data-filter="state"]) > .filters[data-filter="state"] {
+    order: 9; flex-basis: 100%; }
+
+  /* The spec LIST leaves table layout entirely at this width — found
+     with a 500px iframe walk (2026-08-24): a flex tr inside a table
+     still contributes its one-line max-content width (~458px, the
+     badge + button + date + cost side by side) to the table's minimum,
+     so the table's scroll box grew a scrollbar below ~480px however
+     shrinkable the items were. As stacked blocks the flex rows wrap freely
+     and nothing computes a table minimum. Scoped to .speclist: the
+     archive page and the settings table share .list and keep real
+     table layout. The remaining true-table rows here (the notice
+     panel, the "no spec matches" line) hold one full-width cell each,
+     so block costs them nothing. The three tab links up top get their
+     7rem floor lifted for the same overall goal — three of them do
+     not cross 360px otherwise. */
+  table.speclist, table.speclist tbody { display: block; }
+  table.speclist tr:not(.spechead):not(.subrow) { display: block; }
+  table.speclist tr:not(.spechead):not(.subrow) > td { display: block; }
+  .tabbar .tab { min-width: 0; }
+
+  /* The spec header line (design handoff, mobile-spec-row): the mock
+     puts the fold/name/pips alone on the first line and the badge, the
+     Archive button and the date/cost together on a second — one flex
+     row rather than four independent table cells, since a cell cannot
+     wrap around another cell's boundary. tr.spechead becomes the flex
+     container; each td is still a td, just laid out as a flex item
+     instead of a table cell. */
+  table.list tr.spechead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  /* min-width: 0 on the cells, or nothing ever truncates: a flex item
+     refuses to shrink below its content's min-content width by default
+     (min-width: auto), so a long spec name forced the whole row — and
+     with it the table — wider than the viewport instead of letting the
+     label's own ellipsis do its job. */
+  table.list tr.spechead > td:first-child { flex: 1 1 100%; min-width: 0; }
+  /* The header line starts further left than the phase lines under it
+     (asked for 2026-08-24): the fold+name is the row's MAJOR line, and
+     the base cell padding (var(--sp-3)) put it flush with the minor
+     detail lines an open row shows. flush with the card's edge; the
+     subrows keep the full padding and so read as indented under it. */
+  table.list tr.spechead > td:first-child { padding-left: 0; }
+
+  /* The open spec's faint ground, restated on the ROWS: the base rule
+     paints the cells, and at this width the cells are flex items with
+     their padding moved off them — or display:contents, which paints
+     nothing at all — so the tint showed in patches. The tr is the box
+     that spans the group here, so it carries the ground. */
+  table.list tr.spechead:has(+ tr.subrow),
+  table.list tr.subrow,
+  table.list tr.specnotice:has(+ tr.subrow) { background: var(--surface-2); }
+  table.list tr.spechead > td:not(:first-child) { flex: 0 0 auto; min-width: 0; }
+  /* The vertical padding moves off the cells and onto the row: each td
+     kept the desktop 10px above and below, and two tds stacked as two
+     flex lines put 10px + the row gap + 10px between the name line and
+     the badge line — read as a hole. The row pads once, at its edges. */
+  table.list tr.spechead { padding-top: 10px; padding-bottom: 10px; }
+  table.list tr.spechead > td { padding-top: 0; padding-bottom: 0; }
+  /* The horizontal cell padding goes the same way as the vertical did:
+     each line-2 cell kept the desktop 12px on both sides, which put
+     up to 24px of dead air between badge, date and cost — enough to
+     wrap the cost off the line on a phone. The row's flex gap is the
+     one spacing between them. */
+  table.list tr.spechead > td:not(:first-child) { padding-left: 0; padding-right: 0; }
+  /* Except a sliver against the card's right edge, so the cost does
+     not sit flush on it. */
+  table.list tr.spechead > td:last-child { padding-right: var(--sp-2); }
+  /* The 2px separator above a spec sits on the CELLS in the base rule,
+     and here the cells wrap onto line 2 — each drawing its own border
+     segment, which read as a stray grey line between the name and the
+     badge on every spec but the first (whose cells have the first-row
+     exemption). The row is the box that spans the spec here, so the
+     row carries the one separator and the cells none. */
+  table.list tr.spechead { border-top: 2px solid var(--line-strong); }
+  table.list tr.spechead > td { border-top: none; }
+  table.list tbody tr.spechead:first-child { border-top: none; }
+  /* The desktop rule (space-between, base stylesheet) spaces the badge
+     and the Archive button apart to fill a table column's own width —
+     a gap that ate into line 2's space here too, for the same reason
+     the auto-margin above did: reserved space a tight line cannot
+     spare. flex-start keeps them side by side with the ordinary gap. */
+  table.list tr.spechead > td > .row { justify-content: flex-start; }
+  /* .actionslot reserves 6.5rem (the widest label, "Implement") so the
+     button does not shift position between rows sharing a desktop
+     column. There is no such column on mobile — every row is its own
+     block — so a shorter label ("Archive") left that width standing
+     empty, which is what was still forcing Cost to wrap even after the
+     other two gaps were closed. */
+  table.list tr.spechead .actionslot { min-width: 0; }
+  /* What IS reserved on this line is the badge's SLOT — or the action
+     button after it starts wherever the state's wording happens to
+     end, in a different place on every row. On the holder, never the
+     badge itself: a min-width on the pill stretched its coloured
+     background (2026-08-24). Sized for the longest label it can carry
+     now that the resting texts are one word ("ready"/"done"):
+     "implementing queued", 19 characters of fs-s plus dot and padding. */
+  table.list tr.spechead .badgeslot { min-width: 9rem; margin-left: var(--sp-2); }
+  /* Date and cost stand at the line's right edge, away from the action
+     button (asked for 2026-08-24). An auto margin only absorbs FREE
+     space, so it cannot wrap the cost by itself — what did that before
+     was the cell padding and the reserved widths, all since removed:
+     this margin was blamed and pulled in that round, and put back once
+     the real culprits were gone. */
+  table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }
+  /* No "· " separator before the cost (removed 2026-08-24): it read
+     fine while date and cost sat side by side, and as a stray leading
+     dot every time the cost wrapped alone or the date showed the
+     checking bar. The flex gap already separates the two. */
+
+  /* .spec-name/.spec-title carry a desktop alignment width (27rem
+     each), and it MUST be overridden here — width: auto, put back
+     2026-08-24 after being dropped in an earlier round: the 27rem
+     (432px) held below ~480px viewports and pushed the pips out of the
+     right edge. It looked fine at the window width it happened to be
+     tested at, which is how the regression slipped through. */
+  .spec-name, .spec-title { width: auto; max-width: none; box-sizing: border-box; }
+
+  /* A long name gets two lines before it clamps to an ellipsis, instead
+     of one. The pips are their own flex item and do not wrap with it —
+     align-items reverts to the top so they sit against the name's
+     FIRST line, not centred against both. The chevron's own margin
+     plus the flex gap stacked into two lots of space between it and
+     the name; the margin is dropped here so only the (smaller) gap
+     remains. flex:1 on the label is not cosmetic: without it the label
+     kept its own intrinsic width and wrapped a line early, leaving the
+     space the auto-margin before the pips was not using empty instead
+     of given to the name. */
+  .spec-name { gap: var(--sp-1); }
+  .spec-name > .fold { margin-right: 0; }
+  /* One line, truncated with an ellipsis against the pips — same rule
+     the base (desktop) style already uses, restated here only for the
+     flex-basis: 0, not auto, is what actually gives the label the
+     row's free width instead of sizing to its own content first (the
+     bug behind the "half the row" width report). */
+  .spec-name > .label { flex: 1 1 0%; min-width: 0; }
+
+  /* No sortable column headings on mobile: "Spec/State/Started/Cost"
+     headed a column layout that is gone at this width (Started and
+     Cost are hidden, State moved onto the spec's own second line), and
+     the mock draws no heading row here at all. */
+  table.list thead { display: none; }
+
+  /* The fold control (design handoff, mobile-spec-row), second attempt
+     (2026-08-24). The first attempt toggled .modelcell between
+     display:block and table-cell depending on the checkbox, and that
+     was the bug: a table computes ONE column layout from ALL its rows,
+     so rows disagreeing about their display type scattered the
+     selects and tick boxes into the wrong columns. This version never
+     lets the table's column layout see these rows at all: EVERY subrow
+     is a flex line, identically, open or shut — the same technique
+     tr.spechead above uses, where it holds up. Per-row state changes
+     inside a flex container affect only that row.
+
+     Collapsed: [chevron name] [tick box] [status] on one line — the
+     name column fixed at 5.3rem ("implement", the longest) so the box
+     and status start at the same x on all four lines. Open: .aimodel
+     becomes a full-width item ordered last, so AI and Model drop to a
+     line of their own below, 50/50.
+
+     display:contents on .modelcell and its .row lifts the box and
+     .aimodel up to be flex items of the row itself; selectors like
+     ".modelcell > .row select" still match (they read the DOM, not
+     the boxes). The caption row is also a subrow, hidden below rather
+     than flexed. */
+  table.list tr.subrow { display: flex; flex-wrap: wrap; align-items: center;
+    gap: var(--sp-1) var(--sp-2); }
+  table.list tr.subrow > td { border-bottom: none; }
+  table.list tr.subrow { border-bottom: 1px solid var(--line); }
+  table.list tr.subrow .phasecell { flex: 0 0 5.3rem; min-width: 5.3rem; }
+  table.list tr.subrow .modelcell,
+  table.list tr.subrow .modelcell > .row { display: contents; }
+  table.list tr.subrow .phasefold { cursor: pointer; }
+  table.list tr.subrow .phasefold .foldchevron { display: inline-flex;
+    transform: rotate(-90deg); transition: transform 0.15s; }
+  table.list tr.subrow .phasefold .foldchevron svg { flex-shrink: 0; }
+  table.list tr.subrow:has(.foldphase:checked) .phasefold .foldchevron { transform: rotate(0deg); }
+  table.list tr.subrow .aimodel { display: none; }
+  table.list tr.subrow:has(.foldphase:checked) .aimodel {
+    display: flex; gap: var(--sp-2); flex: 1 1 100%; order: 10; }
+  /* max-width: none included: the desktop caps (8rem on the AI select,
+     100px on the model select) otherwise stop the two halves from
+     actually reaching 50% each. */
+  table.list tr.subrow:has(.foldphase:checked) .aimodel > * { flex: 1 1 0%; min-width: 0; max-width: none; }
+
+  /* The "Phase | AI Model Select" caption row heads a desktop column
+     layout that does not exist at this width; the mock draws no such
+     row on mobile at all. */
+  table.list tr.subrow[data-caption="1"] { display: none; }
+
+  /* And the width the cell reserves on a desktop is given back.
+     Reserving it here would put a floor into a 23rem screen and the
+     table would scroll — the one thing spec 155 exists to prevent, and
+     a full-width block honours a min-width exactly as a table cell
+     does. It is not needed at this width: the controls have wrapped, so
+     there is no second column inside the cell to line a caption up
+     with, and a column that closes when its control is absent is
+     better than a scrollbar. */
+  /* max-width: none on the model select too, or the 50/50 split above
+     never happens: this selector (attribute + element type) outweighs
+     the .aimodel > * rule, so the desktop 100px cap kept winning there
+     while the AI select — reset below at its own matching specificity —
+     grew freely. 90/10, not 50/50, until both caps fall together. */
+  table.list tr.subrow .modelcell > .row select[name^="model."] { min-width: 0; max-width: none; }
+  table.list tr.subrow .modelcell > .row > [data-cap],
+  table.list tr.subrow .modelcell > .row select[data-ai] { min-width: 0; max-width: none; }
+
+  /* Two fields side by side become two lines. */
+  .newspecform .frow { flex-wrap: wrap; }
+}

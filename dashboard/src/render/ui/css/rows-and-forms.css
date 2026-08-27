@@ -1,0 +1,162 @@
+/* --- rows and forms ----------------------------------------------------- */
+/* "rowrun", "actionform", "newspecform", "refused" and
+   "refusal" are what queue-client.ts selects on. They are
+   laid out here and coloured nowhere: a rename breaks the browser code
+   with no type error to catch it. */
+
+.row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* The row's one action keeps its place whatever it currently is. The
+   label changes with the state — Analyze, Implement, Cancel — and a
+   box that grew with it moved the columns to its right on every
+   press. The width is the widest label ("Implement") plus the button's
+   own padding; the slot is drawn empty rather than removed on a row
+   with nothing to press, for the same reason. Deliberate movement —
+   opening a row — is the exception, and it is not this. */
+.actionslot { display: inline-flex; justify-content: flex-start;
+  min-width: 6.5rem; }
+/* And the slot itself stands at the column's RIGHT EDGE, whatever the
+   badge in front of it says (spec 167). The slot has reserved a fixed
+   width since spec 157, but the badge has none — its wording runs from
+   two syllables to most of a sentence — so the buttons began at
+   different x positions down the column and moved as a state changed.
+   space-between costs no reserved space at all, and it is scoped to the
+   State cell's own row: the shared .row above is the phase lines' and
+   the filter bar's too.
+   No badge is QUOTED here on purpose: a comment in this file is served
+   as page content, so a state's wording written out below would be
+   found by every test that asks whether the page says it.
+   One residue, left open: a table column is as wide as its widest cell,
+   so the COLUMN still moves if the longest badge on the page changes.
+   Closing that needs a declared width, which no spec owns yet. */
+table.list tr.spechead > td > .row { justify-content: space-between; }
+td form { margin: 0; display: inline-block; }
+/* Nothing but hidden fields since spec 124: the boxes it posts are on
+   the phase lines and the button that submits it stands beside the
+   state badge (spec 157), both reaching it by the "form" attribute
+   alone. It is still a real form — the page works with script off —
+   and still carries the class queue-client.ts selects on, so a press
+   is still intercepted. It just has nothing to show, and a container
+   that gave it a gap would open a hole beside the badge. */
+.rowrun { display: none; }
+/* The stack of a row's buttons stood here until spec 157, with a 14rem
+   cell of its own above it: a row draws ONE button now, beside the
+   state badge, and the two share the page's ordinary "row" container.
+   That container wraps, which is the whole width rule the pairing
+   needs — the badge and the button drop to two lines rather than
+   widening a column the whole table is aligned on. */
+/* No margin on "extra" below: the space between two controls is
+   declared once, by the "row" that holds them (spec 120). A margin here
+   would travel into every layout the form is put in next, and a
+   container gap does not absorb it. "actionform" has no rule at all —
+   "td form" above gives it everything it had, and the conflict form's
+   rule went with the control it belonged to (spec 171). */
+/* The last thing in the State cell of an open row: "also touches" (the
+   model left for the phase lines in spec 123). Small and
+   bottom-aligned, so a labelled field and a bare checkbox share one
+   line, and quiet enough that the badge and the button beside them
+   still read first. */
+.extra { display: inline-flex; vertical-align: bottom;
+  font-size: var(--fs-s); align-items: flex-end; }
+/* A disclosure holding a form that is not about an existing spec. The
+   New-spec form wore this until spec 121 moved it to /new, where a page
+   needs nothing folded away; the Projects panel still does. */
+.newspec { margin: var(--sp-3) 0; }
+/* A summary draws its native triangle only while its computed display
+   is list-item, and .btn's inline-flex already suppresses it. The two
+   rules below are for older WebKit, which needs telling. */
+.newspec > summary { list-style: none; }
+.newspec > summary::-webkit-details-marker { display: none; }
+.newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
+  flex-wrap: wrap; margin-top: var(--sp-3); }
+.newspecform .refused { flex-basis: 100%; }
+/* The /new form's three lines. Each row takes the full width of the
+   wrapping flex; the first top-aligns its two fields so Project and
+   Depends on share a label line, the last bottom-aligns Create and
+   Cancel with the Description box they act on. */
+.newspecform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
+  flex-basis: 100%; }
+.newspecform .frow .field.wide { flex: 1 1 0; }
+.newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
+/* The Remove confirmation, on a page of its own since 2026-08-19 (the
+   panel these rules used to scope under is gone). "addprojectform" and
+   "removeform" are what queue-client.ts selects on — laid out here,
+   coloured nowhere. */
+.removeform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
+/* The "…" menu (spec 119): Units, Settings and About, behind one
+   disclosure at the right-hand end of the header. A POPOVER like
+   .intro below — an open menu must lay over the page, not push the
+   tab bar and everything under it down. Theme (spec 243) is a SECOND,
+   sibling ".menu" of its own rather than a row inside this one — the
+   shared class is what gives it the same trigger look and the same
+   outside-click/Escape close, since "menu-script.ts"'s closeAll()
+   already reads every "details.menu", not one by name. */
+.menu { position: relative; }
+.menu > summary { display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 999px; border: 0; background: none;
+  color: var(--muted); line-height: 1; list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu > summary:hover { background: var(--surface-2); color: var(--text); }
+/* Menu rows, not a box with text in it: every item is a full-width flat
+   with a hover, the way a menu reads. */
+.menupanel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+  display: flex; flex-direction: column; align-items: stretch; gap: 2px;
+  min-width: 13rem; padding: var(--sp-1); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--r);
+  box-shadow: var(--overlay-shadow); }
+.menupanel > * { display: block; padding: 6px 10px; border-radius: var(--r-s); }
+.menupanel > a { color: var(--text); }
+.menupanel > a:hover { background: var(--surface-2); text-decoration: none; }
+/* Theme's own rows (spec 243): a button, not a link, exactly the
+   reason Units' buttons already needed the same colour/hover pair —
+   nothing about being a <button> instead of an <a> should read as a
+   lesser row in the same menu. The icon and its label share the row
+   the way every other icon-plus-word control on this site does. */
+.menupanel > button { display: flex; align-items: center; gap: var(--sp-2);
+  width: 100%; text-align: left; background: none; border: 0; color: var(--text);
+  font: var(--fs-m)/1 var(--sans); cursor: pointer; }
+.menupanel > button:hover { background: var(--surface-2); }
+.menupanel > button[aria-current] { font-weight: 600; }
+/* Units' label and its buttons (spec 243): equal specificity to the
+   rule above and later in the file, so without this it would flatten
+   the row right back to block and the flex gap between them would be
+   lost even though the stacking is fixed. */
+.menupanel > .row { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* The About dialog: opened from the menu, closed by the cross, Escape
+   or a click on the backdrop. The panel carries the padding so a click
+   inside it can never be mistaken for one outside (the script closes on
+   clicks whose target is the dialog element itself). */
+dialog.about { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); max-width: 34rem;
+  box-shadow: var(--overlay-shadow); }
+dialog.about::backdrop { background: var(--backdrop); }
+.aboutpanel { position: relative; padding: var(--sp-5) var(--sp-6); }
+.aboutpanel h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-l); font-weight: 600; }
+.aboutclose { position: absolute; top: var(--sp-3); right: var(--sp-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 999px; border: 0; background: none;
+  color: var(--muted); cursor: pointer; }
+.aboutclose:hover { background: var(--surface-2); color: var(--text); }
+
+/* How runs work: a small question mark at the right-hand end of the
+   search field's own row (spec 261 moved it there from the filter
+   chips' row), not a block between the page's title and the list the
+   reader came for. */
+/* A POPOVER, not an inline fold: opening it lays the text over the page
+   instead of shoving the list down. The details element keeps the no-JS
+   behaviour; only the open box is lifted out of the flow. */
+/* The question mark carries the auto margin, so it and the New spec
+   link sit together at the row's right-hand end. */
+.specsearch > details.intro { margin-left: auto; position: relative; }
+.specsearch > details.intro > summary { display: inline-flex; align-items: center;
+  justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--line-strong); color: var(--muted);
+  font-size: var(--fs-s); font-weight: 600; list-style: none; cursor: pointer; }
+.specsearch > details.intro > summary::-webkit-details-marker { display: none; }
+.specsearch > details.intro > summary:hover { border-color: var(--muted); color: var(--text); }
+.specsearch > details.intro[open] p { position: absolute; right: 0; top: calc(100% + 6px);
+  z-index: 20; width: 28rem; max-width: 80vw; margin: 0; padding: var(--sp-3);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r); box-shadow: var(--overlay-shadow); }
+p.intro { margin: 0 0 var(--sp-3); }
+

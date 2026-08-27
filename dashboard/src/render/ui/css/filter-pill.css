@@ -1,0 +1,18 @@
+/* --- filter pill ------------------------------------------------------ */
+
+.filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
+/* The whole controls line keeps clear air down to the table. */
+#jobrows > .row:first-child { margin: var(--sp-3) 0; }
+/* Two elements, one pill. A filter is a link because it goes somewhere;
+   a theme choice is a button because it does something. That difference
+   belongs in the markup, not in a second class that looks the same. */
+.filters a, .filters button { padding: 3px 9px; border-radius: 999px; font-size: var(--fs-s);
+  color: var(--muted); border: 1px solid transparent; }
+.filters button { background: none; font-family: var(--sans); line-height: var(--lh);
+  cursor: pointer; }
+.filters a:hover, .filters button:hover { background: var(--surface); text-decoration: none; }
+/* No bold on the chosen one: bold text is WIDER, so the pill grew and
+   shoved its neighbours along every time you clicked. */
+.filters a[aria-current], .filters button[aria-current] { background: var(--surface);
+  border-color: var(--line-strong); color: var(--text); }
+

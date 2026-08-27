@@ -1,0 +1,20 @@
+/* --- the brand ------------------------------------------------------ */
+/* Inline SVG and data URIs, per the handoff: the site is also opened
+   straight from a folder, so there is no file to point a <link> at. */
+
+/* Header-sized, not list-sized: the mark and the wordmark are the
+   page's identity. 22px read as an icon that had shrunk in the wash,
+   and 30px still did (2026-08-19) — so the brand gets a size of its
+   own above the heading scale. */
+.brand { display: flex; align-items: center; gap: var(--sp-2);
+  margin: 0 0 var(--sp-3); padding: 0 var(--sp-2); text-decoration: none;
+  color: var(--text); font-size: var(--fs-brand); font-weight: 600;
+  letter-spacing: -0.035em; }
+.brand:hover { text-decoration: none; color: var(--text); }
+.brand i { font-style: normal; color: var(--accent); }
+/* The surface name, not the product name: ordinary weight and muted, so
+   the name stays the wordmark and the suffix says which surface. No
+   backticks in here — this file IS a template literal. */
+.brand .surface { font-weight: 400; color: var(--muted); }
+.brand .mark, .brand .mark svg { display: block; width: 40px; height: 40px; }
+

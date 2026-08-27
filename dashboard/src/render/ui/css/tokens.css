@@ -1,0 +1,101 @@
+:root {
+  color-scheme: light dark;
+/* tokens:start */
+  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
+  --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
+  --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
+  --pip-skim: #F0A48B;
+  --on-accent: #FCFAF7;
+  --ok: #2F7D4F; --ok-soft: #E3F0E7;
+  --warn: #B7791F; --warn-soft: #F8EDD6;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236B6760' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
+  --fs-s: 12px; --fs-m: 13.5px; --fs-l: 16px; --fs-xl: 20px; --fs-brand: 26px;
+  --lh: 1.45;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r: 6px; --r-s: 4px;
+  --overlay-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --backdrop: rgba(0, 0, 0, 0.35);
+/* tokens:end */
+  --sans: system-ui, -apple-system, "IBM Plex Sans", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, "IBM Plex Mono", monospace;
+}
+/* Dark is the same ramp read from the other end: a dark surface takes a
+   light foreground, which is why --danger is a pale peach here and the
+   darkest bar tone in light. Not a typo — the same inversion every
+   other pair makes. */
+/* The dark mark is hidden by default and shown by the theme blocks
+   below. This rule has to come BEFORE them: it has the same specificity
+   as the media query's "display: block", and the later rule wins — with
+   it written after the blocks (as it was until 2026-08-21) a machine set
+   to dark, with no explicit choice, hid both marks and showed the word
+   alone. */
+.brand .mark-d { display: none; }
+@media (prefers-color-scheme: dark) {
+:root {
+/* tokens:start */
+  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
+  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --pip-skim: #FFC4AC;
+  --on-accent: #16181C;
+  --ok: #6FC08F; --ok-soft: #22352A;
+  --warn: #E0A84A; --warn-soft: #3A2F1C;
+  --danger: #E8836B; --danger-soft: #3D211B;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239A958B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
+/* tokens:end */
+}
+.brand .mark-l { display: none; }
+.brand .mark-d { display: block; }
+}
+/* Spec 107: the same two sets again, this time by choice rather than by
+   preference. Both directions need a block of their own, and the reason
+   is specificity, not tidiness: :root[data-theme="light"] (0-2-0)
+   beats the bare :root inside the media query above (0-1-0) whatever
+   the source order, so an explicit Light survives a machine set to
+   dark — and the mirror image for Dark on a machine set to light.
+   "Auto" has no block at all: it is the ABSENCE of the attribute, which
+   falls straight through to the two rules above, unchanged. */
+:root[data-theme="dark"] {
+/* tokens:start */
+  --bg: #16181C; --surface: #1F2226; --surface-2: #272B30;
+  --text: #ECE9E2; --muted: #9A958B; --line: #33373D; --line-strong: #4A4F56;
+  --accent: #F0663F; --accent-strong: #F5B7A3; --accent-soft: #3A2620;
+  --pip-skim: #FFC4AC;
+  --on-accent: #16181C;
+  --ok: #6FC08F; --ok-soft: #22352A;
+  --warn: #E0A84A; --warn-soft: #3A2F1C;
+  --danger: #E8836B; --danger-soft: #3D211B;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239A958B' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
+/* tokens:end */
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .brand .mark-l { display: none; }
+:root[data-theme="dark"] .brand .mark-d { display: block; }
+:root[data-theme="light"] {
+/* tokens:start */
+  --bg: #EFECE5; --surface: #FBFAF7; --surface-2: #F3F0EA;
+  --text: #16181C; --muted: #6B6760; --line: #DFDAD0; --line-strong: #C9C2B4;
+  --accent: #D8492A; --accent-strong: #A8331A; --accent-soft: #F8E4DD;
+  --pip-skim: #F0A48B;
+  --on-accent: #FCFAF7;
+  --ok: #2F7D4F; --ok-soft: #E3F0E7;
+  --warn: #B7791F; --warn-soft: #F8EDD6;
+  --danger: #6B1D0C; --danger-soft: #F1DDD7;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236B6760' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5L8 10.5L12 6.5'/%3E%3C/svg%3E");
+/* tokens:end */
+  color-scheme: light;
+}
+:root[data-theme="light"] .brand .mark-l { display: block; }
+:root[data-theme="light"] .brand .mark-d { display: none; }
+
+/* Spec 118: the same trick again, on text rather than colour. Every
+   consumption figure is rendered twice — a dollar span and a token span
+   — and exactly one is shown. Dollars is the ABSENCE of the attribute,
+   like Auto above, so a page whose script never ran reads the way it
+   always did; the :not() is what makes that work without a
+   data-unit="usd" nobody sets. A budget CAP is money either way and
+   goes through neither span. */
+:root[data-unit="tokens"] .u-usd { display: none; }
+:root:not([data-unit="tokens"]) .u-tok { display: none; }
+
