@@ -849,9 +849,15 @@ describe("POST the Update action", () => {
       body: "",
     });
 
-  /** A specs checkout that is clean, on its default branch and behind. */
+  /** A specs checkout that is clean, on its default branch and behind.
+   *
+   *  `rev-parse HEAD`'s before/after answer is counted PER DIRECTORY, not
+   *  globally (spec 269): the server now reads its own boot-time commit
+   *  with the same bare command, in `process.cwd()` — a global counter
+   *  would let that one extra call shift the specs checkout's own
+   *  before/after pair by one and report "already up to date". */
   const pullable = (extra: Record<string, { code: number; stdout?: string }> = {}) => {
-    let heads = 0;
+    const headCallsByDir = new Map<string, number>();
     const answers: Record<string, { code: number; stdout?: string }> = {
       "rev-parse --show-toplevel": { code: 0, stdout: "/host/aide-specs\n" },
       "diff --quiet HEAD": { code: 0 },
@@ -863,10 +869,12 @@ describe("POST the Update action", () => {
       "log -1 --format=%H": { code: 0, stdout: "a3f9c21\t2026-08-21T09:14:00+02:00\n" },
       ...extra,
     };
-    return async (_dir: string, args: string[]) => {
+    return async (dir: string, args: string[]) => {
       const line = args.join(" ");
       if (line === "rev-parse HEAD") {
-        return { code: 0, stdout: `${heads++ === 0 ? "a3f9c21" : "7b1e004"}\n` };
+        const seen = headCallsByDir.get(dir) ?? 0;
+        headCallsByDir.set(dir, seen + 1);
+        return { code: 0, stdout: `${seen === 0 ? "a3f9c21" : "7b1e004"}\n` };
       }
       for (const [prefix, answer] of Object.entries(answers)) {
         if (line.startsWith(prefix)) return { code: answer.code, stdout: answer.stdout ?? "" };

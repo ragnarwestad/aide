@@ -308,13 +308,26 @@ export const driftPrefix = (behind: number, checkedAt: number, now: number): str
  *  message and no button at all — the same silence the list's own
  *  `note` computation falls back to for it. */
 function deploySection(name: string, opts: ProjectPageOptions, now: number): string {
+  // Independent of `drift`/`AIDE_INSTALL_CMD` on purpose (spec 269): the
+  // Serving line answers a process-vs-disk question, not a disk-vs-origin
+  // one, so it belongs on the page whether or not deploy is even
+  // configured here — both branches below append it.
+  const servingLine = opts.serving
+    ? rowMessage(
+        opts.serving.current ? "info" : "warn",
+        opts.serving.current
+          ? `Serving ${opts.serving.sha.slice(0, 7)} — matches this checkout.`
+          : `Serving ${opts.serving.sha.slice(0, 7)}, but this checkout is now at ` +
+            `${opts.serving.checkoutHead.slice(0, 7)} — the running service has not picked up the latest merge.`,
+      )
+    : "";
   const drift = opts.drift;
   if (!drift) {
     return `<h3>Deploy</h3>` +
       rowMessage(
         "info",
         "No AIDE_INSTALL_CMD is configured for this project, so its origin drift is not tracked here.",
-      );
+      ) + servingLine;
   }
   const behind = drift.checkedAt !== null ? drift.behind : null;
   const message =
@@ -331,7 +344,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     : "";
   return `<h3>Deploy</h3>` +
     (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
-    message + button;
+    message + button + servingLine;
 }
 
 /** The settings the config file decides, and whether a run could start
@@ -430,6 +443,10 @@ export interface ProjectPageOptions {
   /** Why the last Deploy press was refused, or what its install step
    *  reported — carried back in the query string, like `error`. */
   deployError?: string;
+  /** This process's own boot-time commit vs. this checkout's current
+   *  HEAD (spec 269) — undefined for every project except the one this
+   *  server is actually running from. */
+  serving?: { sha: string; checkoutHead: string; current: boolean };
 }
 
 /** Where a project's own page is SERVED (spec 185). The generated

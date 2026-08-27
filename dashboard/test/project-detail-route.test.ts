@@ -567,6 +567,67 @@ describe("the Deploy section on a project's own page (spec 258)", () => {
   });
 });
 
+// Spec 269: whether the process actually serving this page has picked up
+// what is on disk — a process-vs-disk question the drift banner above
+// cannot answer, because it only ever compares the checkout to origin.
+describe('the "Serving" line on a project\'s own page (spec 269)', () => {
+  /** A checkout that is ALSO the repository this server process itself
+   *  runs from — the scenario the comparison is built for. The bare
+   *  `rev-parse HEAD` two different reads share (the server's own
+   *  boot-time read, and the page's live re-read of the checkout) answers
+   *  `bootSha` the FIRST time it is asked and `checkoutSha` every time
+   *  after — reproducing the real shape, where the same question is asked
+   *  once at boot and again on every page load, never in the other
+   *  order. */
+  function serving(root: string, name: string, bootSha: string, checkoutSha: string): { run: GitRunner } {
+    let headCalls = 0;
+    const run: GitRunner = async (_dir, args) => {
+      const cmd = args.join(" ");
+      if (cmd === "rev-parse HEAD") {
+        headCalls += 1;
+        return { code: 0, stdout: `${headCalls === 1 ? bootSha : checkoutSha}\n` };
+      }
+      if (cmd.startsWith("rev-parse --show-toplevel")) return { code: 0, stdout: `${join(root, name)}\n` };
+      if (cmd.startsWith("symbolic-ref")) return { code: 0, stdout: "origin/main\n" };
+      if (cmd.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "main\n" };
+      if (cmd.startsWith("show-ref")) return { code: 0, stdout: "" };
+      return { code: 1, stdout: "" };
+    };
+    return { run };
+  }
+
+  test("matching SHAs draw an info line naming the short SHA (criterion 3)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await loadUntil(serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")), "aide", "Serving");
+    expect(html).toContain("Serving abc1234 — matches this checkout.");
+  });
+
+  test("a checkout that has moved past the served SHA draws a warn line naming both (criterion 4)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await loadUntil(
+      serve(root, serving(root, "aide", "abc1234deadbeef", "9999999cafefeed")),
+      "aide",
+      "Serving",
+    );
+    expect(html).toContain(
+      "Serving abc1234, but this checkout is now at 9999999 — the running service has not picked up the latest merge.",
+    );
+  });
+
+  test("a project this server does not run from shows no Serving line at all (criterion 5)", async () => {
+    const root = projectsRoot({ aide: null, other: null });
+    const base = serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"));
+    // Give the boot-time read every chance to resolve before asserting its
+    // absence — the assertion must mean "this project truly has none", not
+    // "the read had not finished yet".
+    await loadUntil(base, "aide", "Serving");
+    const html = await (await get(base, "other")).text();
+    expect(html).not.toContain("Serving");
+    // The existing drift banner is unaffected and unchanged.
+    expect(html).toContain("<h3>Deploy</h3>");
+  });
+});
+
 // The served nav is Specs and Projects — the Archive tab was there from
 // spec 163 until spec 221 put every archived spec on the Specs list.
 // A project is reached

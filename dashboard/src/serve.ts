@@ -1483,6 +1483,33 @@ export function createServer(opts: ServerOptions) {
   // landed, the write path lands it.
   const gitRun: GitRunner = opts.gitRun ?? createGitRunner();
   const branchStatus = new BranchStatusChecker({ run: gitRun });
+
+  // This process's own commit, read once: it never changes for the life
+  // of the process, which is exactly the signal a stale restart needs —
+  // see spec 269. `servingRepoRoot` is the repo this process runs from,
+  // used to tell "the project whose checkout I am" from every other one.
+  // Both start `null` and STAY `null` — not "loading" — until the read
+  // resolves: `/api/version` and the project-page comparison already
+  // treat `null` as "cannot claim anything" (matching `commitsBehindOrigin`'s
+  // own fail-open rule, `branch-status.ts:224-225`), so a request that
+  // lands in the short window before this resolves gets the same honest
+  // "unknown" answer a git failure would produce — never a stale default,
+  // never a thrown error.
+  let servingSha: string | null = null;
+  let servingRepoRoot: string | null = null;
+  Promise.all([
+    gitRun(process.cwd(), ["rev-parse", "HEAD"]),
+    gitRun(process.cwd(), ["rev-parse", "--show-toplevel"]),
+  ])
+    .then(([sha, top]) => {
+      if (sha.code === 0) servingSha = sha.stdout.trim();
+      if (top.code === 0) servingRepoRoot = top.stdout.trim();
+    })
+    // A `gitRun` that throws rather than answering with a nonzero code
+    // (no git on the machine at all) must leave both `null`, the same
+    // fail-open answer a nonzero code produces — not an unhandled
+    // rejection that takes the server down.
+    .catch(() => {});
   // How long ONE spec answer stands, and how often it is retaken, are
   // the same number since spec 208 — because nothing but the schedule
   // takes them any more. Two numbers here is how a fast schedule
@@ -2085,6 +2112,16 @@ export function createServer(opts: ServerOptions) {
         if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
         const { rows, enriched } = await enricher.rows(store);
         return json({ generatedAt: new Date().toISOString(), enriched, rows });
+      }
+
+      // What commit this process is actually running (spec 269) — read
+      // once at boot, in `process.cwd()`, and never refreshed. A restart
+      // that silently failed to happen looks exactly like one that
+      // worked until something asks this; unauthenticated so a probe
+      // nobody's monitoring can use is not locked behind the queue token.
+      if (path === "/api/version") {
+        if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+        return json({ sha: servingSha });
       }
 
       if (req.method !== "GET" && req.method !== "HEAD") {
@@ -3327,6 +3364,18 @@ export function createServer(opts: ServerOptions) {
       const drift = configValue(driftRoot, "AIDE_INSTALL_CMD")
         ? branchStatus.peekDrift(driftRoot)
         : undefined;
+      // Only meaningful for the one project this very process runs from —
+      // every other project's checkout HEAD has nothing to do with this
+      // server's own boot-time SHA, so the comparison stays undefined there.
+      const serving =
+        servingSha && servingRepoRoot && resolve(driftRoot) === resolve(servingRepoRoot)
+          ? await (async () => {
+              const head = await gitRun(driftRoot, ["rev-parse", "HEAD"]);
+              if (head.code !== 0) return undefined;
+              const checkoutHead = head.stdout.trim();
+              return { sha: servingSha!, checkoutHead, current: servingSha === checkoutHead };
+            })().catch(() => undefined)
+          : undefined;
       const html = renderProjectPage(
         view,
         projectSettings(dir, readiness),
@@ -3348,6 +3397,7 @@ export function createServer(opts: ServerOptions) {
           error: url.searchParams.get("error") ?? undefined,
           drift,
           deployError: url.searchParams.get("deployError") ?? undefined,
+          serving,
         },
       );
       return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
