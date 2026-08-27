@@ -544,7 +544,7 @@ describe("errorReason", () => {
   };
 
   test("names the same members on the job and on the row's view", () => {
-    const stored = declaredIn("queue/queue.ts");
+    const stored = declaredIn("queue/types.ts");
     expect(stored).toEqual(declaredIn("render/ui/job-state.ts"));
     // Named, so widening the union without a reader is caught here
     // rather than at the page: `unlanded` is spec 193's refusal — the
