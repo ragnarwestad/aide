@@ -1,0 +1,155 @@
+// The one rule for what a phase shows (spec 108). Split out of
+// job-state.ts by theme (split job-state.ts by theme).
+
+import type { BadgeVariant, PipKind } from "../components.ts";
+import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";
+import type { QueueRowView } from "./types.ts";
+
+/** What one phase reads as, in the three parts a row and a job page
+ *  both need: the pip, the word in the badge, and — only when the last
+ *  attempt disagrees with the file — a qualifier. */
+export interface PhaseWord {
+  pip: PipKind;
+  /** Absent means "nothing has happened and nothing was attempted" —
+   *  the row's "not run yet". */
+  badge?: { variant: BadgeVariant; label: string };
+  /** Said only when the last attempt disagrees with the truth above.
+   *  Never repeats what the badge already says.
+   *
+   *  A sentence, not a word — so the phase LINE never draws it. The
+   *  caller hands it to the row's panel instead, named for its phase
+   *  (`specNotice`, spec 195); on the queue list a phase line is the
+   *  badge and nothing else, whatever has happened to that phase. */
+  qualifier?: string;
+}
+
+/** The sentence for "these two records do not agree about this spec"
+ *  (spec 154). Deliberately the same words the job-history version
+ *  below uses — a reader has one thing to learn, and the file is the
+ *  half that is wrong in both cases. */
+const FILES_DISAGREE = "the files disagree with what has run";
+
+/** The one rule, applied by everything that words a phase.
+ *
+ *  A row for spec 81 once said three things at once: pips and phase
+ *  lines read the JOB HISTORY (a cancelled July re-run spoke for an
+ *  analysis long since done and merged), the checkbox read the files
+ *  unioned with that history, and archive read "done" off a job that
+ *  had finished without moving anything.
+ *
+ *  So: `happened` — from the spec's own FILES — is what the phase IS.
+ *  `heldBack` is archive's own answer to a question no exit status can
+ *  give (see `archiveHeldBackReason`). The `attempt` is a qualifier
+ *  layered on top, never the phase's state.
+ *
+ *  The last branch is worded exactly as the row always worded an
+ *  attempt, with one exception: a job whose own state is `"done"` while
+ *  the files say the phase has NOT happened would otherwise render the
+ *  same badge as the first branch's real thing — the precise ambiguity
+ *  this exists to remove. That one state goes in the qualifier instead;
+ *  no other state's label collides with a file-truth badge. */
+export function wordPhase(
+  happened: boolean,
+  heldBack: { reason: string } | undefined,
+  attempt: QueueRowView | undefined,
+  /** What the spec's own git history says about this phase, beyond
+   *  whether it happened (spec 154). `stopped` is the reason the last
+   *  run for this phase gave for not finishing; `fileDisagrees` is
+   *  `4-status.md` claiming something the history does not show, or the
+   *  reverse. */
+  history: { stopped?: string; fileDisagrees?: boolean } = {},
+): PhaseWord {
+  const running = !!attempt && inFlight(attempt);
+  const disagrees = !!attempt && !running && attempt.state !== "done";
+  // Said when the file and the history part company, and never over a
+  // qualifier that has something sharper to say: an attempt that ended
+  // badly is the more useful sentence, and two sentences about one
+  // phase is the row saying two things at once.
+  const filesDisagree = history.fileDisagrees ? FILES_DISAGREE : undefined;
+  // A phase that is running says so, whatever happened the last time it
+  // ran. The history's "done" is about a previous attempt; this one is
+  // in flight, and a line reading "done · 2 attempts" over a spec the
+  // State column says is archiving is the row saying two things at once
+  // (reported 2026-08-23). Only the pip moved before, and a pip is not
+  // a word.
+  if (running) {
+    return {
+      pip: "now",
+      badge: {
+        variant: BADGE_VARIANT[attempt!.state],
+        // Which third of an implement is running, in the word as well as
+        // on the pip (spec 210): "running" for an hour says nothing, and
+        // the State column reserves its width already, so the longer
+        // word moves nothing outside it. Only implement reports phases,
+        // so only implement's rows are given one (`jobRow`, serve.ts).
+        //
+        // The state, not `running` above: that flag is `inFlight`, which
+        // is queued OR running, and a job WAITING to start is in no TDD
+        // phase at all. "queued (refactor)" would be the row reading a
+        // leftover report as if it were live.
+        label:
+          attempt!.tddPhase && attempt!.state === "running"
+            ? `${stateLabel(attempt!)} (${attempt!.tddPhase})`
+            : stateLabel(attempt!),
+      },
+      qualifier: filesDisagree,
+    };
+  }
+  if (happened) {
+    return {
+      pip: running ? "now" : "past",
+      badge: { variant: "done", label: "done" },
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
+    };
+  }
+  // Not while something is running: a note from an earlier decline must
+  // not upstage the retry that may be clearing it, and a pip reading
+  // "now" beside a badge reading "held back" is the row saying two
+  // things at once — the whole reason this function exists.
+  if (heldBack && !running) {
+    return {
+      pip: "todo",
+      // The sixth variant, not a seventh: "held back" is a common,
+      // healthy outcome — notice, not alarm — which is the same reason
+      // `stopped` takes this amber.
+      badge: { variant: "waiting", label: "held back" },
+      // Not the reason: it is a sentence, and the row's panel says it
+      // once for the whole row (spec 143). Said here as well, it was
+      // the same 130 characters twice on an open row — the duplication
+      // 1-description.md reports.
+      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
+    };
+  }
+  // A step that RAN and did not finish, with nothing live left to say
+  // so (spec 154). Spec 147's implement was killed by its own time
+  // limit with RED and GREEN committed on the branch, and by the time
+  // anyone read the row the queue's memory of that attempt was gone —
+  // so the row said "not run yet" about work that was on disk. The
+  // commit is what still knows, and it says why.
+  //
+  // Only without a live attempt: an attempt of its own has the fresher
+  // answer and the badge below already words it.
+  if (!attempt) {
+    if (history.stopped) {
+      return {
+        // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
+        // notice, not alarm: the work is committed and the step can be
+        // run again.
+        pip: "todo",
+        badge: { variant: "waiting", label: `stopped: ${history.stopped}` },
+        qualifier: filesDisagree,
+      };
+    }
+    return { pip: "todo", qualifier: filesDisagree };
+  }
+  if (attempt.state === "done") {
+    return {
+      pip: running ? "now" : "todo",
+      qualifier: "last run reported done, but the files disagree",
+    };
+  }
+  return {
+    pip: running ? "now" : "todo",
+    badge: { variant: BADGE_VARIANT[attempt.state], label: stateLabel(attempt) },
+  };
+}
