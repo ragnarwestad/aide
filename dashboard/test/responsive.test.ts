@@ -269,3 +269,41 @@ describe("the form rows wrap at phone width", () => {
     expect(NARROW).toMatch(/\.frow \{[^}]*flex-wrap:\s*wrap/);
   });
 });
+
+// --- spec 263: the search row no longer wraps the field onto its own line ---
+
+describe("the search row stays on one line at phone width", () => {
+  // Criterion 1: the field's desktop 26rem clamps to the row's full width
+  // under 40rem, and flex-wrap: wrap is what then pushes Search and New
+  // spec onto a line of their own — the narrow block has to override both
+  // the wrap and the width for the three controls to share one line.
+  test("the row stops wrapping and the field gets a narrow resting width", () => {
+    expect(NARROW).toMatch(/\.specsearch \{[^}]*flex-wrap:\s*nowrap/);
+    const m = /\.searchfield \{[^}]*width:\s*([\d.]+)rem/.exec(NARROW);
+    expect(m).not.toBeNull();
+    expect(Number(m![1])).toBeLessThan(26);
+  });
+
+  // Criterion 2, first half: focusing the field lets it grow again.
+  test("the field grows when its input has focus", () => {
+    expect(NARROW).toMatch(/\.searchfield:focus-within \{[^}]*flex(-grow)?:\s*1/);
+  });
+
+  // Criterion 2, second half: only New spec (`.btn.primary`) may hide on
+  // focus — Search is a plain `.btn` and this selector must not reach it.
+  test("New spec hides while the field is focused, Search never does", () => {
+    expect(NARROW).toContain(
+      ".specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }",
+    );
+    expect(NARROW).not.toMatch(/\.searchfield:focus-within[^}]*\}\s*\.btn\s*\{[^}]*display:\s*none/);
+  });
+
+  // Criterion 3: blurring the field has no CSS event of its own — what
+  // proves the return to the resting state is the desktop rule surviving
+  // OUTSIDE the narrow block, combined with the focus-within test above
+  // (the override only applies while :focus-within matches).
+  test("the desktop width rule survives outside the narrow block", () => {
+    const desktop = CSS.slice(0, CSS.indexOf("@media (max-width: 40rem) {"));
+    expect(desktop).toContain("width: 26rem; max-width: 100%");
+  });
+});

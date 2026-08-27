@@ -1215,5 +1215,15 @@ tr.spec-archived td { color: var(--muted); }
 
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }
+
+  /* The search field crowds "Search" and "New spec" onto their own
+     line at phone width (spec 263): 26rem does not fit beside two
+     buttons under 40rem. Narrow it enough that all three share one
+     line at rest, and let it reclaim the row on focus - "New spec" is
+     what gives, per the description, never "Search". */
+  .specsearch { flex-wrap: nowrap; }
+  .searchfield { width: 7rem; flex: 0 1 7rem; }
+  .searchfield:focus-within { flex: 1 1 auto; width: auto; }
+  .specsearch:has(.searchfield:focus-within) .btn.primary { display: none; }
 }
 `;

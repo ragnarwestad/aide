@@ -592,7 +592,11 @@ describe("a select is drawn by us, not by the platform (spec 156)", () => {
     // is how the page ended up with no focus style at all and every
     // control focusing in the browser's blue. `:focus` rather than
     // `:focus-visible` would leave a ring behind after a mouse press.
-    const rule = oneRule((r) => r.selectors.includes(":focus"));
+    //
+    // `:focus-within` (spec 263) is excluded on purpose: it drives the
+    // search field's own width on phone, not an outline, so it is not
+    // one of the "everything focusable" rules this test counts.
+    const rule = oneRule((r) => r.selectors.includes(":focus") && !r.selectors.includes(":focus-within"));
     expect(rule.selectors).toBe(":focus-visible");
     expect(rule.body).toContain("outline: 2px solid var(--accent)");
   });
