@@ -1,0 +1,266 @@
+import { describe, expect, test } from "bun:test";
+import {
+  renderQueueRows,
+  type QueuePageOptions,
+  type QueueRowView,
+  type QueueTarget,
+} from "../../../../src/render.ts";
+import { row, openKeys } from "../fixtures.ts";
+
+// --- spec 123: the model is chosen on the phase line -------------------------
+//
+// Split out of listing-and-units.test.ts by theme.
+//
+// One dropdown for the whole row used to sit on the controls line
+// between Run and the other rarely-set fields, carrying option labels
+// like "fable — $12 per step". It landed beside the State column by
+// accident of content width, tied to nothing around it, and the phase
+// lines below it showed their model as dead text with a wide empty gap
+// before it.
+//
+// The choice belongs where the phase is: each phase line carries its
+// own picker, under a "Phase"/"Model" caption, and the budget figure
+// moves off the label into the option's own tooltip — the number still
+// reachable, no longer read out on every option.
+describe("spec 123: each phase line picks its own model", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+
+  const CHOICES = [
+    { name: "sonnet", budgetUsd: 3 },
+    { name: "fable", budgetUsd: 12 },
+  ];
+
+  const rows = (
+    list: QueueRowView[],
+    targets: QueueTarget[] = [target("123-picks")],
+    opts: Partial<QueuePageOptions> = {},
+  ) =>
+    renderQueueRows(
+      list,
+      {
+        runnerAvailable: true,
+        targets,
+        modelChoices: CHOICES,
+        filter: { open: openKeys(list, targets) },
+        ...opts,
+      },
+      Date.parse("2026-08-19T12:00:00Z"),
+    );
+
+  const controlsLine = (html: string, folder: string) =>
+    html.match(
+      new RegExp(
+        `<tr class="[^"]*spechead[^"]*"[^>]*data-folder="${folder}">[\\s\\S]*?` +
+          `(?=<tr class="[^"]*spechead|</tbody>|$)`,
+      ),
+    )?.[0] ?? "";
+  /** A phase's own line — an ordinary row of six cells since spec 157,
+   *  with nothing spanning it. */
+  const subRow = (html: string, phase: string) =>
+    html.match(new RegExp(`<tr class="subrow[^"]*"[^>]*data-step="${phase}">.*?</tr>`))?.[0] ?? "";
+  /** The caption line: a subrow with no phase of its own, above them
+   *  all. Marked by a data attribute rather than a class — it needs no
+   *  rule of its own, and the render vocabulary is a closed set
+   *  (`css-token-guard.test.ts`). */
+
+  // --- criterion 1 -----------------------------------------------------------
+
+  test("the row's own controls carry no shared Model select any more", () => {
+    const html = rows([]);
+    expect(controlsLine(html, "123-picks")).not.toBe("");
+    expect(controlsLine(html, "123-picks")).not.toContain('name="model"');
+    // Nor anywhere else on the row: the whole-job field is gone, not moved.
+    expect(html).not.toContain('<select name="model"');
+  });
+
+  // --- criterion 2 -----------------------------------------------------------
+
+  test("every phase line carries its own select, on the row's Run form", () => {
+    const html = rows([]);
+    const id = controlsLine(html, "123-picks").match(/<form id="([^"]+)"/)![1];
+    for (const step of ["create", "analyze", "implement", "archive"]) {
+      const line = subRow(html, step);
+      expect(line).not.toBe("");
+      const select = line.match(new RegExp(`<select name="model\\.${step}"[^>]*>`))?.[0] ?? "";
+      expect(select).not.toBe("");
+      // It is written outside the form's own tags, so only the `form`
+      // attribute carries it back — an id that drifts runs the job on
+      // the defaults instead, silently.
+      expect(select).toContain(`form="${id}"`);
+    }
+  });
+
+  // No "default" entry (asked for 2026-08-19): the select holds real
+  // names only, pre-filled with what the configuration would give the
+  // step when the phase has not run yet.
+  test("the options are the real names, pre-filled with the configured model", () => {
+    const line = subRow(rows([], [target("123-picks")], { defaultModels: { default: "sonnet" } }), "analyze");
+    expect(line).not.toContain('<option value=""');
+    expect(line).toMatch(/<option value="sonnet"[^>]*selected/);
+    expect(line).toContain('value="fable"');
+  });
+
+  test("a per-step configured model beats the catch-all default", () => {
+    const line = subRow(
+      rows([], [target("123-picks")], { defaultModels: { analyze: "fable", default: "sonnet" } }),
+      "analyze",
+    );
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
+  });
+
+  test("no option label reads out a budget figure", () => {
+    const html = rows([]);
+    for (const option of html.matchAll(/<option[^>]*>([^<]*)<\/option>/g)) {
+      expect(option[1]).not.toContain("$");
+    }
+  });
+
+  test("the figure is still reachable — it moved to the option's tooltip", () => {
+    const line = subRow(rows([]), "analyze");
+    expect(line).toContain('title="$12 per step"');
+  });
+
+  // --- criterion 3 -----------------------------------------------------------
+
+  /** The caption line above the phase lines. */
+  const caption = (html: string) =>
+    html.match(/<tr class="subrow" data-caption="1">[\s\S]*?<\/tr>/)?.[0] ?? "";
+
+  test("a Phase/Model caption sits directly above the phase lines", () => {
+    const html = rows([]);
+    const cap = caption(html);
+    expect(cap).toContain(">Phase<");
+    // `CHOICES` is one tool's models, so there is no AI to choose
+    // between and no column headed for one: the caption is the phase
+    // and the model. Two tools add a word — the case below.
+    expect(cap).toContain(">Model<");
+    expect(cap).not.toContain(">AI<");
+    // Between the spec's own line and the first phase line. (The
+    // caption itself is compared with its stack cell stripped, so the
+    // ordering is read off the row tag rather than the text.)
+    const at = html.indexOf('<tr class="subrow" data-caption="1">');
+    expect(at).toBeGreaterThan(html.indexOf('data-folder="123-picks"'));
+    expect(at).toBeLessThan(html.indexOf('data-step="create"'));
+  });
+
+  // The tool is no longer a choice made once for the row (spec 169) and
+  // it has a picker on every phase line (spec 179), so the caption
+  // names two columns where it named one. It read "AI - Model" over the
+  // model's column alone in between.
+  test("with two tools configured the caption names the AI column too", () => {
+    const cap = caption(
+      rows([], [target("123-picks")], {
+        modelChoices: [...CHOICES, { name: "gpt-fast", budgetUsd: 5, tool: "codex" as const }],
+      }),
+    );
+    expect(cap).toContain(">Phase<");
+    expect(cap).toContain(">AI<");
+    expect(cap).toContain(">Model<");
+    expect(cap).not.toContain("AI - Model");
+  });
+
+  // --- criterion 4 -----------------------------------------------------------
+
+  test("with no model configured there is no picker and no caption at all", () => {
+    const html = rows([], [target("123-picks")], { modelChoices: undefined });
+    expect(controlsLine(html, "123-picks")).not.toBe("");
+    expect(html).not.toContain("<select");
+    expect(caption(html)).toBe("");
+    expect(html).not.toContain(">Phase<");
+  });
+
+  // --- criterion 11 ----------------------------------------------------------
+
+  // "last ran: X" is not spelled out any more (asked for 2026-08-19) —
+  // the select's pre-filled value IS the answer.
+  test("a phase that has run pre-fills its select with the model it ran on", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" })],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).not.toContain("last ran");
+    expect(line).toMatch(/<option value="fable"[^>]*selected/);
+  });
+
+  test("a phase run more than once keeps its attempt count", () => {
+    const html = rows(
+      [
+        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
+      ],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).toContain("2 attempts");
+    expect(line).toContain('<select name="model.analyze"');
+  });
+
+  // Spec 176, criterion 4: the note used to sit in a `<div>` of its
+  // own under the badge, so a phase line that had one was taller than
+  // a phase line that had not — and everything beside it moved. It
+  // rides on the badge's own line now.
+  test("the attempt count rides beside the badge, not on a line of its own (spec 176)", () => {
+    const html = rows(
+      [
+        row({ id: "j1", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "fable" }),
+        row({ id: "j2", specFolder: "123-picks", steps: ["analyze"], stepIndex: 0, state: "done", model: "sonnet" }),
+      ],
+      [target("123-picks", { done: ["analyze"] })],
+    );
+    const line = subRow(html, "analyze");
+    expect(line).not.toMatch(/<div class="muted small">\s*<span class="muted small">2 attempts<\/span><\/div>/);
+    expect(line).not.toContain('<div class="muted small">2 attempts</div>');
+    // The note is still there, and now sits in the same flow as the
+    // badge — no block-level wrapper between the two.
+    expect(line).toMatch(/<\/span>\s*<span class="muted small">2 attempts<\/span>/);
+  });
+
+  // --- the gap the description asked to close --------------------------------
+
+  test("nothing sits between the phase name and its picker", () => {
+    const line = subRow(rows([]), "analyze");
+    // The two shared one cell from spec 123 until spec 165 gave each a
+    // real column of its own — with the row's AI between them, which
+    // is the choice that comes first. What the gap was for is still
+    // gone: no empty column stands between the name and the model.
+    // `analyze` is not the first phase line, so the AI column's slot
+    // here is the first line's `rowspan` and no cell of its own
+    // stands between the two.
+    expect(line).toMatch(/<td class="phasecell">[\s\S]*?<\/td><td class="modelcell">/);
+    expect(line).toContain('<select name="model.analyze"');
+  });
+
+  // --- the lock spec 105 put on the shared field follows it here -------------
+
+  test("a busy spec's phase pickers lock exactly as the shared one did", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "running" })],
+      [target("123-picks")],
+    );
+    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    expect(select).toContain("disabled");
+    expect(select).toContain('title="implement is running"');
+  });
+
+  test("a settled spec's phase pickers are live again", () => {
+    const html = rows(
+      [row({ id: "j1", specFolder: "123-picks", steps: ["implement"], stepIndex: 0, state: "done" })],
+      [target("123-picks")],
+    );
+    const select = subRow(html, "analyze").match(/<select name="model\.analyze"[^>]*>/)![0];
+    expect(select).not.toContain("disabled");
+  });
+
+  // A collapsed row has no phase lines, so it has no picker either —
+  // the same promise spec 103 made about the shared field.
+  test("a collapsed row offers no picker", () => {
+    const html = rows([], [target("123-picks")], { filter: {} });
+    expect(html).not.toContain("<select");
+    expect(html).not.toContain('<tr class="subrow');
+  });
+});
