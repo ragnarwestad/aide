@@ -1,15 +1,23 @@
 // Shared DOM/fetch harness for the queue-client.test.ts split (3096
 // lines, 20 describe blocks) into test/queue-client/, one file per
-// theme. `queue-client.ts` cannot be imported (the server transpiles
-// it into an inline classic <script>), so this harness transpiles and
-// runs it against a fake document instead — see the file this was cut
-// from for the full rationale.
+// theme. `queue-client.ts` cannot be imported the way an ordinary
+// module is (the server bundles it into an inline classic <script>),
+// so this harness bundles it the same way the server does
+// (`queueClientScript` in serve-helpers.ts) and runs the result against
+// a fake document instead — see the file this was cut from for the
+// full rationale.
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const RAW = readFileSync(join(import.meta.dir, "..", "..", "src", "queue-client.ts"), "utf-8");
-export const SOURCE = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(RAW);
+const built = await Bun.build({
+  entrypoints: [join(import.meta.dir, "..", "..", "src", "queue-client.ts")],
+  target: "browser",
+  format: "iife",
+});
+if (!built.success) throw new AggregateError(built.logs, "queue-client.ts failed to bundle for the test harness");
+export const SOURCE = await built.outputs[0]!.text();
 
 export interface Reply {
   ok: boolean;

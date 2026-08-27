@@ -49,7 +49,7 @@ export async function handlePageRoutes(
       targets: liveTargets,
       archived: archivedKeys,
       archivedSpecs,
-      script: queueClientScript(),
+      script: await queueClientScript(),
       // Only what the config granted a budget to is offerable: a
       // dropdown naming a model the machine has not agreed to pay for
       // would be a way around the caps.
@@ -156,7 +156,7 @@ export async function handlePageRoutes(
       createProjects: [...ctx.allowed].sort(),
       targets: ctx.withFreshness(ctx.targets()),
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
-      script: queueClientScript(),
+      script: await queueClientScript(),
       modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
         name,
         budgetUsd: choice.budgetUsd,
@@ -188,7 +188,7 @@ export async function handlePageRoutes(
       jobCapUsd: ctx.queue.defaults.jobCapUsd,
       timeoutSec: ctx.queue.defaults.timeoutSec,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, "/"),
-      script: queueClientScript(),
+      script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       notice: url.searchParams.get("notice") ?? undefined,
     }), { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -204,7 +204,7 @@ export async function handlePageRoutes(
     const unclaimed = discoverUnclaimedDirectories(ctx.opts.projectRoot);
     const html = renderAddProjectPage(ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
-      script: queueClientScript(),
+      script: await queueClientScript(),
       existingCheckouts: unclaimed,
       // And what each of them ignores, which is where the worktree
       // links a run needs are named (spec 140). The union, deduped
@@ -249,7 +249,7 @@ export async function handlePageRoutes(
     }
     const html = renderRemoveProjectPage(name, ctx.nav(), new Date().toISOString(), {
       token: ctx.queueToken,
-      script: queueClientScript(),
+      script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
     });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -302,7 +302,7 @@ export async function handlePageRoutes(
       ctx.nav(),
       {
         token: ctx.queueToken,
-        script: queueClientScript(),
+        script: await queueClientScript(),
         // Specs root and Worktree links are no longer read a second
         // time here (spec 255): `projectSettings(dir, readiness)`
         // above already resolved both, and the table draws its Value
@@ -403,7 +403,7 @@ export async function handlePageRoutes(
         // The RAW allowlist, like the New-spec dropdown: a project
         // with no spec yet is exactly what this page is for.
         createProjects: [...ctx.allowed].sort(),
-        script: queueClientScript(),
+        script: await queueClientScript(),
         error: url.searchParams.get("error") ?? undefined,
         // What the Add that landed the reader here found out (spec
         // 138). Straight from the query string, like the refusal

@@ -367,20 +367,25 @@ export function bodyToObject(text: string, contentType: string | null): unknown 
   return JSON.parse(text) as unknown;
 }
 
-// Page code is TypeScript (src/queue-client.ts); the browser needs
-// JavaScript. Transpile once, on first use, and keep it — Bun has the
-// transpiler in-process, so this needs no build step and no bundle
-// checked into the repo.
-let queueScript: string | null = null;
-export function queueClientScript(): string | undefined {
-  if (queueScript !== null) return queueScript || undefined;
-  try {
-    const source = readFileSync(join(import.meta.dir, "../queue-client.ts"), "utf-8");
-    queueScript = new Bun.Transpiler({ loader: "ts", target: "browser" }).transformSync(source);
-  } catch {
-    queueScript = ""; // the page still works: the noscript refresh takes over
-  }
-  return queueScript || undefined;
+// Page code is TypeScript, split across src/queue-client/*.ts and bundled
+// from its src/queue-client.ts entry point; the browser needs one flat
+// JavaScript file. Bundle once, on first use, and keep it — Bun has the
+// bundler in-process (`Bun.build`), so this needs no build step and no
+// bundle checked into the repo. `format: "iife"` is what makes that
+// legal to inline as a classic <script>: no import/export survives in
+// the output, every module's top-level code runs inside one wrapper
+// function, in the same order the entry point pulls its pieces in.
+let queueScript: Promise<string | undefined> | null = null;
+export function queueClientScript(): Promise<string | undefined> {
+  if (queueScript !== null) return queueScript;
+  queueScript = Bun.build({
+    entrypoints: [join(import.meta.dir, "../queue-client.ts")],
+    target: "browser",
+    format: "iife",
+  })
+    .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
+    .catch(() => undefined); // the page still works: the noscript refresh takes over
+  return queueScript;
 }
 
 // The tail of a file, without reading the rest of it. A 25-minute

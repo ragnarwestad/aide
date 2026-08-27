@@ -25,7 +25,7 @@ export async function handleSpecEditRoutes(
       renderResetSpecPage(project!, specFolder!, ctx.nav(), new Date().toISOString(), {
         token: ctx.queueToken,
         error: url.searchParams.get("error") ?? undefined,
-        script: queueClientScript(),
+        script: await queueClientScript(),
       }),
       { headers: { "content-type": "text/html; charset=utf-8" } },
     );
