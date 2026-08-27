@@ -2,7 +2,7 @@
 // Settings, Add/Remove project, a project's own page, and the
 // Projects listing. Extracted from handle-queue.ts (split of split
 // serve.ts step 2).
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveSchedule } from "../../project/discover.ts";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { projectSettings } from "../../project/project-settings.ts";
@@ -294,6 +294,19 @@ export async function handlePageRoutes(
     const drift = configValue(driftRoot, "AIDE_INSTALL_CMD")
       ? ctx.branchStatus.peekDrift(driftRoot)
       : undefined;
+    // Only meaningful for the one project this very process runs from —
+    // every other project's checkout HEAD has nothing to do with this
+    // server's own boot-time SHA, so the comparison stays undefined there.
+    const { sha: servingSha, repoRoot: servingRepoRoot } = ctx.readServing();
+    const serving =
+      servingSha && servingRepoRoot && resolve(driftRoot) === resolve(servingRepoRoot)
+        ? await (async () => {
+            const head = await ctx.gitRun(driftRoot, ["rev-parse", "HEAD"]);
+            if (head.code !== 0) return undefined;
+            const checkoutHead = head.stdout.trim();
+            return { sha: servingSha, checkoutHead, current: servingSha === checkoutHead };
+          })().catch(() => undefined)
+        : undefined;
     const html = renderProjectPage(
       view,
       projectSettings(dir, readiness),
@@ -315,6 +328,7 @@ export async function handlePageRoutes(
         error: url.searchParams.get("error") ?? undefined,
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
+        serving,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

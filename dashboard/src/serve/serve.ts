@@ -59,6 +59,25 @@ export function createServer(opts: ServerOptions) {
   const resolution = setupProjectResolution(opts, allowed, state);
   const { targets, gitRun, branchStatus, ensureCheckout } = resolution;
 
+  // This process's own commit, read once (spec 269) — see state.ts's
+  // own doc comment for why both fields start and stay `null` until
+  // this resolves. `servingRepoRoot` is the repo this process runs
+  // from, used to tell "the project whose checkout I am" from every
+  // other one.
+  Promise.all([
+    gitRun(process.cwd(), ["rev-parse", "HEAD"]),
+    gitRun(process.cwd(), ["rev-parse", "--show-toplevel"]),
+  ])
+    .then(([sha, top]) => {
+      if (sha.code === 0) state.servingSha = sha.stdout.trim();
+      if (top.code === 0) state.servingRepoRoot = top.stdout.trim();
+    })
+    // A `gitRun` that throws rather than answering with a nonzero code
+    // (no git on the machine at all) must leave both `null`, the same
+    // fail-open answer a nonzero code produces — not an unhandled
+    // rejection that takes the server down.
+    .catch(() => {});
+
   const resolveProject: ProjectResolver = (project) => {
     if (!allowed.has(project)) return null;
     const folders = targets().filter((t) => t.project === project).map((t) => t.specFolder);
@@ -264,9 +283,13 @@ export function createServer(opts: ServerOptions) {
     archivedSpecRows,
     specPageView,
     jobDetailView,
+    readServing: () => ({ sha: state.servingSha, repoRoot: state.servingRepoRoot }),
   };
 
-  const coreCtx: CoreRoutesContext = { store, enricher, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir };
+  const coreCtx: CoreRoutesContext = {
+    store, enricher, notifyQueueChanged: watch.notifyQueueChanged, siteDir: opts.siteDir,
+    readServingSha: () => state.servingSha,
+  };
 
   const server = Bun.serve({
     port: opts.port,

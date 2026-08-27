@@ -400,7 +400,10 @@ describe("spec 116: create is the first phase line", () => {
     const boxes = [...line.matchAll(/<input type="checkbox" name="steps" value="([^"]+)"/g)].map(
       (m) => m[1],
     );
-    expect(boxes).toEqual(["analyze", "implement", "archive"]);
+    // `analyze` is done too, so its box is ticked and locked (spec
+    // 267) and carries no `name="steps"` either — `create`'s own
+    // treatment is no longer unique, only first.
+    expect(boxes).toEqual(["implement", "archive"]);
   });
 
   // --- criterion 7: the status sentence and the button do not move -----------

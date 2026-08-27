@@ -74,7 +74,9 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
-    expect(line).not.toMatch(/value="analyze" checked/);
+    // analyze is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit.
+    expect(line).not.toMatch(/name="steps" value="analyze"/);
   });
 
   // Implement's mark used to be earned from the percentage, which says
@@ -969,7 +971,9 @@ describe("a description newer than the analysis is shown on the row", () => {
     // from 4-status.md, and nothing here blocks running it.
     expect(phaseDone(line, "implement")).toBe(true);
     expect(line).toMatch(/value="analyze" checked/);
-    expect(line).not.toMatch(/value="implement" checked/);
+    // implement is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit.
+    expect(line).not.toMatch(/name="steps" value="implement"/);
   });
 
   // Spec 139, criterion 10: the freshness check is a DISPLAY override,

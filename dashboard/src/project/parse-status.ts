@@ -100,7 +100,7 @@ export function parseStatus(content: string): StatusInfo {
   let sawPhaseSection = false;
   for (const section of content.split(/^## /m).slice(1)) {
     const heading = section.split("\n", 1)[0].trim();
-    if (!/^(phase|fase)\b/i.test(heading)) continue;
+    if (!PHASE_HEADING_RE.test(heading)) continue;
     sawPhaseSection = true;
     if (checks.some((check) => check.phase === heading && !check.done)) {
       phase = heading;
@@ -248,11 +248,12 @@ export function clearArchiveHeldBack(content: string): string | null {
 
 // --- spec 182: the rows a person can tick off from the page -------------------
 
-/** One `| Task | Status | Notes |` row of a `## Phase`/`## Fase`
- *  section, which is what a "checkbox" is in a `4-status.md`. No spec
- *  has ever held a `- [ ]` line: the table is what the template has
- *  written since it was written, and the Status cell's mark is the one
- *  character that says whether the row is done. */
+/** One `| Task | Status | Notes |` row of a `## Phase`/`## Fase`/`##
+ *  Checklist` section, which is what a "checkbox" is in a
+ *  `4-status.md`. No spec has ever held a `- [ ]` line: the table is
+ *  what the template has written since it was written, and the Status
+ *  cell's mark is the one character that says whether the row is
+ *  done. */
 export interface StatusCheck {
   /** The phase section's heading, verbatim. Two phases can hold rows
    *  with identical text, so this is half of a row's identity. */
@@ -267,6 +268,14 @@ export interface StatusCheck {
 }
 
 const DONE_MARK = "✅";
+
+/** A `## Phase`/`## Fase` heading, or the `## Checklist` heading a
+ *  LOW-complexity spec's status file uses instead (spec 266) — matching
+ *  core/scripts/aide-archive-spec's own `[Pp]hase*|[Ff]ase*|[Cc]hecklist*`
+ *  heading test exactly, so the two agree about what a phase is. One
+ *  constant, read by both `parseStatus` and `phaseSections` below, so
+ *  the two call sites cannot drift from each other again. */
+const PHASE_HEADING_RE = /^(phase|fase|checklist)\b/i;
 
 /** The longest meaning the template's own Notation table gives a symbol
  *  is `Awaiting clarification`, at 22 characters; 30 leaves room for a
@@ -324,7 +333,8 @@ function tableCells(line: string): [string, string, string] | null {
 }
 
 /** Every phase section, as line-index ranges over `lines`. The heading
- *  test is `parseStatus`'s own, so the two agree about what a phase is. */
+ *  test is `PHASE_HEADING_RE`, the same constant `parseStatus` reads,
+ *  so the two agree about what a phase is. */
 function phaseSections(lines: string[]): { heading: string; from: number; to: number }[] {
   const sections: { heading: string; from: number; to: number }[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -333,7 +343,7 @@ function phaseSections(lines: string[]): { heading: string; from: number; to: nu
     const last = sections[sections.length - 1];
     if (last && last.to === -1) last.to = i;
     const heading = line.slice(3).trim();
-    if (/^(phase|fase)\b/i.test(heading)) sections.push({ heading, from: i + 1, to: -1 });
+    if (PHASE_HEADING_RE.test(heading)) sections.push({ heading, from: i + 1, to: -1 });
   }
   const last = sections[sections.length - 1];
   if (last && last.to === -1) last.to = lines.length;

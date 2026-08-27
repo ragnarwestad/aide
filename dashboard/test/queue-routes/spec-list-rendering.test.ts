@@ -297,15 +297,18 @@ describe("page code placement", () => {
 });
 
 describe("the step boxes on a row follow that spec", () => {
-  test("a step the spec has already had is marked done and left unticked (criterion 1)", async () => {
+  test("a step the spec has already had is marked done and shown ticked and locked (spec 267, criterion 1)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const html = await listUntil(base, rowSaysDone("analyze"));
     const line = specControls(html, "81-queue-and-runner");
-    // analyze is done; implement is what you came for.
-    expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze"(?![^>]*checked)/);
+    // analyze is done, so its box is ticked and locked (spec 267);
+    // implement is what you came for, so its box is pre-ticked and
+    // tickable.
+    expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze" checked disabled/);
+    expect(line).not.toMatch(/data-phase="analyze"[^]*?name="steps" value="analyze"/);
     expect(line).toMatch(/data-phase="implement"[^]*?value="implement"[^>]*checked/);
     expect(phaseDone(line, "analyze")).toBe(true);
   });
@@ -336,7 +339,10 @@ describe("the step boxes on a row follow that spec", () => {
     ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
     const line = specControls(await listUntil(base, rowSaysDone("analyze")), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toMatch(/value="analyze" checked/);
+    // analyze is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit — and
+    // implement is pre-ticked and tickable instead.
+    expect(line).not.toMatch(/name="steps" value="analyze"/);
     expect(line).toMatch(/value="implement" checked/);
   });
 });

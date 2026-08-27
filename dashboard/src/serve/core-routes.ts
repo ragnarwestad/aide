@@ -13,6 +13,11 @@ export interface CoreRoutesContext {
   enricher: LiveEnricher;
   notifyQueueChanged: () => void;
   siteDir: string;
+  /** This process's own boot-time commit (spec 269), a getter since it
+   *  is read once, asynchronously, right after `createServer` starts —
+   *  see `state.ts`'s own doc comment for why it stays `null` rather
+   *  than "loading" until that resolves. */
+  readServingSha: () => string | null;
 }
 
 export async function handleCore(
@@ -46,6 +51,16 @@ export async function handleCore(
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const { rows, enriched } = await ctx.enricher.rows(ctx.store);
     return json({ generatedAt: new Date().toISOString(), enriched, rows });
+  }
+
+  // What commit this process is actually running (spec 269) — read
+  // once at boot, in `process.cwd()`, and never refreshed. A restart
+  // that silently failed to happen looks exactly like one that worked
+  // until something asks this; unauthenticated so a probe nobody's
+  // monitoring can use is not locked behind the queue token.
+  if (path === "/api/version") {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    return json({ sha: ctx.readServingSha() });
   }
 
   if (req.method !== "GET" && req.method !== "HEAD") {

@@ -53,4 +53,8 @@ export interface ProjectPageOptions {
   /** Why the last Deploy press was refused, or what its install step
    *  reported — carried back in the query string, like `error`. */
   deployError?: string;
+  /** This process's own boot-time commit vs. this checkout's current
+   *  HEAD (spec 269) — undefined for every project except the one this
+   *  server is actually running from. */
+  serving?: { sha: string; checkoutHead: string; current: boolean };
 }

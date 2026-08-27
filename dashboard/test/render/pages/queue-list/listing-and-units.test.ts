@@ -999,22 +999,23 @@ describe("spec 124: one phase list, and one action beside the state", () => {
     expect(box(subRow(html, "archive"), "archive")).toContain('value="archive" checked');
   });
 
-  // The whole reason this spec exists: "done" was said by the State
-  // column AND by a green check on the box. The box says nothing about
-  // it any more — and stays tickable, because a rerun is the same
-  // submission it always was.
-  test("a done phase's box carries no check and no dimming (criterion 4)", () => {
+  // Spec 124's own point was that "done" should not be said twice, by
+  // the State column AND a green check on the box. Spec 267 keeps that
+  // rule but answers a different question with the box: not "is this
+  // phase done" (the State column's job, unchanged) but "has this
+  // phase run at all" — which a done phase answers yes to, ticked and
+  // locked.
+  test("a done phase's box is ticked and locked; the State column still carries 'done' alone (spec 267, criterion 4)", () => {
     const html = rows(
       [row({ id: "j1", specFolder: "124-stack", state: "done" })],
       [target("124-stack", { done: ["analyze"] })],
     );
     for (const step of ["analyze"]) {
       const b = box(subRow(html, step), step);
-      expect(b).not.toContain("already done");
-      expect(b).not.toContain("phase done");
-      expect(b).not.toContain("checked");
-      expect(b).not.toContain("disabled");
-      // Said once, by the column whose job it is.
+      expect(b).toContain("already done");
+      expect(b).toContain("checked disabled");
+      // The State column still says "done" — the box's own accessible
+      // label is what changed, not this cell.
       expect(subRow(html, step)).toContain('class="badge b-done"');
     }
     expect(box(subRow(html, "implement"), "implement")).toContain('value="implement" checked');

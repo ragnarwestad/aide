@@ -92,6 +92,11 @@ export interface HandleQueueContext {
   archivedSpecRows: (state: string | undefined) => ArchivedSpecView[];
   specPageView: (project: string, specFolder: string, tab?: string) => Promise<SpecPageView | null>;
   jobDetailView: (job: Job) => Promise<JobDetailView>;
+  /** This process's own boot-time commit and the repo it runs from
+   *  (spec 269) — see `state.ts`'s own doc comment for why both fields
+   *  stay `null` rather than "loading" until the boot-time read
+   *  resolves. */
+  readServing: () => { sha: string | null; repoRoot: string | null };
 }
 
 export async function handleQueue(ctx: HandleQueueContext, req: Request, url: URL, path: string): Promise<Response> {

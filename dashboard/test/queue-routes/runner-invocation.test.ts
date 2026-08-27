@@ -198,19 +198,25 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(made.job.state).toBe("queued");
   });
 
-  test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
+  // Spec 267 reverses this row's own offer: a done phase's box is now
+  // ticked and locked, the same treatment `create` already had (see
+  // "a created spec reads create as done" above). The API route itself
+  // is untouched (2-analysis.md, "API dependencies: None") — a rerun
+  // sent straight to it, bypassing the row's own box, still succeeds.
+  test("a done phase's box is locked on the row; a direct rerun still reaches the queue (criterion 4)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const html = await listUntil(base, rowSaysDone("analyze"));
-    // Said done by the phase line's own State column — the box beside
-    // it carries no second mark (spec 124) — and still submittable.
     const analyze = specControls(html, "81-queue-and-runner")
       .match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0];
     expect(analyze).toContain('class="badge b-done"');
-    expect(analyze).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(analyze).not.toContain("already done");
+    // Ticked, disabled, and carrying no field name — the row no longer
+    // offers this phase for a rerun.
+    expect(analyze).toContain('<input type="checkbox" value="analyze" checked disabled');
+    expect(analyze).not.toContain('name="steps" value="analyze"');
+    expect(analyze).toContain("already done");
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",

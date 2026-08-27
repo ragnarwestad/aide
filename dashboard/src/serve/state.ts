@@ -72,8 +72,21 @@ export interface ServerState {
   /** Filled once the runner stage has run. Read by `scheduleCtx`, built
    *  earlier, only when a schedule timer actually fires. */
   runner: Runner | null;
+  /** This process's own commit and the repo it runs from, read once at
+   *  boot and never refreshed (spec 269) — exactly the signal a stale
+   *  restart needs. Both start `null` and STAY `null`, not "loading",
+   *  until the read resolves: `/api/version` and the project-page
+   *  comparison both treat `null` as "cannot claim anything", the same
+   *  fail-open rule `commitsBehindOrigin` already keeps
+   *  (`branch-status.ts`) — never a stale default, never a thrown
+   *  error. */
+  servingSha: string | null;
+  servingRepoRoot: string | null;
 }
 
 export function createServerState(): ServerState {
-  return { scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null };
+  return {
+    scan: null, unlanded: [], prOpen: [], notifySoon: null, warming: false, server: null, runner: null,
+    servingSha: null, servingRepoRoot: null,
+  };
 }
