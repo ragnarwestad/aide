@@ -1,0 +1,108 @@
+// Split out of css-token-guard.test.ts by theme.
+
+import { describe, expect, test } from "bun:test";
+import { CSS } from "./css-guard-fixtures.ts";
+
+// --- the gap lives in the container (spec 120) ------------------------------
+//
+// A component that brings its own margin decides the spacing of every
+// layout it is ever put in, and the layout it is put in next cannot
+// take it back. The four rules below sat beside each other on the two
+// lines this page crowds most, each with a `margin-left` standing in
+// for a gap their container should have declared once. The guard above
+// checks class NAMES and never rule bodies, so nothing else in the
+// suite would notice one creeping back.
+
+describe("the space between two controls comes from their container", () => {
+  const GAPLESS = [".mergeform", ".actionform", ".extra"];
+
+  for (const cls of GAPLESS) {
+    test(`${cls} declares no margin of its own`, () => {
+      // A rule that is gone entirely passes: `.actionform`'s margin was
+      // its only declaration, and `td form` already gives it the rest.
+      const body = CSS.match(new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+      expect([cls, body.includes("margin")]).toEqual([cls, false]);
+    });
+  }
+
+  test("the row's own alignment rule stays scoped, and the filter bar keeps its own", () => {
+    // The controls line the flex-end rule was written for is gone
+    // (spec 124), and with it the selector — a guard left pointing at
+    // `tr[data-controls]` would pass for ever without protecting
+    // anything. `.row`'s own unscoped `center` is what the filter bar
+    // still needs and must not be replaced by a row-shaped rule.
+    expect(CSS).not.toContain("data-controls");
+    expect(CSS).toMatch(/\.row\s*\{[^}]*align-items:\s*center[^}]*\}/);
+  });
+
+  // Spec 167. `.actionslot` has reserved a fixed width since spec 157,
+  // but the badge in FRONT of it has none — "not started", "analyzing",
+  // "archive held back", "done — nothing waiting on you" — so the
+  // buttons started at different x positions down the column and moved
+  // as a state changed. `space-between` puts the action against the
+  // column's right edge whatever the badge says, and costs no reserved
+  // space at all.
+  //
+  // Static rule, not a rendered comparison: whether two badges of
+  // different lengths anchor their buttons to the same pixel needs a
+  // browser. What this proves is that the rule exists, and that it is
+  // scoped to the State cell's row rather than added to the shared
+  // `.row {}` the phase lines and the filter bar also use.
+  test("the State cell's action is pushed to the column's right edge, scoped", () => {
+    expect(CSS).toMatch(
+      /table\.list tr\.spechead > td > \.row \{[^}]*justify-content:\s*space-between[^}]*\}/,
+    );
+    // The shared rule keeps its own alignment and gains nothing.
+    expect(CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "").not.toContain("justify-content");
+  });
+});
+
+// --- the row's action cannot widen a column (spec 124, spec 157) -----------
+//
+// The button a row offers comes and goes with its state, and the cell
+// it sits in must not be sized by whichever label is longest: a column
+// that grows to fit one row's button moves every other row on the page.
+// Spec 124 answered that with a declared width on a cell of the
+// buttons' own — a COLUMN at the front of the table first, which
+// pushed every other column sideways, then the spec column's own cell
+// spanning the phase lines (2026-08-19).
+//
+// Spec 157 answers it by wrapping instead. One button per row, in the
+// State column, sharing the page's ordinary `row` container with the
+// badge — and that container wraps, so a long pairing becomes two
+// lines rather than a wider column.
+
+describe("the row's action wraps rather than widening a column", () => {
+  test("no cell of the buttons' own is left to declare a width on", () => {
+    expect(CSS).not.toContain("stackcell");
+    expect(CSS).not.toMatch(/\.stack \{/);
+  });
+
+  test("the container the badge and button share wraps, with the gap it always had", () => {
+    const rule = CSS.match(/\n\.row \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("flex-wrap: wrap");
+    expect(rule).toMatch(/gap:\s*var\(--sp-\d\)/);
+    expect(rule).not.toContain("margin");
+  });
+});
+
+// --- the unit a reader chose (spec 118) -------------------------------------
+//
+// The same trick as the theme, applied to text instead of colour: every
+// consumption figure is rendered twice and CSS hides one. Both rules are
+// needed and neither is obvious — the second is a `:not()`, which is
+// what makes dollars the default without an attribute to select on — so
+// deleting either fails here with a reason.
+
+describe("the unit a reader chose is a CSS switch, not a second page", () => {
+  test("choosing tokens hides the dollar figure", () => {
+    expect(CSS).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');
+  });
+
+  test("with no choice made the token figure is the hidden one", () => {
+    // `:not([data-unit="tokens"])`, not `[data-unit="usd"]`: dollars is
+    // the ABSENCE of the attribute, exactly as Auto is for the theme, so
+    // a page whose script never ran still reads the way it always did.
+    expect(CSS).toContain(':root:not([data-unit="tokens"]) .u-tok { display: none; }');
+  });
+});
