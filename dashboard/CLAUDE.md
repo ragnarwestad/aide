@@ -125,6 +125,22 @@ the branch and records `errorReason: "conflict"` on the job.
 `landBranch` in `dashboard/src/serve.ts` is the one place all of this
 happens, under `mergeLock` per repo root.
 
+**An `onLanded` callback runs before the runner clears its own job's
+`landing` flag (spec 264).** `Runner.complete()` in
+`dashboard/src/queue/runner.ts` is synchronous: it starts the landing
+work (`onStepDone`, e.g. `landArchivedSpec` for `archive`), writes
+`landing: true` onto the job's own store row, and only clears that flag
+in a `.then()` once the WHOLE landing promise settles — including
+whatever `onLanded` itself does. So a callback like
+`stampTotalDuration` (`serve.ts`), which reads `queue.list()` to sum up
+a spec's jobs, sees its own triggering job still marked `landing: true`
+even though the landing that is calling it has already succeeded. Code
+in an `onLanded` callback that needs to know whether ITS OWN job is
+still in flight cannot trust the stored `landing` flag for that one row
+and must treat it as settled by hand, the way `stampTotalDuration` now
+does — every other row's `landing`/`inFlight` state is still exactly as
+trustworthy as ever.
+
 **"Every repo the spec's branch still exists in" was the intent, never
 the code — so origin is asked (spec 193).** The merge loop can only
 merge repos it was told about: its own run's `branchUrls`, plus what
