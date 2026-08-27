@@ -1,7 +1,6 @@
 // The small pieces every other file in this split reaches for: the
 // three marks a row can carry, the column count, and the hidden fields
-// every form on this page repeats. Split out of cells.ts (split
-// cells.ts by theme).
+// every form on this page repeats.
 
 import { esc } from "../../ui/html.ts";
 import { FILTER_FIELD_PREFIX, FILTER_KEYS, type QueueFilter } from "./data-model.ts";

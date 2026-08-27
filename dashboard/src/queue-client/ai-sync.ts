@@ -1,6 +1,5 @@
 // Keeping a phase line's AI picker and its model select honest with
-// each other (spec 179). Split out of queue-client.ts (split
-// queue-client.ts into a bundled folder).
+// each other (spec 179).
 
 import { postTailModel } from "./tail-actions.ts";
 import { chosen, selectKey } from "./state.ts";

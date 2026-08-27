@@ -1,5 +1,5 @@
 // One line per phase, in the workflow's own order, whether or not it
-// has happened. Split out of cells.ts (split cells.ts by theme).
+// has happened.
 
 import { PHASE_TAB, specTabPath } from "../spec-page.ts";
 import { ICON_CHEVRON, badge, phaseChip, stepLabel } from "../../ui/components.ts";

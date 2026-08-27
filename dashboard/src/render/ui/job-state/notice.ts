@@ -1,5 +1,4 @@
-// The one long message a row has to say (spec 143). Split out of
-// job-state.ts by theme (split job-state.ts by theme).
+// The one long message a row has to say (spec 143).
 
 import type { MessageVariant } from "../components.ts";
 import { inFlight } from "./format.ts";

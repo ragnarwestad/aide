@@ -1,7 +1,6 @@
 // Redrawing #jobrows from the server's own answer — only the specs
 // whose rows actually differ, and never a row a press is mid-click on
-// (spec 204). Split out of queue-client.ts (split queue-client.ts into
-// a bundled folder).
+// (spec 204).
 
 import { offerEachToItsTool, syncAiToModel } from "./ai-sync.ts";
 import { AWAITING, chosen, chosenSteps, checkboxKey, press, selectKey } from "./state.ts";

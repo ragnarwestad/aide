@@ -1,6 +1,5 @@
 // The context every landing function reads instead of `createServer`'s
 // closure, and the `Landing` description `landBranch` is driven by.
-// Split out of land-branch.ts by theme (split land-branch.ts by theme).
 
 import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";

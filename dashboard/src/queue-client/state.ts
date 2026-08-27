@@ -1,7 +1,6 @@
 // Shared mutable state and the small keys built from a control's own
 // attributes — the pieces every other file in this split reaches for.
-// Split out of queue-client.ts (split queue-client.ts into a bundled
-// folder), which still says why each piece of state exists; this file
+// queue-client.ts still says why each piece of state exists; this file
 // only carries the declarations.
 
 /** The New-spec form, and never the Add-project one. Both wear

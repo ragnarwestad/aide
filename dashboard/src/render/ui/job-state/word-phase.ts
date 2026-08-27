@@ -1,5 +1,4 @@
-// The one rule for what a phase shows (spec 108). Split out of
-// job-state.ts by theme (split job-state.ts by theme).
+// The one rule for what a phase shows (spec 108).
 
 import type { BadgeVariant, PipKind } from "../components.ts";
 import { BADGE_VARIANT, inFlight, stateLabel } from "./format.ts";

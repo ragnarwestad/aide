@@ -1,7 +1,6 @@
 // The Overview tab's own pieces: what the spec depends on, whether it
 // is archived, its run history, its checks, and the Reopen/Reset
-// controls. Split out of spec-page.ts by theme (split spec-page.ts by
-// theme).
+// controls.
 
 import { btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";

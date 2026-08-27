@@ -1,6 +1,5 @@
 // State labels, durations, the state chip, and "is this job still
-// going". Split out of job-state.ts by theme (split job-state.ts by
-// theme).
+// going".
 
 import { badge, type BadgeVariant } from "../components.ts";
 import type { QueueRowView } from "./types.ts";

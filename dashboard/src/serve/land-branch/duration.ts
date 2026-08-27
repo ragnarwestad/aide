@@ -1,6 +1,5 @@
 // What a spec cost in time, written into its own `4-status.md` once
-// its archive has landed (spec 207). Split out of land-branch.ts by
-// theme (split land-branch.ts by theme).
+// its archive has landed (spec 207).
 
 import { join } from "node:path";
 import type { Job } from "../../queue/queue.ts";

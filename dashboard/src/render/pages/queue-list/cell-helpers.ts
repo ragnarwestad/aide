@@ -1,6 +1,5 @@
 // The small cells a spec's header row and phase lines share: state,
 // duration, cost, and the marks an archived row's date cell carries.
-// Split out of cells.ts (split cells.ts by theme).
 
 import { CHECKING, badge, pips, stepLabel } from "../../ui/components.ts";
 import { esc, relTime, relTimeLabel, usdOrTokens } from "../../ui/html.ts";

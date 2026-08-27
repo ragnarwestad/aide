@@ -1,7 +1,6 @@
 // Clone or register a project under the projects root, give it a
 // manifest if it has none, and point it at its specs root if one was
-// named. Split out of project-admin.ts (split project-admin.ts by
-// theme).
+// named.
 
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

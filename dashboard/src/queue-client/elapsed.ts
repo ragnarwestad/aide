@@ -16,8 +16,7 @@
 // `durationLabel` over a table of spans. Change one and change the
 // other.
 //
-// Split out of queue-client.ts (split queue-client.ts into a bundled
-// folder); the caller (the entry point) still looks the marks up fresh
+// The caller (the entry point) still looks the marks up fresh
 // on every tick, which is what lets it survive `swapRows()` replacing
 // `#jobrows` underneath it with no rebinding at all.
 export function formatElapsed(ms: number): string {

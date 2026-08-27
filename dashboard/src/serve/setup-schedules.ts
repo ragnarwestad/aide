@@ -1,7 +1,5 @@
 // The four git-backed checkers and the schedules built on top of them:
 // drift, the spec caches, and each project's own `schedule:` entries.
-// Split out of serve.ts (split serve.ts by theme, restructuring
-// createServer into staged setup functions to get it under 500 lines).
 //
 // `readRunner` stays a getter reading `state.runner`: the runner stage
 // runs AFTER this one (it needs the land functions setup-land.ts

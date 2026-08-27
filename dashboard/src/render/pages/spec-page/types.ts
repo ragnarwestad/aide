@@ -1,5 +1,4 @@
-// The spec page's own view types. Split out of spec-page.ts by theme
-// (split spec-page.ts by theme).
+// The spec page's own view types.
 
 import type { JobDetailView, JobStepResultView, SpecFileView } from "../job-page.ts";
 import type { Phase, QueueTarget } from "../queue-list.ts";

@@ -3,9 +3,7 @@
 // setup-project-resolution.ts, setup-schedules.ts, setup-land.ts, and
 // createServer's own remaining body) can all read and write the same
 // mutable state without passing a getter/setter pair per field across
-// every boundary. Split out of serve.ts (split serve.ts by theme,
-// restructuring createServer into staged setup functions to get it
-// under 500 lines).
+// every boundary.
 //
 // Every existing context type downstream (`HandleQueueContext`,
 // `ScheduleContext`, `SseWatchersContext`, `SpecLookupContext`,

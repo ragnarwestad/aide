@@ -1,5 +1,4 @@
-// The `serve.ts serve ...` command line entry point. Split out of
-// serve.ts (split serve.ts by theme).
+// The `serve.ts serve ...` command line entry point.
 
 import { createServer } from "./serve.ts";
 import { parseArgs } from "./serve-helpers.ts";

@@ -1,7 +1,6 @@
 // The landing every self-landing step shares: merge a step's own
 // branch into the default branch of every repo it pushed to, and
-// report per repo (specs 93, 136, 149). Split out of land-branch.ts by
-// theme (split land-branch.ts by theme).
+// report per repo (specs 93, 136, 149).
 
 import { join } from "node:path";
 import type { Job } from "../../queue/queue.ts";

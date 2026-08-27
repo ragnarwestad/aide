@@ -1,6 +1,5 @@
 // The `Depends on:` line in a spec's own `1-description.md` (spec 92):
-// reading it, stripping it, and writing it back. Split out of
-// discover.ts by theme (split discover.ts by theme).
+// reading it, stripping it, and writing it back.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

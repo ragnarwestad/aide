@@ -6,8 +6,6 @@
 //
 // Nothing to say draws nothing at all: an empty `.rowmsg` is invisible,
 // but an empty `<tr>` is still a row of padding.
-//
-// Split out of cells.ts (split cells.ts by theme).
 
 import { rowMessage, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";

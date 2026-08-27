@@ -1,6 +1,5 @@
 // The project page's unified settings table: view mode and edit mode
-// in one `<table>`. Split out of site.ts by theme (split site.ts by
-// theme).
+// in one `<table>`.
 
 import { DERIVABLE, type ProjectSettingsView, type SettingRow } from "../../../project/project-settings.ts";
 import { btn, messageSlot, rowMessage, tokenField } from "../../ui/components.ts";

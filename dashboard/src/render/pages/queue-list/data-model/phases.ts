@@ -1,8 +1,7 @@
 // One spec, however many jobs it took. The list is about SPECS. A spec
 // taken through analyze, implement and archive as three separate jobs
 // is still one spec, and how far it has got — and what its phases cost
-// in time — should read without counting rows. Split out of
-// data-model.ts (split data-model.ts by theme).
+// in time — should read without counting rows.
 
 import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
 import { PHASE_LINES, QUEUE_STEPS, type Phase, type QueueTarget } from "./types.ts";

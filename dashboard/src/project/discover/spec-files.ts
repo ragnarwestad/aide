@@ -1,6 +1,5 @@
 // Reading one spec's own files: its title, its description, what one
-// workflow step wrote, and the archive/duration stamps. Split out of
-// discover.ts by theme (split discover.ts by theme).
+// workflow step wrote, and the archive/duration stamps.
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";

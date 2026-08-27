@@ -1,6 +1,5 @@
 // The four thin `Landing` descriptions each workflow step's own landing
-// is built from. Split out of land-branch.ts by theme (split
-// land-branch.ts by theme).
+// is built from.
 
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";

@@ -1,6 +1,6 @@
 // The forms and links a spec's row draws to act on it: fold, cancel,
 // the compare links, reopen, and the one Run/Cancel control the State
-// column carries. Split out of cells.ts (split cells.ts by theme).
+// column carries.
 
 import { ICON_CHEVRON, btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";

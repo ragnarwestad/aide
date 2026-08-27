@@ -1,6 +1,5 @@
 // The document tabs: one file read-only, and the Description tab's own
-// form. Split out of spec-page.ts by theme (split spec-page.ts by
-// theme).
+// form.
 
 import { field, tokenField, btn } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";

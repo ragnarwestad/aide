@@ -2,7 +2,7 @@
 // the shape aide-run-store.ts established — a written-down schema with
 // unknown fields ignored, an LRU cap, a mirror written-then-renamed and
 // reloaded on boot. No scheduler here: 81a stores and shows jobs, 81b
-// runs them. Split out of queue.ts (split queue.ts by theme).
+// runs them.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";

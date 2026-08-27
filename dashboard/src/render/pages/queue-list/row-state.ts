@@ -1,6 +1,6 @@
 // The row-level facts everything else on a spec's rows is built from:
 // whether it is busy, what phase it is waiting on, what a press would
-// run. Split out of cells.ts (split cells.ts by theme).
+// run.
 
 import { currentStep, inFlight, stateLabel } from "../../ui/job-state.ts";
 import { stepLabel } from "../../ui/components.ts";

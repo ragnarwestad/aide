@@ -1,6 +1,6 @@
-// createServer's own configuration surface. Split out of serve.ts (split
-// serve.ts by theme) — a pure type with no closure state, so moving it
-// carries no risk the rest of that file's wiring does.
+// createServer's own configuration surface — a pure type with no
+// closure state, so moving it carries no risk the rest of that file's
+// wiring does.
 
 import type { NavEntry } from "../render.ts";
 import type { QueueDefaults } from "../queue/queue.ts";

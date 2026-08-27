@@ -1,7 +1,6 @@
 // The two presses a phase LINE makes on a job that is already running
 // — ticking a step, picking a model — plus the refusal banner every
-// press on the page can land. Split out of queue-client.ts (split
-// queue-client.ts into a bundled folder).
+// press on the page can land.
 
 import { attrValue, refusalText, rowControls, type ActionResult, type Control } from "./press.ts";
 import { swapRows } from "./row-swap.ts";

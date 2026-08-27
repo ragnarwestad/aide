@@ -1,5 +1,4 @@
-// Take a project off the allowlist. Split out of project-admin.ts
-// (split project-admin.ts by theme).
+// Take a project off the allowlist.
 
 import { fail, type ProjectAdminResult, type ProjectStep } from "./types.ts";
 

@@ -1,5 +1,4 @@
-// The reset confirmation page. Split out of spec-page.ts by theme
-// (split spec-page.ts by theme).
+// The reset confirmation page.
 
 import { backLink, rowMessage, tokenField, typedConfirm } from "../../ui/components.ts";
 import { pageShell, type NavEntry } from "../../ui/shell.ts";

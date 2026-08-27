@@ -1,6 +1,5 @@
 // The Runner's own types: what a spawn produces, what a finished step
-// reports, and the options the scheduler is built from. Split out of
-// runner.ts by theme (split runner.ts by theme).
+// reports, and the options the scheduler is built from.
 
 import type { NotifyEvent } from "../../integrations/notify.ts";
 import type { BranchRef, Job, QueueStore, TokenUsage, WorkflowStep } from "../queue.ts";

@@ -1,5 +1,4 @@
-// Server-wide constants and the per-repo merge lock. Split out of
-// serve-helpers.ts by theme (split serve-helpers.ts by theme).
+// Server-wide constants and the per-repo merge lock.
 
 import type { QueueDefaults } from "../../queue/queue.ts";
 

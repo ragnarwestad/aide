@@ -1,7 +1,6 @@
 // Turning an HTTP body into a Job — the two shapes a request can take
 // (an ordinary run, and a brand-new spec's `create`) and the rules
-// shared between them. Split out of queue.ts (split queue.ts by
-// theme).
+// shared between them.
 //
 // Two properties are security, not tidiness:
 //   * a request carries NAMES, never paths — the server resolves the

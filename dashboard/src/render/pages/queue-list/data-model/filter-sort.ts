@@ -1,6 +1,6 @@
 // The questions actually asked of this list: which chip a reader has
 // picked, which column it is sorted by, and what a search term matches
-// against. Split out of data-model.ts (split data-model.ts by theme).
+// against.
 
 import { IN_FLIGHT } from "../../../ui/job-state.ts";
 import { ARCHIVED_OPEN_STATE, ARCHIVED_STATE, type QueueFilter, type SpecGroup } from "./types.ts";

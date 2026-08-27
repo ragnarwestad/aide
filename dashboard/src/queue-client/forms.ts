@@ -11,9 +11,6 @@
 // submit themselves and the 303 still works, which is why the markup
 // stays a real form rather than a button this code has to give meaning
 // to.
-//
-// Split out of queue-client.ts (split queue-client.ts into a bundled
-// folder).
 
 import { ACTIONS, postForm } from "./press.ts";
 import { swapRows } from "./row-swap.ts";

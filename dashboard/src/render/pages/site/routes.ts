@@ -1,5 +1,4 @@
-// The site's nav and its routes' paths. Split out of site.ts by theme
-// (split site.ts by theme).
+// The site's nav and its routes' paths.
 
 import type { NavEntry } from "../../ui/shell.ts";
 

@@ -1,6 +1,5 @@
 // The served project page (spec 185): drift/deploy, run readiness, and
-// the schedule section. Split out of site.ts by theme (split site.ts
-// by theme).
+// the schedule section.
 
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import type { ProjectReadiness } from "../../../project/project-admin.ts";

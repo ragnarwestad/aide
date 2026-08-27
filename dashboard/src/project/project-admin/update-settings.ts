@@ -1,5 +1,4 @@
-// Change a project's settings after it was added. Split out of
-// project-admin.ts (split project-admin.ts by theme).
+// Change a project's settings after it was added.
 
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

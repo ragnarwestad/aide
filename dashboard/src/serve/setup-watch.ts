@@ -1,7 +1,5 @@
 // The SSE watchers and the per-project spec-folder fs.watch that tells
-// them to look again. Split out of serve.ts (split serve.ts by theme,
-// restructuring createServer into staged setup functions to get it
-// under 500 lines).
+// them to look again.
 
 import { watch } from "node:fs";
 import { discoverProjects } from "../project/discover.ts";

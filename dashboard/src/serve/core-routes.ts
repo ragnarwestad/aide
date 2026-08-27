@@ -1,7 +1,6 @@
 // The routes `createServer`'s `fetch` answers itself, once the queue
 // surface has already declined a path: aide-run ingestion, the live
-// rows feed, and the static/PWA fallback. Split out of serve.ts (split
-// serve.ts by theme).
+// rows feed, and the static/PWA fallback.
 
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import { parseAideRun } from "../queue/aide-run-store.ts";

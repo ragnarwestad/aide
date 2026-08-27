@@ -1,7 +1,6 @@
 // A project's own `.aide/config` and `.aide/project.yaml`: where its
 // specs live, its worktree links, its code-landing policy and its
-// schedule. Split out of discover.ts by theme (split discover.ts by
-// theme).
+// schedule.
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -1,8 +1,7 @@
 // The shapes the spec list's data model trades in: what a live spec's
 // own target carries, what an archived spec's record carries, the
 // filter a reader's chosen view applies, and the row shape (SpecGroup)
-// everything else on this page is built from. Split out of
-// data-model.ts (split data-model.ts by theme).
+// everything else on this page is built from.
 
 import { type PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { type BranchView, type QueueRowView } from "../../../ui/job-state.ts";

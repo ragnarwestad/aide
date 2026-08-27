@@ -1,6 +1,5 @@
 // Plain request/response plumbing: JSON responses, a bounded body read,
-// token comparison, cookies, and the sort-column cookie. Split out of
-// serve-helpers.ts by theme (split serve-helpers.ts by theme).
+// token comparison, cookies, and the sort-column cookie.
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { MAX_BODY } from "./config.ts";

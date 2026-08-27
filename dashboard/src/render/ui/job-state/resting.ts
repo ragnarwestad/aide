@@ -1,5 +1,4 @@
-// What a row's chip says when nothing is running on it. Split out of
-// job-state.ts by theme (split job-state.ts by theme).
+// What a row's chip says when nothing is running on it.
 
 import { badge, stepLabel } from "../components.ts";
 import { currentStep, stateChip } from "./format.ts";

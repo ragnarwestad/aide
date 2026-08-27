@@ -1,6 +1,6 @@
 // Everything the queue writes to disk outside the mirror itself: the
 // project allowlist, the workflow defaults, and reading a stored job
-// back. Split out of queue.ts (split queue.ts by theme).
+// back.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";

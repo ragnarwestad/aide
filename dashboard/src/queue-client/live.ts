@@ -7,9 +7,6 @@
 // seconds to show. The connection below replaces both — the page draws
 // when the server says something moved, and holds perfectly still
 // otherwise.
-//
-// Split out of queue-client.ts (split queue-client.ts into a bundled
-// folder).
 
 import { swapRows } from "./row-swap.ts";
 import { press } from "./state.ts";

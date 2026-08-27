@@ -1,6 +1,5 @@
 // Everything about a spec that only git can answer, asked once per
-// spec over the same checkout. Split out of land-branch.ts by theme
-// (split land-branch.ts by theme).
+// spec over the same checkout.
 
 import { stepsFileDisagreesOn } from "../../git/workflow-history.ts";
 import type { QueueTarget } from "../../render.ts";

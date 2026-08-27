@@ -1,6 +1,5 @@
 // Where a no-JS form POST goes back to, and the two commit messages a
-// Save writes. Split out of serve-helpers.ts by theme (split
-// serve-helpers.ts by theme).
+// Save writes.
 
 import { EDITABLE_SPEC_FILE, FILTER_FIELD_PREFIX, FILTER_KEYS, STATUS_SPEC_FILE } from "../../render.ts";
 

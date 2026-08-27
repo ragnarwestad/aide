@@ -1,6 +1,5 @@
 // The two kinds of link on this page: one that stays and swaps the
-// rows in place, one that leaves for another document. Split out of
-// queue-client.ts (split queue-client.ts into a bundled folder).
+// rows in place, one that leaves for another document.
 
 import { swapRows } from "./row-swap.ts";
 import { AWAITING } from "./state.ts";

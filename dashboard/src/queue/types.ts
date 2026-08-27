@@ -1,6 +1,5 @@
 // The shapes the queue trades in: a job, its results, and the config
-// that bounds what a request may ask for. Split out of queue.ts (split
-// queue.ts by theme).
+// that bounds what a request may ask for.
 
 import type { JobState, StopReason, WorkflowStep } from "./steps.ts";
 

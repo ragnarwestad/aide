@@ -1,6 +1,5 @@
 // What a queued job looks like to a page. Both the list and the
-// single-job page need this, and neither owns it. Split out of
-// job-state.ts by theme (split job-state.ts by theme).
+// single-job page need this, and neither owns it.
 
 import type { TddPhase } from "../../../queue/aide-run-store.ts";
 

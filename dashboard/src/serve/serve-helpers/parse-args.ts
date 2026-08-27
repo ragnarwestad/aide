@@ -1,6 +1,5 @@
 // The `serve` CLI's own argument parsing, and resolving a `Depends on:`
-// identifier to a spec folder. Split out of serve-helpers.ts by theme
-// (split serve-helpers.ts by theme).
+// identifier to a spec folder.
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";

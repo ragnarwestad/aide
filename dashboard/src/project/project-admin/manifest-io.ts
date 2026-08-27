@@ -1,7 +1,6 @@
 // Naming a project, and writing the files that describe it: the
 // manifest, the personal `.aide/config`, and the worktree-links rule
-// both readers refuse the same value by. Split out of project-admin.ts
-// (split project-admin.ts by theme).
+// both readers refuse the same value by.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";

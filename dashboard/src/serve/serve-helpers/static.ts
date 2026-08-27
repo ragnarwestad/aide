@@ -1,7 +1,6 @@
 // Serving what is not a queue route: the generated static site, the PWA
 // assets, the fallback nav for a server with no project root, the
-// bundled queue-client script, and a bounded file tail. Split out of
-// serve-helpers.ts by theme (split serve-helpers.ts by theme).
+// bundled queue-client script, and a bounded file tail.
 
 import {
   closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync,

@@ -1,5 +1,4 @@
 // The spec page's paths, its tabs, and which file/phase each one names.
-// Split out of spec-page.ts by theme (split spec-page.ts by theme).
 
 /** The path this page lives at. One function, because the server routes
  *  on it and the list links to it. */

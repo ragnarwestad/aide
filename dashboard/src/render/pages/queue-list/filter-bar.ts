@@ -1,6 +1,5 @@
 // The filter chips, the search field, the sortable column headers and
-// the New-spec link that sit above the spec list. Split out of
-// queue-list.ts (2026-08-26) alongside `cells.ts` — this file draws the
+// the New-spec link that sit above the spec list. This file draws the
 // controls that choose WHICH rows show and in WHAT order; `cells.ts`
 // draws the rows themselves.
 

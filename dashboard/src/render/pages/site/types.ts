@@ -1,5 +1,4 @@
-// The site's own view types. Split out of site.ts by theme (split
-// site.ts by theme).
+// The site's own view types.
 
 import type { SpecRef } from "../../../project/discover.ts";
 import type { StatusInfo } from "../../../project/parse-status.ts";

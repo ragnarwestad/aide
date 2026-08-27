@@ -1,8 +1,6 @@
 // Resolving what a project's specs and checkouts actually are: the
 // dashboard's own checkout of it, the machinery/person checkout split,
-// and every spec-lookup question built off `targets()`. Split out of
-// serve.ts (split serve.ts by theme, restructuring createServer into
-// staged setup functions to get it under 500 lines).
+// and every spec-lookup question built off `targets()`.
 //
 // Checkout and spec-lookup are ONE stage, not two, because they are
 // mutually referential: `projectCheckoutCtx.targets` is spec-lookup's

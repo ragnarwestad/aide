@@ -1,7 +1,6 @@
 // Turning the raw jobs, targets and archived records into the rows this
 // page actually draws — one SpecGroup per spec, however many jobs or
-// none it took. Split out of data-model.ts (split data-model.ts by
-// theme).
+// none it took.
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type BranchView, type QueueRowView } from "../../../ui/job-state.ts";

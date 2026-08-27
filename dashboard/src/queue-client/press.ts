@@ -1,7 +1,5 @@
 // Post a form as JSON-wanting XHR and lock the row while it is out —
 // the one press mechanism every button and select on this page shares.
-// Split out of queue-client.ts (split queue-client.ts into a bundled
-// folder).
 
 import { press } from "./state.ts";
 

@@ -18,8 +18,6 @@
 // someone can leave mid-rebase before Run. That is true of any
 // preflight check and is said in the README rather than defended
 // against here.
-//
-// Split out of project-admin.ts (split project-admin.ts by theme).
 
 import { existsSync, statSync } from "node:fs";
 import { basename, join, resolve } from "node:path";

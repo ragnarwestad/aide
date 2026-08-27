@@ -1,6 +1,5 @@
 // The spec's own header row: what it is, how far it has got, what it
-// has cost, and the one thing that can be done about it. Split out of
-// cells.ts (split cells.ts by theme).
+// has cost, and the one thing that can be done about it.
 
 import { specPagePath } from "../spec-page.ts";
 import { CHECKING, badge, stepLabel } from "../../ui/components.ts";

@@ -1,7 +1,6 @@
 // The workflow's own vocabulary: which steps exist, which order they
-// run in, and which states a job passes through. Split out of
-// queue.ts (split queue.ts by theme) — the piece every other file in
-// this split reaches for first.
+// run in, and which states a job passes through — the piece every
+// other file in this split reaches for first.
 
 import type { Job } from "./types.ts";
 

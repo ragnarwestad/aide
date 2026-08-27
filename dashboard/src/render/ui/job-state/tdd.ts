@@ -1,5 +1,4 @@
 // How many of a running implement's three TDD parts are behind it.
-// Split out of job-state.ts by theme (split job-state.ts by theme).
 
 import { TDD_PHASES } from "../../../queue/aide-run-store.ts";
 import type { QueueRowView } from "./types.ts";
