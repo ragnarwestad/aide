@@ -92,6 +92,10 @@ const STRUCTURE = [
   // the box a table too wide for the window scrolls inside, so the
   // PAGE never does (spec 155).
   "row", "intro", "tabpanel", "facts", "extra",
+  // the one back-navigation link every subpage carries (spec 252),
+  // deliberately not ".btn": it goes somewhere rather than submitting
+  // anything.
+  "backlink",
   // the Steps tab's per-row expand (spec 240): the link that opens a
   // step's own log, and the row the log itself sits in.
   "steplink", "steplog",

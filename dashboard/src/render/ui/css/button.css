@@ -41,3 +41,12 @@
   animation: sp 0.9s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
 
+/* The one back-navigation link (spec 252, restyled 2026-08-27): a real
+   `<a href>`, deliberately not `.btn` — it goes somewhere rather than
+   submitting anything, and the boxed button look made it read as one
+   more button beside the ones that do. */
+.backlink { display: inline-flex; align-items: center; gap: var(--sp-1);
+  font: 700 var(--fs-s)/1 var(--sans); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--accent); text-decoration: none; }
+.backlink:hover { color: var(--accent-strong); text-decoration: none; }
+

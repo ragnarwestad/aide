@@ -81,7 +81,7 @@ describe("Settings page", () => {
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
       backHref: "/projects/aide",
     });
-    expect(html).toContain('<a class="btn" href="/projects/aide">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
     expect(html).not.toContain(">Cancel<");
   });
 
@@ -91,6 +91,6 @@ describe("Settings page", () => {
       defaultModels: { default: "sonnet" },
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });

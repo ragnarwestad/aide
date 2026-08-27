@@ -142,7 +142,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
 
   test("Back links home before the create form", () => {
     const html = newPage();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
     expect(html.indexOf("← Back</a>")).toBeLessThan(
       html.indexOf('action="/api/queue/create"'),
     );
@@ -152,7 +152,7 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
   // "New spec" from survives the round trip.
   test("Back tracks the given backHref", () => {
     const html = newPage({ backHref: "/?state=all&q=archive" });
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // Criteria 2, 7: one back-navigation control, never two — the bottom

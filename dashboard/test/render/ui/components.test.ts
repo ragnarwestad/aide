@@ -6,8 +6,8 @@ import { describe, expect, test } from "bun:test";
 import { backLink, resolveBackHref } from "../../../src/render/ui/components.ts";
 
 describe("backLink", () => {
-  test("a .btn anchor labelled ← Back, wrapped in the .intro spacing rule", () => {
-    expect(backLink("/projects")).toBe('<p class="intro"><a class="btn" href="/projects">← Back</a></p>');
+  test("a .backlink anchor labelled ← Back, wrapped in the .intro spacing rule", () => {
+    expect(backLink("/projects")).toBe('<p class="intro"><a class="backlink" href="/projects">← Back</a></p>');
   });
 
   test("escapes its href", () => {

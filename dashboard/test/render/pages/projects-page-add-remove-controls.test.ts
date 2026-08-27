@@ -82,7 +82,7 @@ describe("the Add page", () => {
   test("Save posts, and Back — not a bottom Cancel — is the one way out", () => {
     const html = add();
     expect(html).toContain(">Save</button>");
-    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).not.toContain(">Cancel<");
   });
 
@@ -150,7 +150,7 @@ describe("the Remove page", () => {
     expect(html).not.toContain("disabled");
     // Spec 252: the bottom Cancel beside Remove is gone — the top-left
     // "← Back" is the one way out.
-    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).not.toContain(">Cancel<");
   });
 

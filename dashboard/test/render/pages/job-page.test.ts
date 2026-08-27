@@ -192,12 +192,12 @@ describe("renderJobDetailPage", () => {
       "2026-08-16T10:05:00Z",
       NAV,
     );
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   test("← Back falls back to / when nothing was given", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });
 

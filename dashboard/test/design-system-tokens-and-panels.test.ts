@@ -2,17 +2,21 @@
 // vocabularies stay distinct, and the row's message panel reuses the
 // existing component. Split out of design-system.test.ts by theme.
 import { describe, expect, test } from "bun:test";
-import { renderNewSpecPage, renderQueuePage, renderQueueRows } from "../src/render.ts";
+import { renderQueuePage, renderQueueRows } from "../src/render.ts";
 import { AT, NAV, row, rows, target } from "./design-system-fixtures.ts";
 
 // --- dark mode is implemented, not merely declared ----------------------------
 
-// Spec 121 made two controls links rather than buttons — New spec on
-// the spec list, and Cancel on /new — because both GO somewhere and do
-// nothing else. They wear `.btn`, so the component has to survive being
-// worn by an `<a>`: the page's own a-rule underlines on hover, and a
-// button that grows an underline under the pointer stops looking like
-// one.
+// Spec 121 made New spec, on the spec list, a link rather than a
+// button — it GOES somewhere and does nothing else. It wears `.btn`,
+// so the component has to survive being worn by an `<a>`: the page's
+// own a-rule underlines on hover, and a button that grows an underline
+// under the pointer stops looking like one.
+//
+// /new's own Cancel wore `.btn` the same way until spec 252 unified it
+// with every other page's "← Back" and gave the shared control its own
+// `.backlink` styling (2026-08-27) — it is no longer a second example
+// of this component.
 describe("the button component works on a link too (spec 121)", () => {
   const rules = async (): Promise<[string, string]> => {
     const { CSS } = await import("../src/render/ui/css.ts");
@@ -34,15 +38,13 @@ describe("the button component works on a link too (spec 121)", () => {
     expect(hover).toContain("text-decoration: none");
   });
 
-  test("both controls really are links wearing it", () => {
+  test("New spec really is a link wearing it", () => {
     const list = renderQueuePage([], AT, NAV, {
       runnerAvailable: true,
       targets: [],
       createProjects: ["aide"],
     });
     expect(list).toContain('<a class="btn primary" href="/new">');
-    const form = renderNewSpecPage(NAV, AT, { createProjects: ["aide"], targets: [] });
-    expect(form).toContain('<a class="btn" href="/">');
   });
 });
 

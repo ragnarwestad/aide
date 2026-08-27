@@ -58,14 +58,14 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     const html = await (
       await fetch(`${base}/specs/aide/${folder}`, { headers: { ...auth, referer: `${base}/?state=all&q=archive` } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // Criterion 4: absent Referer keeps today's exact fallback.
   test("no Referer at all falls back to /", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/specs/aide/${folder}`, { headers: auth })).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   // Criterion 5.
@@ -74,7 +74,7 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
     const html = await (
       await fetch(`${base}/specs/aide/${folder}`, { headers: { ...auth, referer: "https://evil.example/" } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   // Criterion 6: a same-origin Referer carrying a query-string token is
@@ -86,7 +86,7 @@ describe("spec 252: the spec page's own Back link, read off the Referer header",
         headers: { ...auth, referer: `${base}/?token=${TOKEN}&state=all` },
       })
     ).text();
-    expect(html).toContain('<a class="btn" href="/?state=all">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all">← Back</a>');
   });
 });
 
@@ -106,7 +106,7 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const html = await (
       await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN, referer: `${base}/?state=all&q=archive` } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // Criterion 4: absent Referer keeps today's exact fallback.
@@ -114,7 +114,7 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const { base } = start({ queueToken: TOKEN });
     const id = await jobId(base);
     const html = await (await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   // Criterion 5.
@@ -124,7 +124,7 @@ describe("spec 252: the job page's own Back link, read off the Referer header", 
     const html = await (
       await fetch(`${base}/specs/${id}`, { headers: { "x-aide-token": TOKEN, referer: "https://evil.example/" } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });
 

@@ -95,12 +95,12 @@ describe("spec 198: the Reopen control", () => {
 describe("spec 252: the spec page's own Back link", () => {
   test("← Back tracks the given backHref", () => {
     const html = page(view({ backHref: "/?state=all&q=archive" }));
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   test("← Back falls back to / when nothing was given", () => {
     const html = page();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 });
 
@@ -136,7 +136,7 @@ describe("spec 231: the Reset control", () => {
   // reached only from that page's Overview banner (no Referer needed).
   test("no bottom Cancel beside Reset — Back is the one way out, to the spec's own page", () => {
     const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
-    expect(html).toContain(`<a class="btn" href="/specs/aide/${view().specFolder}">← Back</a>`);
+    expect(html).toContain(`<a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>`);
     expect(html).not.toContain(">Cancel<");
   });
 });

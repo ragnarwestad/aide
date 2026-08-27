@@ -362,7 +362,7 @@ describe("GET /new (spec 121)", () => {
     expect(html).toContain('action="/api/queue/create"');
     // Spec 252: the bottom Cancel beside Create is gone — the top-left
     // "← Back" is the one way out, falling back to `/` with no Referer.
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
     expect(html).not.toContain(">Cancel<");
     // No rows, and so nothing for the five-second swap to reach for.
     expect(html).not.toContain('id="jobrows"');
@@ -375,7 +375,7 @@ describe("GET /new (spec 121)", () => {
     const html = await (
       await fetch(`${base}/new`, { headers: { ...auth.headers, referer: `${base}/?state=all&q=archive` } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/?state=all&amp;q=archive">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
   // Criterion 5: a foreign-origin Referer is never followed.
@@ -384,7 +384,7 @@ describe("GET /new (spec 121)", () => {
     const html = await (
       await fetch(`${base}/new`, { headers: { ...auth.headers, referer: "https://evil.example/" } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   test("the chips name every spec the new one may build on", async () => {

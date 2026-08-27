@@ -15,7 +15,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const name = "aide & co";
     const root = projectsRoot({ [name]: null });
     const html = await (await get(serve(root, settled(root, name)), name)).text();
-    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).toContain('<a class="btn primary" href="/projects/aide%20%26%20co?edit=1">Edit</a>');
   });
 
@@ -35,7 +35,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).toContain("<h3>Settings</h3>");
     // The manifest dump duplicated the live Specs tab, one click away
     // — a frozen copy of it here said nothing that page did not
@@ -54,7 +54,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const res = await get(serve(root, settled(root, "aide")), "aide");
     expect(res.status).toBe(200);
     const html = await res.text();
-    expect(html).toContain('<a class="btn" href="/projects">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).toContain("<h3>Settings</h3>");
     expect(html).not.toContain("Manifest failed to parse");
   });

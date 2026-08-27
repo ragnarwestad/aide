@@ -332,9 +332,13 @@ export const tokenField = (token?: string): string =>
  *  a `.btn` anchor with no wrapper, a `.btn` "Cancel" beside the primary
  *  action) with one. `.intro` is reused rather than invented: it is
  *  already the spacing rule `tabbedBody()` relies on for exactly this
- *  line. */
+ *  line.
+ *
+ *  `.backlink`, not `.btn`: it shared the boxed button look until
+ *  2026-08-27, which made a real navigation link indistinguishable from
+ *  the buttons beside it that submit a form. */
 export function backLink(href: string): string {
-  return `<p class="intro"><a class="btn" href="${esc(href)}">← Back</a></p>`;
+  return `<p class="intro"><a class="backlink" href="${esc(href)}">← Back</a></p>`;
 }
 
 /** Where "← Back" actually goes, from the standard `Referer` request

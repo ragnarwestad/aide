@@ -96,14 +96,14 @@ describe("Settings routes (spec 232)", () => {
     const html = await (
       await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: `${base}/projects/aide` } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/projects/aide">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/projects/aide">← Back</a>');
   });
 
   // Criterion 4: no Referer at all falls back to today's exact default.
   test("← Back falls back to / with no Referer, criterion 4", async () => {
     const { base } = start({ queueToken: TOKEN, queueDefaults: DEFAULTS });
     const html = await (await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   // Criterion 5: a foreign-origin Referer is discarded, not followed.
@@ -112,7 +112,7 @@ describe("Settings routes (spec 232)", () => {
     const html = await (
       await fetch(`${base}/settings`, { headers: { "x-aide-token": TOKEN, referer: "https://evil.example/" } })
     ).text();
-    expect(html).toContain('<a class="btn" href="/">← Back</a>');
+    expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
 
   test("a successful save affects later jobs but not an accepted job", async () => {
