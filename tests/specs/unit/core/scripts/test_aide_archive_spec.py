@@ -226,83 +226,16 @@ def test_ordinary_progression_removes_a_stale_held_back_section(script, project,
     assert "Archive held back" not in text, text
 
 
-def test_an_in_progress_row_is_genuinely_held_back(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | 🔄 | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert text.count("## Archive held back") == 1, text
-    assert "- a (Phase 1: RED) — tick it on the spec's page" in text, text
-    assert (specs / "81-x").exists(), "a held-back decline must not move the folder"
-
-
-def test_a_genuinely_blocking_row_is_named_over_an_earlier_unstarted_one_in_the_same_phase(script, project, specs):
-    """A phase with two open rows — the first unstarted, the second
-    genuinely blocking — must still name the SECOND row (spec 266
-    criterion 3): the fallback that names the first open row when every
-    row is unstarted must not steal the name away from a row that is
-    actually blocking. This already passes against the unmodified
-    script (today's accidental `if [ -z "$held_task" ]` ordering
-    happens to prefer the blocking row already) — it is a pin, not a
-    RED test, kept alongside the two strengthened tests above because
-    all three touch the same held_task/held_phase change."""
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ⬜ | |", "| b | 🔄 | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert "- b (Phase 1: RED) — tick it on the spec's page" in text, text
-
-
-@pytest.mark.parametrize("mark", ["❌", "⚠️", "Waiting"])
-def test_every_other_open_notation_symbol_is_also_held_back(script, project, specs, mark):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", [f"| a | {mark} | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-
-
-def test_implement_present_with_an_unstarted_row_is_still_held_back(script, project, specs):
-    """SKILL.md's own rule: 'implement present while a row is still open'
-    is genuinely blocked, even when every open row is otherwise
-    unstarted — implement should not have begun against unfinished
-    earlier work. The bullet must still name that row (spec 266): a
-    held-back spec with nothing but unstarted rows used to write the
-    empty bullet '- () — tick it on the spec's page'."""
-    configure(project, specs)
-    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert "- a (Phase 1: RED) — tick it on the spec's page" in text, text
-
-
-def test_held_back_replaces_a_stale_section_rather_than_duplicating(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ❌ | |"])) + \
-        "\n## Archive held back\n\n- a stale reason\n\n---\n"
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert text.count("## Archive held back") == 1, text
-    assert "a stale reason" not in text, text
-
-
-def test_running_held_back_twice_does_not_duplicate_the_section(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | 🔄 | |"]))
-    add_spec(specs, "81-x", body)
-    run(script, project, "81-x")
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert text.count("## Archive held back") == 1, text
+# --- an open row no longer blocks archive (spec 268) ----------------------
+#
+# Every one of the tests this comment replaces pinned the tick-based
+# `held-back` refusal — an in-progress row, a genuinely blocking row over
+# an earlier unstarted one, every other open notation symbol,
+# `implement` present with an unstarted row (through both the `## Phase`
+# and `## Checklist` headings), and the stale-section replace/no-
+# duplicate behavior around it. Archive no longer reads the checklist to
+# decide anything, so none of that machinery exists to pin any more —
+# see AC3/AC4 below for what replaced it.
 
 
 # --- archived (criterion 4) -----------------------------------------------
@@ -340,17 +273,6 @@ def test_checklist_every_row_done_archives_the_spec(script, project, specs):
     assert (specs / "archive" / "81-x").exists()
 
 
-def test_checklist_an_open_row_is_held_back(script, project, specs):
-    configure(project, specs)
-    body = status_md("create, analyze", checklist(["| a | 🔄 | |"]))
-    add_spec(specs, "81-x", body)
-    rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert "- a (Checklist) — tick it on the spec's page" in text, text
-    assert (specs / "81-x").exists(), "a held-back decline must not move the folder"
-
-
 def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze", checklist(["| a | ⬜ | |", "| b | Not started | |"]))
@@ -359,18 +281,73 @@ def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(scrip
     assert out["terminalReason"] == "not-implemented-yet", out
 
 
-def test_checklist_implement_present_with_an_unstarted_row_is_still_held_back(script, project, specs):
-    """Same reproduction case as
-    test_implement_present_with_an_unstarted_row_is_still_held_back, but
-    through the `## Checklist` heading a LOW-complexity spec actually
-    uses (spec 266's second example)."""
+# --- AC3: archive proceeds once implement has run, whatever the ticks say -
+
+
+def test_implement_present_with_every_row_unstarted_archives_the_spec(script, project, specs):
+    """The exact scenario the description names for spec 265: implement
+    landed and is on the record, but every task row still reads
+    unstarted. Archive is no longer waiting on the checklist to say the
+    work is done — only on whether implement ran."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert rc == 0, out
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+    assert (specs / "archive" / "81-x").exists()
+
+
+def test_implement_present_with_an_open_in_progress_row_archives_the_spec(script, project, specs):
+    """Not just unstarted rows — a row genuinely mid-flight (🔄) no
+    longer blocks archive either, once implement is on the record."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | 🔄 | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
+def test_checklist_implement_present_with_an_unstarted_row_archives_the_spec(script, project, specs):
+    """AC3 through the `## Checklist` heading a LOW-complexity spec uses
+    instead of `## Phase*` (spec 266's second example)."""
     configure(project, specs)
     body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
     rc, out, _ = run(script, project, "81-x")
-    assert out["terminalReason"] == "held-back", out
-    text = (specs / "81-x" / "4-status.md").read_text()
-    assert "- a (Checklist) — tick it on the spec's page" in text, text
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
+def test_archiving_removes_a_stale_held_back_section(script, project, specs):
+    """A section written by the OLD gate, before this change landed, is
+    cleared on the way through rather than left to rot on an otherwise
+    finished spec."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"])) + \
+        "\n## Archive held back\n\n- a (Phase 1: RED) — tick it on the spec's page\n\n---\n"
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    text = (specs / "archive" / "81-x" / "4-status.md").read_text()
+    assert "Archive held back" not in text, text
+
+
+# --- AC4: archive still refuses a spec that was never implemented ---------
+
+
+def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, project, specs):
+    """The other half of AC4: even a checklist that reads fully done
+    cannot stand in for the "Workflow steps completed" line actually
+    naming implement — a hand-ticked box is not a run that happened."""
+    configure(project, specs)
+    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "not-implemented-yet", out
+    assert (specs / "81-x").exists(), "nothing may be moved on this path"
 
 
 def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, specs):

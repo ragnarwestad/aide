@@ -47,6 +47,12 @@
       "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n\n## Phase 2: GREEN\n\n| Task | Status | Notes |\n|------|--------|-------|\n| two | ✅ | |\n| three | ⬜ | |\n",
       "done": 2,
       "total": 3
+    },
+    {
+      "name": "a-checklist-heading-is-also-a-phase-section",
+      "body": "## Checklist\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n| two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
     }
   ]
 }

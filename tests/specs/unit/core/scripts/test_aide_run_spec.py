@@ -5570,3 +5570,85 @@ def test_the_shared_row_counting_fixture_matches_the_bash_side(
         assert bullet(text, "Total progress") == f"{pct}% ({case['done']} of {case['total']} completed)"
 
 
+# --- spec 268: a "completed" implement claim is cross-checked ----------------
+#
+# The CLI's own turn-subtype signal is not enough on its own: a step that
+# reports success while leaving no real trace must not count as
+# `implement` for "Workflow steps completed", or archive's own gate
+# (which now asks only whether implement ran, not what the checklist
+# says) would let a vacuous run through. Two ways a run can be hollow —
+# nothing changed in the project repo at all, or the project changed but
+# no task row moved off unstarted (AC5). A genuine run, where the
+# project changed AND at least one row is ticked, is unaffected (AC6).
+
+
+def status_with_phase(workspace, claims, rows, heading="## Phase 1: RED"):
+    """A committed `4-status.md` naming `claims` on the steps line and
+    carrying ONE phase section with the given rows — full control over
+    the row-ticking state the no-progress check reads."""
+    row_lines = "\n".join(rows)
+    write_raw_status(
+        workspace,
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{workspace['folder']}/`\n"
+        f"- **Workflow steps completed:** {claims}\n"
+        "- **Total progress:** 0% (0 of 99 completed)\n\n---\n\n"
+        f"{heading}\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        f"{row_lines}\n",
+    )
+
+
+def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
+    runner, workspace, fake_claude
+):
+    """AC5: the CLI reports success, but the child touched neither the
+    project nor the specs repo at all."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |"])
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert recorded_line(workspace) == "create, analyze"
+
+
+def test_a_completed_claim_that_ticks_no_row_is_downgraded(
+    runner, workspace, fake_claude
+):
+    """AC5, the other half: the project genuinely changed, but not one
+    task row moved off unstarted."""
+    status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |", "| b | ⬜ | |"])
+    claude = project_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert recorded_line(workspace) == "create, analyze"
+
+
+def test_a_genuine_implement_run_is_unaffected(runner, workspace, fake_claude):
+    """AC6: the project changed AND a row is ticked — exactly today's
+    behavior for a real run, unaffected by the new check."""
+    status_with_phase(workspace, "create, analyze", ["| a | ✅ | |", "| b | ⬜ | |"])
+    claude = project_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_no_progress_is_scoped_to_implement_only(runner, workspace, fake_claude):
+    """The check is `implement`-specific: an `analyze` run that changes
+    nothing in the project repo is exactly today's ordinary case (analyze
+    never touches the project), not a new failure mode this spec
+    introduces."""
+    with_status(workspace)
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
