@@ -2766,7 +2766,14 @@ export function createServer(opts: ServerOptions) {
         .filter((j) => j.project === job.project && j.specFolder === job.specFolder)
         .map(jobRow),
     );
-    const ms = computeSpecTotalDurationMs(rows, fresh?.done ?? []);
+    // This runs from inside the archive job's own onLanded callback
+    // (landArchivedSpec), so ITS landing has already succeeded — the
+    // store just has not cleared the flag yet (runner.ts clears it only
+    // once this whole call settles). Treat this one row as landed for
+    // the sum, or its own in-progress flag blocks the very write its
+    // completion is supposed to trigger.
+    const settledRows = rows.map((r) => (r.id === job.id ? { ...r, landing: undefined } : r));
+    const ms = computeSpecTotalDurationMs(settledRows, fresh?.done ?? []);
     if (ms === undefined) return;
     const text = stampDuration(current, ms);
     // Nowhere to put the line — a `4-status.md` with no Tracking info

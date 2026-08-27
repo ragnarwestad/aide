@@ -345,12 +345,12 @@ describe("token configured", () => {
       const { base } = start({ queueToken: TOKEN });
       const chosen = await fetch(`${base}/?token=${TOKEN}&sort=started`);
       expect(sortCookie(chosen)).toContain("aide_sort=started");
-      expect(sortedBy(await chosen.text())).toBe("Started");
+      expect(sortedBy(await chosen.text())).toBe("Time");
       const jar = sortCookie(chosen).split(";")[0]!;
       // The Specs tab: `/` with nothing on it. The token rides along
       // because every request needs it, not because the sort does.
       const plain = await fetch(`${base}/`, { headers: { cookie: `aide_token=${TOKEN}; ${jar}` } });
-      expect(sortedBy(await plain.text())).toBe("Started");
+      expect(sortedBy(await plain.text())).toBe("Time");
     });
 
     // Pressing a heading never reloads the page — the script rewrites
@@ -2027,7 +2027,7 @@ describe("the job list sorts and filters", () => {
     expect(asc).not.toContain("▴");
     // An unsorted column carries the chevron too (faint in CSS), pointing
     // the way its first click will sort: Started defaults to descending.
-    expect(desc).toMatch(/<a class="sortlink"[^>]*>Started<svg/);
+    expect(desc).toMatch(/<a class="sortlink"[^>]*>Time<svg/);
     // …and State to ascending, so its chevron is already turned.
     expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State<svg/);
   });
