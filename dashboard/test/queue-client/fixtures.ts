@@ -8,6 +8,10 @@
 // full rationale.
 
 import { join } from "node:path";
+import { aiSelect, chip, classes, makeButton, modelSelect, stepCheckbox, tailBox } from "./fixtures-controls.ts";
+import { fakeTbody, type FakeRow } from "./fixtures-tbody.ts";
+import { makeFakeDate, makeFakeEventSource, makeFakeFormData } from "./fixtures-runtime.ts";
+import { buildCreateForm, buildProjectsPanel } from "./fixtures-panels.ts";
 
 const built = await Bun.build({
   entrypoints: [join(import.meta.dir, "..", "..", "src", "queue-client.ts")],
@@ -53,136 +57,9 @@ export const CONTROLS: Record<
   },
 };
 
-/** `className` and `classList` over one string, the way the DOM keeps
- *  them: the code under test reads one and writes the other, and a fake
- *  where those two disagree could not tell "busy replaced the variant"
- *  from "busy was added beside it". */
-export function classes(el: { className: string }) {
-  const set = () => new Set(el.className.split(" ").filter(Boolean));
-  const write = (s: Set<string>) => void (el.className = [...s].join(" "));
-  return {
-    add: (c: string) => write(set().add(c)),
-    remove: (c: string) => {
-      const s = set();
-      s.delete(c);
-      write(s);
-    },
-    contains: (c: string) => set().has(c),
-  };
-}
+export { classes };
 
-/** One `<tr>` of the fake `#jobrows` (spec 204). Only the surface the
- *  per-group diff actually calls — an anchor's id, the class that says
- *  where a group ends, the walk to the next row, and the two mutations
- *  that replace a group's range. */
-export interface FakeRow {
-  html: string;
-  readonly id: string;
-  readonly className: string;
-  readonly nextElementSibling: FakeRow | null;
-  readonly parentNode: { insertAdjacentHTML(where: string, html: string): void };
-  remove(): void;
-  insertAdjacentHTML(where: string, html: string): void;
-}
-
-/** The rows of `#jobrows` as OBJECTS, beside the string they came from.
- *  A row the redraw left alone is the same object afterwards, which is
- *  what a test asserts with `toBe` — the property that decides whether a
- *  reader's press survives a redraw, and the one thing a string could
- *  never carry.
- *
- *  `onMutate` is what a browser does for free: the selects in a replaced
- *  row are new elements drawn from the server's answer, so the fake's
- *  own selects go back to what the server would have rendered. */
-export function fakeTbody(onMutate: () => void) {
-  let prefix = "";
-  let suffix = "";
-  let list: FakeRow[] = [];
-
-  const attr = (html: string, name: string): string =>
-    new RegExp(`\\b${name}="([^"]*)"`).exec(html)?.[1] ?? "";
-
-  const make = (html: string): FakeRow => {
-    const row: FakeRow = {
-      html,
-      get id(): string {
-        return attr(row.html, "id");
-      },
-      get className(): string {
-        return attr(row.html, "class");
-      },
-      get nextElementSibling(): FakeRow | null {
-        const at = list.indexOf(row);
-        return at === -1 ? null : (list[at + 1] ?? null);
-      },
-      get parentNode() {
-        return body;
-      },
-      remove(): void {
-        const at = list.indexOf(row);
-        if (at !== -1) list.splice(at, 1);
-        onMutate();
-      },
-      insertAdjacentHTML(where: string, fragment: string): void {
-        const at = list.indexOf(row);
-        if (at === -1) return;
-        list.splice(where === "beforebegin" ? at : at + 1, 0, ...cut(fragment));
-        onMutate();
-      },
-    };
-    return row;
-  };
-
-  /** A fragment of markup into rows, one per `</tr>`. */
-  const cut = (html: string): FakeRow[] => {
-    const out: FakeRow[] = [];
-    let at = 0;
-    for (;;) {
-      const end = html.indexOf("</tr>", at);
-      if (end === -1) break;
-      out.push(make(html.slice(at, end + "</tr>".length)));
-      at = end + "</tr>".length;
-    }
-    return out;
-  };
-
-  const body = {
-    insertAdjacentHTML(where: string, fragment: string): void {
-      const made = cut(fragment);
-      if (where === "beforeend") list.push(...made);
-      else list.unshift(...made);
-      onMutate();
-    },
-  };
-
-  return {
-    /** The string `innerHTML` hands back — the one it was given, unless
-     *  something has since moved a row. */
-    html: (): string => prefix + list.map((r) => r.html).join("") + suffix,
-    parse(html: string): void {
-      const open = html.indexOf("<tbody>");
-      const close = html.lastIndexOf("</tbody>");
-      if (open === -1 || close === -1 || close < open) {
-        // No table in it: the markup most of this file's tests use.
-        // Kept whole, so they see the string they always saw.
-        prefix = html;
-        suffix = "";
-        list = [];
-        return;
-      }
-      const start = open + "<tbody>".length;
-      prefix = html.slice(0, start);
-      const content = html.slice(start, close);
-      list = cut(content);
-      // Whatever the split could not account for travels with the
-      // suffix, so nothing is lost on the way back out.
-      suffix = content.slice(list.map((r) => r.html).join("").length) + html.slice(close);
-    },
-    /** The FIRST row wearing this id, the way `getElementById` answers. */
-    byId: (id: string): FakeRow | null => list.find((r) => r.id === id) ?? null,
-    ids: (): string[] => list.map((r) => r.id),
-  };
-}
+export type { FakeRow };
 
 /** One button in one form in `#jobrows`, the New-spec form beside it,
  *  and the globals the file actually touches. Nothing here pretends to
@@ -201,38 +78,6 @@ export function harness(
    *  five model selects and the AI picker — and it is what a press has
    *  to follow to reach them. */
   const ROW_FORM = "rowrun-aide/127-one-ai";
-  /** One button as the DOM reports it. Two of them are needed since
-   *  spec 151: the one pressed, and the siblings on the same row that
-   *  must lock with it.
-   *
-   *  `form` is the attribute, and it is the whole point for Run: that
-   *  button is written OUTSIDE `<form class="rowrun">` and reaches it
-   *  by name alone (`queue-list.ts`, `stateAction`). */
-  const makeButton = (label: string, pending: string, variant: string, form?: string) => {
-    const b = {
-      textContent: label,
-      // What the server drew it as. A fake with no starting class could
-      // not prove the variant is REMOVED when the busy look goes on.
-      className: `btn ${variant}`,
-      classList: {} as ReturnType<typeof classes>,
-      innerHTML: "",
-      // A button with nothing left to run is hidden rather than drawn
-      // dead, which is what the server does too — so the fake has to be
-      // able to hold the answer.
-      hidden: false,
-      title: "",
-      disabled: false,
-      isConnected: true,
-      tagName: "BUTTON",
-      dataset: { pending },
-      getAttribute: (n: string) => (n === "form" ? form ?? null : null),
-      insertAdjacentHTML: (where: string, html: string) => {
-        b.innerHTML = where === "afterbegin" ? html + b.innerHTML : b.innerHTML + html;
-      },
-    };
-    b.classList = classes(b);
-    return b;
-  };
   const button = makeButton(
     control.label,
     control.pending,
@@ -263,6 +108,8 @@ export function harness(
     },
   };
   const tokenInput = { value: "s3cret" };
+  type Listener = (e: unknown) => void | Promise<void>;
+  const on: Record<string, Listener> = {};
   // Spec 151: the OTHER controls on the same row. A press locks the
   // whole row, so a fake with one button on it could not tell a
   // row-wide lock from the single-button one it replaced.
@@ -332,339 +179,38 @@ export function harness(
             : null,
   };
 
-  // The New-spec form is the whole of `/new` since spec 121 — no
-  // #jobrows beside it and no disclosure around it — so it is bound
-  // directly rather than by delegation, a second code path tested as
-  // one.
-  const createButton = {
-    textContent: "Create",
-    className: "btn primary",
-    classList: {} as ReturnType<typeof classes>,
-    innerHTML: "",
-    title: "",
-    disabled: false,
-    isConnected: true,
-    dataset: { pending: "creating…" },
-    insertAdjacentHTML: (_where: string, html: string) => void (createButton.innerHTML += html),
-  };
-  createButton.classList = classes(createButton);
-  const slot = { textContent: "" };
-  const resets: number[] = [];
-  // Spec 110's Depends-on chips: one wrapper per active spec, each
-  // naming its own project, plus the Project select they are scoped to.
-  // `reset()` reverts the select the way the browser's own does —
-  // silently, without firing `change`, which is the whole reason the
-  // reset path needs a re-sync of its own.
-  const projectSelect = { value: "aide", addEventListener: (t: string, fn: (e: unknown) => void) => void (on[`select:${t}`] = fn) };
-  const chip = (project: string) => {
-    const input = { checked: true, disabled: false };
-    return {
-      dataset: { project },
-      getAttribute: (name: string) => (name === "data-project" ? project : null),
-      hidden: false,
-      querySelector: (sel: string) => (sel.includes("input") ? input : null),
-      input,
-    };
-  };
   const chips = [chip("aide"), chip("aide-dashboard")];
+  const { createButton, slot, resets, projectSelect, createForm } = buildCreateForm(chips, tokenInput, on);
 
-  // The five phase model selects, and (spec 179) the AI select each one
-  // is paired with. `<option>` collections are scaffolding the chips
-  // above cannot stand in for: a select's value IS one of its options,
-  // which is the whole of what a write has to move.
-  const MODELS: [string, string][] = [
-    ["sonnet", "claude"],
-    ["fable", "claude"],
-    ["codex-fast", "codex"],
-  ];
-  /** `ran` is the server's own "this phase has history" marker
-   *  (`data-ran="1"`, `queue-list.ts`): the select is showing what the
-   *  phase really ran on. */
-  const modelSelect = (step: string, chosen: string, ran = false, live = false) => {
-    const options = MODELS.map(([value, tool]) => ({
-      value,
-      dataset: { tool },
-      hidden: false,
-      // The client hides an option AND disables it: hidden so the list
-      // does not offer it, disabled so a post cannot carry it.
-      disabled: false,
-      selected: value === chosen,
-    }));
-    const self = {
-      name: `model.${step}`,
-      options,
-      dataset: ran ? { ran: "1" } : ({} as { ran?: string }),
-      tagName: "SELECT",
-      // Spec 151: a press locks the row, and a select is a control on
-      // it. `isConnected` is what tells "the swap replaced me" from
-      // "the swap never came".
-      disabled: false,
-      isConnected: true,
-      // Spec 225: a phase the running job has not reached keeps its
-      // model select live, and the route it posts to is on the select
-      // itself — the same attribute the tail box carries.
-      getAttribute: (n: string) =>
-        n === "form" ? ROW_FORM : n === "data-post-to" && live ? "/api/queue/job-1/model" : null,
-      // A change lands on the select itself, and the handler walks up
-      // with `closest`. A model select is NOT an AI select and not a
-      // phase box, so it answers those selectors with null and its own
-      // with itself. `data-post-to` is asked in two shapes: the tail
-      // BOX's `input[data-post-to]` (never this) and, since spec 225,
-      // a live model select's own `select[data-post-to]`.
-      closest: (sel: string): unknown =>
-        sel.includes("data-ai") || sel.includes('name="steps"')
-          ? null
-          : sel.includes("data-post-to")
-            ? (live && sel.includes("select") ? self : null)
-            : self,
-      get selectedOptions() {
-        return options.filter((o) => o.selected);
-      },
-      // A real select's value IS its selected option: writing one moves
-      // the other, which is the whole of what the reselection does.
-      get value() {
-        return options.find((o) => o.selected)?.value ?? "";
-      },
-      set value(v: string) {
-        for (const o of options) o.selected = o.value === v;
-      },
-      /** What the SERVER drew, to go back to when the rows are
-       *  replaced. A browser gets brand-new elements out of that swap;
-       *  a fake that kept the old ones would prove nothing. */
-      redraw: () => {
-        for (const o of options) {
-          o.selected = o.value === chosen;
-          o.hidden = false;
-        }
-      },
-    };
-    return self;
-  };
   // One phase with history and three still ahead — the mixed row
   // "set all" is scoped against (spec 169).
   const modelSelects = [
-    modelSelect("create", "sonnet"),
-    modelSelect("analyze", "fable", true),
-    modelSelect("implement", "codex-fast"),
+    modelSelect(ROW_FORM, "create", "sonnet"),
+    modelSelect(ROW_FORM, "analyze", "fable", true),
+    modelSelect(ROW_FORM, "implement", "codex-fast"),
     // Spec 225: the phase the running job has not reached — the one
     // whose selects stay live, exactly where `tailBox` is.
-    modelSelect("archive", "sonnet", false, true),
+    modelSelect(ROW_FORM, "archive", "sonnet", false, true),
   ];
   /** A model select belonging to ANOTHER row: a write must reach the
    *  five that share its form id and no others. */
-  const otherRowSelect = { ...modelSelect("analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
-  // Spec 179: one AI select per phase line, paired with that phase's
-  // model select by `data-ai` and the shared form id. The model it
-  // fills in per tool is worked out by the SERVER and carried on each
-  // option's `data-default` — the browser copies that value and never
-  // decides one, which is what these fixtures stand for.
-  const AI_DEFAULT: Record<string, string> = { claude: "sonnet", codex: "codex-fast" };
-  const aiSelect = (step: string, tool: string) => {
-    const options = ["claude", "codex"].map((t) => ({
-      value: t,
-      dataset: { default: AI_DEFAULT[t]! },
-      hidden: false,
-      selected: t === tool,
-    }));
-    const self = {
-      // No `name`: the control posts nothing (`queue-list.ts`). It is
-      // still what the DOM reports — an empty string, not undefined —
-      // and the key a kept choice would be filed under is built from
-      // it, which is why the handler must intercept it BEFORE the
-      // branch that remembers every other select.
-      name: "",
-      options,
-      dataset: { ai: `model.${step}` },
-      tagName: "SELECT",
-      disabled: false,
-      isConnected: true,
-      getAttribute: (n: string) =>
-        n === "form" ? ROW_FORM : n === "data-ai" ? `model.${step}` : null,
-      closest: (sel: string): unknown =>
-        sel.includes('name="steps"') || sel.includes("data-post-to") ? null : self,
-      get selectedOptions() {
-        return options.filter((o) => o.selected);
-      },
-      get value() {
-        return options.find((o) => o.selected)?.value ?? "";
-      },
-      set value(v: string) {
-        for (const o of options) o.selected = o.value === v;
-      },
-      /** What the SERVER drew: the tool of the model the phase is
-       *  actually on, which is where a swap puts this select back. */
-      redraw: () => {
-        for (const o of options) o.selected = o.value === tool;
-      },
-    };
-    return self;
-  };
+  const otherRowSelect = { ...modelSelect(ROW_FORM, "analyze", "fable"), getAttribute: () => "rowrun-aide/99-other" };
   /** One per phase line, resting on the tool of the model that line's
    *  select is drawn on. */
   const aiSelects = [
-    aiSelect("create", "claude"),
-    aiSelect("analyze", "claude"),
-    aiSelect("implement", "codex"),
-    aiSelect("archive", "claude"),
+    aiSelect(ROW_FORM, "create", "claude"),
+    aiSelect(ROW_FORM, "analyze", "claude"),
+    aiSelect(ROW_FORM, "implement", "codex"),
+    aiSelect(ROW_FORM, "archive", "claude"),
   ];
-  // Spec 141: the row's phase boxes. They share one `name` — the step
-  // is in the VALUE — which is why what is remembered about them is
-  // keyed on three parts and not the two a select needs. `create` has
-  // no box (a spec that exists cannot be created again), so the three
-  // that can be run are the three that are here.
-  const stepCheckbox = (value: string, served: boolean) => {
-    const self = {
-      name: "steps",
-      value,
-      checked: served,
-      tagName: "INPUT",
-      disabled: false,
-      isConnected: true,
-      // `aria-label` is the phase's reader-facing name, which the server
-      // sets on every box (`phaseChip`) and which the button's label is
-      // read off. Since spec 181 no step is called anything other than
-      // its own value, so the two say the same thing.
-      getAttribute: (n: string) =>
-        n === "form" ? ROW_FORM : n === "aria-label" ? value : null,
-      // A tick lands on the input itself. It is not a select of any
-      // kind, so it answers both select selectors with null and its
-      // own with itself — otherwise the delegated listener would file
-      // it in the map the model selects use.
-      closest: (sel: string): unknown => (sel.includes('name="steps"') ? self : null),
-      /** What the SERVER drew: `preTicked` re-derives the ticks from
-       *  the row's own history on every render, so a swap puts them
-       *  back exactly as they were before the reader touched them. */
-      redraw: () => void (self.checked = served),
-    };
-    return self;
-  };
   const stepBoxes = [
-    stepCheckbox("analyze", true),
-    stepCheckbox("implement", false),
-    stepCheckbox("archive", false),
+    stepCheckbox(ROW_FORM, "analyze", true),
+    stepCheckbox(ROW_FORM, "implement", false),
+    stepCheckbox(ROW_FORM, "archive", false),
   ];
-  // Spec 160: a box for a phase the RUNNING job has not reached yet.
-  // It names the run form the way every other control on the row does
-  // — that is how a press finds the row to lock — but carries no
-  // `name`, so it is never posted with it. Its own route is in
-  // `data-post-to`, and a tick goes there on `change` rather than
-  // waiting for a submit this row does not offer.
-  const tailBox = (() => {
-    const self = {
-      name: "",
-      value: "archive",
-      checked: false,
-      tagName: "INPUT",
-      disabled: false,
-      isConnected: true,
-      getAttribute: (n: string) =>
-        n === "form" ? ROW_FORM : n === "data-post-to" ? "/api/queue/job-1/steps" : null,
-      closest: (sel: string): unknown => (sel.includes("data-post-to") ? self : null),
-      /** What the SERVER draws after the swap: the tick the job's own
-       *  step list justifies, which for a refused edit is the box
-       *  exactly as it was. */
-      redraw: () => void (self.checked = false),
-    };
-    return self;
-  })();
-  const createForm = {
-    action: "http://dash.test/api/queue/create",
-    fields: [["project", "aide"], ["title", "A spec"]] as [string, string][],
-    querySelectorAll: (sel: string) =>
-      sel.includes("data-project") ? (chips as unknown as typeof createButton[]) : [createButton],
-    querySelector: (sel: string) =>
-      sel.includes("token")
-        ? tokenInput
-        : sel.includes("refused")
-          ? slot
-          : sel.includes("project")
-            ? projectSelect
-            : null,
-    // Nothing wraps this form on `/new` — the page IS the form. A fake
-    // that still handed a `<details>` back would let a re-added
-    // panel-close pass unnoticed.
-    closest: () => null,
-    reset: () => {
-      resets.push(1);
-      projectSelect.value = "aide";
-    },
-    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`create:${type}`] = fn),
-  };
-
-  // Spec 112's Projects panel: one Remove form, with the typed
-  // confirmation the browser gates its button on. The button is
-  // rendered ENABLED by the server — turning it off is this code's job,
-  // and a fake that started it disabled could not tell the two apart.
-  const removeButton = {
-    textContent: "Remove",
-    title: "",
-    disabled: false,
-    dataset: { pending: "removing…" },
-    className: "btn danger",
-    isConnected: true,
-    insertAdjacentHTML: () => {},
-  } as unknown as typeof createButton & { disabled: boolean };
-  removeButton.classList = classes(removeButton);
-  const confirmInput = { value: "" } as { value: string; addEventListener?: unknown };
-  const confirmWrap = {
-    getAttribute: (name: string) => (name === "data-confirm" ? "atlasaurus" : null),
-    querySelector: (sel: string) => (sel.includes("input") ? confirmInput : removeButton),
-  };
-  const removeSlot = { textContent: "" };
-  // Spec 138: the Add form, which is the one whose SUCCESS has something
-  // to say — the readiness answer the server worked out for the project
-  // that was just added. A Remove has no such answer, and still leaves.
-  const addButton = {
-    textContent: "Save",
-    title: "",
-    disabled: false,
-    dataset: { pending: "saving…" },
-    className: "btn primary",
-    isConnected: true,
-    insertAdjacentHTML: () => {},
-  } as unknown as typeof createButton & { disabled: boolean };
-  addButton.classList = classes(addButton);
-  // `className` too: the slot the server renders is the REFUSAL slot,
-  // and a success written into it must not stay the colour of one.
-  const addSlot = { textContent: "", className: "refused rowmsg err" };
-  const addForm = {
-    // Every real form element has one; spec 184's proposal binding reads
-    // it, and an empty one is what a page with nothing to propose sends.
-    dataset: {} as Record<string, string>,
-    action: "http://dash.test/api/queue/projects",
-    fields: [["name", "skjer"], ["existingPath", "skjer"]] as [string, string][],
-    querySelectorAll: () => [addButton],
-    querySelector: (sel: string) =>
-      sel.includes("data-confirm")
-        ? null
-        : sel.includes("token")
-          ? tokenInput
-          : sel.includes("refused")
-            ? addSlot
-            : null,
-    closest: () => null,
-    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`add:${type}`] = fn),
-  };
-  const removeForm = {
-    dataset: {} as Record<string, string>,
-    action: "http://dash.test/api/queue/projects/atlasaurus/remove",
-    fields: [["confirm", "atlasaurus"]] as [string, string][],
-    querySelectorAll: () => [removeButton],
-    querySelector: (sel: string) =>
-      sel.includes("data-confirm")
-        ? confirmWrap
-        : sel.includes("token")
-          ? tokenInput
-          : sel.includes("refused")
-            ? removeSlot
-            : null,
-    closest: () => null,
-    addEventListener: (type: string, fn: (e: unknown) => void) => void (on[`remove:${type}`] = fn),
-  };
-  let typed: (() => void) | undefined;
-  confirmInput.addEventListener = (type: string, fn: () => void) => {
-    if (type === "input") typed = fn;
-  };
+  const tailBoxEl = tailBox(ROW_FORM);
+  const { removeButton, confirmInput, removeSlot, addButton, addSlot, addForm, removeForm, getTyped } =
+    buildProjectsPanel(tokenInput, on);
 
   const inserted: { id: string; className: string; textContent: string }[] = [];
   const parentNode = {
@@ -680,7 +226,7 @@ export function harness(
     for (const m of modelSelects) m.redraw();
     otherRowSelect.redraw();
     for (const b of stepBoxes) b.redraw();
-    tailBox.redraw();
+    tailBoxEl.redraw();
   };
   // Spec 204: `#jobrows` is a STRING here and a tree of nodes in the
   // browser, and the difference is the whole of what this spec has to
@@ -734,8 +280,6 @@ export function harness(
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
-  type Listener = (e: unknown) => void | Promise<void>;
-  const on: Record<string, Listener> = {};
   const requests: { url: string; init: Record<string, unknown> }[] = [];
   // `pathname` because the page's own reloads go back to the page they
   // are on — the Projects panel is served at `/projects` since spec 115,
@@ -821,7 +365,7 @@ export function harness(
               // no other" is proved against.
               sel.startsWith("[form=")
               ? [
-                  runButton, ...stepBoxes, tailBox, ...modelSelects, ...aiSelects, otherRowSelect,
+                  runButton, ...stepBoxes, tailBoxEl, ...modelSelects, ...aiSelects, otherRowSelect,
                 ].filter((el) => sel.includes(`"${el.getAttribute("form")}"`))
               : [],
     createElement: () => ({ id: "", className: "", textContent: "" }),
@@ -843,42 +387,8 @@ export function harness(
       text: async () => r.text ?? "<tr></tr>",
     };
   };
-  // The form serializer the browser owns. Injected rather than reached
-  // for as a global, because a fake form is not an HTMLFormElement and
-  // the real constructor refuses it.
-  class FakeFormData {
-    constructor(private readonly f: { fields?: [string, string][] }) {}
-    forEach(fn: (value: string, key: string) => void): void {
-      for (const [k, v] of this.f.fields ?? []) fn(v, k);
-    }
-  }
-
-  /** The connection the page keeps open (spec 189). Every one ever
-   *  constructed is kept, closed ones included: what a test about the
-   *  hidden tab has to be able to say is that the old one was CLOSED
-   *  and no new one was made in its place. */
-  class FakeEventSource {
-    static made: FakeEventSource[] = [];
-    readonly listeners: Record<string, ((e: unknown) => void)[]> = {};
-    closed = false;
-    constructor(readonly url: string) {
-      FakeEventSource.made.push(this);
-    }
-    addEventListener(type: string, fn: (e: unknown) => void): void {
-      (this.listeners[type] ??= []).push(fn);
-    }
-    close(): void {
-      this.closed = true;
-    }
-    /** What the browser would deliver. Synchronous, so a test says what
-     *  happened next without waiting on a real socket. */
-    emit(type: string): void {
-      for (const fn of this.listeners[type] ?? []) fn({ type });
-    }
-  }
-  FakeEventSource.made = [];
-  /** The one the page is listening on right now, if any. */
-  const live = () => FakeEventSource.made.filter((s) => !s.closed).at(-1) ?? null;
+  const FakeFormData = makeFakeFormData();
+  const { FakeEventSource, made: sourcesMade, live } = makeFakeEventSource();
 
   /** Every timer the page asks for, with the work it would do. Spec 189
    *  took the five-second POLL away and nothing may put it back; spec
@@ -888,12 +398,7 @@ export function harness(
   const intervals: number[] = [];
   const ticks: (() => void)[] = [];
 
-  /** The wall clock the page reads, so a tick's answer is a stated
-   *  fact rather than whatever the machine's own clock said. `Date` is
-   *  a global in the browser, which is exactly what makes it injectable
-   *  here — the same trick `EventSource` and `FormData` already use. */
-  const clock = { at: Date.parse("2026-08-23T12:00:00Z") };
-  const FakeDate = { now: () => clock.at, parse: (iso: string) => Date.parse(iso) };
+  const { clock, FakeDate } = makeFakeDate();
 
   // eslint-disable-next-line no-new-func -- the file under test IS a script
   new Function(
@@ -1024,7 +529,7 @@ export function harness(
     submit, submitCreate, click, clickFold, gotoLink, clickGoto,
     button, createButton, requests, location, rows, inserted,
     replaced, slot, resets, document, phases, otherPhases, rowQueries, tick,
-    sources: FakeEventSource.made, live, visibility, intervals, ticks, elapsed, clock,
+    sources: sourcesMade, live, visibility, intervals, ticks, elapsed, clock,
     projectSelect, chips,
     removeButton, removeSlot, confirmInput,
     addButton, addSlot,
@@ -1035,18 +540,18 @@ export function harness(
     /** What the reader typing in the confirmation field does. */
     type: (value: string) => {
       confirmInput.value = value;
-      typed?.();
+      getTyped()?.();
     },
     changeProject: (value: string) => {
       projectSelect.value = value;
       on["select:change"]?.({ target: projectSelect });
     },
-    modelSelects, otherRowSelect, aiSelects, stepBoxes, tailBox,
+    modelSelects, otherRowSelect, aiSelects, stepBoxes, tailBox: tailBoxEl,
     /** A tail box ticked or unticked by hand — the tick that posts on
      *  its own, without a Run press behind it (spec 160). */
     changeTail: (checked: boolean) => {
-      tailBox.checked = checked;
-      return on["change"]?.({ target: tailBox });
+      tailBoxEl.checked = checked;
+      return on["change"]?.({ target: tailBoxEl });
     },
     runButton, cancelButton,
     /** An AI picked on ONE phase line (spec 179) — the action that
