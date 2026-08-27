@@ -1034,11 +1034,13 @@ describe("building the archived rows", () => {
   // The declaration and its body live in spec-views.ts; the one call
   // site is handleQueue's, extracted into its own file since spec:
   // split serve.ts, step 2. Both moved out of serve.ts itself in step 3.
+  // handleQueue's own body moved on again into handle-queue/page-routes.ts
+  // (split of split serve.ts, step 3) — that is where the call site lives now.
   const specViewsSrc = readFileSync(new URL("../src/serve/spec-views.ts", import.meta.url), "utf-8");
-  const handleQueueSrc = readFileSync(new URL("../src/serve/handle-queue.ts", import.meta.url), "utf-8");
+  const pageRoutesSrc = readFileSync(new URL("../src/serve/handle-queue/page-routes.ts", import.meta.url), "utf-8");
 
   test("is asked for by the reader's own chip and by nothing else", () => {
-    const calls = [...(specViewsSrc + handleQueueSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
+    const calls = [...(specViewsSrc + pageRoutesSrc).matchAll(/\barchivedSpecRows\(([^)]*)\)/g)]
       .map((m) => m[1]!)
       // Its own declaration reads the same as a call; it is not one.
       .filter((arg) => !arg.includes(":"));
