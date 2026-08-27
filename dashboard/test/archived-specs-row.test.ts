@@ -1,0 +1,154 @@
+// Split out of archived-specs.test.ts by theme.
+
+import { afterEach, describe, expect, test } from "bun:test";
+import {
+  ARCHIVED_VIEW, LONG_TAIL, STAMPED, STAMPED_COST_LABEL, TWO_TOOLS, UNDATED, UNSTAMPED,
+  blockFor, described, harness, opened, outcome, rowFor, specsList, stamp, start,
+} from "./archived-specs-fixtures.ts";
+
+afterEach(() => harness.cleanup());
+
+// --- criterion 3: it is a READER row ---------------------------------------
+
+describe("an archived spec's row", () => {
+  test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
+    expect(row).toContain("2026-08-13");
+    expect(row).toContain("Reopen");
+    expect(row).toContain('name="steps" value="reopen"');
+  });
+
+  test("draws no model select, no tick box and no Run (criterion 3)", async () => {
+    const html = await specsList(start({ queueDefaults: TWO_TOOLS }).base, ARCHIVED_VIEW);
+    const row = rowFor(html, STAMPED);
+    expect(row).not.toContain("<select");
+    expect(row).not.toContain('type="checkbox"');
+    // The Run form is a carrier with an id of its own; a reader row must
+    // not carry one, nor the button that submits it.
+    expect(row).not.toContain('class="rowrun"');
+    expect(row).not.toContain("starting…");
+  });
+
+  // Spec 224 turned this line round. It read `not.toContain('class="fold')`
+  // until then, on the grounds that a reader row had nothing under it to
+  // open — and that was the whole of what made it a second kind of row.
+  test("has the fold chevron every other row has (spec 224)", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain('class="fold');
+  });
+
+  test("carries the pip strip beside its name, like every other row", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(
+      '<span class="pipslot">',
+    );
+  });
+
+  // Criterion 7. `stateAction`'s ordinary branches name the phase a
+  // press would run; a locked row's one action is Reopen, open or shut.
+  test("offers no Analyze, Implement or Archive button, open or shut", async () => {
+    for (const query of [ARCHIVED_VIEW, `${ARCHIVED_VIEW}${opened(STAMPED)}`]) {
+      const block = blockFor(await specsList(start().base, query), STAMPED);
+      for (const label of ["Analyze", "Implement", "Archive"]) {
+        expect(block).not.toContain(`>${label}</button>`);
+      }
+      expect(block).toContain(">Reopen</button>");
+    }
+  });
+
+  test("says what it is, in the column that says what every row is", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(">archived<");
+  });
+
+  // Spec 224. `nextPhase` deletes `archive` from the done-set before it
+  // looks for what is missing — deliberately, for a row that is still on
+  // this list — so a FINISHED spec routed through it resolves to
+  // "archive" and its badge would read "ready". Ready for the step it
+  // has already had.
+  test("its badge never says the spec is ready for anything", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    expect(row).not.toContain(">ready<");
+  });
+
+  // `startedCell` reads `g.createdAt`, which an archived row has none
+  // of: routed through it unmodified the cell would be a bare dash.
+  test("its date and duration are in the column every row's date is in", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const cell = row.slice(row.indexOf('data-col="started"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain("2026-08-13");
+    expect(body).toContain("1h15m");
+    // The duration is the figure worth leading with (spec 257) — the
+    // archive date is secondary, muted context beside it.
+    expect(body.indexOf("1h15m")).toBeLessThan(body.indexOf("2026-08-13"));
+  });
+
+  test("the column header reads Time, not Started (spec 257)", async () => {
+    const html = await specsList(start().base, ARCHIVED_VIEW);
+    const start_ = html.indexOf('<th class="" data-col="started"');
+    const th = html.slice(start_, html.indexOf("</th>", start_));
+    expect(th).toContain(">Time<");
+    expect(th).not.toContain("Started");
+  });
+
+  // The stamp only started being written at spec 147; the older half of
+  // the archive has none, and git remembers the commit that moved the
+  // folder.
+  test("falls back to the commit that last touched the folder", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED)).toContain("2026-07-30");
+  });
+
+  // A blank cell for half the archive is the one outcome
+  // 1-description.md ruled out by name.
+  test("says so in words when neither the stamp nor git answers", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED)).toContain("date unknown");
+  });
+
+  test("carries what the spec cost in time, when its archive recorded one", async () => {
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain("1h15m");
+  });
+
+  // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even
+  // though each phase's own real cost was already available — summed
+  // here off the same phases that already carry it (the analyze phase
+  // is STAMPED's only one with a recorded cost).
+  test("carries the sum of its phases' recorded costs in the head row's Cost cell", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
+    const cell = row.slice(row.indexOf('data-col="cost"'));
+    expect(cell.slice(0, cell.indexOf("</td>"))).toContain(STAMPED_COST_LABEL);
+  });
+
+  // Spec 260: an archived spec whose only recorded figure is tokens (a
+  // Codex-only run — no `Cost:` line anywhere) must still show something
+  // in the head row's Cost cell, not the blank dash a `spentUsd` of `0`
+  // used to leave behind.
+  test("carries the sum of its phases' recorded tokens when no phase recorded a cost (spec 260, AC7)", async () => {
+    const folder = "260-a-codex-only-archive";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("A Codex-only archive", "One archived spec, no dollar figure at all."),
+        status: stamp("2026-08-26", 60_000, ["create", "analyze"]),
+        analysis: outcome({ tokens: "9562" }),
+      },
+    });
+    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
+    const cell = row.slice(row.indexOf('data-col="cost"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain('<span class="u-tok">9.6k tok</span>');
+    expect(body).not.toContain("$0.00");
+  });
+
+  // Spec 257: the description no longer shows under the title at all —
+  // recorded or not, long or short. It stays SEARCHABLE (see the search
+  // tests below), only the on-page display goes.
+  test("shows no description text under the title, recorded or not", async () => {
+    const withDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNSTAMPED);
+    expect(withDescription).not.toContain("archive-desc");
+    expect(withDescription).not.toContain(LONG_TAIL);
+  });
+
+  test("shows no dash placeholder either, for a spec with no description", async () => {
+    const withoutDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
+    expect(withoutDescription).not.toContain("archive-desc");
+    expect(withoutDescription).not.toContain("—");
+  });
+});
