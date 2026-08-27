@@ -21,6 +21,68 @@ const { harness, start } = setupQueueRoutesHarness();
 /** Temp directories this suite makes for itself, outside the harness. */
 const ownDirs: string[] = [];
 
+const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+const SPECS_REPO = "/repos/aide-specs";
+
+function gitFor({
+  conflicting = [],
+  needsRealMerge = [],
+  gone = [],
+}: {
+  conflicting?: string[];
+  needsRealMerge?: string[];
+  gone?: string[];
+} = {}) {
+  const calls: { dir: string; args: string[] }[] = [];
+  const run = async (dir: string, args: string[]) => {
+    calls.push({ dir, args });
+    const a = args.join(" ");
+    if (a.startsWith("ls-remote") && gone.includes(dir)) return { code: 2, stdout: "" };
+    if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
+    if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
+    if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
+    if (a.startsWith("merge -q --ff-only")) {
+      return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
+    }
+    if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
+    if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
+    return { code: 0, stdout: "" };
+  };
+  return { run, calls };
+}
+
+function serverWithRunner(
+  start: (options: Partial<ServerOptions>) => { base: string; dir: string },
+  prefix: string,
+  git: { run: (dir: string, args: string[]) => Promise<unknown> },
+  extra: Partial<ServerOptions> = {},
+) {
+  const results = mkdtempSync(join(tmpdir(), prefix));
+  ownDirs.push(results);
+  const { base, dir } = start({
+    queueToken: TOKEN,
+    gitRun: git.run as never,
+    queueRunnerBin: "/usr/bin/true",
+    queueResultDir: results,
+    ...extra,
+  });
+  return { base, dir, results };
+}
+
+async function settle(
+  base: string,
+  id: string,
+  done: (job: Record<string, unknown>) => boolean,
+): Promise<Record<string, unknown>> {
+  for (let n = 0; n < 100; n++) {
+    const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
+    const body = (await res.json()) as { job: Record<string, unknown> };
+    if (done(body.job)) return body.job;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error("the job never settled");
+}
+
 afterEach(() => {
   harness.cleanup();
   while (ownDirs.length) rmSync(ownDirs.pop()!, { recursive: true, force: true });
@@ -79,27 +141,7 @@ describe("a refused form post says so on the page", () => {
 // stays invisible until that branch is merged — which is why this one step
 // lands itself instead of waiting for a button nobody was told to press.
 describe("landing a created spec (spec 93)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-  const SPECS_REPO = "/repos/aide-specs";
   const BRANCH = "aide/new-abc123de";
-
-  /** A git that answers per repo, like the merge route's own harness.
-   *  `conflicting` names the roots whose merge fails. */
-  function gitFor(conflicting: string[] = []) {
-    const calls: { dir: string; args: string[] }[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
-      const a = args.join(" ");
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    return { run, calls };
-  }
 
   /** The result `aide-run-spec` writes for a create step that worked. */
   const CREATE_RESULT = {
@@ -114,24 +156,6 @@ describe("landing a created spec (spec 93)", () => {
     repos: [],
   };
 
-  /** A server whose runner spawns `/bin/true` and reads its results from a
-   *  directory this suite owns — so a test can put the JSON there itself. */
-  function serverWithRunner(
-    git: { run: (dir: string, args: string[]) => Promise<unknown> },
-    extra: Partial<ServerOptions> = {},
-  ) {
-    const results = mkdtempSync(join(tmpdir(), "aide-create-results-"));
-    ownDirs.push(results);
-    const { base, dir } = start({
-      queueToken: TOKEN,
-      gitRun: git.run as never,
-      queueRunnerBin: "/usr/bin/true",
-      queueResultDir: results,
-      ...extra,
-    });
-    return { base, dir, results };
-  }
-
   async function createJob(base: string, title = "A new spec"): Promise<{ id: string; specFolder: string }> {
     const made = (await (
       await fetch(`${base}/api/queue/create`, {
@@ -143,26 +167,9 @@ describe("landing a created spec (spec 93)", () => {
     return made.job;
   }
 
-  /** Wait for the runner's own 2-second tick to pick the result up and for
-   *  the landing it triggers to finish. Polled, never slept blindly: what
-   *  is under test is asynchronous by nature. */
-  async function settle(
-    base: string,
-    id: string,
-    done: (job: Record<string, unknown>) => boolean,
-  ): Promise<Record<string, unknown>> {
-    for (let n = 0; n < 100; n++) {
-      const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
-      const body = (await res.json()) as { job: Record<string, unknown> };
-      if (done(body.job)) return body.job;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    throw new Error("the job never settled");
-  }
-
   test("a successful create step is merged into every repo it pushed to, and renamed", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
     const job = await createJob(base);
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
@@ -186,7 +193,7 @@ describe("landing a created spec (spec 93)", () => {
   // failure is retried; only a merge that keeps failing is reported.
   test("a landing that fails once and then succeeds lands on the retry", async () => {
     let failures = 1;
-    const inner = gitFor([]);
+    const inner = gitFor();
     const git = {
       calls: inner.calls,
       run: (dir: string, args: string[]) => {
@@ -197,7 +204,7 @@ describe("landing a created spec (spec 93)", () => {
         return inner.run(dir, args);
       },
     };
-    const { base, results } = serverWithRunner(git as never);
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git as never);
     const job = await createJob(base);
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     const landed = await settle(base, job.id, (j) => j.specFolder !== job.specFolder || !!j.error);
@@ -206,8 +213,8 @@ describe("landing a created spec (spec 93)", () => {
   });
 
   test("a landing that fails keeps the provisional key and says which repo and why", async () => {
-    const git = gitFor([SPECS_REPO]);
-    const { base, results } = serverWithRunner(git);
+    const git = gitFor({ conflicting: [SPECS_REPO] });
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git);
     const job = await createJob(base);
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     const failed = await settle(base, job.id, (j) => !!j.error);
@@ -221,7 +228,7 @@ describe("landing a created spec (spec 93)", () => {
 
   test("a landed spec is an ordinary row: analyze runnable, nothing left to merge", async () => {
     const git = gitFor();
-    const { base, dir, results } = serverWithRunner(git);
+    const { base, dir, results } = serverWithRunner(start, "aide-create-results-", git);
     const job = await createJob(base);
     // The merge really does put the folder on disk, which is the whole
     // reason the landing step exists.
@@ -256,7 +263,7 @@ describe("landing a created spec (spec 93)", () => {
   test("the merge event for a create landing names the renamed folder, not the provisional key", async () => {
     const git = gitFor();
     const sink = mergeEventSink();
-    const { base, results } = serverWithRunner(git, sink);
+    const { base, results } = serverWithRunner(start, "aide-create-results-", git, sink);
     const job = await createJob(base);
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(CREATE_RESULT));
     await settle(base, job.id, (j) => j.specFolder === "94-a-new-spec");
@@ -296,38 +303,8 @@ describe("landing a created spec (spec 93)", () => {
 // the same helper, the same per-repo report, the same visible refusal
 // when a merge genuinely cannot be made.
 describe("landing an archived spec (spec 136)", () => {
-  const AUTH = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
-  const SPECS_REPO = "/repos/aide-specs";
   const SPEC = "81-queue-and-runner";
   const BRANCH = `aide/${SPEC}`;
-
-  /** A git that answers per repo. `conflicting` names the roots whose
-   *  merge fails both ways; `needsRealMerge` names the ones where the
-   *  base has moved on — ff-only refuses, a real merge commit works;
-   *  `gone` names the ones where origin has no such branch left, which
-   *  `ls-remote --exit-code` reports as code 2 (spec 153). */
-  function gitFor({
-    conflicting = [] as string[],
-    needsRealMerge = [] as string[],
-    gone = [] as string[],
-  } = {}) {
-    const calls: { dir: string; args: string[] }[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
-      const a = args.join(" ");
-      if (a.startsWith("ls-remote") && gone.includes(dir)) return { code: 2, stdout: "" };
-      if (a.startsWith("symbolic-ref")) return { code: 0, stdout: "refs/remotes/origin/master\n" };
-      if (a.startsWith("status --porcelain")) return { code: 0, stdout: "" };
-      if (a.startsWith("rev-parse --abbrev-ref @{u}")) return { code: 0, stdout: "origin/master\n" };
-      if (a.startsWith("merge -q --ff-only")) {
-        return { code: conflicting.includes(dir) || needsRealMerge.includes(dir) ? 1 : 0, stdout: "" };
-      }
-      if (a.startsWith("merge -q --no-edit")) return { code: conflicting.includes(dir) ? 1 : 0, stdout: "" };
-      if (a.startsWith("merge-base")) return { code: 1, stdout: "" };
-      return { code: 0, stdout: "" };
-    };
-    return { run, calls };
-  }
 
   /** The result `aide-run-spec` writes for an archive step that moved the
    *  folder and pushed the specs repo. No `specFolder`: that field is
@@ -343,22 +320,6 @@ describe("landing an archived spec (spec 136)", () => {
     repos: [],
   };
 
-  function serverWithRunner(
-    git: { run: (dir: string, args: string[]) => Promise<unknown> },
-    extra: Partial<ServerOptions> = {},
-  ) {
-    const results = mkdtempSync(join(tmpdir(), "aide-archive-results-"));
-    ownDirs.push(results);
-    const { base, dir } = start({
-      queueToken: TOKEN,
-      gitRun: git.run as never,
-      queueRunnerBin: "/usr/bin/true",
-      queueResultDir: results,
-      ...extra,
-    });
-    return { base, dir, results };
-  }
-
   /** Queue one step for the harness's own spec, straight through — no
    *  gate, so the run reaches `onStepDone` without a press. */
   async function runStep(base: string, step: string): Promise<{ id: string; specFolder: string }> {
@@ -372,20 +333,6 @@ describe("landing an archived spec (spec 136)", () => {
     return made.job;
   }
 
-  async function settle(
-    base: string,
-    id: string,
-    done: (job: Record<string, unknown>) => boolean,
-  ): Promise<Record<string, unknown>> {
-    for (let n = 0; n < 100; n++) {
-      const res = await fetch(`${base}/api/queue/${id}`, { headers: AUTH });
-      const body = (await res.json()) as { job: Record<string, unknown> };
-      if (done(body.job)) return body.job;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    throw new Error("the job never settled");
-  }
-
   const merges = (calls: { dir: string; args: string[] }[]) =>
     calls.filter((c) => c.args[0] === "merge" && c.args.includes(`refs/remotes/origin/${BRANCH}`));
 
@@ -396,7 +343,7 @@ describe("landing an archived spec (spec 136)", () => {
   // in hand instead, which has no such timing to get wrong.
   test("a successful archive step is merged and pushed with no Merge press", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
@@ -414,7 +361,7 @@ describe("landing an archived spec (spec 136)", () => {
   // A real merge commit is the answer, not a failure to report.
   test("a base that moved is a real merge commit, not a refusal", async () => {
     const git = gitFor({ needsRealMerge: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
@@ -430,7 +377,7 @@ describe("landing an archived spec (spec 136)", () => {
   // leaves the spec where it was.
   test("a genuine conflict keeps the branch, names the repo, and reports it", async () => {
     const git = gitFor({ conflicting: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const failed = await settle(base, job.id, (j) => !!j.error);
@@ -453,7 +400,7 @@ describe("landing an archived spec (spec 136)", () => {
   // that never moved is an ordinary outcome.
   test("an archive step that pushed nothing is a no-op, not an error", async () => {
     const git = gitFor();
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -477,7 +424,7 @@ describe("landing an archived spec (spec 136)", () => {
   test("a code branch already merged and deleted is nothing to land, not a failure", async () => {
     const CODE_REPO = "/repos/aide";
     const git = gitFor({ gone: [CODE_REPO] });
-    const { base, results } = serverWithRunner(git, { queueProjectRoot: "/repos" });
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -504,7 +451,7 @@ describe("landing an archived spec (spec 136)", () => {
   test("a gone branch beside a genuine conflict still reports the conflict", async () => {
     const CODE_REPO = "/repos/aide";
     const git = gitFor({ gone: [CODE_REPO], conflicting: [SPECS_REPO] });
-    const { base, results } = serverWithRunner(git, { queueProjectRoot: "/repos" });
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git, { queueProjectRoot: "/repos" });
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -543,7 +490,7 @@ describe("landing an archived spec (spec 136)", () => {
         return inner.run(dir, args);
       },
     };
-    const { base, results } = serverWithRunner(git as never);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git as never);
     const job = await runStep(base, "archive");
     writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
     const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
@@ -569,7 +516,7 @@ describe("landing an archived spec (spec 136)", () => {
     writeFileSync(join(specsRepo, ".aide", "config"), `AIDE_INSTALL_CMD=/usr/bin/touch ${marker}\n`);
 
     const git = gitFor();
-    const { base, results } = serverWithRunner(git);
+    const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
     const job = await runStep(base, "archive");
     writeFileSync(
       join(results, `${job.id}.json`),
@@ -589,7 +536,7 @@ describe("landing an archived spec (spec 136)", () => {
   // clear it or the very next request still shows the old answer.
   test("a held-back note is landed and shows on the row without a merge press", async () => {
     const git = gitFor();
-    const { base, dir, results } = serverWithRunner(git);
+    const { base, dir, results } = serverWithRunner(start, "aide-archive-results-", git);
     const specDir = join(dir, "root", "aide", "specs", SPEC);
     // The page is read once first, so the scan is cached WITHOUT the note.
     const before = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
@@ -621,7 +568,7 @@ describe("landing an archived spec (spec 136)", () => {
     const checked = await Promise.all(
       steps.map(async (step) => {
         const git = gitFor();
-        const { base, results } = serverWithRunner(git);
+        const { base, results } = serverWithRunner(start, "aide-archive-results-", git);
         const job = await runStep(base, step);
         writeFileSync(join(results, `${job.id}.json`), JSON.stringify(ARCHIVE_RESULT));
         const done = await settle(base, job.id, (j) => j.state === "done");

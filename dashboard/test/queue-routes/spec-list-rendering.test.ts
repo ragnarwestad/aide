@@ -566,8 +566,8 @@ describe("the job list sorts and filters", () => {
     expect(asc).toMatch(/<a class="sortlink on asc"[^>]*><span class="u-usd">Cost<\/span>/);
     expect(asc).not.toContain("▴");
     // An unsorted column carries the chevron too (faint in CSS), pointing
-    // the way its first click will sort: Started defaults to descending.
-    expect(desc).toMatch(/<a class="sortlink"[^>]*>Started<svg/);
+    // the way its first click will sort: Time defaults to descending.
+    expect(desc).toMatch(/<a class="sortlink"[^>]*>Time<svg/);
     // …and State to ascending, so its chevron is already turned.
     expect(desc).toMatch(/<a class="sortlink asc"[^>]*>State<svg/);
   });

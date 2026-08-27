@@ -21,6 +21,7 @@ import { fakeGit, CLEAN_MASTER, type GitCall } from "../helpers/fake-git.ts";
 
 const BRANCH = "aide/89-merge-from-the-dashboard";
 const ROOT = "/repos/aide";
+const noWait = async (_ms: number): Promise<void> => {};
 
 /** The whole argv of every call, in order — the sequence is the thing
  *  under test, not any single command. */
@@ -251,7 +252,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
 
   test("it is retried, and the merge goes through once the lock clears (criterion 15)", async () => {
     const git = pullFailing(1, LOCK);
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(git.pulls()).toBe(2);
     expect(argv(git.calls)).toContain("push -q origin master");
@@ -259,7 +260,7 @@ describe("mergeBranchIntoDefault: a pull that lost the race for index.lock", () 
 
   test("a lock that never clears is still refused, not retried forever (criterion 15)", async () => {
     const git = pullFailing(99, LOCK);
-    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+    const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master", noWait);
     expect(result.ok).toBe(false);
     expect(result.error).toContain(ROOT);
     // Bounded: a stuck lock costs a fraction of a second, not the
@@ -584,9 +585,7 @@ describe("fastForwardToOrigin", () => {
 
   test("the index-lock retry: a lock that clears lets the pull through", async () => {
     let pulls = 0;
-    const calls: GitCall[] = [];
-    const run = async (dir: string, args: string[]) => {
-      calls.push({ dir, args });
+    const run = async (_dir: string, args: string[]) => {
       const a = args.join(" ");
       if (a.startsWith("rev-parse --abbrev-ref HEAD")) return { code: 0, stdout: "master\n" };
       if (a.startsWith("pull")) {
@@ -597,7 +596,7 @@ describe("fastForwardToOrigin", () => {
       }
       return { code: 0, stdout: "" };
     };
-    const result = await fastForwardToOrigin(run, ROOT, "master");
+    const result = await fastForwardToOrigin(run, ROOT, "master", noWait);
     expect(result).toEqual({ root: ROOT, ok: true });
     expect(pulls).toBe(2);
   });

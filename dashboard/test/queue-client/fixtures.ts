@@ -728,7 +728,8 @@ export function harness(
     parentNode,
     addEventListener: (type: string, fn: (e: unknown) => void) => void (on[type] = fn),
   };
-  const on: Record<string, (e: unknown) => void> = {};
+  type Listener = (e: unknown) => void | Promise<void>;
+  const on: Record<string, Listener> = {};
   const requests: { url: string; init: Record<string, unknown> }[] = [];
   // `pathname` because the page's own reloads go back to the page they
   // are on — the Projects panel is served at `/projects` since spec 115,
@@ -944,7 +945,7 @@ export function harness(
         prevented = true;
       },
     };
-    return on[listener]!(event) as unknown as Promise<void>;
+    return on[listener]!(event);
   };
 
   const submit = (extra: Partial<{ defaultPrevented: boolean }> = {}) => {
@@ -1039,7 +1040,7 @@ export function harness(
      *  its own, without a Run press behind it (spec 160). */
     changeTail: (checked: boolean) => {
       tailBox.checked = checked;
-      return on["change"]?.({ target: tailBox }) as unknown as Promise<void>;
+      return on["change"]?.({ target: tailBox });
     },
     runButton, cancelButton,
     /** An AI picked on ONE phase line (spec 179) — the action that
@@ -1049,19 +1050,19 @@ export function harness(
       select.value = tool;
       // Returned rather than dropped: on a LIVE line the pick posts
       // (spec 225), and a test has to be able to wait for it.
-      return on["change"]?.({ target: select }) as unknown as Promise<void>;
+      return on["change"]?.({ target: select });
     },
     changeCreateAi: (index: number, tool: string) => {
       const select = aiSelects[index]!;
       select.value = tool;
-      return on["create:change"]?.({ target: select }) as unknown as Promise<void>;
+      return on["create:change"]?.({ target: select });
     },
     /** One phase's model, moved by hand — the other half of what a
      *  swap must not wash away. */
     changeModel: (index: number, value: string) => {
       const select = modelSelects[index]!;
       select.value = value;
-      return on["change"]?.({ target: select }) as unknown as Promise<void>;
+      return on["change"]?.({ target: select });
     },
     /** A phase box ticked or unticked by hand — the third control on
      *  the row a swap used to wash away. */
@@ -1089,4 +1090,3 @@ export const OK_ACTION = { ok: true, job: { id: "job-1" } };
  *  page is about to show comes from. */
 export const swapUrl = (h: { requests: { url: string }[] }): string =>
   h.requests.map((r) => r.url).find((u) => u.startsWith("/?") && u.includes("rows=1")) ?? "";
-

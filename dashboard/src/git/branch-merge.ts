@@ -80,6 +80,7 @@ const LOCK_RETRIES = 2;
 const LOCK_WAIT_MS = 250;
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+type Wait = (ms: number) => Promise<void>;
 
 /** Merge `branch` into `base` in `root`, and push. `base` is passed in
  *  rather than re-derived: the caller already resolved it through
@@ -94,6 +95,7 @@ export async function mergeBranchIntoDefault(
   root: string,
   branch: string,
   base: string,
+  wait: Wait = sleep,
 ): Promise<RepoMergeResult> {
   try {
     // The state of the working tree is not asked about at all (spec
@@ -142,7 +144,7 @@ export async function mergeBranchIntoDefault(
       // pull failure would also delay the refusal a real divergence
       // deserves — and that refusal is the one that must stay immediate.
       for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
-        await sleep(LOCK_WAIT_MS);
+        await wait(LOCK_WAIT_MS);
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
       if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
@@ -225,6 +227,7 @@ export async function fastForwardToOrigin(
   run: GitRunner,
   root: string,
   base: string,
+  wait: Wait = sleep,
 ): Promise<RepoMergeResult> {
   try {
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
@@ -235,7 +238,7 @@ export async function fastForwardToOrigin(
     await run(root, ["fetch", "--quiet", "origin", base]);
     let pulled = await run(root, ["pull", "-q", "--ff-only"]);
     for (let n = 0; pulled.code !== 0 && INDEX_LOCK.test(pulled.stderr ?? "") && n < LOCK_RETRIES; n++) {
-      await sleep(LOCK_WAIT_MS);
+      await wait(LOCK_WAIT_MS);
       pulled = await run(root, ["pull", "-q", "--ff-only"]);
     }
     if (pulled.code !== 0) {
