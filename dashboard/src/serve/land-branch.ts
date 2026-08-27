@@ -617,6 +617,15 @@ export async function stampTotalDuration(ctx: LandContext, job: Job): Promise<vo
       .filter((j) => j.project === job.project && j.specFolder === job.specFolder)
       .map(ctx.jobRow),
   );
+  // This job's own `landing` flag is still true here — it is cleared
+  // only once the runner's promise for `onLanded` (this very function)
+  // settles, on purpose, so a `tick()` interleaved mid-landing cannot
+  // reuse its concurrency slot (`runner.ts`). `totalDuration`'s
+  // in-flight guard reads that same flag as "not finished yet", which
+  // is right for the row a reader sees but wrong here: this landing
+  // reaching `onLanded` at all means the step is done, and the total is
+  // being asked for BECAUSE of that, not despite it.
+  for (const r of rows) if (r.id === job.id) r.landing = undefined;
   const ms = computeSpecTotalDurationMs(rows, fresh?.done ?? []);
   if (ms === undefined) return;
   const text = stampDuration(current, ms);
