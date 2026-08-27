@@ -113,6 +113,19 @@ export function parseJobRequest(
       error: `${r.specFolder} is archived — only ${ARCHIVE_ONLY_STEP} can be asked for it`,
     };
   }
+  // The mirrored direction (spec 270): `reopen` exists to bring an
+  // archived spec back, so a request for it against a spec already in
+  // `specFolders` is not a legitimate case, only a stale board row or a
+  // caller that skipped the archived check above. `!archivedOnly` is not
+  // needed here — `archivedOnly` already requires
+  // `!resolved.specFolders.includes(...)`, so the two conditions cannot
+  // both be true.
+  if (steps.includes(ARCHIVE_ONLY_STEP) && resolved.specFolders.includes(r.specFolder)) {
+    return {
+      ok: false,
+      error: `${r.specFolder} is already active — nothing to ${ARCHIVE_ONLY_STEP}`,
+    };
+  }
 
   // `gateAfter` was parsed here until spec 149 — a list of steps to stop
   // after. It is an unknown key now, and unknown keys are ignored rather

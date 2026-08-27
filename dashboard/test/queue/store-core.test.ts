@@ -470,10 +470,13 @@ describe("QueueStore.onChange (spec 189)", () => {
 // enqueue is special-cased for it — which is what the test below is
 // about.
 describe("spec 198: reopen", () => {
-  test("is a step the queue accepts", () => {
+  // Spec 270: `reopen` against an active spec is not the working case —
+  // the request in REQ names "81-queue-and-runner", which `resolve`
+  // lists in `specFolders`, never `archivedFolders`.
+  test("a reopen is refused when the target spec is already active", () => {
     const r = parseJobRequest({ ...REQ, steps: ["reopen"] }, { resolve, defaults: DEFAULTS });
-    expect(r.ok).toBe(true);
-    expect(r.ok && r.job.steps).toEqual(["reopen"]);
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.error).toContain("already active");
   });
 
   // It is queueable, not a stage a spec passes through: `explore` and
