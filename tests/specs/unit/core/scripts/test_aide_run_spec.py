@@ -5169,6 +5169,47 @@ def test_reopen_succeeds_when_the_branches_are_already_gone(
     assert out["ok"] is True, out
 
 
+# --- spec 270: reopen refuses a spec that is not archived --------------------
+#
+# The board can go on drawing a Reopen button for a spec whose folder has
+# already moved back out of `archive/` — nothing tells it the folder
+# moved until its next read. `aide-reopen/SKILL.md` says to stop when the
+# spec is not archived, but that is prose read by the invoked model, and
+# on 2026-08-27 it did not stop: it reset the files of a spec whose round
+# was still running and deleted its branch. The resolver above finds the
+# ACTIVE folder first and never records where it found it, so this is the
+# gap that let that happen.
+
+
+def test_reopen_refuses_when_the_spec_is_already_active(runner, workspace, fake_claude):
+    """The spec is left exactly where the resolver found it — active,
+    not archived — so the run must refuse before it does anything else."""
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 2, out
+    assert "already active" in out["error"], out
+
+
+def test_reopen_refusal_leaves_an_active_specs_branch_alone(
+    runner, workspace, fake_claude, origin
+):
+    """The same four places incident 1 lost a branch in
+    (test_reopen_takes_the_leftover_branch_out_of_both_roots and
+    test_reopen_takes_the_branch_off_origin_in_both_roots) must survive a
+    refused run untouched — proving the guard runs ahead of the
+    branch-deletion block, not merely that the run exits nonzero."""
+    for root in (workspace["project"], workspace["specs"]):
+        make_branch(root, BRANCH)
+        git(root, "push", "-q", "origin", BRANCH)
+    claude = fake_claude("cat > /dev/null\n" + f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="reopen")
+    assert rc == 2, out
+    for root in (workspace["project"], workspace["specs"]):
+        assert has_branch(root, BRANCH), f"{root} lost its local branch"
+    for bare in (origin["project"], origin["specs"]):
+        assert has_branch(bare, BRANCH), f"{bare} lost its branch"
+
+
 def test_reset_accepts_an_active_spec_and_removes_remote_branches(
     runner, workspace, fake_claude, origin
 ):

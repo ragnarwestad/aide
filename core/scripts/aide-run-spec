@@ -312,6 +312,7 @@ roots=("$project_root")
 [ -n "$specs_repo" ] && [ "$specs_repo" != "$project_root" ] && roots+=("$specs_repo")
 
 spec_folder=""
+spec_folder_archived="no"
 if [ -d "$specs_root/$spec_arg" ]; then
   spec_folder="$spec_arg"
 else
@@ -388,7 +389,7 @@ fi
 if [ -z "$spec_folder" ] && [ "$command_name" = "reopen" ] && [ -d "$specs_root/archive" ]; then
   for candidate in "$specs_root/archive"/*/; do
     base="$(basename "$candidate")"
-    case "$base" in "$spec_arg" | "$spec_arg"-*) spec_folder="$base"; break ;; esac
+    case "$base" in "$spec_arg" | "$spec_arg"-*) spec_folder="$base"; spec_folder_archived="yes"; break ;; esac
   done
 fi
 # A `create` step is the one that MAKES the folder, so it is the one
@@ -421,6 +422,18 @@ spec_id="${spec_folder%%-*}"
 # What the branch, the worktree and the commit message are named after:
 # the real folder when there is one, the tracking key while there is not.
 spec_label="${spec_folder:-$spec_arg}"
+
+# `reopen` exists to bring a spec back OUT of archive/ — a spec the
+# resolver above found active is not its target, only a stale board row
+# or a run started by hand against the wrong spec (spec 270: this is
+# what let a running round's files get reset and its branch deleted on
+# 2026-08-27). Checked here, before anything below touches a worktree or
+# a branch — in particular before the branch-deletion block a few
+# hundred lines down, which `refuse`'s own `exit 2` never lets the run
+# reach.
+if [ "$command_name" = "reopen" ] && [ "$spec_folder_archived" != "yes" ]; then
+  refuse "$spec_folder is already active — nothing to reopen"
+fi
 
 # A run reaches its project and its specs root, and nothing else.
 # --extra-project-dir named a third repo to watch, branch, commit and
