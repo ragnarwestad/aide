@@ -36,7 +36,7 @@ import type {
   SpecPageView,
 } from "../render.ts";
 import type { createRootLock } from "./serve-helpers.ts";
-import type { ServerOptions } from "./serve.ts";
+import type { ServerOptions } from "./options.ts";
 import { handlePageRoutes } from "./handle-queue/page-routes.ts";
 import { handleQueueEvents } from "./handle-queue/sse.ts";
 import { handleQueueAdminRoutes } from "./handle-queue/queue-admin.ts";

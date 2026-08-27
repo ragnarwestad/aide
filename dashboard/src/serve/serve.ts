@@ -7,7 +7,7 @@
 // CLI: serve --site DIR [--port N] [--claude-usage URL] [--mirror FILE]
 
 import { watch } from "node:fs";
-import { AideRunStore, parseAideRun } from "../queue/aide-run-store.ts";
+import { AideRunStore } from "../queue/aide-run-store.ts";
 import {
   BranchStatusChecker, createGitRunner, DEFAULT_TTL_MS,
   type GitRunner,
@@ -34,24 +34,23 @@ import { Notifier } from "../integrations/notify.ts";
 import { MergeEventReporter } from "../integrations/merge-event.ts";
 import {
   QueueStore,
-  type Job, type QueueDefaults, type ProjectResolver,
+  type Job, type ProjectResolver,
   type WorkflowStep,
 } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import {
-  type NavEntry,
   type QueueTarget,
 } from "../render.ts";
 
 import {
   QUEUE_DEFAULTS,
-  json, readBounded, createRootLock,
+  createRootLock,
   navFromSite,
-  serveStatic,
-  parseArgs,
-  servePwaAsset,
 } from "./serve-helpers.ts";
 export * from "./serve-helpers.ts";
+export type { ServerOptions } from "./options.ts";
+import type { ServerOptions } from "./options.ts";
+import { handleCore, type CoreRoutesContext } from "./core-routes.ts";
 import { handleQueue, type HandleQueueContext } from "./handle-queue.ts";
 import {
   archivedSpecRows as archivedSpecRowsImpl,
@@ -113,101 +112,6 @@ import {
   type ProjectCheckoutContext,
 } from "./project-checkout.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
-
-export interface ServerOptions {
-  siteDir: string;
-  port: number;
-  claudeUsageUrl?: string;
-  claudeUsageFetch?: typeof fetch;
-  mirrorPath?: string;
-  // Nav entries for /live: derived from --root's manifests when given,
-  // else from the site dir's project pages.
-  navEntries?: NavEntry[];
-  /** Where to listen. Default 0.0.0.0; the mini pins its Tailscale
-   *  address, the way claude-usage's plist does. */
-  bindHost?: string;
-  /** Without it the queue surface answers 503: off loudly, rather than
-   *  open quietly. */
-  queueToken?: string;
-  queueMirrorPath?: string;
-  /** Root scanned for `.aide/project.yaml` — the queue resolves project
-   *  NAMES against it, so a request never carries a path. */
-  projectRoot?: string;
-  /** The allowlist. Empty or absent means no project may be queued.
-   *  Seeded from `--queue-projects` on a first install and from
-   *  `queue-config.json`'s `projects` field after that; mutated live by
-   *  the Add/Remove routes (spec 112). */
-  queueProjects?: string[];
-  /** Where that allowlist is PERSISTED — the `--queue-config` file.
-   *  Threaded through from `parseArgs` because the routes that change
-   *  the allowlist have to write it back, and a config path that stops
-   *  at `parseArgs` leaves them with nowhere to write (spec 112). */
-  queueConfigFile?: string;
-  queueDefaults?: QueueDefaults;
-  /** Path to `aide-run-spec`. Without it the queue only stores jobs —
-   *  nothing is ever started, and the page says so. */
-  queueRunnerBin?: string;
-  /** Where each allowlisted project is checked out on this machine —
-   *  the checkout a PERSON edits. Read for display; never written to
-   *  since spec 205. */
-  queueProjectRoot?: string;
-  /** Where the dashboard keeps the clones it works in (spec 205). One
-   *  per project, made the first time it is needed. Defaults to
-   *  `~/aide-dashboard-checkouts`; named here so a test can put them
-   *  somewhere it owns. */
-  dashboardCheckoutRoot?: string;
-  queueResultDir?: string;
-  /** How far a finished step publishes its work: none, branch or pr.
-   *  From the queue config; `branch` when unset. */
-  queuePush?: string;
-  /** How many steps may run at once. From the queue config's
-   *  `concurrency`; two when unset. */
-  queueConcurrency?: number;
-  /** argv for the gate notifier — claude-usage's contract, run with no
-   *  shell. Absent means no notifications are sent. */
-  queueNotifyCommand?: string[];
-  /** Where to report a landed branch, so claude-usage's ledger can see a
-   *  merge no transcript records (spec 158). From the queue config's
-   *  `mergeEventUrl`. Absent means nothing is ever sent — and absent it
-   *  must stay absent, unlike `claudeUsageUrl`, which `createServer`
-   *  always resolves to a default and so can never be off. */
-  mergeEventUrl?: string;
-  /** How that report is sent. A test seam, like `gitRun`. */
-  mergeEventFetch?: typeof fetch;
-  /** How the merge check runs git. A test seam: the real one spawns a
-   *  subprocess, which no test should. */
-  gitRun?: GitRunner;
-  /** How long the project's own install command may run after its code
-   *  merged. A test seam above all — the default is a bound, not a
-   *  setting anybody is expected to tune. */
-  queueInstallTimeoutMs?: number;
-  /** How often the drift check asks origin how far each project's
-   *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
-   *  cache window: the page render reads the last answer and never
-   *  takes one itself. `0` turns the schedule off entirely — a test
-   *  seam, for observing the never-checked row without racing a timer.
-   *  Omitted, it is the checker's own TTL, which is the window the
-   *  answer was already considered current for. */
-  driftPollMs?: number;
-  /** How often the spec caches are refilled (spec 208). Like
-   *  `driftPollMs` it is a SCHEDULE, not a cache window: every page
-   *  render reads the last answer and never takes one itself. `0` turns
-   *  the schedule off entirely — a test seam, for observing a page that
-   *  has never been warmed without racing a timer. Omitted, it is the
-   *  checkers' own TTL, which is the window each answer was already
-   *  considered current for. */
-  specCachePollMs?: number;
-  /** How often each project's own `schedule:` entries are checked for a
-   *  due fire (spec 259). It is a SCHEDULE, not a cache window, like
-   *  `driftPollMs` and `specCachePollMs`: nothing but this timer ever
-   *  asks the question, and a manual "run now" goes through the ordinary
-   *  queue form instead. `0` turns it off entirely — a test seam, for
-   *  observing a schedule that has never been polled without racing a
-   *  timer. Omitted, it is `DEFAULT_TTL_MS`, the same default the other
-   *  two schedules share. */
-  scheduleCheckMs?: number;
-  runnerAvailable?: boolean;
-}
 
 export function createServer(opts: ServerOptions) {
   const store = new AideRunStore({ mirrorPath: opts.mirrorPath });
@@ -790,6 +694,8 @@ export function createServer(opts: ServerOptions) {
     jobDetailView,
   };
 
+  const coreCtx: CoreRoutesContext = { store, enricher, notifyQueueChanged, siteDir: opts.siteDir };
+
   const server = Bun.serve({
     port: opts.port,
     hostname: opts.bindHost ?? "0.0.0.0",
@@ -809,41 +715,7 @@ export function createServer(opts: ServerOptions) {
         return handleQueue(queueCtx, req, url, path);
       }
 
-      if (path === "/api/aide-run") {
-        if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-        const body = await readBounded(req);
-        if ("refusal" in body) return body.refusal;
-        let raw: unknown;
-        try {
-          raw = JSON.parse(body.text);
-        } catch {
-          return json({ error: "malformed json" }, 400);
-        }
-        const parsed = parseAideRun(raw);
-        if (!parsed.ok) return json({ error: parsed.error }, 400);
-        const stored = store.put(parsed.run, new Date().toISOString());
-        // The second source a row reads (spec 189). Cost, subagent
-        // count and live state arrive here and nowhere near the queue's
-        // own store, so a push driven by that store alone would let
-        // them sit still for the whole of a long step.
-        notifyQueueChanged();
-        return json({ ok: true, sessionId: stored.sessionId });
-      }
-
-      if (path === "/api/aide-runs") {
-        if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-        const { rows, enriched } = await enricher.rows(store);
-        return json({ generatedAt: new Date().toISOString(), enriched, rows });
-      }
-
-      if (req.method !== "GET" && req.method !== "HEAD") {
-        return new Response("method not allowed", { status: 405 });
-      }
-
-      const pwaAsset = servePwaAsset(path);
-      if (pwaAsset) return pwaAsset;
-
-      return serveStatic(opts.siteDir, path);
+      return handleCore(coreCtx, req, url, path);
     },
   });
 
@@ -969,17 +841,6 @@ export function createServer(opts: ServerOptions) {
 }
 
 if (import.meta.main) {
-  const argv = process.argv.slice(2);
-  if (argv[0] !== "serve") {
-    console.error(
-      "usage: serve.ts serve --site DIR [--port N] [--bind ADDR] [--claude-usage URL]\n" +
-        "                     [--mirror FILE] [--root DIR] [--token-file FILE]\n" +
-        "                     [--queue-mirror FILE] [--queue-projects a,b]\n" +
-        "                     [--runner-bin PATH] [--result-dir DIR] [--queue-config FILE]",
-    );
-    process.exit(2);
-  }
-  const opts = parseArgs(argv.slice(1));
-  const s = createServer(opts);
-  console.log(`aide-dashboard serving ${opts.siteDir} on :${s.port}`);
+  const { runCli } = await import("./cli.ts");
+  runCli();
 }

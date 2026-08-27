@@ -18,7 +18,7 @@ import {
   APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, SERVICE_WORKER, WEBMANIFEST,
   type NavEntry,
 } from "../render.ts";
-import type { ServerOptions } from "./serve.ts";
+import type { ServerOptions } from "./options.ts";
 
 export const MAX_BODY = 4096;
 
