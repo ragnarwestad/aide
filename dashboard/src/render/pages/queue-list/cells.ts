@@ -836,14 +836,40 @@ function archiveDateCell(s: ArchivedSpecView): string {
 // a Run button: one press runs whatever is ticked, from the row's one
 // action beside the state.
 //
-// The box is built without `done`: the phase's own State column, the
-// next cell along, already says "done", and a checkmark here said it a
-// second time, in a second alphabet. It stays tickable — rerunning a
-// finished phase is the same submission it always was.
+// A phase this row's own history proves ran (`g.done`) is ticked and
+// LOCKED, not tickable (spec 267) — the box answers one question only,
+// has this phase run, and the phase's own State column already says
+// "done" beside it. `archive` is excepted (a held-back archive stays
+// offered from this row, see `finished` below), and so is a phase
+// genuinely busy re-running by hand: the busy arm renders that case,
+// with its own reason, and this rule only ever applies while idle.
 //
 // The leading cell is the phase's NAME, hard left and alone (spec
 // 165). It was the action column's, reserved and never filled, until
 // spec 157 moved the row's one button beside the state.
+
+// Ticked and locked: the box answers "has this phase run", nothing
+// else. Shared by `create` (always) and by any other phase once
+// `g.done` proves it ran (spec 267) — the two call sites differ only
+// in WHEN they reach here, never in what they draw.
+function finishedPhaseChip(step: string): string {
+  return phaseChip({
+    dataAttr: "data-phase",
+    value: step,
+    label: "",
+    ariaLabel: `${stepLabel(step)} — already done, and not a step you can run`,
+    // No name: nothing to post, whatever a browser decides to
+    // do with a disabled field.
+    name: "",
+    checked: true,
+    disabled: true,
+    // Inert, not padlocked — the same reason spec 145 gives for
+    // a phase queued behind the running one: the tick says what
+    // there is to say.
+    plain: true,
+  });
+}
+
 export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number): string {
   const busy = specBusy(g);
   // The row is a record, not a control (spec 224). Read once here, like
@@ -953,6 +979,24 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // one phase already behind you. It carries no `name`, so no
       // press can ever post `steps=create` — a disabled input is not
       // submitted either, and this is the belt as well as the braces.
+      // Since spec 267 it is no longer the only phase drawn this way:
+      // `finished` below reaches the same `finishedPhaseChip` once
+      // `g.done` proves a QUEUE_STEPS phase ran too.
+      //
+      // A phase this row's own history proves ran, while the row is
+      // not busy running something right now. `archive` is excluded on
+      // purpose (spec 267): a HELD-BACK archive — one that ran and
+      // committed but declined to move the folder
+      // (`archiveHeldBackReason`, parse-status.ts) — leaves `archive`
+      // in `g.done` on a row that is still active, and stays offered
+      // from this same row exactly as before, so its box keeps the
+      // tickable treatment below. `!busy` is excluded too: a job
+      // re-running this exact step by hand (via /aide-reset, outside
+      // this row) still reports the older `g.done`, and the busy arm
+      // beneath this one already renders that correctly, with its own
+      // reason in the title — this branch must not shadow it.
+      const finished =
+        !busy && QUEUE_STEPS.includes(p.step) && p.step !== "archive" && g.done.includes(p.step);
       const box = locked
         ? phaseChip({
             dataAttr: "data-phase",
@@ -976,6 +1020,8 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
             // be the row saying "archived" a fifth time.
             plain: true,
           })
+        : finished
+        ? finishedPhaseChip(p.step)
         : QUEUE_STEPS.includes(p.step)
         ? phaseChip({
             // `data-phase`, not `data-step`: the line already carries
@@ -1022,21 +1068,7 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
                 ? why
                 : undefined,
           })
-        : phaseChip({
-            dataAttr: "data-phase",
-            value: p.step,
-            label: "",
-            ariaLabel: `${stepLabel(p.step)} — already done, and not a step you can run`,
-            // No name: nothing to post, whatever a browser decides to
-            // do with a disabled field.
-            name: "",
-            checked: true,
-            disabled: true,
-            // Inert, not padlocked — the same reason spec 145 gives for
-            // a phase queued behind the running one: the tick says what
-            // there is to say.
-            plain: true,
-          });
+        : finishedPhaseChip(p.step); // `create`'s own arm, same shape
       // The three choices this line offers, in one cell (spec 192): the
       // AI, then the model it fills in, then the phase's box. In the
       // order they are made in — which AI a phase runs on decides which

@@ -759,19 +759,25 @@ describe("running a spec's phases from its own row (criteria 1-4, 11)", () => {
     expect(made.job.state).toBe("queued");
   });
 
-  test("ticking a phase that is already done reruns it, with no new refusal (criterion 4)", async () => {
+  // Spec 267 reverses this row's own offer: a done phase's box is now
+  // ticked and locked, the same treatment `create` already had (see
+  // "a created spec reads create as done" above). The API route itself
+  // is untouched (2-analysis.md, "API dependencies: None") — a rerun
+  // sent straight to it, bypassing the row's own box, still succeeds.
+  test("a done phase's box is locked on the row; a direct rerun still reaches the queue (criterion 4)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const html = await listUntil(base, rowSaysDone("analyze"));
-    // Said done by the phase line's own State column — the box beside
-    // it carries no second mark (spec 124) — and still submittable.
     const analyze = specControls(html, "81-queue-and-runner")
       .match(/<tr class="subrow[^"]*"[^>]*data-step="analyze">[\s\S]*?<\/tr>/)![0];
     expect(analyze).toContain('class="badge b-done"');
-    expect(analyze).toContain('<input type="checkbox" name="steps" value="analyze"');
-    expect(analyze).not.toContain("already done");
+    // Ticked, disabled, and carrying no field name — the row no longer
+    // offers this phase for a rerun.
+    expect(analyze).toContain('<input type="checkbox" value="analyze" checked disabled');
+    expect(analyze).not.toContain('name="steps" value="analyze"');
+    expect(analyze).toContain("already done");
     const res = await postRow(base, {
       project: "aide",
       specFolder: "81-queue-and-runner",
@@ -1079,15 +1085,18 @@ describe("page code placement", () => {
 });
 
 describe("the step boxes on a row follow that spec", () => {
-  test("a step the spec has already had is marked done and left unticked (criterion 1)", async () => {
+  test("a step the spec has already had is marked done and shown ticked and locked (spec 267, criterion 1)", async () => {
     const { base, dir } = start({ queueToken: TOKEN });
     const spec = join(dir, "root", "aide", "specs", "81-queue-and-runner");
     writeFileSync(join(spec, "4-status.md"), statusSaying(["create", "analyze"]));
     ran(dir, ["create", "analyze"]);
     const html = await listUntil(base, rowSaysDone("analyze"));
     const line = specControls(html, "81-queue-and-runner");
-    // analyze is done; implement is what you came for.
-    expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze"(?![^>]*checked)/);
+    // analyze is done, so its box is ticked and locked (spec 267);
+    // implement is what you came for, so its box is pre-ticked and
+    // tickable.
+    expect(line).toMatch(/data-phase="analyze"[^]*?value="analyze" checked disabled/);
+    expect(line).not.toMatch(/data-phase="analyze"[^]*?name="steps" value="analyze"/);
     expect(line).toMatch(/data-phase="implement"[^]*?value="implement"[^>]*checked/);
     expect(phaseDone(line, "analyze")).toBe(true);
   });
@@ -1118,7 +1127,10 @@ describe("the step boxes on a row follow that spec", () => {
     ran(dir, ["create", "analyze"], "81-queue-and-runner", { headless: false });
     const line = specControls(await listUntil(base, rowSaysDone("analyze")), "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(true);
-    expect(line).not.toMatch(/value="analyze" checked/);
+    // analyze is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit — and
+    // implement is pre-ticked and tickable instead.
+    expect(line).not.toMatch(/name="steps" value="analyze"/);
     expect(line).toMatch(/value="implement" checked/);
   });
 });
@@ -1365,7 +1377,9 @@ describe("spec 139: the steps a spec has had say so themselves", () => {
     expect(phaseDone(line, "analyze")).toBe(true);
     expect(phaseDone(line, "implement")).toBe(false);
     expect(line).toMatch(/value="implement" checked/);
-    expect(line).not.toMatch(/value="analyze" checked/);
+    // analyze is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit.
+    expect(line).not.toMatch(/name="steps" value="analyze"/);
   });
 
   // Implement's mark used to be earned from the percentage, which says
@@ -5392,7 +5406,9 @@ describe("a description newer than the analysis is shown on the row", () => {
     // from 4-status.md, and nothing here blocks running it.
     expect(phaseDone(line, "implement")).toBe(true);
     expect(line).toMatch(/value="analyze" checked/);
-    expect(line).not.toMatch(/value="implement" checked/);
+    // implement is done, so its box is ticked and locked (spec 267) —
+    // never a `name="steps"` box a press could re-submit.
+    expect(line).not.toMatch(/name="steps" value="implement"/);
   });
 
   // Spec 139, criterion 10: the freshness check is a DISPLAY override,
