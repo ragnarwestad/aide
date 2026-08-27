@@ -164,8 +164,16 @@ export function computeSpecTotalDurationMs(
  *  attempts that speak for it, newest first. */
 function specPhases(all: QueueRowView[]): Phase[] {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
-  const extra = [...new Set(all.flatMap(stepsTouched))].filter((s) => !PHASE_LINES.includes(s));
-  return [...PHASE_LINES, ...extra].map((step) => ({
+  const touched = new Set(all.flatMap(stepsTouched));
+  const extra = [...touched].filter((s) => s !== "reopen" && !PHASE_LINES.includes(s));
+  // A reopen is what STARTED this round: drawn between `create` and
+  // `analyze`, where it happened, not appended after `archive` with
+  // every other step outside the fixed four (spec 271).
+  const analyzeIndex = PHASE_LINES.indexOf("analyze");
+  const lines = touched.has("reopen")
+    ? [...PHASE_LINES.slice(0, analyzeIndex), "reopen", ...PHASE_LINES.slice(analyzeIndex)]
+    : PHASE_LINES;
+  return [...lines, ...extra].map((step) => ({
     step,
     attempts: recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null),
     history: {},

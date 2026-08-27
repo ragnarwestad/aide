@@ -393,6 +393,20 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(subRow(html, "explore")).toContain('href="/specs/j2"');
   });
 
+  // Spec 271: a reopen is what STARTED this round, so it is drawn
+  // between create and analyze, where it happened — not appended after
+  // archive with every other step outside the fixed four.
+  test("a reopen sits between create and analyze, where it happened (spec 271)", () => {
+    const html = rows([
+      job("j1", "reopen", { startedAt: "2026-08-15T09:00:00Z" }),
+      job("j2", "analyze", { startedAt: "2026-08-16T09:00:00Z" }),
+      job("j3", "implement", { startedAt: "2026-08-16T11:00:00Z" }),
+    ]);
+    const order = [...html.matchAll(/data-step="([^"]+)"/g)].map((m) => m[1]);
+    expect(order).toEqual(["create", "reopen", "analyze", "implement", "archive"]);
+    expect(subRow(html, "reopen")).toContain("disabled");
+  });
+
   // Spec 237, criteria 1-2: all four legs of the mapping, not just the
   // two that happened to be asserted elsewhere.
   test("each of the four phases opens the tab that shows what it made", () => {
