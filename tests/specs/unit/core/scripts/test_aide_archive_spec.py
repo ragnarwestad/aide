@@ -238,6 +238,25 @@ def test_an_in_progress_row_is_genuinely_held_back(script, project, specs):
     assert (specs / "81-x").exists(), "a held-back decline must not move the folder"
 
 
+def test_a_genuinely_blocking_row_is_named_over_an_earlier_unstarted_one_in_the_same_phase(script, project, specs):
+    """A phase with two open rows — the first unstarted, the second
+    genuinely blocking — must still name the SECOND row (spec 266
+    criterion 3): the fallback that names the first open row when every
+    row is unstarted must not steal the name away from a row that is
+    actually blocking. This already passes against the unmodified
+    script (today's accidental `if [ -z "$held_task" ]` ordering
+    happens to prefer the blocking row already) — it is a pin, not a
+    RED test, kept alongside the two strengthened tests above because
+    all three touch the same held_task/held_phase change."""
+    configure(project, specs)
+    body = status_md("create, analyze", phase("Phase 1: RED", ["| a | ⬜ | |", "| b | 🔄 | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "held-back", out
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert "- b (Phase 1: RED) — tick it on the spec's page" in text, text
+
+
 @pytest.mark.parametrize("mark", ["❌", "⚠️", "Waiting"])
 def test_every_other_open_notation_symbol_is_also_held_back(script, project, specs, mark):
     configure(project, specs)
@@ -251,12 +270,16 @@ def test_implement_present_with_an_unstarted_row_is_still_held_back(script, proj
     """SKILL.md's own rule: 'implement present while a row is still open'
     is genuinely blocked, even when every open row is otherwise
     unstarted — implement should not have begun against unfinished
-    earlier work."""
+    earlier work. The bullet must still name that row (spec 266): a
+    held-back spec with nothing but unstarted rows used to write the
+    empty bullet '- () — tick it on the spec's page'."""
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "held-back", out
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert "- a (Phase 1: RED) — tick it on the spec's page" in text, text
 
 
 def test_held_back_replaces_a_stale_section_rather_than_duplicating(script, project, specs):
@@ -337,11 +360,17 @@ def test_checklist_all_unstarted_with_no_implement_is_ordinary_progression(scrip
 
 
 def test_checklist_implement_present_with_an_unstarted_row_is_still_held_back(script, project, specs):
+    """Same reproduction case as
+    test_implement_present_with_an_unstarted_row_is_still_held_back, but
+    through the `## Checklist` heading a LOW-complexity spec actually
+    uses (spec 266's second example)."""
     configure(project, specs)
     body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "held-back", out
+    text = (specs / "81-x" / "4-status.md").read_text()
+    assert "- a (Checklist) — tick it on the spec's page" in text, text
 
 
 def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, specs):

@@ -931,7 +931,9 @@ describe("the checks block (specs 182, 188, 212)", () => {
   });
 
   // A spec whose 4-status.md has no Phase section at all — never
-  // analysed, or a LOW-complexity spec on the simple layout.
+  // analysed. A LOW-complexity spec's `## Checklist` heading counts as
+  // a phase section since spec 266, so it no longer falls into this
+  // case.
   // Spec 241: an empty checklist used to render nothing at all — combined
   // with a phase-chain that has no caption either, a not-yet-analysed
   // spec's Overview tab showed literally nothing. "no checks yet" is the

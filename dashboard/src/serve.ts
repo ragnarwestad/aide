@@ -4563,10 +4563,10 @@ export function createServer(opts: ServerOptions) {
     // since spec 212): the CURRENT phase, which is the first phase
     // section still carrying an open mark — the same phase the spec
     // list's own column shows. `null` for a `4-status.md` with no phase
-    // sections at all (a LOW-complexity spec on the simple checklist
-    // layout, or one never analysed) and `"done"` when every section is
-    // clear; both leave nothing tickable, and the page then draws the
-    // rows with no form.
+    // sections at all (a spec never analysed — a LOW-complexity spec's
+    // `## Checklist` heading counts as a phase section since spec 266)
+    // and `"done"` when every section is clear; both leave nothing
+    // tickable, and the page then draws the rows with no form.
     const parsedStatus = parseStatus(statusText);
     const statusPhase = parsedStatus.phase;
     const anyTickable = rows.some((row) => !row.done && row.phase === statusPhase);

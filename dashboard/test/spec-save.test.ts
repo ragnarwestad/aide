@@ -683,6 +683,24 @@ describe("the checks on the Overview tab", () => {
    *  else differs. */
   const WORDED = STATUS.replace(/\| ⬜ \|/g, "| Waiting |");
 
+  /** Spec 266: a LOW-complexity spec's `4-status.md` uses `## Checklist`
+   *  instead of `## Phase N: ...` — must offer the same box on Overview
+   *  and accept the same real tick. */
+  const CHECKLIST_PHASE = "Checklist";
+  const CHECKLIST_OPEN_ROW = "| Run the manual browser check | ⬜ | |";
+  const checklistSection = (rows: string[]) => ["## Checklist", "", ...HEADER, ...rows, ""].join("\n");
+  const CHECKLIST_STATUS = [
+    "# Queue - Status",
+    "",
+    "## Tracking info",
+    "",
+    "- **Workflow steps completed:** create, analyze, implement",
+    "",
+    "---",
+    "",
+    checklistSection([CHECKLIST_OPEN_ROW]),
+  ].join("\n");
+
   /** A spec a headless archive run declined: the hold-back section it
    *  wrote, and exactly one open row left anywhere in the file. */
   const HELD_BACK_REASON = "- the manual browser check (Phase 4, still unchecked) — tick it on the spec's page";
@@ -805,13 +823,24 @@ describe("the checks on the Overview tab", () => {
       expect(html).toContain("Run the full test suite");
     });
 
-    // A LOW-complexity spec on the simple checklist layout, or one never
-    // analysed: no phase sections at all is a real answer, not an error.
+    // A spec never analysed: no phase sections at all is a real answer,
+    // not an error.
     test("a status file with no phase sections at all opens all the same", async () => {
       const { base } = startWithChecks(savable("/host"), "# Queue - Status\n\n- [ ] something\n");
       const res = await fetch(`${base}${PAGE}`, auth);
       expect(res.status).toBe(200);
       expect(await res.text()).not.toContain('name="tick"');
+    });
+
+    // Spec 266: a LOW-complexity spec's `## Checklist` heading used to
+    // fold into the "no phase sections at all" case above and render
+    // "no checks yet" — it must now offer the same box a `## Phase`
+    // section's open row already gets.
+    test("a ## Checklist row is offered as a box, same as a ## Phase row", async () => {
+      const html = await overview(startWithChecks(savable("/host"), CHECKLIST_STATUS).base);
+      expect(html).toContain("Run the manual browser check");
+      expect(html).toContain('name="tick"');
+      expect(html).toContain(`value="${CHECKLIST_PHASE}"`);
     });
   });
 
@@ -828,6 +857,21 @@ describe("the checks on the Overview tab", () => {
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).toContain("4-status.md");
     expect(git.calls.find((c) => c[0] === "add")!.join(" ")).not.toContain("1-description.md");
+  });
+
+  // Spec 266: the real end-to-end route, not just the parser — a
+  // `## Checklist` row's tick must flip it to done on disk exactly as a
+  // `## Phase` row's already does.
+  test("a ## Checklist row's tick flips it to done on disk through the real /tick route", async () => {
+    const git = recording();
+    const { base, dir } = startWithChecks(git.run, CHECKLIST_STATUS);
+    const res = await tick(base, { ticks: [CHECKLIST_OPEN_ROW], phase: CHECKLIST_PHASE });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      CHECKLIST_STATUS.replace(CHECKLIST_OPEN_ROW, ticked(CHECKLIST_OPEN_ROW)),
+    );
+    expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
   });
 
   test("a queued matching job refuses a direct tick without changing 4-status.md", async () => {
