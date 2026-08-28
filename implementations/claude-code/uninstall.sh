@@ -65,6 +65,8 @@ SKILLS=(
   "markdown-linting"
   "tools-and-scripts"
   "workflows"
+  "playwright-e2e"
+  "unit-tests"
 )
 
 for skill in "${SKILLS[@]}"; do
