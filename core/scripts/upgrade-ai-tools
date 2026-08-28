@@ -5,7 +5,7 @@
 export PATH="$HOME/.local/bin:$PATH"
 
 echo "Upgrading AI tools via mise..."
-mise upgrade npm:@github/copilot npm:@openai/codex opencode
+mise upgrade npm:@github/copilot npm:@openai/codex opencode ollama
 
 echo ""
 echo "Upgrading Claude Code (not managed by mise)..."
@@ -13,5 +13,5 @@ claude update
 
 echo ""
 echo "Installed versions:"
-mise ls | grep -E "copilot|codex|opencode"
+mise ls | grep -E "copilot|codex|opencode|ollama"
 claude --version
