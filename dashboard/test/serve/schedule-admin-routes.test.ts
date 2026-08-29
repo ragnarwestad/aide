@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness } from "../helpers/queue-server.ts";
 import { parseManifest } from "../../src/project/parse-manifest.ts";
+import { scheduleTrackingKey } from "../../src/queue/schedule.ts";
 
 const harness = queueHarness("aide-schedule-admin-routes-");
 afterEach(() => harness.cleanup());
@@ -216,6 +217,157 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
     expect(body.job.project).toBe("aide");
     expect(body.job.specFolder).toBe("schedule-nightly");
     expect(body.job.steps).toEqual(["schedule"]);
+  });
+});
+
+describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
+  test("a matching confirm deletes the entry and answers {ok: true} (criterion 1)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(
+      dir, "aide",
+      "name: aide\nschedule:\n" +
+        "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
+        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
+    );
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly" }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(readSchedule(dir, "aide")).toEqual([
+      { name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true },
+    ]);
+  });
+
+  test("deleting the last entry removes the schedule key entirely (criterion 3)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly" }),
+    });
+    expect(res.status).toBe(200);
+    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).not.toContain("schedule:");
+  });
+
+  test("a no-script POST redirects to /schedule?project=<project> on success, never /projects or / (criterion 10)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete?token=${TOKEN}`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ confirm: "nightly" }).toString(),
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/schedule?project=aide");
+    expect(readSchedule(dir, "aide")).toEqual([]);
+  });
+
+  test("a missing confirm refuses with 400 and leaves the manifest byte-for-byte unchanged (criterion 2)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
+  });
+
+  test("a mismatched confirm refuses with 400 and leaves the manifest byte-for-byte unchanged (criterion 2)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "wrong-name" }),
+    });
+    expect(res.status).toBe(400);
+    expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
+  });
+
+  test("an unknown entry name in an allowed project refuses with 400 (criterion 5)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide/ghost/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "ghost" }),
+    });
+    expect(res.status).toBe(400);
+    expect(readSchedule(dir, "aide")).toHaveLength(1);
+  });
+
+  test("an unallowed project refuses with 400 (criterion 6)", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const res = await fetch(`${base}/api/queue/schedule/ghost-project/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // The same regression shape as create's own test above: this route
+  // must write through `machineryProjectDir` (the dashboard's own
+  // checkout), never `displayProjectDir` (the reader's).
+  test("writes to the dashboard's own checkout, not the reader's, when the two differ (criterion 4)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const owned = join(dir, "owned", "aide", "code");
+    mkdirSync(join(owned, ".git"), { recursive: true });
+    mkdirSync(join(owned, ".aide"), { recursive: true });
+    writeFileSync(
+      join(owned, ".aide", "project.yaml"),
+      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
+    );
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly" }),
+    });
+    expect(res.status).toBe(200);
+    const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
+    if (!ownedManifest.ok) throw new Error(ownedManifest.error);
+    expect(ownedManifest.data.schedule ?? []).toEqual([]);
+    // The reader's own checkout is untouched — proving the write went
+    // to the OWNED checkout and not here.
+    expect(readSchedule(dir, "aide")).toEqual([
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
+    ]);
+  });
+
+  test("a job enqueued under the entry's tracking key survives the entry's deletion (criterion 11)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const runRes = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    expect(runRes.status).toBe(200);
+    const key = scheduleTrackingKey("nightly");
+    const deleteRes = await fetch(`${base}/api/queue/schedule/aide/nightly/delete`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly" }),
+    });
+    expect(deleteRes.status).toBe(200);
+    const listRes = await fetch(`${base}/api/queue`, asJson);
+    const { jobs } = await listRes.json();
+    expect(jobs.some((j: { project: string; specFolder: string }) => j.project === "aide" && j.specFolder === key)).toBe(true);
   });
 });
 

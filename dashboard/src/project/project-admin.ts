@@ -35,6 +35,7 @@ export {
   createScheduleEntry,
   updateScheduleEntry,
   setScheduleEnabled,
+  deleteScheduleEntry,
 } from "./project-admin/schedule-admin.ts";
 
 export { assessProjectReadiness } from "./project-admin/readiness.ts";

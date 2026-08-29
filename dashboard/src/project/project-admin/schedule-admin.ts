@@ -101,6 +101,23 @@ export function updateScheduleEntry(
   return { ok: true };
 }
 
+/** Remove an entry entirely (spec 277). Manifest state only — a
+ *  deleted entry's job history stays in the queue store under its old
+ *  tracking key and is not touched here; it simply becomes unreachable
+ *  through the UI once the entry it belonged to is gone. */
+export function deleteScheduleEntry(projectDir: string, name: string): ScheduleAdminResult {
+  const existing = readEntries(projectDir);
+  const current = existing.find((e) => e.name === name);
+  if (!current) return { ok: false, error: `no schedule entry named "${name}"` };
+  const updated = existing.filter((e) => e.name !== name);
+  try {
+    writeScheduleList(manifestPath(projectDir), updated);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+  return { ok: true };
+}
+
 /** Pause or resume one entry — no `confirm` field required, unlike the
  *  spec page's own Reset route: this is an immediate, no-confirm flip
  *  (acceptance criterion 8). A value that matches what is already

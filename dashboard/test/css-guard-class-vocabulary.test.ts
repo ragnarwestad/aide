@@ -44,6 +44,9 @@ const JS_HOOKS = [
   // checkbox, the Run-now form, and the create/edit form (whose own
   // `input[name="cron"]` feeds the live cron-next preview).
   "scheduleenabled", "schedulerun", "scheduleform",
+  // spec 277: the Delete confirmation, a plain POST with no submit
+  // override — queue-client.ts binds bindTypedConfirm to it only.
+  "scheduledeleteform",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks

@@ -10,5 +10,8 @@ export const scheduleTabPath = (project: string, name: string, tab: string): str
 export const newSchedulePath = (project: string): string =>
   `/schedule/${encodeURIComponent(project)}/new`;
 
+export const deleteSchedulePath = (project: string, name: string): string =>
+  `${schedulePagePath(project, name)}/delete`;
+
 export const SCHEDULE_TABS = ["overview", "history"] as const;
 export type ScheduleTab = (typeof SCHEDULE_TABS)[number];

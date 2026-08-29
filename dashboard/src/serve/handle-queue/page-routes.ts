@@ -9,7 +9,7 @@ import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderNewSchedulePage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderScheduleDetailPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
+import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderDeleteSchedulePage, renderNewSchedulePage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderScheduleDetailPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
 import { queueClientScript, sortChoice } from "../serve-helpers.ts";
 import { serveStatic } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
@@ -497,6 +497,24 @@ export async function handlePageRoutes(
     if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
     const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
       project,
+      token: ctx.queueToken,
+      script: await queueClientScript(),
+      error: url.searchParams.get("error") ?? undefined,
+    });
+    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+  }
+
+  const scheduleDeletePage = path.match(/^\/schedule\/([^/]+)\/([^/]+)\/delete$/);
+  if (scheduleDeletePage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(scheduleDeletePage[1]!);
+    const name = decodeURIComponent(scheduleDeletePage[2]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    if (!entry) return new Response("not found", { status: 404 });
+    const html = renderDeleteSchedulePage(ctx.nav(), new Date().toISOString(), {
+      project,
+      entryName: name,
       token: ctx.queueToken,
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,

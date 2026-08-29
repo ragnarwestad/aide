@@ -5,6 +5,7 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { esc } from "../../ui/html.ts";
 import { renderScheduleForm } from "./form.ts";
+import { deleteSchedulePath } from "./tabs.ts";
 
 export function renderScheduleOverview(
   project: string,
@@ -26,6 +27,7 @@ export function renderScheduleOverview(
       action: `/api/queue/schedule/${encodeURIComponent(project)}/${encodeURIComponent(entry.name)}`,
       token: opts.token,
       error: opts.error,
-    })
+    }) +
+    `<p><a class="btn small" href="${esc(deleteSchedulePath(project, entry.name))}">Delete</a></p>`
   );
 }

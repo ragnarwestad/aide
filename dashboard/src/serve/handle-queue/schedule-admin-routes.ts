@@ -3,8 +3,9 @@
 // `spec-edit.ts`'s reset route and `queue-admin.ts`'s settings route —
 // refuse before any write, then either a JSON answer (script) or a
 // no-JS redirect back to the list.
-import { createScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
+import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
+import { deleteSchedulePath } from "../../render.ts";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -75,6 +76,25 @@ export async function handleScheduleAdminRoutes(
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect({}, { error: result.error }, back);
     await ctx.tickRunner();
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect({}, undefined, back);
+  }
+
+  const deletePost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)\/delete$/);
+  if (deletePost) {
+    if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(deletePost[1]!);
+    const name = decodeURIComponent(deletePost[2]!);
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
+    const sent = await readJsonBody(req);
+    if ("refusal" in sent) return sent.refusal;
+    const body = sent.body;
+    const back = deleteSchedulePath(project, name);
+    if (body.confirm !== name) {
+      const error = `type ${name} exactly to confirm Delete`;
+      return wantsJson ? json({ error }, 400) : specsRedirect(body, { error }, back);
+    }
+    const result = deleteScheduleEntry(ctx.machineryProjectDir(project), name);
+    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
+    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, listPath(project));
   }
 
   const editPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)$/);

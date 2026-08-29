@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createScheduleEntry,
+  deleteScheduleEntry,
   scheduleEntryError,
   setScheduleEnabled,
   updateScheduleEntry,
@@ -177,5 +178,39 @@ describe("setScheduleEnabled (acceptance criterion 8 — no confirm field requir
     const dir = projectDir();
     const result = setScheduleEnabled(dir, "ghost", false);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("deleteScheduleEntry (spec 277, acceptance criteria 1, 3, 5)", () => {
+  test("deletes the named entry and leaves the others (criterion 1)", () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n" +
+        "  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
+        "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs-nightly.md\n",
+    );
+    const result = deleteScheduleEntry(dir, "nightly");
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)).toEqual([
+      { name: "weekly", cron: "0 4 * * 0", prompt: "docs-nightly.md", enabled: true },
+    ]);
+  });
+
+  test("deleting the only entry removes the schedule key entirely (criterion 3)", () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
+    );
+    const result = deleteScheduleEntry(dir, "nightly");
+    expect(result.ok).toBe(true);
+    expect(readFileSync(manifestOf(dir), "utf-8")).not.toContain("schedule:");
+  });
+
+  test("deleting an unknown name is refused and writes nothing (criterion 5)", () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
+    );
+    const before = readFileSync(manifestOf(dir), "utf-8");
+    const result = deleteScheduleEntry(dir, "ghost");
+    expect(result.ok).toBe(false);
+    expect(readFileSync(manifestOf(dir), "utf-8")).toBe(before);
   });
 });

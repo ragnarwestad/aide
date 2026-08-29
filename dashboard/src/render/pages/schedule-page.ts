@@ -5,17 +5,17 @@
 // monitoring and editing all live here, never on a project's own page.
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
-import { backLink } from "../ui/components.ts";
+import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { renderScheduleForm } from "./schedule-page/form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
 import { renderScheduleList, type SchedulePageRow } from "./schedule-page/list.ts";
 import { renderScheduleOverview } from "./schedule-page/overview.ts";
-import { newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./schedule-page/tabs.ts";
+import { deleteSchedulePath, newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./schedule-page/tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "./job-page.ts";
 
-export { SCHEDULE_TABS, newSchedulePath, schedulePagePath, scheduleTabPath };
+export { SCHEDULE_TABS, deleteSchedulePath, newSchedulePath, schedulePagePath, scheduleTabPath };
 export type { SchedulePageRow, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
@@ -61,6 +61,37 @@ export function renderScheduleDetailPage(
   const banner = `<h1>${esc(opts.entry.name)}</h1>`;
   const body = tabbedBody(banner, bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, { script: opts.script });
+}
+
+export interface DeleteSchedulePageOptions {
+  project: string;
+  entryName: string;
+  token?: string;
+  script?: string;
+  error?: string;
+}
+
+export function renderDeleteSchedulePage(
+  nav: NavEntry[],
+  generatedAt: string,
+  opts: DeleteSchedulePageOptions,
+): string {
+  const back = schedulePagePath(opts.project, opts.entryName);
+  const body =
+    backLink(back) +
+    (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
+    rowMessage(
+      "info",
+      `Deleting ${opts.entryName} removes it from ${opts.project}'s schedule for good. ` +
+        `Its run history stays in the queue and ages out on its own.`,
+      { tag: "p" },
+    ) +
+    `<form method="post" action="/api/queue${deleteSchedulePath(opts.project, opts.entryName)}" class="scheduledeleteform">` +
+    tokenField(opts.token) +
+    `<span class="frow">` +
+    typedConfirm({ target: opts.entryName, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
+    `</span></form>`;
+  return pageShell(`Delete ${opts.entryName}`, nav, back, body, generatedAt, undefined, { script: opts.script });
 }
 
 export interface NewSchedulePageOptions {

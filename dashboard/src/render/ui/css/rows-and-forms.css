@@ -72,22 +72,23 @@ td form { margin: 0; display: inline-block; }
    rules below are for older WebKit, which needs telling. */
 .newspec > summary { list-style: none; }
 .newspec > summary::-webkit-details-marker { display: none; }
-.newspecform { display: flex; gap: var(--sp-3); align-items: flex-end;
+.newspecform, .scheduledeleteform { display: flex; gap: var(--sp-3); align-items: flex-end;
   flex-wrap: wrap; margin-top: var(--sp-3); }
 .newspecform .refused { flex-basis: 100%; }
 /* The /new form's three lines. Each row takes the full width of the
    wrapping flex; the first top-aligns its two fields so Project and
    Depends on share a label line, the last bottom-aligns Create and
    Cancel with the Description box they act on. */
-.newspecform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
+.newspecform .frow, .scheduledeleteform .frow { display: flex; gap: var(--sp-4); align-items: flex-start;
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,
-   coloured nowhere. */
-.removeform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
+   coloured nowhere. "scheduledeleteform" is the same shape for a
+   schedule entry's own Delete confirmation (spec 277). */
+.removeform [data-confirm], .scheduledeleteform [data-confirm] { display: flex; gap: var(--sp-2); align-items: flex-end; }
 /* The "…" menu (spec 119): Units, Settings and About, behind one
    disclosure at the right-hand end of the header. A POPOVER like
    .intro below — an open menu must lay over the page, not push the

@@ -188,6 +188,12 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
   const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
   if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
 }
+// The Delete confirmation (spec 277): button-disable only, exactly
+// like `form.scheduleform` above — the form is a plain POST with no
+// submit override, so the server's own redirect does the rest.
+for (const el of document.querySelectorAll("form.scheduledeleteform")) {
+  bindTypedConfirm(el as HTMLFormElement);
+}
 
 document.addEventListener("visibilitychange", onVisibility);
 // The first paint: the server draws every model, and each select is

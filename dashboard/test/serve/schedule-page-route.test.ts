@@ -117,3 +117,41 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {
+  test("renders the confirmation, naming the entry (criterion 8)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const res = await fetch(`${base}/schedule/aide/nightly-report/delete`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("nightly-report");
+    expect(html).toContain(`data-confirm="nightly-report"`);
+  });
+
+  test("an unknown entry in an allowed project is 404 (criterion 5)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const res = await fetch(`${base}/schedule/aide/ghost/delete`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(404);
+  });
+
+  test("an unallowed project is 404 (criterion 6)", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const res = await fetch(`${base}/schedule/ghost-project/nightly/delete`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(404);
+  });
+
+  test("after a successful delete, the entry's own detail page is 404 (criterion 9)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const del = await fetch(`${base}/api/queue/schedule/aide/nightly-report/delete`, {
+      method: "POST",
+      headers: { accept: "application/json", "x-aide-token": TOKEN, "content-type": "application/json" },
+      body: JSON.stringify({ confirm: "nightly-report" }),
+    });
+    expect(del.status).toBe(200);
+    const res = await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(404);
+  });
+});

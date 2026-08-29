@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { renderSchedulePage } from "../../../src/render.ts";
+import { renderDeleteSchedulePage, renderSchedulePage } from "../../../src/render.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 
@@ -83,5 +83,29 @@ describe("Schedule page (spec 272, extended spec 276)", () => {
       rows: [{ project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } }],
     });
     expect(html).toContain('href="/schedule/aide/nightly-report"');
+  });
+});
+
+describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
+  test("explains every effect, requires the exact name via typedConfirm, and styles the button as destructive", () => {
+    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+      project: "aide",
+      entryName: "nightly-report",
+      token: "t0ken",
+    });
+    expect(html).toContain("nightly-report");
+    expect(html.toLowerCase()).toContain("run history");
+    expect(html).toContain(`data-confirm="nightly-report"`);
+    expect(html).toContain('name="confirm"');
+    expect(html).toContain('name="token" value="t0ken"');
+    expect(html).toContain('class="btn danger"');
+  });
+
+  test("posts to the delete route beside the entry's own path", () => {
+    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+      project: "aide",
+      entryName: "nightly-report",
+    });
+    expect(html).toContain('action="/api/queue/schedule/aide/nightly-report/delete"');
   });
 });

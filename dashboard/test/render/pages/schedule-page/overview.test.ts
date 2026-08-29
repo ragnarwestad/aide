@@ -22,4 +22,13 @@ describe("renderScheduleOverview", () => {
     expect(html).toContain('action="/api/queue/schedule/aide/nightly"');
     expect(html).toContain('value="nightly"');
   });
+
+  test("includes a Delete link to the entry's own delete confirmation page (spec 277, acceptance criterion 7)", () => {
+    const html = renderScheduleOverview(
+      "aide",
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
+      {},
+    );
+    expect(html).toContain('href="/schedule/aide/nightly/delete"');
+  });
 });
