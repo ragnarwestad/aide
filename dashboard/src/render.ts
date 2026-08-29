@@ -53,8 +53,14 @@ export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
 
 // /schedule (spec 272): the aggregate page listing every allowed
 // project's `schedule:` entries.
-export { renderSchedulePage, SCHEDULE_ROUTE } from "./render/pages/schedule-page.ts";
-export type { SchedulePageOptions, SchedulePageRow } from "./render/pages/schedule-page.ts";
+export {
+  renderSchedulePage, renderScheduleDetailPage, renderNewSchedulePage,
+  SCHEDULE_ROUTE, SCHEDULE_TABS, schedulePagePath, scheduleTabPath, newSchedulePath,
+} from "./render/pages/schedule-page.ts";
+export type {
+  SchedulePageOptions, SchedulePageRow, ScheduleDetailPageOptions, NewSchedulePageOptions,
+  ScheduleHistoryRow, ScheduleTab,
+} from "./render/pages/schedule-page.ts";
 
 // The five answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are

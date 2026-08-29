@@ -1,50 +1,83 @@
-// /schedule (spec 272): the single aggregate page listing every allowed
-// project's `schedule:` entries — never one tab per project, the same
-// shape `/projects` already took after the 2026-08-22 tab-per-project
-// removal (`site/routes.ts`'s own comment). Read-only, like
-// `scheduleSection()` on a project's own page; this is the cross-project
-// view that one lacks.
+// /schedule (spec 272, extended spec 276): the project-scoped list, an
+// entry's own detail page (Overview/History tabs) and the New-job
+// page — composed from schedule-page/*. A project selector controls
+// what the list shows, and "New job" is scoped to it: configuring,
+// monitoring and editing all live here, never on a project's own page.
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
-import { nextFireTime } from "../../queue/schedule.ts";
-import { rowMessage } from "../ui/components.ts";
+import { backLink } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
+import { renderScheduleForm } from "./schedule-page/form.ts";
+import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
+import { renderScheduleList, type SchedulePageRow } from "./schedule-page/list.ts";
+import { renderScheduleOverview } from "./schedule-page/overview.ts";
+import { newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./schedule-page/tabs.ts";
+import { pickTab, tabBar, tabbedBody } from "./job-page.ts";
+
+export { SCHEDULE_TABS, newSchedulePath, schedulePagePath, scheduleTabPath };
+export type { SchedulePageRow, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
 
-export interface SchedulePageRow {
-  project: string;
-  entry: ScheduleEntry;
-  lastState?: string;
-  outputHref?: string;
-}
-
 export interface SchedulePageOptions {
+  /** Every allowed project, for the selector. */
+  projects: readonly string[];
+  selectedProject?: string;
+  /** Already scoped to `selectedProject`. */
   rows: readonly SchedulePageRow[];
-}
-
-function row(r: SchedulePageRow, now: Date): string {
-  const next = nextFireTime(r.entry.cron, now);
-  const state = r.lastState ?? "never run";
-  const output = r.outputHref
-    ? `<a href="${esc(r.outputHref)}">output</a>`
-    : `<span class="muted">no output yet</span>`;
-  return (
-    `<tr><td>${esc(r.project)}</td><td>${esc(r.entry.name)}</td>` +
-    `<td><code>${esc(r.entry.cron)}</code></td>` +
-    `<td>${next ? esc(next.toISOString()) : `<span class="muted">–</span>`}</td>` +
-    `<td>${esc(state)}</td><td>${output}</td></tr>`
-  );
+  token?: string;
+  script?: string;
 }
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
-  const now = new Date();
+  const body = `<main>${renderScheduleList(opts)}</main>`;
+  return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, { script: opts.script });
+}
+
+export interface ScheduleDetailPageOptions {
+  project: string;
+  entry: ScheduleEntry;
+  tab?: string;
+  history: readonly ScheduleHistoryRow[];
+  token?: string;
+  script?: string;
+  error?: string;
+  backHref?: string;
+}
+
+export function renderScheduleDetailPage(
+  nav: NavEntry[],
+  generatedAt: string,
+  opts: ScheduleDetailPageOptions,
+): string {
+  const tab = pickTab(SCHEDULE_TABS, opts.tab, "overview");
+  const base = schedulePagePath(opts.project, opts.entry.name);
+  const bar = tabBar(SCHEDULE_TABS, base, tab, {});
+  const panel =
+    tab === "history"
+      ? renderScheduleHistory(opts.history)
+      : renderScheduleOverview(opts.project, opts.entry, { token: opts.token, error: opts.error });
+  const banner = `<h1>${esc(opts.entry.name)}</h1>`;
+  const body = tabbedBody(banner, bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
+  return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, { script: opts.script });
+}
+
+export interface NewSchedulePageOptions {
+  project: string;
+  token?: string;
+  script?: string;
+  error?: string;
+}
+
+export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
   const body =
-    opts.rows.length === 0
-      ? rowMessage("info", "No project has a schedule entry yet.")
-      : `<div class="tablewrap"><table class="list"><thead><tr>` +
-        `<th>Project</th><th>Name</th><th>Cron</th><th>Next run</th><th>Last state</th><th>Output</th>` +
-        `</tr></thead><tbody>${opts.rows.map((r) => row(r, now)).join("")}</tbody></table></div>`;
-  return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt);
+    `<main>${backLink(SCHEDULE_ROUTE)}<h1>New job — ${esc(opts.project)}</h1>` +
+    renderScheduleForm({
+      action: `/api/queue/schedule/${encodeURIComponent(opts.project)}`,
+      token: opts.token,
+      error: opts.error,
+    }) +
+    `</main>`;
+  return pageShell("New job", nav, newSchedulePath(opts.project), body, generatedAt, undefined, { script: opts.script });
 }

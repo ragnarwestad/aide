@@ -158,7 +158,7 @@ describe("the drift banner on /projects", () => {
 describe("the next-scheduled-run badge on /projects (spec 259)", () => {
   test("a project with a schedule entry shows its next fire time", () => {
     const html = page([project("aide")], {
-      scheduleByProject: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" }] },
+      scheduleByProject: { aide: [{ name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }] },
     });
     // AT is 2026-08-19T00:00:00Z; the next 3am UTC fire is the same day.
     expect(html).toContain("next scheduled run 2026-08-19T03:00:00.000Z");
@@ -168,8 +168,8 @@ describe("the next-scheduled-run badge on /projects (spec 259)", () => {
     const html = page([project("aide")], {
       scheduleByProject: {
         aide: [
-          { name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md" },
-          { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+          { name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
+          { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
         ],
       },
     });

@@ -40,6 +40,7 @@ import { connect, onVisibility } from "./queue-client/live.ts";
 import { markGoing, navigate } from "./queue-client/navigation.ts";
 import { postForm } from "./queue-client/press.ts";
 import { relabelRunButton } from "./queue-client/row-swap.ts";
+import { postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./queue-client/schedule-actions.ts";
 import { NEW_SPEC_FORM } from "./queue-client/state.ts";
 import { postTailModel, postTailStep } from "./queue-client/tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./queue-client/state.ts";
@@ -166,6 +167,27 @@ setInterval(() => {
     mark.textContent = formatElapsed(Date.now() - since);
   }
 }, 1000);
+
+// The /schedule page's own controls (spec 276): none of these sit
+// inside `#jobrows`, and nothing on this page is swapped from the
+// server on a timer, so each is bound once here rather than delegated.
+for (const el of document.querySelectorAll("input.scheduleenabled[data-post-to]")) {
+  const box = el as HTMLInputElement;
+  box.addEventListener("change", () => postScheduleEnabled(box));
+}
+for (const el of document.querySelectorAll("form.schedulerun")) {
+  const form = el as HTMLFormElement;
+  form.addEventListener("submit", ((event: Event) => {
+    event.preventDefault();
+    return postScheduleRun(form);
+  }) as EventListener);
+}
+for (const el of document.querySelectorAll("form.scheduleform")) {
+  const form = el as HTMLFormElement;
+  const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
+  const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
+  if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
+}
 
 document.addEventListener("visibilitychange", onVisibility);
 // The first paint: the server draws every model, and each select is

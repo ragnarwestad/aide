@@ -9,7 +9,7 @@ import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
 import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
+import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderNewSchedulePage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderScheduleDetailPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
 import { queueClientScript, sortChoice } from "../serve-helpers.ts";
 import { serveStatic } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
@@ -458,21 +458,84 @@ export async function handlePageRoutes(
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
-    const rows = [...ctx.allowed].flatMap((project) =>
-      resolveSchedule(ctx.machineryProjectDir(project)).map((entry) => {
-        const key = scheduleTrackingKey(entry.name);
-        const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
-        const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
-        const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
-        return {
-          project,
-          entry,
-          lastState: last?.state,
-          outputHref: outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
-        };
-      }),
-    );
-    const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), { rows });
+    // A project selector (spec 276): the list shows ONE project's own
+    // entries at a time, and "New job" is scoped to it — never every
+    // allowed project's entries at once, which spec 272's own aggregate
+    // view did. `?project=` names which; an unknown or absent name
+    // falls back to the first allowed project, alphabetically.
+    const projects = [...ctx.allowed].sort();
+    const requested = url.searchParams.get("project") ?? undefined;
+    const selectedProject = requested && projects.includes(requested) ? requested : projects[0];
+    const rows = selectedProject
+      ? resolveSchedule(ctx.machineryProjectDir(selectedProject)).map((entry) => {
+          const key = scheduleTrackingKey(entry.name);
+          const jobs = ctx.queue.list().filter((j) => j.project === selectedProject && j.specFolder === key);
+          const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
+          const outputExists = existsSync(join(scheduleOutputDir(outputRoot, selectedProject, key), "index.html"));
+          return {
+            project: selectedProject,
+            entry,
+            lastState: last?.state,
+            outputHref: outputExists ? `/schedule-output/${selectedProject}/${key}/index.html` : undefined,
+          };
+        })
+      : [];
+    const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
+      projects,
+      selectedProject,
+      rows,
+      token: ctx.queueToken,
+      script: await queueClientScript(),
+    });
+    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+  }
+
+  const newSchedulePage = path.match(/^\/schedule\/([^/]+)\/new$/);
+  if (newSchedulePage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(newSchedulePage[1]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
+      project,
+      token: ctx.queueToken,
+      script: await queueClientScript(),
+      error: url.searchParams.get("error") ?? undefined,
+    });
+    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+  }
+
+  // Checked after `/new` above, which is otherwise indistinguishable
+  // from an entry literally named "new" — the same one-segment-name
+  // shape.
+  const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
+  if (scheduleDetailPage) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const project = decodeURIComponent(scheduleDetailPage[1]!);
+    const name = decodeURIComponent(scheduleDetailPage[2]!);
+    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
+    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    if (!entry) return new Response("not found", { status: 404 });
+    const key = scheduleTrackingKey(name);
+    const jobs = ctx.queue
+      .list()
+      .filter((j) => j.project === project && j.specFolder === key)
+      .sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt));
+    const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
+    const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
+    const history = jobs.map((job, i) => ({
+      job,
+      outputHref: i === 0 && outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+    }));
+    const html = renderScheduleDetailPage(ctx.nav(), new Date().toISOString(), {
+      project,
+      entry,
+      tab: url.searchParams.get("tab") ?? undefined,
+      history,
+      token: ctx.queueToken,
+      script: await queueClientScript(),
+      error: url.searchParams.get("error") ?? undefined,
+      backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),
+    });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
 

@@ -178,7 +178,7 @@ describe("resolveSchedule (spec 259)", () => {
       join(dir, ".aide", "project.yaml"),
       'name: x\nschedule:\n  - name: nightly\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n',
     );
-    expect(resolveSchedule(dir)).toEqual([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" }]);
+    expect(resolveSchedule(dir)).toEqual([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true }]);
   });
 
   test("a project with no manifest at all has no schedule", () => {

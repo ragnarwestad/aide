@@ -62,6 +62,7 @@ export interface ScheduleJobRef {
  *  such a job's own `startedAt ?? createdAt` already sits after the
  *  fire time that started it. */
 export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJobRef[]): boolean {
+  if (!entry.enabled) return false;
   const fire = mostRecentFireTime(entry.cron, now);
   if (!fire) return false;
   const key = scheduleTrackingKey(entry.name);
