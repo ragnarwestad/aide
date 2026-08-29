@@ -56,6 +56,9 @@ Examples:
 
 ### Step 1: Find the specs root
 
+- Before anything else, run `date +%s` and keep the printed number as
+  this phase's start time — Step 5 uses it, for an interactive run only,
+  to record how long this phase actually took.
 - Read `AIDE_SPECS_PATH` from `.aide/config` in the project root
   (helper: `aide_specs_root` in `_aide-spec-lib.sh` does the whole lookup)
 - If the key is set: use that path as the specs root
@@ -134,6 +137,24 @@ and `jq`, for no reduction in that ambiguity.
 
 ### Step 5: Stage in git
 
+Working interactively, before staging, run:
+
+```bash
+aide-create-spec --stamp-outcome --specs-root "<specs-root>" \
+  --folder "<specFolder>" --start-epoch "<the number from Step 1>" \
+  --model "<tool> <model>"    # omit --model entirely on the same
+                               # certainty rule as the commit message
+                               # suffix below
+```
+
+so `1-description.md`'s own Tracking info carries this phase's `Model`
+and `Time spent` the same way the other three phases' files already do
+(spec 245) — before the file is staged, so the stamp lands in the same
+commit as the rest of the spec. A headless run skips this: `aide-run-spec`
+already performs the equivalent stamp itself once the whole run ends,
+and running it here too would just be overwritten by that later,
+authoritative write.
+
 `git add <specs-root>/<specFolder>/*.md`, using the `specFolder` the
 script's JSON reported — the specs root is a working directory the
 skill can operate in, whether or not it sits inside the project root.
@@ -158,7 +179,9 @@ out loud, never left silent.
 commits — leave that line exactly as you found it in the template. The
 same script writes this phase's `Model`/`Result`/`Time spent`/`Cost`
 block into `1-description.md`'s own Tracking info — leave those lines
-alone too. `create` is the one stage nobody picks a model for in advance: a spec
+alone too, **for a headless run**; an interactive run wrote its own
+`Model`/`Time spent` a few lines above, via `--stamp-outcome`, and those
+stay exactly as that call left them. `create` is the one stage nobody picks a model for in advance: a spec
 is already being written by the time it reaches a dashboard row, so its
 model is only ever recorded after the fact, from whatever commit
 created the folder.

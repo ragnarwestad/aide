@@ -25,11 +25,16 @@ Structure - follow the spec structure § 1-description:
   prompt states one — Depends on=the stated value, one backticked
   identifier per comma-separated entry, on the line after `Created`
   (`- **Depends on:** ` + "`105`, `92-a-spec-can-depend`"). No line at all
-  when nothing was stated. Nothing about a phase outcome record either:
-  `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no
+  when nothing was stated. Nothing about a phase outcome record either —
+  the template names none of it, and this file has two writers for it
+  now: `aide-run-spec` writes `Model`/`Result`/`Time spent`/`Cost` (no
   `Repo` — nothing has been analyzed against yet) into this file's own
-  Tracking info once `create` has actually run, plus a time of day onto
-  `Created:` — the template names none of it
+  Tracking info once a headless `create` has actually run, plus a time
+  of day onto `Created:`; `aide-create-spec --stamp-outcome`, called from
+  this skill's own Step 5, writes `Model` (optional) and `Time spent`
+  (always) for an interactive run instead — same fields, same
+  absence-not-guess rule for `Model`, no `Repo`/`Result`/`Cost` either
+  way
 - **Description:** DESC + editable note
 - NO criteria for done-ness here — they are part of the solution (3-solution.md)
 - NO affected files or estimate here — they are commitments about the

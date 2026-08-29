@@ -10,6 +10,7 @@ break.
 import json
 import re
 import subprocess
+import time
 
 import pytest
 
@@ -224,3 +225,120 @@ def test_description_with_slashes_backticks_and_multiple_lines_is_preserved(scri
     assert rc == 0, out
     desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
     assert description in desc
+
+
+# --- --stamp-outcome (spec 274, AC1-5) --------------------------------------
+
+
+def run_stamp(script, specs_root, folder, start_epoch=None, model=None, result_file=None):
+    args = [str(script), "--specs-root", str(specs_root), "--stamp-outcome", "--folder", folder]
+    if start_epoch is not None:
+        args += ["--start-epoch", str(start_epoch)]
+    if model is not None:
+        args += ["--model", model]
+    if result_file:
+        args += ["--result-file", str(result_file)]
+    proc = subprocess.run(args, capture_output=True, text=True)
+    line = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "{}"
+    return proc.returncode, json.loads(line), proc.stdout
+
+
+def _create(script, specs_root):
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", "Problem: X.")
+    assert rc == 0, out
+    return specs_root / "42-do-a-thing"
+
+
+def test_stamp_outcome_writes_time_spent_only_when_no_model_given(script, specs_root):
+    folder = _create(script, specs_root)
+    start_epoch = int(time.time()) - 125
+    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=start_epoch)
+    assert rc == 0, out
+    desc = (folder / "1-description.md").read_text()
+    lines = desc.splitlines()
+    heading_idx = lines.index("## Tracking info")
+    task_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Task:**"))
+    assert lines[task_idx - 1] == "- **Time spent:** 2m05s"
+    assert task_idx - 1 > heading_idx
+    assert "- **Model:**" not in desc
+    assert desc.count("- **Time spent:**") == 1
+
+
+def test_stamp_outcome_writes_model_before_time_spent(script, specs_root):
+    folder = _create(script, specs_root)
+    start_epoch = int(time.time()) - 125
+    rc, out, _ = run_stamp(
+        script, specs_root, "42-do-a-thing",
+        start_epoch=start_epoch, model="claude claude-opus-5",
+    )
+    assert rc == 0, out
+    desc = (folder / "1-description.md").read_text()
+    lines = desc.splitlines()
+    task_idx = next(i for i, l in enumerate(lines) if l.startswith("- **Task:**"))
+    assert lines[task_idx - 2] == "- **Model:** claude claude-opus-5"
+    assert lines[task_idx - 1] == "- **Time spent:** 2m05s"
+    assert desc.count("- **Model:**") == 1
+    assert desc.count("- **Time spent:**") == 1
+
+
+def test_stamp_outcome_is_idempotent_on_a_second_call(script, specs_root):
+    folder = _create(script, specs_root)
+    rc, out, _ = run_stamp(
+        script, specs_root, "42-do-a-thing",
+        start_epoch=int(time.time()) - 60, model="claude claude-opus-5",
+    )
+    assert rc == 0, out
+    rc, out, _ = run_stamp(
+        script, specs_root, "42-do-a-thing",
+        start_epoch=int(time.time()) - 300, model="claude claude-sonnet-5",
+    )
+    assert rc == 0, out
+    desc = (folder / "1-description.md").read_text()
+    assert desc.count("- **Model:**") == 1
+    assert desc.count("- **Time spent:**") == 1
+    assert "- **Model:** claude claude-sonnet-5" in desc
+    assert "- **Time spent:** 5m00s" in desc
+
+
+@pytest.mark.parametrize(
+    "start_epoch_arg",
+    [None, "not-a-number"],
+    ids=["missing", "non-numeric"],
+)
+def test_stamp_outcome_refuses_on_bad_start_epoch(script, specs_root, start_epoch_arg):
+    folder = _create(script, specs_root)
+    before = (folder / "1-description.md").read_text()
+    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=start_epoch_arg)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert (folder / "1-description.md").read_text() == before
+
+
+def test_stamp_outcome_refuses_on_future_start_epoch(script, specs_root):
+    folder = _create(script, specs_root)
+    before = (folder / "1-description.md").read_text()
+    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=int(time.time()) + 3600)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert (folder / "1-description.md").read_text() == before
+
+
+def test_stamp_outcome_refuses_when_folder_has_no_description_file(script, specs_root):
+    rc, out, _ = run_stamp(script, specs_root, "no-such-folder", start_epoch=int(time.time()) - 60)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+
+
+def test_stamp_outcome_refuses_when_file_has_no_tracking_info_heading(script, specs_root):
+    folder = specs_root / "42-do-a-thing"
+    folder.mkdir()
+    before = "# Do a thing - Description\n\nNo tracking info section here.\n"
+    (folder / "1-description.md").write_text(before)
+    rc, out, _ = run_stamp(script, specs_root, "42-do-a-thing", start_epoch=int(time.time()) - 60)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert (folder / "1-description.md").read_text() == before

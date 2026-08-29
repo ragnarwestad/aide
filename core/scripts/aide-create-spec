@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-# aide-create-spec — the mechanical step of /aide-create's Step 4 (spec
-# 248): creates a spec's directory and its 5 files given
-# specs-root/number/slug/title/description/depends-on.
+# aide-create-spec — two Bash-only modes on the same file, both keeping
+# specs-repo writes off the Write/Edit tool (see below): the mechanical
+# step of /aide-create's Step 4 (spec 248), creating a spec's directory
+# and its 5 files given specs-root/number/slug/title/description/
+# depends-on; and, with --stamp-outcome, /aide-create's Step 5 patching
+# an already-created 1-description.md's Tracking info with that phase's
+# own Model/Time spent for an interactive run (spec 274) — the
+# counterpart to aide-run-spec's own "outcome record" block, which only
+# ever runs for a headless create.
 #
 # This is what lets file creation stay on a Bash-only path: before this
 # script existed, /aide-create's Step 4 wrote the 5 files with the Write
@@ -14,17 +20,21 @@
 # Prints ONE JSON line to stdout and, if given, to --result-file:
 #   {ok, exitCode, terminalReason, error?, specFolder?, files?}
 #
-# terminalReason: refused | created
+# terminalReason: refused | created | stamped
 #
 # Usage:
 #   aide-create-spec --specs-root <path> --number <NN> --slug <slug>
 #                     --title <title> --description <text>
 #                     [--depends-on <value>] [--result-file <path>]
+#   aide-create-spec --specs-root <path> --stamp-outcome --folder <NN-slug>
+#                     --start-epoch <epoch-seconds> [--model <text>]
+#                     [--result-file <path>]
 
 set -uo pipefail
 
 specs_root=""; number=""; slug=""; title=""; description=""
 depends_on=""; depends_on_given="no"; result_file=""
+stamp_outcome="no"; folder=""; start_epoch=""; model=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -35,6 +45,10 @@ while [ $# -gt 0 ]; do
     --description) description="${2:-}"; shift 2 ;;
     --depends-on) depends_on="${2:-}"; depends_on_given="yes"; shift 2 ;;
     --result-file) result_file="${2:-}"; shift 2 ;;
+    --stamp-outcome) stamp_outcome="yes"; shift ;;
+    --folder) folder="${2:-}"; shift 2 ;;
+    --start-epoch) start_epoch="${2:-}"; shift 2 ;;
+    --model) model="${2:-}"; shift 2 ;;
     *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
   esac
 done
@@ -61,6 +75,65 @@ emit_ok() {
 }
 
 [ -n "$specs_root" ] || refuse "missing --specs-root"
+
+if [ "$stamp_outcome" = "yes" ]; then
+  # Patches an already-created 1-description.md's Tracking info with this
+  # phase's own Model/Time spent — the interactive counterpart to
+  # aide-run-spec's own "outcome record" block (spec 245), which only
+  # ever runs for a headless create. See core/skills/aide-create/SKILL.md
+  # Step 5.
+  [ -n "$folder" ] || refuse "missing --folder"
+  [[ "$start_epoch" =~ ^[0-9]+$ ]] || refuse "missing or invalid --start-epoch"
+
+  target=""
+  for candidate in "$specs_root/$folder/1-description.md" \
+                   "$specs_root/archive/$folder/1-description.md"; do
+    [ -f "$candidate" ] && { target="$candidate"; break; }
+  done
+  [ -n "$target" ] || refuse "spec file not found: $folder/1-description.md"
+  grep -q '^## Tracking info' "$target" || refuse "no Tracking info heading in $target"
+
+  elapsed=$(( $(date +%s) - start_epoch ))
+  [ "$elapsed" -ge 0 ] || refuse "--start-epoch is in the future"
+  time_spent="$(printf '%dm%02ds' $(( elapsed / 60 )) $(( elapsed % 60 )))"
+
+  block_file="$(mktemp)"
+  [ -n "$model" ] && printf -- '- **Model:** %s\n' "$model" >> "$block_file"
+  printf -- '- **Time spent:** %s\n' "$time_spent" >> "$block_file"
+
+  # Idempotent, same shape as aide-run-spec's own Tracking-info insert
+  # (core/scripts/aide-run-spec:2134-2148, whose file-based emit_block()
+  # this mirrors): strip any existing Model/Time spent bullet from
+  # inside the section, then insert fresh, right after the heading and
+  # any blank line that follows it. The block is passed via a file
+  # rather than a -v string, matching aide-run-spec's own pattern — the
+  # macOS "one true awk" this repo targets (awk version 20200816) rejects
+  # a literal newline inside a -v value ("newline in string ... at
+  # source line 1"), which a -v-with-embedded-newline approach hits
+  # immediately.
+  awk -v block="$block_file" '
+    function emit_block(  ln) { while ((getline ln < block) > 0) print ln; close(block) }
+    /^## Tracking info/ {
+      print; in_tracking = 1
+      if ((getline nextline) > 0) {
+        if (nextline ~ /^[ \t]*$/) { print nextline; emit_block() } else { held = nextline; has_held = 1; emit_block() }
+      } else { emit_block() }
+      # The held line still goes through the same strip filter a normal
+      # in_tracking line would — a hand-edited file with no blank line
+      # after the heading must not let a stale Model/Time-spent bullet
+      # escape stripping just because it happened to be the lookahead.
+      if (has_held && held !~ /^- \*\*(Model|Time spent):\*\*/) print held
+      next
+    }
+    in_tracking && /^## / { in_tracking = 0 }
+    in_tracking && /^- \*\*(Model|Time spent):\*\*/ { next }
+    { print }
+  ' "$target" > "$target.stamp-tmp" && mv "$target.stamp-tmp" "$target"
+  rm -f "$block_file"
+
+  emit_ok "$(jq -cn --arg f "$folder" '{terminalReason:"stamped", specFolder:$f}')"
+fi
+
 [ -n "$number" ] || refuse "missing --number"
 [ -n "$slug" ] || refuse "missing --slug"
 [ -n "$title" ] || refuse "missing --title"
