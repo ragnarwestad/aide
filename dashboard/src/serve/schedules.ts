@@ -57,6 +57,16 @@ export interface ScheduleContext {
   specRoots: (project: string) => string[];
   readRunner: () => Runner | null;
   checkoutEnsurer: CheckoutEnsurer;
+  /** Told once per tick, and only when a watched root's `openSpecBranches`
+   *  answer actually moved (spec 275) — the same "invalidate before you
+   *  notify" shape `scheduleNotify` (`sse-watchers.ts`) already carries
+   *  for a `git pull` landing new files. Without it, a background tick
+   *  that quietly CORRECTS a stale "not landed" mark left an already-open
+   *  tab showing the wrong answer until an unrelated queue event or a
+   *  reload asked again — the branch was gone, `peekUnlanded()` would
+   *  have answered right on the very next request, but nothing told the
+   *  page already open to make one. */
+  notifyQueueChanged: () => void;
 }
 
 export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
@@ -143,6 +153,11 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // status file already stamps the date never reaches git at all.
       if (dir && !specArchivedDate(dir)) archivedDirs.push(dir);
     }
+    // Before the sweep, so a change made DURING it is compared against
+    // what a reader's last page load actually saw — the same reason
+    // `scheduleNotify` (`sse-watchers.ts`) invalidates before it
+    // notifies.
+    const before = new Map([...roots].map((root) => [root, ctx.branchStatus.peekOpenSpecBranches(root).open]));
     await Promise.all([
       // Each call try/catches internally and degrades to null or to
       // nothing-known, so one unreachable origin never takes the
@@ -165,9 +180,24 @@ export async function refreshSpecCaches(ctx: ScheduleContext): Promise<void> {
       // project whose origin is unreachable costs one complaint, once.
       ...[...ctx.allowed].map((project) => ctx.ensureCheckout(project)),
     ]);
+    // Spec 275: only a root whose answer MOVED tells anyone, and only
+    // once per tick, however many roots moved — a tick that finds
+    // nothing new stays silent, exactly as spec 189 already promises
+    // for every other reason a page might redraw.
+    const moved = [...roots].some(
+      (root) => !sameOpenSet(before.get(root) ?? null, ctx.branchStatus.peekOpenSpecBranches(root).open),
+    );
+    if (moved) ctx.notifyQueueChanged();
   } finally {
     ctx.setWarming(false);
   }
+}
+
+function sameOpenSet(a: Set<string> | null, b: Set<string> | null): boolean {
+  if (a === null || b === null) return a === b;
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
 }
 
 /** Spec 259: does any project's own `schedule:` entry have a fire due

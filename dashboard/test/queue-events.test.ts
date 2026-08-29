@@ -12,6 +12,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { queueHarness, statusSaying } from "./helpers/queue-server.ts";
+import { connect as connectStream, type Stream } from "./helpers/sse.ts";
+import { flippingGit } from "./helpers/fake-git.ts";
 
 const TOKEN = "s3cret-token";
 
@@ -31,73 +33,13 @@ const JOB = { project: "aide", specFolder: "81-queue-and-runner", steps: ["analy
 const auth = { "x-aide-token": TOKEN };
 const postJson = { "content-type": "application/json", accept: "application/json", ...auth };
 
-interface Stream {
-  contentType: string | null;
-  /** The next real event. Keep-alive comments are skipped: they are the
-   *  connection breathing, not news. */
-  next(ms?: number): Promise<string>;
-  /** That nothing arrives inside `ms` — criterion 1's own assertion. */
-  quiet(ms: number): Promise<void>;
-  close(): Promise<void>;
-}
-
-/** One held-open connection, read frame by frame. The server writes a
- *  `: open` comment as soon as the subscriber is registered, and this
- *  waits for it before returning — otherwise a test could post its
- *  change into a server that had not yet added the listener, and the
- *  event it was waiting for would never have been meant for it. */
+/** One held-open connection, read frame by frame — `connectStream`
+ *  (`helpers/sse.ts`) plus this file's own default query and cleanup
+ *  registration. */
 async function connect(base: string, query = `?token=${TOKEN}`): Promise<Stream> {
-  const res = await fetch(`${base}/api/queue/events${query}`);
-  expect(res.status).toBe(200);
-  const reader = res.body!.getReader();
-  const decoder = new TextDecoder();
-  let buf = "";
-  let ended = false;
-
-  const frame = async (ms: number): Promise<string | null> => {
-    for (;;) {
-      const at = buf.indexOf("\n\n");
-      if (at !== -1) {
-        const out = buf.slice(0, at + 2);
-        buf = buf.slice(at + 2);
-        return out;
-      }
-      if (ended) return null;
-      const got = await Promise.race([
-        reader.read(),
-        Bun.sleep(ms).then(() => "timeout" as const),
-      ]);
-      if (got === "timeout") return null;
-      if (got.done) {
-        ended = true;
-        return null;
-      }
-      buf += decoder.decode(got.value, { stream: true });
-    }
-  };
-
-  const stream: Stream = {
-    contentType: res.headers.get("content-type"),
-    async next(ms = 4000) {
-      for (;;) {
-        const f = await frame(ms);
-        if (f === null) throw new Error(`no event within ${ms}ms (buffered: ${JSON.stringify(buf)})`);
-        if (!f.startsWith(":")) return f;
-      }
-    },
-    async quiet(ms) {
-      const f = await frame(ms);
-      if (f !== null && !f.startsWith(":")) throw new Error(`an idle stream spoke: ${JSON.stringify(f)}`);
-    },
-    async close() {
-      await reader.cancel().catch(() => {});
-    },
-  };
-  open_.push(stream);
-  // The handshake comment, so the caller knows it is subscribed.
-  const first = await frame(4000);
-  expect(first).toStartWith(":");
-  return stream;
+  const s = await connectStream(base, query);
+  open_.push(s);
+  return s;
 }
 
 /** The specs-root watch spec 204 opens is a recursive `fs.watch`, and
@@ -286,5 +228,81 @@ describe("a spec created outside the dashboard reaches an open page (spec 204)",
     expect(server.specWatchCount()).toBe(1);
     server.stop();
     expect(server.specWatchCount()).toBe(0);
+  });
+});
+
+/** Bounded, like every other read in this file: a regression that never
+ *  produces the awaited call has to fail promptly, not hang the suite. */
+async function until(check: () => boolean, budgetMs = 2000): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  while (Date.now() < deadline) {
+    if (check()) return true;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  return check();
+}
+
+// Spec 275, criterion 2: `refreshSpecCaches` is the only OTHER writer of
+// the "is this archived spec's branch still on origin" cache besides a
+// landing's own fresh recheck (`land-branch/merge.ts`), and until now it
+// found things out without telling the open tab reading it — a page
+// stayed as it was until an unrelated queue event or a reload happened
+// to ask again. This test connects an SSE stream the same way a browser
+// tab does and confirms the schedule's own finding reaches it, and that
+// the row a subsequent render draws reflects that finding.
+//
+// It exercises the DISCOVERY direction — an unwarmed archived spec's
+// first-ever check finds its branch still on origin — rather than a
+// stale-to-fresh FLIP: `BranchStatusChecker`'s `openSpecBranches` cache
+// carries a fixed 30-second TTL that no `ServerOptions` field reaches
+// (`setup-project-resolution.ts` builds it with none), so two ticks
+// fired through the real schedule, milliseconds apart in test time,
+// would have the second one answer straight out of cache without ever
+// asking git again — there is no way to force a second REAL check within
+// a fast test through the public surface this route exposes. The literal
+// stale-to-fresh flip this bug is about — and the "exactly once, not per
+// root" and "silent when unchanged" guarantees — are covered exactly and
+// deterministically in `cache-warmer.test.ts`, which calls
+// `refreshSpecCaches` directly against a hand-built `ScheduleContext`
+// with a zero-TTL checker built for the purpose. What THIS test proves
+// that the other one cannot: the notify this fix adds genuinely reaches
+// a live SSE connection and the row an open tab redraws with is the
+// corrected one — the wiring the other suite cannot see because it never
+// opens a socket.
+describe("a background discovery of an archived spec's branch reaches an open tab (spec 275, criterion 2)", () => {
+  test("the schedule's first check pushes its finding to a connected tab", async () => {
+    // A single, one-shot gate (never re-armed): everything that awaits
+    // it — the initial concurrent batch AND any call chained off one of
+    // THOSE calls once it resolves — unblocks the moment it is released
+    // and stays unblocked, which is what lets one tick's full chain
+    // (including `DescriptionFreshnessChecker`'s own follow-up query for
+    // the live spec) run to completion after a single release.
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const git = flippingGit([true], { hold: () => gate, branch: "aide/77-old-thing" });
+    const { base } = harness.start({
+      extra: { gitRun: git.run, queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 30_000 },
+      archivedSpecs: { "77-old-thing": {} },
+    });
+    const lsRemotes = () => git.calls.filter((c) => c.args[0] === "ls-remote");
+    // The schedule's one and only tick (the interval is longer than this
+    // test), held before it can answer.
+    await until(() => lsRemotes().length >= 1);
+
+    // Before the tick resolves: nothing has been asked yet, from this
+    // row's own point of view — an unwarmed archived spec reads as
+    // ordinary "archived", not as a problem (spec 208's own contract:
+    // fail closed, never claim a mark it cannot back up).
+    const before = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
+    expect(await before.text()).not.toContain("not landed");
+
+    const s = await connect(base);
+    release();
+    expect(await s.next()).toContain("event: changed");
+
+    const after = await fetch(`${base}/?rows=1&token=${TOKEN}&state=archived`);
+    const html = await after.text();
+    expect(html).toContain('data-folder="77-old-thing"');
+    expect(html).toContain("not landed");
   });
 });

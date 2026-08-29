@@ -157,6 +157,23 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   test("the failed archive job adds no second row", () => {
     expect(listed(true).match(/<tr class="spechead/g)).toHaveLength(1);
   });
+
+  // Spec 275, criteria 4-5: the State cell used to say the bare word
+  // "archived" for BOTH answers, so a reader saw "archived" in that
+  // column and "not landed" in the red pill beside the name — two words
+  // that read as a contradiction, on the same row, regardless of which
+  // one was actually stale. The State cell now echoes the same fact the
+  // mark carries, in words, rather than leaving the mark to stand alone
+  // against an unqualified "archived".
+  test("the State cell echoes the mark instead of contradicting it (criterion 4)", () => {
+    expect(listed(true)).toContain('<span class="badge b-done">archived, not landed</span>');
+  });
+
+  test("and reverts to the bare word once the branch is gone (criterion 5)", () => {
+    const html = listed(false);
+    expect(html).toContain('<span class="badge b-done">archived</span>');
+    expect(html).not.toContain("archived, not landed");
+  });
 });
 
 // Spec 221: an archived spec is a row on the spec list, and the list

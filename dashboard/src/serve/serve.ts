@@ -134,6 +134,7 @@ export function createServer(opts: ServerOptions) {
     specRoots: resolution.specRoots,
     checkoutEnsurer: resolution.checkoutEnsurer,
     gitRun,
+    notifyQueueChanged: watch.notifyQueueChanged,
   });
 
   const land = setupLand(state, {
