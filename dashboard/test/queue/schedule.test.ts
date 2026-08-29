@@ -3,7 +3,10 @@
 // recent fire time is after the newest tracked job's
 // `startedAt ?? createdAt`, and not before.
 import { describe, expect, test } from "bun:test";
-import { isDue, mostRecentFireTime, nextFireTime, scheduleTrackingKey, type ScheduleJobRef } from "../../src/queue/schedule.ts";
+import {
+  isDue, mostRecentFireTime, nextFireTime, scheduleOutputDir, scheduleTrackingKey,
+  type ScheduleJobRef,
+} from "../../src/queue/schedule.ts";
 import type { ScheduleEntry } from "../../src/project/parse-manifest.ts";
 
 const ENTRY: ScheduleEntry = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
@@ -88,5 +91,23 @@ describe("isDue (acceptance criteria 1-3)", () => {
   test("an entry whose cron does not parse is never due", () => {
     const bad: ScheduleEntry = { ...ENTRY, cron: "not-a-cron" };
     expect(isDue(bad, new Date(), [])).toBe(false);
+  });
+});
+
+// Acceptance criterion 1 (the path half): the write side
+// (`runner-setup.ts`) and the read side (`page-routes.ts`) both import
+// this function rather than each computing the join themselves — a
+// pure join with no side effects, so a test needs nothing on disk.
+describe("scheduleOutputDir", () => {
+  test("joins root, project and specFolder, in that order", () => {
+    expect(scheduleOutputDir("/root", "aide", "schedule-nightly-report")).toBe(
+      "/root/aide/schedule-nightly-report",
+    );
+  });
+
+  test("is a pure join: the same inputs always produce the same path", () => {
+    const a = scheduleOutputDir("/root", "atlasaurus", "schedule-traffic-analysis");
+    const b = scheduleOutputDir("/root", "atlasaurus", "schedule-traffic-analysis");
+    expect(a).toBe(b);
   });
 });

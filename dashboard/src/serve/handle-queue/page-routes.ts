@@ -2,13 +2,16 @@
 // Settings, Add/Remove project, a project's own page, and the
 // Projects listing. Extracted from handle-queue.ts (split of split
 // serve.ts step 2).
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildProjectViews, configValue, discoverUnclaimedDirectories, gitignoreCandidates, resolveCodeLanding, resolveSchedule } from "../../project/discover.ts";
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { projectSettings } from "../../project/project-settings.ts";
 import { assessProjectReadiness, suggestSpecsPath, suggestWorktreeLinksFromLockfile } from "../../project/project-admin.ts";
-import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir, scheduleTrackingKey } from "../../queue/schedule.ts";
+import { ADD_PROJECT_ROUTE, NEW_SPEC_ROUTE, OVERVIEW_PAGE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE, renderAddProjectPage, renderNewSpecPage, renderProjectPage, renderProjectsPage, renderQueuePage, renderQueueRows, renderRemoveProjectPage, renderSchedulePage, renderSettingsPage, resolveBackHref, type ProjectDrift } from "../../render.ts";
 import { queueClientScript, sortChoice } from "../serve-helpers.ts";
+import { serveStatic } from "../serve-helpers/static.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 export async function handlePageRoutes(
@@ -435,6 +438,42 @@ export async function handlePageRoutes(
         `aide_token=${encodeURIComponent(ctx.queueToken)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000`;
     }
     return new Response(html, { headers });
+  }
+
+  // Spec 272. Whatever a `schedule` step wrote to its own output
+  // directory, served with the same `serveStatic()` primitive
+  // `core-routes.ts` already uses for the generated site — pointed at a
+  // different root. `scheduleOutputDir()` is the SAME function
+  // `runner-setup.ts`'s spawn imports for the write side; a second
+  // implementation of the join here would be the hand-paired-pair
+  // failure mode `dashboard/CLAUDE.md` already names six instances of.
+  if (path.startsWith("/schedule-output/")) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    return serveStatic(
+      ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
+      path.slice("/schedule-output".length),
+    );
+  }
+
+  if (path === SCHEDULE_ROUTE) {
+    if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
+    const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
+    const rows = [...ctx.allowed].flatMap((project) =>
+      resolveSchedule(ctx.machineryProjectDir(project)).map((entry) => {
+        const key = scheduleTrackingKey(entry.name);
+        const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
+        const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
+        const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
+        return {
+          project,
+          entry,
+          lastState: last?.state,
+          outputHref: outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+        };
+      }),
+    );
+    const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), { rows });
+    return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
 
   return null;

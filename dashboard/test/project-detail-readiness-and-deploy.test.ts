@@ -216,9 +216,9 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
   });
 });
 
-// The served nav is Specs and Projects — the Archive tab was there from
-// spec 163 until spec 221 put every archived spec on the Specs list.
-// A project is reached
+// The served nav is Specs, Projects and Schedule — the Archive tab was
+// there from spec 163 until spec 221 put every archived spec on the
+// Specs list. A project is reached
 // from the Projects page, which lists every one of them with its
 // counts, its warnings and its controls — so naming them in the tab bar
 // as well put each project there twice, and the bar grew with the
@@ -229,8 +229,8 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 // on 2026-08-22: a project is reached from the Projects page, which
 // lists every one with its counts, its warnings and its controls.
 describe("the nav does not name the projects", () => {
-  test("it is the two tabs, whatever projects the machine has", () => {
-    expect(navEntries().map((e) => e.label)).toEqual(["Projects"]);
+  test("it is the two aggregate tabs, whatever projects the machine has", () => {
+    expect(navEntries().map((e) => e.label)).toEqual(["Projects", "Schedule"]);
   });
 
   test("a server started with --root builds a nav with no project in it", () => {
@@ -239,6 +239,6 @@ describe("the nav does not name the projects", () => {
     ownDirs.push(site);
     const opts = parseArgs(["--site", site, "--root", root]);
     expect(opts.navEntries?.some((e) => e.label === "aide")).toBe(false);
-    expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects"]);
+    expect(opts.navEntries?.map((e) => e.label)).toEqual(["Projects", "Schedule"]);
   });
 });

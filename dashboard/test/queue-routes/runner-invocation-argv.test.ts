@@ -1,10 +1,11 @@
 // Split out of runner-invocation.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { statusSaying } from "../helpers/queue-server.ts";
+import { scheduleOutputDir } from "../../src/queue/schedule.ts";
 import { TOKEN, setupQueueRoutesHarness } from "./fixtures.ts";
 
 const { harness, start } = setupQueueRoutesHarness();
@@ -215,5 +216,82 @@ describe("the runner invocation", () => {
     expect(await pushArgOf(null, "pr")).toBe("pr");
     expect(await pushArgOf("merge", "branch")).toBe("branch");
     expect(await pushArgOf(null, "none")).toBe("none");
+  });
+});
+
+// Acceptance criterion 1 (the spawn-time half): only a `schedule` step's
+// own spawn carries `AIDE_SCHEDULE_OUTPUT_DIR`, and by the time the
+// child starts, the directory it names already exists on disk.
+describe("the schedule step's output directory (spec 272)", () => {
+  async function fileOnceWritten(path: string, what: string): Promise<string> {
+    for (let i = 0; i < 100; i++) {
+      try {
+        return readFileSync(path, "utf-8");
+      } catch {
+        await Bun.sleep(50);
+      }
+    }
+    throw new Error(what);
+  }
+
+  function scheduleEnvStub(dir: string): { bin: string; envFile: string } {
+    const envFile = join(dir, "runner-schedule-env.txt");
+    const bin = join(dir, "fake-run-spec-schedule");
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "$AIDE_SCHEDULE_OUTPUT_DIR" > ${envFile}\n`,
+      { mode: 0o755 },
+    );
+    return { bin, envFile };
+  }
+
+  test("a schedule step's spawn carries AIDE_SCHEDULE_OUTPUT_DIR, pointed at scheduleOutputDir(), and the directory already exists", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-schedule-env-"));
+    ownDirs.push(dir);
+    const { bin, envFile } = scheduleEnvStub(dir);
+    const outputRoot = join(dir, "schedule-output");
+    const { base } = start({
+      queueToken: TOKEN,
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      scheduleOutputRoot: outputRoot,
+    });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly-report", steps: ["schedule"] }),
+    });
+    expect(res.status).toBe(200);
+    const env = await fileOnceWritten(envFile, "the runner was never invoked");
+    const expected = scheduleOutputDir(outputRoot, "aide", "schedule-nightly-report");
+    expect(env.trim()).toBe(expected);
+    expect(existsSync(expected)).toBe(true);
+  });
+
+  test("every OTHER step's spawn carries no such env key", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-queue-schedule-env-absent-"));
+    ownDirs.push(dir);
+    const envFile = join(dir, "runner-schedule-env.txt");
+    const bin = join(dir, "fake-run-spec-implement");
+    writeFileSync(
+      bin,
+      `#!/usr/bin/env bash\nprintf '%s\\n' "\${AIDE_SCHEDULE_OUTPUT_DIR:-<unset>}" > ${envFile}\n`,
+      { mode: 0o755 },
+    );
+    const { base } = start({
+      queueToken: TOKEN,
+      queueRunnerBin: bin,
+      queueResultDir: join(dir, "jobs"),
+      queuePush: "branch",
+      scheduleOutputRoot: join(dir, "schedule-output"),
+    });
+    const res = await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers: { "x-aide-token": TOKEN, "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({ project: "aide", specFolder: "81-queue-and-runner", steps: ["implement"] }),
+    });
+    expect(res.status).toBe(200);
+    const env = await fileOnceWritten(envFile, "the runner was never invoked");
+    expect(env.trim()).toBe("<unset>");
   });
 });

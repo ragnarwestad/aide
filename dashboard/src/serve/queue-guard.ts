@@ -3,7 +3,7 @@
 // step 5). Small and self-contained: neither function reads a `let`, so
 // there is no getter/accessor dance here, unlike `schedules.ts` beside it.
 
-import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SETTINGS_ROUTE } from "../render.ts";
+import { NEW_SPEC_ROUTE, PROJECTS_ROUTE, SCHEDULE_ROUTE, SETTINGS_ROUTE } from "../render.ts";
 import { cookieValue, tokenMatches } from "./serve-helpers.ts";
 
 /** `/specs/<id>` joins the guarded set HERE, never as a special case
@@ -25,6 +25,12 @@ export const isQueuePath = (path: string) =>
   // checked per request.
   path === NEW_SPEC_ROUTE ||
   path === SETTINGS_ROUTE ||
+  // The aggregate Schedule page (spec 272) and the output it links to —
+  // traffic-analysis output (visit counts, error rates) is exactly the
+  // sort of thing that must not be readable by anyone who merely
+  // guesses or is handed the URL.
+  path === SCHEDULE_ROUTE ||
+  path.startsWith("/schedule-output/") ||
   path === "/queue" ||
   path === "/specs" ||
   path === "/api/queue" ||

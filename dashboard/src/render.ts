@@ -51,6 +51,11 @@ export { backLink, resolveBackHref } from "./render/ui/components.ts";
 export { renderSettingsPage, SETTINGS_ROUTE, SETTINGS_STEPS } from "./render/pages/settings-page.ts";
 export type { SettingsPageOptions } from "./render/pages/settings-page.ts";
 
+// /schedule (spec 272): the aggregate page listing every allowed
+// project's `schedule:` entries.
+export { renderSchedulePage, SCHEDULE_ROUTE } from "./render/pages/schedule-page.ts";
+export type { SchedulePageOptions, SchedulePageRow } from "./render/pages/schedule-page.ts";
+
 // The five answers that make the dashboard an app you install (spec
 // 173). Unlike every other export here they are not pages: they are
 // what `serve.ts` puts behind /manifest.webmanifest, /sw.js and the

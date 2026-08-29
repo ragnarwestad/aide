@@ -5,6 +5,8 @@
 // behaviour `driftPollMs`/`specCachePollMs` already have when a restart
 // leaves an answer stale until the next tick.
 
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { CronExpressionParser } from "cron-parser";
 import type { ScheduleEntry } from "../project/parse-manifest.ts";
 
@@ -67,4 +69,18 @@ export function isDue(entry: ScheduleEntry, now: Date, jobs: readonly ScheduleJo
     .filter((j) => j.specFolder === key)
     .reduce((latest, j) => Math.max(latest, Date.parse(j.startedAt ?? j.createdAt) || 0), -Infinity);
   return fire.getTime() > newest;
+}
+
+/** Where a schedule step's own output lives, outside any worktree so it
+ *  survives past the run — keyed on the same (project, tracking key)
+ *  identity `scheduleTrackingKey` already uses, so the URL a reader
+ *  bookmarks never moves between runs (spec 272). */
+export const DEFAULT_SCHEDULE_OUTPUT_ROOT = join(homedir(), "aide-dashboard", "schedule-output");
+
+/** The one function both the write side (`runner-setup.ts`'s spawn) and
+ *  the read side (the serving route, the Schedule page) import — never a
+ *  second implementation of the join, the exact hand-paired-pair failure
+ *  mode `dashboard/CLAUDE.md` already names six instances of. */
+export function scheduleOutputDir(root: string, project: string, specFolder: string): string {
+  return join(root, project, specFolder);
 }

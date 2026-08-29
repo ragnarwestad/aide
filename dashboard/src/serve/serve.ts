@@ -161,6 +161,7 @@ export function createServer(opts: ServerOptions) {
     machineryProjectDir: resolution.machineryProjectDir,
     queueRunnerBin: opts.queueRunnerBin,
     queueResultDir: opts.queueResultDir,
+    scheduleOutputRoot: opts.scheduleOutputRoot,
     queueConcurrency: opts.queueConcurrency,
     // `state.server` is not set yet — see state.ts's own doc comment.
     readServerPort: () => state.server?.port,

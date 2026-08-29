@@ -49,6 +49,13 @@ export interface ServerOptions {
    *  somewhere it owns. */
   dashboardCheckoutRoot?: string;
   queueResultDir?: string;
+  /** Where a `schedule` step's own output lives, outside any worktree so
+   *  it survives past the run (spec 272). Read by both the spawn (which
+   *  writes the env var naming it) and the `/schedule-output/` route
+   *  (which serves whatever landed there). Defaults to
+   *  `DEFAULT_SCHEDULE_OUTPUT_ROOT`; named here so a test can put it
+   *  somewhere it owns, the same reason `dashboardCheckoutRoot` is. */
+  scheduleOutputRoot?: string;
   /** How far a finished step publishes its work: none, branch or pr.
    *  From the queue config; `branch` when unset. */
   queuePush?: string;

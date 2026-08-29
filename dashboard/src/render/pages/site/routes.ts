@@ -1,6 +1,7 @@
 // The site's nav and its routes' paths.
 
 import type { NavEntry } from "../../ui/shell.ts";
+import { SCHEDULE_ROUTE } from "../schedule-page.ts";
 
 // The nav entries for a project set — shared by the generator and the
 // live server when it was started with a `--root` of its own.
@@ -14,6 +15,11 @@ import type { NavEntry } from "../../ui/shell.ts";
 export function navEntries(): NavEntry[] {
   return [
     { label: "Projects", path: PROJECTS_ROUTE },
+    // The aggregate Schedule page (spec 272): every allowed project's
+    // `schedule:` entries in one table, the same single-aggregate shape
+    // Projects took after the tab-per-project removal below — never one
+    // tab per project.
+    { label: "Schedule", path: SCHEDULE_ROUTE },
     // An Archive tab stood here from spec 163 until spec 221. Every
     // archived spec is a row on the Specs list now, one chip away, with
     // its date, its description, its "not landed" mark and the same

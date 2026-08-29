@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { Runner } from "../queue/runner.ts";
+import { DEFAULT_SCHEDULE_OUTPUT_ROOT, scheduleOutputDir } from "../queue/schedule.ts";
 import { QueueStore, type Job, type WorkflowStep } from "../queue/queue.ts";
 import type { StepOutcome } from "../queue/runner.ts";
 import type { Notifier } from "../integrations/notify.ts";
@@ -24,6 +25,7 @@ export interface RunnerSetupContext {
   machineryProjectDir: (project: string) => string;
   queueRunnerBin: string | undefined;
   queueResultDir: string | undefined;
+  scheduleOutputRoot: string | undefined;
   queueConcurrency: number | undefined;
   /** `Bun.serve()`'s own choice — a getter because it does not exist
    *  yet when this context is built. See the file-level comment. */
@@ -62,6 +64,32 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
       // `port: 0` means "let the OS pick", and every test in this
       // suite starts that way.
       const selfRunUrl = `http://127.0.0.1:${ctx.readServerPort()}/api/aide-run`;
+      // The spread is load-bearing. `Bun.spawn`'s `env`, once given at
+      // all, REPLACES the child's environment rather than layering onto
+      // it, and this call passed none before — so the child inherited
+      // PATH, HOME and the credentials `git` and `claude` need
+      // implicitly. An operator who has already pointed reporting at
+      // another sink keeps it: the derived URL is a default, never an
+      // override.
+      const env: Record<string, string | undefined> = {
+        ...process.env,
+        AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl,
+      };
+      // Spec 272. Only a `schedule` step's own spawn gets this: the
+      // directory a schedule job's prompt writes its output to, made
+      // ahead of time so a prompt with no `mkdir -p` of its own still
+      // lands its file. `scheduleOutputDir()` is the one function both
+      // this write side and the serving route's read side import — see
+      // its own comment for why that matters.
+      if (step === "schedule") {
+        const outputDir = scheduleOutputDir(
+          ctx.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT,
+          job.project,
+          job.specFolder,
+        );
+        mkdirSync(outputDir, { recursive: true });
+        env.AIDE_SCHEDULE_OUTPUT_DIR = outputDir;
+      }
       const proc = Bun.spawn({
         cmd: runnerArgv(
           job,
@@ -95,14 +123,7 @@ export function createQueueRunner(ctx: RunnerSetupContext): Runner | null {
           sessionId,
           streamFile,
         ),
-        // The spread is load-bearing. `Bun.spawn`'s `env`, once
-        // given at all, REPLACES the child's environment rather
-        // than layering onto it, and this call passed none before —
-        // so the child inherited PATH, HOME and the credentials
-        // `git` and `claude` need implicitly. An operator who has
-        // already pointed reporting at another sink keeps it: the
-        // derived URL is a default, never an override.
-        env: { ...process.env, AIDE_RUN_URL: process.env.AIDE_RUN_URL ?? selfRunUrl },
+        env,
         detached: true,
         // stdout is ignored (the result FILE is the contract), but
         // stderr goes to a per-job log: when the runner died
