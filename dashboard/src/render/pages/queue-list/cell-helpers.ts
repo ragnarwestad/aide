@@ -167,24 +167,24 @@ export function phasePips(phases: Phase[], done: string[]): string {
 }
 
 /** The same column, a different question (spec 224): a locked row's date
- *  is when it was ARCHIVED, and the figure beside it is what the whole
- *  spec cost. `startedCell` reads `g.createdAt`, which comes off a
- *  target — and an archived spec is no target, so that cell would be a
- *  bare dash on every row here.
+ *  is when it was ARCHIVED. `startedCell` reads `g.createdAt`, which comes
+ *  off a target — and an archived spec is no target, so that cell would be
+ *  a bare dash on every row here.
  *
  *  "checking…" is a spec nobody has ASKED git about; `date unknown` is
  *  one git was asked about and could not date. Two different answers,
  *  and a cell saying the wrong one is a cell that lies about whether
- *  there is anything still to find out. */
+ *  there is anything still to find out.
+ *
+ *  Once a duration exists, the cell shows ONLY the duration (never the
+ *  date beside it) — the date was dropped after it read as noise next to
+ *  the figure that actually answers "how long". */
 export function archiveDateCell(s: ArchivedSpecView, durationMs: number): string {
   const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
   // Nothing recorded across every phase draws the date alone — the same
   // "nothing to show" rule costCell() already gives an all-zero spentUsd.
   if (durationMs <= 0) return date;
-  return (
-    `<span class="archive-duration">${esc(durationLabel(durationMs))}</span>` +
-    ` <span class="muted small">${date}</span>`
-  );
+  return `<span class="archive-duration">${esc(durationLabel(durationMs))}</span>`;
 }
 
 /** What the "not landed" mark says on hover, age included (spec 208).

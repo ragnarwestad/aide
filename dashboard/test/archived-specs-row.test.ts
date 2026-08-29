@@ -14,7 +14,7 @@ describe("an archived spec's row", () => {
   test("links its spec page, dates it, and offers Reopen (criterion 3)", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     expect(row).toContain(`href="/specs/aide/${STAMPED}"`);
-    expect(row).toContain("2026-08-13");
+    expect(row).toContain(STAMPED_TIME_SPENT);
     expect(row).toContain("Reopen");
     expect(row).toContain('name="steps" value="reopen"');
   });
@@ -71,15 +71,16 @@ describe("an archived spec's row", () => {
 
   // `startedCell` reads `g.createdAt`, which an archived row has none
   // of: routed through it unmodified the cell would be a bare dash.
-  test("its date and duration are in the column every row's date is in", async () => {
+  test("its duration is in the column every row's date is in, with no date beside it", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
-    expect(body).toContain("2026-08-13");
     expect(body).toContain(STAMPED_TIME_SPENT);
-    // The duration is the figure worth leading with (spec 257) — the
-    // archive date is secondary, muted context beside it.
-    expect(body.indexOf(STAMPED_TIME_SPENT)).toBeLessThan(body.indexOf("2026-08-13"));
+    // Once a duration exists, the archive date is dropped from this cell
+    // entirely — it read as noise beside the figure that actually answers
+    // "how long" (spec 257 made duration the lead figure; this drops the
+    // date that used to trail it).
+    expect(body).not.toContain("2026-08-13");
   });
 
   test("the column header reads Time, not Started (spec 257)", async () => {
