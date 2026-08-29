@@ -47,6 +47,39 @@ describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () 
     ]);
   });
 
+  // Every route in this file used to write to `displayProjectDir` (the
+  // PERSON's own checkout) while `/schedule`'s own GET route reads off
+  // `machineryProjectDir` (the dashboard's own checkout) — two
+  // different directories that agree only when the harness has no
+  // `owned/<project>/code/.git` for `machineryProjectDir` to prefer, so
+  // this bug shipped invisibly through every other test in this file.
+  // Setting that `.git` up here is what makes the two diverge, the way
+  // production genuinely does.
+  test("writes to the dashboard's own checkout, not the reader's, when the two differ", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    const owned = join(dir, "owned", "aide", "code");
+    mkdirSync(join(owned, ".git"), { recursive: true });
+    writeFileSync(join(owned, "docs-nightly.md"), "# nightly\n");
+    mkdirSync(join(owned, ".aide"), { recursive: true });
+    writeFileSync(join(owned, ".aide", "project.yaml"), "name: aide\n");
+    // The reader's own checkout carries no such file at all — proving
+    // the write did not fall back to it.
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
+    });
+    expect(res.status).toBe(200);
+    const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
+    if (!ownedManifest.ok) throw new Error(ownedManifest.error);
+    expect(ownedManifest.data.schedule).toEqual([
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
+    ]);
+    expect(readSchedule(dir, "aide")).toEqual([]);
+  });
+
   test("a duplicate name is refused before any write (criterion 5)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");

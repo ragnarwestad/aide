@@ -5,6 +5,12 @@
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* The `/schedule` list's own head row (spec 276): the project selector
+   and the New-job button, unstyled since the page shipped — sat
+   cramped edge to edge with no gap from each other or from the table
+   beneath. Same shape `.row` already gives everything else. */
+.schedulehead { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.scheduleprojects { display: flex; align-items: center; gap: var(--sp-1); }
 /* The row's one action keeps its place whatever it currently is. The
    label changes with the state — Analyze, Implement, Cancel — and a
    box that grew with it moved the columns to its right on every
@@ -160,3 +166,12 @@ dialog.about::backdrop { background: var(--backdrop); }
   border-radius: var(--r); box-shadow: var(--overlay-shadow); }
 p.intro { margin: 0 0 var(--sp-3); }
 
+/* The schedule detail page's Overview key/value list (spec 276) —
+   unstyled since it shipped, which is a bare browser <dl>: dd got its
+   default left indent, and dt/dd ran together with no gap between
+   pairs. A label/value grid instead, spaced the way every other
+   two-column list on this site already is. */
+.kv { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-2) var(--sp-3);
+  margin: 0 0 var(--sp-3); align-items: baseline; }
+.kv dt { color: var(--muted); font-size: var(--fs-s); font-weight: 500; }
+.kv dd { margin: 0; }

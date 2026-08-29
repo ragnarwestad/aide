@@ -40,6 +40,10 @@ const JS_HOOKS = [
   "addprojectform", "removeform",
   // spec 258: the Deploy button on a project's own page.
   "deployform",
+  // spec 276: queue-client.ts selects on all three — the Enabled
+  // checkbox, the Run-now form, and the create/edit form (whose own
+  // `input[name="cron"]` feeds the live cron-next preview).
+  "scheduleenabled", "schedulerun", "scheduleform",
 ];
 
 /** Structure and layout: what a thing IS on the page, not what it looks
@@ -149,6 +153,11 @@ const STRUCTURE = [
   // the description (spec 229). A class of its own for one rule: their
   // buttons sit a step lower than an ordinary form's do.
   "specform",
+  // /schedule (spec 276): the list's own head row (project selector +
+  // New job), the selector itself, the detail page's key/value
+  // overview, the create/edit form's error line, and the Cron field's
+  // input and its live "Next run" preview span.
+  "schedulehead", "scheduleprojects", "kv", "scheduleform-error", "cron-input", "cron-next",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

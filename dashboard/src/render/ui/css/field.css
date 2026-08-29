@@ -68,6 +68,15 @@ select[name^="model."] {
   min-height: 84px; resize: vertical; width: 100%; box-sizing: border-box; }
 .newspecform textarea { overflow-x: auto; }
 .specform .factions { margin-top: var(--sp-1); }
+/* `.field` is inline-flex, so a bare form of them sits cramped edge to
+   edge with no rule of its own to space them apart — the gap every
+   other form's OWN class supplies (`.newspecform`'s `flex`+`gap`).
+   Stacked, not a row, since this form is used both standalone (New job)
+   and inline under a detail page's Edit heading — a row of three wide
+   fields would not fit either place. */
+.scheduleform { display: flex; flex-direction: column; gap: var(--sp-3); align-items: flex-start; }
+.scheduleform .factions { margin-top: var(--sp-1); }
+.cron-input { font-family: var(--mono); }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 .field input[name="title"] { min-width: 18rem; }
 

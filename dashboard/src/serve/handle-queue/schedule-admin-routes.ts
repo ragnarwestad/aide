@@ -56,7 +56,7 @@ export async function handleScheduleAdminRoutes(
     // route (acceptance criterion 8) — a plain `{enabled}` body is
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
-    const result = setScheduleEnabled(ctx.displayProjectDir(project), name, enabled);
+    const result = setScheduleEnabled(ctx.machineryProjectDir(project), name, enabled);
     const back = listPath(project);
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
@@ -86,7 +86,7 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const result = updateScheduleEntry(ctx.displayProjectDir(project), name, {
+    const result = updateScheduleEntry(ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
     });
     const back = listPath(project);
@@ -102,7 +102,7 @@ export async function handleScheduleAdminRoutes(
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
-    const result = createScheduleEntry(ctx.displayProjectDir(project), {
+    const result = createScheduleEntry(ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
     });
     const back = listPath(project);
