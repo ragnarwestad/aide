@@ -83,6 +83,27 @@ describe("an archived spec's row", () => {
     expect(body).not.toContain("2026-08-13");
   });
 
+  // The sort key used to fall through to `g.createdAt`, which an
+  // archived row almost never has (it is no target) — every archived
+  // row tied at 0 and the click did nothing. It now reads the same
+  // summed duration the cell itself shows.
+  test("clicking Time actually reorders the archived rows, by duration", async () => {
+    const html = await specsList(start().base, `${ARCHIVED_VIEW}&sort=started`);
+    // `data-folder` is written more than once per spec (the fold toggle
+    // carries its own copy) — only the spechead row's own is one row.
+    const folders = [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map(
+      (m) => m[1],
+    );
+    const stampedAt = folders.indexOf(STAMPED);
+    const unstampedAt = folders.indexOf(UNSTAMPED);
+    expect(stampedAt).toBeGreaterThanOrEqual(0);
+    expect(unstampedAt).toBeGreaterThanOrEqual(0);
+    // "started"'s default direction is descending (SORT_DEFAULT_DIR):
+    // the spec with a real recorded duration (STAMPED, > 0) sorts before
+    // the one with none (UNSTAMPED, tied at 0).
+    expect(stampedAt).toBeLessThan(unstampedAt);
+  });
+
   test("the column header reads Time, not Started (spec 257)", async () => {
     const html = await specsList(start().base, ARCHIVED_VIEW);
     const start_ = html.indexOf('<th class="" data-col="started"');

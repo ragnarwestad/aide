@@ -136,6 +136,12 @@ export function sortGroups(groups: SpecGroup[], f: QueueFilter): SpecGroup[] {
     sort === "cost" ? g.spentUsd
     : sort === "spec" ? g.specFolder
     : sort === "state" ? g.state
+    // An archived row's Time cell shows its summed duration, not when it
+    // was made (`archiveDateCell`, spec 273) — `createdAt` is usually
+    // unset for an archived row anyway (it is no target), so sorting by
+    // it left every archived row tied at 0, in whatever order they
+    // happened to arrive in.
+    : g.state === ARCHIVED_STATE || g.state === ARCHIVED_OPEN_STATE ? (g.totalDurationMs ?? 0)
     // Spec 199: when the spec was MADE. It used to be the most recent
     // job's own start, so starting a phase moved the row.
     : Date.parse(g.createdAt ?? "") || 0;
