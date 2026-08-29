@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { stringify } from "yaml";
+import { parseManifest, type ScheduleEntry } from "../parse-manifest.ts";
 
 /** A directory name, and nothing that could be read as a path. No
  *  separator, no `..`, no leading dot (a project directory the scan
@@ -123,6 +124,71 @@ export function upsertManifestScalar(file: string, key: string, value: string): 
   }
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, lines.join("\n") + (trailing !== undefined || lines.length ? "\n" : ""));
+}
+
+/** One serialized `schedule:` list entry. `name`, `cron` and `prompt` are
+ *  always double-quoted — a `cron` value commonly starts with `*`, which
+ *  is a YAML alias marker unquoted — and `enabled` is written only when
+ *  `false`, matching `ScheduleEntry.enabled`'s absent-means-true
+ *  contract: an entry that is enabled by default never gains a line
+ *  nobody asked for. */
+function serializeScheduleEntry(entry: ScheduleEntry): string[] {
+  const lines = [
+    `  - name: "${entry.name}"`,
+    `    cron: "${entry.cron}"`,
+    `    prompt: "${entry.prompt}"`,
+  ];
+  if (entry.enabled === false) lines.push(`    enabled: false`);
+  return lines;
+}
+
+/** Set the WHOLE `schedule:` list in a `.aide/project.yaml`, touching
+ *  nothing else in the file (spec 276).
+ *
+ *  Block-span text surgery, exactly like `upsertManifestScalar`'s
+ *  single-line surgery and for the same reason: a manifest carries a
+ *  person's own comments and key order that a parse-mutate-`stringify()`
+ *  round trip does not promise to preserve. The whole `schedule:` key and
+ *  every following line indented under it is found, then replaced with
+ *  freshly-serialized entries; every other line is untouched.
+ *
+ *  Before returning, the new text is re-parsed and compared against the
+ *  intended entries — a mismatch throws rather than writes a corrupt or
+ *  silently-different file, catching a quoting or validation bug before
+ *  it reaches disk. */
+export function writeScheduleList(file: string, entries: readonly ScheduleEntry[]): void {
+  const text = existsSync(file) ? readFileSync(file, "utf-8") : "";
+  const lines = text.split("\n");
+  const trailing = lines.length && lines[lines.length - 1] === "" ? lines.pop() : undefined;
+  const at = lines.findIndex((line) => line.startsWith("schedule:"));
+  const block = entries.length > 0 ? ["schedule:", ...entries.flatMap(serializeScheduleEntry)] : [];
+
+  let next: string[];
+  if (at !== -1) {
+    let end = at + 1;
+    while (end < lines.length && /^\s+\S/.test(lines[end])) end++;
+    next = [...lines.slice(0, at), ...block, ...lines.slice(end)];
+  } else if (block.length > 0) {
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+    next = [...lines, ...block];
+  } else {
+    next = lines;
+  }
+  const output = next.join("\n") + (trailing !== undefined || next.length ? "\n" : "");
+
+  const expected = entries.length > 0
+    ? entries.map((e) => ({ name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled !== false }))
+    : undefined;
+  const reparsed = parseManifest(output);
+  if (!reparsed.ok || JSON.stringify(reparsed.data.schedule) !== JSON.stringify(expected)) {
+    throw new Error(
+      `writing the schedule list to ${file} would produce a manifest that does not reparse to the ` +
+        "intended entries — refusing to write",
+    );
+  }
+
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, output);
 }
 
 /** Keys into the project's own `.aide/config`, in the plain `KEY=value`

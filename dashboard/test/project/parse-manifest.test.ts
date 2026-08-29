@@ -107,12 +107,14 @@ describe("codeLanding (spec 220)", () => {
 // — no .aide/config fallback — and each entry is validated on its own,
 // so one malformed entry never takes a whole project's schedule with it.
 describe("schedule (spec 259)", () => {
-  test("a valid entry parses", () => {
+  test("a valid entry parses, enabled defaulting true", () => {
     const result = parseManifest(
       "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
     );
     if (!result.ok) throw new Error(result.error);
-    expect(result.data.schedule).toEqual([{ name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" }]);
+    expect(result.data.schedule).toEqual([
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
+    ]);
   });
 
   test("several entries all parse", () => {
@@ -123,7 +125,9 @@ describe("schedule (spec 259)", () => {
     );
     if (!result.ok) throw new Error(result.error);
     expect(result.data.schedule).toHaveLength(2);
-    expect(result.data.schedule?.[1]).toEqual({ name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md" });
+    expect(result.data.schedule?.[1]).toEqual({
+      name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true,
+    });
   });
 
   test("a malformed cron drops that entry, not the whole list", () => {
@@ -133,7 +137,9 @@ describe("schedule (spec 259)", () => {
         "  - name: weekly\n    cron: \"0 4 * * 0\"\n    prompt: docs/weekly.md\n",
     );
     if (!result.ok) throw new Error(result.error);
-    expect(result.data.schedule).toEqual([{ name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md" }]);
+    expect(result.data.schedule).toEqual([
+      { name: "weekly", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true },
+    ]);
   });
 
   test("a prompt path that escapes the project root drops that entry (acceptance criterion 8)", () => {
@@ -152,7 +158,7 @@ describe("schedule (spec 259)", () => {
     );
     if (!result.ok) throw new Error(result.error);
     expect(result.data.schedule).toEqual([
-      { name: "nightly", cron: "0 3 * * *", prompt: "docs/../docs/nightly.md" },
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs/../docs/nightly.md", enabled: true },
     ]);
   });
 
@@ -168,5 +174,39 @@ describe("schedule (spec 259)", () => {
       if (!result.ok) throw new Error(result.error);
       expect(result.data.schedule).toBeUndefined();
     }
+  });
+
+  describe("enabled (acceptance criterion 1)", () => {
+    test("absent means enabled", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].enabled).toBe(true);
+    });
+
+    test("enabled: true stays enabled", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n    enabled: true\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].enabled).toBe(true);
+    });
+
+    test("enabled: false is disabled", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n    enabled: false\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].enabled).toBe(false);
+    });
+
+    test("a non-boolean value means enabled — only the literal false disables", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n    enabled: \"no\"\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].enabled).toBe(true);
+    });
   });
 });

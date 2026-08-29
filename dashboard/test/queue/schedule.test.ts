@@ -9,7 +9,9 @@ import {
 } from "../../src/queue/schedule.ts";
 import type { ScheduleEntry } from "../../src/project/parse-manifest.ts";
 
-const ENTRY: ScheduleEntry = { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md" };
+const ENTRY: ScheduleEntry = {
+  name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true,
+};
 
 describe("scheduleTrackingKey", () => {
   test("names the job-store key a schedule entry's runs are filed under", () => {
@@ -91,6 +93,12 @@ describe("isDue (acceptance criteria 1-3)", () => {
   test("an entry whose cron does not parse is never due", () => {
     const bad: ScheduleEntry = { ...ENTRY, cron: "not-a-cron" };
     expect(isDue(bad, new Date(), [])).toBe(false);
+  });
+
+  test("a disabled entry is never due, even at a time the cron would otherwise fire (acceptance criterion 2)", () => {
+    const now = new Date("2026-08-26T05:00:00Z");
+    const disabled: ScheduleEntry = { ...ENTRY, enabled: false };
+    expect(isDue(disabled, now, [])).toBe(false);
   });
 });
 

@@ -12,7 +12,7 @@ import { parse } from "yaml";
  *  name and a directory-shaped string wherever the queue writes it. Not
  *  imported from `queue.ts`: this module is read by things that parse a
  *  manifest with no queue in the picture at all. */
-const SCHEDULE_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
+export const SCHEDULE_NAME_RE = /^[A-Za-z0-9._-]{1,64}$/;
 
 /** One recurring job (spec 259): a cron expression and the prompt file
  *  its run sends verbatim, relative to the project root. */
@@ -20,6 +20,10 @@ export interface ScheduleEntry {
   name: string;
   cron: string;
   prompt: string;
+  /** Absent or anything but the literal boolean `false` means enabled —
+   *  an existing entry with no such field keeps firing exactly as it
+   *  always has. */
+  enabled: boolean;
 }
 
 export interface ManifestData {
@@ -84,7 +88,7 @@ export interface ManifestData {
  *  filesystem, so it works the same for a `prompt:` value that is never
  *  going to exist as for one that does (spec 259, acceptance criterion
  *  8 — the entry is dropped at PARSE time, before anything reads it). */
-function escapesRoot(path: string): boolean {
+export function escapesRoot(path: string): boolean {
   if (path.startsWith("/") || path.startsWith("\\") || /^[A-Za-z]:[\\/]/.test(path)) return true;
   const normalized = normalizePath(path).replace(/\\/g, "/");
   return normalized === ".." || normalized.startsWith("../");
@@ -175,7 +179,7 @@ export function parseManifest(text: string): ManifestResult {
       } catch {
         continue;
       }
-      entries.push({ name, cron, prompt });
+      entries.push({ name, cron, prompt, enabled: e.enabled !== false });
     }
     if (entries.length > 0) data.schedule = entries;
   }

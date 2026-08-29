@@ -42,6 +42,7 @@ import { handleQueueEvents } from "./handle-queue/sse.ts";
 import { handleQueueAdminRoutes } from "./handle-queue/queue-admin.ts";
 import { handleJobActionRoutes } from "./handle-queue/job-actions.ts";
 import { handleSpecEditRoutes } from "./handle-queue/spec-edit.ts";
+import { handleScheduleAdminRoutes } from "./handle-queue/schedule-admin-routes.ts";
 import { handleJobDetailRoute } from "./handle-queue/job-detail.ts";
 
 /** Everything `handleQueue` used to read off `createServer`'s own
@@ -108,6 +109,7 @@ export async function handleQueue(ctx: HandleQueueContext, req: Request, url: UR
     (await handleQueueAdminRoutes(ctx, req, path, wantsJson)) ??
     (await handleJobActionRoutes(ctx, req, path, wantsJson)) ??
     (await handleSpecEditRoutes(ctx, req, url, path, wantsJson)) ??
+    (await handleScheduleAdminRoutes(ctx, req, url, path, wantsJson)) ??
     (await handleJobDetailRoute(ctx, req, url, path)) ??
     new Response("not found", { status: 404 })
   );
