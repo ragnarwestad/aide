@@ -4,9 +4,7 @@ import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  resolveSchedule, specArchivedDate, specDurationMs, specPhaseFile, stampDuration,
-} from "../../src/project/discover.ts";
+import { resolveSchedule, specArchivedDate, specPhaseFile } from "../../src/project/discover.ts";
 import { useDiscoverRoot } from "./discover-fixtures.ts";
 
 const fx = useDiscoverRoot();
@@ -165,96 +163,6 @@ describe("specArchivedDate", () => {
 
   test("no 4-status.md at all answers null", () => {
     expect(specArchivedDate(join(dir, "nothing-here"))).toBeNull();
-  });
-});
-
-// Spec 207: what a spec cost in TIME, written into `4-status.md` when
-// the archive step lands so it survives the queue forgetting the jobs
-// it was worked out from. The queue holds two hundred jobs; the archive
-// holds ninety specs and grows, so a figure that is not written down is
-// a figure most archived rows will never have.
-//
-// A third reader of the same file, on the same terms as
-// `specArchivedDate`: its own function, its own regex, and `null` for
-// every way the line can be missing rather than a guess.
-describe("specDurationMs and stampDuration (spec 207)", () => {
-  let dir: string;
-
-  beforeAll(() => {
-    dir = mkdtempSync(join(tmpdir(), "aide-duration-stamp-"));
-  });
-  afterAll(() => rmSync(dir, { recursive: true, force: true }));
-
-  const withStatus = (name: string, text: string): string => {
-    const d = join(dir, name);
-    mkdirSync(d, { recursive: true });
-    writeFileSync(join(d, "4-status.md"), text);
-    return d;
-  };
-
-  const TRACKING = "# Status\n\n## Tracking info\n\n- **Task:** `207-a-spec/`\n- **Created:** `2026-08-23`\n\n---\n";
-
-  test("reads the stamp the landing wrote", () => {
-    const d = withStatus("stamped", "# Status\n\n## Tracking info\n\n- **Time spent (ms):** `1234567`\n");
-    expect(specDurationMs(d)).toBe(1234567);
-  });
-
-  // Zero is a figure, not an absence: a spec whose phases measured
-  // nothing still measured something, and the sort has to treat it as
-  // present.
-  test("zero is a value, not a missing stamp", () => {
-    const d = withStatus("zero", "# Status\n\n## Tracking info\n\n- **Time spent (ms):** `0`\n");
-    expect(specDurationMs(d)).toBe(0);
-  });
-
-  test("a status file with no stamp answers null, not zero", () => {
-    const d = withStatus("nostamp", TRACKING);
-    expect(specDurationMs(d)).toBeNull();
-  });
-
-  test("a stamp with nothing after it is no stamp", () => {
-    const d = withStatus("blank", "# Status\n\n- **Time spent (ms):**\n");
-    expect(specDurationMs(d)).toBeNull();
-  });
-
-  test("a stamp that is not a number is no stamp", () => {
-    const d = withStatus("words", "# Status\n\n- **Time spent (ms):** `about an hour`\n");
-    expect(specDurationMs(d)).toBeNull();
-  });
-
-  test("a negative figure is no stamp either", () => {
-    const d = withStatus("negative", "# Status\n\n- **Time spent (ms):** `-5`\n");
-    expect(specDurationMs(d)).toBeNull();
-  });
-
-  test("no 4-status.md at all answers null", () => {
-    expect(specDurationMs(join(dir, "nothing-here"))).toBeNull();
-  });
-
-  test("the writer puts the bullet first under Tracking info and leaves the rest alone", () => {
-    const stamped = stampDuration(TRACKING, 1234567);
-    expect(stamped).toContain("- **Time spent (ms):** `1234567`");
-    // First under the heading, so the figure is where a reader of the
-    // file looks for what the run cost.
-    expect(stamped.indexOf("Time spent")).toBeLessThan(stamped.indexOf("**Task:**"));
-    // Nothing else moved.
-    expect(stamped).toContain("- **Task:** `207-a-spec/`");
-    expect(stamped).toContain("- **Created:** `2026-08-23`");
-    expect(stamped.split("\n").length).toBe(TRACKING.split("\n").length + 1);
-  });
-
-  // The write is what the reader reads: two functions over one line,
-  // and a round trip is the only thing that proves they agree.
-  test("what the writer writes is what the reader reads", () => {
-    const d = withStatus("roundtrip", stampDuration(TRACKING, 987));
-    expect(specDurationMs(d)).toBe(987);
-  });
-
-  // Nowhere to put it is not a place to invent: the caller compares the
-  // text it got back and writes nothing when it did not change.
-  test("a file with no Tracking info heading comes back unchanged", () => {
-    const text = "# Status\n\nNothing structured here.\n";
-    expect(stampDuration(text, 42)).toBe(text);
   });
 });
 

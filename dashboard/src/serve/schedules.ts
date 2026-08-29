@@ -74,10 +74,10 @@ export async function refreshDrift(ctx: ScheduleContext): Promise<void> {
 
 /** Everything git can say about ONE spec, asked and cached. Written
  *  once because two callers need it: the schedule below walks every
- *  live spec through it, and `stampTotalDuration` warms the single
- *  archived spec it is about before reading the peeks (spec 208 —
- *  that path is a landing, not a render, and it needs a real answer
- *  rather than "not yet known"). */
+ *  live spec through it, and `landBranch` (`land-branch/merge.ts`)
+ *  warms the spec it just landed unconditionally, on every landing
+ *  (spec 208 — that path is a landing, not a render, and it needs a
+ *  real answer rather than "not yet known"). */
 export async function warmSpec(
   ctx: ScheduleContext,
   t: { dir?: string; specFolder: string; reopenedAfter?: string },

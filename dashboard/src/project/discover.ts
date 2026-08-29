@@ -17,7 +17,6 @@ export {
 
 export {
   SPEC_FILES, specFileText, markdownSection, specDescription, specPhaseFile, specArchivedDate,
-  specDurationMs, stampDuration,
 } from "./discover/spec-files.ts";
 
 export { specDependsOn, stripDependsOnLine, withDependsOnLine } from "./discover/depends-on.ts";

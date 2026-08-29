@@ -131,13 +131,6 @@ export interface ArchivedSpecView {
    *  `date unknown`, which is what a spec git ASKED about and could not
    *  date says. */
   dateChecking?: boolean;
-  /** What the spec cost in TIME: its phases added together, in
-   *  milliseconds, off the `Time spent (ms)` stamp its archive landing
-   *  wrote into `4-status.md` (spec 207). Absent for every spec
-   *  archived before that stamp existed, and the cell is then genuinely
-   *  blank — not `date unknown`, not a dash: a figure nobody recorded is
-   *  different from a value that could not be found. */
-  durationMs?: number;
   /** Which steps the spec's own `4-status.md` CLAIMS it has had (spec
    *  224). It is what the row's phase lines and its pip strip are drawn
    *  from, and it is the file's own unverified word — deliberately, and
@@ -318,10 +311,13 @@ export interface SpecGroup {
    *  take three days, which is why this is a SUM of measured phases and
    *  never `last finished - first started`.
    *
-   *  Not DRAWN on the list since 2026-08-24 — beside "3 h ago" the
-   *  figure read as noise — but still computed: it is the same sum
-   *  `archive` writes into `4-status.md` (spec 207), and the group
-   *  carrying it keeps the two readers on one source. */
+   *  Not DRAWN on a LIVE row since 2026-08-24 — beside "3 h ago" the
+   *  figure read as noise — but still computed. It IS drawn on an
+   *  ARCHIVED row (spec 273): `readerGroup()` sets it from the same
+   *  per-phase reduce `spentUsd` already uses, and `archiveDateCell()`
+   *  reads it — the live-sum replacement for the one-shot
+   *  `Time spent (ms):` stamp `archive` used to write into
+   *  `4-status.md`. */
   totalDurationMs?: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
    *  Folded by label from rows already on the page — the server folds

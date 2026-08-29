@@ -125,9 +125,9 @@ const MODEL_LINE_RE = /^- \*\*Model \(([a-z][a-z-]*)\):\*\*[ \t]*(.*)$/gm;
  *  beside this one. Unknown step names (a retired step such as
  *  `review-plan`) are dropped, matching that function's own rule: "a
  *  typo must not become a phase." An empty value after the colon is
- *  dropped too, the same care `specDurationMs` (discover.ts) takes with
- *  its own stamp. The LAST line for a given step wins, though the
- *  writer never emits more than one. */
+ *  dropped too, the same care `parsePhaseOutcome`'s own cost/time
+ *  regexes take with an empty bullet. The LAST line for a given step
+ *  wins, though the writer never emits more than one. */
 function parseStepModels(content: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const m of content.matchAll(MODEL_LINE_RE)) {

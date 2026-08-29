@@ -124,7 +124,7 @@ describe("an archived spec's row, opened", () => {
     const { base } = start({ queueDefaults: TWO_TOOLS }, {
       [folder]: {
         description: described("A retired model", "Ran on a model nobody configures any more."),
-        status: stamp("2026-08-15", 30_000, ["create", "analyze"], { analyze: staleModel }),
+        status: stamp("2026-08-15", ["create", "analyze"], { analyze: staleModel }),
       },
     });
     const lines = phaseLines(await specsList(base, `${ARCHIVED_VIEW}${opened(folder)}`), folder);
@@ -172,7 +172,7 @@ describe("an archived spec's row, opened", () => {
     const { base } = start({}, {
       [folder]: {
         description: described("A locked unmeasured cost", "One archived spec, one recorded cost."),
-        status: stamp("2026-08-15", 60_000, ["create", "analyze"]),
+        status: stamp("2026-08-15", ["create", "analyze"]),
         analysis: outcome({ cost: `${STAMPED_COST} (unmeasured)` }),
       },
     });
@@ -192,7 +192,7 @@ describe("an archived spec's row, opened", () => {
     const { base } = start({}, {
       [folder]: {
         description: described("A locked tokens-only cost", "One archived spec, one Codex phase."),
-        status: stamp("2026-08-26", 60_000, ["create", "analyze"]),
+        status: stamp("2026-08-26", ["create", "analyze"]),
         analysis: outcome({ tokens: "9562" }),
       },
     });
@@ -215,7 +215,7 @@ describe("an archived spec's row, opened", () => {
       {
         [folder]: {
           description: described("A locked model merge", "One archived spec, two model records."),
-          status: stamp("2026-08-16", 60_000, ["create", "analyze"], { analyze: oldModel }),
+          status: stamp("2026-08-16", ["create", "analyze"], { analyze: oldModel }),
           analysis: outcome({ model: newModel }),
         },
       },

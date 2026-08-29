@@ -5,7 +5,7 @@
 // used to read directly.
 
 import {
-  SPEC_FILES, specArchivedDate, specDurationMs, specFileText, specPhaseFile, stripDependsOnLine,
+  SPEC_FILES, specArchivedDate, specFileText, specPhaseFile, stripDependsOnLine,
   type SpecRef,
 } from "../project/discover.ts";
 import { parseStatus, parseStatusChecks } from "../project/parse-status.ts";
@@ -114,9 +114,9 @@ export function archivedAt(ctx: SpecViewsContext, dir: string): { date: string |
  *  ever, which is not a truer answer than this one, only a slower way
  *  of giving none.
  *
- *  A THIRD reader of the same file beside `archivedAt` and
- *  `specDurationMs`, on the same terms as both: its own question, and
- *  an empty list for every way the answer can be missing. */
+ *  A SECOND reader of the same file beside `archivedAt`, on the same
+ *  terms: its own question, and an empty list for every way the answer
+ *  can be missing. */
 export function archivedSteps(dir: string): string[] {
   const status = specFileText(dir, "4-status.md");
   return status ? parseStatus(status).workflowSteps : [];
@@ -227,11 +227,6 @@ export function archivedSpecRows(ctx: SpecViewsContext, state: string | undefine
       // simply has no link — the mark still says the branch is open,
       // which is the part that matters.
       prUrl: prWaiting ? ctx.queue.pullRequestFor(project, ref.folder).prUrl : undefined,
-      // The stored figure and nothing else (spec 207): the queue's own
-      // records are gone for all but the newest rows here, and a
-      // column that answered for some of them out of memory would be a
-      // column whose blanks move about.
-      durationMs: specDurationMs(ref.dir) ?? undefined,
       // The row opens now (spec 224), and this is what it opens on.
       done: archivedSteps(ref.dir),
       models: archivedModels(ref.dir),
