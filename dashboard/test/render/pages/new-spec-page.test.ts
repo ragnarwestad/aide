@@ -282,10 +282,12 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
         targets: [],
       }),
     );
-    // "Show" is the only chip group left: the project filter went on
-    // 2026-08-23, and the explanation still comes after what remains.
-    expect(bar).toContain("Show");
-    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf("Show"));
+    // The state chips are the only chip group left: the project filter
+    // went on 2026-08-23, and the explanation still comes after what
+    // remains. The group carries no caption of its own (dropped: it
+    // read as one more, confusing chip beside the ones it was labelling).
+    expect(bar).toContain('data-filter="state"');
+    expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf('data-filter="state"'));
   });
 
   test("the copy still says what happens to a job that hits a cap", () => {

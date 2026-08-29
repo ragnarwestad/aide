@@ -105,7 +105,9 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
     : (opts.archived ?? []).filter((k) => !built.has(k)).length;
   const states = chips(
     "state",
-    "Show",
+    // No caption: the chips look enough like the caption itself that
+    // "Show" beside them just read as one more, confusing chip.
+    "",
     STATE_FILTERS.map((s) => ({
       key: s.key,
       label: s.label,
