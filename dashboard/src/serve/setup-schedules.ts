@@ -46,10 +46,14 @@ export interface ScheduleSetupInputs {
   specRoots: (project: string) => string[];
   checkoutEnsurer: CheckoutEnsurer;
   gitRun: GitRunner;
+  notifyQueueChanged: () => void;
 }
 
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
-  const { machineryProjectDir, branchStatus, targets, allowed, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun } = inputs;
+  const {
+    machineryProjectDir, branchStatus, targets, allowed, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
+    notifyQueueChanged,
+  } = inputs;
 
   // How long ONE spec answer stands, and how often it is retaken, are
   // the same number since spec 208 — because nothing but the schedule
@@ -93,6 +97,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     specRoots,
     readRunner: () => state.runner,
     checkoutEnsurer,
+    notifyQueueChanged,
   };
   function refreshDrift() {
     return refreshDriftImpl(scheduleCtx);

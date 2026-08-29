@@ -94,7 +94,10 @@ describe("an archived spec whose branch is still on origin", () => {
     // Spec 224: the same row means the same row OPEN too — the fold and
     // the phase lines under it, not a second shape wearing the mark.
     expect(row).toContain('class="fold');
-    expect(row).toContain(">archived<");
+    // Spec 275: the State cell echoes the mark's own fact for this row
+    // (STAMPED's branch is still on origin) rather than the bare word
+    // every landed archived row shows.
+    expect(row).toContain(">archived, not landed<");
     const open = await listUntil(base, "not landed", `${ARCHIVED_VIEW}${opened(STAMPED)}`);
     expect(Object.keys(phaseLines(open, STAMPED))).toEqual([
       "create",

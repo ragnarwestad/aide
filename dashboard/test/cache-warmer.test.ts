@@ -17,8 +17,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { queueHarness } from "./helpers/queue-server.ts";
-import type { GitCall } from "./helpers/fake-git.ts";
+import { type GitCall } from "./helpers/fake-git.ts";
 import type { GitRunner } from "../src/git/branch-status.ts";
+import { BranchStatusChecker } from "../src/git/branch-status.ts";
+import { refreshSpecCaches, type ScheduleContext } from "../src/serve/schedules.ts";
+import type { QueueStore } from "../src/queue/queue.ts";
+import type { CheckoutEnsurer } from "../src/git/dashboard-checkout.ts";
+import type { WorkflowHistoryChecker } from "../src/git/workflow-history.ts";
+import type {
+  DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
+} from "../src/git/description-freshness.ts";
 
 const harness = queueHarness("aide-cache-warmer-");
 
@@ -307,4 +315,146 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       rmSync(jobs, { recursive: true, force: true });
     }
   }, 10000);
+});
+
+// Spec 275: `refreshSpecCaches` is the only other writer of `openCache`
+// besides a landing's own fresh recheck, and until now it corrected a
+// stale answer without telling anyone — an already-open tab stayed
+// wrong until an unrelated queue event or a reload happened to ask
+// again.
+//
+// These three call `refreshSpecCaches` directly against a hand-built
+// `ScheduleContext`, twice in a row, rather than through the full HTTP
+// harness: `BranchStatusChecker`'s own `openSpecBranches` cache has a
+// FIXED 30-second TTL (`setup-project-resolution.ts` never overrides
+// it, and no `ServerOptions` field reaches it either), entirely
+// independent of `specCachePollMs` — so two ticks fired via the real
+// schedule, milliseconds apart in test time, would have the SECOND one
+// answer straight out of cache without asking git again at all. A
+// `BranchStatusChecker` built here with `ttlMs: 0` has no such window:
+// every call is real, letting two sequential `await refreshSpecCaches`
+// calls stand in for two genuinely distinct ticks. `targets: () => []`
+// (no live spec) and an empty `dirs` map (no archive-date lookup owed)
+// keep every OTHER checker this function can reach unused, so the
+// context below only has to answer what `refreshSpecCaches` actually
+// asks of it for this scenario.
+describe("refreshSpecCaches tells an open tab when its answer changes", () => {
+  /** One archived spec, one root, and a `branchOpen` flag the test
+   *  flips between calls — the fake's only job is to report it. */
+  function singleRootCtx() {
+    const branchOpen = { value: true };
+    const calls: GitCall[] = [];
+    const run: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      if (args[0] === "ls-remote") {
+        return {
+          code: 0,
+          stdout: branchOpen.value ? "sha\trefs/heads/aide/77-old-thing\n" : "",
+        };
+      }
+      return { code: 1, stdout: "" };
+    };
+    let warming = false;
+    let notifyCount = 0;
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: (p) => `/fake/${p}`,
+      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
+      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      targets: () => [],
+      readScan: () => ({ archived: ["aide/77-old-thing"], dirs: new Map() }),
+      allowed: new Set(),
+      ensureCheckout: async () => undefined,
+      getWarming: () => warming,
+      setWarming: (v) => {
+        warming = v;
+      },
+      queue: {} as unknown as QueueStore,
+      specRoots: () => ["/fake/root/aide"],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {
+        notifyCount += 1;
+      },
+    };
+    return { ctx, branchOpen, calls, notifyCount: () => notifyCount };
+  }
+
+  // Criterion 1 (single root).
+  test("a root's ls-remote answer changing between two ticks fires exactly one `changed` event", async () => {
+    const { ctx, branchOpen, notifyCount } = singleRootCtx();
+    // tick 0: discovers the branch open. Its null-to-known transition is
+    // a change too — and not what this test is about.
+    await refreshSpecCaches(ctx);
+    expect(notifyCount()).toBe(1);
+    // tick 1: the branch is gone now.
+    branchOpen.value = false;
+    await refreshSpecCaches(ctx);
+    expect(notifyCount()).toBe(2);
+  });
+
+  // Criterion 3.
+  test("a tick whose answer has not moved stays silent", async () => {
+    const { ctx, notifyCount } = singleRootCtx();
+    await refreshSpecCaches(ctx); // tick 0: discovery
+    expect(notifyCount()).toBe(1);
+    await refreshSpecCaches(ctx); // tick 1: same answer as tick 0
+    // Still 1 — the second tick found nothing new, exactly as spec 189
+    // already promises for every other reason a page might redraw.
+    expect(notifyCount()).toBe(1);
+  });
+
+  // Criterion 1 (multi-root, "exactly once — not once per root").
+  test("several roots flipping in the same tick still fire exactly one `changed` event", async () => {
+    const branchOpen = { value: true };
+    const calls: GitCall[] = [];
+    const run: GitRunner = async (dir, args) => {
+      calls.push({ dir, args });
+      if (args[0] === "ls-remote") {
+        return {
+          code: 0,
+          stdout: branchOpen.value ? "sha\trefs/heads/aide/77-old-thing\n" : "",
+        };
+      }
+      return { code: 1, stdout: "" };
+    };
+    let warming = false;
+    let notifyCount = 0;
+    const ctx: ScheduleContext = {
+      projectRoot: undefined,
+      machineryProjectDir: (p) => `/fake/${p}`,
+      branchStatus: new BranchStatusChecker({ run, ttlMs: 0 }),
+      readWorkflowHistory: () => ({}) as unknown as WorkflowHistoryChecker,
+      readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
+      readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
+      readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      targets: () => [],
+      // Two projects, two roots, both watched by the same tick.
+      readScan: () => ({ archived: ["aide/77-old-thing", "atlasaurus/78-other"], dirs: new Map() }),
+      allowed: new Set(),
+      ensureCheckout: async () => undefined,
+      getWarming: () => warming,
+      setWarming: (v) => {
+        warming = v;
+      },
+      queue: {} as unknown as QueueStore,
+      specRoots: (project) => [`/fake/root/${project}`],
+      readRunner: () => null,
+      checkoutEnsurer: {} as unknown as CheckoutEnsurer,
+      notifyQueueChanged: () => {
+        notifyCount += 1;
+      },
+    };
+    await refreshSpecCaches(ctx); // tick 0: both roots discover the branch open
+    expect(notifyCount).toBe(1);
+    branchOpen.value = false; // both roots flip together
+    await refreshSpecCaches(ctx); // tick 1
+    // One tick, one event, however many roots moved inside it — not
+    // one per root.
+    expect(notifyCount).toBe(2);
+    expect(calls.filter((c) => c.args[0] === "ls-remote")).toHaveLength(4);
+  });
 });

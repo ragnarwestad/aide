@@ -6,7 +6,7 @@ import { CHECKING, badge, stepLabel } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
-import { ARCHIVED_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
+import { ARCHIVED_STATE, ARCHIVED_OPEN_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
 import { archiveDateCell, costCell, notLandedTitle, phasePips, prOpenMark, startedCell, stateCell } from "./cell-helpers.ts";
 import { branchList, foldControl, stateAction } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
@@ -154,11 +154,13 @@ export function specHeadRow(
   // What the State column says for a locked row, drawn directly rather
   // than through `stateCell`/`restingChip`: those two answer "what is
   // happening, and what can happen next", and for this row the answer to
-  // both is that it is over. The two archived states are told apart by
-  // the MARK beside the name, not here — the word in this cell is the
-  // same either way, which is what `ARCHIVED_STATE`'s own note says.
+  // both is that it is over. Spec 275: this cell used to say the same
+  // word either way, leaving the mark beside the name as the ONLY place
+  // the "not landed" fact showed — which read as a flat contradiction
+  // with the plain "archived" a reader saw right here. The cell now
+  // echoes the mark's own fact in words, so the two never disagree.
   const stateBadge = locked
-    ? badge("done", ARCHIVED_STATE)
+    ? badge("done", g.state === ARCHIVED_OPEN_STATE ? `${ARCHIVED_STATE}, not landed` : ARCHIVED_STATE)
     : g.lead
       ? stateCell(g.lead, { archiveHeldBack: heldBack, readyPhase })
       // A spec with no job in the queue's memory reads the same way

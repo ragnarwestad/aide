@@ -9,6 +9,7 @@ export {
   type QueueTarget,
   type ArchivedSpecView,
   ARCHIVED_STATE,
+  ARCHIVED_OPEN_STATE,
   type QueueFilter,
   FILTER_KEYS,
   FILTER_FIELD_PREFIX,

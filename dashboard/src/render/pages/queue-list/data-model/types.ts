@@ -173,9 +173,12 @@ export interface ArchivedSpecView {
  *  still going on" — three answers that fall out of one extra value
  *  rather than out of an exception inside the filter.
  *
- *  The row is the same either way, and so is the word in its State
- *  cell: what tells the two apart on the page is the "not landed" mark,
- *  which is the fact the reader has to act on. */
+ *  The row is the same either way, but the word in its State cell is
+ *  not (spec 275): a State cell that said "archived" for both, beside a
+ *  red "not landed" mark for one of them, read as a flat contradiction
+ *  on the same row — even when the mark was accurate. The cell now
+ *  echoes the mark's own fact in words for `ARCHIVED_OPEN_STATE`
+ *  (`head-row.ts`'s `stateBadge`), so the two never disagree. */
 export const ARCHIVED_STATE = "archived";
 export const ARCHIVED_OPEN_STATE = "archived-unlanded";
 
