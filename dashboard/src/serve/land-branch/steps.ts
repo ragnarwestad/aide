@@ -4,7 +4,6 @@
 import { mergeBranchRefs, type Job, type WorkflowStep } from "../../queue/queue.ts";
 import type { StepOutcome } from "../../queue/runner.ts";
 import { landBranch } from "./merge.ts";
-import { stampTotalDuration } from "./duration.ts";
 import type { LandContext } from "./types.ts";
 
 /** Put a newly created spec where the page can see it (spec 93).
@@ -122,10 +121,5 @@ export async function landArchivedSpec(ctx: LandContext, job: Job, outcome: Part
     // spec already held back for the same reason writes no commit, and
     // an error there would report a problem that is not one.
     failedNote: (why) => `the spec was archived, but landing it failed: ${why}`,
-    // The one landing that records anything (spec 207). It runs only
-    // once the branch is genuinely on the default branch: a spec
-    // whose archive did not land is not archived, and a figure
-    // written for it would outlive the row that says so.
-    onLanded: () => stampTotalDuration(ctx, job),
   });
 }

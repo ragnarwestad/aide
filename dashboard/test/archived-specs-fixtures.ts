@@ -50,11 +50,7 @@ export const UNDATED = "31-a-folder-copied-in";
  *  the two projects have to interleave for it to come out on top. */
 export const OTHER = "05-the-other-project";
 
-/** Spec 207 added a second machine-written bullet to the same section.
- *  `ms` absent is a spec archived before that existed, which is the
- *  blank-cell case 1-description.md names by hand.
- *
- *  `steps` is spec 224's addition: an archived row's phase lines say
+/** `steps` is spec 224's addition: an archived row's phase lines say
  *  what this line claims, and nothing else — the git-verified answer a
  *  live row shows is never warmed for an archived spec
  *  (`refreshSpecCaches`), so the file's own claim is the only source
@@ -65,24 +61,20 @@ export const OTHER = "05-the-other-project";
  *  `- **Model (<step>):**` line per completed step since spec 217, and
  *  this is where a fixture can say a step recorded one. Absent from the
  *  map writes no line for that step, exactly as `steps` absent writes
- *  none for `done`. */
-export const stamp = (date: string, ms?: number, steps?: string[], models?: Record<string, string>) =>
+ *  none for `done`.
+ *
+ *  Spec 273 dropped the `ms` parameter this used to take: the archive
+ *  no longer writes a `Time spent (ms):` bullet at all, so a fixture
+ *  wanting a duration on the row gives `analysis: outcome({ timeSpent:
+ *  ... })` instead — the per-phase file `readerGroup()` actually sums. */
+export const stamp = (date: string, steps?: string[], models?: Record<string, string>) =>
   `# Status\n\n## Tracking info\n\n` +
   (steps === undefined ? "" : `- **Workflow steps completed:** ${steps.join(", ")}\n`) +
   Object.entries(models ?? {})
     .map(([step, value]) => `- **Model (${step}):** ${value}\n`)
     .join("") +
-  (ms === undefined ? "" : `- **Time spent (ms):** \`${ms}\`\n`) +
   `- **Archived:** \`${date}\`\n`;
 
-/** What the stamped fixture cost, in milliseconds. Named so the tests
- *  assert on the figure the fixture wrote rather than on a literal that
- *  could drift away from it. */
-export const STAMPED_MS = 4_530_000;
-/** A spec whose phases measured nothing. Falsy, present, and the whole
- *  reason the sort's null-sink cannot be a truthy check. */
-export const ZERO_MS = 0;
-export const OTHER_MS = 90_000;
 /** What STAMPED's own `4-status.md` claims it has had, and therefore
  *  what its phase lines have to say. The two it does NOT name are the
  *  other half of the same assertion. */
@@ -139,7 +131,7 @@ export const ARCHIVED = {
     // row that says "this happened" and "this did not" at the same time.
     // One `Model (<step>):` line, on the same terms: analyze has one, the
     // other three do not, so the locked-model tests have a line each way.
-    status: stamp("2026-08-13", STAMPED_MS, STAMPED_STEPS, { analyze: STAMPED_MODEL }),
+    status: stamp("2026-08-13", STAMPED_STEPS, { analyze: STAMPED_MODEL }),
     // Spec 247: analyze's own phase-outcome record — Time spent and Cost,
     // deliberately no `Model` line here so the OLD-format one above stays
     // the only source for the locked-model tests below (criterion 6 stays
@@ -154,13 +146,13 @@ export const ARCHIVED = {
   },
   [SAME_DAY]: {
     description: described("The queue remembers", "Jobs survive a restart."),
-    status: stamp("2026-08-13", ZERO_MS),
+    status: stamp("2026-08-13"),
   },
   // No `## Description` section at all: the dash case.
   [UNDATED]: { description: "# A folder copied in - Description\n", status: noStamp },
   [OTHER]: {
     description: described("The other project", "Proof that projects interleave."),
-    status: stamp("2026-08-20", OTHER_MS),
+    status: stamp("2026-08-20"),
     project: "skjer",
   },
 };

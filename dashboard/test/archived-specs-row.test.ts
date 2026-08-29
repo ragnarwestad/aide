@@ -2,8 +2,8 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import {
-  ARCHIVED_VIEW, LONG_TAIL, STAMPED, STAMPED_COST_LABEL, TWO_TOOLS, UNDATED, UNSTAMPED,
-  blockFor, described, harness, opened, outcome, rowFor, specsList, stamp, start,
+  ARCHIVED_VIEW, LONG_TAIL, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED, UNSTAMPED,
+  blockFor, described, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -76,10 +76,10 @@ describe("an archived spec's row", () => {
     const cell = row.slice(row.indexOf('data-col="started"'));
     const body = cell.slice(0, cell.indexOf("</td>"));
     expect(body).toContain("2026-08-13");
-    expect(body).toContain("1h15m");
+    expect(body).toContain(STAMPED_TIME_SPENT);
     // The duration is the figure worth leading with (spec 257) — the
     // archive date is secondary, muted context beside it.
-    expect(body.indexOf("1h15m")).toBeLessThan(body.indexOf("2026-08-13"));
+    expect(body.indexOf(STAMPED_TIME_SPENT)).toBeLessThan(body.indexOf("2026-08-13"));
   });
 
   test("the column header reads Time, not Started (spec 257)", async () => {
@@ -104,7 +104,43 @@ describe("an archived spec's row", () => {
   });
 
   test("carries what the spec cost in time, when its archive recorded one", async () => {
-    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain("1h15m");
+    expect(rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED)).toContain(STAMPED_TIME_SPENT);
+  });
+
+  // Acceptance criterion 4: nothing recorded across every phase is the
+  // same "nothing to show" `costCell()` already gives an all-zero
+  // `spentUsd` — a bare date, no duration span.
+  test("shows no duration span when no phase recorded a time", async () => {
+    const folder = "271-no-phase-recorded-a-time";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("No phase recorded a time", "Nothing to sum here."),
+        status: noStamp,
+      },
+    });
+    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
+    const cell = row.slice(row.indexOf('data-col="started"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).not.toContain("archive-duration");
+  });
+
+  // Acceptance criterion 2: the exact bug 1-description.md names — the
+  // one-shot `4-status.md` stamp never got written (the queue's LRU cap
+  // evicted the job before archive landed) — but the phase's own file
+  // still carries its `Time spent:` line, and the sum reads off that.
+  test("carries the summed duration even with no 4-status.md stamp at all", async () => {
+    const folder = "272-no-stamp-but-phase-outcomes";
+    const { base } = start({}, {
+      [folder]: {
+        description: described("No stamp but phase outcomes", "The stamp never got written."),
+        status: noStamp,
+        analysis: outcome({ timeSpent: STAMPED_TIME_SPENT }),
+      },
+    });
+    const row = rowFor(await specsList(base, ARCHIVED_VIEW), folder);
+    const cell = row.slice(row.indexOf('data-col="started"'));
+    const body = cell.slice(0, cell.indexOf("</td>"));
+    expect(body).toContain(STAMPED_TIME_SPENT);
   });
 
   // Spec 257: the head row's own Cost cell hardcoded `spentUsd: 0` even
@@ -126,7 +162,7 @@ describe("an archived spec's row", () => {
     const { base } = start({}, {
       [folder]: {
         description: described("A Codex-only archive", "One archived spec, no dollar figure at all."),
-        status: stamp("2026-08-26", 60_000, ["create", "analyze"]),
+        status: stamp("2026-08-26", ["create", "analyze"]),
         analysis: outcome({ tokens: "9562" }),
       },
     });

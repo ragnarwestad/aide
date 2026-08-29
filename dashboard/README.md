@@ -72,22 +72,16 @@ two — no host is named anywhere in this repo.
       stamp in `4-status.md`, or, for the older half of the archive that predates the stamp, the commit that last
       touched the folder; a spec neither can date reads "date unknown" rather than leaving the column blank, and one
       with no `## Description` section reads as a dash.
-    - **What the archived row says a spec COST** is its phases added together (spec 207) — the same figure the list
-      shows for a spec still in flight. It is READ off a `- **Time spent (ms):** \`<n>\``
-    bullet in `4-status.md` and never worked out here: the figure comes
-    from the queue's job records, the queue keeps 200 jobs, and the
-    archive holds 150 and grows — so a figure not written down is one
-    almost every archived row would be missing. What writes it is
-    `stampTotalDuration` in `serve.ts`, on the `Landing.onLanded` hook,
-    the moment an `archive` step's branch has actually MERGED; it calls
-    `computeSpecTotalDurationMs` — the spec list's OWN summing function,
-    exported from `render/queue-list.ts` for this — with a `done` set
-    from the same `withFreshness` the list uses, so the stored figure
-    and the one the list showed cannot drift apart. It writes once (a
-    second archive finds the bullet and leaves it), writes through
-    `saveSpecFile` under the same `mergeLock` the merge just used, writes in the dashboard's OWN checkout (spec 205),
-      and never fails anything: a refused write is logged and leaves that row's cell blank, exactly as for a spec
-      archived before this existed. A blank cell is the honest answer there — not "date unknown", not a dash.
+    - **What the archived row says a spec COST, in time,** is now read the same way Cost already is (spec 273): a
+      live `reduce` in `readerGroup()` (`data-model/group-builders.ts`) over each phase's own `timeSpentMs`, off the
+      per-phase Tracking info files `spec-files.ts`'s siblings already parse — never a figure worked out once, at
+      archive-landing time, off the queue's own job records. The queue keeps 200 jobs and the archive holds 150 and
+      grows, which is what made the OLD one-shot stamp (`stampTotalDuration`, spec 207) fragile: a job the queue had
+      already forgotten by the time `archive` landed left the bullet unwritten, permanently, for that spec. The live
+      reduce has no such window — it reads whatever each phase's own file still says, whenever the row renders — so
+      it is reliable for every archived spec with per-phase Tracking info, exactly as Cost already is. A total of
+      `0` across every phase draws a bare date with no duration span, the same "nothing recorded" rule `costCell()`
+      already gives an all-zero `spentUsd`.
     - **Building those rows is gated on the chip** (`filterShowsArchived`, exported from `render/queue-list.ts` so the
       gate and the chips cannot disagree). A row costs two small file reads, aide alone archives about 150 specs, and
       this page rebuilds itself on every change event on every open tab — so a view whose chip cannot show an archived

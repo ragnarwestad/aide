@@ -185,6 +185,10 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     spentTokens: Object.values(s.phaseOutcomes).some((o) => o.tokens !== undefined)
       ? Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.tokens ?? 0), 0)
       : undefined,
+    // Spec 273: the same reduce as spentUsd above, over time instead of
+    // money — reliable for every archived spec with per-phase Tracking
+    // info, unlike the one-shot queue-history stamp this replaces.
+    totalDurationMs: Object.values(s.phaseOutcomes).reduce((sum, o) => sum + (o.timeSpentMs ?? 0), 0),
     branches: [],
     // Spec 247: `outcome?.model` — spec 245's new, one-record-per-file
     // format — wins over `s.models[step]` — spec 244's old,

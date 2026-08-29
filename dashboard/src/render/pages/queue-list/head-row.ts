@@ -233,7 +233,7 @@ export function specHeadRow(
     // deliberately not a job's time, which is the movement this change
     // removes.
     (locked
-      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!)}</td>`
+      ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!, g.totalDurationMs ?? 0)}</td>`
       : `<td data-col="started">${startedCell(g, now)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     `</tr>`

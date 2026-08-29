@@ -176,14 +176,13 @@ export function phasePips(phases: Phase[], done: string[]): string {
  *  one git was asked about and could not date. Two different answers,
  *  and a cell saying the wrong one is a cell that lies about whether
  *  there is anything still to find out. */
-export function archiveDateCell(s: ArchivedSpecView): string {
+export function archiveDateCell(s: ArchivedSpecView, durationMs: number): string {
   const date = esc(s.archivedAt ?? (s.dateChecking ? CHECKING : NO_DATE));
-  // A spec archived before spec 207 recorded no duration at all, which
-  // is the one case that draws the date alone — not the dash the
-  // description uses or the words a missing date uses elsewhere.
-  if (s.durationMs === undefined) return date;
+  // Nothing recorded across every phase draws the date alone — the same
+  // "nothing to show" rule costCell() already gives an all-zero spentUsd.
+  if (durationMs <= 0) return date;
   return (
-    `<span class="archive-duration">${esc(durationLabel(s.durationMs))}</span>` +
+    `<span class="archive-duration">${esc(durationLabel(durationMs))}</span>` +
     ` <span class="muted small">${date}</span>`
   );
 }
