@@ -53,9 +53,12 @@ describe("the job list sorts and filters", () => {
   const page = (
     rows: QueueRowView[],
     filter?: QueuePageOptions["filter"],
-    // Spec 199: "Started" is the spec's own creation date, and a
-    // creation date comes off the TARGET (git), never off a job — so a
-    // test about that column has to be able to give one.
+    // Spec 199: a creation date comes off the TARGET (git), never off a
+    // job. Spec 281 stopped drawing it in the Time column at all — that
+    // column shows the spec's summed duration now — but `createdAt`
+    // still decides the folder-order tie-break between two specs
+    // neither git nor a job can date (below), so tests about that still
+    // need a target to give one on.
     targets: QueueTarget[] = [],
   ) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
@@ -122,56 +125,62 @@ describe("the job list sorts and filters", () => {
     );
   });
 
-  // Spec 199: it used to put the most recent ACTIVITY first, so a spec
-  // made months ago and re-run an hour ago outranked one made this
-  // morning. The column and the sort hold when the spec was MADE now,
-  // and a run does not move it.
-  test("sorting by started puts the most recently CREATED spec first", () => {
+  // Spec 199 put the sort on when the spec was MADE, so a spec re-run an
+  // hour ago no longer outranked one made this morning. Spec 281 moves
+  // it again, onto the same summed duration the column itself now draws
+  // — a column that DRAWS one figure has to SORT by it, the same rule
+  // spec 273 already applied to the archived half of this sort.
+  test("sorting by started puts the spec with the larger summed duration first (spec 281)", () => {
     const html = page(
-      // The older spec has the NEWER run, which is what used to decide
-      // this order and no longer does.
-      [row("old", { startedAt: "2026-08-16T11:00:00Z" }), row("new", { startedAt: "2026-08-16T09:00:00Z" })],
-      { sort: "started" },
       [
-        target("old-spec", { createdAt: "2026-08-10T09:00:00Z" }),
-        target("new-spec", { createdAt: "2026-08-14T09:00:00Z" }),
+        row("small", {
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:05:00Z" }],
+        }),
+        row("big", {
+          startedAt: "2026-08-16T09:00:00Z",
+          results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" }],
+        }),
       ],
+      { sort: "started" },
     );
-    expect(specOrder(html)).toEqual(["new-spec", "old-spec"]);
+    expect(specOrder(html)).toEqual(["big-spec", "small-spec"]);
   });
 
   // The literal requirement: a phase being started, finished or run
-  // again must not move the row. The older spec has the newer run.
-  test("a run on an older spec does not move it up the started sort (criterion 1)", () => {
-    const targets = [
-      target("old-spec", { createdAt: "2026-08-10T09:00:00Z" }),
-      target("new-spec", { createdAt: "2026-08-14T09:00:00Z" }),
-    ];
-    const before = page([row("old"), row("new")], { sort: "started" }, targets);
+  // again must not move a row whose OWN settled total has not changed.
+  // The older spec (by creation) has the newer run and the smaller
+  // total; it must still sort behind the spec with the larger total.
+  test("a run in flight on the smaller-total spec does not move it up the started sort (criterion 1)", () => {
+    const settled = (id: string, extra: Partial<QueueRowView> = {}): QueueRowView =>
+      row(id, {
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T09:20:00Z" }],
+        ...extra,
+      });
+    const before = page([row("small"), settled("big")], { sort: "started" });
     const after = page(
       [
-        row("old", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
-        row("new", { startedAt: "2026-08-11T09:00:00Z" }),
+        row("small", { state: "running", startedAt: "2026-08-16T11:00:00Z" }),
+        settled("big"),
       ],
       { sort: "started" },
-      targets,
     );
     expect(specOrder(after)).toEqual(specOrder(before));
-    expect(specOrder(after)).toEqual(["new-spec", "old-spec"]);
+    expect(specOrder(after)).toEqual(["big-spec", "small-spec"]);
   });
 
-  // The 200-job cap is what makes git the only possible source: a spec
-  // older than two hundred jobs has no `Job` record left to read a date
-  // off. `createdAt` comes off the target and touches no job at all, so
-  // a target with NO rows is, for this code, exactly a spec whose job
-  // was evicted (criterion 2).
-  test("a spec with no job rows at all still shows its Started date (criterion 2)", () => {
+  // A spec with no settled phase — no job at all, or nothing has
+  // finished yet — has nothing to sum, and the column says so with the
+  // same dash `costCell` already uses for zero spend (criterion 2). This
+  // used to be "the column falls back to the target's own creation
+  // date"; spec 281 removed that fallback along with the date itself.
+  test("a spec with no job rows at all shows a dash, not a date (criterion 2)", () => {
     const html = page([], { sort: "started" }, [
       target("77-evicted", { createdAt: "2026-03-01T09:00:00Z" }),
     ]);
     expect(html).toContain("77-evicted");
-    expect(html).toContain('title="2026-03-01T09:00:00Z"');
-    expect(startedCell(html, "77-evicted")).not.toContain("–");
+    expect(startedCell(html, "77-evicted")).toContain("–");
   });
 
   // Neither spec can be dated and neither has ever run: the same

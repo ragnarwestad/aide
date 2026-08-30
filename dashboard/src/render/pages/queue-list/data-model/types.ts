@@ -308,19 +308,21 @@ export interface SpecGroup {
    *  job whose folder is not on disk yet. */
   createdAt?: string;
   /** How long the spec's phases took, added together — the work, not
-   *  the calendar (spec 199). Absent while anything is still left to
-   *  run, and absent for a spec no phase of which has a measurable
-   *  span. A spec that waited three days between two phases did not
-   *  take three days, which is why this is a SUM of measured phases and
-   *  never `last finished - first started`.
+   *  the calendar (spec 199). A spec that waited three days between two
+   *  phases did not take three days, which is why this is a SUM of
+   *  measured phases and never `last finished - first started`. Absent
+   *  for a spec no phase of which has a measurable span yet.
    *
-   *  Not DRAWN on a LIVE row since 2026-08-24 — beside "3 h ago" the
-   *  figure read as noise — but still computed. It IS drawn on an
-   *  ARCHIVED row (spec 273): `readerGroup()` sets it from the same
-   *  per-phase reduce `spentUsd` already uses, and `archiveDateCell()`
-   *  reads it — the live-sum replacement for the one-shot
-   *  `Time spent (ms):` stamp `archive` used to write into
-   *  `4-status.md`. */
+   *  Drawn on EVERY row since spec 281, live or archived — a live row
+   *  no longer waits for the whole workflow to finish, nor blanks
+   *  itself while a phase is in flight (that phase's own still-ticking
+   *  elapsed time is excluded, not the row's whole total). Two
+   *  pipelines feed it: `computeSpecTotalDurationMs()` reads queue job
+   *  records for a live row, `readerGroup()` reduces each phase file's
+   *  own `Time spent:` line for an archived one (spec 273) — fed by
+   *  the same underlying runs but not structurally pinned to agree
+   *  (2-analysis.md, spec 281's "REQ-2" finding). `activeDurationCell()`
+   *  and `archiveDateCell()` are the two readers. */
   totalDurationMs?: number;
   /** Every repo this SPEC has a branch in, however many jobs made them.
    *  Folded by label from rows already on the page — the server folds

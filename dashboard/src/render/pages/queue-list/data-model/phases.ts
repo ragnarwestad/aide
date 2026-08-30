@@ -4,7 +4,7 @@
 // in time — should read without counting rows.
 
 import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
-import { PHASE_LINES, QUEUE_STEPS, type Phase, type QueueTarget } from "./types.ts";
+import { PHASE_LINES, type Phase, type QueueTarget } from "./types.ts";
 
 /** Every step this job has anything to say about: the ones it finished,
  *  plus the one it is on. */
@@ -92,25 +92,23 @@ export function phaseDuration(r: QueueRowView, step: string, now: number): Phase
   return Number.isNaN(ms) ? null : { ms, live: true, since: start };
 }
 
-/** The spec's own total: its phases' durations added together, and only
- *  once nothing is left to run (spec 199).
+/** The spec's own total: its phases' durations added together (spec
+ *  199, spec 281).
  *
  *  A sum, never a span. A spec that sat three days between analyze and
  *  implement did not take three days — the calendar is not the work,
  *  which is the whole reason this is built out of the phase lines
  *  rather than out of the first and last timestamps.
  *
- *  "Nothing left to run" is every runnable phase being done and no job
- *  in flight. It is NOT `nextPhase`, which always names archive for a
- *  spec still on this page — the list is where an unarchived spec
- *  lives, so that question is always answered "archive" here. */
-function totalDuration(
-  phases: Phase[],
-  done: readonly string[],
-  all: QueueRowView[],
-): number | undefined {
-  if (!QUEUE_STEPS.every((s) => done.includes(s))) return undefined;
-  if (all.some(inFlight)) return undefined;
+ *  Every SETTLED phase span counts, whether or not the whole workflow
+ *  is behind it and whether or not something else is running right now
+ *  (spec 281 dropped both guards spec 199 put here): a spec stopped by
+ *  an error, or still missing a phase, has genuinely spent the time its
+ *  finished phases show, and `spentUsd` already sums unconditionally
+ *  for the same reason (`group-builders.ts`). A phase currently in
+ *  flight is excluded by `d.live` below, not by a guard up here — its
+ *  own elapsed time is still ticking and not yet a settled span to sum. */
+function totalDuration(phases: Phase[]): number | undefined {
   let total = 0;
   let measured = false;
   for (const p of phases) {
@@ -118,10 +116,10 @@ function totalDuration(
     // three times contributes once, and an earlier failed retry's time
     // is not summed in beside it.
     const latest = p.attempts[0];
-    // `now` is never read: the in-flight guard above means no phase
-    // here can come back live, and a settled span is measured between
-    // two recorded instants. Zero rather than a clock, so this function
-    // gives the same answer whenever it is asked.
+    // `now` is never read: a live attempt is skipped below whatever it
+    // is given, and a settled span is measured between two recorded
+    // instants. Zero rather than a clock, so this function gives the
+    // same answer whenever it is asked.
     const d = latest ? phaseDuration(latest, p.step, 0) : null;
     if (!d || d.live) continue;
     total += d.ms;
@@ -130,8 +128,8 @@ function totalDuration(
   return measured ? total : undefined;
 }
 
-/** The spec's own total, for a caller that has the jobs and the
- *  done-set but not a rendered group (spec 207).
+/** The spec's own total, for a caller that has the jobs but not a
+ *  rendered group (spec 207).
  *
  *  Lifted out of `jobGroup` so the archive-time write into
  *  `4-status.md` and the figure this page draws are ONE function. The
@@ -141,21 +139,11 @@ function totalDuration(
  *  what the list showed" is that shape by default. It is not one here
  *  because there is only one implementation of it.
  *
- *  `done` is a PARAMETER, never worked out from `rows`. The list's own
- *  comes from `withFreshness`, which takes `analyze` back OUT of the
- *  set when the description was committed after the last analyze ran —
- *  even though a job did complete it. A second derivation from the job
- *  results would disagree in exactly that case, and store a figure the
- *  list itself would not have shown.
- *
  *  The phase lines are rebuilt here rather than passed in for the same
  *  reason: a caller that had to assemble them first would be a second
  *  place that knows which lines a spec's total is a sum over. */
-export function computeSpecTotalDurationMs(
-  rows: QueueRowView[],
-  done: readonly string[],
-): number | undefined {
-  return totalDuration(specPhases(rows), done, rows);
+export function computeSpecTotalDurationMs(rows: QueueRowView[]): number | undefined {
+  return totalDuration(specPhases(rows));
 }
 
 /** The phase lines a spec's row and a spec's total are both built over:
