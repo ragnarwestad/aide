@@ -56,6 +56,14 @@ Examples:
 - If `1-description.md` has a `## Requirements` section, extract its
   `REQ-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
 
+**This skill never modifies anything outside the spec's own four
+documents** — not application source, not test files, nothing in the
+project repo, by any tool (Edit, Write, Bash included). If Step 6's own
+"Recommended solution" reads as obviously correct and ready to apply,
+stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
+something this skill does on its behalf because it happens to be
+possible in the same session (spec 288).
+
 ### Step 2: Detect complexity
 
 Classify as LOW/MEDIUM/HIGH: Operation, Keywords and API impact decide the

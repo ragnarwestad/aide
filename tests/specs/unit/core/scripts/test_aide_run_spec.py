@@ -4484,7 +4484,7 @@ def test_a_copied_status_line_is_no_longer_corrected_by_the_step_that_runs(
     never erasing a step that really ran.
     """
     with_status(workspace, ["create", "analyze", "implement"])
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
@@ -4607,7 +4607,7 @@ def test_a_commit_for_another_spec_is_not_this_spec_history(runner, workspace, f
              "-m", subject(step, "99-somebody-else")],
             check=True,
         )
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert recorded_line(workspace) == "analyze"
@@ -4619,7 +4619,7 @@ def test_the_line_is_written_into_the_steps_own_commit(runner, workspace, fake_c
     "in the same commit" true."""
     with_status(workspace)
     before = git(workspace["specs"], "rev-parse", "main")
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     branch = "aide/81-queue-and-runner"
@@ -4724,7 +4724,7 @@ def test_a_run_no_longer_writes_the_old_per_step_model_line(runner, workspace, f
     run writes this phase's own record into its own file (spec 245's
     tests above), never a `Model (<step>):` line into 4-status.md."""
     with_status(workspace)
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, model="claude-sonnet-5")
     assert rc == 0, out
     assert recorded_model(workspace, "analyze") is None
@@ -4736,7 +4736,7 @@ def test_a_historical_model_line_survives_untouched(runner, workspace, fake_clau
     — left exactly as they are, not migrated, when a later step's own
     write touches the rest of the file."""
     with_status(workspace, ["create"], models={"create": "claude claude-opus-5"})
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude)
     assert rc == 0, out
     assert recorded_model(workspace, "create") == "claude claude-opus-5"
@@ -5405,7 +5405,7 @@ def test_the_reopen_boundary_takes_the_earlier_rounds_steps_off_the_line(
     already_ran(workspace, ["create", "analyze", "implement", "archive"])
     boundary = git(workspace["specs"], "rev-parse", "HEAD")
     with_status(workspace, reopened=boundary)
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "analyze"
@@ -5422,7 +5422,7 @@ def test_a_step_run_after_the_reopen_boundary_still_counts(
     boundary = git(workspace["specs"], "rev-parse", "HEAD")
     with_status(workspace, reopened=boundary)
     already_ran(workspace, ["create"])
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze"
@@ -5436,7 +5436,7 @@ def test_the_reset_boundary_excludes_the_earlier_round(runner, workspace, fake_c
     status.write_text(status.read_text().replace(reopen_line(boundary), reset_line(boundary)))
     git(workspace["specs"], "add", str(status))
     git(workspace["specs"], "commit", "-qm", "use reset boundary")
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "analyze"
@@ -5449,7 +5449,7 @@ def test_a_spec_that_has_never_been_reopened_counts_everything(
     mark — the overwhelming majority — takes the path it took before."""
     already_ran(workspace, ["create", "implement"])
     with_status(workspace)
-    claude = writing_claude(fake_claude, workspace)
+    claude = specs_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="analyze")
     assert rc == 0, out
     assert recorded_line(workspace) == "create, analyze, implement"
@@ -5915,7 +5915,7 @@ def test_archive_no_progress_guard_never_fires_for_other_steps(
         rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
     elif step == "analyze":
         with_status(workspace)
-        claude = writing_claude(fake_claude, workspace)
+        claude = specs_only_claude(fake_claude, workspace)
         rc, out, _ = run(runner, workspace, claude, command="analyze")
     else:
         status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
@@ -5924,5 +5924,156 @@ def test_archive_no_progress_guard_never_fires_for_other_steps(
     assert rc == 0, out
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out
+
+
+# --- spec 288: a "completed" analyze claim is cross-checked ------------------
+#
+# Spec 284's own incident: an `/aide-analyze` session did `implement`'s
+# GREEN-phase code edits itself, left them uncommitted in the shared
+# worktree, and then wrote `4-status.md` as an honest account of work it
+# had, itself, gone ahead and done. `analyze` is scoped to `2-analysis.md`
+# and `3-solution.md` only (core/rules/spec-structure.md) — it must never
+# change the project repo, advance a Phase-table row past "not started",
+# or claim a step beyond itself on the `Workflow steps completed` line.
+# All three are checked against what the run actually produced, the same
+# way spec 268/280 check implement/archive.
+
+
+def analyze_claude_advancing_row(fake_claude, workspace, mark):
+    """A stand-in analyze step that rewrites 4-status.md's own Phase 1
+    row to a mark other than not-started — implement's and archive's job,
+    never analyze's own (REQ-1, REQ-2)."""
+    folder = workspace["folder"]
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** create\n"
+        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        f"| a | {mark} | |\n"
+    )
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def analyze_claude_naming_implement(fake_claude, workspace):
+    """A stand-in analyze step that writes `implement` onto the Workflow
+    steps line itself, with no project change and no row advanced — the
+    shape spec 284's own `1b3748a` produced (REQ-2)."""
+    folder = workspace["folder"]
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** create, analyze, implement\n"
+        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| Task | Status | Notes |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n"
+    )
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_an_analyze_claim_that_changed_the_project_repo_is_downgraded(
+    runner, workspace, fake_claude
+):
+    """AC1/REQ-1: spec 284's own incident — the CLI reports success, but
+    the child left a real change in the project repo, which analyze must
+    never do."""
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = project_only_claude(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+    assert recorded_line(workspace) == "create"
+
+
+@pytest.mark.parametrize("mark", ["✅", "🔄", "❌", "⚠️"])
+def test_an_analyze_claim_that_advances_a_phase_row_is_downgraded(
+    runner, workspace, fake_claude, mark
+):
+    """AC2/REQ-1, REQ-2: a Phase-table row moved off "not started" during
+    an analyze run — that is implement's and archive's job — parametrized
+    over every non-not-started mark a row could end up carrying."""
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = analyze_claude_advancing_row(fake_claude, workspace, mark)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+
+
+def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
+    runner, workspace, fake_claude
+):
+    """AC3/REQ-2: the project did not change and no row advanced, but the
+    raw `Workflow steps completed` line itself names a step beyond
+    analyze that the pre-session line did not already carry."""
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = analyze_claude_naming_implement(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "scope-violation", out
+
+
+def test_completed_steps_for_ignores_a_step_the_current_sessions_own_edit_added(
+    runner, workspace, fake_claude
+):
+    """AC4/REQ-3: the actual trust hole — a step's own session writes a
+    LATER step's name onto the Workflow-steps-completed line, unsupported
+    by the commit history or by what the line said before this session
+    ran. The timing fix (`existing_line` read from BEFORE this session,
+    not after) means that unsupported name is dropped rather than granted
+    permanent credit for a step that never actually happened."""
+    status_with_phase(workspace, "create, analyze", ["| a | ✅ | |", "| b | ⬜ | |"])
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + 'echo "written by the step" > "$PWD/new-code.txt"\n'
+        + f'sed "s/create, analyze/create, analyze, implement, archive/" '
+        + f'"$specs/{folder}/4-status.md" > "$specs/{folder}/4-status.md.new"\n'
+        + f'mv "$specs/{folder}/4-status.md.new" "$specs/{folder}/4-status.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="implement")
+    assert rc == 0, out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_genuine_analyze_run_is_unaffected(runner, workspace, fake_claude):
+    """AC5/REQ-1, REQ-2 (regression): a real analyze run — writes only
+    2-analysis.md/3-solution.md, touches nothing in the project, and
+    leaves the Phase-table row exactly as it found it — is unaffected by
+    the new checks, mirroring spec 268's own AC6."""
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    folder = workspace["folder"]
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'echo "analysis" > "$specs/{folder}/2-analysis.md"\n'
+        + f'echo "solution" > "$specs/{folder}/3-solution.md"\n'
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert recorded_line(workspace) == "create, analyze"
 
 
