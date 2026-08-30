@@ -5,6 +5,7 @@ import { configValue } from "../../project/discover.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
 import type { LandContext } from "./types.ts";
+import { restartAfterLanding } from "./restart.ts";
 
 /** Run the project's own install, once its code has landed. Bounded by
  *  a timeout of its own — never trusting the server's idle timeout to
@@ -21,6 +22,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     return;
   }
   const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;
+  let failed = false;
   try {
     // argv, no shell — the same shape the notify command already has,
     // so nothing here has to get quoting right on someone's behalf.
@@ -39,10 +41,17 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     const code = await proc.exited;
     if (timedOut) {
       result.installError = `merged, but the install timed out after ${timeoutMs}ms and was stopped`;
+      failed = true;
     } else if (code !== 0) {
       result.installError = `merged, but the install failed (exit ${code}): ${tail.trim().slice(-200)}`;
+      failed = true;
     }
   } catch (err) {
     result.installError = `merged, but the install could not be run: ${err instanceof Error ? err.message : String(err)}`;
+    failed = true;
   }
+  // The restart moved here from install-after-merge.sh (spec 287): a
+  // failed install skips it, exactly as `set -e` used to skip the
+  // script's own restart block on any earlier failure.
+  if (!failed) await restartAfterLanding(ctx);
 }

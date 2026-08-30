@@ -84,8 +84,27 @@ export function createRootLock() {
     get size(): number {
       return chains.size;
     },
+    /** Which roots have a merge in flight right now — named, not just
+     *  counted, so a restart that has to proceed anyway (spec 287) can
+     *  say specifically what it may have interrupted. */
+    roots(): string[] {
+      return [...chains.keys()];
+    },
   };
 }
+
+/** How often `restartAfterLanding()` (spec 287) re-checks `mergeLock`
+ *  while it waits for every in-flight merge to clear before restarting
+ *  the dashboard server. */
+export const RESTART_POLL_MS = 250;
+
+/** Comfortably above the worst realistic `mergeBranchIntoDefault` run:
+ *  up to 3 attempts (`branch-merge.ts`'s own retry) of up to ~8 git
+ *  subcommands at up to `DEFAULT_TIMEOUT_MS` (4s) each. Bounded, not
+ *  indefinite — a restart that waited forever for a landing that will
+ *  never finish would just trade one silent failure for a dashboard
+ *  that never comes back. */
+export const RESTART_DEFER_TIMEOUT_MS = 90_000;
 
 /** How many steps may run at once, from the queue config's
  *  `concurrency`. FALLS BACK, it does not clamp: `mergeQueueDefaults`

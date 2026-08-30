@@ -1,11 +1,11 @@
 #!/bin/bash
 # What a code merge in aide runs on the serving host (AIDE_INSTALL_CMD in
-# .aide/config, spec 96): install the shared scripts and skills, refresh
-# the dashboard's dependencies, then restart the dashboard server so the
-# merged code is what serves. The restart comes last and detached — it
-# kills the very process running this script — and its failure is not
-# an error: on a machine without the launchd job (a laptop) there is
-# nothing to restart.
+# .aide/config, spec 96): install the shared scripts and skills and
+# refresh the dashboard's dependencies. It used to restart the dashboard
+# server itself, last and detached; that restart moved into the server
+# process (spec 287, dashboard/src/serve/land-branch/restart.ts) so it
+# can wait for any OTHER landing still mid-`git push` — anywhere, not
+# just this repo — before killing the process running it.
 set -e
 cd "$(dirname "$0")/../.."
 ./implementations/claude-code/install.sh >/dev/null 2>&1
@@ -29,8 +29,4 @@ if [ -x "$BUN" ]; then
   if [ -d "$SITE" ] && [ -d "$ROOT" ]; then
     ( cd dashboard && "$BUN" run src/main.ts generate --root "$ROOT" --out "$SITE" >/dev/null 2>&1 ) || true
   fi
-fi
-LABEL="${AIDE_DASH_LABEL:-com.aide-dashboard.serve}"
-if launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; then
-  nohup sh -c "sleep 1; launchctl kickstart -k gui/$(id -u)/$LABEL" >/dev/null 2>&1 &
 fi

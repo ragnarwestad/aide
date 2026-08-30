@@ -5,6 +5,7 @@
 import type { NavEntry } from "../render.ts";
 import type { QueueDefaults } from "../queue/queue.ts";
 import type { GitRunner } from "../git/branch-status.ts";
+import type { RestartHook } from "./land-branch.ts";
 
 export interface ServerOptions {
   siteDir: string;
@@ -80,6 +81,15 @@ export interface ServerOptions {
    *  merged. A test seam above all — the default is a bound, not a
    *  setting anybody is expected to tune. */
   queueInstallTimeoutMs?: number;
+  /** What restarts the dashboard server once a code-root install has
+   *  succeeded, and how long that restart waits for other landings to
+   *  clear first (spec 287). A test seam above all: every queue-route
+   *  test reaches the real launchd calls otherwise, which is harmless
+   *  on a machine with no job registered but a genuine hazard on one
+   *  that has. Defaults to `createLaunchdRestart()`. */
+  restart?: RestartHook;
+  restartPollMs?: number;
+  restartDeferTimeoutMs?: number;
   /** How often the drift check asks origin how far each project's
    *  checkout has fallen behind (spec 203). It is a SCHEDULE, not a
    *  cache window: the page render reads the last answer and never

@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createRootLock,
 } from "../../src/serve/serve.ts";
 import { type GitRunner } from "../../src/git/branch-status.ts";
+import { installAfterMerge, restartAfterLanding, type LandContext, type RestartHook } from "../../src/serve/land-branch.ts";
+import type { RepoMergeResult } from "../../src/git/branch-merge.ts";
 import { statusSaying } from "../helpers/queue-server.ts";
 import {
   TOKEN,
@@ -335,5 +337,173 @@ describe("the per-repo lock lets go once its chain has settled (criterion 10)", 
     });
     expect(failed).rejects.toThrow("git blew up");
     expect(await lock.run("/repo", async () => "fine")).toBe("fine");
+  });
+});
+
+// Spec 287: `install-after-merge.sh` used to fire `launchctl kickstart -k`
+// unconditionally the instant it finished, killing whatever OTHER landing
+// (any repo root, including the one about to be restarted into) was still
+// mid-`git push`. The restart now lives here, gated on `mergeLock` — the
+// one shared signal for "a merge is in flight anywhere" — before it is
+// allowed to fire.
+describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
+  function restartSpy(registered = true) {
+    let fired = 0;
+    const hook: RestartHook = {
+      registered: async () => registered,
+      fire: () => {
+        fired += 1;
+      },
+    };
+    return { hook, count: () => fired };
+  }
+
+  test("does not fire while a DIFFERENT root is still busy (criterion 1)", async () => {
+    const lock = createRootLock();
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const held = lock.run("/repos/other-project", () => gate);
+    const { hook, count } = restartSpy();
+
+    const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(count()).toBe(0);
+
+    release();
+    await held;
+    await waiting;
+    expect(count()).toBe(1);
+  });
+
+  test("fires exactly once, with no further delay, once the held root clears (criterion 2)", async () => {
+    const lock = createRootLock();
+    const held = lock.run("/repos/other-project", () => new Promise((r) => setTimeout(r, 20)));
+    const { hook, count } = restartSpy();
+
+    await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    await held;
+    expect(count()).toBe(1);
+  });
+
+  test("does not fire while the SAME root it is about to restart into is busy (criterion 7)", async () => {
+    const lock = createRootLock();
+    let release = (): void => {};
+    const gate = new Promise<void>((r) => (release = r));
+    // The exact shape 2-analysis.md's REQ-4 finding 1 describes: the
+    // server's own checkout being rewritten by a concurrent merge at
+    // restart time.
+    const held = lock.run("/repos/aide-code", () => gate);
+    const { hook, count } = restartSpy();
+
+    const waiting = restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(count()).toBe(0);
+
+    release();
+    await held;
+    await waiting;
+    expect(count()).toBe(1);
+  });
+
+  test("past the deadline it restarts anyway, logging the busy root first (criterion 5)", async () => {
+    const lock = createRootLock();
+    const held = lock.run("/repos/never-clears", () => new Promise(() => {}));
+    const { hook, count } = restartSpy();
+    const logged: string[] = [];
+    const realError = console.error;
+    console.error = (msg: unknown) => {
+      logged.push(String(msg));
+    };
+    try {
+      await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 30 });
+    } finally {
+      console.error = realError;
+    }
+    expect(count()).toBe(1);
+    expect(logged.some((l) => l.includes("/repos/never-clears"))).toBe(true);
+    void held;
+  });
+
+  test("stays silent when nothing was busy (criterion 6)", async () => {
+    const lock = createRootLock();
+    const { hook, count } = restartSpy();
+    const logged: string[] = [];
+    const realError = console.error;
+    console.error = (msg: unknown) => {
+      logged.push(String(msg));
+    };
+    try {
+      await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    } finally {
+      console.error = realError;
+    }
+    expect(count()).toBe(1);
+    expect(logged).toEqual([]);
+  });
+
+  test("never fires when nothing is registered to restart — the laptop/test-default case", async () => {
+    const lock = createRootLock();
+    const held = lock.run("/repos/other-project", () => new Promise(() => {}));
+    const { hook, count } = restartSpy(false);
+    await restartAfterLanding({ mergeLock: lock, restart: hook, restartPollMs: 5, restartDeferTimeoutMs: 500 });
+    expect(count()).toBe(0);
+    void held;
+  });
+
+  // Criterion 4 (REQ-2): a failed install must skip the restart entirely,
+  // matching `set -e`'s old behavior of never reaching the restart block
+  // on an earlier failure.
+  test("installAfterMerge skips the restart when the install itself fails (criterion 4)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-287-install-fail-"));
+    ownDirs.push(dir);
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/bin/false\n");
+    const lock = createRootLock();
+    const { hook, count } = restartSpy();
+    const ctx = {
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+      queueInstallTimeoutMs: undefined,
+    } as unknown as LandContext;
+    const result: RepoMergeResult = { root: dir, ok: true };
+
+    await installAfterMerge(ctx, result);
+
+    expect(result.installError).toBeTruthy();
+    expect(count()).toBe(0);
+  });
+
+  test("installAfterMerge restarts once a successful install clears (companion to criterion 4)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
+    ownDirs.push(dir);
+    mkdirSync(join(dir, ".aide"), { recursive: true });
+    writeFileSync(join(dir, ".aide", "config"), "AIDE_INSTALL_CMD=/usr/bin/true\n");
+    const lock = createRootLock();
+    const { hook, count } = restartSpy();
+    const ctx = {
+      mergeLock: lock,
+      restart: hook,
+      restartPollMs: 5,
+      restartDeferTimeoutMs: 500,
+      queueInstallTimeoutMs: undefined,
+    } as unknown as LandContext;
+    const result: RepoMergeResult = { root: dir, ok: true };
+
+    await installAfterMerge(ctx, result);
+
+    expect(result.installError).toBeUndefined();
+    expect(count()).toBe(1);
+  });
+});
+
+// Criterion 3 (REQ-2): the restart trigger lives only in
+// `dashboard/src/serve/land-branch/restart.ts` now — a text-level guard
+// that the script it moved out of never regains it by accident.
+describe("install-after-merge.sh no longer restarts anything itself (spec 287)", () => {
+  test("the script does not contain launchctl kickstart", () => {
+    const script = readFileSync(join(import.meta.dir, "..", "..", "deploy", "install-after-merge.sh"), "utf-8");
+    expect(script).not.toContain("launchctl kickstart");
   });
 });

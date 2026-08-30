@@ -122,6 +122,12 @@ export function queueHarness(prefix: string): QueueHarness {
         // both the schedule AND the window: two numbers is how a fast
         // schedule starves, and `serve.ts` keeps them equal.
         specCachePollMs: 40,
+        // Spec 287: without this, a real `AIDE_INSTALL_CMD` succeeding in
+        // a test would reach the real `createLaunchdRestart()` — harmless
+        // on a machine with no `com.aide-dashboard.serve` job registered,
+        // but a genuine hazard on one that does (the serving host itself,
+        // or a developer machine running `make serve-local`).
+        restart: { registered: async () => false, fire: () => {} },
         ...extra,
       });
       servers.push(server);

@@ -13,3 +13,4 @@ export { installAfterMerge } from "./land-branch/install.ts";
 export { landBranch } from "./land-branch/merge.ts";
 export { landNewSpec, landStepBranch, landStoppedStepBranch, landArchivedSpec } from "./land-branch/steps.ts";
 export { withFreshness } from "./land-branch/freshness.ts";
+export { createLaunchdRestart, restartAfterLanding, type RestartHook } from "./land-branch/restart.ts";

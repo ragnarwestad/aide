@@ -30,6 +30,7 @@ import {
   installAfterMerge as installAfterMergeImpl,
   withFreshness as withFreshnessImpl,
   type LandContext,
+  type RestartHook,
 } from "./land-branch.ts";
 import type { ServerState } from "./state.ts";
 
@@ -51,6 +52,9 @@ export interface LandSetupInputs {
   freshness: DescriptionFreshnessChecker;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   queueInstallTimeoutMs?: number;
+  restart: RestartHook;
+  restartPollMs?: number;
+  restartDeferTimeoutMs?: number;
 }
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {
@@ -88,6 +92,9 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
       state.scan = null;
     },
     queueInstallTimeoutMs: inputs.queueInstallTimeoutMs,
+    restart: inputs.restart,
+    restartPollMs: inputs.restartPollMs,
+    restartDeferTimeoutMs: inputs.restartDeferTimeoutMs,
   };
   function landNewSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landNewSpecImpl(landCtx, job, outcome);

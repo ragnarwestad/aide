@@ -44,6 +44,7 @@ import { setupWatch } from "./setup-watch.ts";
 import { setupProjectResolution } from "./setup-project-resolution.ts";
 import { setupSchedules } from "./setup-schedules.ts";
 import { setupLand } from "./setup-land.ts";
+import { createLaunchdRestart } from "./land-branch.ts";
 import { createQueueRunner, type RunnerSetupContext } from "./runner-setup.ts";
 
 export function createServer(opts: ServerOptions) {
@@ -155,6 +156,9 @@ export function createServer(opts: ServerOptions) {
     freshness: schedules.freshness,
     rootsStillHolding: resolution.rootsStillHolding,
     queueInstallTimeoutMs: opts.queueInstallTimeoutMs,
+    restart: opts.restart ?? createLaunchdRestart(),
+    restartPollMs: opts.restartPollMs,
+    restartDeferTimeoutMs: opts.restartDeferTimeoutMs,
   });
 
   const runnerSetupCtx: RunnerSetupContext = {

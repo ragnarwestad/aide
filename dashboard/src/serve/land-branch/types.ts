@@ -9,6 +9,7 @@ import type { MergeEventReporter } from "../../integrations/merge-event.ts";
 import type { CodeLanding } from "../../project/discover.ts";
 import type { QueueRowView } from "../../render.ts";
 import type { createRootLock } from "../serve-helpers.ts";
+import type { RestartHook } from "./restart.ts";
 
 /** Everything `landBranch` and its helpers read off `createServer`'s
  *  closure, bundled the same way `HandleQueueContext` and
@@ -33,6 +34,12 @@ export interface LandContext {
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   invalidateScan: () => void;
   queueInstallTimeoutMs: number | undefined;
+  /** What restarts the dashboard server once a code-root install has
+   *  succeeded, and how long that restart may wait for other landings
+   *  to clear first (spec 287). */
+  restart: RestartHook;
+  restartPollMs?: number;
+  restartDeferTimeoutMs?: number;
 }
 
 /** What a landing does that is not the merge itself: what to write on

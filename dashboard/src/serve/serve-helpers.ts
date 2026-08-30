@@ -10,6 +10,7 @@
 export {
   MAX_BODY, MAX_SAVE_BODY, INSTALL_TIMEOUT_MS, QUEUE_DEFAULTS, createRootLock,
   DEFAULT_QUEUE_CONCURRENCY, parseQueueConcurrency, DEPENDENCY_GATED_STEPS, GATED,
+  RESTART_POLL_MS, RESTART_DEFER_TIMEOUT_MS,
 } from "./serve-helpers/config.ts";
 
 export {
