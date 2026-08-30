@@ -138,6 +138,24 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     ).text();
     expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
+
+  // `pageShell`'s own heading used to sit above "← Back" (`.pagehead`
+  // is drawn before `body`, which opens with `backLink`) — Back is
+  // meant to be the very first thing on the page, so the shell's own
+  // heading is hidden and the one heading left is drawn AFTER Back,
+  // inside the body.
+  test("the Back link is the first thing on the page, above the heading", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const html = await (
+      await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(html).not.toContain('class="pagehead"');
+    const backAt = html.indexOf('class="backlink"');
+    const headingAt = html.indexOf("<h1>nightly-report</h1>");
+    expect(backAt).toBeGreaterThan(0);
+    expect(backAt).toBeLessThan(headingAt);
+  });
 });
 
 describe("GET /schedule/<project>/<name>/delete (spec 277)", () => {

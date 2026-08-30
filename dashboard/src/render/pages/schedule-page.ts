@@ -61,12 +61,15 @@ export function renderScheduleDetailPage(
     tab === "history"
       ? renderScheduleHistory(opts.history)
       : renderScheduleOverview(opts.project, opts.entry, { token: opts.token, error: opts.error });
-  // No banner of its own: `pageShell` below already draws the entry's
-  // name as the page's one heading (spec-page.ts's own `banner` is a
-  // status chip and its actions, never the name again, for the same
-  // reason — the name repeated here read as the title twice).
-  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
-  return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, { script: opts.script });
+  // `pageShell`'s own heading is hidden (below) so the Back link is the
+  // first thing on the page — the name is drawn here instead, after
+  // Back, not before it.
+  const banner = `<h1>${esc(opts.entry.name)}</h1>`;
+  const body = tabbedBody(banner, bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
+  return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {
+    script: opts.script,
+    hideHeading: true,
+  });
 }
 
 export interface DeleteSchedulePageOptions {
