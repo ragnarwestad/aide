@@ -102,9 +102,11 @@ resume it at the first unticked task if it found it in progress.
 8. Show a summary — ready for commit
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
-gives — `✅`, `⬜`, `🔄` — never the word beside it. The dashboard reads
-both, but a file that spells the same state two ways is a file whose
-own legend has stopped describing it.
+gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
+together (`✅ Completed` is wrong the same way `Completed` alone is —
+spec 283). The dashboard reads both forms, but a file that spells the
+same state two ways is a file whose own legend has stopped describing
+it.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script

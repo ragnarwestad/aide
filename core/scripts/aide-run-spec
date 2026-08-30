@@ -1990,7 +1990,8 @@ total_progress_for() {   # sets $progress_done, $progress_total
       if (task == "" || task ~ /^-+$/) next
       if (mark == "" || length(mark) > 30 || mark ~ /,/ || tolower(mark) == "status") next
       total++
-      if (mark == "✅" || tolower(mark) == "completed") done++
+      low = tolower(mark)
+      if (mark == "✅" || low == "completed" || low ~ /^(✅[ \t]*)?completed$/) done++
     }
     END { printf "%d %d\n", done+0, total+0 }
   ' "$file" 2>/dev/null)"

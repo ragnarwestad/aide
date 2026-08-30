@@ -53,6 +53,18 @@
       "body": "## Checklist\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n| two | ⬜ | |\n",
       "done": 1,
       "total": 2
+    },
+    {
+      "name": "symbol-and-word-combined",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ Completed | |\n",
+      "done": 1,
+      "total": 1
+    },
+    {
+      "name": "unrelated-text-containing-completed-stays-open",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | not completed | |\n",
+      "done": 0,
+      "total": 1
     }
   ]
 }

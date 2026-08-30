@@ -295,14 +295,21 @@ const MAX_MARK_LENGTH = 30;
  *  string comparisons answering this same question is exactly how a fix
  *  in one of them stayed invisible to the other two.
  *
- *  A FOURTH implementation of this same rule exists in bash, in
- *  `core/scripts/aide-archive-spec` (spec 251) — `is_done_mark`/
- *  `is_unstarted_mark`/`table_row`, checked against the same set of
- *  inputs this file's own tests use. No shared source between the two
- *  languages; change one and check the other. */
+ *  A second implementation of this same rule exists in bash, in
+ *  `core/scripts/aide-run-spec`'s `total_progress_for` — the bash
+ *  implementation that used to live in `core/scripts/aide-archive-spec`
+ *  (`is_done_mark`/`is_unstarted_mark`/`table_row`) was removed by spec
+ *  268, which stopped that script reading a Phase table at all. No
+ *  shared source between the two languages; change one and check the
+ *  other.
+ *
+ *  Spec 283: an anchored `✅ completed` (symbol and the word combined
+ *  in one cell) counts as done too, alongside the bare symbol and the
+ *  bare word — a step wrote both into the same cell, and neither of
+ *  the two original forms alone matched it. */
 function isDoneMark(mark: string): boolean {
   const trimmed = mark.trim();
-  return trimmed === DONE_MARK || /^completed$/i.test(trimmed);
+  return trimmed === DONE_MARK || /^(?:✅\s*)?completed$/i.test(trimmed);
 }
 
 /** A well-formed three-column row's cells, or `null`.

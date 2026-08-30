@@ -326,13 +326,16 @@ conflict or not. Two things not to get backwards:
   `already-archived` (carrying the same `specFolder`/
   `needsDocFeedback` the fresh `archived` outcome does, so Step 2 still
   runs) rather than moved, or erroring, a second time.
-- **The status-mark rule (`is_done_mark`/`is_unstarted_mark` in the
-  script) is a fourth implementation of the same rule
-  `dashboard/src/parse-status.ts`'s `isDoneMark` already carries in
-  TypeScript — the exact drift spec 190 fixed once, in different
-  clothes.** No shared source between bash and TypeScript; each file
-  points at the other in a comment, and both are tested against the
-  same set of Notation-legend inputs.
+- **The status-mark rule the script used to carry (`is_done_mark`/
+  `is_unstarted_mark`) is gone, not merely duplicated.** Spec 268
+  removed `aide-archive-spec`'s status-table read entirely — it decides
+  whether to archive from `4-status.md`'s `Workflow steps completed:`
+  bullet alone, and never inspects a Phase table's Status cell. The
+  surviving bash implementation of `isDoneMark`'s rule lives in
+  `core/scripts/aide-run-spec`'s `total_progress_for` instead, still
+  with no shared source between bash and TypeScript, still pinned to
+  the TypeScript side by the same set of Notation-legend inputs
+  (`tests/fixtures/status-row-counting.json`, spec 246).
 
 **A run reaches the project and its specs root, and nothing else.** A
 third repository could be named with `--extra-project-dir`, and got the

@@ -112,6 +112,23 @@ describe("parseStatusChecks (spec 182)", () => {
     expect(checks[0]!.done).toBe(true);
   });
 
+  // Spec 283: a step wrote the symbol AND the word into the same cell.
+  // Neither form alone, the combination — and it must still count as done.
+  test("`✅ Completed`, symbol and word combined, is done", () => {
+    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | ✅ Completed | |"]));
+    expect(checks).toHaveLength(1);
+    expect(checks[0]!.done).toBe(true);
+  });
+
+  // The word "completed" appearing as part of unrelated free text must
+  // not be mistaken for the combined mark above — only the anchored,
+  // whole-cell pattern counts as done.
+  test("unrelated text containing the word \"completed\" stays open", () => {
+    const checks = parseStatusChecks(phase("Phase 1: RED", ["| a task | not completed | |"]));
+    expect(checks).toHaveLength(1);
+    expect(checks[0]!.done).toBe(false);
+  });
+
   test("the notation table's other spellings are read as open, not dropped", () => {
     const checks = parseStatusChecks(
       phase("Phase 1: RED", [
