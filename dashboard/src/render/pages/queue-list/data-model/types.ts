@@ -259,10 +259,13 @@ export interface Phase {
    *  phase (whose "what it ran on" is `attempts[0]?.model`, read
    *  through the picker's pre-fill instead). */
   model?: string;
-  /** What this LOCKED phase's own record says it cost, in time and
-   *  money (spec 247) — from `ArchivedSpecView.phaseOutcomes`, on the
-   *  same terms as `model` above: never set for a live phase, whose
-   *  duration and cost come from `attempts[0]` instead. */
+  /** What this phase's own file record says it cost, in time and money
+   *  (spec 247): from `ArchivedSpecView.phaseOutcomes` for a LOCKED
+   *  phase, on the same terms as `model` above. For a LIVE phase (spec
+   *  284) it is the fallback `specPhases` reads off the phase's own
+   *  stamped file when `attempts` is empty — a queue-job attempt always
+   *  wins when one exists, so this is set on a live phase only where
+   *  `attempts[0]` has nothing to say. */
   timeSpentMs?: number;
   cost?: number;
   costUnmeasured?: boolean;

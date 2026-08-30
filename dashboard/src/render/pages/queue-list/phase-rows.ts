@@ -272,6 +272,12 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
         `<span class="aimodel">${aiPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}` +
         `${modelPicker(g, opts, p.step, busy, live, latest?.model, recordedModel)}</span>` +
         `${box}</span></td>`;
+      // Does this phase's own file say it ran at all (spec 274/247/284's
+      // fallback in `phasesFor`), even with no Cost line recorded? Used
+      // by BOTH branches below — an archived `create` line is exactly as
+      // permanently costless as a live one, so the blank-vs-unknown fix
+      // has to reach both, not just the live row.
+      const ranWithNoCost = p.timeSpentMs !== undefined || p.cost !== undefined || p.tokens !== undefined;
       lines.push({
         tag: `<tr class="subrow" data-step="${esc(p.step)}">`,
         cells:
@@ -285,14 +291,26 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
           // Same physical column, a different question per row type —
           // which this column already did before, and which is what
           // makes "how long did this take?" readable without a column
-          // of its own.
-          `<td data-col="started">${locked ? lockedDuration(p.timeSpentMs) : phaseDurationCell(latest, p.step, now)}</td>` +
+          // of its own. A live row with no queue-job attempt falls back
+          // to the same file-stamped figure a locked row reads.
+          `<td data-col="started">${
+            locked
+              ? lockedDuration(p.timeSpentMs)
+              : phaseDurationCell(latest, p.step, now) || lockedDuration(p.timeSpentMs)
+          }</td>` +
           `<td class="num" data-col="cost">${
             locked
-              ? costCell(p.cost ?? 0, p.tokens, "", p.costUnmeasured)
+              ? costCell(p.cost ?? 0, p.tokens, ranWithNoCost ? "–" : "", p.costUnmeasured)
               : latest
                 ? costCell(latest.spentUsd, latest.spentTokens, "", anyCostUnmeasured(latest.results))
-                : ""
+                // No queue job for this phase, but its own file carries
+                // a stamped record: it ran, and its cost is genuinely
+                // unknown rather than unattempted — an explicit "–"
+                // (REQ-3), never a blank indistinguishable from "not
+                // run", never an invented $0.
+                : ranWithNoCost
+                  ? costCell(p.cost ?? 0, p.tokens, "–", p.costUnmeasured)
+                  : ""
           }</td>`,
       });
     });

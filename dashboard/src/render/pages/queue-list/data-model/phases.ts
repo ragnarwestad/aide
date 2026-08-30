@@ -3,6 +3,7 @@
 // is still one spec, and how far it has got — and what its phases cost
 // in time — should read without counting rows.
 
+import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
 import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
 import { PHASE_LINES, type Phase, type QueueTarget } from "./types.ts";
 
@@ -121,11 +122,27 @@ function totalDuration(phases: Phase[]): number | undefined {
     // instants. Zero rather than a clock, so this function gives the
     // same answer whenever it is asked.
     const d = latest ? phaseDuration(latest, p.step, 0) : null;
-    if (!d || d.live) continue;
-    total += d.ms;
-    measured = true;
+    if (d && !d.live) {
+      total += d.ms;
+      measured = true;
+    } else if (!d && p.timeSpentMs !== undefined) {
+      // No queue job measured this phase at all — its own stamped file
+      // is the only other place its duration could be (spec 274/247's
+      // fallback, wired in by `specPhases` below, spec 284).
+      total += p.timeSpentMs;
+      measured = true;
+    }
   }
   return measured ? total : undefined;
+}
+
+/** The same sum, for a caller that has already built the phase lines
+ *  (spec 284) — `jobGroup`/`emptyGroup` call `phasesFor` for the row's
+ *  own lines anyway, and calling `computeSpecTotalDurationMs` there too
+ *  would rebuild `specPhases` — and re-read every not-yet-attempted
+ *  phase's file — a second time for the same answer. */
+export function totalDurationOf(phases: Phase[]): number | undefined {
+  return totalDuration(phases);
 }
 
 /** The spec's own total, for a caller that has the jobs but not a
@@ -142,14 +159,14 @@ function totalDuration(phases: Phase[]): number | undefined {
  *  The phase lines are rebuilt here rather than passed in for the same
  *  reason: a caller that had to assemble them first would be a second
  *  place that knows which lines a spec's total is a sum over. */
-export function computeSpecTotalDurationMs(rows: QueueRowView[]): number | undefined {
-  return totalDuration(specPhases(rows));
+export function computeSpecTotalDurationMs(rows: QueueRowView[], dir?: string): number | undefined {
+  return totalDuration(specPhases(rows, dir));
 }
 
 /** The phase lines a spec's row and a spec's total are both built over:
  *  the four in order, then anything else that ran, each with the
  *  attempts that speak for it, newest first. */
-function specPhases(all: QueueRowView[]): Phase[] {
+function specPhases(all: QueueRowView[], dir?: string): Phase[] {
   const recent = [...all].sort((a, b) => activityMs(b) - activityMs(a));
   const touched = new Set(all.flatMap(stepsTouched));
   const extra = [...touched].filter((s) => s !== "reopen" && !PHASE_LINES.includes(s));
@@ -160,11 +177,25 @@ function specPhases(all: QueueRowView[]): Phase[] {
   const lines = touched.has("reopen")
     ? [...PHASE_LINES.slice(0, analyzeIndex), "reopen", ...PHASE_LINES.slice(analyzeIndex)]
     : PHASE_LINES;
-  return [...lines, ...extra].map((step) => ({
-    step,
-    attempts: recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null),
-    history: {},
-  }));
+  return [...lines, ...extra].map((step) => {
+    const attempts = recent.map((r) => attemptFor(r, step)).filter((a): a is QueueRowView => a !== null);
+    // No queue job ever ran this phase: the only other place its
+    // duration/cost could be is the file the interactive counterpart
+    // stamped itself into (spec 274's --stamp-outcome, spec 247's
+    // reader) — the same fallback the archived path already leans on
+    // (readerGroup, group-builders.ts). A phase a job DID attempt keeps
+    // its job-derived answer only, never merged with the file's.
+    const outcome = attempts.length === 0 && dir ? specPhaseOutcome(dir, step) : undefined;
+    return {
+      step,
+      attempts,
+      history: {},
+      timeSpentMs: outcome?.timeSpentMs,
+      cost: outcome?.cost,
+      costUnmeasured: outcome?.costUnmeasured,
+      tokens: outcome?.tokens,
+    };
+  });
 }
 
 /** Archive's own file-side answer, on archive's line and nowhere else.
@@ -195,7 +226,7 @@ const historyFor = (
  *  needs the identical join, and writing it a third time is the exact
  *  hand-copied-list shape `development.md` already names six of. */
 export function phasesFor(all: QueueRowView[], target: QueueTarget | undefined): Phase[] {
-  return specPhases(all).map((phase) => ({
+  return specPhases(all, target?.dir).map((phase) => ({
     ...phase,
     ...heldBackFor(phase.step, target),
     ...historyFor(phase.step, target),

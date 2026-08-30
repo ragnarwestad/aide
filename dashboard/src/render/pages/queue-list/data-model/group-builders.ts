@@ -4,7 +4,7 @@
 
 import { currentWorkRoundJobs } from "../../../../queue/queue.ts";
 import { anyCostUnmeasured, inFlight, type BranchView, type QueueRowView } from "../../../ui/job-state.ts";
-import { activityMs, computeSpecTotalDurationMs, phasesFor } from "./phases.ts";
+import { activityMs, phasesFor, totalDurationOf } from "./phases.ts";
 import {
   ARCHIVED_OPEN_STATE,
   ARCHIVED_STATE,
@@ -32,6 +32,7 @@ function branchesOf(recent: QueueRowView[]): BranchView[] {
 // where the whole workflow is still ahead of you, which is exactly the
 // row the analyze button belongs on.
 function emptyGroup(t: QueueTarget): SpecGroup {
+  const phases = phasesFor([], t);
   return {
     project: t.project,
     specFolder: t.specFolder,
@@ -41,7 +42,8 @@ function emptyGroup(t: QueueTarget): SpecGroup {
     spentUsd: 0,
     costUnmeasured: false,
     branches: [],
-    phases: phasesFor([], t),
+    phases,
+    totalDurationMs: totalDurationOf(phases),
     ...fromTarget(t),
   };
 }
@@ -258,8 +260,10 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     // the way the line's own cell does. Every SETTLED phase counts,
     // whether or not the whole workflow is done (spec 281) — a phase
     // still in flight contributes nothing of its own, live elapsed time
-    // excluded by `computeSpecTotalDurationMs` itself.
-    totalDurationMs: computeSpecTotalDurationMs(all),
+    // excluded by `totalDurationOf` itself. Read off `phases` above
+    // (spec 284), not recomputed from `all` — the latter would re-read
+    // every not-yet-attempted phase's stamped file a second time.
+    totalDurationMs: totalDurationOf(phases),
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.
