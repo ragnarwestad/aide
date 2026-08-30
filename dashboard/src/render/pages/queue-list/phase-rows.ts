@@ -152,20 +152,31 @@ export function phaseSubRows(g: SpecGroup, opts: QueuePageOptions, now: number):
       // `finished` below reaches the same `finishedPhaseChip` once
       // `g.done` proves a QUEUE_STEPS phase ran too.
       //
-      // A phase this row's own history proves ran, while the row is
-      // not busy running something right now. `archive` is excluded on
-      // purpose (spec 267): a HELD-BACK archive — one that ran and
+      // A phase this row's own history proves ran. `archive` is excluded
+      // on purpose (spec 267): a HELD-BACK archive — one that ran and
       // committed but declined to move the folder
       // (`archiveHeldBackReason`, parse-status.ts) — leaves `archive`
       // in `g.done` on a row that is still active, and stays offered
       // from this same row exactly as before, so its box keeps the
-      // tickable treatment below. `!busy` is excluded too: a job
-      // re-running this exact step by hand (via /aide-reset, outside
-      // this row) still reports the older `g.done`, and the busy arm
-      // beneath this one already renders that correctly, with its own
-      // reason in the title — this branch must not shadow it.
+      // tickable treatment below.
+      //
+      // Busy excludes only the phase the CURRENT job is itself naming
+      // (spec 286) — not the whole row. A job re-running this exact step
+      // by hand (via /aide-reset, outside this row) still reports the
+      // older `g.done`, and the busy arm beneath this one already renders
+      // that correctly, with its own reason in the title; this branch
+      // must not shadow it. But a job retrying a LATER phase (e.g.
+      // archive, after an earlier landing failure) does not name an
+      // already-finished earlier phase at all — `g.lead.steps` is fixed
+      // at that job's own creation — and such a phase must keep reading
+      // as done, exactly as it does while the row is idle. Same test the
+      // busy branch's own `checked` uses two lines below, for the same
+      // "did THIS job name this step" question.
       const finished =
-        !busy && QUEUE_STEPS.includes(p.step) && p.step !== "archive" && g.done.includes(p.step);
+        QUEUE_STEPS.includes(p.step) &&
+        p.step !== "archive" &&
+        g.done.includes(p.step) &&
+        !(busy && g.lead?.steps.includes(p.step));
       // What the last run used is not spelled out in text any more —
       // it IS the picker's pre-filled value, in the column the caption
       // calls "Model".

@@ -441,6 +441,24 @@ describe("a spec's row runs its own phases", () => {
     expect(box(line, "analyze")).not.toContain("already done");
   });
 
+  // Spec 286: a later phase retrying (e.g. archive, after a failed
+  // landing) must not blank out the boxes of earlier phases the SAME run
+  // already finished — the busy job's own `steps` only names what IT will
+  // run, and `g.done` is still the truthful record of what already ran.
+  test("a done phase keeps its checked box while a later phase in the same run retries (spec 286)", () => {
+    const line = runLine(
+      rows(
+        [job("j1", "archive", { state: "running" })],
+        [target("94-row-runs-it", { done: ["analyze", "implement"] })],
+      ),
+      "94-row-runs-it",
+    );
+    for (const step of ["analyze", "implement"]) {
+      expect(box(line, step)).toContain("checked disabled");
+      expect(box(line, step)).not.toContain('name="steps"');
+    }
+  });
+
   test("with only its own project there is nothing to add (criterion 5)", () => {
     const html = rows([], [target("94-never-run")], { projects: ["aide"] });
     expect(runLine(html, "94-never-run")).not.toBe("");
