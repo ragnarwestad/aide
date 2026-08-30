@@ -49,13 +49,16 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
 
 1. Write a **Plan review** section into `3-solution.md` (after
    Acceptance criteria): verdict per perspective, the three lists, and
-   what was changed in response.
+   what was changed in response. Assemble the complete new file text and
+   write it with `aide-write-spec --file 3-solution.md` (never
+   Write/Edit — spec 282).
 2. **REVISE the plan for every must-fix** — the sections of
-   `3-solution.md` are updated, not just commented on. Should-fix items
-   are revised or explicitly declined with a reason.
+   `3-solution.md` are updated, not just commented on, the same way.
+   Should-fix items are revised or explicitly declined with a reason.
 3. Add a review row to `4-status.md`, ticked ✅ at write time — the review
    the two steps above just finished is already-done work, not something
-   left for a person to confirm later.
+   left for a person to confirm later. Write it the same way, with
+   `aide-write-spec --file 4-status.md`.
 
 A review with zero findings is a review that happened, and is offered
 like any other. Say so plainly and record the verdict. Never invent

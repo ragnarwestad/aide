@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# aide-write-spec — the one legitimate way /aide-analyze, /aide-implement
+# and /aide-archive land a spec file's content on disk (spec 282, closing
+# the gap spec 248 left open). Content comes in on stdin; the caller
+# (the skill/model) is responsible for assembling the full file text,
+# exactly as the Write tool would have required. Once this is the only
+# path a legitimate spec-file write takes, a Write/Edit permission rule
+# can be scoped to the specs-repo path with no legitimate case left to
+# break — the same reasoning that put aide-create-spec in place for
+# /aide-create's own file creation.
+#
+# Prints ONE JSON line to stdout and, if given, to --result-file:
+#   {ok, exitCode, terminalReason, error?, specFolder?, file?}
+#
+# terminalReason: refused | written
+#
+# Usage:
+#   aide-write-spec --specs-root <path> --folder <NN-slug> --file <name>
+#                    [--result-file <path>]   # content on stdin
+
+set -uo pipefail
+
+ALLOWED_FILES="0-README.md 1-description.md 2-analysis.md 3-solution.md 4-status.md"
+specs_root=""; folder=""; file=""; result_file=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --specs-root) specs_root="${2:-}"; shift 2 ;;
+    --folder) folder="${2:-}"; shift 2 ;;
+    --file) file="${2:-}"; shift 2 ;;
+    --result-file) result_file="${2:-}"; shift 2 ;;
+    *) printf '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"unknown argument: %s"}\n' "$1"; exit 2 ;;
+  esac
+done
+
+# Same guard aide-create-spec/aide-archive-spec use, before either helper
+# below can be called — without it a missing jq turns every refusal into
+# a raw shell error instead of the one-JSON-line contract every caller
+# relies on.
+command -v jq >/dev/null 2>&1 || { echo '{"ok":false,"exitCode":2,"terminalReason":"refused","error":"jq is required"}'; exit 2; }
+
+refuse() {
+  local msg="$1" line
+  line="$(jq -cn --arg e "$msg" '{ok:false, exitCode:2, terminalReason:"refused", error:$e}')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 2
+}
+
+emit_ok() {
+  local extra="$1" line
+  line="$(jq -cn --argjson extra "$extra" '{ok:true, exitCode:0} + $extra')"
+  printf '%s\n' "$line"
+  [ -n "$result_file" ] && printf '%s\n' "$line" > "$result_file" 2>/dev/null
+  exit 0
+}
+
+[ -n "$specs_root" ] || refuse "missing --specs-root"
+[ -n "$folder" ] || refuse "missing --folder"
+[ -n "$file" ] || refuse "missing --file"
+[[ " $ALLOWED_FILES " == *" $file "* ]] || refuse "unknown --file: $file"
+
+# Dual-location resolution — mirrors aide-create-spec's --stamp-outcome,
+# needed because aide-archive's Step 2 writes 4-status.md AFTER
+# aide-archive-spec has already moved the folder into archive/.
+target=""
+for candidate in "$specs_root/$folder/$file" "$specs_root/archive/$folder/$file"; do
+  [ -f "$candidate" ] && { target="$candidate"; break; }
+done
+[ -n "$target" ] || refuse "spec file not found: $folder/$file"
+
+content_tmp="$(mktemp)"
+cat > "$content_tmp"
+[ -s "$content_tmp" ] || { rm -f "$content_tmp"; refuse "no content on stdin"; }
+mv "$content_tmp" "$target"
+
+emit_ok "$(jq -cn --arg f "$folder" --arg file "$file" '{terminalReason:"written", specFolder:$f, file:$file}')"

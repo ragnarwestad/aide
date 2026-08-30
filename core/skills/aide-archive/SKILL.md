@@ -102,10 +102,14 @@ The prompt is the reliable signal of the two.
 
 - **Someone is there (interactive):** ask for confirmation, then write
   it — the judgment call is worth having when someone can make it.
-- **Nobody is there (headless):** do NOT ask. Append the
-  proposal to `4-status.md` under a new `## Deferred documentation
-  feedback` heading, one item per entry: the destination file and the
-  exact text proposed. Then continue straight to Step 3.
+- **Nobody is there (headless):** do NOT ask. Read the current
+  `4-status.md` (it may already be under `archive/` — see Step 1),
+  append the proposal under a new `## Deferred documentation feedback`
+  heading, one item per entry: the destination file and the exact text
+  proposed, then write the result with `aide-write-spec --file
+  4-status.md` (never Write/Edit — spec 282; `aide-write-spec` resolves
+  the folder under either the active specs root or its `archive/`
+  subfolder automatically). Then continue straight to Step 3.
 
 The question must never block the move: a headless run that stops here
 has already archived the folder in Step 1 regardless, reports success,
