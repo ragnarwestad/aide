@@ -95,6 +95,8 @@ unset AIDE_RUN_SPEC_SELF_COPY AIDE_RUN_SPEC_SOURCE_DIR
 rm -f "$0"
 # shellcheck source=/dev/null
 [ -f "$SCRIPT_DIR/_aide-spec-lib.sh" ] && source "$SCRIPT_DIR/_aide-spec-lib.sh"
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
 
 WORKFLOW_STEPS="explore create analyze implement archive manifest reopen reset schedule"
 # The steps a dependency actually holds back (spec 122): the ones that
@@ -1956,49 +1958,14 @@ EOF
   return 0
 }
 
-# Where the file's own Phase/Fase tables stand right now (spec 246) —
-# the same row shape and done-mark rule `dashboard/src/parse-status.ts`'s
-# `tableCells`/`isDoneMark` use, reimplemented in awk since the writer
-# here is bash. Kept in sync with that TypeScript rule by
+# Where the file's own Phase/Fase/Acceptance tables stand right now
+# (spec 246, widened spec 285) — status_progress_for, sourced from
+# core/scripts/lib/status-progress.sh, is the shared bash mirror of
+# `dashboard/src/parse-status.ts`'s `tableCells`/`isDoneMark`. Kept in
+# sync with that TypeScript rule by
 # `tests/fixtures/status-row-counting.json`, read by a test on each side.
-total_progress_for() {   # sets $progress_done, $progress_total
-  local file="$1" counts
-  progress_done=0; progress_total=0
-  [ -f "$file" ] || return 0
-  counts="$(awk '
-    /^## / {
-      heading = $0; sub(/^## /, "", heading)
-      # Word-boundary check (not just a prefix match) to agree with
-      # `phaseSections()`'"'"'s `/^(phase|fase)\b/i` — a heading like
-      # "## Phase1: RED" (no space) is not a phase heading on either
-      # side. Pinned by tests/fixtures/status-row-counting.json.
-      rest = heading
-      sub(/^([Pp]hase|[Ff]ase|[Cc]hecklist)/, "", rest)
-      in_phase = (rest != heading && rest ~ /^([^A-Za-z0-9]|$)/) ? 1 : 0
-      next
-    }
-    !in_phase { next }
-    {
-      line = $0
-      gsub(/^[ \t]+|[ \t]+$/, "", line)
-      if (line !~ /^\|.*\|$/) next
-      n = split(line, cells, "|")
-      if (n != 5) next
-      task = cells[2]; mark = cells[3]
-      gsub(/^[ \t]+|[ \t]+$/, "", task)
-      gsub(/^[ \t]+|[ \t]+$/, "", mark)
-      if (task == "" || task ~ /^-+$/) next
-      if (mark == "" || length(mark) > 30 || mark ~ /,/ || tolower(mark) == "status") next
-      total++
-      low = tolower(mark)
-      if (mark == "✅" || low == "completed" || low ~ /^(✅[ \t]*)?completed$/) done++
-    }
-    END { printf "%d %d\n", done+0, total+0 }
-  ' "$file" 2>/dev/null)"
-  progress_done="${counts%% *}"
-  progress_total="${counts##* }"
-  return 0
-}
+# aide-archive-spec sources the same helper for its own, narrower,
+# Acceptance-only gate.
 
 # Only the five steps the line is ABOUT write it. `explore` and
 # `manifest` leave the file exactly as they found it: neither is
@@ -2026,7 +1993,7 @@ if [ -n "$status_file" ]; then
         ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
       [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
     fi
-    total_progress_for "$status_file"
+    status_progress_for "$status_file"
     if [ "$proj_changed" != "yes" ] || [ "$progress_done" -eq 0 ]; then
       terminal_reason="no-progress"
       ok="false"
@@ -2084,7 +2051,7 @@ if [ -n "$status_file" ]; then
 
   # Nothing derived leaves the file alone: a fresh spec whose Phase
   # tables have no rows yet keeps whatever placeholder it started with.
-  total_progress_for "$status_file"
+  status_progress_for "$status_file"
   if [ "$progress_total" -gt 0 ]; then
     progress_pct=$(( (progress_done * 100 + progress_total / 2) / progress_total ))
     # Format-agnostic on purpose (real specs disagree on bold/position

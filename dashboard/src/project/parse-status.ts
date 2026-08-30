@@ -275,7 +275,7 @@ const DONE_MARK = "✅";
  *  heading test exactly, so the two agree about what a phase is. One
  *  constant, read by both `parseStatus` and `phaseSections` below, so
  *  the two call sites cannot drift from each other again. */
-const PHASE_HEADING_RE = /^(phase|fase|checklist)\b/i;
+const PHASE_HEADING_RE = /^(phase|fase|checklist|acceptance)\b/i;
 
 /** The longest meaning the template's own Notation table gives a symbol
  *  is `Awaiting clarification`, at 22 characters; 30 leaves room for a

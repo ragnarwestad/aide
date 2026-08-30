@@ -108,6 +108,12 @@ spec 283). The dashboard reads both forms, but a file that spells the
 same state two ways is a file whose own legend has stopped describing
 it.
 
+None of the three phases above ever ticks a row under a `## Acceptance
+criteria` heading, if `4-status.md` has one — never tick that section.
+Those rows name the spec's own REQ-tagged acceptance criteria, and
+ticking one is a judgment only the person the spec is for can make
+(spec 285). Leave them exactly as you found them, in every phase.
+
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script
 writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block

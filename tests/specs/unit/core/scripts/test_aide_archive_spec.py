@@ -88,6 +88,13 @@ def checklist(rows):
     ])
 
 
+def acceptance(rows):
+    return "\n".join([
+        "## Acceptance criteria", "", "| Task | Status | Notes |",
+        "|------|--------|-------|", *rows, "", "---", "",
+    ])
+
+
 def status_md(claims="", body=""):
     text = "# X - Status\n\n## Tracking info\n\n"
     if claims:
@@ -336,6 +343,66 @@ def test_archiving_removes_a_stale_held_back_section(script, project, specs):
 
 
 # --- AC4: archive still refuses a spec that was never implemented ---------
+
+
+# --- the acceptance-criteria gate (spec 285) -------------------------------
+#
+# Scoped ONLY to a `## Acceptance criteria` section — never to the
+# ordinary Phase/Checklist rows AC3 above already lets through
+# regardless of their own tick state. These rows are for a person to
+# judge, and archive refuses until every one of them is ticked.
+
+
+def test_unticked_acceptance_criteria_row_blocks_archive(script, project, specs):
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert (specs / "81-x").exists(), "an unticked acceptance-criteria row must block the move"
+
+
+def test_fully_ticked_acceptance_criteria_archives_normally(script, project, specs):
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ✅ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+    assert (specs / "archive" / "81-x").exists()
+
+
+def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
+    """REQ-4: a spec with no `## Acceptance criteria` section behaves
+    exactly as it did before this spec — implement present is enough."""
+    configure(project, specs)
+    body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+
+
+def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, specs):
+    """REQ-6: a spec whose acceptance-criteria row is never ticked stays
+    blocked indefinitely — the refusal is not a one-time hiccup, it
+    repeats on every later archive run until a person ticks the row."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    rc1, out1, _ = run(script, project, "81-x")
+    rc2, out2, _ = run(script, project, "81-x")
+    assert out1["terminalReason"] == "acceptance-criteria-unticked", out1
+    assert out2["terminalReason"] == "acceptance-criteria-unticked", out2
+    assert (specs / "81-x").exists()
 
 
 def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, project, specs):
