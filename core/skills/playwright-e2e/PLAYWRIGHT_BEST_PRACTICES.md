@@ -227,9 +227,8 @@ export class HomePage {
 
 Metodenavn skal gjenspeile **brukerens intensjon og UI-elementet**, ikke teknisk
 implementasjon. Bruk konsistente verb-prefikser. (Tabellen under bruker engelske verb som
-en nøytral default — et prosjekt kan lokalisere prefiksene, men da konsekvent for HELE
-suiten. Melosys bruker f.eks. norske `klikk/input/velg/verifiser` — se
-`melosys-web-e2e-testing`.)
+en nøytral default — et prosjekt kan lokalisere prefiksene (f.eks. norske
+`klikk/input/velg/verifiser`), men da konsekvent for HELE suiten.)
 
 | UI-element / handling | Konvensjon | Eksempel |
 |----------------------|------------|----------|

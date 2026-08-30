@@ -5,8 +5,6 @@ description: >-
   rolle-baserte locators, auto-waiting, test-isolasjon, mocking og soft assertions.
   Use when: skriver eller endrer Playwright E2E-tester i et hvilket som helst prosjekt.
   Do NOT use for: enhetstester (Vitest/Jest), manuell testing, backend-tester.
-  Merk: for Melosys-spesifikke POM-navnekonvensjoner (klikk/input/velg + saksnummer,
-  testdataUtils), bruk `melosys-web-e2e-testing` i stedet/i tillegg.
 effort: medium
 ---
 
@@ -80,6 +78,5 @@ Disse gjelder i ALLE prosjekter. Detaljer og eksempler i
 
 - **Skal skrive/endre tester?** Følg Steg 0 + Arbeidsflyt over, les PLAYWRIGHT_BEST_PRACTICES.md.
 - **Skal bruke/lage POM?** Les PLAYWRIGHT_BEST_PRACTICES.md §9 (struktur, arkitekturregler,
-  navnekonvensjoner). For Melosys: bruk `melosys-web-e2e-testing` (norske navnekonvensjoner
-  + saksnummer + testdataUtils).
+  navnekonvensjoner).
 - **Enhetstester (Vitest/Jest)?** Feil skill — dette er kun E2E.

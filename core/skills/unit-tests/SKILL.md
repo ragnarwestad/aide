@@ -7,8 +7,7 @@ description: >-
   Use when: skal generere manglende enhetstester for en fil, skal øke testdekning i et
   hvilket som helst prosjekt.
   Do NOT use for: TDD-implementering av ny funksjonalitet (egen flyt), E2E-tester (bruk
-  `playwright-e2e`), ren kode-review. For Melosys-spesifikk stil (RTL/MockK/«frontend
-  kodestandard»): bruk `aide-lag-tester`.
+  `playwright-e2e`), ren kode-review.
 argument-hint: "[fil-path]"
 effort: high
 ---
