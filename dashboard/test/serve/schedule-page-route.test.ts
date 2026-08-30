@@ -54,6 +54,15 @@ describe("GET /schedule (spec 272)", () => {
     expect(html2).not.toContain("nightly-report");
   });
 
+  // The nav tab beside the heading already says "Schedule" — the page's
+  // own title used to repeat it, which read as the same word twice.
+  test("the page's own heading says Jobs, not Schedule again", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN } });
+    const html = await (await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).toContain("<h1>Jobs</h1>");
+    expect(html).not.toContain("<h1>Schedule</h1>");
+  });
+
   test("with no ?project=, the first allowed project (alphabetically) is selected", async () => {
     const { base, dir } = harness.start({
       extra: { queueToken: TOKEN, queueProjects: ["aide", "other"] },
@@ -115,6 +124,19 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     writeSchedule(dir, "aide", NIGHTLY);
     const res = await fetch(`${base}/schedule/aide/ghost`, { headers: { "x-aide-token": TOKEN } });
     expect(res.status).toBe(404);
+  });
+
+  // The page's own body used to repeat the entry's name as a second
+  // `<h1>`, on top of the one `pageShell` already draws from the same
+  // string — the name read twice, once above the Back link and once
+  // below it.
+  test("the entry's name is the page's ONE heading, not drawn twice", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeSchedule(dir, "aide", NIGHTLY);
+    const html = await (
+      await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
+    expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
   });
 });
 

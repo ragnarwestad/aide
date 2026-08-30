@@ -32,7 +32,10 @@ export interface SchedulePageOptions {
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
   const body = `<main>${renderScheduleList(opts)}</main>`;
-  return pageShell("Schedule", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, { script: opts.script });
+  // "Jobs", not "Schedule" — the nav tab beside this heading already
+  // says "Schedule"; repeating it as the page's own title read as the
+  // same word twice in a row.
+  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, { script: opts.script });
 }
 
 export interface ScheduleDetailPageOptions {
@@ -58,8 +61,11 @@ export function renderScheduleDetailPage(
     tab === "history"
       ? renderScheduleHistory(opts.history)
       : renderScheduleOverview(opts.project, opts.entry, { token: opts.token, error: opts.error });
-  const banner = `<h1>${esc(opts.entry.name)}</h1>`;
-  const body = tabbedBody(banner, bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
+  // No banner of its own: `pageShell` below already draws the entry's
+  // name as the page's one heading (spec-page.ts's own `banner` is a
+  // status chip and its actions, never the name again, for the same
+  // reason — the name repeated here read as the title twice).
+  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, { script: opts.script });
 }
 
