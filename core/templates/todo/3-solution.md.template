@@ -132,9 +132,12 @@ works today — not which files change (those are listed under Scope).
 ## Acceptance criteria
 
 Each criterion is a testable given/when/then scenario. The RED phase
-writes at least one failing test per criterion.
+writes at least one failing test per criterion. When 1-description.md
+lists REQ-n requirements, each criterion opens with the REQ-id it
+covers (`**REQ-1** — Given ...`); every REQ-id must be covered by at
+least one criterion.
 
-1. **Given** [precondition] **when** [action] **then** [expected outcome]
+1. **REQ-1** — **Given** [precondition] **when** [action] **then** [expected outcome]
 2. **Given** [precondition] **when** [action] **then** [expected outcome]
 
 ---

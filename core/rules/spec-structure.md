@@ -82,6 +82,13 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 
 [Description copied from JIRA or written by the developer]
 
+---
+
+## Requirements (optional)
+
+- **REQ-1:** The system SHALL ...
+- **REQ-2:** The system SHALL ...
+
 ```
 
 **Key points:**
@@ -112,6 +119,21 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   merge from the page triggers one). It is cancellable like anything
   queued. A run started by hand still gets the immediate refusal —
   there is no scheduler there to park it against
+- Requirements is OPTIONAL: a flat bullet list, id in bold
+  (`**REQ-n:**`), one SHALL sentence per id — no table, no nested
+  lists, so both the definition (`^- \*\*REQ-\d+:\*\*`) and any
+  reference (`REQ-\d+`) stay grep-able with a plain regex
+- REQ-n ids are additive only: once written, never renumbered or
+  reused, even if later dropped — same philosophy as 4-status.md's
+  `Workflow steps completed` line
+- JIRA mode: never add or suggest a Requirements section — the Problem
+  text is external and verbatim. TODO mode: the session already
+  authors the Problem text from scratch, so it also attempts the
+  Requirements section as part of that same authoring step — see the
+  aide-create skill
+- `/aide-analyze` never retrofits a Requirements section into an
+  existing `1-description.md` on its own initiative — only original
+  authoring (via `/aide-create`) adds one
 
 ---
 
@@ -496,6 +518,7 @@ now.
 | Content                 | Location         |
 |-------------------------|------------------|
 | Problem description     | 1-description.md |
+| Requirements (REQ-n, optional) | 1-description.md |
 | Metadata                | 1-description.md |
 | Mapping/findings        | 2-analysis.md    |
 | Scope (files, estimate) | 3-solution.md    |

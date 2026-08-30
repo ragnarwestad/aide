@@ -18,7 +18,7 @@
 
 {{DESCRIPTION}}
 
-_(This field can be edited manually to add extra context or clarifications and will not be overwritten by aide commands)_
+_(This field can be edited manually to add extra context or clarifications and will not be overwritten by aide commands. It may include an optional `## Requirements` section with REQ-n SHALL statements — see the spec-structure rule § 1-description.)_
 
 ---
 
