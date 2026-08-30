@@ -69,8 +69,10 @@ describe("an archived spec's row", () => {
     expect(row).not.toContain(">ready<");
   });
 
-  // `startedCell` reads `g.createdAt`, which an archived row has none
-  // of: routed through it unmodified the cell would be a bare dash.
+  // `activeDurationCell` (the live row's own cell, spec 281) reads
+  // `g.totalDurationMs`, not a date — an archived row draws through
+  // `archiveDateCell` instead, which is what gives it the date fallback
+  // this cell has none of.
   test("its duration is in the column every row's date is in, with no date beside it", async () => {
     const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), STAMPED);
     const cell = row.slice(row.indexOf('data-col="started"'));

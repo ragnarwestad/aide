@@ -44,11 +44,6 @@ describe("filtering and sorting work on specs, not jobs", () => {
       filter: { open: "aide/aa-spec", ...filter },
     });
 
-  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
-    project: "aide",
-    specFolder,
-    ...extra,
-  });
 
 
   test("a spec with one job in flight is active, one with only finished jobs is not (criterion 8)", () => {
@@ -178,23 +173,32 @@ describe("filtering and sorting work on specs, not jobs", () => {
   const specOrder = (html: string) =>
     [...html.matchAll(/<tr class="[^"]*spechead[^"]*"[^>]*data-folder="([^"]+)"/g)].map((m) => m[1]);
 
-  // Spec 199: the group's place is its spec's CREATION date. `aa-spec`
-  // has the newest run of the three jobs here and is still second,
-  // because it was made first.
-  test("sorting by started uses the spec's creation date, not its jobs (criterion 13)", () => {
-    const html = page(
-      [
-        job("a1", "aa-spec", { state: "running", startedAt: "2026-08-16T08:00:00Z" }),
-        job("a2", "aa-spec", { state: "done", startedAt: "2026-08-16T12:00:00Z" }),
-        job("b1", "bb-spec", { state: "done", startedAt: "2026-08-16T10:00:00Z" }),
-      ],
-      { sort: "started" },
-      [
-        target("aa-spec", { createdAt: "2026-08-01T09:00:00Z" }),
-        target("bb-spec", { createdAt: "2026-08-05T09:00:00Z" }),
-      ],
-    );
-    expect(specOrder(html)).toEqual(["bb-spec", "aa-spec"]);
+  // Spec 199 put the group's place on its spec's CREATION date, so its
+  // own newest run could not move it. Spec 281 moves it again, onto the
+  // spec's summed duration — still one figure per SPEC, not per job:
+  // `aa-spec`'s TWO jobs (analyze then implement, 8 minutes together)
+  // outrank `bb-spec`'s single, more RECENT one (5 minutes), whatever
+  // either spec's jobs' own timestamps say.
+  test("sorting by started uses the spec's summed duration, not its jobs' recency (criterion 13)", () => {
+    const html = page([
+      job("a1", "aa-spec", {
+        state: "done",
+        startedAt: "2026-08-16T08:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T08:03:00Z" }],
+      }),
+      job("a2", "aa-spec", {
+        state: "done",
+        steps: ["implement"],
+        startedAt: "2026-08-16T09:00:00Z",
+        results: [{ step: "implement", ok: true, costUsd: 2, at: "2026-08-16T09:05:00Z" }],
+      }),
+      job("b1", "bb-spec", {
+        state: "done",
+        startedAt: "2026-08-16T12:00:00Z",
+        results: [{ step: "analyze", ok: true, costUsd: 1, at: "2026-08-16T12:05:00Z" }],
+      }),
+    ], { sort: "started" });
+    expect(specOrder(html)).toEqual(["aa-spec", "bb-spec"]);
   });
 
   test("sorting by state uses the spec's representative state (criterion 13)", () => {

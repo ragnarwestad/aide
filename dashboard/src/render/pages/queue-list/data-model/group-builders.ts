@@ -255,10 +255,11 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     // The same roll-up shape as `spentUsd` above, over time instead of
     // money — and one figure per phase LINE, not per attempt: a phase
     // re-run three times contributes the attempt its line speaks for,
-    // the way the line's own cell does. Only once nothing is left to
-    // run, because a total of a spec still working is a number that
-    // will be wrong in a minute.
-    totalDurationMs: computeSpecTotalDurationMs(all, spec.done),
+    // the way the line's own cell does. Every SETTLED phase counts,
+    // whether or not the whole workflow is done (spec 281) — a phase
+    // still in flight contributes nothing of its own, live elapsed time
+    // excluded by `computeSpecTotalDurationMs` itself.
+    totalDurationMs: computeSpecTotalDurationMs(all),
     ...spec,
     // A create job has no target to read a title off — the spec it is
     // making is not on disk yet — so the job's own title is the row's.

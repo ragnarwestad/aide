@@ -2,7 +2,7 @@
 // duration, cost, and the marks an archived row's date cell carries.
 
 import { CHECKING, badge, pips, stepLabel } from "../../ui/components.ts";
-import { esc, relTime, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
+import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import {
   completedThirds,
   durationLabel,
@@ -64,17 +64,20 @@ export const phaseWordCell = (
   (w.badge ? badge(w.badge.variant, w.badge.label) : `<span class="muted small">not run yet</span>`) +
   (aside ? ` ${aside}` : "");
 
-/** The spec header row's own time cell: when the spec was made, and
- *  what its phases came to once they are all behind it (spec 199).
+/** The spec header row's own time cell: what its phases have come to so
+ *  far, summed (spec 199, spec 281).
  *
- *  The total rides BESIDE the date, in the cell that is already there.
- *  A column of its own would take its width from a heading, and this
- *  table has no width to give — the same constraint that put the
- *  attempt count beside a badge rather than under it. */
-export function startedCell(g: SpecGroup, now: number): string {
-  // A dash means git was asked and could not date the folder. Nobody
-  // having asked yet is a different cell (spec 208).
-  return g.createdAt ? relTime(g.createdAt, now) : g.freshnessUnknown ? CHECKING : "–";
+ *  Not "when the spec was made" any more — that read as a second,
+ *  unrelated clock next to Cost, which already sums live — and not
+ *  gated on the workflow being finished: a spec still missing a phase,
+ *  or stopped by an error, has genuinely spent whatever its settled
+ *  phases show, and this cell says so rather than a bare dash. */
+export function activeDurationCell(g: SpecGroup): string {
+  const ms = g.totalDurationMs ?? 0;
+  // Nothing recorded across every phase draws a dash — the same
+  // "nothing to show" rule `costCell()` already gives an all-zero spend.
+  if (ms <= 0) return "–";
+  return `<span class="archive-duration">${esc(durationLabel(ms))}</span>`;
 }
 
 /** One phase line's time cell: how long that phase took, or how long it
@@ -166,10 +169,11 @@ export function phasePips(phases: Phase[], done: string[]): string {
   );
 }
 
-/** The same column, a different question (spec 224): a locked row's date
- *  is when it was ARCHIVED. `startedCell` reads `g.createdAt`, which comes
- *  off a target — and an archived spec is no target, so that cell would be
- *  a bare dash on every row here.
+/** The same column as `activeDurationCell`, with a fallback that cell has
+ *  no use for (spec 224): a locked row with nothing summed falls back to
+ *  its ARCHIVE date rather than a bare dash, because an archived spec's
+ *  own duration comes from its phase files' `Time spent:` lines
+ *  (`readerGroup`) and can genuinely be absent for an older archive.
  *
  *  "checking…" is a spec nobody has ASKED git about; `date unknown` is
  *  one git was asked about and could not date. Two different answers,

@@ -7,7 +7,7 @@ import { esc } from "../../ui/html.ts";
 import { inFlight, restingChip } from "../../ui/job-state.ts";
 import type { QueuePageOptions } from "../queue-list.ts";
 import { ARCHIVED_STATE, ARCHIVED_OPEN_STATE, groupKey, isArchivedRow, type SpecGroup } from "./data-model.ts";
-import { archiveDateCell, costCell, notLandedTitle, phasePips, prOpenMark, startedCell, stateCell } from "./cell-helpers.ts";
+import { activeDurationCell, archiveDateCell, costCell, notLandedTitle, phasePips, prOpenMark, stateCell } from "./cell-helpers.ts";
 import { branchList, foldControl, stateAction } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 import { NOT_LANDED } from "./row-shared.ts";
@@ -228,15 +228,16 @@ export function specHeadRow(
       opened.has(groupKey(g.project, g.specFolder)),
     )}</span></span>` +
     `</td>` +
-    // When the spec was MADE, and — once nothing is left to run — how
-    // long its phases took (spec 199). The column used to hold the most
-    // recent job's own start, so every run threw the row to the top of
-    // a list sorted by it. A dash where git could not date the folder:
-    // deliberately not a job's time, which is the movement this change
-    // removes.
+    // How long the spec's phases have come to, summed (spec 199, spec
+    // 281). The column used to hold the most recent job's own start, so
+    // every run threw the row to the top of a list sorted by it — and
+    // later, the spec's own creation date instead, which stopped
+    // moving but stopped saying anything about the work either. A dash
+    // where nothing has settled yet: deliberately not a creation date,
+    // which is the text this change removes from this cell for good.
     (locked
       ? `<td class="archive-date" data-col="started">${archiveDateCell(g.archive!, g.totalDurationMs ?? 0)}</td>`
-      : `<td data-col="started">${startedCell(g, now)}</td>`) +
+      : `<td data-col="started">${activeDurationCell(g)}</td>`) +
     `<td class="num" data-col="cost">${costCell(g.spentUsd, g.spentTokens, "–", g.costUnmeasured)}</td>` +
     `</tr>`
   );
