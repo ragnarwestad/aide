@@ -16,6 +16,15 @@ COMMON_BIN_SCRIPTS="aide-generate-pdf aide-generate-html aide-preflight aide-emi
 # the installer, so it can be tested standalone — which means it needs
 # its own copy step, since the loop above only copies flat files.
 COMMON_BIN_HOOK_SCRIPTS="commit-msg-spec-guard"
+# status-progress.sh (spec 285): sourced by aide-run-spec and
+# aide-archive-spec via "$SCRIPT_DIR/lib/status-progress.sh". Missing
+# from COMMON_BIN_SCRIPTS (a flat-file copy into ~/.local/bin/ itself)
+# and never given its own copy step here either, so no installed
+# environment ever actually had it: `source ... && ...` silently no-ops
+# when the file is absent, leaving status_progress_for undefined and
+# every call to it a "command not found" that crashes aide-run-spec
+# under set -u before it can write a result.
+COMMON_BIN_LIB_SCRIPTS="status-progress.sh"
 _CORE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 install_common_bin() {
@@ -36,6 +45,14 @@ install_common_bin() {
       echo "   ✅ Installed: ~/.local/bin/hooks/$s"
     fi
   done
+  mkdir -p ~/.local/bin/lib
+  for s in $COMMON_BIN_LIB_SCRIPTS; do
+    if [ -f "$_CORE_SCRIPTS_DIR/lib/$s" ]; then
+      cp "$_CORE_SCRIPTS_DIR/lib/$s" ~/.local/bin/lib/
+      chmod +x ~/.local/bin/lib/"$s"
+      echo "   ✅ Installed: ~/.local/bin/lib/$s"
+    fi
+  done
 }
 
 uninstall_common_bin() {
@@ -50,6 +67,12 @@ uninstall_common_bin() {
     if [ -f "$HOME/.local/bin/hooks/$s" ]; then
       rm "$HOME/.local/bin/hooks/$s"
       echo "   ✅ Removed: ~/.local/bin/hooks/$s"
+    fi
+  done
+  for s in $COMMON_BIN_LIB_SCRIPTS; do
+    if [ -f "$HOME/.local/bin/lib/$s" ]; then
+      rm "$HOME/.local/bin/lib/$s"
+      echo "   ✅ Removed: ~/.local/bin/lib/$s"
     fi
   done
 }

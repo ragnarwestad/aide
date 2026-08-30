@@ -107,7 +107,7 @@ The prompt is the reliable signal of the two.
   append the proposal under a new `## Deferred documentation feedback`
   heading, one item per entry: the destination file and the exact text
   proposed, then write the result with `aide-write-spec --file
-  4-status.md` (never Write/Edit — spec 282; `aide-write-spec` resolves
+  4-status.md` (never Write/Edit; `aide-write-spec` resolves
   the folder under either the active specs root or its `archive/`
   subfolder automatically). Then continue straight to Step 3.
 

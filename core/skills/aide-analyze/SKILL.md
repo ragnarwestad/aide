@@ -106,7 +106,7 @@ real content), then write it with:
     SPEC_EOF
 
 Never use the Write or Edit tool on a spec file — `aide-write-spec` is
-the only legitimate path (spec 282). Follow the spec structure §
+the only legitimate path. Follow the spec structure §
 2-analysis. Include: Tracking info, mapping, affected files with
 file:line, API impact, test coverage.
 
@@ -122,7 +122,7 @@ findings are prefixed with the REQ-id(s) they support.
 
 Assemble the complete new text of `3-solution.md` the same way as Step 5,
 then write it with `aide-write-spec --file 3-solution.md` (never
-Write/Edit — spec 282). Follow the spec structure § 3-solution.
+Write/Edit). Follow the spec structure § 3-solution.
 
 Sections already filled in per Step 4 are left untouched.
 
@@ -173,7 +173,7 @@ must-fix check on missing coverage.
 
 Assemble the complete new text of `4-status.md` the same way as Step 5,
 then write it with `aide-write-spec --file 4-status.md` (never
-Write/Edit — spec 282). Follow the spec structure § 4-status.
+Write/Edit). Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 

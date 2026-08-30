@@ -519,12 +519,10 @@ now.
 
 #### Acceptance criteria (optional)
 
-Completes spec 268's own deferred plan, once spec 279 gave each
-acceptance criterion a REQ-id to hang a row on: when `1-description.md`
-has a `## Requirements` section and `3-solution.md`'s Acceptance
-criteria are REQ-tagged, `/aide-analyze` adds one more section to
-`4-status.md`, after the last implementation phase and before `##
-Notation`:
+When `1-description.md` has a `## Requirements` section and
+`3-solution.md`'s Acceptance criteria are REQ-tagged, `/aide-analyze`
+adds one more section to `4-status.md`, after the last implementation
+phase and before `## Notation`:
 
 ```markdown
 ## Acceptance criteria
@@ -540,8 +538,8 @@ no such section, no change to archiving.
 
 **These rows start unticked, and neither `/aide-implement` nor
 `/aide-analyze` ever ticks one.** Unlike the RED/GREEN/REFACTOR rows
-above (spec 268's own fix: nobody is asked to stamp work they did not do
-and cannot verify), an acceptance-criteria row names a judgment only the
+above (nobody is asked to stamp work they did not do and cannot
+verify), an acceptance-criteria row names a judgment only the
 person the spec is for can make — so it has an unambiguous human owner,
 and ticking it is the same one-click Overview-tab action any other
 recognized row already offers. Placing the section after the last
@@ -554,12 +552,11 @@ path for tickability.
 still unticked**, with `terminalReason: "acceptance-criteria-unticked"`
 — the one place a "must be ticked" gate exists in this file, and it is
 scoped to this section alone, never to the ordinary Phase/Checklist
-rows spec 268 already stopped gating on. A spec with no such section, or
-with every row in it ticked, archives exactly as it did before this
-section existed. A spec whose acceptance-criteria row is never ticked
-stays blocked indefinitely — deliberate, since the row's owner and its
-one-click resolution are both known, unlike spec 268's original rows,
-which had neither.
+rows. A spec with no such section, or with every row in it ticked,
+archives exactly as it did before this section existed. A spec whose
+acceptance-criteria row is never ticked stays blocked indefinitely —
+deliberate, since the row has a clear human owner and a one-click
+resolution.
 
 ---
 

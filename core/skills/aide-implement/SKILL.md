@@ -68,7 +68,7 @@ resume it at the first unticked task if it found it in progress.
 4. Run the tests — verify that they FAIL
 5. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
    written and confirmed to fail, not merely planned. Write the result
-   with `aide-write-spec --file 4-status.md` (never Write/Edit — spec 282)
+   with `aide-write-spec --file 4-status.md` (never Write/Edit)
 6. Report the RED result briefly and continue to GREEN
 
 ### Phase 2: GREEN — Implement until tests pass
@@ -79,7 +79,7 @@ resume it at the first unticked task if it found it in progress.
 4. Verify that the tests PASS
 5. Tick this phase's task rows in `4-status.md` as each one's tests turn
    green. Write the result with `aide-write-spec --file 4-status.md`
-   (never Write/Edit — spec 282)
+   (never Write/Edit)
 6. Report the GREEN result briefly and continue to REFACTOR
 
 ### Phase 3: REFACTOR — Quality check
@@ -94,7 +94,7 @@ resume it at the first unticked task if it found it in progress.
 5. Build
 6. Tick this phase's task rows in `4-status.md` as each check above
    passes. Write the result with `aide-write-spec --file 4-status.md`
-   (never Write/Edit — spec 282)
+   (never Write/Edit)
 7. Update 4-status.md — the "Run the full test suite" row's Notes cell
    names the command(s) that ran, and, when the project has `testScopes`
    naming a scope nothing changed in, says that scope was left untested.
@@ -103,16 +103,16 @@ resume it at the first unticked task if it found it in progress.
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
-together (`✅ Completed` is wrong the same way `Completed` alone is —
-spec 283). The dashboard reads both forms, but a file that spells the
+together (`✅ Completed` is wrong the same way `Completed` alone is
+wrong). The dashboard reads both forms, but a file that spells the
 same state two ways is a file whose own legend has stopped describing
 it.
 
 None of the three phases above ever ticks a row under a `## Acceptance
 criteria` heading, if `4-status.md` has one — never tick that section.
 Those rows name the spec's own REQ-tagged acceptance criteria, and
-ticking one is a judgment only the person the spec is for can make
-(spec 285). Leave them exactly as you found them, in every phase.
+ticking one is a judgment only the person the spec is for can make.
+Leave them exactly as you found them, in every phase.
 
 `aide-run-spec` writes `Workflow steps completed:` from the spec's own
 commits — leave that line exactly as you found it. The same script

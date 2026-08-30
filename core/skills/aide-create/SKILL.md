@@ -159,7 +159,7 @@ aide-create-spec --stamp-outcome --specs-root "<specs-root>" \
 
 so `1-description.md`'s own Tracking info carries this phase's `Model`
 and `Time spent` the same way the other three phases' files already do
-(spec 245) — before the file is staged, so the stamp lands in the same
+— before the file is staged, so the stamp lands in the same
 commit as the rest of the spec. A headless run skips this: `aide-run-spec`
 already performs the equivalent stamp itself once the whole run ends,
 and running it here too would just be overwritten by that later,

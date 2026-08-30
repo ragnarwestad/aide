@@ -1994,7 +1994,13 @@ if [ -n "$status_file" ]; then
       [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
     fi
     status_progress_for "$status_file"
-    if [ "$proj_changed" != "yes" ] || [ "$progress_done" -eq 0 ]; then
+    # progress_done is only a meaningful red flag when there was
+    # something TO tick (progress_total > 0). A status file with no
+    # Phase rows at all (progress_total=0) has nothing for this signal
+    # to say, and treating that as "nothing ticked" would flag a
+    # genuinely code-changing step as no-progress for a reason that
+    # never applied to it.
+    if [ "$proj_changed" != "yes" ] || { [ "$progress_total" -gt 0 ] && [ "$progress_done" -eq 0 ]; }; then
       terminal_reason="no-progress"
       ok="false"
       suffix=" (stopped: no-progress)"

@@ -2538,9 +2538,9 @@ def test_the_two_copies_of_the_worktree_link_denylist_agree(workspace_root):
     assert m, "aide-run-spec no longer declares WORKTREE_LINK_DENYLIST as a plain string"
     from_bash = set(m.group(1).split())
 
-    ts = (workspace_root / "dashboard" / "src" / "project-admin.ts").read_text()
+    ts = (workspace_root / "dashboard" / "src" / "project" / "project-admin" / "manifest-io.ts").read_text()
     m = re.search(r"export const WORKTREE_LINK_DENYLIST = \[(.*?)\] as const;", ts, re.S)
-    assert m, "project-admin.ts no longer declares WORKTREE_LINK_DENYLIST as a literal array"
+    assert m, "manifest-io.ts no longer declares WORKTREE_LINK_DENYLIST as a literal array"
     from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
     assert from_bash == from_ts, (
@@ -3423,9 +3423,9 @@ def test_the_two_copies_of_the_dependency_gate_agree(workspace_root):
     assert m, "aide-run-spec no longer declares DEPENDENCY_GATED_STEPS as a plain string"
     from_bash = set(m.group(1).split())
 
-    ts = (workspace_root / "dashboard" / "src" / "serve.ts").read_text()
+    ts = (workspace_root / "dashboard" / "src" / "serve" / "serve-helpers" / "config.ts").read_text()
     m = re.search(r"export const DEPENDENCY_GATED_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "serve.ts no longer declares DEPENDENCY_GATED_STEPS as a literal array"
+    assert m, "config.ts no longer declares DEPENDENCY_GATED_STEPS as a literal array"
     from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
     assert from_bash == from_ts, (
@@ -3986,12 +3986,15 @@ def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
     assert "costUsd" not in out or out.get("costUsd") == 0, out
 
 
-def test_archive_skips_the_model_when_a_row_is_genuinely_held_back(
+def test_archive_proceeds_past_an_in_progress_ordinary_row(
     runner, workspace, fake_claude
 ):
-    """Criterion 2. A row that is `🔄`/`❌`/`⚠️` — genuinely blocked, not
-    merely unstarted — declines the same way, and writes the `## Archive
-    held back` section itself rather than asking a model to."""
+    """Spec 268 stopped gating archive on ordinary Phase/Checklist rows —
+    only the `Workflow steps completed` line (has implement run at all)
+    and, when present, the `## Acceptance criteria` section are read. A
+    `🔄` row elsewhere is the implementer's own bookkeeping and no
+    longer holds anything back: archive proceeds and spawns the model
+    exactly as it would for a fully-ticked file."""
     body = (
         "# Queue - Status\n\n## Tracking info\n\n"
         f"- **Task:** `{workspace['folder']}/`\n"
@@ -4008,16 +4011,8 @@ def test_archive_skips_the_model_when_a_row_is_genuinely_held_back(
     rc, out, _ = run(runner, workspace, claude, command="archive")
     assert rc == 0, out
     assert out["ok"] is True, out
-    assert out["terminalReason"] == "held-back", out
-    assert not fake_claude.calls.exists(), "nothing to decide costs nothing"
-    # The decline is real, committed work — read off the BRANCH, not the
-    # main checkout, which this run never touches.
-    branch = "aide/81-queue-and-runner"
-    text = git(workspace["specs"], "show", f"{branch}:{workspace['folder']}/4-status.md")
-    assert "## Archive held back" in text, text
-    assert "the Slack webhook" in text, text
-    assert git(workspace["specs"], "log", "-1", "--format=%s", branch) \
-        .startswith("Run /aide-archive for 81-queue-and-runner")
+    assert out["terminalReason"] == "completed", out
+    assert fake_claude.calls.exists(), "an ordinary in-progress row must not skip the model"
 
 
 def test_the_declined_result_carries_the_full_shape_a_completed_run_has(
@@ -4092,9 +4087,9 @@ def test_the_two_copies_of_the_step_vocabulary_agree(workspace_root):
     assert m, "aide-run-spec no longer declares WORKFLOW_STEPS as a plain string"
     from_bash = set(m.group(1).split())
 
-    ts = (workspace_root / "dashboard" / "src" / "queue.ts").read_text()
+    ts = (workspace_root / "dashboard" / "src" / "queue" / "steps.ts").read_text()
     m = re.search(r"export const WORKFLOW_STEPS = \[(.*?)\] as const;", ts, re.S)
-    assert m, "queue.ts no longer declares WORKFLOW_STEPS as a literal array"
+    assert m, "steps.ts no longer declares WORKFLOW_STEPS as a literal array"
     from_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
     assert from_bash == from_ts, (
@@ -4123,12 +4118,12 @@ def test_the_three_copies_of_the_workflow_arc_agree(workspace_root):
     assert m, "aide-run-spec no longer declares WORKFLOW_ARC as a plain string"
     from_bash = set(m.group(1).split())
 
-    history_ts = (workspace_root / "dashboard" / "src" / "workflow-history.ts").read_text()
+    history_ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
     m = re.search(r"export const HISTORY_STEPS = \[(.*?)\];", history_ts, re.S)
     assert m, "workflow-history.ts no longer declares HISTORY_STEPS as a literal array"
     from_history_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
 
-    parse_status_ts = (workspace_root / "dashboard" / "src" / "parse-status.ts").read_text()
+    parse_status_ts = (workspace_root / "dashboard" / "src" / "project" / "parse-status.ts").read_text()
     m = re.search(r"const WORKFLOW_STEPS = \[(.*?)\];", parse_status_ts, re.S)
     assert m, "parse-status.ts no longer declares WORKFLOW_STEPS as a literal array"
     from_parse_status_ts = set(re.findall(r'"([^"]+)"', m.group(1)))
@@ -4371,15 +4366,20 @@ def with_status(workspace, claims=None, reopened=None, models=None, done=False):
     `models={step: value}` adds spec 217's per-step Model lines, in the
     place the runner writes them: directly under the steps line.
 
-    `done=True` (spec 251) gives the file one already-✅ Phase section, so
-    an `archive` run's own mechanical pre-check (core/scripts/
-    aide-archive-spec) reads the spec's work as finished — and therefore
-    still spawns the model for Step 4 — rather than declining before
-    anything runs. Every test in this file that runs `command="archive"`
-    against a bare `with_status()` file (no Phase section at all) needs
-    this, since a status file with nothing to read as "started" is
-    exactly the shape the mechanical check now declines on its own.
+    `done=True` (spec 251) gives the file one already-✅ Phase section AND
+    (unless `claims` already says otherwise) a `Workflow steps completed`
+    line naming `implement` — the mechanical pre-check
+    (core/scripts/aide-archive-spec) has read ONLY that line, never the
+    Phase tables, since spec 268; a `done=True` file that named no steps
+    would still be declined as `not-implemented-yet` before the Phase
+    content it sets up ever mattered. Every test in this file that runs
+    `command="archive"` against a bare `with_status()` file (no Phase
+    section at all) needs this, since a status file with nothing to read
+    as "started" is exactly the shape the mechanical check now declines
+    on its own.
     """
+    if done and claims is None:
+        claims = ["create", "analyze", "implement"]
     line = f"- **Workflow steps completed:** {', '.join(claims)}\n" if claims else ""
     for step, value in (models or {}).items():
         line += f"- **Model ({step}):** {value}\n"
@@ -4401,10 +4401,37 @@ def with_status(workspace, claims=None, reopened=None, models=None, done=False):
     subprocess.run(["git", "-C", str(workspace["specs"]), "commit", "-qm", "add status"], check=True)
 
 
-def already_ran(workspace, steps, **kw):
+def already_ran(workspace, steps, write_line=False, **kw):
     """Runner commits for steps that have already happened, on the specs
-    repo's default branch — where a landed step's commit lives."""
+    repo's default branch — where a landed step's commit lives.
+
+    `write_line=True` also rewrites `4-status.md`'s own `Workflow steps
+    completed:` line to name every step so far, the same way a real
+    run's own post-processing does — needed only by callers whose
+    scenario has `aide-archive-spec` (spec 268) read that line, since it
+    never reads git history. Off by default: most callers here rely on
+    the plain, content-free commits this always made, and several
+    scenarios (a stopped step, `review-plan`, spec-286-era rows) are
+    about exactly what the LINE does or does not say — writing it here
+    too would preempt the thing some of those tests exist to check.
+    """
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    done_so_far = []
     for step in steps:
+        done_so_far.append(step)
+        if write_line and status_path.exists():
+            text = status_path.read_text()
+            line = f"- **Workflow steps completed:** {', '.join(done_so_far)}"
+            if re.search(r"^- \*\*Workflow steps completed:\*\*.*$", text, re.M):
+                text = re.sub(r"^- \*\*Workflow steps completed:\*\*.*$", line, text, count=1, flags=re.M)
+            else:
+                text = text.replace(
+                    f"- **Task:** `{workspace['folder']}/`\n",
+                    f"- **Task:** `{workspace['folder']}/`\n{line}\n",
+                    1,
+                )
+            status_path.write_text(text)
+            subprocess.run(["git", "-C", str(workspace["specs"]), "add", "-A"], check=True)
         subprocess.run(
             ["git", "-C", str(workspace["specs"]), "commit", "-q", "--allow-empty",
              "-m", subject(step, workspace["folder"], **kw)],
@@ -4504,6 +4531,8 @@ def test_a_step_that_was_stopped_is_not_written_as_completed(runner, workspace, 
     not gain it."""
     with_status(workspace)
     already_ran(workspace, ["create", "analyze"])
+    import subprocess as sp
+
     claude = fake_claude(
         "cat > /dev/null\n"
         'echo "half-written" > "$PWD/half.txt"\n'
@@ -4607,7 +4636,7 @@ def test_an_archive_run_finds_the_status_file_it_just_moved(runner, workspace, f
     runner's commit loop, or the model, ever runs — so the path the line
     has to be written at is not the one the run started with."""
     with_status(workspace, done=True)
-    already_ran(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"], write_line=True)
     folder = workspace["folder"]
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive")
@@ -4730,7 +4759,7 @@ def test_the_two_copies_of_the_commit_subject_grammar_agree(workspace_root):
     assert m, "aide-run-spec no longer builds the subject regex as a plain string"
     from_bash = m.group(1).replace("${folder}", "FOLDER")
 
-    ts = (workspace_root / "dashboard" / "src" / "workflow-history.ts").read_text()
+    ts = (workspace_root / "dashboard" / "src" / "git" / "workflow-history.ts").read_text()
     m = re.search(r"const subjectPattern[^;]*?new RegExp\(\s*(.*?),?\s*\);", ts, re.S)
     assert m, "workflow-history.ts no longer builds the subject regex from template literals"
     from_ts = "".join(re.findall(r"`([^`]*)`", m.group(1)))
@@ -4992,7 +5021,7 @@ def test_an_archive_run_keeps_the_steps_line_and_adds_its_own_block(
     line AND gains the new outcome block for `archive` itself — with no
     `Model (create|analyze|implement):` lines written by this run."""
     with_status(workspace, done=True)
-    already_ran(workspace, ["create", "analyze", "implement"])
+    already_ran(workspace, ["create", "analyze", "implement"], write_line=True)
     folder = workspace["folder"]
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="archive",

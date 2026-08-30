@@ -10,7 +10,15 @@ status_progress_for() {   # sets $progress_done, $progress_total
   local file="$1" heading_filter="${2:-}" counts
   progress_done=0; progress_total=0
   [ -f "$file" ] || return 0
-  counts="$(awk -v filter="$heading_filter" '
+  # LC_ALL=C is load-bearing, not cosmetic: macOS's system awk compares
+  # two DIFFERENT multi-byte UTF-8 characters as EQUAL under a UTF-8
+  # locale ("⬜" == "✅" evaluates true) — every mark ends up counted as
+  # done regardless of what it actually is. Forcing the C locale makes
+  # awk compare raw bytes, which is exactly what an exact-mark check
+  # needs anyway. Verified directly: LC_ALL=C awk 'BEGIN{print ("⬜"=="✅")}'
+  # prints 0 only with this set; without it, the mark-counting rule is
+  # not just imprecise but inverted for large parts of the input.
+  counts="$(LC_ALL=C awk -v filter="$heading_filter" '
     /^## / {
       heading = $0; sub(/^## /, "", heading)
       rest = heading
@@ -40,7 +48,7 @@ status_progress_for() {   # sets $progress_done, $progress_total
       if (mark == "" || length(mark) > 30 || mark ~ /,/ || tolower(mark) == "status") next
       total++
       low = tolower(mark)
-      if (mark == "✅" || low == "completed" || low ~ /^(✅[ \t]*)?completed$/) done++
+      if (mark == "✅" || low == "completed" || low == "✅ completed") done++
     }
     END { printf "%d %d\n", done+0, total+0 }
   ' "$file" 2>/dev/null)"
