@@ -177,7 +177,11 @@ describe("every wide table scrolls inside its own box", () => {
   // stacks them full-width at every screen size — a stronger guarantee
   // than a narrow-only wrap, not a narrower one.
   test("the inline project settings form's rows each take their own full-width line", () => {
-    expect(CSS).toMatch(/\.newspecform \.frow \{[^}]*flex-basis:\s*100%/);
+    // The selector picks up a comma-joined sibling now (spec 277's
+    // `.scheduledeleteform .frow`, reusing this same rule) — matched up
+    // to the `{`, not immediately after `.frow`, so a second selector
+    // sharing the rule does not itself break this assertion.
+    expect(CSS).toMatch(/\.newspecform \.frow[^{]*\{[^}]*flex-basis:\s*100%/);
   });
 
   test(".tablewrap is a scroll box at every width, like .specfile", () => {

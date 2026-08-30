@@ -106,7 +106,14 @@ export async function handlePageRoutes(
     // Only the projects the queue may run. A project taken out of the
     // allowlist keeps its jobs in the history (and in /api/queue), but
     // a row for it could only offer a Run that would be refused.
-    const listed = ctx.queue.list().filter((j) => ctx.allowed.has(j.project));
+    // A schedule job is not a spec (spec 259's own tracking key never
+    // resolves under the specs root — `parseJobRequest`'s exemption for
+    // it) and has no spec folder for a row's name link to point at:
+    // left in here it drew a row whose name linked to
+    // `/specs/<project>/schedule-<name>`, a 404, and an action button
+    // that got refused with "unknown specFolder" on every press. Its
+    // own history lives on `/schedule`'s detail page instead.
+    const listed = ctx.queue.list().filter((j) => ctx.allowed.has(j.project) && !j.specFolder.startsWith("schedule-"));
     if (url.searchParams.get("rows")) {
       // The sort cookie is written HERE as well as on the whole page,
       // and this is the one that matters: pressing a column heading

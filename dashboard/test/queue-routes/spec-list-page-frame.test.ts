@@ -51,6 +51,25 @@ describe("GET / (the spec list, HTML)", () => {
     expect(html.toLowerCase()).toContain("no runner");
   });
 
+  // A schedule job's tracking key (`schedule-<name>`, spec 259) is
+  // exempted from the specFolder-must-exist check so it can be enqueued
+  // at all — but nothing excluded it from this list, so it drew a row
+  // whose name linked to `/specs/aide/schedule-<name>`, a 404 (there is
+  // no such spec folder), and whose action buttons refused every press
+  // with "unknown specFolder". Its own history belongs on `/schedule`'s
+  // detail page, never here.
+  test("draws no row for a schedule job (spec 259/276/277)", async () => {
+    const { base } = start({ queueToken: TOKEN });
+    const headers = { "content-type": "application/json", accept: "application/json", "x-aide-token": TOKEN };
+    await fetch(`${base}/api/queue`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ project: "aide", specFolder: "schedule-nightly", steps: ["schedule"] }),
+    });
+    const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
+    expect(html).not.toContain("schedule-nightly");
+  });
+
   test("the blunt meta refresh is a no-JS fallback, not the mechanism", async () => {
     const { base } = start({ queueToken: TOKEN });
     const html = await (await fetch(`${base}/`, { headers: { "x-aide-token": TOKEN } })).text();
