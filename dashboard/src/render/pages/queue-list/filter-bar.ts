@@ -4,7 +4,7 @@
 // draws the rows themselves.
 
 import { NEW_SPEC_ROUTE } from "../site.ts";
-import { ICON_CHEVRON, ICON_SEARCH, filterPills } from "../../ui/components.ts";
+import { ICON_CHEVRON, ICON_SEARCH } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
 import {
   ARCHIVED_STATE,
@@ -42,40 +42,23 @@ export function queueHref(f: QueueFilter, patch: QueueFilter): string {
   return esc(q ? `/?${q}` : "/");
 }
 
-// What the page used to say in a paragraph above the list: how runs
-// work here. A front page does not open with four sentences a returning
-// reader has read, so the same facts sit behind a "?" beside the search
-// field instead (spec 261 moved it there from the filter chips' own
-// row). It is inside `#jobrows`, so it shuts again on the five-second
-// refresh, and fine for that: nothing here is being typed into.
+// What the page used to say in a separate paragraph under the search
+// field: what the search reads. Spec 289 moved it behind the "?" beside
+// the field instead, in place of the "how runs work" text that stood
+// here before — the one thing a reader cannot see about a filter is
+// what it looked in. It is inside `#jobrows`, so it shuts again on the
+// five-second refresh, and fine for that: nothing here is being typed
+// into.
 function runsHelp(): string {
   return (
-    `<details class="intro"><summary title="How runs work here" ` +
-    `aria-label="How runs work here">?</summary>` +
-    `<p>A few jobs run side by side here, each in a checkout of its own, ` +
-    `and never two on the same spec. Every step is bounded by its own ` +
-    `budget and a wall clock — a job that hits either cap is ` +
-    `<em>stopped</em>, not failed.</p></details>`
+    `<details class="intro"><summary title="What the search reads" ` +
+    `aria-label="What the search reads">?</summary>` +
+    `<p>Searches the ${SEARCHED.join(", the ")} — the whole description, ` +
+    `including the part the row does not show.</p></details>`
   );
 }
 
 export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOptions): string {
-  const chips = (
-    name: string,
-    label: string,
-    entries: { key: string; label: string; count: number; on: boolean; patch: QueueFilter }[],
-  ) =>
-    filterPills(
-      name,
-      label,
-      entries.map((e) => ({
-        label: e.label,
-        count: e.count,
-        on: e.on,
-        href: queueHref(f, e.patch),
-      })),
-    );
-
   const current = stateFilter(f.state).key;
   // Counts are of what the OTHER filter already allows, so the numbers
   // add up to the table you are looking at rather than to some list
@@ -103,31 +86,54 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
   const uncounted = (f.q ?? "").trim()
     ? 0
     : (opts.archived ?? []).filter((k) => !built.has(k)).length;
-  const states = chips(
-    "state",
-    // No caption: the chips look enough like the caption itself that
-    // "Show" beside them just read as one more, confusing chip.
-    "",
-    STATE_FILTERS.map((s) => ({
-      key: s.key,
-      label: s.label,
-      count:
-        counted.filter((g) => matchesState(s, g.state)).length +
-        (matchesState(s, ARCHIVED_STATE) ? uncounted : 0),
-      on: s.key === current,
-      // The DEFAULT entry is the one that travels as no value at all —
-      // by position, so moving a chip to the front moves this with it.
-      patch: { state: s.key === DEFAULT_STATE_FILTER.key ? "" : s.key },
-    })),
-  );
-
   // A chip per project stood here until 2026-08-23. It was one control
   // that grew with the machine: fine at two projects, unreadable at
   // twenty, and the dashboard now serves whatever a person has. Nothing
   // replaced it, deliberately — nobody had asked to filter by project,
   // and the list is short enough to read. Build something when the need
   // is real, and a dropdown is the shape that does not grow.
-  return `<div class="row">${states}</div>` + searchForm(f, opts);
+  return searchForm(f, opts, stateDropdown(f, current, counted, uncounted));
+}
+
+// One dropdown, six links, the same single-value `queueHref` merge the
+// chips used before it (spec 289) — checkbox-STYLED, not
+// checkbox-TYPED: a real `<input type="checkbox">` would tell assistive
+// tech "pick any number", and picking one here still replaces the other
+// five, exactly as a chip click always has (`2-analysis.md`'s REQ-3).
+// Labelled "State", not "Phases" (the working title REQ-7 asked to be
+// reconsidered): this page already calls this exact concept "State" —
+// the table's own column heading — and "Phase" already means the
+// create/analyze/implement/archive workflow step two columns over.
+function stateDropdown(
+  f: QueueFilter,
+  current: string,
+  counted: SpecGroup[],
+  uncounted: number,
+): string {
+  const options = STATE_FILTERS.map((s) => {
+    const on = s.key === current;
+    const count =
+      counted.filter((g) => matchesState(s, g.state)).length +
+      (matchesState(s, ARCHIVED_STATE) ? uncounted : 0);
+    // The DEFAULT entry is the one that travels as no value at all — by
+    // position, so moving it to the front moves this with it.
+    const href = queueHref(f, { state: s.key === DEFAULT_STATE_FILTER.key ? "" : s.key });
+    return (
+      `<a data-nav href="${href}"${on ? ' aria-current="true"' : ""}>` +
+      `<span class="check" aria-hidden="true"></span>${esc(s.label)} (${count})</a>`
+    );
+  }).join("");
+  const chosen = STATE_FILTERS.find((s) => s.key === current)!;
+  // No count on the TRIGGER — only inside the open panel, beside each
+  // option, exactly like the chips did. A reader who wants the count
+  // opens the panel; keeping the closed trigger to "State: <label>" is
+  // what the mobile row's tight nowrap budget can afford.
+  return (
+    `<details class="menu state" data-filter="state">` +
+    `<summary title="State" aria-label="State">State: ${esc(chosen.label)}${ICON_CHEVRON}</summary>` +
+    `<div class="menupanel">${options}</div>` +
+    `</details>`
+  );
 }
 
 /** The search field (spec 221). It came off `/archive`, which had the
@@ -139,14 +145,19 @@ export function filterBar(groups: SpecGroup[], f: QueueFilter, opts: QueuePageOp
  *  can be pasted to someone else. A GET form REPLACES the query string,
  *  so everything else in the view travels as hidden fields — without
  *  them, searching would silently throw away the chip and the column the
- *  reader had just chosen. */
-function searchForm(f: QueueFilter, opts: QueuePageOptions): string {
+ *  reader had just chosen. `state` is one of those fields, unchanged by
+ *  spec 289: it still travels as a hidden field like every other filter
+ *  key, so a plain "Search" press with no JavaScript preserves whichever
+ *  state filter is active instead of silently resetting to the
+ *  default. */
+function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string): string {
   const keep = FILTER_KEYS.filter((k) => k !== "q")
     .map((k) => (f[k] ? `<input type="hidden" name="${k}" value="${esc(f[k]!)}">` : ""))
     .join("");
   const q = (f.q ?? "").trim();
   return (
     `<form class="specsearch" method="get" action="/">` +
+    state +
     // No caption over the field: the button beside it says Search, and
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).
@@ -172,11 +183,7 @@ function searchForm(f: QueueFilter, opts: QueuePageOptions): string {
     `<button class="btn" type="submit">Search</button>` +
     runsHelp() +
     newSpecLink(opts) +
-    `</form>\n` +
-    // Said out loud, because the one thing a reader cannot see about a
-    // filter is what it looked in.
-    `<p class="muted small listnote">Searches the ${SEARCHED.join(", the ")} — the whole ` +
-    `description, including the part the row does not show.</p>\n`
+    `</form>\n`
   );
 }
 
