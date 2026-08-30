@@ -5,14 +5,13 @@
 // no-JS redirect back to the list.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
-import { deleteSchedulePath } from "../../render.ts";
+import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render.ts";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
-const listPath = (project: string): string => `/schedule?project=${encodeURIComponent(project)}`;
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -58,7 +57,7 @@ export async function handleScheduleAdminRoutes(
     // never refused for missing confirmation.
     const enabled = body.enabled === "1" || body.enabled === true;
     const result = setScheduleEnabled(ctx.machineryProjectDir(project), name, enabled);
-    const back = listPath(project);
+    const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true, enabled }) : specsRedirect(body, undefined, back);
   }
@@ -72,7 +71,7 @@ export async function handleScheduleAdminRoutes(
     // A thin wrapper over the same enqueue/tick pair `refreshSchedules`
     // itself calls (acceptance criterion 9) — no new mechanism.
     const result = ctx.queue.enqueue({ project, specFolder: scheduleTrackingKey(name), steps: ["schedule"] });
-    const back = listPath(project);
+    const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect({}, { error: result.error }, back);
     await ctx.tickRunner();
     return wantsJson ? json({ ok: true, job: result.job }) : specsRedirect({}, undefined, back);
@@ -94,7 +93,7 @@ export async function handleScheduleAdminRoutes(
     }
     const result = deleteScheduleEntry(ctx.machineryProjectDir(project), name);
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, listPath(project));
+    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }
 
   const editPost = path.match(/^\/api\/queue\/schedule\/([^/]+)\/([^/]+)$/);
@@ -109,25 +108,28 @@ export async function handleScheduleAdminRoutes(
     const result = updateScheduleEntry(ctx.machineryProjectDir(project), name, {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
     });
-    const back = listPath(project);
+    const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
   }
 
-  const createPost = path.match(/^\/api\/queue\/schedule\/([^/]+)$/);
-  if (createPost) {
+  // Project-agnostic, like `/api/queue/create` (spec 278): no
+  // per-resource segment left to key on, so the route validates the
+  // body's own `project` claim against the allowlist instead of a URL
+  // segment — same `ctx.allowed.has(project)` guard every other route
+  // in this file already runs, checked before any read or write.
+  if (path === "/api/queue/schedule") {
     if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
-    const project = decodeURIComponent(createPost[1]!);
-    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const sent = await readJsonBody(req);
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
+    const project = str(body.project);
+    if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const result = createScheduleEntry(ctx.machineryProjectDir(project), {
       name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
     });
-    const back = listPath(project);
-    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
-    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
+    if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
+    return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }
 
   return null;

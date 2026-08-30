@@ -5,12 +5,13 @@
    with no type error to catch it. */
 
 .row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
-/* The `/schedule` list's own head row (spec 276): the project selector
-   and the New-job button, unstyled since the page shipped — sat
-   cramped edge to edge with no gap from each other or from the table
-   beneath. Same shape `.row` already gives everything else. */
-.schedulehead { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); }
-.scheduleprojects { display: flex; align-items: center; gap: var(--sp-1); }
+/* The `/schedule` list's own New-job link (spec 278): `.specsearch` has
+   no `details.intro` here to carry the right-aligning margin the way it
+   does on the Specs list (`.specsearch > details.intro`, below) — a
+   bare `.specsearch > .btn.primary` rule would also reach the Specs
+   page's own New-spec link, so this class is scoped to `/schedule`
+   alone. */
+.schedulenewlink { margin-left: auto; }
 /* The row's one action keeps its place whatever it currently is. The
    label changes with the state — Analyze, Implement, Cancel — and a
    box that grew with it moved the columns to its right on every

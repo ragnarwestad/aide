@@ -31,16 +31,16 @@ function readSchedule(dir: string, project: string) {
 const TOKEN = "s3cret-token";
 const asJson = { headers: { accept: "application/json", "x-aide-token": TOKEN } };
 
-describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () => {
-  test("a valid entry is created", async () => {
+describe("POST /api/queue/schedule — create, project read from the body (spec 278, criteria 5, 6, 7, 13, 14)", () => {
+  test("a valid entry naming an allowed project is created in that project's manifest (criterion 13)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
     expect(res.status).toBe(200);
     expect(readSchedule(dir, "aide")).toEqual([
@@ -66,11 +66,11 @@ describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () 
     // The reader's own checkout carries no such file at all — proving
     // the write did not fall back to it.
     writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
     expect(res.status).toBe(200);
     const ownedManifest = parseManifest(readFileSync(join(owned, ".aide", "project.yaml"), "utf-8"));
@@ -86,11 +86,11 @@ describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () 
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const before = readFileSync(manifestPath(dir, "aide"), "utf-8");
-    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 4 * * *", prompt: "docs-nightly.md" }),
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 4 * * *", prompt: "docs-nightly.md" }),
     });
     expect(res.status).toBe(400);
     expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).toBe(before);
@@ -99,11 +99,11 @@ describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () 
   test("a missing prompt path is refused, naming the path (criterion 6)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
     writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "missing.md" }),
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "missing.md" }),
     });
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -114,25 +114,27 @@ describe("POST /api/queue/schedule/<project> — create (criteria 5, 6, 7)", () 
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
     writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
     writeManifest(dir, "aide", "name: aide\n");
-    const res = await fetch(`${base}/api/queue/schedule/aide`, {
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }),
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "not-a-cron", prompt: "docs-nightly.md" }),
     });
     expect(res.status).toBe(400);
     expect(readSchedule(dir, "aide")).toEqual([]);
   });
 
-  test("an unknown project is refused", async () => {
-    const { base } = harness.start({ extra: { queueToken: TOKEN } });
-    const res = await fetch(`${base}/api/queue/schedule/ghost-project`, {
+  test("a project the allowlist does not contain is refused (400) before any write (criterion 14)", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule`, {
       method: "POST",
       ...asJson,
       headers: { ...asJson.headers, "content-type": "application/json" },
-      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
+      body: JSON.stringify({ project: "ghost-project", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md" }),
     });
     expect(res.status).toBe(400);
+    expect(readSchedule(dir, "aide")).toEqual([]);
   });
 });
 
@@ -256,7 +258,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
     expect(readFileSync(manifestPath(dir, "aide"), "utf-8")).not.toContain("schedule:");
   });
 
-  test("a no-script POST redirects to /schedule?project=<project> on success, never /projects or / (criterion 10)", async () => {
+  test("a no-script POST redirects to /schedule on success, never /projects or / (criterion 10)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
     writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
     const res = await fetch(`${base}/api/queue/schedule/aide/nightly/delete?token=${TOKEN}`, {
@@ -266,7 +268,7 @@ describe("POST /api/queue/schedule/<project>/<name>/delete (spec 277)", () => {
       body: new URLSearchParams({ confirm: "nightly" }).toString(),
     });
     expect(res.status).toBe(303);
-    expect(res.headers.get("location")).toBe("/schedule?project=aide");
+    expect(res.headers.get("location")).toBe("/schedule");
     expect(readSchedule(dir, "aide")).toEqual([]);
   });
 

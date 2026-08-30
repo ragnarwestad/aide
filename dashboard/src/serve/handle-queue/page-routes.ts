@@ -465,45 +465,43 @@ export async function handlePageRoutes(
   if (path === SCHEDULE_ROUTE) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
     const outputRoot = ctx.opts.scheduleOutputRoot ?? DEFAULT_SCHEDULE_OUTPUT_ROOT;
-    // A project selector (spec 276): the list shows ONE project's own
-    // entries at a time, and "New job" is scoped to it — never every
-    // allowed project's entries at once, which spec 272's own aggregate
-    // view did. `?project=` names which; an unknown or absent name
-    // falls back to the first allowed project, alphabetically.
+    // Every allowed project's entries, flattened together (spec 278) —
+    // no per-project filter, mirroring how the Specs list's own
+    // `listed` array is every allowed project's jobs at once.
     const projects = [...ctx.allowed].sort();
-    const requested = url.searchParams.get("project") ?? undefined;
-    const selectedProject = requested && projects.includes(requested) ? requested : projects[0];
-    const rows = selectedProject
-      ? resolveSchedule(ctx.machineryProjectDir(selectedProject)).map((entry) => {
-          const key = scheduleTrackingKey(entry.name);
-          const jobs = ctx.queue.list().filter((j) => j.project === selectedProject && j.specFolder === key);
-          const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
-          const outputExists = existsSync(join(scheduleOutputDir(outputRoot, selectedProject, key), "index.html"));
-          return {
-            project: selectedProject,
-            entry,
-            lastState: last?.state,
-            outputHref: outputExists ? `/schedule-output/${selectedProject}/${key}/index.html` : undefined,
-          };
-        })
-      : [];
+    const rows = projects.flatMap((project) =>
+      resolveSchedule(ctx.machineryProjectDir(project)).map((entry) => {
+        const key = scheduleTrackingKey(entry.name);
+        const jobs = ctx.queue.list().filter((j) => j.project === project && j.specFolder === key);
+        const last = jobs.sort((a, b) => (b.startedAt ?? b.createdAt).localeCompare(a.startedAt ?? a.createdAt))[0];
+        const outputExists = existsSync(join(scheduleOutputDir(outputRoot, project, key), "index.html"));
+        return {
+          project,
+          entry,
+          lastState: last?.state,
+          lastRunAt: last?.startedAt ?? last?.createdAt,
+          outputHref: outputExists ? `/schedule-output/${project}/${key}/index.html` : undefined,
+        };
+      }),
+    );
     const html = renderSchedulePage(ctx.nav(), new Date().toISOString(), {
       projects,
-      selectedProject,
       rows,
       token: ctx.queueToken,
       script: await queueClientScript(),
+      filter: {
+        q: url.searchParams.get("q") ?? undefined,
+        sort: url.searchParams.get("sort") ?? undefined,
+        dir: (url.searchParams.get("dir") as "asc" | "desc" | null) ?? undefined,
+      },
     });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
 
-  const newSchedulePage = path.match(/^\/schedule\/([^/]+)\/new$/);
-  if (newSchedulePage) {
+  if (path === "/schedule/new") {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });
-    const project = decodeURIComponent(newSchedulePage[1]!);
-    if (!ctx.allowed.has(project)) return new Response("not found", { status: 404 });
     const html = renderNewSchedulePage(ctx.nav(), new Date().toISOString(), {
-      project,
+      projects: [...ctx.allowed].sort(),
       token: ctx.queueToken,
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
@@ -529,9 +527,6 @@ export async function handlePageRoutes(
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
 
-  // Checked after `/new` above, which is otherwise indistinguishable
-  // from an entry literally named "new" — the same one-segment-name
-  // shape.
   const scheduleDetailPage = path.match(/^\/schedule\/([^/]+)\/([^/]+)$/);
   if (scheduleDetailPage) {
     if (req.method !== "GET") return new Response("method not allowed", { status: 405 });

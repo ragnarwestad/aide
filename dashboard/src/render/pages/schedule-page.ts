@@ -1,8 +1,8 @@
-// /schedule (spec 272, extended spec 276): the project-scoped list, an
-// entry's own detail page (Overview/History tabs) and the New-job
-// page — composed from schedule-page/*. A project selector controls
-// what the list shows, and "New job" is scoped to it: configuring,
-// monitoring and editing all live here, never on a project's own page.
+// /schedule (spec 272, extended spec 276, reworked spec 278): the list
+// of every allowed project's entries at once, an entry's own detail
+// page (Overview/History tabs) and the New-job page — composed from
+// schedule-page/*. Configuring, monitoring and editing all live here,
+// never on a project's own page.
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
@@ -10,22 +10,23 @@ import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { renderScheduleForm } from "./schedule-page/form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
-import { renderScheduleList, type SchedulePageRow } from "./schedule-page/list.ts";
+import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./schedule-page/list.ts";
 import { renderScheduleOverview } from "./schedule-page/overview.ts";
 import { deleteSchedulePath, newSchedulePath, schedulePagePath, SCHEDULE_TABS, scheduleTabPath, type ScheduleTab } from "./schedule-page/tabs.ts";
 import { pickTab, tabBar, tabbedBody } from "./job-page.ts";
 
 export { SCHEDULE_TABS, deleteSchedulePath, newSchedulePath, schedulePagePath, scheduleTabPath };
-export type { SchedulePageRow, ScheduleHistoryRow, ScheduleTab };
+export type { SchedulePageRow, ScheduleFilter, ScheduleHistoryRow, ScheduleTab };
 
 export const SCHEDULE_ROUTE = "/schedule";
 
 export interface SchedulePageOptions {
-  /** Every allowed project, for the selector. */
+  /** Every allowed project — decides only whether the New-job link is
+   *  offered. */
   projects: readonly string[];
-  selectedProject?: string;
-  /** Already scoped to `selectedProject`. */
+  /** Every allowed project's entries, flattened together. */
   rows: readonly SchedulePageRow[];
+  filter?: ScheduleFilter;
   token?: string;
   script?: string;
 }
@@ -104,20 +105,31 @@ export function renderDeleteSchedulePage(
 }
 
 export interface NewSchedulePageOptions {
-  project: string;
+  /** Every allowed project, offered on the form's own Project select.
+   *  Empty renders a fallback message instead of the form, the same
+   *  way `renderNewSpecPage`'s own `projects.length === 0` branch
+   *  does. */
+  projects: readonly string[];
   token?: string;
   script?: string;
   error?: string;
 }
 
 export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
+  // No manual `<h1>` here — `pageShell` already draws one from the
+  // title below, and the project-in-heading text this used to add
+  // duplicated it (2-analysis.md, Findings).
   const body =
-    `<main>${backLink(SCHEDULE_ROUTE)}<h1>New job — ${esc(opts.project)}</h1>` +
-    renderScheduleForm({
-      action: `/api/queue/schedule/${encodeURIComponent(opts.project)}`,
-      token: opts.token,
-      error: opts.error,
-    }) +
+    `<main>${backLink(SCHEDULE_ROUTE)}` +
+    (opts.projects.length
+      ? renderScheduleForm({
+          action: "/api/queue/schedule",
+          token: opts.token,
+          error: opts.error,
+          projects: opts.projects,
+        })
+      : `<p class="muted">No project on this machine may have a schedule entry made in it yet. ` +
+        `Add one on the Projects page first.</p>`) +
     `</main>`;
-  return pageShell("New job", nav, newSchedulePath(opts.project), body, generatedAt, undefined, { script: opts.script });
+  return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, { script: opts.script });
 }

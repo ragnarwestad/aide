@@ -18,6 +18,12 @@ export interface ScheduleFormOptions {
   action: string;
   token?: string;
   error?: string;
+  /** Present only on the New-job form (spec 278): every allowed
+   *  project, offered as a `<select>` the same way the New-spec form's
+   *  own Project field is (`new-spec-page.ts`). The Edit form on an
+   *  entry's own detail page keeps its project fixed from the URL and
+   *  never passes this. */
+  projects?: readonly string[];
 }
 
 export const CRON_NEXT_HOOK = "cron-next";
@@ -29,6 +35,12 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" data-cron-preview-url="/api/queue/schedule/cron-next">` +
     tokenField(opts.token) +
     `<p class="rowmsg warn scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
+    (opts.projects
+      ? field(
+          "Project",
+          `<select name="project">` + opts.projects.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") + `</select>`,
+        )
+      : "") +
     field("Name", `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
     field(
       "Cron",

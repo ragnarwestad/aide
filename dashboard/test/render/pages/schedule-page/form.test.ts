@@ -38,4 +38,20 @@ describe("renderScheduleForm", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule/aide", error: "a cron expression is required" });
     expect(html).toContain("a cron expression is required");
   });
+
+  test("a `projects` option renders a Project select with one option per project (spec 278, criterion 12)", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", projects: ["aide", "atlasaurus"] });
+    expect(html).toContain('<select name="project">');
+    expect(html).toContain('<option value="aide">aide</option>');
+    expect(html).toContain('<option value="atlasaurus">atlasaurus</option>');
+  });
+
+  test("omitting `projects` renders no Project select (the Edit form never passes it)", () => {
+    const html = renderScheduleForm({
+      entryName: "nightly",
+      entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md" },
+      action: "/api/queue/schedule/aide/nightly",
+    });
+    expect(html).not.toContain('<select name="project">');
+  });
 });

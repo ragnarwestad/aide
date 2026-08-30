@@ -7,8 +7,7 @@ export const schedulePagePath = (project: string, name: string): string =>
 export const scheduleTabPath = (project: string, name: string, tab: string): string =>
   `${schedulePagePath(project, name)}?tab=${encodeURIComponent(tab)}`;
 
-export const newSchedulePath = (project: string): string =>
-  `/schedule/${encodeURIComponent(project)}/new`;
+export const newSchedulePath = (): string => "/schedule/new";
 
 export const deleteSchedulePath = (project: string, name: string): string =>
   `${schedulePagePath(project, name)}/delete`;

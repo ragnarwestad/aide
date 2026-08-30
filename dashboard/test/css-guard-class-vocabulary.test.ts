@@ -156,11 +156,11 @@ const STRUCTURE = [
   // the description (spec 229). A class of its own for one rule: their
   // buttons sit a step lower than an ordinary form's do.
   "specform",
-  // /schedule (spec 276): the list's own head row (project selector +
-  // New job), the selector itself, the detail page's key/value
-  // overview, the create/edit form's error line, and the Cron field's
-  // input and its live "Next run" preview span.
-  "schedulehead", "scheduleprojects", "kv", "scheduleform-error", "cron-input", "cron-next",
+  // /schedule (spec 276, reworked spec 278): the New-job link's own
+  // right-alignment, the detail page's key/value overview, the
+  // create/edit form's error line, and the Cron field's input and its
+  // live "Next run" preview span.
+  "schedulenewlink", "kv", "scheduleform-error", "cron-input", "cron-next",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

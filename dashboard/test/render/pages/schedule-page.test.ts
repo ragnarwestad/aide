@@ -1,23 +1,26 @@
 import { describe, expect, test } from "bun:test";
 import { renderDeleteSchedulePage, renderSchedulePage } from "../../../src/render.ts";
+import { renderScheduleList } from "../../../src/render/pages/schedule-page/list.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
 
-describe("Schedule page (spec 272, extended spec 276)", () => {
-  test("the project selector lists every allowed project, and the selected one is marked", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () => {
+  test("rows from every allowed project appear together, in one table (criterion 1)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide", "atlasaurus"],
-      selectedProject: "atlasaurus",
-      rows: [],
+      rows: [
+        { project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } },
+        { project: "atlasaurus", entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true } },
+      ],
     });
-    expect(html).toContain('<option value="aide">aide</option>');
-    expect(html).toContain('<option value="atlasaurus" selected>atlasaurus</option>');
+    expect(html).toContain("nightly-report");
+    expect(html).toContain("weekly-check");
+    expect(html.match(/<table class="list"/g)?.length ?? 0).toBe(1);
   });
 
-  test("a row shows the name, next run, last state and output link, but not the cron itself (spec 276)", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+  test("a row's Name cell reads project:name and still links to the entry's own detail page (criterion 2)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],
-      selectedProject: "aide",
       rows: [
         {
           project: "aide",
@@ -27,17 +30,38 @@ describe("Schedule page (spec 272, extended spec 276)", () => {
         },
       ],
     });
-    expect(html).toContain("nightly-report");
+    expect(html).toContain('href="/schedule/aide/nightly-report">aide:nightly-report</a>');
     expect(html).toContain("done");
     expect(html).toContain("/schedule-output/aide/schedule-nightly-report/index.html");
     // Deliberately NOT on the list row — it moved to the detail page.
     expect(html).not.toContain("0 3 * * *");
   });
 
-  test("each row carries an Enabled toggle and a Run-now button (acceptance criteria 14, 15)", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+  test("no project selector remains: no <select name=\"project\"> and no .scheduleprojects form (criterion 3)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],
-      selectedProject: "aide",
+      rows: [{ project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } }],
+    });
+    expect(html).not.toContain('<select name="project">');
+    expect(html).not.toContain('class="scheduleprojects"');
+  });
+
+  test("?q= narrows to rows whose project:name or prompt path matches, case-insensitively (criterion 4)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+      projects: ["aide", "atlasaurus"],
+      rows: [
+        { project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } },
+        { project: "atlasaurus", entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true } },
+      ],
+      filter: { q: "AIDE" },
+    });
+    expect(html).toContain("nightly-report");
+    expect(html).not.toContain("weekly-check");
+  });
+
+  test("each row carries an Enabled toggle and a Run-now button (acceptance criteria 14, 15)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+      projects: ["aide"],
       rows: [
         {
           project: "aide",
@@ -52,34 +76,65 @@ describe("Schedule page (spec 272, extended spec 276)", () => {
   });
 
   test("a disabled entry's checkbox is unchecked", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],
-      selectedProject: "aide",
       rows: [{ project: "aide", entry: { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: false } }],
     });
     expect(html).not.toMatch(/scheduleenabled" checked/);
   });
 
-  test("the New job button links to the selected project's own new-entry page", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+  test("the New job link points at /schedule/new, with no project segment (criterion 11)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],
-      selectedProject: "aide",
       rows: [],
     });
-    expect(html).toContain('href="/schedule/aide/new"');
+    expect(html).toContain('href="/schedule/new"');
     expect(html).toContain("New job");
   });
 
-  test("given zero rows, the none-yet message appears and the page still renders", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", { projects: [], rows: [] });
-    expect(html.toLowerCase()).toContain("no project has a schedule entry yet");
+  test("given zero rows in any project, the exists-yet message appears, not the search-specific one (criterion 5)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", { projects: [], rows: [] });
+    expect(html).toContain("No schedule entry exists yet.");
+    expect(html).not.toContain("No schedule entry matches");
     expect(html).toContain("<html");
   });
 
-  test("a row's name links to the entry's own detail page", () => {
-    const html = renderSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+  test("given rows that exist but a search term matches none, the no-match message names the term (criterion 6)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],
-      selectedProject: "aide",
+      rows: [{ project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } }],
+      filter: { q: "ghost" },
+    });
+    expect(html).toContain("No schedule entry matches &quot;ghost&quot;.");
+    expect(html).not.toContain("No schedule entry exists yet.");
+  });
+
+  test("the default view (no ?sort=) orders rows by project:name ascending (criterion 7)", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+      projects: ["aide", "atlasaurus"],
+      rows: [
+        { project: "atlasaurus", entry: { name: "weekly-check", cron: "0 4 * * 0", prompt: "docs/weekly.md", enabled: true } },
+        { project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } },
+      ],
+    });
+    expect(html.indexOf("aide:nightly-report")).toBeLessThan(html.indexOf("atlasaurus:weekly-check"));
+  });
+
+  test("sort links and the search-clear control carry no data-nav attribute (criterion 10)", () => {
+    // `renderScheduleList` alone — `renderSchedulePage` wraps it in
+    // `pageShell`, whose own site-wide nav TABS legitimately carry
+    // `data-nav` and are not what this criterion is about.
+    const html = renderScheduleList({
+      projects: ["aide"],
+      rows: [{ project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } }],
+      filter: { q: "aide" },
+    });
+    expect(html).not.toContain("data-nav");
+  });
+
+  test("a row's name links to the entry's own detail page", () => {
+    const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+      projects: ["aide"],
       rows: [{ project: "aide", entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true } }],
     });
     expect(html).toContain('href="/schedule/aide/nightly-report"');
