@@ -53,6 +53,8 @@ Examples:
   project manifest gives deployment, logging and dependency context
   the analysis should use (refresh it with `/aide-manifest`)
 - Identify: What should change? What is the scope? Migration or single fix?
+- If `1-description.md` has a `## Requirements` section, extract its
+  `REQ-n` ids for Steps 5-7 — see `references/requirements-tracing.md`.
 
 ### Step 2: Detect complexity
 
@@ -103,6 +105,9 @@ Sections already filled in per Step 4 are left untouched.
 Nothing that judges the solution goes here — complexity, estimate and risk
 analysis belong to 3-solution.md (spec structure § Separation of content).
 
+When REQ-n ids exist, see `references/requirements-tracing.md` for how
+findings are prefixed with the REQ-id(s) they support.
+
 ### Step 6: Create the implementation plan (3-solution.md)
 
 Write to `specs/XX-slug/3-solution.md`. Follow the spec structure § 3-solution.
@@ -121,7 +126,8 @@ consequence, probability and mitigation.
 
 **Acceptance criteria:** testable given/when/then scenarios. Each criterion
 must be verifiable by a test — if you cannot phrase the test, the criterion
-is too vague.
+is too vague. When REQ-n ids exist, see `references/requirements-tracing.md`
+for how each criterion opens with the REQ-id it covers.
 
 **Name the test command the Scope's file list actually resolves to.** Run
 that list through the project's `testScopes` (the tools-and-scripts skill,
@@ -147,6 +153,9 @@ consolidation, and what gets written where).
 
 Skip this step only when `3-solution.md` is still an empty template —
 nothing was written in Step 6 to review.
+
+When REQ-n ids exist, see `references/requirements-tracing.md` for the
+must-fix check on missing coverage.
 
 ### Step 8: Update 4-status.md
 

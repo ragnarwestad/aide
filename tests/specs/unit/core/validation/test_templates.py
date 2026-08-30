@@ -233,6 +233,186 @@ class TestScopeComplexityRiskLiveInSolution:
 
 
 @pytest.mark.validation
+class TestRequirementsTracingIsDocumented:
+    """Spec 279: an optional Requirements/REQ-n section in 1-description.md,
+    threaded by /aide-analyze into 2-analysis.md findings, 3-solution.md
+    acceptance criteria, and a Step 7 must-fix traceability check.
+
+    Documentation-level only, per the spec's own scoping: no runtime code
+    reads 1-description.md, so nothing here constructs or parses a live
+    spec — only /aide-analyze's own in-session Step 7 can verify a real
+    REQ chain (3-solution.md § Testing, Unit tests).
+    """
+
+    @staticmethod
+    def _rule(workspace_root):
+        path = workspace_root / "core" / "rules" / "spec-structure.md"
+        if not path.exists():
+            pytest.skip("spec-structure.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _template(workspace_root, name):
+        path = workspace_root / "core" / "templates" / "todo" / name
+        if not path.exists():
+            pytest.skip(f"{name} not found")
+        return path.read_text()
+
+    @staticmethod
+    def _file_templates(workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-create"
+                / "references" / "file-templates.md")
+        if not path.exists():
+            pytest.skip("file-templates.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _skill(workspace_root, name):
+        path = workspace_root / "core" / "skills" / name / "SKILL.md"
+        if not path.exists():
+            pytest.skip(f"{name}/SKILL.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _requirements_tracing(workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-analyze"
+                / "references" / "requirements-tracing.md")
+        if not path.exists():
+            pytest.skip("requirements-tracing.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _plan_review(workspace_root):
+        path = (workspace_root / "core" / "skills" / "aide-analyze"
+                / "references" / "plan-review.md")
+        if not path.exists():
+            pytest.skip("plan-review.md not found")
+        return path.read_text()
+
+    @staticmethod
+    def _step(content, prefix):
+        headings = list(re.finditer(r"^### (.*)$", content, re.M))
+        for index, heading in enumerate(headings):
+            if heading.group(1).startswith(prefix):
+                end = (headings[index + 1].start()
+                       if index + 1 < len(headings) else len(content))
+                return content[heading.start():end]
+        raise AssertionError(f"no '### {prefix}' step found")
+
+    @staticmethod
+    def _section(content, prefix):
+        headings = list(re.finditer(r"^## (.*)$", content, re.M))
+        for index, heading in enumerate(headings):
+            if heading.group(1).startswith(prefix):
+                end = (headings[index + 1].start()
+                       if index + 1 < len(headings) else len(content))
+                return content[heading.start():end]
+        raise AssertionError(f"no '## {prefix}' section found")
+
+    # Criterion 1
+    def test_rule_documents_the_req_format(self, workspace_root):
+        block = structure_block(self._rule(workspace_root), "1-description")
+        assert "## Requirements" in block, \
+            "1-description's structure example must show a Requirements section"
+        assert "REQ-" in block and "SHALL" in block, \
+            "the Requirements example must use REQ-n ids and SHALL statements"
+
+    def test_rule_key_points_state_additive_ids_and_jira_never_adds(self, workspace_root):
+        content = self._rule(workspace_root)
+        start = content.index("\n### 1-description\n")
+        end = content.index("\n### 2-analysis\n", start)
+        key_points = content[content.index("**Key points:**", start):end]
+        lowered = key_points.lower()
+        assert "optional" in lowered, \
+            "Key points must say Requirements is optional"
+        assert "additive" in lowered, \
+            "Key points must state the additive, never-renumbered id rule"
+        assert "jira" in lowered and "never" in lowered, \
+            "Key points must state JIRA mode never adds a Requirements section"
+
+    # Criterion 2
+    def test_rule_separation_table_has_requirements_row(self, workspace_root):
+        table = self._section(self._rule(workspace_root), "Separation of content")
+        line = next((l for l in table.splitlines() if l.startswith("| Requirements")), None)
+        assert line, "the separation table must have a 'Requirements' row"
+        assert "1-description.md" in line, \
+            f"Requirements must be mapped to 1-description.md, not: {line}"
+
+    # Criterion 3
+    def test_description_template_adds_no_new_heading_or_placeholder(self, workspace_root):
+        content = self._template(workspace_root, "1-description.md.template")
+        assert not any(line.startswith("## Requirements")
+                       for line in content.splitlines()), \
+            "1-description template must not scaffold a Requirements heading — " \
+            "the section is either written or absent, no placeholder middle state"
+
+    # Criterion 4
+    def test_solution_template_documents_the_req_prefix(self, workspace_root):
+        content = self._template(workspace_root, "3-solution.md.template")
+        section = content.split("## Acceptance criteria", 1)[1]
+        assert "REQ-" in section, \
+            "3-solution's Acceptance criteria intro/example must mention the REQ-id prefix"
+
+    # Criterion 5
+    def test_create_step_4_asks_before_guessing_and_skips_jira(self, workspace_root):
+        step = self._step(self._skill(workspace_root, "aide-create"), "Step 4:")
+        lowered = step.lower()
+        assert "req-n" in lowered, \
+            "aide-create Step 4 must instruct formulating REQ-n statements"
+        assert "ask" in lowered, \
+            "aide-create Step 4 must ask for clarification when the description is too thin"
+        assert "jira" in lowered and "skip" in lowered, \
+            "aide-create Step 4 must state JIRA mode skips REQ-n formulation entirely"
+
+    # Criterion 6
+    def test_create_step_6_states_no_preview_and_review_responsibility(self, workspace_root):
+        step = self._step(self._skill(workspace_root, "aide-create"), "Step 6:")
+        lowered = step.lower()
+        assert "never preview" in lowered or "not preview" in lowered, \
+            "aide-create Step 6 must state the composed description is never previewed in chat"
+        assert "responsibility" in lowered, \
+            "aide-create Step 6 must state reviewing/editing before analyze is the user's responsibility"
+
+    # Criterion 7
+    def test_file_templates_documents_the_optional_requirements_bullet(self, workspace_root):
+        section = self._section(self._file_templates(workspace_root), "1-description.md")
+        assert "REQ-" in section and "Requirements" in section, \
+            "file-templates.md's 1-description.md section must document the optional Requirements bullet"
+
+    # Criterion 8
+    def test_analyze_steps_point_at_the_reference_file_without_inline_mechanics(self, workspace_root):
+        content = self._skill(workspace_root, "aide-analyze")
+        for prefix in ("Step 1:", "Step 5: Update 2-analysis.md",
+                       "Step 6: Create the implementation plan", "Step 7:"):
+            step = self._step(content, prefix)
+            assert "requirements-tracing.md" in step, \
+                f"aide-analyze {prefix!r} must point at references/requirements-tracing.md"
+        assert "REQ-n → file:line" not in content, \
+            "aide-analyze/SKILL.md must not inline the finding-prefix mechanics — " \
+            "they belong in requirements-tracing.md"
+
+    # Criterion 9
+    def test_requirements_tracing_file_documents_all_branch_points(self, workspace_root):
+        content = self._requirements_tracing(workspace_root)
+        for heading in ("Step 1", "Step 5", "Step 6", "Step 7"):
+            assert heading in content, \
+                f"requirements-tracing.md must document {heading}"
+        assert "must-fix" in content.lower(), \
+            "requirements-tracing.md's Step 7 must name the missing-id must-fix check"
+
+    # Criterion 10
+    def test_plan_review_coherence_item_checks_req_coverage(self, workspace_root):
+        content = self._plan_review(workspace_root)
+        coherence = content.split("**Coherence**", 1)[1]
+        # Isolate the Coherence bullet from the next numbered reviewer/section.
+        coherence = re.split(r"\n\d\.\s|\n## ", coherence, maxsplit=1)[0]
+        assert "REQ" in coherence, \
+            "plan-review.md's Coherence reviewer must ask about REQ-id coverage"
+        assert "must-fix" in coherence.lower(), \
+            "a missing REQ-id must be named a must-fix"
+
+
+@pytest.mark.validation
 class TestTaskWorkflowAssistantMatchesTheLayout:
     """The task-analyzer agent restates the 4-file layout — independently.
 

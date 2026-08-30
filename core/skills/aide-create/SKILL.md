@@ -85,6 +85,16 @@ Examples:
 
 ### Step 4: Create the directory and 5 files
 
+**TODO mode, before composing the description below:** attempt to
+formulate the user's loose description as a `## Requirements` section
+with `REQ-n` SHALL statements (format: spec-structure rule §
+1-description). If the description is too thin for confident SHALL
+statements, ask the user for the necessary clarifications now, before
+creating the spec — never write a Requirements section you had to
+guess at. JIRA mode: skip this entirely — the Problem text is external
+and verbatim, and formalizing someone else's issue puts words in their
+mouth.
+
 Call the script — never the Write tool — so file creation stays on a
 Bash-only path (this is what lets a Write/Edit permission rule be
 scoped to the specs-repo path later, with no legitimate case left to
@@ -197,7 +207,12 @@ no `Model (create)` line is written — an absence, never a guess.
 ### Step 6: Confirm
 
 Show a summary and the next step, built from Step 4's `specFolder` and
-`files` — not assumed:
+`files` — not assumed. Never preview the composed description text
+(Problem, or any Requirements section) in the chat; the file list below
+is the whole summary. When a Requirements section was written, say so
+explicitly and note that reading it through — and editing it, in the
+dashboard or directly in the repo — is the user's responsibility before
+`/aide-analyze` runs.
 
 ```text
 Task created: 55-clean-up-console-log
