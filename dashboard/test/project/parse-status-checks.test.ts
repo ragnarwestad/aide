@@ -164,6 +164,24 @@ describe("parseStatusChecks (spec 182)", () => {
     const checks = parseStatusChecks(checklist);
     expect(checks).toEqual([{ phase: "Checklist", line: "| a task | ⬜ | |", task: "a task", done: false }]);
   });
+
+  // Spec 285: `## Acceptance criteria` sections count the same as `##
+  // Phase`/`## Fase`/`## Checklist` — the dedicated, person-only rows
+  // spec 268's own description deferred.
+  test("## Acceptance criteria sections count the same as ## Phase (spec 285)", () => {
+    const acceptance = [
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      "| REQ-1: does the thing | ⬜ | |",
+      "",
+    ].join("\n");
+    const checks = parseStatusChecks(acceptance);
+    expect(checks).toEqual([
+      { phase: "Acceptance criteria", line: "| REQ-1: does the thing | ⬜ | |", task: "REQ-1: does the thing", done: false },
+    ]);
+  });
 });
 
 describe("tickStatusLine (spec 182)", () => {
@@ -249,5 +267,24 @@ describe("tickStatusLine (spec 182)", () => {
 
   test("a row already done in words is refused a second tick", () => {
     expect(tickStatusLine(WORDS, "Phase 1: RED", "| Look at it | Completed | |")).toBeNull();
+  });
+
+  // Spec 285: an Acceptance-criteria row ticks through the same route as
+  // any other phase's row — no new code in tickStatusLine itself, only
+  // PHASE_HEADING_RE recognizing the heading.
+  test("tickStatusLine ticks a row under ## Acceptance criteria exactly like any other phase (spec 285)", () => {
+    const file = [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      "| REQ-1: does the thing | ⬜ | |",
+      "",
+    ].join("\n");
+    const out = tickStatusLine(file, "Acceptance criteria", "| REQ-1: does the thing | ⬜ | |")!;
+    expect(out).not.toBeNull();
+    expect(out.split("\n")[6]).toBe("| REQ-1: does the thing | ✅ | |");
   });
 });

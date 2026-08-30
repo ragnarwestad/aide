@@ -105,6 +105,38 @@ describe("phase (criterion 3)", () => {
   test("a ## Checklist heading with every row done is 'done', same as ## Phase", () => {
     expect(parseStatus(openChecklist.replace("⬜", "✅")).phase).toBe("done");
   });
+
+  // Spec 285: `## Acceptance criteria`, placed after the last
+  // implementation phase, only becomes the current (and so tickable —
+  // see overview.ts's `tickable()`) phase once every earlier phase's own
+  // rows are done. No new code makes this true — it falls out of this
+  // same "first phase section with an open row" rule, given the
+  // ordering the section is written in.
+  const phaseThenAcceptance = [
+    "# X - Status",
+    "",
+    "## Phase 4: REFACTOR",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| d    | ⬜     |       |",
+    "",
+    "## Acceptance criteria",
+    "",
+    "| Task | Status | Notes |",
+    "|------|--------|-------|",
+    "| REQ-1: does the thing | ⬜ | |",
+    "",
+  ].join("\n");
+
+  test("Acceptance criteria is not current while an earlier phase still has an open row (spec 285)", () => {
+    expect(parseStatus(phaseThenAcceptance).phase).toBe("Phase 4: REFACTOR");
+  });
+
+  test("Acceptance criteria becomes current once every earlier phase is done (spec 285)", () => {
+    const allEarlierDone = phaseThenAcceptance.replace("| d    | ⬜     |       |", "| d    | ✅     |       |");
+    expect(parseStatus(allEarlierDone).phase).toBe("Acceptance criteria");
+  });
 });
 
 // --- spec 108: an archive run that declined says so in the file --------------

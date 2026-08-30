@@ -65,6 +65,18 @@
       "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | not completed | |\n",
       "done": 0,
       "total": 1
+    },
+    {
+      "name": "an-acceptance-criteria-heading-is-also-a-phase-section",
+      "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: one | ✅ | |\n| REQ-2: two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
+    },
+    {
+      "name": "an-acceptance-criteria-heading-with-a-malformed-row-skips-it",
+      "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: one | ✅ | |\n| two columns only | ⬜ |\n",
+      "done": 1,
+      "total": 1
     }
   ]
 }

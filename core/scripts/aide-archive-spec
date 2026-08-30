@@ -25,7 +25,7 @@
 #
 # terminalReason, checked in this order:
 #   refused | already-archived | conflict-open | not-implemented-yet
-#   | archived
+#   | acceptance-criteria-unticked | archived
 #
 # Usage:
 #   aide-archive-spec --project-dir <path> --spec <arg>
@@ -188,6 +188,22 @@ remove_held_back_section() {
 if [ "$implement_present" = "no" ]; then
   [ -f "$status_file" ] && remove_held_back_section
   emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
+fi
+
+# --- the acceptance-criteria gate (spec 285) --------------------------------
+# Scoped ONLY to the "## Acceptance criteria" section spec 268's own
+# description deferred — never to the ordinary RED/GREEN/REFACTOR rows
+# spec 268 already fixed above. No such section: progress_total is 0 and
+# this check is a no-op, exactly REQ-4's "no Requirements section, no
+# change in behavior." Reuses the same row-shape/done-mark rule
+# aide-run-spec's Total progress line already uses (REQ-5), rather than a
+# third, independent implementation of "is this row done".
+# shellcheck source=/dev/null
+[ -f "$SCRIPT_DIR/lib/status-progress.sh" ] && source "$SCRIPT_DIR/lib/status-progress.sh"
+
+status_progress_for "$status_file" "Acceptance"
+if [ "$progress_total" -gt 0 ] && [ "$progress_done" -lt "$progress_total" ]; then
+  emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Overview tab before archiving — only a person can judge these"}'
 fi
 
 # --- archived: stamp and move ----------------------------------------------

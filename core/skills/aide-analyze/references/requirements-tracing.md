@@ -28,3 +28,25 @@ New must-fix check, folded into the Coherence reviewer: every REQ-id
 from Step 1 must appear in at least one Acceptance criterion. A missing
 id is a must-fix. A plain-text check the reviewing session performs
 itself, reading the two files — no dashboard, no pytest.
+
+## Step 8 (4-status.md, Acceptance criteria section)
+
+Add a `## Acceptance criteria` section to `4-status.md`, placed after
+the last implementation phase (e.g. `## Phase 4: REFACTOR`) and before
+`## Notation`, with one row per REQ-tagged acceptance criterion from
+`3-solution.md`, starting unticked:
+
+```markdown
+## Acceptance criteria
+
+| Task | Status | Notes |
+|------|--------|-------|
+| REQ-1: <criterion text, verbatim from 3-solution.md> | ⬜ | |
+| REQ-2: <criterion text, verbatim from 3-solution.md> | ⬜ | |
+```
+
+These rows are for the person the spec is for to judge and tick from the
+spec's Overview tab — never for `/aide-implement` or `/aide-analyze` to
+tick (spec 285). `aide-archive-spec` refuses to archive while any of
+them is still unticked. No Requirements section: `4-status.md` is
+written exactly as it is today, with no such section.
