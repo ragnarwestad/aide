@@ -96,9 +96,19 @@ section that already has real content exactly as it stands.
 
 ### Step 5: Update 2-analysis.md
 
-Write to `specs/XX-slug/2-analysis.md`. Follow the spec structure § 2-analysis.
-Include: Tracking info, mapping, affected files with file:line, API impact,
-test coverage.
+Assemble the complete new text of `2-analysis.md` (sections already
+filled in per Step 4 copied verbatim; placeholder sections replaced with
+real content), then write it with:
+
+    aide-write-spec --specs-root <specs-root> --folder XX-slug \
+      --file 2-analysis.md <<'SPEC_EOF'
+    <the complete file text>
+    SPEC_EOF
+
+Never use the Write or Edit tool on a spec file — `aide-write-spec` is
+the only legitimate path (spec 282). Follow the spec structure §
+2-analysis. Include: Tracking info, mapping, affected files with
+file:line, API impact, test coverage.
 
 Sections already filled in per Step 4 are left untouched.
 
@@ -110,7 +120,9 @@ findings are prefixed with the REQ-id(s) they support.
 
 ### Step 6: Create the implementation plan (3-solution.md)
 
-Write to `specs/XX-slug/3-solution.md`. Follow the spec structure § 3-solution.
+Assemble the complete new text of `3-solution.md` the same way as Step 5,
+then write it with `aide-write-spec --file 3-solution.md` (never
+Write/Edit — spec 282). Follow the spec structure § 3-solution.
 
 Sections already filled in per Step 4 are left untouched.
 
@@ -159,7 +171,9 @@ must-fix check on missing coverage.
 
 ### Step 8: Update 4-status.md
 
-Write to `specs/XX-slug/4-status.md`. Follow the spec structure § 4-status.
+Assemble the complete new text of `4-status.md` the same way as Step 5,
+then write it with `aide-write-spec --file 4-status.md` (never
+Write/Edit — spec 282). Follow the spec structure § 4-status.
 - LOW: Simple checklist (< 30 lines)
 - MEDIUM/HIGH: Phase-based tracking (50-100 lines)
 

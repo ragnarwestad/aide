@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# aide-print-specs-guard — prints a ready-to-paste Write/Edit deny-rule
+# snippet for THIS project's own specs root (spec 282, REQ-4). Never
+# writes anywhere itself — the same "never auto-edit
+# ~/.claude/settings.json" philosophy install.sh's own dashboard-hook
+# block already established, extended to a per-project path install.sh
+# itself cannot compute (it is global/one-time, with no single project's
+# root to resolve against; a project's specs root is personal —
+# AIDE_SPECS_PATH lives in the gitignored .aide/config — so it cannot be
+# committed into a project's own settings.json for every contributor).
+#
+# Usage: aide-print-specs-guard [--project-dir <path>]   # default: cwd
+
+set -uo pipefail
+_here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_aide-spec-lib.sh
+source "$_here/_aide-spec-lib.sh"
+
+project_dir="$(pwd)"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --project-dir) project_dir="${2:-}"; shift 2 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+specs_root="$(aide_specs_root "$project_dir")"
+cat <<EOF
+
+🔒 Deny direct spec-file edits in this project (spec 282)
+   aide never edits ~/.claude/settings.json. To make Write/Edit against
+   $specs_root a hard denial — all legitimate writes already go
+   through aide-create-spec/aide-write-spec/aide-archive-spec — paste
+   this into the "permissions": { "deny": [...] } array of
+   ~/.claude/settings.json:
+
+     "Write($specs_root/**)",
+     "Edit($specs_root/**)"
+EOF

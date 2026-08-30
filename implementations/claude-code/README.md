@@ -234,6 +234,22 @@ Short version:
 2. Run `source ~/.zshrc` to load it
 3. Run `./install.sh` again
 
+### Denying direct Write/Edit against spec files
+
+Since spec 282, every legitimate spec-file write goes through
+`aide-create-spec`, `aide-write-spec` or `aide-archive-spec` — never the
+`Write`/`Edit` tool directly. That means a `Write`/`Edit` permission rule
+scoped to a project's specs root can deny every such call outright, with
+no legitimate case left to break.
+
+A project's specs root is personal (`AIDE_SPECS_PATH` lives in the
+gitignored `.aide/config`), so `install.sh` cannot compute or write this
+rule for every contributor. Run `aide-print-specs-guard` from inside the
+project instead — it prints a ready-to-paste `deny` snippet scoped to
+that project's own specs root, for you to paste into the `"permissions":
+{ "deny": [...] }` array of `~/.claude/settings.json` (aide never edits
+that file itself).
+
 ---
 
 ## Files and structure

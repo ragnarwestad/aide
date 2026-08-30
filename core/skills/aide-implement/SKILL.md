@@ -67,7 +67,8 @@ resume it at the first unticked task if it found it in progress.
 3. Create test files — at least one failing test per acceptance criterion
 4. Run the tests — verify that they FAIL
 5. Tick this phase's task rows in `4-status.md` — ✅ once a row's test is
-   written and confirmed to fail, not merely planned
+   written and confirmed to fail, not merely planned. Write the result
+   with `aide-write-spec --file 4-status.md` (never Write/Edit — spec 282)
 6. Report the RED result briefly and continue to GREEN
 
 ### Phase 2: GREEN — Implement until tests pass
@@ -77,7 +78,8 @@ resume it at the first unticked task if it found it in progress.
 3. Run the tests after each step
 4. Verify that the tests PASS
 5. Tick this phase's task rows in `4-status.md` as each one's tests turn
-   green
+   green. Write the result with `aide-write-spec --file 4-status.md`
+   (never Write/Edit — spec 282)
 6. Report the GREEN result briefly and continue to REFACTOR
 
 ### Phase 3: REFACTOR — Quality check
@@ -90,10 +92,13 @@ resume it at the first unticked task if it found it in progress.
 3. TypeScript check
 4. ESLint
 5. Build
-6. Tick this phase's task rows in `4-status.md` as each check above passes
+6. Tick this phase's task rows in `4-status.md` as each check above
+   passes. Write the result with `aide-write-spec --file 4-status.md`
+   (never Write/Edit — spec 282)
 7. Update 4-status.md — the "Run the full test suite" row's Notes cell
    names the command(s) that ran, and, when the project has `testScopes`
-   naming a scope nothing changed in, says that scope was left untested
+   naming a scope nothing changed in, says that scope was left untested.
+   Write it the same way, with `aide-write-spec --file 4-status.md`
 8. Show a summary — ready for commit
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
