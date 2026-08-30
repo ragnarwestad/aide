@@ -1108,10 +1108,32 @@ branch_already_landed() {
 }
 
 update_branch_to_base() {
-  local wt="$1" ref="$2" root="$3"
+  local wt="$1" ref="$2" root="$3" conflicted="" rel="" expected1="" expected2=""
   git -C "$wt" merge -q --ff-only "$ref" 2>/dev/null && return 0
   if ! git -C "$wt" merge -q --no-edit "$ref" >/dev/null 2>&1; then
     if [ "$command_name" = "archive" ]; then
+      # spec 280: a conflict confined to THIS spec's own 4-status.md is
+      # not two intents to merge — main's copy is a direct correction
+      # (the dashboard's tick-to-fix, or a person editing the file by
+      # hand) and the branch's copy is simply stale. Main always wins.
+      # Any OTHER conflicted file, still or instead, falls through
+      # unchanged, open for the skill's own judgment. Only checked in
+      # the specs repo itself — $specs_root/$specs_repo (:299-301,:309)
+      # are already resolved globals by this point in the script.
+      if [ "$root" = "$specs_repo" ]; then
+        rel="${specs_root#$specs_repo}"; rel="${rel#/}"
+        expected1="${rel:+$rel/}$spec_label/4-status.md"
+        expected2="${rel:+$rel/}archive/$spec_label/4-status.md"
+        conflicted="$(git -C "$wt" diff --name-only --diff-filter=U 2>/dev/null)"
+        if [ "$conflicted" = "$expected1" ] || [ "$conflicted" = "$expected2" ]; then
+          if git -C "$wt" checkout --theirs -- "$conflicted" 2>/dev/null \
+             && git -C "$wt" add -- "$conflicted" 2>/dev/null \
+             && git -C "$wt" commit -q --no-edit >/dev/null 2>&1; then
+            return 0
+          fi
+          git -C "$wt" merge --abort >/dev/null 2>&1 || true
+        fi
+      fi
       return 0
     fi
     git -C "$wt" merge --abort >/dev/null 2>&1 || true
@@ -2010,6 +2032,22 @@ if [ -n "$status_file" ]; then
       suffix=" (stopped: no-progress)"
       error_msg="the step reported success but left no real progress — no change in the project and/or no task row ticked"
     fi
+  elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
+    # spec 280: a "completed" archive claim is cross-checked the same
+    # way spec 268 cross-checks implement. status_file_for's own
+    # two-candidate resolution (active folder, then archive/) already
+    # proves whether the mechanical stamp-and-move
+    # (core/scripts/aide-archive-spec) actually ran in THIS worktree —
+    # a claim not backed by that move must not land in 4-status.md.
+    case "$status_file" in
+      "$specs_root_wt/archive/"*) : ;;
+      *)
+        terminal_reason="no-progress"
+        ok="false"
+        suffix=" (stopped: no-progress)"
+        error_msg="the step reported success but left no real progress — the spec folder was never moved to archive/"
+        ;;
+    esac
   fi
 
   completed_steps_for "$commit_label" "$(dirname "$status_file")" "$status_file"

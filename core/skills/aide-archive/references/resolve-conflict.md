@@ -38,8 +38,18 @@ is what the row says.
 
 ## What you are standing in
 
-`aide-run-spec` has already done the first half. Your working directory
-is a throwaway worktree of the spec's branch, and the merge is **open**:
+`aide-run-spec` has already done the first half — including one narrow
+case this routine never sees at all (spec 280): a conflict confined to
+the spec's own `4-status.md`, and nothing else, resolves mechanically
+before this step ever starts, taking the default branch's copy (a direct
+correction, not a second intent to merge). If you are standing in a
+conflict at all, it is either a genuine collision or one that mechanical
+check could not resolve on its own — either way, "bias toward stopping"
+below is scoped to real code/prose conflicts, which is what it was
+always written for.
+
+Your working directory is a throwaway worktree of the spec's branch, and
+the merge is **open**:
 
 - `MERGE_HEAD` is set — `git rev-parse -q --verify MERGE_HEAD` answers
 - the conflicted files carry `<<<<<<<`/`=======`/`>>>>>>>` markers

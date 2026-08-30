@@ -3823,6 +3823,123 @@ def test_every_other_step_still_refuses_a_conflict(runner, workspace, fake_claud
     assert git(project, "status", "--porcelain") == ""
 
 
+# --- spec 280: a conflict confined to the spec's OWN 4-status.md resolves ---
+# mechanically ------------------------------------------------------------
+#
+# The routine above (spec 171) is for a genuine conflict — two intents
+# colliding. A conflict where the ONLY divergence is this spec's own
+# `4-status.md` — main's copy corrected directly (the dashboard's
+# tick-to-fix, or a person editing main by hand) while the branch's own
+# copy is simply stale — is not that: there is one canonical state
+# (main's) and one stale snapshot (the branch's), so main's copy wins
+# without ever reaching the AI-judgment routine. `workspace`'s own specs
+# fixture is FLAT (folders directly at the specs repo's root); this
+# project's real layout is NESTED (folders one level below, under a
+# project-name subdirectory), which a naive path comparison misses — so
+# these tests build that shape directly rather than reusing `workspace`.
+
+
+def nested_workspace(tmp_path, project_name="aide"):
+    """A project repo plus a SEPARATE specs repo whose spec folders live
+    one level below its own root, under a project-name subdirectory —
+    this project's own real `AIDE_SPECS_PATH` shape, unlike `workspace`
+    above (flat: folders directly at the specs repo's root)."""
+    project = init_repo(tmp_path / "proj")
+    specs_repo = init_repo(tmp_path / "specs")
+    specs_root = specs_repo / project_name
+    specs_root.mkdir()
+    (specs_root / "81-queue-and-runner").mkdir()
+    (specs_root / "81-queue-and-runner" / "1-description.md").write_text("# Queue - Description\n")
+    subprocess.run(["git", "-C", str(specs_repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(specs_repo), "commit", "-qm", "add spec"], check=True)
+    (project / ".gitignore").write_text("/deps/\n")
+    (project / "deps").mkdir()
+    (project / "deps" / "marker.txt").write_text("the dependency tree\n")
+    (project / ".aide").mkdir()
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs_root}\nAIDE_WORKTREE_LINKS=deps\n"
+    )
+    subprocess.run(["git", "-C", str(project), "add", "-f", ".aide/config", ".gitignore"], check=True)
+    subprocess.run(["git", "-C", str(project), "commit", "-qm", "add config"], check=True)
+    return {
+        "project": project,
+        "specs": specs_repo,
+        "folder": "81-queue-and-runner",
+        "wtbase": tmp_path / "worktrees",
+    }
+
+
+def status_only_conflict(ws, project_name="aide", second_file=None):
+    """Diverges the spec's own `4-status.md` between its branch and the
+    specs repo's main — the branch's stale copy vs. main's corrected one
+    — pre-creating the branch in the SPECS repo only (the project repo
+    gets a fresh branch off base, which meets no conflict at all).
+    `second_file` additionally conflicts an unrelated path alongside it,
+    for the negative case (AC2)."""
+    specs = ws["specs"]
+    branch = f"aide/{ws['folder']}"
+    status_path = specs / project_name / ws["folder"] / "4-status.md"
+    status_rel = f"{project_name}/{ws['folder']}/4-status.md"
+    git(specs, "switch", "-q", "-c", branch)
+    status_path.write_text("branch's stale copy\n")
+    if second_file:
+        (specs / project_name / ws["folder"] / second_file).write_text("branch's other change\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "branch side")
+    git(specs, "switch", "-q", "main")
+    status_path.write_text("main's corrected copy\n")
+    if second_file:
+        (specs / project_name / ws["folder"] / second_file).write_text("main's other change\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "main side")
+    return branch, status_rel
+
+
+def test_a_4status_only_conflict_in_a_nested_specs_repo_resolves_to_mains_copy(
+    runner, tmp_path, fake_claude
+):
+    """AC1. A conflict confined to the spec's own `4-status.md`, in a
+    NESTED specs-repo layout, resolves mechanically before the AI-
+    judgment routine ever sees it — main's corrected copy wins, no
+    markers remain."""
+    ws = nested_workspace(tmp_path)
+    branch, status_rel = status_only_conflict(ws)
+    claude = fake_claude("exit 1")  # would fail loudly if the merge ever reached it
+    rc, out, _ = run(runner, ws, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert not fake_claude.calls.exists(), \
+        "a mechanically-resolvable conflict must never reach the AI session"
+    text = git(ws["specs"], "show", f"{branch}:{status_rel}")
+    assert text == "main's corrected copy", text
+    assert "<<<<<<<" not in text
+
+
+def test_a_4status_conflict_with_another_file_also_conflicting_stays_open(
+    runner, tmp_path, fake_claude
+):
+    """AC2. Something OTHER than the spec's own `4-status.md` also
+    conflicts — today's open-conflict behavior is unchanged, and the
+    step is still handed the live conflict to resolve itself."""
+    ws = nested_workspace(tmp_path)
+    branch, status_rel = status_only_conflict(ws, second_file="notes.txt")
+    merge_head_file = ws["project"].parent / "merge-head.txt"
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'git -C "$specs" rev-parse -q --verify MERGE_HEAD >> {merge_head_file} 2>/dev/null\n'
+        'printf "resolved by the step\\n" > "$specs/'
+        f'{ws["folder"]}/4-status.md"\n'
+        'git -C "$specs" add -A\n'
+        'git -C "$specs" commit -q --no-edit\n'
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, ws, claude, command="archive")
+    assert rc == 0, out
+    assert merge_head_file.exists() and merge_head_file.read_text().strip(), \
+        "a conflict touching more than just 4-status.md must still be left open for the step"
+
+
 def test_archive_behaves_like_any_other_step_when_there_is_nothing_to_resolve(
     runner, workspace, fake_claude
 ):
@@ -5688,6 +5805,93 @@ def test_no_progress_is_scoped_to_implement_only(runner, workspace, fake_claude)
     with_status(workspace)
     claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
     rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
+# --- spec 280: a "completed" archive claim is cross-checked ------------------
+#
+# The same shape as the spec-268 guard above, mirrored for `archive`:
+# `status_file_for`'s own two-candidate resolution (active folder, then
+# `archive/`) already proves whether the mechanical stamp-and-move
+# (core/scripts/aide-archive-spec) actually ran in THIS worktree — a
+# `completed` claim not backed by that move must not land in
+# `4-status.md`.
+
+
+def test_archive_no_progress_guard_downgrades_when_the_folder_never_moved(
+    runner, workspace, fake_claude
+):
+    """AC3. The archive precheck meets an OPEN conflict (so the model is
+    spawned at all — `conflict-open` is not a skip-the-model outcome),
+    the step resolves it and reports `completed`, but the spec folder
+    itself was never actually moved under `archive/` — the exact shape
+    spec 278 produced."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    conflicting_branch(workspace)
+    claude = fake_claude(
+        "cat > /dev/null\n"
+        'printf "resolved by the step\\n" > contested.txt\n'
+        "git add -A\n"
+        "git commit -q --no-edit\n"
+        f"echo '{json.dumps(RESULT_OK)}'"
+    )
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is False, out
+    assert out["terminalReason"] == "no-progress", out
+    assert "never moved to archive" in out["error"], out
+    assert recorded_line(workspace) == "create, analyze, implement"
+
+
+def test_a_genuine_archive_run_is_unaffected(runner, workspace, fake_claude):
+    """AC4. The spec folder genuinely moves under `archive/` (the
+    mechanical pre-check's own `archived` outcome, since `implement` is
+    on the line and nothing conflicts) — `terminalReason` stays
+    `completed` and `archive` is added to the line, unaffected by the
+    new check."""
+    status_with_phase(workspace, "create, analyze, implement", ["| a | ✅ | |"])
+    folder = workspace["folder"]
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert (
+        recorded_line(workspace, path=f"archive/{folder}/4-status.md")
+        == "create, analyze, implement, archive"
+    )
+
+
+@pytest.mark.parametrize("step", ["create", "analyze", "implement"])
+def test_archive_no_progress_guard_never_fires_for_other_steps(
+    runner, workspace, fake_claude, step
+):
+    """AC5. The new check is `archive`-specific — mirrors
+    `test_no_progress_is_scoped_to_implement_only` above, extended to
+    the sibling check `archive` gained. None of these three steps moves
+    the spec folder, so if the check were not scoped to
+    `command_name = archive` it would wrongly downgrade every one of
+    them."""
+    if step == "create":
+        claude = fake_claude(
+            "cat > /dev/null\n"
+            + READ_SPECS
+            + 'mkdir -p "$specs/99-a-brand-new-spec"\n'
+            + 'printf "%s\\n" "# New - Status" "" "## Tracking info" "" "- **Task:** `99-a-brand-new-spec/`" '
+            + '> "$specs/99-a-brand-new-spec/4-status.md"\n'
+            + f"echo '{json.dumps(RESULT_OK)}'"
+        )
+        rc, out, _ = run(runner, workspace, claude, command="create", spec="81")
+    elif step == "analyze":
+        with_status(workspace)
+        claude = writing_claude(fake_claude, workspace)
+        rc, out, _ = run(runner, workspace, claude, command="analyze")
+    else:
+        status_with_phase(workspace, "create, analyze", ["| a | ✅ | |"])
+        claude = project_only_claude(fake_claude, workspace)
+        rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
     assert out["ok"] is True, out
     assert out["terminalReason"] == "completed", out

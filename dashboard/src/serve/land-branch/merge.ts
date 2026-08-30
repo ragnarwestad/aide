@@ -46,10 +46,20 @@ export async function landBranch(
     const branch = outcome.branch;
     // Code roots last. `sort` is stable, so two repos of the same kind
     // keep the order the run recorded them in.
+    //
+    // `archive` reverses this (spec 280): its specs root is the one
+    // carrying the `Result: completed` / `Workflow steps completed`
+    // stamp, and that stamp must never reach `main` before the code
+    // root's own landing is confirmed — so for `archive` specifically,
+    // code is attempted FIRST, and the loop below stops on a failed
+    // code root before the specs root is ever attempted.
     const codeRoots = new Set([ctx.machineryProjectDir(job.project)]);
-    const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort(
-      (a, b) => Number(codeRoots.has(a.root)) - Number(codeRoots.has(b.root)),
-    );
+    const codeFirst = what.step === "archive";
+    const repos = [...(what.repos ?? outcome.branchUrls ?? [])].sort((a, b) => {
+      const av = Number(codeRoots.has(a.root));
+      const bv = Number(codeRoots.has(b.root));
+      return codeFirst ? bv - av : av - bv;
+    });
     /** Roots this landing deliberately does not merge (spec 220): a
      *  project whose manifest says `codeLanding: pr` has its CODE
      *  reviewed before it reaches the default branch, and the run has
@@ -159,6 +169,12 @@ export async function landBranch(
       } else {
         failures.push(result.error ?? `cannot merge ${branch} in ${repo.root}`);
         if (result.reason === "conflict") reason = "conflict";
+        // spec 280: a code root that fails to land during an archive
+        // landing stops the loop here — the specs root's own merge,
+        // which stamps 4-status.md as archived, has not run yet
+        // (code-first order, above) and must never run now that the
+        // code side failed.
+        if (codeFirst && codeRoots.has(repo.root)) break;
       }
     }
     // Origin decides, not the queue's memory of its own pushes (spec

@@ -302,3 +302,89 @@ describe("spec 254: a step still landing reads busy, not ready", () => {
     expect(cell).not.toContain(">Cancel</button>");
   });
 });
+
+// --- spec 280: the row's notice names the failure that actually happened ----
+//
+// Spec 278's own incident: an `archive` job downgraded to `state:
+// "failed"` with `errorReason: "unlanded"` — the spec WAS archived, but
+// its work never landed (2-analysis.md's `merge.ts` finding). Two
+// separate gaps let a reader miss it, one per test below:
+// `word-phase.ts`'s generic `last re-run ${stateLabel}` sentence never
+// said "unlanded" was different from any other failure (AC6), and
+// `phaseDisagreement`'s "earliest phase with any qualifier" rule
+// (`notice-row.ts`) could let an earlier, unrelated phase's own softer
+// qualifier hide archive's real one (AC7).
+describe("spec 280: an unlanded archive failure names itself, not an unrelated phase", () => {
+  const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
+    project: "aide",
+    specFolder,
+    ...extra,
+  });
+  const rows = (list: QueueRowView[], targets: QueueTarget[]) =>
+    renderQueueRows(
+      list,
+      { runnerAvailable: true, targets, filter: { open: openKeys(list, targets) } },
+      Date.parse("2026-08-30T12:00:00Z"),
+    );
+  const panel = (html: string) => html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "";
+  const BUILT = ["create", "analyze", "implement", "archive"];
+
+  // AC6: archive's own `unlanded` failure is what the panel names —
+  // never the bare, generic "last re-run failed" attributed to
+  // `implement`, which has no qualifier of its own here at all.
+  test("an unlanded archive failure is named, not implement's unrelated success", () => {
+    const html = rows(
+      [
+        row({
+          id: "impl",
+          specFolder: "278-repro",
+          steps: ["implement"],
+          state: "done",
+        }),
+        row({
+          id: "arch",
+          specFolder: "278-repro",
+          steps: ["archive"],
+          state: "failed",
+          errorReason: "unlanded",
+        }),
+      ],
+      [target("278-repro", { done: BUILT })],
+    );
+    expect(panel(html)).toContain(
+      "archive: archived, but landing it failed — its branch is still open",
+    );
+    expect(panel(html)).not.toContain("implement: last re-run failed");
+    expect(panel(html)).not.toContain('"implement: last re-run failed"');
+  });
+
+  // AC7: even when implement's own phase ALSO carries a softer
+  // qualifier of its own (a re-run that merely disagrees, never
+  // reaching `state: "failed"`) at the same moment, archive's specific
+  // `unlanded` failure still wins — a real failure outranks an earlier
+  // phase's unrelated note, regardless of workflow order.
+  test("archive's real failure still wins over implement's own softer note", () => {
+    const html = rows(
+      [
+        row({
+          id: "impl",
+          specFolder: "278-repro2",
+          steps: ["implement"],
+          state: "cancelled",
+        }),
+        row({
+          id: "arch",
+          specFolder: "278-repro2",
+          steps: ["archive"],
+          state: "failed",
+          errorReason: "unlanded",
+        }),
+      ],
+      [target("278-repro2", { done: BUILT })],
+    );
+    expect(panel(html)).toContain(
+      "archive: archived, but landing it failed — its branch is still open",
+    );
+    expect(panel(html)).not.toContain("implement:");
+  });
+});

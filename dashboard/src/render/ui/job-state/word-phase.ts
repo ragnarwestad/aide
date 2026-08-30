@@ -28,6 +28,18 @@ export interface PhaseWord {
  *  half that is wrong in both cases. */
 const FILES_DISAGREE = "the files disagree with what has run";
 
+/** The sentence for a last attempt that disagrees with the file (spec
+ *  280): an `unlanded` failure is its own, specific story — the spec
+ *  DID archive, but landing it failed and its branch is still open —
+ *  not the generic "last re-run failed" every other failure kind
+ *  shares. Attributing that generic sentence to whichever phase's badge
+ *  happens to be drawing it is what let a genuinely successful
+ *  `implement` phase's unrelated note hide `archive`'s real failure. */
+const attemptQualifier = (attempt: QueueRowView): string =>
+  attempt.errorReason === "unlanded"
+    ? "archived, but landing it failed — its branch is still open"
+    : `last re-run ${stateLabel(attempt)}`;
+
 /** The one rule, applied by everything that words a phase.
  *
  *  A row for spec 81 once said three things at once: pips and phase
@@ -98,7 +110,7 @@ export function wordPhase(
     return {
       pip: running ? "now" : "past",
       badge: { variant: "done", label: "done" },
-      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
+      qualifier: disagrees ? attemptQualifier(attempt!) : filesDisagree,
     };
   }
   // Not while something is running: a note from an earlier decline must
@@ -116,7 +128,7 @@ export function wordPhase(
       // once for the whole row (spec 143). Said here as well, it was
       // the same 130 characters twice on an open row — the duplication
       // 1-description.md reports.
-      qualifier: disagrees ? `last re-run ${stateLabel(attempt!)}` : filesDisagree,
+      qualifier: disagrees ? attemptQualifier(attempt!) : filesDisagree,
     };
   }
   // A step that RAN and did not finish, with nothing live left to say

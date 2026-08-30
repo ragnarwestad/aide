@@ -18,21 +18,29 @@ import { LIST_COLUMNS } from "./row-shared.ts";
  *  phase's badge, where it was the last thing on this page that could
  *  make one line taller than another.
  *
- *  The EARLIEST phase in workflow order, and only that one: the panel
- *  holds one message, and three disagreements listed in it would be the
- *  same growing block of text in a new place. It carries the phase's
- *  own name because a sentence moved out of the line it belonged to
- *  must say which line that was.
+ *  The panel holds one message, and three disagreements listed in it
+ *  would be the same growing block of text in a new place — so still
+ *  exactly one sentence. But not always the EARLIEST phase in workflow
+ *  order any more (spec 280): a phase whose own last attempt genuinely
+ *  FAILED outranks an earlier phase's softer, unrelated note — an
+ *  earlier phase's `filesDisagree` must not hide a later phase's real
+ *  failure. Among phases with no real failure, the earliest with any
+ *  qualifier still wins, exactly as before. It carries the phase's own
+ *  name because a sentence moved out of the line it belonged to must
+ *  say which line that was.
  *
  *  `p.attempts[0]`, not the in-flight-first pick the pips use: this is
  *  a RELOCATION of what `phaseSubRows` computes for that same phase's
  *  badge, so it has to read the same attempt that function does. */
 function phaseDisagreement(g: SpecGroup): string | undefined {
+  let earliest: { step: string; qualifier: string } | undefined;
   for (const p of g.phases) {
     const word = wordPhase(g.done.includes(p.step), p.heldBack, p.attempts[0], p.history);
-    if (word.qualifier) return `${stepLabel(p.step)}: ${word.qualifier}`;
+    if (!word.qualifier) continue;
+    if (p.attempts[0]?.state === "failed") return `${stepLabel(p.step)}: ${word.qualifier}`;
+    earliest ??= { step: p.step, qualifier: word.qualifier };
   }
-  return undefined;
+  return earliest && `${stepLabel(earliest.step)}: ${earliest.qualifier}`;
 }
 
 export function specNoticeRow(g: SpecGroup, refusal: string | undefined): string {

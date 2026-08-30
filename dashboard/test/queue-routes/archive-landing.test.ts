@@ -265,6 +265,67 @@ describe("landing an archived spec (spec 136)", () => {
     // between them, so this one is genuinely slower than the default.
   }, 20000);
 
+  // --- spec 280: code lands before specs, and a code failure stops the ------
+  // specs root from ever being attempted --------------------------------------
+  //
+  // Every OTHER landing merges specs first, code last (the file's own
+  // comment above the sort explains why: a reader watching the page
+  // sees the code land before the plan describing it). `archive` is the
+  // one exception: its specs root carries the `Result: completed` /
+  // `Workflow steps completed` stamp, and that stamp must never reach
+  // `main` before the code root's own landing is confirmed.
+  describe("code lands before specs for archive (spec 280)", () => {
+    const CODE_REPO = "/repos/aide";
+    const TWO_REPOS = [
+      { root: SPECS_REPO, url: "https://example.test/aide-specs" },
+      { root: CODE_REPO, url: "https://example.test/aide" },
+    ];
+
+    test("AC8: a failing code root stops the loop before the specs root is attempted", async () => {
+      const git = gitFor({ conflicting: [CODE_REPO] });
+      const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
+        queueProjectRoot: "/repos",
+      });
+      const job = await runStep(base, "archive");
+      writeFileSync(
+        join(results, `${job.id}.json`),
+        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
+      );
+      const failed = await settle(base, job.id, (j) => !!j.error);
+
+      expect(String(failed.error)).toContain(CODE_REPO);
+      expect(String(failed.error)).toContain("conflict");
+      expect(failed.errorReason).toBe("conflict");
+      // The code root was attempted (and failed) — the specs root, which
+      // carries the "completed" stamp, was never attempted at all.
+      expect(merges(git.calls).some((c) => c.dir === CODE_REPO)).toBe(true);
+      expect(merges(git.calls).some((c) => c.dir === SPECS_REPO)).toBe(false);
+    });
+
+    test("AC9: a successful code root is followed by the specs root, unaffected", async () => {
+      const git = gitFor();
+      const { base, results } = serverWithRunner(start, "aide-archive-results-", git, {
+        queueProjectRoot: "/repos",
+      });
+      const job = await runStep(base, "archive");
+      writeFileSync(
+        join(results, `${job.id}.json`),
+        JSON.stringify({ ...ARCHIVE_RESULT, branchUrls: TWO_REPOS }),
+      );
+      const landed = await settle(base, job.id, (j) => j.state === "done" && !j.landing);
+
+      expect(landed.error).toBeFalsy();
+      const merged = merges(git.calls);
+      const codeIndex = merged.findIndex((c) => c.dir === CODE_REPO);
+      const specsIndex = merged.findIndex((c) => c.dir === SPECS_REPO);
+      expect(codeIndex).toBeGreaterThanOrEqual(0);
+      expect(specsIndex).toBeGreaterThan(codeIndex);
+      expect(git.calls.some((c) => c.dir === SPECS_REPO && c.args[0] === "push")).toBe(true);
+      expect(git.calls.some((c) => c.dir === CODE_REPO && c.args[0] === "push")).toBe(true);
+      expect(landed.branchUrls).toEqual([]);
+    });
+  });
+
   // Criterion 6. Nobody is watching an automatic landing to press the
   // button again, and this one races the runs that pull the same
   // checkout — 111 and 112 were both stranded by a first-try loss.
