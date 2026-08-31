@@ -5,7 +5,7 @@
 import {
   closeSync, existsSync, fstatSync, openSync, readFileSync, readSync, statSync,
 } from "node:fs";
-import { join, normalize, resolve, sep } from "node:path";
+import { dirname, join, normalize, resolve, sep } from "node:path";
 import {
   ABOUT_PAGE, OVERVIEW_PAGE,
   APPLE_TOUCH_ICON, APP_ICON, APP_ICON_MASKABLE, SERVICE_WORKER, WEBMANIFEST,
@@ -60,6 +60,29 @@ export function queueClientScript(): Promise<string | undefined> {
   return queueScript;
 }
 
+// `@toast-ui/editor`'s package.json carries a top-level `"types"` field
+// but no `"types"` CONDITION inside its own `"exports"` map — and
+// Bun's bundler resolves the bare specifier to that top-level `.d.ts`
+// file instead of the `"import"`/`"require"` entry `"exports"` actually
+// names (confirmed with `bun -e` and `Bun.build` directly, 2026-08-31:
+// `require.resolve("@toast-ui/editor")` itself returns
+// `types/index.d.ts`). The `.d.ts` file's own type-only imports
+// (`./editor`, `./toastmark`, …) then fail to resolve as real modules,
+// and the whole build throws. `package.json` alone resolves correctly
+// (that subpath IS a granted export, unlike the deep dist path this
+// redirects to), so it is the anchor for finding the real entry file
+// on disk regardless of how node_modules happens to be laid out.
+function toastUiEditorResolveFix(): import("bun").BunPlugin {
+  const pkgDir = dirname(Bun.resolveSync("@toast-ui/editor/package.json", import.meta.dir));
+  const realEntry = join(pkgDir, "dist/esm/index.js");
+  return {
+    name: "toast-ui-editor-resolve-fix",
+    setup(build) {
+      build.onResolve({ filter: /^@toast-ui\/editor$/ }, () => ({ path: realEntry }));
+    },
+  };
+}
+
 // The Description tab's own bundle (spec 292): same shape as
 // `queueClientScript()` above — cached, `format: "iife"`, fail-open on
 // a build error — so a failed build degrades to the plain textarea
@@ -76,6 +99,7 @@ export function specEditorClientScript(): Promise<string | undefined> {
     target: "browser",
     format: "iife",
     minify: true,
+    plugins: [toastUiEditorResolveFix()],
   })
     .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
     .catch(() => undefined); // the page still works: the plain textarea takes over

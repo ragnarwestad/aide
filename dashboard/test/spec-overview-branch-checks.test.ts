@@ -16,7 +16,7 @@ import {
   PHASE, EARLIER_PHASE, OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, phaseSection,
   statusPath, tick, BRANCH_FILE_SHA, branchAwareGitRunner,
 } from "./spec-checks-fixtures.ts";
-import { PAGE, TOKEN, auth, createSpecSaveHarness } from "./spec-save-fixtures.ts";
+import { CHECKS_TAB, TOKEN, auth, createSpecSaveHarness } from "./spec-save-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
 afterEach(() => harness.cleanup());
@@ -27,7 +27,12 @@ afterEach(() => harness.cleanup());
 // route still answers with something.
 const MAIN_ONLY_STATUS = ["# Queue - Status", "", phaseSection(PHASE, [DONE_ROW])].join("\n");
 
-const overview = (base: string) => fetch(`${base}${PAGE}`, auth).then((r) => r.text());
+// `CHECKS_TAB`, not the bare page: spec 291 named this helper when the
+// Checks section lived on the page's default tab, still called
+// "Overview" at the time. Spec 294, landed the same day, renamed that
+// tab to "Checks" and moved the default tab to Description — so the
+// bare URL now serves a different tab entirely.
+const overview = (base: string) => fetch(`${base}${CHECKS_TAB}`, auth).then((r) => r.text());
 
 describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)", () => {
   test("an open branch's 4-status.md wins over main's, both rows and the open count", async () => {

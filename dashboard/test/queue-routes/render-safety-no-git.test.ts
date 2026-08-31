@@ -180,7 +180,12 @@ describe("no render path runs git or a network command (spec 208)", () => {
         "77-old-thing": { status: statusSaying(["create", "analyze", "implement", "archive"]) },
       },
     });
-    const html = await (await get(base, "/specs/aide/77-old-thing")).text();
+    // The specs LIST's own row, not the spec page: spec 294 dropped the
+    // pip bar from the individual spec page entirely (its "Overview"
+    // became a pure Checks tab, no progress bar) — `phasePips()` /
+    // `head-row.ts` is the only render path left that still draws one,
+    // same markup `pipKind` already parses.
+    const html = await (await get(base, "/?state=archived")).text();
     expect(pipKind(html, "create")).toBe("past");
     expect(pipKind(html, "analyze")).toBe("past");
     expect(pipKind(html, "implement")).toBe("past");
@@ -202,7 +207,8 @@ describe("no render path runs git or a network command (spec 208)", () => {
     });
     ran(dir, ["create", "analyze"]);
     await new Promise((r) => setTimeout(r, 100));
-    const html = await (await get(base, "/specs/aide/81-queue-and-runner")).text();
+    // Same list-route note as criterion 5 above.
+    const html = await (await get(base, "/")).text();
     expect(pipKind(html, "create")).toBe("past");
     expect(pipKind(html, "analyze")).toBe("past");
     expect(pipKind(html, "implement")).toBe("todo");

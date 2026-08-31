@@ -23,6 +23,7 @@
 // sibling checkout existing at a particular path.
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { dirname, join } from "node:path";
 import { asFileText } from "../src/git/specs-pull.ts";
 
 const REAL_DESCRIPTION = `# Replace the spec-editing textarea with Toast UI Editor - Description
@@ -111,8 +112,19 @@ function bulletThematicOverride() {
   };
 }
 
+// The bare specifier resolves to the package's top-level `.d.ts` file
+// instead of its real entry (same Bun resolution bug `static.ts`'s
+// `toastUiEditorResolveFix` plugin works around for the production
+// bundle) — `bun test` never runs that bundler, so the workaround here
+// is the same fix applied directly: resolve the one subpath that IS
+// correctly exported (`package.json` itself) to find the real file.
+const toastUiEditorEntry = join(
+  dirname(Bun.resolveSync("@toast-ui/editor/package.json", import.meta.dir)),
+  "dist/esm/index.js",
+);
+
 async function roundtrip(text: string): Promise<string> {
-  const Editor = (await import("@toast-ui/editor")).default;
+  const Editor = (await import(toastUiEditorEntry)).default;
   const host = document.createElement("div");
   document.body.appendChild(host);
   const editor = new Editor({

@@ -13,6 +13,7 @@ export const EDIT = `/specs/aide/${SPEC}/edit`;
 export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
+export const CHECKS_TAB = `/specs/aide/${SPEC}?tab=checks`;
 export const PAGE = `/specs/aide/${SPEC}`;
 export const FILE_SHA = "a3f9c21aaaaaaa";
 export const HEAD_SHA = "1111111bbbbbbb";

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import {
-  TOKEN, SPEC, EDIT, SAVE, DESCRIPTION_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, auth,
+  TOKEN, SPEC, EDIT, SAVE, DESCRIPTION_TAB, CHECKS_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, auth,
   ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath,
   savable, post,
 } from "./spec-save-fixtures.ts";
@@ -72,13 +72,17 @@ describe("GET the edit page", () => {
     const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
     expect(descHtml).toContain("spec-editor-host");
     expect(descHtml).toContain(".toastui-editor-defaultUI");
-    const overviewHtml = await (await fetch(`${base}${PAGE}`, auth)).text();
-    expect(overviewHtml).not.toContain("spec-editor-host");
-    expect(overviewHtml).not.toContain(".toastui-editor-defaultUI");
+    // Not `PAGE` (the bare URL): spec 294 made "description" the
+    // default tab a bare URL resolves to (dropping "overview"), so
+    // `PAGE` now serves the SAME tab this test just checked — asking
+    // explicitly for another tab is what "other tabs do not" needs.
+    const checksHtml = await (await fetch(`${base}${CHECKS_TAB}`, auth)).text();
+    expect(checksHtml).not.toContain("spec-editor-host");
+    expect(checksHtml).not.toContain(".toastui-editor-defaultUI");
     // The bundle itself (Toast UI Editor + ProseMirror + its CSS) is
     // tens of KB even minified — a difference this large is only
-    // explained by the Description tab carrying it and Overview not.
-    expect(descHtml.length - overviewHtml.length).toBeGreaterThan(20_000);
+    // explained by the Description tab carrying it and Checks not.
+    expect(descHtml.length - checksHtml.length).toBeGreaterThan(20_000);
   });
 
   // Criterion 11 (spec 163): an archived spec is a record. Hiding the

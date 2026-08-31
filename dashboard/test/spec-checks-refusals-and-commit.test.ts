@@ -145,7 +145,10 @@ describe("the checks on the Overview tab", () => {
       archivedSpecs: { [ARCHIVED]: { description: ARCHIVED_TEXT, status: STATUS } },
       extra: { queueToken: TOKEN, gitRun: savable("/host") },
     });
-    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}`, auth)).text();
+    // ?tab=checks, not the bare URL: spec 294 (landed the same day)
+    // made Description the default tab and renamed this one from
+    // "Overview" to "Checks" — the bare URL no longer serves it.
+    const html = await (await fetch(`${base}/specs/aide/${ARCHIVED}?tab=checks`, auth)).text();
     expect(html).toContain("Manual check at 375px in a real browser");
     expect(html).not.toContain('name="tick"');
   });
