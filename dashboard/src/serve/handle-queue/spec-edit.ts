@@ -229,7 +229,7 @@ export async function handleSpecEditRoutes(
     // has the URL, so the refusal is here and not only on the page.
     if (ctx.specRef(project!, specFolder!)?.archived) {
       logRefusal("tick", `${project}/${specFolder}`, ARCHIVED_REFUSAL);
-      return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specPagePath(project!, specFolder!));
+      return specsRedirect({}, { error: ARCHIVED_REFUSAL }, specTabPath(project!, specFolder!, "checks"));
     }
     const activeJob = ctx.queue.list().some(
       (job) => job.project === project && job.specFolder === specFolder &&
@@ -238,7 +238,7 @@ export async function handleSpecEditRoutes(
     if (activeJob) {
       const reason = "another job for this spec is still running — nothing was saved";
       logRefusal("tick", `${project}/${specFolder}`, reason);
-      return specsRedirect({}, { error: reason }, specPagePath(project!, specFolder!));
+      return specsRedirect({}, { error: reason }, specTabPath(project!, specFolder!, "checks"));
     }
     const sent = await readBounded(req, MAX_SAVE_BODY);
     if ("refusal" in sent) return sent.refusal;
@@ -248,8 +248,10 @@ export async function handleSpecEditRoutes(
     } catch {
       return json({ error: "malformed body" }, 400);
     }
-    // The Overview tab, which is where the boxes are.
-    const back = specPagePath(project!, specFolder!);
+    // The Checks tab (renamed from Overview by spec 294), which is
+    // where the boxes are — not the bare spec path, which spec 294
+    // also made default to Description instead.
+    const back = specTabPath(project!, specFolder!, "checks");
     // `bodyToObject` wraps a lone value in an array for the New-spec
     // form's chip set, exactly as it does for `dependsOn`, so both
     // shapes are taken apart the same way.

@@ -227,10 +227,14 @@ describe("the checks on the Overview tab", () => {
     expect(readFileSync(statusPath(dir), "utf-8")).toBe(STATUS);
   });
 
-  test("the tick route lands the reader back on Overview, where the boxes are", async () => {
+  // Spec 294 renamed Overview to Checks and made Description the
+  // page's default tab — a redirect to the bare page path (with no
+  // `?tab=` at all) now lands on Description instead, not "the same
+  // page" as it used to before that default existed.
+  test("the tick route lands the reader back on Checks, not the default Description tab", async () => {
     const { base } = startWithChecks(savable("/host"));
     const res = await tick(base, { ticks: [OPEN_ROW] });
-    expect(decodeURIComponent(res.headers.get("location")!).startsWith(PAGE)).toBe(true);
+    expect(decodeURIComponent(res.headers.get("location")!)).toContain(`${PAGE}?tab=checks`);
   });
 
   test("it is a POST behind the token, like every other writing route here", async () => {
