@@ -55,8 +55,12 @@ table.list thead a { color: var(--muted); }
    FIRST line only, never the second. The full name is still in the
    title, for anything past two lines. */
 /* Hard against the end of the fixed-width name line, so every row's
-   pips start at the same x whatever its name is. */
-.pipslot { margin-left: auto; padding-left: var(--sp-2); }
+   pips start at the same x whatever its name is. `align-self: center`
+   overrides `.spec-name`'s own `align-items: flex-start` — the name
+   text top-aligns with a second, wrapped line, but the pip block
+   (now two rows tall, letters over pips) has no such second line to
+   sit level with, so it centers against the name's own height instead. */
+.pipslot { margin-left: auto; padding-left: var(--sp-2); align-self: center; }
 .spec-name { font-weight: 600; font-family: var(--mono); font-size: var(--fs-m);
   display: flex; align-items: flex-start; gap: var(--sp-2); min-width: 0;
   /* 27rem since the pips joined this line and the Progress column went
