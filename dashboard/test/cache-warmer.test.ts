@@ -23,7 +23,7 @@ import { BranchStatusChecker } from "../src/git/branch-status.ts";
 import { refreshSpecCaches, type ScheduleContext } from "../src/serve/schedules.ts";
 import type { QueueStore } from "../src/queue/queue.ts";
 import type { CheckoutEnsurer } from "../src/git/dashboard-checkout.ts";
-import type { WorkflowHistoryChecker } from "../src/git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../src/git/workflow-history.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../src/git/description-freshness.ts";
@@ -364,6 +364,8 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
       readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
       readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [],
       readScan: () => ({ archived: ["aide/77-old-thing"], dirs: new Map() }),
       allowed: new Set(),
@@ -431,6 +433,8 @@ describe("refreshSpecCaches tells an open tab when its answer changes", () => {
       readFreshness: () => ({}) as unknown as DescriptionFreshnessChecker,
       readSpecCreatedAt: () => ({}) as unknown as SpecCreatedAtChecker,
       readSpecFileCommits: () => ({}) as unknown as SpecFileCommitChecker,
+      specsRoot: async (dir) => dir,
+      readBranchFileSteps: () => ({}) as unknown as BranchFileStepsChecker,
       targets: () => [],
       // Two projects, two roots, both watched by the same tick.
       readScan: () => ({ archived: ["aide/77-old-thing", "atlasaurus/78-other"], dirs: new Map() }),

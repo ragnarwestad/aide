@@ -5,6 +5,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ran, statusSaying } from "../helpers/queue-server.ts";
 import { fakeGit as gitFake } from "../helpers/fake-git.ts";
+import { createGitRunner, type GitRunner } from "../../src/git/branch-status.ts";
+import { withFreshness } from "../../src/serve/land-branch/freshness.ts";
+import type { LandContext } from "../../src/serve/land-branch/types.ts";
+import type { QueueTarget } from "../../src/render.ts";
 import {
   TOKEN,
   specControls,
@@ -324,5 +328,118 @@ describe("a description newer than the analysis is shown on the row", () => {
     const line = specControls(html, "81-queue-and-runner");
     expect(phaseDone(line, "analyze")).toBe(false);
     expect(line).toContain("the files disagree with what has run");
+  });
+});
+
+// Spec 298: implement lands nothing until archive, so a finished
+// implement's own rewrite of `4-status.md`'s "Workflow steps completed:"
+// line sits only on `aide/<folder>` — the DEFAULT-branch checkout this
+// suite's disk reads all come from never sees it, and reads as
+// disagreeing with a history that (via `--all`) does. The fix reads the
+// file from the branch instead, once it is still open, and falls back to
+// the disk read exactly as before when it is not.
+describe("spec 298: the file is read from the branch a still-open spec is on", () => {
+  const FOLDER = "81-queue-and-runner";
+  const specDir = (dir: string) => join(dir, "root", "aide", "specs", FOLDER);
+
+  /** Real git for everything (workflow history), except the branch-read
+   *  calls `resolveOpenBranchTarget`/`readStatusFromBranch` make — there
+   *  is no real `origin` remote in this harness, so those calls are
+   *  simulated, scoped to this spec's own branch and path.
+   *
+   *  `rev-parse --show-toplevel` is intercepted too, the same way
+   *  `branchAwareGitRunner` (`spec-checks-fixtures.ts`) already does:
+   *  real git resolves macOS's `/tmp` → `/private/tmp` symlink, which
+   *  makes its answer a different STRING than the literal `dir` this
+   *  fixture was handed even though both name the same directory — and
+   *  `relative(root, ...)` then builds a `../../..` path instead of a
+   *  clean relative one. Slicing the known suffix off `d` keeps `root`
+   *  in the same string family `dir` already is. */
+  const branchReadingGitRun = (opts: { open: boolean; branchText?: string }): GitRunner => {
+    const real = createGitRunner();
+    const branch = `aide/${FOLDER}`;
+    const relPath = `aide/specs/${FOLDER}/4-status.md`;
+    const ref = `refs/remotes/origin/${branch}`;
+    const specFolderSuffix = join("aide", "specs", FOLDER);
+    return async (dir, args, timeoutMs, env) => {
+      const line = args.join(" ");
+      if (line === "rev-parse --show-toplevel" && dir.endsWith(specFolderSuffix)) {
+        return { code: 0, stdout: `${dir.slice(0, dir.length - specFolderSuffix.length - 1)}\n` };
+      }
+      if (line === "ls-remote --heads origin refs/heads/aide/*") {
+        return {
+          code: 0,
+          stdout: opts.open ? `deadbeef0000000000000000000000000000000\trefs/heads/${branch}\n` : "",
+        };
+      }
+      if (line === `fetch --quiet origin ${branch}`) return { code: 0, stdout: "" };
+      if (line === `log -1 --format=%H ${ref} -- ${relPath}`) {
+        return { code: 0, stdout: "cafebabe000000000000000000000000000000\n" };
+      }
+      if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
+      return real(dir, args, timeoutMs, env);
+    };
+  };
+
+  /** Same wait as the "spec 154" suite above: the schedule has to warm
+   *  this spec at least once, and the disk scan has to catch up with
+   *  the fixture's own writes. */
+  const listPage = async (base: string): Promise<string> => {
+    await new Promise((r) => setTimeout(r, 400));
+    return listUntil(base, dated);
+  };
+
+  test("REQ-1: a branch copy that matches the history clears the qualifier the stale disk copy would raise", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze", "implement"]) }),
+    });
+    // The disk copy — the default-branch checkout's own — has not caught
+    // up: implement's own commit and its own rewrite of this line sit
+    // only on the branch until archive lands them.
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze", "implement"]);
+    const line = specControls(await listPage(base), FOLDER);
+    expect(phaseDone(line, "implement")).toBe(true);
+    expect(line).not.toContain("the files disagree with what has run");
+  });
+
+  test("REQ-2: a branch copy that genuinely disagrees with the history still says so", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: branchReadingGitRun({ open: true, branchText: statusSaying(["create", "analyze"]) }),
+    });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze"]));
+    ran(dir, ["create", "analyze", "implement"]);
+    const line = specControls(await listPage(base), FOLDER);
+    expect(line).toContain("the files disagree with what has run");
+  });
+
+  test("REQ-3: no open branch falls back to the disk read, exactly as before this fix", async () => {
+    const { base, dir } = start({
+      queueToken: TOKEN,
+      gitRun: branchReadingGitRun({ open: false }),
+    });
+    writeFileSync(join(specDir(dir), "4-status.md"), statusSaying(["create", "analyze", "implement"]));
+    ran(dir, ["create"]);
+    const line = specControls(await listPage(base), FOLDER);
+    expect(line).toContain("the files disagree with what has run");
+  });
+
+  // REQ-4: `withFreshness` stays synchronous, so a render never awaits
+  // the branch read. `bunx tsc --noEmit` catches a regression that made
+  // it `async` at the type level; this proves it at the value level too.
+  test("REQ-4: withFreshness returns synchronously, with no await anywhere in the call", () => {
+    const list: QueueTarget[] = [
+      { project: "aide", specFolder: FOLDER, dir: "/some/dir", fileSteps: ["create"] },
+    ];
+    const ctx = {
+      workflowHistory: { peekHistory: () => ({ history: { done: ["create"], stopped: {} }, checkedAt: 1 }) },
+      specCreatedAt: { peekCreatedAt: () => ({ createdAt: null }) },
+      freshness: { peekStale: () => ({ stale: false }) },
+      branchFileSteps: { peekFileSteps: () => ({ steps: null, checkedAt: null }) },
+    } as unknown as LandContext;
+    const result = withFreshness(ctx, list);
+    expect(Array.isArray(result)).toBe(true);
   });
 });

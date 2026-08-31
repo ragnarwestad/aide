@@ -11,7 +11,8 @@ import { specBranch } from "../git/branch-status.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker, SpecFileCommitChecker,
 } from "../git/description-freshness.ts";
-import type { WorkflowHistoryChecker } from "../git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
+import { resolveOpenBranchTarget } from "../git/branch-file.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
 import {
   SPEC_FILES, buildProjectViews, configValue, discoverProjects, resolveSchedule, specArchivedDate,
@@ -20,6 +21,7 @@ import { isDue, scheduleTrackingKey, type ScheduleJobRef } from "../queue/schedu
 import { QueueStore } from "../queue/queue.ts";
 import type { Runner } from "../queue/runner.ts";
 import type { QueueTarget } from "../render.ts";
+import { STATUS_SPEC_FILE } from "../render.ts";
 import { GATED, resolveDependencyFolder } from "./serve-helpers.ts";
 
 /** Everything the schedules read off `createServer`'s closure, bundled
@@ -47,6 +49,11 @@ export interface ScheduleContext {
   readFreshness: () => DescriptionFreshnessChecker;
   readSpecCreatedAt: () => SpecCreatedAtChecker;
   readSpecFileCommits: () => SpecFileCommitChecker;
+  /** Spec 298: the git root a spec's directory sits under — what
+   *  `resolveOpenBranchTarget` needs to ask whether `aide/<folder>` is
+   *  still open there. */
+  specsRoot: (dir: string) => Promise<string>;
+  readBranchFileSteps: () => BranchFileStepsChecker;
   targets: () => QueueTarget[];
   readScan: () => { archived: string[]; dirs: Map<string, string> } | null;
   allowed: Set<string>;
@@ -94,10 +101,21 @@ export async function warmSpec(
 ): Promise<void> {
   if (!t.dir) return;
   const dir = t.dir;
+  // `.catch` here, not inside `resolveOpenBranchTarget` itself: unlike
+  // its two async calls (`specsRoot`, `openSpecBranches`), which already
+  // fail closed internally, a `gitRun` that THROWS rather than resolving
+  // with a nonzero code propagates straight through both — and every
+  // OTHER read in this `Promise.all` already degrades to "nothing known"
+  // rather than rejecting, which is what a schedule tick run from a bare
+  // `setInterval` callback (no caller to catch it) requires. `null` is
+  // this checker's own "no open branch" answer, so a throwing `gitRun`
+  // reads exactly like a spec with none.
+  const target = resolveOpenBranchTarget(ctx, dir, t.specFolder, STATUS_SPEC_FILE, false).catch(() => null);
   await Promise.all([
     ctx.readWorkflowHistory().read(dir, t.specFolder, t.reopenedAfter),
     ctx.readFreshness().isStale(dir, t.specFolder, t.reopenedAfter),
     ctx.readSpecCreatedAt().createdAt(dir, t.specFolder),
+    target.then((tgt) => ctx.readBranchFileSteps().read(dir, t.specFolder, tgt)),
     ...SPEC_FILES.map((file) => ctx.readSpecFileCommits().commitFor(dir, file)),
   ]);
 }

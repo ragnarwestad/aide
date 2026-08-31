@@ -114,11 +114,16 @@ describe("an archive landing asks origin whether anything stayed open", () => {
 
     const landed = await stepWithResult(base, dir, "analyze", onlyTheSpecsRepo(paths));
 
+    // Archive's own unlanded-branch verdict (`errorReason: "unlanded"`)
+    // is what this criterion is about, and it is untouched: analyze
+    // stays done, with no error. (Spec 298 gave every landing's own
+    // `warmSpec` call a second, unrelated reason to ask the same
+    // `ls-remote --heads origin refs/heads/aide/*` question — reading a
+    // still-open branch's own `4-status.md` — so the call itself is no
+    // longer a reliable stand-in for "archive's sweep ran.")
     expect(landed.state).toBe("done");
     expect(landed.error).toBeFalsy();
-    // The SWEEP, not `isMerged`'s per-branch question: that one runs
-    // on every page load and says nothing about the landing.
-    expect(git.calls.some((c) => c.args.includes("refs/heads/aide/*"))).toBe(false);
+    expect(landed.errorReason).toBeFalsy();
   });
 
   // Criterion 10. `complete()` may already have queued the job's NEXT

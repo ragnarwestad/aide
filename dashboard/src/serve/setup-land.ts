@@ -14,7 +14,7 @@ import type { RepoMergeResult } from "../git/branch-merge.ts";
 import type {
   DescriptionFreshnessChecker, SpecCreatedAtChecker,
 } from "../git/description-freshness.ts";
-import type { WorkflowHistoryChecker } from "../git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
 import type { CodeLanding } from "../project/discover.ts";
 import type { AideRunStore } from "../queue/aide-run-store.ts";
 import type { MergeEventReporter } from "../integrations/merge-event.ts";
@@ -50,6 +50,7 @@ export interface LandSetupInputs {
   workflowHistory: WorkflowHistoryChecker;
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
+  branchFileSteps: BranchFileStepsChecker;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   queueInstallTimeoutMs?: number;
   restart: RestartHook;
@@ -87,6 +88,7 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
     workflowHistory: inputs.workflowHistory,
     specCreatedAt: inputs.specCreatedAt,
     freshness: inputs.freshness,
+    branchFileSteps: inputs.branchFileSteps,
     rootsStillHolding: inputs.rootsStillHolding,
     invalidateScan: () => {
       state.scan = null;

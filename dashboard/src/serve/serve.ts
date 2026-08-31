@@ -136,6 +136,7 @@ export function createServer(opts: ServerOptions) {
     checkoutEnsurer: resolution.checkoutEnsurer,
     gitRun,
     notifyQueueChanged: watch.notifyQueueChanged,
+    specsRoot: resolution.specsRoot,
   });
 
   const land = setupLand(state, {
@@ -154,6 +155,7 @@ export function createServer(opts: ServerOptions) {
     workflowHistory: schedules.workflowHistory,
     specCreatedAt: schedules.specCreatedAt,
     freshness: schedules.freshness,
+    branchFileSteps: schedules.branchFileSteps,
     rootsStillHolding: resolution.rootsStillHolding,
     queueInstallTimeoutMs: opts.queueInstallTimeoutMs,
     restart: opts.restart ?? createLaunchdRestart(),

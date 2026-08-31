@@ -3,7 +3,7 @@
 
 import type { QueueStore, BranchRef, Job, WorkflowStep } from "../../queue/queue.ts";
 import type { BranchStatusChecker, GitRunner } from "../../git/branch-status.ts";
-import type { WorkflowHistoryChecker } from "../../git/workflow-history.ts";
+import type { WorkflowHistoryChecker, BranchFileStepsChecker } from "../../git/workflow-history.ts";
 import type { SpecCreatedAtChecker, DescriptionFreshnessChecker } from "../../git/description-freshness.ts";
 import type { MergeEventReporter } from "../../integrations/merge-event.ts";
 import type { CodeLanding } from "../../project/discover.ts";
@@ -31,6 +31,11 @@ export interface LandContext {
   workflowHistory: WorkflowHistoryChecker;
   specCreatedAt: SpecCreatedAtChecker;
   freshness: DescriptionFreshnessChecker;
+  /** Spec 298: the file half of the disagreement comparison, read from
+   *  a spec's own open branch instead of the default-branch checkout's
+   *  stale copy — what `withFreshness` prefers over `t.fileSteps` when
+   *  it has a real answer. */
+  branchFileSteps: BranchFileStepsChecker;
   rootsStillHolding: (project: string, branch: string, fresh: boolean) => Promise<string[]>;
   invalidateScan: () => void;
   queueInstallTimeoutMs: number | undefined;
