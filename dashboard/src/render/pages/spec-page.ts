@@ -130,6 +130,7 @@ export function renderSpecPage(
     ),
     panel,
     view.backHref ?? "/",
+    view.specFolder,
   );
 
   return pageShell(
@@ -139,6 +140,6 @@ export function renderSpecPage(
     body,
     generatedAt,
     RELOADING_TABS.includes(tab) ? 10 : undefined,
-    { script: opts.script },
+    { script: opts.script, hideHeading: true },
   );
 }

@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { renderDeleteSchedulePage, renderSchedulePage } from "../../../src/render.ts";
+import {
+  renderDeleteSchedulePage,
+  renderNewSchedulePage,
+  renderScheduleDetailPage,
+  renderSchedulePage,
+} from "../../../src/render.ts";
 import { renderScheduleList } from "../../../src/render/pages/schedule-page/list.ts";
 
 const NAV = [{ label: "Projects", path: "/projects" }];
@@ -201,5 +206,42 @@ describe("renderDeleteSchedulePage (spec 277, acceptance criterion 8)", () => {
       entryName: "nightly-report",
     });
     expect(html).toContain('action="/api/queue/schedule/aide/nightly-report/delete"');
+  });
+
+  // Spec 296: the "Delete <name>" title sits beside ← Back, on one line.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = renderDeleteSchedulePage(NAV, "2026-08-29T00:00:00Z", {
+      project: "aide",
+      entryName: "nightly-report",
+    });
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/schedule/aide/nightly-report">← Back</a>' +
+        "<h1>Delete nightly-report</h1></div>",
+    );
+    expect(html.match(/<h1>Delete nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+});
+
+describe("renderScheduleDetailPage (spec 296)", () => {
+  test("the entry's name sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = renderScheduleDetailPage(NAV, "2026-08-30T00:00:00Z", {
+      project: "aide",
+      entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
+      history: [],
+    });
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/schedule">← Back</a><h1>nightly-report</h1></div>',
+    );
+    expect(html.match(/<h1>nightly-report<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+});
+
+describe("renderNewSchedulePage (spec 296)", () => {
+  test("\"New job\" sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = renderNewSchedulePage(NAV, "2026-08-30T00:00:00Z", { projects: ["aide"] });
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/schedule">← Back</a><h1>New job</h1></div>',
+    );
+    expect(html.match(/<h1>New job<\/h1>/g)?.length ?? 0).toBe(1);
   });
 });

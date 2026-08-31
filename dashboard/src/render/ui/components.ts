@@ -336,9 +336,19 @@ export const tokenField = (token?: string): string =>
  *
  *  `.backlink`, not `.btn`: it shared the boxed button look until
  *  2026-08-27, which made a real navigation link indistinguishable from
- *  the buttons beside it that submit a form. */
-export function backLink(href: string): string {
-  return `<p class="intro"><a class="backlink" href="${esc(href)}">← Back</a></p>`;
+ *  the buttons beside it that submit a form.
+ *
+ *  A given `title` (spec 296) draws the page's own `<h1>` beside the
+ *  link instead of below it, in a `.backhead` flex row — replacing
+ *  `pageShell()`'s separate `<div class="pagehead">` or a page's own
+ *  hand-written `<h1>` after `backLink()`, either of which left the
+ *  title on a line of its own. Omitted, the markup is exactly what it
+ *  was before `title` existed. */
+export function backLink(href: string, title?: string): string {
+  const link = `<a class="backlink" href="${esc(href)}">← Back</a>`;
+  return title
+    ? `<div class="backhead">${link}<h1>${esc(title)}</h1></div>`
+    : `<p class="intro">${link}</p>`;
 }
 
 /** Where "← Back" actually goes, from the standard `Referer` request

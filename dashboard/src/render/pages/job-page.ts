@@ -332,13 +332,15 @@ export function tabBar<T extends string>(
  *
  *  `backHref` is resolved by the server, from the request's own
  *  `Referer` (spec 252) — this layer only draws it. */
-export function tabbedBody(banner: string, tabs: string, panel: string, backHref: string): string {
+export function tabbedBody(
+  banner: string, tabs: string, panel: string, backHref: string, title?: string,
+): string {
   // One wrapper, one right edge: the head line's buttons used to sit at
   // the frame's width while the open tab's text stopped well short of
   // it (2026-08-23).
   return (
     `<div class="doc">` +
-    backLink(backHref) +
+    backLink(backHref, title) +
     banner +
     tabs +
     `<div class="tabpanel">${panel}</div>` +
@@ -464,9 +466,10 @@ export function renderJobDetailPage(
     }),
     panel,
     job.backHref ?? "/",
+    job.specFolder,
   );
 
   // `/`, not this page's own address: the nav entry it belongs under is
   // the spec list, and that is where the list lives now.
-  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10);
+  return pageShell(job.specFolder, entries, "/", body, generatedAt, 10, { hideHeading: true });
 }

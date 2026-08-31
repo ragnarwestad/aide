@@ -111,8 +111,9 @@ const STRUCTURE = [
   "row", "intro", "tabpanel", "facts", "extra",
   // the one back-navigation link every subpage carries (spec 252),
   // deliberately not ".btn": it goes somewhere rather than submitting
-  // anything.
-  "backlink",
+  // anything. "backhead" is the flex row `backLink()` draws around it
+  // and the page's own <h1> when a title is given (spec 296).
+  "backlink", "backhead",
   // the Steps tab's per-row expand (spec 240): the link that opens a
   // step's own log, and the row the log itself sits in.
   "steplink", "steplog",

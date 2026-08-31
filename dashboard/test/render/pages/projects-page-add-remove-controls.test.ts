@@ -86,6 +86,15 @@ describe("the Add page", () => {
     expect(html).not.toContain(">Cancel<");
   });
 
+  // Spec 296: "Add project" sits beside ← Back, on one line.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = add();
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Add project</h1></div>',
+    );
+    expect(html.match(/<h1>Add project<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+
   test("it says the manifest it writes is minimal", () => {
     const html = add();
     expect(html).toContain("/aide-manifest");
@@ -152,6 +161,15 @@ describe("the Remove page", () => {
     // "← Back" is the one way out.
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
     expect(html).not.toContain(">Cancel<");
+  });
+
+  // Spec 296: "Remove <name>" sits beside ← Back, on one line.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = remove("atlasaurus");
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Remove atlasaurus</h1></div>',
+    );
+    expect(html.match(/<h1>Remove atlasaurus<\/h1>/g)?.length ?? 0).toBe(1);
   });
 
   // Spec 161 made every row action on the queue primary, Cancel

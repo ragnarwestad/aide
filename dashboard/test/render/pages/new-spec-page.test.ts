@@ -155,6 +155,15 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain('<a class="backlink" href="/?state=all&amp;q=archive">← Back</a>');
   });
 
+  // Spec 296: "New spec" sits beside ← Back, on one line.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = newPage();
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>New spec</h1></div>',
+    );
+    expect(html.match(/<h1>New spec<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+
   // Criteria 2, 7: one back-navigation control, never two — the bottom
   // Cancel this page used to draw beside Create is gone, its job done by
   // the top Back link.

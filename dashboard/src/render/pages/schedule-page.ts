@@ -6,7 +6,6 @@
 
 import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
-import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
 import { renderScheduleForm, type ScheduleFormOptions } from "./schedule-page/form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
@@ -75,11 +74,7 @@ export function renderScheduleDetailPage(
           modelChoices: opts.modelChoices,
           defaultModels: opts.defaultModels,
         });
-  // `pageShell`'s own heading is hidden (below) so the Back link is the
-  // first thing on the page — the name is drawn here instead, after
-  // Back, not before it.
-  const banner = `<h1>${esc(opts.entry.name)}</h1>`;
-  const body = tabbedBody(banner, bar, panel, opts.backHref ?? SCHEDULE_ROUTE);
+  const body = tabbedBody("", bar, panel, opts.backHref ?? SCHEDULE_ROUTE, opts.entry.name);
   return pageShell(opts.entry.name, nav, base, body, generatedAt, undefined, {
     script: opts.script,
     hideHeading: true,
@@ -100,8 +95,9 @@ export function renderDeleteSchedulePage(
   opts: DeleteSchedulePageOptions,
 ): string {
   const back = schedulePagePath(opts.project, opts.entryName);
+  const title = `Delete ${opts.entryName}`;
   const body =
-    backLink(back) +
+    backLink(back, title) +
     (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
@@ -114,7 +110,7 @@ export function renderDeleteSchedulePage(
     `<span class="frow">` +
     typedConfirm({ target: opts.entryName, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
     `</span></form>`;
-  return pageShell(`Delete ${opts.entryName}`, nav, back, body, generatedAt, undefined, { script: opts.script });
+  return pageShell(title, nav, back, body, generatedAt, undefined, { script: opts.script, hideHeading: true });
 }
 
 export interface NewSchedulePageOptions {
@@ -133,11 +129,8 @@ export interface NewSchedulePageOptions {
 }
 
 export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
-  // No manual `<h1>` here — `pageShell` already draws one from the
-  // title below, and the project-in-heading text this used to add
-  // duplicated it (2-analysis.md, Findings).
   const body =
-    `<main>${backLink(SCHEDULE_ROUTE)}` +
+    `<main>${backLink(SCHEDULE_ROUTE, "New job")}` +
     (opts.projects.length
       ? renderScheduleForm({
           action: "/api/queue/schedule",
@@ -150,5 +143,7 @@ export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts
       : `<p class="muted">No project on this machine may have a schedule entry made in it yet. ` +
         `Add one on the Projects page first.</p>`) +
     `</main>`;
-  return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, { script: opts.script });
+  return pageShell("New job", nav, newSchedulePath(), body, generatedAt, undefined, {
+    script: opts.script, hideHeading: true,
+  });
 }

@@ -139,4 +139,14 @@ describe("spec 231: the Reset control", () => {
     expect(html).toContain(`<a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>`);
     expect(html).not.toContain(">Cancel<");
   });
+
+  // Spec 296: "Reset <specFolder>" sits beside ← Back, on one line.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = renderResetSpecPage("aide", view().specFolder, NAV, GENERATED, { token: "t0ken" });
+    expect(html).toContain(
+      `<div class="backhead"><a class="backlink" href="/specs/aide/${view().specFolder}">← Back</a>` +
+        `<h1>Reset ${view().specFolder}</h1></div>`,
+    );
+    expect(html.match(new RegExp(`<h1>Reset ${view().specFolder}</h1>`, "g"))?.length ?? 0).toBe(1);
+  });
 });

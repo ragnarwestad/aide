@@ -192,6 +192,6 @@ export function renderProjectPage(
     : tab === "schedule" ? scheduleSection(opts.schedule ?? [])
     : configSection(settings, p.name, opts);
 
-  const body = tabbedBody("", tabBar(visibleTabs, base, tab, {}), panel, PROJECTS_ROUTE);
-  return pageShell(p.name, nav, base, body, generatedAt, undefined, { script: opts.script });
+  const body = tabbedBody("", tabBar(visibleTabs, base, tab, {}), panel, PROJECTS_ROUTE, p.name);
+  return pageShell(p.name, nav, base, body, generatedAt, undefined, { script: opts.script, hideHeading: true });
 }
