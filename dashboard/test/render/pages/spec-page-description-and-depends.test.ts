@@ -37,8 +37,18 @@ describe("the Description tab", () => {
 
   test("wide description lines stay on one line and scroll inside the field", () => {
     const html = edit();
-    expect(html).toContain('<textarea name="text" rows="30" spellcheck="false" wrap="off">');
+    expect(html).toContain('<textarea name="text" rows="30" spellcheck="false" wrap="off" class="spec-editor-raw">');
     expect(html).toContain('.newspecform textarea { overflow-x: auto; }');
+  });
+
+  // REQ-1: the WYSIWYG mount point sits beside the real textarea, which
+  // stays the actual submitted form field (2-analysis.md's "needs NO
+  // change" finding about the save route) — CSS hides one or the other
+  // depending on whether the client script mounted (see css/field.css).
+  test("carries the editor's mount point beside the raw textarea", () => {
+    const html = edit();
+    expect(html).toContain('<div class="spec-editor-mount" id="spec-editor-host"></div>');
+    expect(html.indexOf('id="spec-editor-host"')).toBeLessThan(html.indexOf('class="spec-editor-raw"'));
   });
 
   test("the Save row has one spacing token above it", () => {

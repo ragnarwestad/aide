@@ -90,4 +90,13 @@ select[name^="model."] {
 .cron-input { font-family: var(--mono); }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 .field input[name="title"] { min-width: 18rem; }
+/* The editor mount point (spec 292): hidden until its client script
+   sets data-mounted on it, so the fallback — the raw textarea beside
+   it, already styled by the .field textarea rule above — is the
+   DEFAULT a reader with JS off, or a failed bundle, gets. Once mounted,
+   the roles swap: the rich editor shows, and the raw textarea (still
+   the field the form actually submits) steps out of view. */
+.spec-editor-mount { display: none; }
+.spec-editor-mount[data-mounted] { display: block; }
+.spec-editor-mount[data-mounted] + .spec-editor-raw { display: none; }
 

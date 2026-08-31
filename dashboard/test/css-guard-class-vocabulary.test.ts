@@ -26,6 +26,10 @@ const COMPONENTS = [
   "checking", "sr",
   "field", "wide",
   "filters",
+  // the WYSIWYG mount point (spec 292) and the raw textarea beside it —
+  // the fallback CSS in css/field.css swaps which one is visible once
+  // the client script sets data-mounted.
+  "spec-editor-mount", "spec-editor-raw",
 ];
 
 /** Class names `queue-client.ts` selects on or writes. They carry no

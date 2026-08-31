@@ -61,7 +61,7 @@ export function renderSpecPage(
   view: SpecPageView,
   generatedAt: string,
   entries: NavEntry[],
-  opts: { tab?: string; step?: string; now?: number } = {},
+  opts: { tab?: string; step?: string; now?: number; script?: string } = {},
 ): string {
   const now = opts.now ?? Date.now();
   // Overview, whatever is running. The JOB page opens on the activity
@@ -140,5 +140,6 @@ export function renderSpecPage(
     body,
     generatedAt,
     RELOADING_TABS.includes(tab) ? 10 : undefined,
+    { script: opts.script },
   );
 }

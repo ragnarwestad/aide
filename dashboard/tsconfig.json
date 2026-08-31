@@ -8,7 +8,25 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    // @toast-ui/editor's own package.json declares "exports" with no
+    // "types" condition, so moduleResolution: "bundler" cannot reach its
+    // (otherwise complete) `types/index.d.ts` through the package name
+    // alone — a known gap in that package's published exports map, not
+    // a project-wide resolution rule.
+    "paths": {
+      "@toast-ui/editor": ["./node_modules/@toast-ui/editor/types/index.d.ts"]
+    },
+    // @toast-ui/editor's own .d.ts files (last published 2023-02-17,
+    // 2-analysis.md's own "unmaintained" finding) reference an internal
+    // `@t/index` path alias that ships in none of the published files,
+    // and were written against older prosemirror-* releases than the
+    // ^-ranged ones this install resolves today — both are broken
+    // INSIDE that package's declaration files, not in how this
+    // project's own code uses them. skipLibCheck stops tsc from
+    // type-checking .d.ts files at all; it does not relax "strict" for
+    // this project's own source.
+    "skipLibCheck": true
   },
   "include": ["src", "test"]
 }

@@ -58,10 +58,14 @@ export function descriptionPanel(view: SpecPageView, now: number): string {
     `<span class="frow">` +
     field(
       EDITABLE_SPEC_FILE,
-      // No newline between the tag and the text: an HTML parser eats a
-      // single leading one, which would silently drop the first line of
-      // a file that begins with a blank one.
-      `<textarea name="text" rows="30" spellcheck="false" wrap="off">${esc(file?.text ?? "")}</textarea>`,
+      // The mount point spec-editor-client.ts fills in. Hidden until the
+      // client script sets data-mounted on it — a reader with JS off, or a
+      // failed bundle, gets the raw textarea beside it, unchanged.
+      `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
+        // No newline between the tag and the text: an HTML parser eats a
+        // single leading one, which would silently drop the first line of
+        // a file that begins with a blank one.
+        `<textarea name="text" rows="30" spellcheck="false" wrap="off" class="spec-editor-raw">${esc(file?.text ?? "")}</textarea>`,
       { wide: true },
     ) +
     `</span>` +
