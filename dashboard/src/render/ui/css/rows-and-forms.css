@@ -163,16 +163,9 @@ td form { margin: 0; display: inline-block; }
    cannot give it — sized to its content instead, the same pill shape
    `.filters` used before this dropdown replaced it. */
 .menu.state > summary { width: auto; height: auto; border-radius: 999px;
-  padding: 3px 9px; gap: var(--sp-1); font-size: var(--fs-s); color: var(--muted); }
-.menu.state > summary:hover { color: var(--text); }
-/* The base `.menupanel` opens flush with its trigger's RIGHT edge — built
-   for the header menus, which sit at the right end of their own row.
-   This trigger sits at the LEFT end of `.specsearch` instead (spec 289),
-   so anchoring the panel the same way pushes it further left still —
-   past the edge of a narrow/mobile viewport, where it is clipped and
-   unreachable. Anchored to the trigger's LEFT edge instead, the panel
-   opens rightward, into the row, on every viewport width. */
-.menu.state .menupanel { left: 0; right: auto; }
+  padding: 3px 9px; gap: var(--sp-1); font-size: var(--fs-s); color: var(--muted);
+  background: var(--surface); border: 1px solid var(--line-strong); }
+.menu.state > summary:hover { color: var(--text); border-color: var(--muted); }
 
 /* The About dialog: opened from the menu, closed by the cross, Escape
    or a click on the backdrop. The panel carries the padding so a click
@@ -220,11 +213,11 @@ dialog.confirmdialog::backdrop { background: var(--backdrop); }
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
-/* New spec carries the auto margin now, not the question mark (spec
-   289 moved the search-scope explanation into the "?" popover, so it
-   reads as describing the search field beside it, not as a floating
-   aside next to New spec at the far end of the row). */
-.specsearch > .btn.primary { margin-left: auto; }
+/* The state trigger carries the auto margin now, not New spec (spec
+   305 moved the trigger itself next to New spec at the right end of
+   the row, so the row's one gap now falls before the pair of them
+   rather than before New spec alone). */
+.specsearch > .menu.state { margin-left: auto; }
 .specsearch > details.intro { position: relative; }
 .specsearch > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;

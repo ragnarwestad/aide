@@ -105,6 +105,31 @@ describe("the Config tab's button row is right-aligned with a deliberate margin"
 // what makes dollars the default without an attribute to select on — so
 // deleting either fails here with a reason.
 
+// --- the state trigger carries a fill and a border at rest, and sits
+// at the right end of the controls line (spec 305) --------------------
+
+describe("the state trigger reads as a control, not plain text", () => {
+  test(".menu.state > summary declares a fill and a border at rest", () => {
+    const rule = CSS.match(/\.menu\.state > summary \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toMatch(/background:\s*var\(--surface\)/);
+    expect(rule).toMatch(/border:\s*1px solid var\(--line-strong\)/);
+  });
+
+  test(".menu.state > summary:hover changes the border colour, distinct from rest", () => {
+    const hover = CSS.match(/\.menu\.state > summary:hover \{([^}]*)\}/)?.[1] ?? "";
+    expect(hover).toMatch(/border-color:\s*var\(--muted\)/);
+  });
+
+  test(".specsearch > .menu.state carries the auto margin, .btn.primary no longer does", () => {
+    expect(CSS).toMatch(/\.specsearch > \.menu\.state \{[^}]*margin-left:\s*auto[^}]*\}/);
+    expect(CSS).not.toMatch(/\.specsearch > \.btn\.primary \{[^}]*margin-left:\s*auto[^}]*\}/);
+  });
+
+  test("the panel carries no left-anchoring override, so it falls back to the base right anchor", () => {
+    expect(CSS).not.toMatch(/\.menu\.state \.menupanel \{[^}]*left:\s*0[^}]*\}/);
+  });
+});
+
 describe("the unit a reader chose is a CSS switch, not a second page", () => {
   test("choosing tokens hides the dollar figure", () => {
     expect(CSS).toContain(':root[data-unit="tokens"] .u-usd { display: none; }');

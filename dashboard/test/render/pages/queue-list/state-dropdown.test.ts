@@ -90,4 +90,16 @@ describe("the state dropdown (spec 289)", () => {
     const html = page({ filter: { state: "done", q: "foo" } });
     expect(html).toContain('<input type="hidden" name="state" value="done">');
   });
+
+  test("sits on the controls line between the (?) popover and New spec (spec 305)", () => {
+    const html = page({ createProjects: ["aide"] });
+    const introIndex = html.indexOf('<details class="intro"');
+    const stateIndex = html.indexOf('<details class="menu state"');
+    const newSpecIndex = html.indexOf('<a class="btn primary"');
+    expect(introIndex).toBeGreaterThan(-1);
+    expect(stateIndex).toBeGreaterThan(-1);
+    expect(newSpecIndex).toBeGreaterThan(-1);
+    expect(stateIndex).toBeGreaterThan(introIndex);
+    expect(stateIndex).toBeLessThan(newSpecIndex);
+  });
 });

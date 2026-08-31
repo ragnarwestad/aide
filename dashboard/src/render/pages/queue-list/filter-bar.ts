@@ -157,7 +157,6 @@ function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string): stri
   const q = (f.q ?? "").trim();
   return (
     `<form class="specsearch" method="get" action="/">` +
-    state +
     // No caption over the field: the button beside it says Search, and
     // the same word twice made the field taller than the button it
     // stands next to (2026-08-23).
@@ -182,6 +181,7 @@ function searchForm(f: QueueFilter, opts: QueuePageOptions, state: string): stri
     keep +
     `<button class="btn" type="submit">Search</button>` +
     runsHelp() +
+    state +
     newSpecLink(opts) +
     `</form>\n`
   );
