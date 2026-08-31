@@ -80,7 +80,23 @@ emit_ok() {
 [ -n "$spec_arg" ] || refuse "missing --spec"
 [ -d "$project_dir" ] || refuse "no such --project-dir: $project_dir"
 
-if declare -f aide_specs_root >/dev/null 2>&1; then
+# `--specs-dir`, when the caller names one, IS the specs root — not
+# merely one more place the conflict check below also looks. A headless
+# run passes its own per-run WORKTREE here (already rebased onto the
+# latest base by `update_branch_to_base`), which is where `implement`'s
+# real commits and a person's Overview ticks actually live. Falling
+# through to `aide_specs_root`'s CONFIGURED path instead reads the
+# shared, un-rebased checkout every other command reads for display —
+# so every check below (`Workflow steps completed`, the Acceptance
+# criteria gate) was silently answering from stale content, wrongly
+# refusing with `not-implemented-yet` or `acceptance-criteria-unticked`
+# for work that had genuinely happened (found 2026-08-31, on specs 287,
+# 288, 290 and 291 — the same one-line bug behind all four). Untested
+# until now because every existing fixture pointed `--specs-dir` and
+# the configured `AIDE_SPECS_PATH` at the very same directory.
+if [ -n "$specs_dir" ] && [ -d "$specs_dir" ]; then
+  specs_root="$specs_dir"
+elif declare -f aide_specs_root >/dev/null 2>&1; then
   specs_root="$(aide_specs_root "$project_dir")"
 else
   specs_root="$project_dir/specs"

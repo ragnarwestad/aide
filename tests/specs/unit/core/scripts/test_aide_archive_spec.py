@@ -417,6 +417,33 @@ def test_implement_absent_with_every_row_ticked_is_not_implemented_yet(script, p
     assert (specs / "81-x").exists(), "nothing may be moved on this path"
 
 
+def test_specs_dir_is_read_from_not_just_conflict_checked(project, specs, script, tmp_path):
+    """The bug behind specs 287, 288, 290 and 291 (2026-08-31): a
+    headless run passes its own rebased per-run worktree as
+    `--specs-dir`, but every status-file read fell back to the
+    CONFIGURED `AIDE_SPECS_PATH` instead — the shared, un-rebased
+    checkout, which still says "create, analyze" days after implement
+    actually ran. Two DIFFERENT specs roots here, on purpose: the
+    configured one is stale enough to refuse `not-implemented-yet` on
+    its own, and the worktree one is fully done — the script must read
+    the worktree, not the configured path, exactly as `--specs-dir` is
+    named to promise."""
+    configure(project, specs)
+    stale = status_md("create, analyze", phase("Phase 1: RED", ["| a | ⬜ | |"]))
+    add_spec(specs, "81-x", stale)
+
+    worktree_specs = init_repo(tmp_path / "worktree-specs")
+    done = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
+    add_spec(worktree_specs, "81-x", done)
+
+    rc, out, _ = run(script, project, "81-x", specs_dir=worktree_specs)
+    assert out["terminalReason"] == "archived", out
+    assert not (worktree_specs / "81-x").exists()
+    assert (worktree_specs / "archive" / "81-x").exists()
+    # The stale, configured copy is untouched — this run never read it.
+    assert (specs / "81-x").exists()
+
+
 def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
