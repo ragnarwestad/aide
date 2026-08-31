@@ -297,15 +297,18 @@ describe("the front page after the panel moved", () => {
   // to name — the old `#jobrows > .row:first-child` selector named the
   // chips' row, which no longer holds either control. Spec 289 removed
   // that row entirely, so `.specsearch` is `#jobrows`'s own first child
-  // now, and the clear-air margin rule (`filter-pill.css`) follows it
-  // there.
-  test("help owns the automatic margin that keeps both controls at the right", () => {
+  // now. New spec itself carries the auto margin (moved off the "?"
+  // popover so the popover could sit right after Search instead), and
+  // the clear-air margin rule is scoped to `.specsearch` alone, not
+  // `#jobrows`, since `/schedule` uses the same form with no `#jobrows`
+  // of its own.
+  test("New spec owns the automatic margin that keeps both controls at the right", () => {
     const html = page({ createProjects: ["aide"] });
-    expect(html).toContain(".specsearch > details.intro { margin-left: auto;");
+    expect(html).toContain(".specsearch > .btn.primary { margin-left: auto; }");
     expect(html).not.toContain(
       "#jobrows > .row:first-child > .btn { margin-left: auto; }",
     );
-    expect(html).toContain("#jobrows > .specsearch:first-child { margin: var(--sp-3) 0; }");
+    expect(html).toContain(".specsearch:first-child { margin: var(--sp-3) 0; }");
     expect(html).not.toContain("#jobrows > .row:first-child { margin: var(--sp-3) 0; }");
   });
 

@@ -290,8 +290,13 @@ describe("spec 113: the runs explanation is a popover beside the filter chips", 
     expect(bar.indexOf('<details class="intro">')).toBeGreaterThan(bar.indexOf('data-filter="state"'));
   });
 
-  test("the copy still says what happens to a job that hits a cap", () => {
+  // Spec 289 replaced this popover's "how runs work" copy with the
+  // search-scope explanation that used to sit in its own paragraph
+  // below the search form — dropped from the page entirely, not moved
+  // anywhere else, so there is no "stopped"/cap wording left to assert.
+  test("the copy says what the search reads, not how runs work", () => {
     const bar = beforeTable(renderQueueRows([row()], { runnerAvailable: true, targets: [] }));
-    expect(bar).toContain("<em>stopped</em>");
+    expect(bar).toContain("Searches the");
+    expect(bar).not.toContain("<em>stopped</em>");
   });
 });

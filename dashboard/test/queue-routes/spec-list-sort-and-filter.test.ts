@@ -278,6 +278,6 @@ describe("the job list sorts and filters", () => {
       await fetch(`${base}/?rows=1&state=active`, { headers: { "x-aide-token": TOKEN } })
     ).text();
     expect(rows).toContain('data-filter="state"');
-    expect(rows).toMatch(/aria-current="true"[^>]*>Running/);
+    expect(rows).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>Running/);
   });
 });

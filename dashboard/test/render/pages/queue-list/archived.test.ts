@@ -216,7 +216,7 @@ describe("spec 221: archived specs on the spec list", () => {
     const html = rows({ archivedSpecs: [archivedSpec("50-archived")] });
     // Nothing is passed as the filter at all: this is the fallback every
     // reader with a bare `/` gets.
-    expect(html).toMatch(/aria-current="true"[^>]*>Active/);
+    expect(html).toMatch(/aria-current="true"><span class="check" aria-hidden="true"><\/span>Active/);
     expect(html.indexOf(">Active")).toBeLessThan(html.indexOf(">All"));
   });
 

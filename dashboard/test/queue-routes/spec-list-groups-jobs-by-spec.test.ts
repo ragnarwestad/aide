@@ -129,12 +129,12 @@ describe("filtering and sorting work on specs, not jobs", () => {
   });
 
   // Spec 261 moved the "?" and New spec off the chips' own row and onto
-  // the search field's row beside it — readers look for them next to
-  // the field they are about to use, not above it. This replaces the
-  // spec-226 guard for the OLD placement: the chips' `<div class="row">`
-  // now holds only the chips, and both controls live inside
-  // `<form class="specsearch">`, help before New spec.
-  test('the "?" and New spec sit on the search field\'s own row (spec 261)', () => {
+  // the search field's row beside it. Spec 289 went further and folded
+  // the state chips themselves into that same row, as a dropdown
+  // (`data-filter="state"`) — there is no separate chips row left to
+  // check, so this now asserts everything (state, "?", New spec) lives
+  // inside the one `<form class="specsearch">`, in that order.
+  test('the state dropdown, "?" and New spec all sit on the search field\'s own row (spec 261, spec 289)', () => {
     const html = renderQueuePage(
       [job("a1", "aa-spec")],
       "2026-08-16T00:00:00Z",
@@ -146,20 +146,10 @@ describe("filtering and sorting work on specs, not jobs", () => {
     const formEnd = html.indexOf("</form>", formStart);
     expect(formEnd).toBeGreaterThan(-1);
     const form = html.slice(formStart, formEnd);
-    // The chips' own row, read by its two ends rather than by a regex:
-    // `<div class="row">` occurs elsewhere on the page, and a pattern
-    // that backtracked past one of those would be reading a region
-    // nobody meant.
-    const opens = html.lastIndexOf('<div class="row">', formStart);
-    expect(opens).toBeGreaterThan(-1);
-    const chipsRow = html.slice(opens, formStart);
-    expect(chipsRow).toContain('data-filter="state"');
-    expect(chipsRow).not.toContain('<details class="intro">');
-    expect(chipsRow).not.toContain(">New spec</a>");
-    // Both controls now live inside the search form's own row, help
-    // before New spec.
+    expect(form).toContain('data-filter="state"');
     expect(form).toContain('<details class="intro">');
     expect(form).toContain(">New spec</a>");
+    expect(form.indexOf('data-filter="state"')).toBeLessThan(form.indexOf('<details class="intro">'));
     expect(form.indexOf('<details class="intro">')).toBeLessThan(form.indexOf(">New spec</a>"));
     // And the whole row is still ahead of the list it labels.
     expect(html.indexOf('<form class="specsearch"')).toBeLessThan(
