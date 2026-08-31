@@ -45,10 +45,9 @@ export function fact(label: string, value: string): string {
  *  boxes are gone until it is reopened. */
 export function archivedLine(view: SpecPageView): string {
   if (!view.archived) return "";
-  return fact(
-    "Archived",
-    "the folder has moved into <code>archive/</code>, and the description and " +
-      "the checks cannot be edited until the spec is reopened",
+  return (
+    `<p class="desc"><span class="muted">The spec has moved into <code>archive/</code>, ` +
+    `and the description and the checks cannot be edited until the spec is reopened</span></p>`
   );
 }
 

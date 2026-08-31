@@ -296,6 +296,10 @@ export function tabBar<T extends string>(
    *  for a job that had captured nothing, before spec 240 folded it into
    *  this same tab. */
   counts: Partial<Record<T, number>>,
+  /** Extra markup at the row's right end — a spec's own Reopen/Reset/
+   *  Update (spec 300), right-aligned by the shared ".row" class.
+   *  Absent for every caller but the spec page. */
+  trailing = "",
 ): string {
   // A real tab bar, the same one the site's own two tabs are: the row
   // sits ON a hairline and the open tab is marked by an underline in
@@ -321,6 +325,7 @@ export function tabBar<T extends string>(
         );
       })
       .join("") +
+    (trailing ? `<span class="row">${trailing}</span>` : "") +
     `</nav>`
   );
 }

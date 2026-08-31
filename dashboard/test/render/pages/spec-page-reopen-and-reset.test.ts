@@ -41,10 +41,10 @@ describe("spec 198: the Reopen control", () => {
   // Reopen sat under the archived note while Update sat up on the head
   // line, so the page's two buttons were in two places (2026-08-23,
   // "Reopen og Update kan vel gjerne stå sammen?"). One group now, at
-  // the end of the head line, where `.pagehead` puts what is not the
-  // state chip.
-  test("Reopen and Update share one group at the end of the head line", () => {
-    const group = /<div class="pagehead">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/div>/.exec(archived())?.[1] ?? "";
+  // the end of the tab row (spec 300 moved it off its own line above
+  // the tabs).
+  test("Reopen and Update share one group at the end of the tab row", () => {
+    const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(archived())?.[1] ?? "";
     expect(group).toContain("Reopen");
     expect(group).toContain("Update");
     // Reopen FIRST: Update is on every spec page, and a button that
@@ -60,16 +60,21 @@ describe("spec 198: the Reopen control", () => {
   // the page uses that shape for something that just happened, not for
   // something that is the case, and "read-only" is a truth with
   // modifications — Reopen is on the head line, and archive can be run
-  // again while the branch is open.
-  test("being archived is a labelled fact on Overview, and does not claim read-only", () => {
+  // again while the branch is open. Spec 300 then dropped the
+  // "Archived" label itself: the sentence already says what is the
+  // case, and a label running into it ("Archived the folder has
+  // moved...") read as one thing typed against another.
+  test("being archived is one self-contained sentence, and does not claim read-only", () => {
     const html = archived();
-    expect(html).toContain("<strong>Archived</strong>");
+    expect(html).not.toContain("<strong>Archived</strong>");
+    expect(html).toContain(
+      "The spec has moved into <code>archive/</code>, and the description and " +
+        "the checks cannot be edited until the spec is reopened",
+    );
     // The About dialog in the shell calls the dashboard itself
     // read-only, so it is the old SENTENCE that must be gone.
     expect(html).not.toContain("a record, and read-only");
     expect(html).not.toContain("This spec is archived");
-    // It says what is actually the case instead.
-    expect(html).toContain("cannot be edited until the spec is reopened");
     // Not the notice shape: that one is for what just happened.
     expect(html).not.toMatch(/class="rowmsg info"[^>]*>[\s\S]{0,80}archived/);
   });
@@ -107,7 +112,7 @@ describe("spec 252: the spec page's own Back link", () => {
 describe("spec 231: the Reset control", () => {
   test("an active spec offers Reset immediately before Update", () => {
     const html = page(view({ resetAction: "/reset-confirm" }));
-    const group = /<div class="pagehead">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/div>/.exec(html)?.[1] ?? "";
+    const group = /<nav class="tabbar subtabs">[\s\S]*?<span class="row">([\s\S]*?)<\/span><\/nav>/.exec(html)?.[1] ?? "";
     expect(group).toContain('href="/reset-confirm"');
     expect(group.indexOf("Reset")).toBeLessThan(group.indexOf("Update"));
   });

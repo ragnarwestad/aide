@@ -32,8 +32,14 @@ body > nav.tabbar { display: flex; gap: var(--sp-4); padding: 0 var(--sp-6);
    these are views. Inside main, so the row takes the page's width
    rather than the frame's, which is why it is a rule of its own and
    not the body-child one above. */
-nav.tabbar.subtabs { display: flex; flex-wrap: wrap; gap: var(--sp-4);
+nav.tabbar.subtabs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-4);
   border-bottom: 1px solid var(--line); }
+/* The spec page's own actions group, at the row's right end (spec
+   300): margin-left auto is the same push .specsearch and
+   .schedulenewlink already use elsewhere on this site. Wraps to its own
+   line, still right-aligned on it, once the row no longer fits both
+   groups side by side. */
+nav.tabbar.subtabs > .row { margin-left: auto; }
 /* Narrower than the site's two: seven tabs at 7rem each do not fit a
    laptop, and these labels are one word. They keep the row's own
    rhythm by their padding instead. */

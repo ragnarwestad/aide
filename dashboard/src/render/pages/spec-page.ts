@@ -72,28 +72,7 @@ export function renderSpecPage(
   const tab = pickTab(SPEC_TABS, opts.tab, "description");
   const lead = view.lead;
 
-  // A `<div>`, not the job page's `<p>`: `.pagehead` already lays its
-  // children out at the two ends of the line, and a `<form>` inside a
-  // paragraph is not markup a browser has to keep.
   const banner =
-    // The spec's own actions, together at the end of the line
-    // (2026-08-23). Reopen used to sit further down, under the archived
-    // note that explains it, which put the page's two buttons in two
-    // places for no reason a reader could see.
-    //
-    // Reopen goes BEFORE Update, so the control that is always there
-    // keeps the same spot: an Update that slid left whenever a spec was
-    // archived would be a button moving because something else
-    // appeared.
-    `<div class="pagehead"><span class="row">` +
-    (view.archived ? reopenControl(view) : "") +
-    resetControl(view) +
-    // A GET would let a reload re-run the pull, so this is a form and
-    // not a link, exactly as every other action on this dashboard is.
-    `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
-    `<button class="btn" type="submit" title="pull the specs repository and show what it says now">` +
-    `Update</button></form>` +
-    `</span></div>` +
     (view.title ? `<p class="desc"><strong>${esc(view.title)}</strong></p>` : "") +
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
@@ -102,6 +81,20 @@ export function renderSpecPage(
     dependsOnLine(view) +
     (view.error ? rowMessage("err", view.error, { tag: "p" }) : "") +
     (view.notice ? rowMessage(view.notice.ok ? "info" : "warn", view.notice.note, { tag: "p" }) : "");
+
+  // The spec's own actions, at the end of the tab row (spec 300; sat on
+  // a line of its own above the tabs until then). Reopen goes BEFORE
+  // Update, so the control that is always there keeps the same spot: an
+  // Update that slid left whenever a spec was archived would be a
+  // button moving because something else appeared.
+  const actions =
+    (view.archived ? reopenControl(view) : "") +
+    resetControl(view) +
+    // A GET would let a reload re-run the pull, so this is a form and
+    // not a link, exactly as every other action on this dashboard is.
+    `<form class="actionform" method="post" action="${esc(view.updateAction)}">` +
+    `<button class="btn" type="submit" title="pull the specs repository and show what it says now">` +
+    `Update</button></form>`;
 
   const tabHref = specTabPath(view.project, view.specFolder, "steps");
   const panel =
@@ -127,6 +120,7 @@ export function renderSpecPage(
       specPagePath(view.project, view.specFolder),
       tab,
       { steps: (view.steps?.length ?? 0) + (lead?.runningStep ? 1 : 0) },
+      actions,
     ),
     panel,
     view.backHref ?? "/",
