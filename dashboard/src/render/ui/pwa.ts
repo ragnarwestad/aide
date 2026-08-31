@@ -55,6 +55,15 @@ export const WEBMANIFEST =
       scope: "/",
       // Without this it is a bookmark with an icon, not an app.
       display: "standalone",
+      // Experiment (2026-08-31): asks Chrome to fold the OS-drawn
+      // title bar into the page itself, so the app's own header can
+      // sit where that blank strip was instead of stacking under it.
+      // Falls through to plain "standalone" wherever it is not
+      // understood (any non-Chromium browser today) — nothing else
+      // here reacts to it yet, so an install elsewhere sees no change
+      // at all. First step is just confirming Chrome on this Mac
+      // actually turns it on before any header CSS gets written.
+      display_override: ["window-controls-overlay", "standalone"],
       background_color: THEME_COLORS.light,
       theme_color: THEME_COLORS.light,
       icons: [
