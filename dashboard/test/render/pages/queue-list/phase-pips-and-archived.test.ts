@@ -19,7 +19,8 @@ describe("spec 210: pips() marks the completed thirds", () => {
   test("a now pip without a third carries nothing, exactly as before", async () => {
     const { pips } = await import("../../../../src/render/ui/components.ts");
     expect(pips([{ kind: "now", title: "implement" }])).toBe(
-      `<div class="pips"><span class="pip now" title="implement"></span></div>`,
+      `<div class="pipwrap"><div class="pipletters" aria-hidden="true"><span>i</span></div>` +
+        `<div class="pips"><span class="pip now" title="implement"></span></div></div>`,
     );
   });
 

@@ -248,6 +248,18 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .branchlist { display: inline-flex; flex-wrap: wrap; gap: 2px var(--sp-2);
   font-weight: 400; font-family: var(--sans); }
 .branch { white-space: nowrap; }
+/* The letter row and the pip row repeat the same 21px width and 3px
+   gap per column (matching `.pip`'s own width below) so a letter
+   always sits centred over its own pip whatever the viewport — same
+   two numbers, twice, not a variable, since `.pip`'s width is itself
+   pinned to a literal by a test (spec 210: divisible by three).
+   `.pipwrap` is what a caller's own layout treats as the pips now: it
+   is the flex/table-cell item, not `.pips` (see `table.facts .pipwrap`
+   in job-page.css for the one place that mattered). */
+.pipwrap { display: inline-flex; flex-direction: column; gap: 2px; }
+.pipletters { display: flex; gap: 3px; }
+.pipletters span { width: 21px; text-align: center;
+  font-size: var(--fs-s); line-height: 1; color: var(--muted); }
 .pips { display: flex; gap: 3px; }
 /* 21px, not 14: a third of the bar has to be a thing a reader can see,
    and 21 is the smallest width divisible by three that stays a mark

@@ -3,7 +3,7 @@
 table.facts { width: auto; margin: var(--sp-3) 0 var(--sp-4); }
 table.facts td { padding: 2px var(--sp-4) 2px 0; }
 table.facts .label { color: var(--muted); font-weight: 500; white-space: nowrap; }
-table.facts .pips { display: inline-flex; margin-left: var(--sp-2); vertical-align: middle; }
+table.facts .pipwrap { margin-left: var(--sp-2); vertical-align: middle; }
 /* Each Logs row expands to its own log (spec 240) rather than one
    shared Activity tab. .steplink carries the same .fold chevron the
    specs list uses (2026-08-25) — sized and hover-styled entirely by
