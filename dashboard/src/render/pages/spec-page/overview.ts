@@ -1,10 +1,9 @@
-// The Overview tab's own pieces: what the spec depends on, whether it
-// is archived, its run history, its checks, and the Reopen/Reset
-// controls.
+// The spec's read-only facts (what it depends on, whether it is
+// archived) drawn in the banner on every tab, the Checks tab's own
+// checklist, and the Reopen/Reset controls.
 
 import { btn, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import { phasePips } from "../queue-list.ts";
 import type { SpecCheckView, SpecPageView } from "./types.ts";
 
 /** What the spec depends on, on the front page, in words (spec 212).
@@ -53,29 +52,7 @@ export function archivedLine(view: SpecPageView): string {
   );
 }
 
-/** The spec's own run history, on the OVERVIEW tab (spec 239) — the same
- *  create → analyze → implement → archive chain the front page's row
- *  draws for this spec, through the identical `phasePips` call rather
- *  than a second reading of the same jobs: the front page and this tab
- *  can then never disagree about the same spec, because they are the
- *  same function call. `pips()` itself is caption-free by design (it
- *  sits beside the spec's name on the front page's row, which is
- *  caption enough); hoisted alone onto Overview it needs one of its
- *  own, so a "Progress" caption is added here — the front page row's
- *  own name for this call (spec 241) — using the same `checkshead`
- *  convention `checklist()` already uses for "Checks". */
-export function phaseChain(view: SpecPageView): string {
-  const phases = view.phases ?? [];
-  // "Nothing to show, show nothing" — the same rule `checklist()` and
-  // `dependsOnLine()` already keep. The server always sends four
-  // phases or more, empty jobs list included (`phasesFor([], ...)`
-  // still returns the four workflow lines); this is a fallback for a
-  // view built before this field existed.
-  if (phases.length === 0) return "";
-  return `<p class="checkshead"><strong>Progress</strong></p>` + phasePips(phases, view.done ?? []);
-}
-
-/** The spec's checks, on the OVERVIEW tab (specs 182, 188, 212).
+/** The spec's checks, on the CHECKS tab (specs 182, 188, 212).
  *
  *  Spec 182 put these rows at the top of the page because they were
  *  buried near the bottom of the fourth file, which is the last place
@@ -88,7 +65,7 @@ export function phaseChain(view: SpecPageView): string {
  *  description's editor is now a tab beside this one rather than a page
  *  behind a link, so ticking a box no longer means opening it.
  *
- *  On the Overview PANEL rather than in the banner, which is where spec
+ *  On the Checks PANEL rather than in the banner, which is where spec
  *  182 put the summary: a form in the banner rides onto Activity and
  *  Steps, and those two reload every ten seconds — which would wipe a
  *  half-ticked list, the exact failure this spec's reload scoping
@@ -106,7 +83,7 @@ export function phaseChain(view: SpecPageView): string {
 export function checklist(view: SpecPageView): string {
   const rows = view.checks?.rows ?? [];
   if (rows.length === 0) {
-    return `<p class="checkshead"><strong>Checks</strong> <span class="small muted">no checks yet</span></p>`;
+    return `<p class="muted">No checks yet.</p>`;
   }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];

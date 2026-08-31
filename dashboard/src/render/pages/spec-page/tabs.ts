@@ -11,18 +11,19 @@ export const specPagePath = (project: string, specFolder: string): string =>
 export const specTabPath = (project: string, specFolder: string, tab: string): string =>
   `${specPagePath(project, specFolder)}?tab=${encodeURIComponent(tab)}`;
 
-/** The page's tabs: where the spec stands, then its four documents in
- *  the order they are written and read, then the lead job's own two.
+/** The page's tabs: its four documents in the order they are written and
+ *  read, Checks right after Solution (the plan the checks hold the spec
+ *  to), then the lead job's own two.
  *
  *  A tuple of this page's own, fed to `job-page.ts`'s `pickTab` and
  *  `tabBar` — which take the list as an argument since spec 212 exactly
  *  so there is still ONE tab-bar renderer for a page with seven tabs
  *  and a page with three. */
 export const SPEC_TABS = [
-  "overview",
   "description",
   "analysis",
   "solution",
+  "checks",
   "status",
   "steps",
 ] as const;
@@ -63,7 +64,7 @@ export const TAB_FILES: Partial<Record<SpecTab, string>> = {
 
 /** Which tab a phase's own link opens (spec 237): the tab that shows
  *  what that phase MADE, or — for archive, which writes no file of its
- *  own — the page's front, Overview.
+ *  own — Checks, the spec's own remaining-work tab.
  *
  *  ONE map, exported and imported rather than copied: `queue-list.ts`
  *  is the only caller, and `development.md` names two copies of one
@@ -78,5 +79,5 @@ export const PHASE_TAB: Partial<Record<string, SpecTab>> = {
   create: "description",
   analyze: "solution",
   implement: "status",
-  archive: "overview",
+  archive: "checks",
 };

@@ -41,7 +41,7 @@ describe("the checks on the Overview tab", () => {
   // --- criterion 1: which checks Overview offers as boxes -------------------
 
   describe("GET the Overview tab", () => {
-    const overview = (base: string) => fetch(`${base}${PAGE}`, auth).then((r) => r.text());
+    const overview = (base: string) => fetch(`${base}${PAGE}?tab=checks`, auth).then((r) => r.text());
 
     test("the current phase's open rows are boxes in a form of their own", async () => {
       const { base } = startWithChecks(savable("/host"));
