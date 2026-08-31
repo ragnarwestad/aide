@@ -79,4 +79,7 @@ h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3)
 .pagehead { display: flex; justify-content: space-between; align-items: baseline;
   flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); }
 .stamp { color: var(--muted); font-size: var(--fs-s); }
+.backhead { display: flex; align-items: baseline; flex-wrap: wrap;
+  gap: var(--sp-4); margin: 0 0 var(--sp-4); }
+.backhead h1 { margin: 0; }
 

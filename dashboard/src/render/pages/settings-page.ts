@@ -33,7 +33,7 @@ const toMinutes = (sec: number): number => Math.round(sec / 60);
 
 export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opts: SettingsPageOptions): string {
   const models = opts.modelChoices;
-  const back = backLink(opts.backHref ?? "/");
+  const back = backLink(opts.backHref ?? "/", "Settings");
   // budgetUsd/jobCapUsd/timeoutSec are meaningful and already enforced
   // (runner.ts) even on a server with no modelChoices configured — only
   // the AI/model columns depend on a choice actually being offered.
@@ -61,7 +61,7 @@ export function renderSettingsPage(entries: NavEntry[], generatedAt: string, opt
   const message = opts.error ?? opts.notice ?? "";
   const modelHeader = models.length ? "<th>Default AI and model</th>" : "";
   const noModelsNote = models.length ? "" : `<p class="muted">No model choices are configured on this server.</p>`;
-  const body = `<main>${back}<h1>Settings</h1><form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
+  const body = `<main>${back}<form id="settings-form" data-settings-form method="post" action="/api/queue/settings">` +
     `<p class="refused${opts.error ? " rowmsg warn" : ""}" aria-live="polite">${esc(message)}</p>` +
     `<p><label>Budget per job (USD) <input type="number" min="0.01" max="100" step="0.01" ` +
     `name="budgetUsd" value="${opts.budgetUsd}"></label></p>` +

@@ -4,6 +4,7 @@
 // either shape before this.
 import { describe, expect, test } from "bun:test";
 import { backLink, resolveBackHref } from "../../../src/render/ui/components.ts";
+import { CSS } from "../../../src/render/ui/css.ts";
 
 describe("backLink", () => {
   test("a .backlink anchor labelled ← Back, wrapped in the .intro spacing rule", () => {
@@ -12,6 +13,30 @@ describe("backLink", () => {
 
   test("escapes its href", () => {
     expect(backLink("/?q=\"><script>")).not.toContain("<script>");
+  });
+
+  // Spec 296: given a title, the "← Back" control and the page's own
+  // <h1> sit in one row, the title after the link, rather than each on
+  // its own block-level line.
+  test("given a title, draws it beside ← Back in one .backhead row (spec 296)", () => {
+    expect(backLink("/projects", "Add project")).toBe(
+      '<div class="backhead"><a class="backlink" href="/projects">← Back</a><h1>Add project</h1></div>',
+    );
+  });
+
+  test("escapes its title", () => {
+    expect(backLink("/projects", "<script>")).not.toContain("<script>");
+  });
+});
+
+// Spec 296, REQ-2: the CSS-level half of "separated by enough space
+// that the two do not read as one run of text" — a rule that actually
+// lays "← Back" and the title out on one row.
+describe(".backhead CSS rule", () => {
+  test("bundled CSS declares .backhead as a flex row with a non-zero gap", () => {
+    const rule = CSS.match(/\.backhead\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("display: flex");
+    expect(rule).toMatch(/gap:\s*(?!0)\S/);
   });
 });
 

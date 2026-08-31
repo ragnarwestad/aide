@@ -250,7 +250,7 @@ export function renderAddProjectPage(
     return proposed ? `value="${esc(proposed)}" ` : "";
   };
   const body =
-    backLink("/projects") +
+    backLink("/projects", "Add project") +
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     // The copy 1-description.md asks for, before the form rather than
     // in a doc nobody has open: what is written here is the least a
@@ -351,6 +351,7 @@ export function renderAddProjectPage(
   return pageShell("Add project", entries, "/projects", body, generatedAt, undefined, {
     docTitle: "aide -board — add project",
     script: opts.script,
+    hideHeading: true,
   });
 }
 
@@ -365,7 +366,7 @@ export function renderRemoveProjectPage(
   opts: ProjectsPageOptions,
 ): string {
   const body =
-    backLink("/projects") +
+    backLink("/projects", `Remove ${name}`) +
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     rowMessage(
       "info",
@@ -383,5 +384,6 @@ export function renderRemoveProjectPage(
   return pageShell(`Remove ${name}`, entries, "/projects", body, generatedAt, undefined, {
     docTitle: `aide -board — remove ${name}`,
     script: opts.script,
+    hideHeading: true,
   });
 }

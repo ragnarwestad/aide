@@ -12,8 +12,9 @@ export function renderResetSpecPage(
   opts: { token?: string; error?: string; script?: string } = {},
 ): string {
   const back = specPagePath(project, specFolder);
+  const title = `Reset ${specFolder}`;
   const body =
-    backLink(back) +
+    backLink(back, title) +
     (opts.error ? rowMessage("err", opts.error, { tag: "p" }) : "") +
     rowMessage(
       "info",
@@ -30,5 +31,5 @@ export function renderResetSpecPage(
       pending: "resetting…",
     }) +
     `</span></form>`;
-  return pageShell(`Reset ${specFolder}`, entries, "/", body, generatedAt, undefined, { script: opts.script });
+  return pageShell(title, entries, "/", body, generatedAt, undefined, { script: opts.script, hideHeading: true });
 }

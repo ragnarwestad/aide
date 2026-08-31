@@ -51,24 +51,31 @@ describe("Settings page", () => {
     expect(html).toContain('href="/"');
   });
 
-  // Spec 243: `pageShell()` draws its own pagehead ("<h1>Settings</h1>")
-  // unless told not to, and the page's own body also opened with a
-  // hardcoded one — two on the same page. Both branches share the bug.
-  test("has exactly one <h1>Settings</h1>, with no model choices", () => {
+  // `pageShell()` is told `hideHeading: true`, and the page's own
+  // `backLink()` call carries "Settings" as its title, drawing the one
+  // <h1> inside .backhead, right after ← Back (spec 296) — the same
+  // shape every other subpage's title now takes.
+  test("has exactly one <h1>Settings</h1>, inside .backhead right after ← Back, with no model choices", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: [], defaultModels: { default: "sonnet" },
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1></div>',
+    );
   });
 
-  test("has exactly one <h1>Settings</h1>, with model choices", () => {
+  test("has exactly one <h1>Settings</h1>, inside .backhead right after ← Back, with model choices", () => {
     const html = renderSettingsPage([{ label: "Projects", path: "/projects" }], "2026-08-24T00:00:00Z", {
       modelChoices: MODELS,
       defaultModels: { default: "sonnet" },
       budgetUsd: 3, jobCapUsd: 10, timeoutSec: TIMEOUT_SEC,
     });
     expect(html.match(/<h1>Settings<\/h1>/g)?.length ?? 0).toBe(1);
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>Settings</h1></div>',
+    );
   });
 
   // Spec 252, Criteria 3, 4, 7: the top-left "← Back" replaces the

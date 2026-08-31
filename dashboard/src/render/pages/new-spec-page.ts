@@ -208,7 +208,7 @@ export function renderNewSpecPage(
 ): string {
   const projects = opts.createProjects ?? [];
   const body =
-    backLink(opts.backHref ?? "/") +
+    backLink(opts.backHref ?? "/", "New spec") +
     // A refusal first, or it is read after the thing it refused.
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) + "\n" : "") +
     (projects.length
@@ -228,5 +228,6 @@ export function renderNewSpecPage(
   return pageShell("New spec", entries, "/", body, generatedAt, undefined, {
     docTitle: "aide -board — new spec",
     script: opts.script,
+    hideHeading: true,
   });
 }

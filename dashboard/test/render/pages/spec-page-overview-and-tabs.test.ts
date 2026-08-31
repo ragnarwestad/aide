@@ -38,6 +38,16 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
     }
   });
 
+  // Spec 296: the spec folder title sits beside ← Back, on one line,
+  // rather than in `pageShell()`'s own separate heading above it.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = page();
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>150-one-page-shows-the-whole-spec</h1></div>',
+    );
+    expect(html.match(/<h1>150-one-page-shows-the-whole-spec<\/h1>/g)?.length ?? 0).toBe(1);
+  });
+
   // Spec 295: Checks used to sit right after Solution; it belongs
   // between Status and Logs (the "steps" tab's own label) instead.
   test("Checks sits between Status and Logs in the tab row", () => {

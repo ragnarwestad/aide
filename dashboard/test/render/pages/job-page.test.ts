@@ -199,6 +199,16 @@ describe("renderJobDetailPage", () => {
     const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
     expect(html).toContain('<a class="backlink" href="/">← Back</a>');
   });
+
+  // Spec 296: the spec folder title sits beside ← Back, on one line,
+  // rather than in `pageShell()`'s own separate heading above it.
+  test("the title sits inside .backhead, right after ← Back, and appears as <h1> exactly once", () => {
+    const html = renderJobDetailPage(detail(), "2026-08-16T10:05:00Z", NAV);
+    expect(html).toContain(
+      '<div class="backhead"><a class="backlink" href="/">← Back</a><h1>02-job-detail-view</h1></div>',
+    );
+    expect(html.match(/<h1>02-job-detail-view<\/h1>/g)?.length ?? 0).toBe(1);
+  });
 });
 
 // The two things the page says — what the job is, what it has done and
