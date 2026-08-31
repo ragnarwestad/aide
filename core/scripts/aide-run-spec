@@ -2024,18 +2024,18 @@ if [ -n "$status_file" ]; then
         ${git_add_excludes[@]+"${git_add_excludes[@]}"} 2>/dev/null | wc -l | tr -d ' ')"
       [ "$proj_dirty" -gt 0 ] && proj_changed="yes"
     fi
-    status_progress_for "$status_file"
-    # progress_done is only a meaningful red flag when there was
-    # something TO tick (progress_total > 0). A status file with no
-    # Phase rows at all (progress_total=0) has nothing for this signal
-    # to say, and treating that as "nothing ticked" would flag a
-    # genuinely code-changing step as no-progress for a reason that
-    # never applied to it.
-    if [ "$proj_changed" != "yes" ] || { [ "$progress_total" -gt 0 ] && [ "$progress_done" -eq 0 ]; }; then
+    # A CHANGE IN THE PROJECT is the whole test. Whether the run also
+    # ticked its own Phase rows used to be half of it, and is not any
+    # more: a Phase table is the run's own record of its work, gating
+    # nothing (archive's only gate is `## Acceptance criteria`), so
+    # failing a step that wrote real code because its bookkeeping lagged
+    # turned a record-keeping slip into a red run someone had to
+    # re-drive.
+    if [ "$proj_changed" != "yes" ]; then
       terminal_reason="no-progress"
       ok="false"
       suffix=" (stopped: no-progress)"
-      error_msg="the step reported success but left no real progress — no change in the project and/or no task row ticked"
+      error_msg="the step reported success but left no real progress — nothing changed in the project"
     fi
   elif [ "$command_name" = "archive" ] && [ "$terminal_reason" = "completed" ]; then
     # spec 280: a "completed" archive claim is cross-checked the same

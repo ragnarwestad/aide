@@ -4,7 +4,7 @@
 import { pullFastForward, saveSpecFiles } from "../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../git/branch-file.ts";
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
-import { clearArchiveHeldBack, parseStatusChecks, tickStatusLine } from "../../project/parse-status.ts";
+import { acceptanceCriteriaUnticked, clearArchiveHeldBack, tickStatusLine } from "../../project/parse-status.ts";
 import {
   EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, renderResetSpecPage, renderSpecPage, resolveBackHref,
   resolveSpecTab, specPagePath, specTabPath,
@@ -319,9 +319,13 @@ export async function handleSpecEditRoutes(
     // makes the page go on reporting a spec held back after the
     // reason is gone.
     //
-    // The whole file's checks, not the ticked phase's — a spec with
-    // open work in another phase is still held back.
-    if (!parseStatusChecks(ticked).some((check) => !check.done)) {
+    // The ACCEPTANCE rows, not the whole file's: the Phase tables gate
+    // nothing (archive's only gate has been the Acceptance section since
+    // spec 268), so an implement run that left one of its own rows
+    // unticked used to keep the note — and the "held back" wording with
+    // it — standing on a spec whose person had judged everything that
+    // was theirs to judge.
+    if (!acceptanceCriteriaUnticked(ticked)) {
       const cleared = clearArchiveHeldBack(ticked);
       if (cleared !== null) ticked = cleared;
     }

@@ -5822,18 +5822,24 @@ def test_a_completed_claim_with_no_project_change_at_all_is_downgraded(
     assert recorded_line(workspace) == "create, analyze"
 
 
-def test_a_completed_claim_that_ticks_no_row_is_downgraded(
+def test_a_completed_claim_that_ticks_no_row_still_counts(
     runner, workspace, fake_claude
 ):
-    """AC5, the other half: the project genuinely changed, but not one
-    task row moved off unstarted."""
+    """The project genuinely changed, but not one task row moved off
+    unstarted — and that is NOT a failure.
+
+    A Phase table is the run's own record of its work, and nothing gates
+    on it: archive's only gate is the `## Acceptance criteria` section.
+    Failing a step that changed real code because its bookkeeping lagged
+    turned a record-keeping slip into a red run someone had to
+    re-drive."""
     status_with_phase(workspace, "create, analyze", ["| a | ⬜ | |", "| b | ⬜ | |"])
     claude = project_only_claude(fake_claude, workspace)
     rc, out, _ = run(runner, workspace, claude, command="implement")
     assert rc == 0, out
-    assert out["ok"] is False, out
-    assert out["terminalReason"] == "no-progress", out
-    assert recorded_line(workspace) == "create, analyze"
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+    assert recorded_line(workspace) == "create, analyze, implement"
 
 
 def test_a_genuine_implement_run_is_unaffected(runner, workspace, fake_claude):
