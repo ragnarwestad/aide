@@ -243,10 +243,18 @@ export class WorkflowHistoryChecker {
 /** The steps `4-status.md`'s own line and the history do not agree
  *  about.
  *
- *  Both directions count. A file naming a step with no commit behind it
- *  is spec 153's copied folder; a file missing a step git has is spec
- *  147's killed run. Neither decides anything — the row says so on the
- *  phase it is about, and goes on reading git.
+ *  Both directions count for a step that lands on the default branch
+ *  the moment it finishes: a file naming a step with no commit behind
+ *  it is spec 153's copied folder, and a file missing a step git has is
+ *  spec 147's killed run. `implement` is the one exception, since spec
+ *  149: it lands nothing of its own, so `4-status.md`'s own write to
+ *  this line — made on the spec's still-open branch — does not reach
+ *  the default branch this reads until `archive` merges it. "Git has
+ *  implement, the file doesn't" is therefore the ordinary, guaranteed
+ *  state of every spec between a finished implement and its archive,
+ *  not a killed run — flagging it here fired on nearly every such spec
+ *  (spec 299). Only the direction that still means something for
+ *  `implement` — the file claiming a commit git denies — is kept.
  *
  *  Per step rather than per spec because the row has a line per phase
  *  and one sentence repeated down all five of them is the duplication
@@ -257,9 +265,13 @@ export function stepsFileDisagreesOn(fileSteps: string[], history: WorkflowHisto
   // takes it as done for every spec whose folder exists, whatever git
   // holds, so comparing it against a status file would report a
   // disagreement about a step nothing disagrees on.
-  return HISTORY_STEPS.filter(
-    (step) => step !== "create" && claimed.has(step) !== history.done.includes(step),
-  );
+  return HISTORY_STEPS.filter((step) => {
+    if (step === "create") return false;
+    const fileClaims = claimed.has(step);
+    const historyShows = history.done.includes(step);
+    if (step === "implement") return fileClaims && !historyShows;
+    return fileClaims !== historyShows;
+  });
 }
 
 export interface BranchFileStepsOptions {

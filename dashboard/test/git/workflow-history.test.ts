@@ -21,6 +21,7 @@ import { join } from "node:path";
 import {
   WorkflowHistoryChecker,
   readWorkflowSubjects,
+  stepsFileDisagreesOn,
   workflowLogArgs,
 } from "../../src/git/workflow-history.ts";
 import { createGitRunner } from "../../src/git/branch-status.ts";
@@ -166,6 +167,38 @@ describe("readWorkflowSubjects", () => {
       FOLDER,
     );
     expect(history.done).toEqual([]);
+  });
+});
+
+describe("stepsFileDisagreesOn (spec 299's fix, applied 2026-08-31)", () => {
+  test("flags a step the file claims that git has no commit for", () => {
+    expect(stepsFileDisagreesOn(["create", "analyze", "implement"], { done: ["create", "analyze"], stopped: {} })).toEqual([
+      "implement",
+    ]);
+  });
+
+  test("does not flag implement when git has it but the file has not caught up yet", () => {
+    // `implement` lands nothing until `archive` merges it, so the
+    // status file on the default branch is expected to lag behind git
+    // for as long as the spec sits between a finished implement and
+    // its archive — this is spec 299's own state, not a disagreement.
+    expect(
+      stepsFileDisagreesOn(["create", "analyze"], { done: ["create", "analyze", "implement"], stopped: {} }),
+    ).toEqual([]);
+  });
+
+  test("still flags analyze when git has it but the file has not caught up (spec 147)", () => {
+    // Unlike `implement`, `analyze` lands on the default branch the
+    // moment it finishes — the file this reads should have it too, so
+    // a gap here is still the killed-run case spec 147 was about.
+    expect(stepsFileDisagreesOn(["create"], { done: ["create", "analyze"], stopped: {} })).toEqual([
+      "analyze",
+    ]);
+  });
+
+  test("still ignores create, in either direction", () => {
+    expect(stepsFileDisagreesOn(["create"], { done: [], stopped: {} })).toEqual([]);
+    expect(stepsFileDisagreesOn([], { done: ["create"], stopped: {} })).toEqual([]);
   });
 });
 
