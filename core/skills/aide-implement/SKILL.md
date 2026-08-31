@@ -99,7 +99,12 @@ resume it at the first unticked task if it found it in progress.
    names the command(s) that ran, and, when the project has `testScopes`
    naming a scope nothing changed in, says that scope was left untested.
    Write it the same way, with `aide-write-spec --file 4-status.md`
-8. Show a summary — ready for commit
+8. Before reporting anything: confirm every row in this phase's own
+   table now reads ✅. This step is not optional and is not satisfied by
+   the checks above having passed — it is a separate, required write,
+   the last one this phase makes, and it is the one step reported "done"
+   without it having actually happened.
+9. Show a summary — ready for commit
 
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
