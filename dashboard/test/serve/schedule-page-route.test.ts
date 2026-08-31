@@ -56,13 +56,16 @@ describe("GET /schedule (spec 272)", () => {
     expect(html).toContain("traffic-analysis");
   });
 
-  // The nav tab beside the heading already says "Schedule" — the page's
-  // own title used to repeat it, which read as the same word twice.
-  test("the page's own heading says Jobs, not Schedule again", async () => {
+  // The nav tab beside the page already says "Schedule" — a page
+  // heading repeating it read as the same word twice, so the page now
+  // renders with no visible `<h1>` at all (the title stays "Jobs" only
+  // in `<title>`, via `pageShell`'s `hideHeading`).
+  test("the page renders with no visible heading of its own", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
     const html = await (await fetch(`${base}/schedule`, { headers: { "x-aide-token": TOKEN } })).text();
-    expect(html).toContain("<h1>Jobs</h1>");
+    expect(html).not.toContain("<h1>Jobs</h1>");
     expect(html).not.toContain("<h1>Schedule</h1>");
+    expect(html).toContain("· Jobs</title>");
   });
 
   test("no <select name=\"project\"> filter/selector remains on the response (criterion 3)", async () => {

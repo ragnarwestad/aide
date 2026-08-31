@@ -81,7 +81,8 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     const html = await (await get(base, "aide")).text();
     expect(html).not.toMatch(/>Health</);
     const fallback = await (await get(base, "aide", "health")).text();
-    expect(fallback).toContain("<h3>Config</h3>");
+    expect(fallback).not.toContain("<h3>Config</h3>");
+    expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
   // Read-only, and provably so: a page load that moved a checkout is
@@ -112,8 +113,9 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
   test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving falls back to Config (AC2)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
-    expect(html).toContain("<h3>Config</h3>");
+    expect(html).not.toContain("<h3>Config</h3>");
     expect(html).not.toContain("<h3>Deploy</h3>");
+    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
   });
 
   test("a project with AIDE_INSTALL_CMD but no drift check yet shows 'not checked' and no button (criterion 2)", async () => {
@@ -121,7 +123,7 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
     // The schedule is off entirely, so the answer never arrives: exactly
     // the state a fresh boot or a project just added is in.
     const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
-    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).not.toContain("<h3>Deploy</h3>");
     expect(html).toContain("origin drift not checked yet");
     expect(html).not.toContain('class="deployform"');
   });
@@ -160,7 +162,8 @@ describe("the Deploy section on a project's own page (spec 258, spec 293)", () =
       await new Promise((r) => setTimeout(r, 25));
       html = await (await get(base, "aide", "deploy")).text();
     }
-    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).not.toContain("<h3>Deploy</h3>");
+    expect(html).toMatch(/aria-current="page"[^>]*>Deploy/);
     expect(html).not.toContain("commits behind origin");
     expect(html).not.toContain("level with origin");
     expect(html).not.toContain("origin drift not checked yet");

@@ -118,7 +118,7 @@ export function renderSpecPage(
           // Checks: no file text at all, and no facts of its own — those
           // (archived, depends-on) moved into the banner, visible on
           // every tab, when this tab lost its old "Overview" name.
-          : `<h2>Checks</h2>${checklist(view)}`;
+          : checklist(view);
 
   const body = tabbedBody(
     banner,

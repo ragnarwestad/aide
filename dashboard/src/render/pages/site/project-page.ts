@@ -52,11 +52,10 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
     : "";
   const drift = opts.drift;
   if (!drift) {
-    return `<h3>Deploy</h3>` +
-      rowMessage(
-        "info",
-        "No AIDE_INSTALL_CMD is configured for this project, so its origin drift is not tracked here.",
-      ) + servingLine;
+    return rowMessage(
+      "info",
+      "No AIDE_INSTALL_CMD is configured for this project, so its origin drift is not tracked here.",
+    ) + servingLine;
   }
   const behind = drift.checkedAt !== null ? drift.behind : null;
   const message =
@@ -71,8 +70,7 @@ function deploySection(name: string, opts: ProjectPageOptions, now: number): str
       messageSlot("refused") +
       `</form>`
     : "";
-  return `<h3>Deploy</h3>` +
-    (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
+  return (opts.deployError ? rowMessage("err", opts.deployError, { hook: "refusal", tag: "p" }) : "") +
     message + button + servingLine;
 }
 
@@ -96,7 +94,6 @@ function scheduleSection(entries: readonly ScheduleEntry[]): string {
     })
     .join("");
   return (
-    `<h3>Schedule</h3>` +
     `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Cron</th>` +
     `<th>Prompt</th><th>Next run</th></tr></thead><tbody>${rows}</tbody></table></div>`
   );
@@ -117,7 +114,7 @@ function configSection(settings: ProjectSettingsView, name: string, opts: Projec
   const noFile = settings.hasConfigFile
     ? ""
     : rowMessage("info", "There is no .aide/config in this checkout, so nothing below was configured on this machine.");
-  return `<h3>Config</h3>` + noFile + unifiedSettingsTable(settings, name, opts.editing, opts);
+  return noFile + unifiedSettingsTable(settings, name, opts.editing, opts);
 }
 
 /** The Health tab: today's "Can a run start here?" section, unchanged

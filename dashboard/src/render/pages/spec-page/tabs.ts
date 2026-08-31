@@ -12,8 +12,8 @@ export const specTabPath = (project: string, specFolder: string, tab: string): s
   `${specPagePath(project, specFolder)}?tab=${encodeURIComponent(tab)}`;
 
 /** The page's tabs: its four documents in the order they are written and
- *  read, Checks right after Solution (the plan the checks hold the spec
- *  to), then the lead job's own two.
+ *  read, then Checks (the spec's own remaining work) beside Status, then
+ *  the lead job's own Logs.
  *
  *  A tuple of this page's own, fed to `job-page.ts`'s `pickTab` and
  *  `tabBar` — which take the list as an argument since spec 212 exactly
@@ -23,8 +23,8 @@ export const SPEC_TABS = [
   "description",
   "analysis",
   "solution",
-  "checks",
   "status",
+  "checks",
   "steps",
 ] as const;
 export type SpecTab = (typeof SPEC_TABS)[number];
