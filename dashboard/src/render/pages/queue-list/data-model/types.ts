@@ -15,6 +15,11 @@ export interface QueueTarget {
    *  find out what a job called `02-job-detail-view` actually is. */
   description?: string;
   phase?: string;
+  /** The `## Acceptance criteria` heading with an open row, from the
+   *  SAME parse that produced `phase` (spec 302) — request-scoped, on
+   *  `specPageView`'s own local `target`, never on the shared
+   *  five-second scan `phase` itself comes from. */
+  acceptancePhase?: string;
   /** What this spec builds on, from its own `Depends on:` line (spec
    *  92). Named by folder, the way `aide-run-spec`'s own dependency
    *  refusal names it. Empty or absent when it names none. */

@@ -39,6 +39,11 @@ export interface StatusInfo {
    *  archived spec from before spec 217 wrote nothing, and this returns
    *  `{}` for it exactly as `parseWorkflowSteps` returns `[]`. */
   stepModels: Record<string, string>;
+  /** Every Tasks-table row `parseStatusChecks` would return for this same
+   *  content — exposed so a caller needing both the rows and the phase
+   *  (spec 302: `specPageView`'s Checks section) can get both from one
+   *  call instead of walking the file's phase sections twice. */
+  checks: StatusCheck[];
 }
 
 const PROGRESS_RE =
@@ -128,6 +133,7 @@ export function parseStatus(content: string): StatusInfo {
     progress,
     phase,
     acceptancePhase,
+    checks,
     workflowSteps: parseWorkflowSteps(content),
     reopenedAfter: parseReopenedAfter(content) ?? undefined,
     stepModels: parseStepModels(content),

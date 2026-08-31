@@ -8,7 +8,7 @@ import {
   SPEC_FILES, specArchivedDate, specFileText, specPhaseFile, stripDependsOnLine,
   type SpecRef,
 } from "../project/discover.ts";
-import { parseStatus, parseStatusChecks } from "../project/parse-status.ts";
+import { parseStatus } from "../project/parse-status.ts";
 import { specPhaseOutcome, type PhaseOutcome } from "../project/parse-phase-outcome.ts";
 import {
   filterShowsArchived, PHASE_LINES, phasesFor, specPagePath, EDITABLE_SPEC_FILE, STATUS_SPEC_FILE,
@@ -318,7 +318,6 @@ export async function specPageView(
       branchBaseSha = branchRead.sha;
     }
   }
-  const rows = parseStatusChecks(checksText);
   // Which phase's open rows may be TICKED (spec 188, back on Overview
   // since spec 212): the CURRENT phase, which is the first phase
   // section still carrying an open mark — the same phase the spec
@@ -329,11 +328,38 @@ export async function specPageView(
   // tickable, and the page then draws the rows with no form. REQ-3:
   // this rule is untouched, and reads the same whether `checksText`
   // came off the branch or off disk.
+  //
+  // Spec 302: `rows`/`phase`/`acceptancePhase` all come off this ONE
+  // `parseStatus` call — it already walks the file's phase sections to
+  // compute `checks` internally, and this used to walk them a second
+  // time with a separate row-parsing call for `rows` alone.
   const parsedStatus = parseStatus(checksText);
-  const statusPhase = parsedStatus.phase;
-  const acceptancePhase = parsedStatus.acceptancePhase;
+  // Spec 239/302: the same join the front page's row composes
+  // (`phasesFor`), over this spec's own jobs and target — never a
+  // second count. The per-job git work `jobRow` does is not new load:
+  // the front page already pays it over every job of every spec, and
+  // this is one spec's own attempts (typically 1-3).
+  // `withFreshness` (never a live git spawn — spec 208 — it only peeks
+  // the `workflowHistory` cache the schedule already warmed) is what
+  // fills a live spec's `done` in from its own commits; the raw
+  // `targets()` entry never carries it. Every other caller of
+  // `targets()` on this route already goes through it (the front
+  // page's row, the job page); this one had not.
+  //
+  // Built here, right after `parsedStatus` and before anything reads
+  // `phase`/`acceptancePhase` (`anyTickable` included), so every later
+  // read in this function goes through `target` uniformly — one
+  // canonical place per request, per REQ-2.
+  const target = {
+    ...ctx.withFreshness(
+      ctx.targets().filter((t) => t.project === project && t.specFolder === specFolder),
+    )[0],
+    phase: parsedStatus.phase ?? undefined,
+    acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
+  };
+  const rows = parsedStatus.checks;
   const anyTickable = rows.some(
-    (row) => !row.done && (row.phase === statusPhase || row.phase === acceptancePhase),
+    (row) => !row.done && (row.phase === target.phase || row.phase === target.acceptancePhase),
   );
   // `branchBaseSha` is already the exact commit that last touched the
   // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
@@ -349,20 +375,6 @@ export async function specPageView(
   const formDir = tab === "description" ? await ctx.machinerySpecDir(project, found) : null;
   const descriptionCommit = formDir ? await lastCommitOf(ctx.gitRun, formDir, EDITABLE_SPEC_FILE) : null;
   const descriptionText = formDir ? specFileText(formDir, EDITABLE_SPEC_FILE) : null;
-  // Spec 239: the same join the front page's row composes
-  // (`phasesFor`), over this spec's own jobs and target — never a
-  // second count. The per-job git work `jobRow` does is not new load:
-  // the front page already pays it over every job of every spec, and
-  // this is one spec's own attempts (typically 1-3).
-  // `withFreshness` (never a live git spawn — spec 208 — it only peeks
-  // the `workflowHistory` cache the schedule already warmed) is what
-  // fills a live spec's `done` in from its own commits; the raw
-  // `targets()` entry never carries it. Every other caller of
-  // `targets()` on this route already goes through it (the front
-  // page's row, the job page); this one had not.
-  const target = ctx.withFreshness(
-    ctx.targets().filter((t) => t.project === project && t.specFolder === specFolder),
-  )[0];
   const jobRows = await Promise.all(jobs.map(ctx.jobRow));
   const jobDetails = await Promise.all(jobs.map((job) => jobDetailView(ctx, job)));
   // jobs is newest-first; oldest = attempt 1. Only tagged when there is
@@ -398,8 +410,8 @@ export async function specPageView(
     }),
     checks: {
       rows,
-      phase: statusPhase ?? undefined,
-      acceptancePhase: acceptancePhase ?? undefined,
+      phase: target.phase,
+      acceptancePhase: target.acceptancePhase,
       baseSha: statusCommit?.sha,
     },
     // Ticked by what the LINE resolves to, not by what it says:

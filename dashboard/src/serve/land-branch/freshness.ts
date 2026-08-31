@@ -1,7 +1,7 @@
 // Everything about a spec that only git can answer, asked once per
 // spec over the same checkout.
 
-import { stepsFileDisagreesOn } from "../../git/workflow-history.ts";
+import { resolveWorkflowState } from "../../git/workflow-history.ts";
 import type { QueueTarget } from "../../render.ts";
 import type { LandContext } from "./types.ts";
 
@@ -37,36 +37,23 @@ import type { LandContext } from "./types.ts";
 export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarget[] {
   return list.map((t) => {
     if (!t.dir) return t;
-    // Peeks, never the async methods (spec 208). A render reads
-    // memory and disk and nothing else; `refreshSpecCaches` is what
-    // keeps these three fed, on a schedule of its own.
-    const { history, checkedAt } = ctx.workflowHistory.peekHistory(t.dir, t.specFolder, t.reopenedAfter);
-    // Nothing has ever been asked about this spec. Not "no step has
-    // run" — that is a real answer with a real, empty history — and
-    // the row draws "checking…" rather than a false negative,
-    // which is the class of bug spec 178's own plan review flagged.
-    if (history === null || checkedAt === null) return { ...t, freshnessUnknown: true };
-    // Spec 298: the file half of the comparison follows the branch when
-    // one is open, the same point in the graph `history` already
-    // answers from. `branchSteps` is null for a spec with no open
-    // branch, or one the schedule has not warmed yet — both fall back
-    // to the disk read exactly as before (REQ-3). `peekFileSteps` never
-    // spawns git.
-    const branchSteps = ctx.branchFileSteps.peekFileSteps(t.dir, t.specFolder).steps;
-    const fileSteps = branchSteps ?? t.fileSteps ?? [];
-    // `create` is settled by the folder being on disk, which is
-    // what `t.dir` being set already proves — a stronger source
-    // than the commit log, since a spec written by hand has no
-    // `Run /aide-create` commit at all. Whenever the row is drawn
-    // the spec exists, so "create not run yet" cannot be true
-    // (spec 176). The pip has read it this way since spec 167; the
-    // phase LINE reads the same set now, one layer down.
-    const done = history.done.includes("create") ? history.done : ["create", ...history.done];
+    // Spec 302: the one canonical `{done, stopped, fileDisagrees,
+    // fileSteps}` — the `create` special case included — resolved from
+    // the same two peeks this used to assemble by hand (spec 208: peeks,
+    // never the async methods — a render reads memory and disk and
+    // nothing else; `refreshSpecCaches` is what keeps these fed, on a
+    // schedule of its own). `null` when nothing has ever been asked
+    // about this spec: not "no step has run" — that is a real answer
+    // with a real, empty history — and the row draws "checking…" rather
+    // than a false negative, which is the class of bug spec 178's own
+    // plan review flagged.
+    const resolved = resolveWorkflowState(
+      ctx.workflowHistory, ctx.branchFileSteps, t.dir, t.specFolder, t.reopenedAfter, t.fileSteps,
+    );
+    if (!resolved) return { ...t, freshnessUnknown: true };
     const withHistory: QueueTarget = {
       ...t,
-      done,
-      stopped: history.stopped,
-      fileDisagrees: stepsFileDisagreesOn(fileSteps, history),
+      ...resolved,
       // What the "Started" column holds (spec 199). Null when git
       // could not answer — a shallow clone, a folder moved without
       // `git mv` — and then the cell shows a dash rather than a
@@ -77,7 +64,7 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
     return {
       ...withHistory,
       analyzeStale: true,
-      done: done.filter((s) => s !== "analyze"),
+      done: resolved.done.filter((s) => s !== "analyze"),
     };
   });
 }

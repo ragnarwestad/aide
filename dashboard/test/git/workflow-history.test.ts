@@ -19,12 +19,15 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  BranchFileStepsChecker,
   WorkflowHistoryChecker,
   readWorkflowSubjects,
+  resolveWorkflowState,
   stepsFileDisagreesOn,
   workflowLogArgs,
 } from "../../src/git/workflow-history.ts";
 import { createGitRunner } from "../../src/git/branch-status.ts";
+import type { OpenBranchTarget } from "../../src/git/branch-file.ts";
 import { fakeGit } from "../helpers/fake-git.ts";
 
 const FOLDER = "154-the-runner-owns-the-record-of-what-has-run";
@@ -295,6 +298,97 @@ describe("WorkflowHistoryChecker.peekHistory", () => {
     const checker = new WorkflowHistoryChecker({ run: git.run, now: () => 1000 });
     await checker.read(DIR, FOLDER);
     expect(checker.peekHistory(DIR, FOLDER, "abc1234").history).toBeNull();
+  });
+});
+
+// Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
+// a spec's steps resolve to, built from the same two peeks `withFreshness`
+// used to assemble by hand — the `create` special case included.
+describe("resolveWorkflowState", () => {
+  const BRANCH_TARGET: OpenBranchTarget = {
+    root: "/root",
+    branch: `aide/${FOLDER}`,
+    relPath: `aide/specs/${FOLDER}/4-status.md`,
+  };
+
+  /** What `readStatusFromBranch` needs answered, for a branch whose
+   *  `4-status.md` names `steps` — the same shape branch-file-steps.test.ts
+   *  already uses. */
+  const branchFileFake = (steps: string[]) =>
+    fakeGit({
+      "fetch --quiet origin": { code: 0 },
+      "log -1 --format=%H refs/remotes/origin/": { code: 0, stdout: "deadbeef1234\n" },
+      "show refs/remotes/origin/": {
+        code: 0,
+        stdout: `# Status\n\n## Tracking info\n\n- **Workflow steps completed:** ${steps.join(", ")}\n`,
+      },
+    });
+
+  /** A `WorkflowHistoryChecker` already warmed with `history`, ready to
+   *  `peekHistory` without spawning git again. */
+  const warmedHistory = async (...subjects: string[]): Promise<WorkflowHistoryChecker> => {
+    const checker = new WorkflowHistoryChecker({ run: gitLogging(...subjects).run });
+    await checker.read(DIR, FOLDER);
+    return checker;
+  };
+
+  /** A `BranchFileStepsChecker` already warmed against `BRANCH_TARGET`. */
+  const warmedBranchSteps = async (steps: string[]): Promise<BranchFileStepsChecker> => {
+    const checker = new BranchFileStepsChecker({ run: branchFileFake(steps).run });
+    await checker.read(DIR, FOLDER, BRANCH_TARGET);
+    return checker;
+  };
+
+  /** A `BranchFileStepsChecker` warmed with no open branch — the caller's
+   *  own cue to fall back to the disk read. */
+  const warmedNoBranch = async (): Promise<BranchFileStepsChecker> => {
+    const checker = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    await checker.read(DIR, FOLDER, null);
+    return checker;
+  };
+
+  test("matching disk history and branch-file steps agree with stepsFileDisagreesOn's own answer", async () => {
+    const history = await warmedHistory(subject("analyze"), subject("create"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved).not.toBeNull();
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+    expect(resolved!.fileDisagrees).toEqual([]);
+  });
+
+  test("a spec with no create commit still resolves create as done", async () => {
+    const history = await warmedHistory(subject("analyze"));
+    const branchFileSteps = await warmedNoBranch();
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, ["analyze"]);
+    expect(resolved!.done).toEqual(["create", "analyze"]);
+  });
+
+  test("a spec peekHistory has not answered for resolves null", () => {
+    const history = new WorkflowHistoryChecker({ run: gitLogging(subject("analyze")).run });
+    const branchFileSteps = new BranchFileStepsChecker({ run: fakeGit({}).run });
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, undefined);
+    expect(resolved).toBeNull();
+  });
+
+  test("an open branch's file steps are preferred over the disk copy", async () => {
+    const history = await warmedHistory(subject("create"), subject("analyze"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, ["create"]);
+    expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
+  });
+
+  // The risk this spec's own Risk analysis flags: `history` and
+  // `branchFileSteps` swapped at the one call site. Built so each
+  // checker's own answer is a DIFFERENT, recognizable value — `done` could
+  // only come from `history`, `fileSteps` only from `branchFileSteps` — so
+  // a parameter-order bug produces a visibly wrong `done` or `fileSteps`
+  // rather than passing by coincidence.
+  test("done and fileSteps are each traceable to their own checker, not swappable by coincidence", async () => {
+    const history = await warmedHistory(subject("create"), subject("implement"));
+    const branchFileSteps = await warmedBranchSteps(["create", "analyze"]);
+    const resolved = resolveWorkflowState(history, branchFileSteps, DIR, FOLDER, undefined, []);
+    expect(resolved!.done).toEqual(["create", "implement"]);
+    expect(resolved!.fileSteps).toEqual(["create", "analyze"]);
   });
 });
 

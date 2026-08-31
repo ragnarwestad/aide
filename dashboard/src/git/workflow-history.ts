@@ -338,3 +338,31 @@ export class BranchFileStepsChecker {
     return hit ? { steps: hit.steps, checkedAt: hit.at } : { steps: null, checkedAt: null };
   }
 }
+
+export interface ResolvedWorkflowState {
+  done: string[];
+  stopped: Record<string, string>;
+  fileDisagrees: string[];
+  fileSteps: string[];
+}
+
+/** Spec 302: the one canonical `{ done, stopped, fileDisagrees, fileSteps }`
+ *  a spec's steps resolve to — the `create` special case included — built
+ *  from the same two peeks `withFreshness` used to assemble by hand.
+ *  `null` when nothing has asked git about this spec yet (the caller's
+ *  own cue to draw "checking…" rather than a false negative). */
+export function resolveWorkflowState(
+  history: WorkflowHistoryChecker,
+  branchFileSteps: BranchFileStepsChecker,
+  dir: string,
+  specFolder: string,
+  reopenedAfter: string | undefined,
+  diskFileSteps: string[] | undefined,
+): ResolvedWorkflowState | null {
+  const { history: h, checkedAt } = history.peekHistory(dir, specFolder, reopenedAfter);
+  if (h === null || checkedAt === null) return null;
+  const branchSteps = branchFileSteps.peekFileSteps(dir, specFolder).steps;
+  const fileSteps = branchSteps ?? diskFileSteps ?? [];
+  const done = h.done.includes("create") ? h.done : ["create", ...h.done];
+  return { done, stopped: h.stopped, fileDisagrees: stepsFileDisagreesOn(fileSteps, h), fileSteps };
+}
