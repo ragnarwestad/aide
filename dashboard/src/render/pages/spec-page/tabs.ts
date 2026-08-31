@@ -1,5 +1,7 @@
 // The spec page's paths, its tabs, and which file/phase each one names.
 
+import { pickTab } from "../job-page.ts";
+
 /** The path this page lives at. One function, because the server routes
  *  on it and the list links to it. */
 export const specPagePath = (project: string, specFolder: string): string =>
@@ -28,6 +30,19 @@ export const SPEC_TABS = [
   "steps",
 ] as const;
 export type SpecTab = (typeof SPEC_TABS)[number];
+
+/** The one place a raw `?tab=` value becomes a real tab (spec 303).
+ *  `spec-page.ts`'s render side and `spec-edit.ts`'s script-loading
+ *  decision used to each resolve their own default from the raw query
+ *  string, and only one of them was updated when spec 294 changed it
+ *  from "overview" to "description" — a bare URL rendered the
+ *  Description panel while silently loading no editor script for it.
+ *  `development.md` already names three other instances of this same
+ *  hand-paired-default shape; this is the fix that stops teaching it a
+ *  second time. */
+export function resolveSpecTab(raw: string | undefined): SpecTab {
+  return pickTab(SPEC_TABS, raw, "description");
+}
 
 /** Which tabs move on their own, and therefore reload. Steps is the one
  *  that changes while a step runs, and holds no form; every other tab

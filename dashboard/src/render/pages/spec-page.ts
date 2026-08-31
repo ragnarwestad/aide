@@ -48,14 +48,16 @@
 import { rowMessage } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { pickTab, stepResults, tabBar, tabbedBody } from "./job-page.ts";
+import { stepResults, tabBar, tabbedBody } from "./job-page.ts";
 import { archivedLine, checklist, dependsOnLine, reopenControl, resetControl } from "./spec-page/overview.ts";
 import { descriptionPanel, documentPanel } from "./spec-page/panels.ts";
-import { RELOADING_TABS, SPEC_TABS, specPagePath, specTabPath, TAB_FILES } from "./spec-page/tabs.ts";
+import { RELOADING_TABS, resolveSpecTab, SPEC_TABS, specPagePath, specTabPath, TAB_FILES } from "./spec-page/tabs.ts";
 import type { SpecPageView } from "./spec-page/types.ts";
 
 export type { SpecCheckView, SpecChecksView, SpecPageView } from "./spec-page/types.ts";
-export { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, PHASE_TAB, specPagePath, specTabPath } from "./spec-page/tabs.ts";
+export {
+  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, PHASE_TAB, resolveSpecTab, TAB_FILES, specPagePath, specTabPath,
+} from "./spec-page/tabs.ts";
 export { renderResetSpecPage } from "./spec-page/reset-page.ts";
 
 export function renderSpecPage(
@@ -69,7 +71,7 @@ export function renderSpecPage(
   // activity while a step runs, because that page is about the run;
   // this one is about the spec, and the spec's own prose is what most
   // readers come for first.
-  const tab = pickTab(SPEC_TABS, opts.tab, "description");
+  const tab = resolveSpecTab(opts.tab);
   const lead = view.lead;
 
   const banner =

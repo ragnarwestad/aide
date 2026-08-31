@@ -3,6 +3,7 @@
 // spec-overview-checks.test.ts and spec-checks-refusals-and-commit.test.ts
 // (split out of spec-save.test.ts by theme).
 
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import { queueHarness, type QueueHarness } from "./helpers/queue-server.ts";
@@ -14,6 +15,10 @@ export const SAVE = `/api/queue/specs/aide/${SPEC}/save`;
 export const TICK = `/api/queue/specs/aide/${SPEC}/tick`;
 export const DESCRIPTION_TAB = `/specs/aide/${SPEC}?tab=description`;
 export const CHECKS_TAB = `/specs/aide/${SPEC}?tab=checks`;
+// REQ-2: the three read-only document tabs, alongside DESCRIPTION_TAB.
+export const ANALYSIS_TAB = `/specs/aide/${SPEC}?tab=analysis`;
+export const SOLUTION_TAB = `/specs/aide/${SPEC}?tab=solution`;
+export const STATUS_TAB = `/specs/aide/${SPEC}?tab=status`;
 export const PAGE = `/specs/aide/${SPEC}`;
 export const FILE_SHA = "a3f9c21aaaaaaa";
 export const HEAD_SHA = "1111111bbbbbbb";
@@ -25,6 +30,18 @@ export const auth = { headers: { "x-aide-token": TOKEN } };
 
 export const descriptionPath = (dir: string, folder = SPEC) =>
   join(dir, "root", "aide", "specs", folder, "1-description.md");
+
+// REQ-2: `project()` (queue-server.ts) writes only 1-description.md and
+// 4-status.md for the active spec — Analysis and Solution are the
+// analyze step's own output, which no test harness fixture claims this
+// spec has run. A suite that wants those two tabs non-empty writes them
+// directly, the same way `queue-detail-spec-page-routes.test.ts`'s own
+// `fillSpec` does.
+export const fillAnalysisAndSolution = (dir: string, folder = SPEC): void => {
+  const spec = join(dir, "root", "aide", "specs", folder);
+  writeFileSync(join(spec, "2-analysis.md"), "# Q - Analysis\n\nSeven files.\n");
+  writeFileSync(join(spec, "3-solution.md"), "# Q - Solution\n\nOne must-fix.\n");
+};
 
 // Spec 163: an archived spec is a record, and both halves of the edit
 // pair have to say so — hiding the button leaves the save endpoint live

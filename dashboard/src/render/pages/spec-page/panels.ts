@@ -8,12 +8,24 @@ import { fileStamp, specFilePanel } from "../job-page.ts";
 import { EDITABLE_SPEC_FILE } from "./tabs.ts";
 import type { SpecPageView } from "./types.ts";
 
-/** One document, read-only, under its own name and commit stamp. A tab
- *  whose file the view does not carry at all renders the same "not
- *  written yet" note an empty one does, rather than nothing. */
+/** One document, read-only — under its own name and commit stamp, and
+ *  (spec 303) the same WYSIWYG mount/raw pair `descriptionPanel` below
+ *  carries, so the client script renders it read-only rather than raw
+ *  markup. A tab whose file the view does not carry at all, or that has
+ *  never been written, keeps `specFilePanel`'s plain "not written yet"
+ *  note — nothing to mount an editor over. */
 export function documentPanel(view: SpecPageView, label: string, now: number): string {
   const found = view.files.find((f) => f.label === label);
-  return specFilePanel(found ?? { label, text: null }, now);
+  const file = found ?? { label, text: null };
+  if (file.text === null) return specFilePanel(file, now);
+  return (
+    `<h2>${esc(file.label)}${fileStamp(file, now)}</h2>` +
+    // Read-only counterpart of descriptionPanel's mount/textarea pair —
+    // same fallback CSS (field.css), same JS-off/build-failure fallback
+    // (REQ-6), just no `<form>` around it.
+    `<div class="spec-editor-mount" id="spec-editor-host"></div>` +
+    `<pre class="specfile spec-editor-raw">${esc(file.text)}</pre>`
+  );
 }
 
 /** The Description tab: the one file of the four a person owns, in a
