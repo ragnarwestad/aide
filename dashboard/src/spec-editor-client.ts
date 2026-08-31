@@ -30,20 +30,9 @@ if (host && raw) {
     defaultValue: raw.value,
     // No REQ asks for LaTeX math or image upload, and "Ikke i scope"
     // rules out any Tiptap-Pro-equivalent feature — disable both.
-    //
-    // LinkTooltip is disabled too: found live (2026-08-31, right after
-    // this shipped) rendering its "Paste link..." input already OPEN
-    // on a completely fresh page load, with no click or selection at
-    // all — a genuine mounting bug in this Crepe version, not
-    // something a link-specific config option here can steer around.
-    // A hand-typed `[text](url)` still round-trips fine (the roundtrip
-    // test covers plain links); only the click-a-toolbar-icon-to-add-
-    // one convenience is gone, and REQ-1's formatting-affordance
-    // criterion is still met by Bold/Italic/Code.
     features: {
       [Crepe.Feature.Latex]: false,
       [Crepe.Feature.ImageBlock]: false,
-      [Crepe.Feature.LinkTooltip]: false,
     },
   });
   // This repo's own spec files use `-` for both bullets and `---`
