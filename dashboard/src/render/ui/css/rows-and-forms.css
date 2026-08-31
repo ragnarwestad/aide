@@ -180,9 +180,12 @@ dialog.about::backdrop { background: var(--backdrop); }
 /* A POPOVER, not an inline fold: opening it lays the text over the page
    instead of shoving the list down. The details element keeps the no-JS
    behaviour; only the open box is lifted out of the flow. */
-/* The question mark carries the auto margin, so it and the New spec
-   link sit together at the row's right-hand end. */
-.specsearch > details.intro { margin-left: auto; position: relative; }
+/* New spec carries the auto margin now, not the question mark (spec
+   289 moved the search-scope explanation into the "?" popover, so it
+   reads as describing the search field beside it, not as a floating
+   aside next to New spec at the far end of the row). */
+.specsearch > .btn.primary { margin-left: auto; }
+.specsearch > details.intro { position: relative; }
 .specsearch > details.intro > summary { display: inline-flex; align-items: center;
   justify-content: center; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid var(--line-strong); color: var(--muted);
