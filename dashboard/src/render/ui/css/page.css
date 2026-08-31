@@ -48,6 +48,31 @@ main { padding: var(--sp-5) var(--sp-6); }
 /* The frame is CENTRED: header, tabs and page share one width and sit
    in the middle of the window instead of flush against its left edge. */
 header, body > nav.tabbar, main { max-width: 72rem; margin-inline: auto; }
+/* Window Controls Overlay (asked 2026-08-31): when Chrome has actually
+   folded the OS title bar into the page — a person has to opt in per
+   window, so `display_override` in the manifest is necessary but not
+   sufficient — the header stops being page content and becomes the
+   title bar itself: fixed, full titlebar height, starting after
+   wherever the traffic-light buttons ended (`titlebar-area-x`, nonzero
+   on macOS) rather than at the window edge. `body`'s own padding-top
+   is what keeps everything below it from sliding up underneath a now
+   `position: fixed` header. `-webkit-app-region: drag` makes the bare
+   bar draggable like any title bar; every actual control inside it
+   opts back OUT, or the brand link and the "…" menu would drag the
+   window instead of responding to a click. */
+@media (display-mode: window-controls-overlay) {
+  body { padding-top: env(titlebar-area-height, 40px); }
+  header {
+    position: fixed; top: 0; left: env(titlebar-area-x, 0);
+    width: env(titlebar-area-width, 100%); height: env(titlebar-area-height, 40px);
+    max-width: none; margin: 0; padding: 0 var(--sp-3);
+    background: var(--bg); z-index: 100;
+    -webkit-app-region: drag;
+  }
+  header a, header details, header summary, header button {
+    -webkit-app-region: no-drag;
+  }
+}
 h1 { font-size: var(--fs-xl); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 main h2 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
 h3 { font-size: var(--fs-l); font-weight: 600; margin: var(--sp-5) 0 var(--sp-3); }
