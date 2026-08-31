@@ -247,7 +247,9 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(body.ok).toBe(true);
     expect(body.installError).toBeUndefined();
     expect(existsSync(marker)).toBe(true);
-    const page = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
+    const page = await (
+      await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     expect(page).toContain("This checkout is level with origin.");
   });
 
@@ -280,7 +282,9 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(body.error).toBeUndefined();
     expect(body.installError).toBeDefined();
     // The checkout DID move, so the drift count is refreshed either way.
-    const page = await (await fetch(`${base}/projects/aide`, { headers: { "x-aide-token": TOKEN } })).text();
+    const page = await (
+      await fetch(`${base}/projects/aide?tab=deploy`, { headers: { "x-aide-token": TOKEN } })
+    ).text();
     expect(page).toContain("This checkout is level with origin.");
   });
 
@@ -305,7 +309,11 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(body.ok).toBe(false);
   });
 
-  test("a no-script press gets the answer as a redirect carrying deployError", async () => {
+  // AC8: `deployError=` stays first — `&tab=deploy` is appended after
+  // it — so the resulting page opens on the Deploy tab and the message
+  // it carries is visible, instead of landing on the new default
+  // (Config) tab where it would go unseen without an extra click.
+  test("a no-script press gets the answer as a redirect carrying deployError, opening the Deploy tab (AC8)", async () => {
     const git = movedOffMain();
     const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
     installsOk(projectDir(dir));
@@ -318,7 +326,24 @@ describe("POST /api/queue/projects/<name>/deploy (spec 258)", () => {
     expect(res.status).toBe(303);
     const location = res.headers.get("location")!;
     expect(location.startsWith("/projects/aide?deployError=")).toBe(true);
+    expect(location.endsWith("&tab=deploy")).toBe(true);
     expect(decodeURIComponent(location)).toContain("feature-x");
+  });
+
+  // AC9: a successful no-script deploy redirects to the Deploy tab too,
+  // so the refreshed drift state is what the browser lands on.
+  test("a successful no-script press redirects to the Deploy tab (AC9)", async () => {
+    const git = onMain(0);
+    const { base, dir } = start({ queueToken: TOKEN, gitRun: git.run });
+    installsOk(projectDir(dir));
+    const res = await fetch(`${base}/api/queue/projects/aide/deploy`, {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-aide-token": TOKEN },
+      body: "",
+    });
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("/projects/aide?tab=deploy");
   });
 
   test("only POST — the button's route takes no other method", async () => {

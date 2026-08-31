@@ -20,7 +20,7 @@ afterEach(() => {
 describe("what the page says about whether a run could start (criteria 4-6, 8)", () => {
   test("a checkout a run cannot move to its default branch says so, with nothing pressed (criterion 6)", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, stranded(root, "aide")), "aide")).text();
+    const html = await (await get(serve(root, stranded(root, "aide")), "aide", "health")).text();
     expect(html).toContain("there is no such branch, here or on origin");
     // The whole point: no Add, no Run, no query string — a plain GET.
     expect(html).toContain("cannot run");
@@ -28,20 +28,20 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
 
   test("a settled checkout says a run could start here", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
     expect(html).not.toContain("there is no such branch");
     expect(html).toContain("ready to run");
   });
 
   test("a worktree link with nothing to link is on the page (criterion 4)", async () => {
     const root = projectsRoot({ aide: "AIDE_WORKTREE_LINKS=node_modules\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
     expect(html).toContain("a run refuses a worktree link with nothing to link");
   });
 
   test("a specs root that is not there is on the page (criterion 5)", async () => {
     const root = projectsRoot({ aide: "AIDE_SPECS_PATH=/tmp/aide-no-such-specs-root\n" });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "health")).text();
     expect(html).toContain("there is no specs root at /tmp/aide-no-such-specs-root");
   });
 
@@ -68,6 +68,22 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
     expect(html).not.toContain("cannot run");
   });
 
+  // Spec 293, acceptance criterion 5: readiness === null hides the Health
+  // tab itself, not merely its content — the same run that just proved
+  // "no readiness section" above also proves the tab is not offered, and
+  // that asking for it explicitly falls back to Config.
+  test("no Health tab appears when readiness could not be assessed (AC5)", async () => {
+    const root = projectsRoot({ aide: "AIDE_TEST_CMD=make test\n" });
+    const run: GitRunner = async () => {
+      throw new Error("git is not on this machine");
+    };
+    const base = serve(root, { run });
+    const html = await (await get(base, "aide")).text();
+    expect(html).not.toMatch(/>Health</);
+    const fallback = await (await get(base, "aide", "health")).text();
+    expect(fallback).toContain("<h3>Config</h3>");
+  });
+
   // Read-only, and provably so: a page load that moved a checkout is
   // the one thing nobody asked this page for.
   test("the page never merges, pulls, fetches or checks anything out", async () => {
@@ -80,23 +96,31 @@ describe("what the page says about whether a run could start (criteria 4-6, 8)",
   });
 });
 
-// Spec 258: the Deploy section — always present, whether or not the
-// project is gated, so a project with no AIDE_INSTALL_CMD says plainly
-// why there is nothing to act on rather than showing nothing at all.
-describe("the Deploy section on a project's own page (spec 258)", () => {
-  test("a project with no AIDE_INSTALL_CMD keeps the section, with no count and no button (criterion 5)", async () => {
+// Spec 258 (behavior changed by spec 293): the Deploy tab is offered
+// only when it has something to show — a drift answer (AIDE_INSTALL_CMD
+// configured) or a Serving comparison (this is the process's own
+// checkout). A project with neither no longer carries the tab at all.
+describe("the Deploy section on a project's own page (spec 258, spec 293)", () => {
+  test("a project with no AIDE_INSTALL_CMD and no Serving comparison has no Deploy tab (AC2)", async () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).toContain("<h3>Deploy</h3>");
-    expect(html).toContain("origin drift is not tracked here");
-    expect(html).not.toContain('class="deployform"');
+    expect(html).not.toMatch(/>Deploy</);
+  });
+
+  // AC2's second clause: the pickTab fallback itself. Neither an
+  // omitted tab (above) nor a hidden one exercises this path.
+  test("?tab=deploy on a project with no AIDE_INSTALL_CMD and no Serving falls back to Config (AC2)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "deploy")).text();
+    expect(html).toContain("<h3>Config</h3>");
+    expect(html).not.toContain("<h3>Deploy</h3>");
   });
 
   test("a project with AIDE_INSTALL_CMD but no drift check yet shows 'not checked' and no button (criterion 2)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     // The schedule is off entirely, so the answer never arrives: exactly
     // the state a fresh boot or a project just added is in.
-    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide")).text();
+    const html = await (await get(serve(root, settled(root, "aide"), 0), "aide", "deploy")).text();
     expect(html).toContain("<h3>Deploy</h3>");
     expect(html).toContain("origin drift not checked yet");
     expect(html).not.toContain('class="deployform"');
@@ -105,7 +129,7 @@ describe("the Deploy section on a project's own page (spec 258)", () => {
   test("a project behind origin shows the count and a Deploy button (criterion 1)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 3), 25);
-    const html = await loadUntil(base, "aide", "commits behind origin");
+    const html = await loadUntil(base, "aide", "commits behind origin", 2000, "deploy");
     expect(html).toContain("3 commits behind origin, checked");
     expect(html).toContain('class="deployform"');
     expect(html).toContain('action="/api/queue/projects/aide/deploy"');
@@ -117,7 +141,7 @@ describe("the Deploy section on a project's own page (spec 258)", () => {
   test("a project level with origin says so, with no button (criterion 3)", async () => {
     const root = projectsRoot({ aide: INSTALLS });
     const base = serve(root, behindBy(root, "aide", 0), 25);
-    const html = await loadUntil(base, "aide", "level with origin");
+    const html = await loadUntil(base, "aide", "level with origin", 2000, "deploy");
     expect(html).toContain("This checkout is level with origin.");
     expect(html).not.toContain('class="deployform"');
   });
@@ -131,10 +155,10 @@ describe("the Deploy section on a project's own page (spec 258)", () => {
     // timestamped `null` has replaced it — rather than asserting on the
     // very first load, which would still be in the unchecked state.
     const deadline = Date.now() + 2000;
-    let html = await (await get(base, "aide")).text();
+    let html = await (await get(base, "aide", "deploy")).text();
     while (html.includes("origin drift not checked yet") && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 25));
-      html = await (await get(base, "aide")).text();
+      html = await (await get(base, "aide", "deploy")).text();
     }
     expect(html).toContain("<h3>Deploy</h3>");
     expect(html).not.toContain("commits behind origin");
@@ -186,7 +210,13 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
 
   test("matching SHAs draw an info line naming the short SHA (criterion 3)", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await loadUntil(serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")), "aide", "Serving");
+    const html = await loadUntil(
+      serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef")),
+      "aide",
+      "Serving",
+      2000,
+      "deploy",
+    );
     expect(html).toContain("Serving abc1234 — matches this checkout.");
   });
 
@@ -196,23 +226,29 @@ describe('the "Serving" line on a project\'s own page (spec 269)', () => {
       serve(root, serving(root, "aide", "abc1234deadbeef", "9999999cafefeed")),
       "aide",
       "Serving",
+      2000,
+      "deploy",
     );
     expect(html).toContain(
       "Serving abc1234, but this checkout is now at 9999999 — the running service has not picked up the latest merge.",
     );
   });
 
+  // Also covers spec 293 acceptance criterion 2: `other` has neither
+  // drift (no AIDE_INSTALL_CMD) nor a Serving comparison (this process
+  // runs from `aide`, not `other`), so the Deploy tab this spec's
+  // behavior change hides is absent — unlike the old single-scroll
+  // layout, where the section stayed regardless.
   test("a project this server does not run from shows no Serving line at all (criterion 5)", async () => {
     const root = projectsRoot({ aide: null, other: null });
     const base = serve(root, serving(root, "aide", "abc1234deadbeef", "abc1234deadbeef"));
     // Give the boot-time read every chance to resolve before asserting its
     // absence — the assertion must mean "this project truly has none", not
     // "the read had not finished yet".
-    await loadUntil(base, "aide", "Serving");
+    await loadUntil(base, "aide", "Serving", 2000, "deploy");
     const html = await (await get(base, "other")).text();
     expect(html).not.toContain("Serving");
-    // The existing drift banner is unaffected and unchanged.
-    expect(html).toContain("<h3>Deploy</h3>");
+    expect(html).not.toMatch(/>Deploy</);
   });
 });
 
