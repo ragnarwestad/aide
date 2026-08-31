@@ -154,6 +154,23 @@ describe("spec 108: one rule per phase", () => {
     expect(panel(html)).toContain("implement: last run reported done, but the files disagree");
   });
 
+  // A graceful decline — `not-implemented-yet`, `acceptance-criteria-
+  // unticked` — leaves the queue's own attempt reading `"done"`, since
+  // nothing failed; only the commit records the real reason (spec
+  // 299). Ticking every box removes the held-back note that used to
+  // mask this and reach the branch above instead, reading as an
+  // unexplained disagreement about a run that said exactly what
+  // happened.
+  test("a gracefully declined archive says so, not that the files disagree (spec 299)", () => {
+    const html = rows(
+      [row({ id: "declined", specFolder: "299-declined", steps: ["archive"], state: "done" })],
+      [target("299-declined", { done: ["analyze"], stopped: { archive: "acceptance-criteria-unticked" } })],
+    );
+    const archive = subRow(html, "archive");
+    expect(archive).toContain("stopped: acceptance-criteria-unticked");
+    expect(panel(html)).not.toContain("archive: last run reported done, but the files disagree");
+  });
+
   test("the job page's Steps tab says held back where the row does (criterion 5)", () => {
     const archiveRun = (extra: Partial<JobDetailView> = {}): JobDetailView =>
       detail({

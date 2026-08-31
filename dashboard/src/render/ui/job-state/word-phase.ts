@@ -138,21 +138,25 @@ export function wordPhase(
   // so the row said "not run yet" about work that was on disk. The
   // commit is what still knows, and it says why.
   //
-  // Only without a live attempt: an attempt of its own has the fresher
-  // answer and the badge below already words it.
-  if (!attempt) {
-    if (history.stopped) {
-      return {
-        // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
-        // notice, not alarm: the work is committed and the step can be
-        // run again.
-        pip: "todo",
-        badge: { variant: "waiting", label: `stopped: ${history.stopped}` },
-        qualifier: filesDisagree,
-      };
-    }
-    return { pip: "todo", qualifier: filesDisagree };
+  // Checked whether or not a live attempt exists (spec 299): a
+  // graceful decline — `not-implemented-yet`, `acceptance-criteria-
+  // unticked` — leaves the queue's own attempt reading `"done"`
+  // (nothing failed; the script simply declined), while the commit
+  // still carries the real reason. Without this check that combination
+  // fell through to the branch below and read as an unexplained
+  // "last run reported done, but the files disagree" — alarming, and
+  // wrong, about a run that said exactly what happened.
+  if (history.stopped) {
+    return {
+      // Amber, the same variant a stopped JOB takes (BADGE_VARIANT) —
+      // notice, not alarm: the work is committed and the step can be
+      // run again.
+      pip: running ? "now" : "todo",
+      badge: { variant: "waiting", label: `stopped: ${history.stopped}` },
+      qualifier: filesDisagree,
+    };
   }
+  if (!attempt) return { pip: "todo", qualifier: filesDisagree };
   if (attempt.state === "done") {
     return {
       pip: running ? "now" : "todo",
