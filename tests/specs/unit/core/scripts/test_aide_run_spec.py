@@ -3986,6 +3986,28 @@ def test_archive_skips_the_model_when_the_spec_has_not_reached_implement(
     assert "costUsd" not in out or out.get("costUsd") == 0, out
 
 
+def test_archive_skips_the_model_when_acceptance_criteria_are_unticked(
+    runner, workspace, fake_claude
+):
+    """REQ-1: an unticked `## Acceptance criteria` row is a refusal a
+    script already answers — costs nothing and never reaches claude."""
+    with_status(workspace, done=True)
+    status_path = workspace["specs"] / workspace["folder"] / "4-status.md"
+    status_path.write_text(
+        status_path.read_text()
+        + "\n## Acceptance criteria\n\n"
+        + "| Task | Status | Notes |\n|------|--------|-------|\n"
+        + "| REQ-1: does the thing | ⬜ | |\n"
+    )
+    git(workspace["specs"], "add", "-A")
+    git(workspace["specs"], "commit", "-qm", "add acceptance criteria")
+    claude = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc, out, _ = run(runner, workspace, claude, command="archive")
+    assert rc == 0, out
+    assert out["terminalReason"] == "acceptance-criteria-unticked", out
+    assert not fake_claude.calls.exists(), "an unticked row costs nothing"
+
+
 def test_archive_proceeds_past_an_in_progress_ordinary_row(
     runner, workspace, fake_claude
 ):

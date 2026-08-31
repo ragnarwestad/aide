@@ -407,6 +407,21 @@ def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
     assert out["terminalReason"] == "archived", out
 
 
+def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project, specs):
+    """REQ-5: the tab that carries this checklist is called Checks
+    (spec 294 renamed it from Overview) — the note must send the reader
+    there, not to a name the tab no longer has."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
+    )
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert "Checks tab" in out["note"], out
+    assert "Overview tab" not in out["note"], out
+
+
 def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, specs):
     """REQ-6: a spec whose acceptance-criteria row is never ticked stays
     blocked indefinitely — the refusal is not a one-time hiccup, it

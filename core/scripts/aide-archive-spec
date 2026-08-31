@@ -219,7 +219,7 @@ fi
 
 status_progress_for "$status_file" "Acceptance"
 if [ "$progress_total" -gt 0 ] && [ "$progress_done" -lt "$progress_total" ]; then
-  emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Overview tab before archiving — only a person can judge these"}'
+  emit_ok '{"terminalReason":"acceptance-criteria-unticked","note":"tick every row under \"## Acceptance criteria\" in 4-status.md from the spec'"'"'s Checks tab before archiving — only a person can judge these"}'
 fi
 
 # --- archived: stamp and move ----------------------------------------------
