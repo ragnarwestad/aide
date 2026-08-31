@@ -89,6 +89,16 @@ td form { margin: 0; display: inline-block; }
    also used narrow (inline under a detail page's Edit heading) and
    each pair needs to fall back to stacked there on its own. */
 .scheduleform .frow { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start; }
+/* Project and Cron are column ONE of their own row — matched by what
+   each field's control actually IS, not by position, since Project is
+   absent on the inline Edit form and a position rule would silently
+   grab Name there instead. A fixed width, not `flex: 1`, is what makes
+   Name and Prompt (column two, unconstrained) start at the same x in
+   both rows — the alignment asked for, not merely two rows that wrap
+   the same way. */
+.scheduleform .frow > label:has(select), .scheduleform .frow > label:has(.cron-input) {
+  flex: 0 0 14rem;
+}
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,
