@@ -66,5 +66,11 @@ export async function restartAfterLanding(ctx: {
       `queue: restarting the dashboard while a landing is still in flight for: ${ctx.mergeLock.roots().join(", ")} — verify those branches reached their default branch by hand`,
     );
   }
+  // The success path used to be silent: nothing here told a reader of
+  // serve.log whether this ever ran at all, so a restart that quietly
+  // stopped firing and one that never needed to look identical. Logged
+  // unconditionally once `registered()` is true — the laptop/test case
+  // above already returned before this line.
+  console.error("queue: restarting the dashboard to pick up a landed code change");
   ctx.restart.fire();
 }

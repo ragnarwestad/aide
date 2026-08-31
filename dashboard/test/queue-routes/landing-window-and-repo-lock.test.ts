@@ -424,7 +424,7 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     void held;
   });
 
-  test("stays silent when nothing was busy (criterion 6)", async () => {
+  test("stays silent about a busy root when nothing was busy, but still announces the restart (criterion 6)", async () => {
     const lock = createRootLock();
     const { hook, count } = restartSpy();
     const logged: string[] = [];
@@ -438,7 +438,11 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
       console.error = realError;
     }
     expect(count()).toBe(1);
-    expect(logged).toEqual([]);
+    // The busy-root warning (criterion 5) is what criterion 6 is about
+    // — the ordinary restart still logs, since the success path used to
+    // be silent everywhere, and that made a restart that quietly
+    // stopped firing indistinguishable from one that never had to.
+    expect(logged).toEqual(["queue: restarting the dashboard to pick up a landed code change"]);
   });
 
   test("never fires when nothing is registered to restart — the laptop/test-default case", async () => {
