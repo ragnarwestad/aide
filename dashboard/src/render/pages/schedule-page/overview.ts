@@ -5,7 +5,6 @@ import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { esc } from "../../ui/html.ts";
 import { renderScheduleForm, type ScheduleFormOptions } from "./form.ts";
-import { deleteSchedulePath } from "./tabs.ts";
 
 export function renderScheduleOverview(
   project: string,
@@ -38,7 +37,9 @@ export function renderScheduleOverview(
       error: opts.error,
       modelChoices: opts.modelChoices,
       defaultModels: opts.defaultModels,
-    }) +
-    `<p><a class="btn small" href="${esc(deleteSchedulePath(project, entry.name))}">Delete</a></p>`
+    })
+    // Delete is on the LIST since 2026-08-31, at the right-hand end of
+    // the entry's own row. It stood here, under the Edit form, which
+    // meant opening the entry you had decided to be rid of.
   );
 }

@@ -5,9 +5,9 @@
 // here, all three live on the detail page instead.
 import type { ScheduleEntry } from "../../../project/parse-manifest.ts";
 import { nextFireTime } from "../../../queue/schedule.ts";
-import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField } from "../../ui/components.ts";
+import { ICON_CHEVRON, ICON_SEARCH, btn, rowMessage, tokenField, typedConfirm } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
-import { newSchedulePath, schedulePagePath } from "./tabs.ts";
+import { deleteSchedulePath, newSchedulePath, schedulePagePath } from "./tabs.ts";
 
 export interface SchedulePageRow {
   project: string;
@@ -104,10 +104,52 @@ function row(r: SchedulePageRow, now: Date, token?: string): string {
     // no confirm — the instant it does (`schedule-actions.ts`).
     `<td><input type="checkbox" class="scheduleenabled"${r.entry.enabled ? " checked" : ""} ` +
     `aria-label="Enabled: ${esc(r.entry.name)}" data-post-to="${esc(toggleUrl)}"></td>` +
+    // The page's ordinary button, not a smaller one of its own: this is
+    // the row's action, and it stands beside Delete and under Search and
+    // New job (asked for 2026-08-31).
     `<td><form method="post" action="${esc(runUrl)}" class="actionform schedulerun">${tokenField(token)}` +
-    btn({ label: "Run now", pending: "running…", small: true }) +
+    btn({ label: "Run now", pending: "running…" }) +
     `</form></td>` +
+    deleteCell(r, token) +
     `</tr>`
+  );
+}
+
+// Delete, at the far right of the row it deletes (asked for
+// 2026-08-31). It was on the entry's own Edit page, which is the one
+// place a reader goes to CHANGE an entry — reaching it meant opening
+// the thing you had decided to be rid of.
+//
+// The control is a LINK to the confirmation page spec 277 already
+// built, so a browser with no script keeps exactly the flow it has
+// today. With script the click opens that same confirmation over the
+// list instead: `<dialog>`, the platform's own modal, the way the
+// About box in the header is done — Escape and Cancel close it, and
+// nothing is deleted by a stray click on a table row.
+//
+// What it asks for is the app's own confirmation gate, unchanged: the
+// entry's exact name, typed (`typedConfirm`), posted to the same route,
+// which refuses anything else. The dialog is a place to answer the
+// question, never a lighter question.
+function deleteCell(r: SchedulePageRow, token?: string): string {
+  const name = r.entry.name;
+  const deleteUrl = `/api/queue/schedule/${encodeURIComponent(r.project)}/${encodeURIComponent(name)}/delete`;
+  return (
+    `<td>` +
+    `<a class="btn danger" href="${esc(deleteSchedulePath(r.project, name))}" ` +
+    `data-delete-schedule aria-label="Delete ${esc(name)}">Delete</a>` +
+    `<dialog class="confirmdialog"><div class="confirmpanel">` +
+    `<h2>Delete ${esc(r.project)}:${esc(name)}?</h2>` +
+    `<p class="muted">The entry leaves this project's manifest and stops firing. ` +
+    `Its own run history stays in the queue.</p>` +
+    `<form method="post" action="${esc(deleteUrl)}" class="scheduledeleteform">` +
+    tokenField(token) +
+    typedConfirm({ target: name, label: "Type the exact name to delete it", button: "Delete", pending: "deleting…" }) +
+    `</form>` +
+    // The platform's own close: no script, and it works even where the
+    // one that opened the box did not run.
+    `<form method="dialog"><button class="btn" type="submit">Cancel</button></form>` +
+    `</div></dialog></td>`
   );
 }
 
@@ -169,7 +211,11 @@ function sortableHead(f: ScheduleFilter): string {
       `${esc(label)}${ICON_CHEVRON}</a></th>`
     );
   };
-  return `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}<th>Enabled</th><th></th></tr></thead>`;
+  // Two unlabelled columns at the end: Run now, then Delete.
+  return (
+    `<thead><tr>${th("name", "Name")}${th("next", "Next run")}${th("last", "Last run")}` +
+    `<th>Enabled</th><th></th><th></th></tr></thead>`
+  );
 }
 
 export function renderScheduleList(opts: ScheduleListOptions): string {

@@ -5,7 +5,9 @@
 // `#jobrows`, so this page has no row-swap machinery to exercise.
 // Acceptance criteria 14, 15, 16.
 import { describe, expect, test } from "bun:test";
-import { postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview } from "../../src/queue-client/schedule-actions.ts";
+import {
+  bindScheduleDelete, postScheduleEnabled, postScheduleRun, runCronPreview, scheduleCronPreview,
+} from "../../src/queue-client/schedule-actions.ts";
 
 function fakeCheckbox(o: { checked: boolean; postTo: string }): HTMLInputElement {
   const box = {
@@ -150,5 +152,48 @@ describe("runCronPreview / scheduleCronPreview (acceptance criterion 16)", () =>
     await new Promise((r) => setTimeout(r, 40));
     expect(calls).toBe(1);
     expect(target.textContent).toBe("Next run: 2026-08-30T03:00:00.000Z");
+  });
+});
+
+// The row's Delete: the click opens that row's own confirmation over
+// the list instead of following the link to the page it points at. The
+// link keeps that href, so a browser where this never runs (no script,
+// no `<dialog>`) still reaches the confirmation the way it always has.
+describe("bindScheduleDelete (2026-08-31)", () => {
+  function fakeRow(o: { hasDialog?: boolean; modal?: boolean } = {}) {
+    const opened: string[] = [];
+    const dialog = o.modal === false ? {} : { showModal: () => void opened.push("open") };
+    const cell = { querySelector: (sel: string) => (sel === "dialog" && o.hasDialog !== false ? dialog : null) };
+    const listeners: ((e: Event) => void)[] = [];
+    const link = {
+      parentElement: cell,
+      addEventListener: (_name: string, fn: (e: Event) => void) => void listeners.push(fn),
+    };
+    const click = () => {
+      let prevented = false;
+      const event = { preventDefault: () => void (prevented = true) } as unknown as Event;
+      for (const fn of listeners) fn(event);
+      return prevented;
+    };
+    return { link, click, opened, bound: () => listeners.length };
+  }
+
+  test("the click opens the dialog beside it and does not follow the link", () => {
+    const row = fakeRow();
+    bindScheduleDelete(row.link as unknown as HTMLAnchorElement);
+    expect(row.click()).toBe(true);
+    expect(row.opened).toEqual(["open"]);
+  });
+
+  test("a link with no dialog beside it is left alone — the href is the whole flow there", () => {
+    const row = fakeRow({ hasDialog: false });
+    bindScheduleDelete(row.link as unknown as HTMLAnchorElement);
+    expect(row.bound()).toBe(0);
+  });
+
+  test("a browser without showModal is left alone too, rather than swallowing the click", () => {
+    const row = fakeRow({ modal: false });
+    bindScheduleDelete(row.link as unknown as HTMLAnchorElement);
+    expect(row.bound()).toBe(0);
   });
 });

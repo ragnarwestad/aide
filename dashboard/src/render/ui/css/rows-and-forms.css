@@ -182,6 +182,29 @@ dialog.about::backdrop { background: var(--backdrop); }
   color: var(--muted); cursor: pointer; }
 .aboutclose:hover { background: var(--surface-2); color: var(--text); }
 
+/* A confirmation asked OVER the list rather than on a page of its own
+   (2026-08-31, the schedule row's Delete). The same box the About
+   dialog is — same border, surface, shadow and backdrop — because it is
+   the same kind of thing: something laid over the page until it is
+   answered. Narrower, since what it holds is one sentence, one field
+   and two buttons. */
+dialog.confirmdialog { padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r);
+  background: var(--surface); color: var(--text); max-width: 26rem;
+  box-shadow: var(--overlay-shadow); }
+dialog.confirmdialog::backdrop { background: var(--backdrop); }
+.confirmpanel { padding: var(--sp-5) var(--sp-6); display: flex; flex-direction: column;
+  gap: var(--sp-3); }
+.confirmpanel h2 { margin: 0; font-size: var(--fs-l); font-weight: 600; }
+.confirmpanel p { margin: 0; }
+/* The typed field over the two buttons, and the buttons themselves side
+   by side: Delete belongs to the form it submits, Cancel to the
+   `method="dialog"` form beside it, so the row they share is made by
+   the panel rather than by either form. */
+.confirmpanel [data-confirm] { display: flex; flex-direction: column; gap: var(--sp-2);
+  align-items: flex-start; }
+.confirmpanel [data-confirm] .field { width: 100%; }
+.confirmpanel [data-confirm] input { width: 100%; }
+
 /* How runs work: a small question mark at the right-hand end of the
    search field's own row (spec 261 moved it there from the filter
    chips' row), not a block between the page's title and the list the

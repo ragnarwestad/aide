@@ -73,6 +73,10 @@ const STRUCTURE = [
   // "state" is the state-filter dropdown's own (spec 289, replacing the
   // per-state chips) — a third "details.menu", named the same way.
   "menu", "menupanel", "theme", "state", "about", "aboutpanel", "aboutclose", "listtop",
+  // a confirmation asked over the page instead of on one of its own
+  // (2026-08-31, the schedule row's Delete): the same `<dialog>` the
+  // About box is, and the panel inside it.
+  "confirmdialog", "confirmpanel",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

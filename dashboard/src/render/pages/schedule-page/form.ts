@@ -77,9 +77,18 @@ function modelFields(opts: ScheduleFormOptions): string {
           .join("") +
         `</select>`
       : "";
+  // The two side by side in ONE grid item, not one per column track.
+  // `.scheduleform` is a two-column grid whose tracks are sized by Cron
+  // and Prompt file path, so a field dropped straight into it lands
+  // under one of those — which put the AI at the far left and the model
+  // an input's width away from it. They belong together, in the order
+  // they are read, the way the phase lines and the New-spec form already
+  // have them (2026-08-31).
   return (
+    `<span class="row">` +
     (aiSelect ? field("AI", aiSelect) : "") +
-    field("Model", `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`)
+    field("Model", `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`) +
+    `</span>`
   );
 }
 
@@ -116,10 +125,12 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
       `<input type="text" name="prompt" required value="${esc(e?.prompt ?? "")}">`,
     ) +
     `</div>` +
-    // Its own row under Cron and Prompt, above the button: what a fire
-    // runs on is one statement about the whole entry, not a detail of
-    // either field over it.
-    (models ? `<div class="frow">${models}</div>` : "") +
+    // The bottom line, under Cron and Prompt and above the button: what
+    // a fire runs on is one statement about the whole entry, not a
+    // detail of either field over it. No `.frow` wrapper — that one is
+    // `display: contents`, which would hand the grid the two fields
+    // separately again; this row is one item, in the first column.
+    models +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}</div>` +
     `</form>`
   );

@@ -40,7 +40,9 @@ import { connect, onVisibility } from "./queue-client/live.ts";
 import { markGoing, navigate } from "./queue-client/navigation.ts";
 import { postForm } from "./queue-client/press.ts";
 import { relabelRunButton } from "./queue-client/row-swap.ts";
-import { postScheduleEnabled, postScheduleRun, scheduleCronPreview } from "./queue-client/schedule-actions.ts";
+import {
+  bindScheduleDelete, postScheduleEnabled, postScheduleRun, scheduleCronPreview,
+} from "./queue-client/schedule-actions.ts";
 import { NEW_SPEC_FORM } from "./queue-client/state.ts";
 import { postTailModel, postTailStep } from "./queue-client/tail-actions.ts";
 import { checkboxKey, chosen, chosenSteps, selectKey } from "./queue-client/state.ts";
@@ -202,9 +204,19 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
 }
 // The Delete confirmation (spec 277): button-disable only, exactly
 // like `form.scheduleform` above — the form is a plain POST with no
-// submit override, so the server's own redirect does the rest.
+// submit override, so the server's own redirect does the rest. Since
+// 2026-08-31 the same form is also drawn once per row on `/schedule`,
+// inside the dialog the link below opens; the binding is the same one
+// and reaches both.
 for (const el of document.querySelectorAll("form.scheduledeleteform")) {
   bindTypedConfirm(el as HTMLFormElement);
+}
+// Delete on a schedule row opens that row's own confirmation over the
+// list instead of navigating to it (2026-08-31). The link's `href` is
+// the confirmation PAGE and stays exactly that with no script: this
+// only intercepts the click where a dialog can actually be opened.
+for (const el of document.querySelectorAll("a[data-delete-schedule]")) {
+  bindScheduleDelete(el as HTMLAnchorElement);
 }
 
 document.addEventListener("visibilitychange", onVisibility);

@@ -109,6 +109,19 @@ describe("renderScheduleForm", () => {
     expect(html.indexOf('<select name="model"')).toBeLessThan(html.indexOf(">Create<"));
   });
 
+  // AI then Model, adjacent, in one container. Dropped straight into
+  // `.scheduleform`'s own two-column grid they would land in the two
+  // column tracks Cron and Prompt file path size — an input's width
+  // apart, reading as two unrelated fields.
+  test("the AI and the model sit next to each other in one row, AI first", () => {
+    const html = renderScheduleForm({ action: "/api/queue/schedule", modelChoices: TWO_TOOLS });
+    const row = html.match(/<span class="row">(.*?)<\/span><div class="factions"/s)?.[1] ?? "";
+    expect(row).toContain('data-ai="model"');
+    expect(row).toContain('<select name="model"');
+    expect(row.indexOf("data-ai=")).toBeLessThan(row.indexOf('<select name="model"'));
+    expect(html).not.toContain('<div class="frow"><span class="field"><span>AI<');
+  });
+
   test("a dashboard with no models configured draws no picker at all", () => {
     const html = renderScheduleForm({ action: "/api/queue/schedule" });
     expect(html).not.toContain('<select name="model"');

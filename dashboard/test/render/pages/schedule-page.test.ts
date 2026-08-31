@@ -75,6 +75,45 @@ describe("Schedule page (spec 272, extended spec 276, reworked spec 278)", () =>
     expect(html).toContain("Run now");
   });
 
+  // Delete lives on the list since 2026-08-31, not on the entry's own
+  // Edit page: reaching it there meant opening the thing you had
+  // decided to be rid of.
+  describe("Delete, at the right-hand end of the row", () => {
+    const listed = (): string =>
+      renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
+        projects: ["aide"],
+        rows: [
+          {
+            project: "aide",
+            entry: { name: "nightly-report", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true },
+          },
+        ],
+      });
+
+    test("comes after Run now, and the head row has a column for it", () => {
+      const html = listed();
+      expect(html.indexOf("Run now")).toBeLessThan(html.indexOf(">Delete<"));
+      expect(html).toContain("<th>Enabled</th><th></th><th></th>");
+    });
+
+    test("Run now is the page's ordinary button, not a smaller one", () => {
+      expect(listed()).not.toContain('class="btn small"');
+    });
+
+    test("the control is a link to the confirmation page — the no-script flow, unchanged", () => {
+      expect(listed()).toContain('href="/schedule/aide/nightly-report/delete"');
+    });
+
+    test("and opens that same confirmation over the list: a dialog asking for the typed name", () => {
+      const html = listed();
+      expect(html).toContain("<dialog class=\"confirmdialog\">");
+      expect(html).toContain("data-delete-schedule");
+      expect(html).toContain('action="/api/queue/schedule/aide/nightly-report/delete"');
+      expect(html).toContain('data-confirm="nightly-report"');
+      expect(html).toContain('<form method="dialog">');
+    });
+  });
+
   test("a disabled entry's checkbox is unchecked", () => {
     const html = renderSchedulePage(NAV, "2026-08-30T00:00:00Z", {
       projects: ["aide"],

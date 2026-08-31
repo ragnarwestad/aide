@@ -100,3 +100,24 @@ export function scheduleCronPreview(
     setTimeout(() => void runCronPreview(input, target, fetchImpl), delayMs),
   );
 }
+
+/** Delete on a list row: open that row's own confirmation over the list
+ *  rather than navigating to the page the link points at (2026-08-31).
+ *
+ *  The `href` IS that page, and stays exactly that wherever this never
+ *  runs — script off, or a browser with no `<dialog>`. Nothing is
+ *  deleted here either: the box holds the same typed-name form the page
+ *  does, posting to the same route, which refuses anything that does
+ *  not match.
+ *
+ *  The dialog is looked up in the CELL the link sits in, because there
+ *  is one per row — a page-wide lookup would open the first row's box
+ *  from every row's link. */
+export function bindScheduleDelete(link: HTMLAnchorElement): void {
+  const box = link.parentElement?.querySelector("dialog") as HTMLDialogElement | null;
+  if (!box || typeof box.showModal !== "function") return;
+  link.addEventListener("click", (event: Event) => {
+    event.preventDefault();
+    box.showModal();
+  });
+}
