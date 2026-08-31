@@ -33,10 +33,14 @@ export interface SchedulePageOptions {
 
 export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: SchedulePageOptions): string {
   const body = `<main>${renderScheduleList(opts)}</main>`;
-  // "Jobs", not "Schedule" — the nav tab beside this heading already
-  // says "Schedule"; repeating it as the page's own title read as the
-  // same word twice in a row.
-  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, { script: opts.script });
+  // "Jobs", not "Schedule" — the nav tab beside this page already says
+  // "Schedule"; repeating it as a visible page heading read as the same
+  // word twice in a row, so the heading is hidden and "Jobs" survives
+  // only as the browser tab's title.
+  return pageShell("Jobs", nav, SCHEDULE_ROUTE, body, generatedAt, undefined, {
+    script: opts.script,
+    hideHeading: true,
+  });
 }
 
 export interface ScheduleDetailPageOptions {

@@ -37,6 +37,18 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
       expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
     }
   });
+
+  // Spec 295: Checks used to sit right after Solution; it belongs
+  // between Status and Logs (the "steps" tab's own label) instead.
+  test("Checks sits between Status and Logs in the tab row", () => {
+    const html = page();
+    const base = "/specs/aide/150-one-page-shows-the-whole-spec";
+    const statusIdx = html.indexOf(`href="${base}?tab=status"`);
+    const checksIdx = html.indexOf(`href="${base}?tab=checks"`);
+    const stepsIdx = html.indexOf(`href="${base}?tab=steps"`);
+    expect(statusIdx).toBeLessThan(checksIdx);
+    expect(checksIdx).toBeLessThan(stepsIdx);
+  });
 });
 
 describe("spec 212: each document tab shows its own file and no other", () => {

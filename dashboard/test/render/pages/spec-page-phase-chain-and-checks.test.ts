@@ -152,12 +152,13 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(page(withChecks(), "checks")).toContain("Phase 4");
   });
 
-  // Spec 294: the panel opens with the tab's own title, then exactly the
-  // checklist markup this suite already pins — proving the "out of
-  // scope" boundary held (criteria 3, 8).
-  test("the panel opens with the Checks title directly followed by the unchanged checklist", () => {
+  // Spec 295: the panel opens directly with the checklist markup this
+  // suite already pins, with no `<h2>Checks</h2>` above it — the tab bar
+  // beside it already names the tab.
+  test("the panel opens with the unchanged checklist and no heading of its own", () => {
     const html = page(withChecks(), "checks");
-    expect(html).toContain('<h2>Checks</h2><section class="checks">');
+    expect(html).not.toContain("<h2>Checks</h2>");
+    expect(html).toContain('<section class="checks">');
   });
 
   // A spec whose 4-status.md has no Phase section at all — never
@@ -165,19 +166,22 @@ describe("the checks block (specs 182, 188, 212)", () => {
   // a phase section since spec 266, so it no longer falls into this
   // case.
   // Spec 294: the run-together "Checks no checks yet" wording becomes
-  // its own line, "No checks yet.", under the tab's own `<h2>Checks</h2>`
-  // title, styled as a plain status line rather than the small/muted
-  // caption treatment `checkshead` gives every other message here.
-  test("a spec with no rows says 'No checks yet.' as its own line under the title (criterion 2)", () => {
+  // its own line, "No checks yet.", styled as a plain status line
+  // rather than the small/muted caption treatment `checkshead` gives
+  // every other message here. Spec 295: no `<h2>Checks</h2>` sits above
+  // it — the tab bar beside the panel already names the tab.
+  test("a spec with no rows says 'No checks yet.' as its own line, with no heading above it (criterion 2)", () => {
     const html = page(view({ checks: { rows: [] } }), "checks");
-    expect(html).toContain('<h2>Checks</h2><p class="muted">No checks yet.</p>');
+    expect(html).toContain('<p class="muted">No checks yet.</p>');
+    expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).not.toContain('class="checkshead"');
     expect(html).not.toContain("no checks yet");
   });
 
   test("a spec whose view carries no checks says 'No checks yet.' the same way (criterion 2)", () => {
     const html = page(view(), "checks");
-    expect(html).toContain('<h2>Checks</h2><p class="muted">No checks yet.</p>');
+    expect(html).toContain('<p class="muted">No checks yet.</p>');
+    expect(html).not.toContain("<h2>Checks</h2>");
     expect(html).not.toContain('class="checkshead"');
     expect(html).not.toContain("no checks yet");
   });

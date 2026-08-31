@@ -36,7 +36,8 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).toContain("<h3>Config</h3>");
+    expect(html).not.toContain("<h3>Config</h3>");
+    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     // The manifest dump duplicated the live Specs tab, one click away
     // — a frozen copy of it here said nothing that page did not
     // (2026-08-25).
@@ -55,7 +56,8 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).toContain("<h3>Config</h3>");
+    expect(html).not.toContain("<h3>Config</h3>");
+    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
     expect(html).not.toContain("Manifest failed to parse");
   });
 
@@ -105,7 +107,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const root = projectsRoot({ aide: null });
     const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
     expect(html).toMatch(/aria-current="page"[^>]*>Config/);
-    expect(html).toContain("<h3>Config</h3>");
+    expect(html).not.toContain("<h3>Config</h3>");
   });
 });
 
@@ -250,7 +252,8 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
     expect(html).not.toMatch(/>Schedule</);
     const fallback = await (await get(base, "aide", "schedule")).text();
     expect(fallback).not.toContain("<h3>Schedule</h3>");
-    expect(fallback).toContain("<h3>Config</h3>");
+    expect(fallback).not.toContain("<h3>Config</h3>");
+    expect(fallback).toMatch(/aria-current="page"[^>]*>Config/);
   });
 });
 
