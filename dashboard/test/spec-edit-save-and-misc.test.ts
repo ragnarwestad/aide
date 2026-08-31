@@ -59,22 +59,6 @@ describe("GET the edit page", () => {
     expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`, auth)).status).toBe(404);
   });
 
-  // REQ-1/REQ-6: the Milkdown bundle is heavy (Vue, CodeMirror, KaTeX,
-  // DOMPurify as Crepe internals — 2-analysis.md's own risk analysis) —
-  // it ships on the ONE tab that has an editable textarea and nowhere
-  // else, mirroring how queueClientScript() already scopes itself.
-  test("the Description tab carries the Milkdown client script; other tabs do not", async () => {
-    const { base } = start(savable("/host"));
-    const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
-    expect(descHtml).toContain("spec-editor-host");
-    const overviewHtml = await (await fetch(`${base}${PAGE}`, auth)).text();
-    expect(overviewHtml).not.toContain("spec-editor-host");
-    // The bundle itself (Crepe + its transitives) is tens of KB even
-    // minified — a difference this large is only explained by the
-    // Description tab carrying it and Overview not.
-    expect(descHtml.length - overviewHtml.length).toBeGreaterThan(20_000);
-  });
-
   // Criterion 11 (spec 163): an archived spec is a record. Hiding the
   // control is not the guard — the save endpoint is — but the tab must
   // not offer a box that only gets refused.

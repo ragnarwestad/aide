@@ -60,26 +60,6 @@ export function queueClientScript(): Promise<string | undefined> {
   return queueScript;
 }
 
-// The Description tab's own bundle (spec 290): same shape as
-// `queueClientScript()` above — cached, `format: "iife"`, fail-open on
-// a build error — so a failed build degrades to the plain textarea
-// rather than breaking the page. Its own CSS travels inside this same
-// bundle (see `spec-editor-client.ts`'s own comment on why), so this
-// one string is genuinely the whole payload, unlike `queueClientScript`
-// there is nothing else to fetch alongside it.
-let specEditorScript: Promise<string | undefined> | null = null;
-export function specEditorClientScript(): Promise<string | undefined> {
-  if (specEditorScript !== null) return specEditorScript;
-  specEditorScript = Bun.build({
-    entrypoints: [join(import.meta.dir, "../../spec-editor-client.ts")],
-    target: "browser",
-    format: "iife",
-  })
-    .then((result) => (result.success ? result.outputs[0]?.text() : undefined))
-    .catch(() => undefined); // the page still works: the plain textarea takes over
-  return specEditorScript;
-}
-
 // The tail of a file, without reading the rest of it. A 25-minute
 // implement run's transcript is not something a page render should ever
 // pull into memory whole — and the tail is the part that answers "what

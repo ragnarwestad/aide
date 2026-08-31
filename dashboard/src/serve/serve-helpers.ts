@@ -22,7 +22,7 @@ export {
 } from "./serve-helpers/redirect.ts";
 
 export {
-  navFromSite, queueClientScript, specEditorClientScript, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
+  navFromSite, queueClientScript, STREAM_TAIL_BYTES, tailFile, serveStatic, servePwaAsset,
 } from "./serve-helpers/static.ts";
 
 export {

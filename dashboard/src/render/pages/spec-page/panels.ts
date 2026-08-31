@@ -58,16 +58,10 @@ export function descriptionPanel(view: SpecPageView, now: number): string {
     `<span class="frow">` +
     field(
       EDITABLE_SPEC_FILE,
-      // The mount point Milkdown's client script (spec 290) fills in.
-      // Hidden by default (css/field.css) — the raw textarea below it
-      // is what a reader with JS off, or a failed bundle, actually
-      // sees and saves; the mount point only takes over once the
-      // script sets `data-mounted` on it.
-      `<div class="milkdown-host" id="spec-editor-host"></div>` +
       // No newline between the tag and the text: an HTML parser eats a
       // single leading one, which would silently drop the first line of
       // a file that begins with a blank one.
-      `<textarea name="text" rows="30" spellcheck="false" wrap="off" class="milkdown-raw">${esc(file?.text ?? "")}</textarea>`,
+      `<textarea name="text" rows="30" spellcheck="false" wrap="off">${esc(file?.text ?? "")}</textarea>`,
       { wide: true },
     ) +
     `</span>` +
