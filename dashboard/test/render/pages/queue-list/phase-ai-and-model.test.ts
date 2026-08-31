@@ -199,9 +199,9 @@ describe("spec 179: an AI and a model on every phase line", () => {
 // string can be asked about directly — the chip's border, and where a
 // phase line's aside note goes.
 describe("spec 176: the phase chip frames nothing", () => {
-  test("a phase line's label-less chip draws no border (criterion 1)", async () => {
+  test("a phase line's label-less chip draws no border and no background (criterion 1)", async () => {
     const { CSS } = await import("../../../../src/render/ui/css.ts");
-    expect(CSS).toContain(".phase[data-phase] { border-color: transparent; }");
+    expect(CSS).toContain(".phase[data-phase] { border-color: transparent; background: transparent; }");
   });
 
   // The second half of the criterion, and the reason the selector names
@@ -213,7 +213,21 @@ describe("spec 176: the phase chip frames nothing", () => {
     const { CSS } = await import("../../../../src/render/ui/css.ts");
     expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("border: 1px solid var(--line)");
     expect(CSS.match(/^[^\n]*border-color: transparent[^\n]*$/gm)).toEqual([
-      ".phase[data-phase] { border-color: transparent; }",
+      ".phase[data-phase] { border-color: transparent; background: transparent; }",
     ]);
+  });
+
+  // Spec 304: the border fix above left the chip's `--surface` FILL in
+  // place, so a label-less chip still sat on an off-shade rectangle —
+  // this time built from background instead of a border. The clickable
+  // footprint must not shrink to fix it (REQ-5), so `.phase`'s own
+  // `padding` stays; only chips with no label of their own lose their
+  // background, and only theirs.
+  test("the base chip keeps its padding, and a labelled chip keeps its background (REQ-4, REQ-5)", async () => {
+    const { CSS } = await import("../../../../src/render/ui/css.ts");
+    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("padding: 0 var(--sp-2)");
+    expect(CSS.match(/\n\.phase \{[\s\S]*?\}/)![0]).toContain("background: var(--surface)");
+    expect(CSS).not.toMatch(/\[data-depends\][^{]*\{[^}]*background/);
+    expect(CSS).not.toMatch(/\[data-project\][^{]*\{[^}]*background/);
   });
 });

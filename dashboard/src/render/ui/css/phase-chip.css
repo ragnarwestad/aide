@@ -24,5 +24,5 @@
    rather than on .phase itself: the chips that DO carry a label, the
    "Also touches" repos (data-project) and the new-spec form's
    "Depends on" (data-depends), frame something and keep their frame. */
-.phase[data-phase] { border-color: transparent; }
+.phase[data-phase] { border-color: transparent; background: transparent; }
 
