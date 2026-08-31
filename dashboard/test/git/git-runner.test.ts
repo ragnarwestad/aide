@@ -12,6 +12,9 @@
 // with no directory — and it was thrown, not returned, so it took the
 // page with it.
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createGitRunner } from "../../src/git/branch-status.ts";
 
 describe("a directory that is not there is an answer, not a crash", () => {
@@ -49,5 +52,35 @@ describe("one call can ask for longer than the default", () => {
     const res = await impatient(process.cwd(), ["log", "-1", "--format=%H"], 30_000);
     expect(res.code).toBe(0);
     expect(res.stdout.trim().length).toBeGreaterThan(0);
+  });
+});
+
+// Spec 291: `GIT_INDEX_FILE` scoping has no CLI-flag equivalent — the
+// plumbing in `branch-file.ts` needs it to build a commit without ever
+// touching the shared checkout's real index, so `GitRunner` grew one
+// optional per-call `env` parameter. Proven with `GIT_AUTHOR_NAME`
+// rather than `GIT_INDEX_FILE` itself: a real, observable side effect
+// (whose name appears in the resulting commit) that has nothing to do
+// with the index, so this test stays a proof of the wrapper's own
+// plumbing and not a second copy of `branch-file.test.ts`'s own proof.
+describe("the env parameter reaches the real spawn", () => {
+  test("a per-call env override lands in the child process", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "aide-git-runner-env-"));
+    try {
+      const run = createGitRunner();
+      await run(dir, ["init", "-q", "-b", "main"]);
+      await run(dir, ["config", "user.email", "test@example.com"]);
+      const committed = await run(dir, ["commit", "-q", "--allow-empty", "-m", "env test"], undefined, {
+        GIT_AUTHOR_NAME: "Env Override",
+        GIT_AUTHOR_EMAIL: "env@example.com",
+        GIT_COMMITTER_NAME: "Env Override",
+        GIT_COMMITTER_EMAIL: "env@example.com",
+      });
+      expect(committed.code).toBe(0);
+      const author = await run(dir, ["log", "-1", "--format=%an"]);
+      expect(author.stdout.trim()).toBe("Env Override");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

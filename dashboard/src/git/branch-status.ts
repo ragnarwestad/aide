@@ -35,6 +35,13 @@ export type GitRunner = (
    *  than by building a second runner, so an injected fake still sees
    *  every call the code makes. */
   timeoutMs?: number,
+  /** Per-call environment additions (spec 291). `GIT_INDEX_FILE`
+   *  scoping — the plumbing `branch-file.ts` uses to build a commit
+   *  without ever touching the shared checkout's real index — has no
+   *  CLI-flag equivalent; it is env-var only. Optional and trailing, so
+   *  every existing fake `GitRunner` in the test suite (declared with
+   *  fewer parameters) stays valid under TypeScript's structural typing. */
+  env?: Record<string, string>,
 ) => Promise<{ code: number; stdout: string; stderr?: string }>;
 
 const DEFAULT_TIMEOUT_MS = 4000;
@@ -79,7 +86,7 @@ export function lsRemoteSpecBranches(): string[] {
  *  unreachable `origin` from stalling a page load: the queue polls every
  *  5 s and the job page refreshes every 10 s. */
 export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
-  return async (dir, args, callTimeoutMs) => {
+  return async (dir, args, callTimeoutMs, env) => {
     // A directory that is not there is an ANSWER, not a crash. `cwd` on
     // a missing path fails inside posix_spawn, and the error names the
     // command — "ENOENT ... posix_spawn 'git'" — so it reads as a
@@ -96,7 +103,7 @@ export function createGitRunner(timeoutMs = DEFAULT_TIMEOUT_MS): GitRunner {
         // "another process is holding index.lock" and "the base has
         // diverged" are the same exit code with different words.
         stderr: "pipe",
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...env },
       });
     } catch (e) {
       return { code: 128, stdout: "", stderr: `cannot run git in ${dir}: ${String(e)}` };
