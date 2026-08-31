@@ -170,27 +170,25 @@ describe("readWorkflowSubjects", () => {
   });
 });
 
-describe("stepsFileDisagreesOn (spec 299's fix, applied 2026-08-31)", () => {
-  test("flags a step the file claims that git has no commit for", () => {
+describe("stepsFileDisagreesOn", () => {
+  test("flags a step the file claims that git has no commit for (spec 153)", () => {
     expect(stepsFileDisagreesOn(["create", "analyze", "implement"], { done: ["create", "analyze"], stopped: {} })).toEqual([
       "implement",
     ]);
   });
 
-  test("does not flag implement when git has it but the file has not caught up yet", () => {
-    // `implement` lands nothing until `archive` merges it, so the
-    // status file on the default branch is expected to lag behind git
-    // for as long as the spec sits between a finished implement and
-    // its archive — this is spec 299's own state, not a disagreement.
+  // Spec 298: `fileSteps` now follows the open branch when one exists,
+  // which is where `implement` actually writes this line — so a
+  // disagreement in THIS direction is once more a real one (spec 147's
+  // killed run), not the structural lag spec 299 briefly special-cased
+  // this function for before spec 298 fixed it at the read side.
+  test("flags implement when git has it but the file (read fresh) still doesn't", () => {
     expect(
       stepsFileDisagreesOn(["create", "analyze"], { done: ["create", "analyze", "implement"], stopped: {} }),
-    ).toEqual([]);
+    ).toEqual(["implement"]);
   });
 
-  test("still flags analyze when git has it but the file has not caught up (spec 147)", () => {
-    // Unlike `implement`, `analyze` lands on the default branch the
-    // moment it finishes — the file this reads should have it too, so
-    // a gap here is still the killed-run case spec 147 was about.
+  test("flags analyze when git has it but the file has not caught up (spec 147)", () => {
     expect(stepsFileDisagreesOn(["create"], { done: ["create", "analyze"], stopped: {} })).toEqual([
       "analyze",
     ]);
