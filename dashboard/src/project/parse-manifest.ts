@@ -24,6 +24,12 @@ export interface ScheduleEntry {
    *  an existing entry with no such field keeps firing exactly as it
    *  always has. */
   enabled: boolean;
+  /** Which model every fire of this entry runs on — a NAME out of the
+   *  queue config's own `modelChoices` table, exactly like the name a
+   *  spec's phase line posts. Absent means the entry never picked one
+   *  and the configuration's own `schedule` default decides, which is
+   *  what every entry written before this field did. */
+  model?: string;
 }
 
 export interface ManifestData {
@@ -179,7 +185,17 @@ export function parseManifest(text: string): ManifestResult {
       } catch {
         continue;
       }
-      entries.push({ name, cron, prompt, enabled: e.enabled !== false });
+      // An unusable model name is DROPPED, not the entry with it: the
+      // fire is what the entry is for, and one falling back to the
+      // configured model is a smaller surprise than a schedule that
+      // silently stopped running. The name's shape is all that can be
+      // checked here — whether the queue config actually grants it is
+      // the queue's own answer, and it is given at enqueue time.
+      const model = toStr(e.model)?.trim();
+      entries.push({
+        name, cron, prompt, enabled: e.enabled !== false,
+        ...(model && SCHEDULE_NAME_RE.test(model) ? { model } : {}),
+      });
     }
     if (entries.length > 0) data.schedule = entries;
   }

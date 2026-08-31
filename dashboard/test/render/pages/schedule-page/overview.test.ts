@@ -23,6 +23,12 @@ describe("renderScheduleOverview", () => {
     expect(html).toContain('value="nightly"');
   });
 
+  test("states the entry's own model, and states none where the entry names none", () => {
+    const entry = { name: "nightly", cron: "0 3 * * *", prompt: "docs/nightly.md", enabled: true };
+    expect(renderScheduleOverview("aide", { ...entry, model: "codex-fast" }, {})).toContain("<dt>Model</dt>");
+    expect(renderScheduleOverview("aide", entry, {})).not.toContain("<dt>Model</dt>");
+  });
+
   test("includes a Delete link to the entry's own delete confirmation page (spec 277, acceptance criterion 7)", () => {
     const html = renderScheduleOverview(
       "aide",

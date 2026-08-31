@@ -8,13 +8,14 @@
 import { nextFireTime } from "../../../queue/schedule.ts";
 import { btn, field, tokenField } from "../../ui/components.ts";
 import { esc } from "../../ui/html.ts";
+import { defaultModelForTool, modelOptions, resolveChosenModel, TOOL_NAMES, type QueuePageOptions } from "../queue-list.ts";
 
 export interface ScheduleFormOptions {
   /** Present when editing; absent when creating — decides the submit
    *  label and nothing else, since both cases post to their own
    *  `action`. */
   entryName?: string;
-  entry?: { name: string; cron: string; prompt: string };
+  entry?: { name: string; cron: string; prompt: string; model?: string };
   action: string;
   token?: string;
   error?: string;
@@ -24,6 +25,62 @@ export interface ScheduleFormOptions {
    *  entry's own detail page keeps its project fixed from the URL and
    *  never passes this. */
   projects?: readonly string[];
+  /** Every model the config granted a budget to, and which CLI each
+   *  starts — the same view the spec list's phase lines and the
+   *  New-spec form are given, built by the same helper in `serve.ts` so
+   *  no two pages come to offer different lists. Absent or empty draws
+   *  no picker at all, exactly as the New-spec form does. */
+  modelChoices?: QueuePageOptions["modelChoices"];
+  /** What the configuration would give each step. Only `schedule`'s own
+   *  entry (or the table's `default`) can matter here: a scheduled job
+   *  runs that one step. */
+  defaultModels?: QueuePageOptions["defaultModels"];
+}
+
+/** The form's own id. Both selects are written INSIDE the form, so the
+ *  `form` attribute is not what submits them — it is what pairs them:
+ *  `applyAiPick` (`queue-client/ai-sync.ts`) finds a model select by its
+ *  `name` and its form id together, the same pairing the New-spec form
+ *  and the phase lines use. */
+export const SCHEDULE_FORM_ID = "schedule-form";
+
+/** The AI and the model this entry's fires run on — ONE pair, not one
+ *  per phase: a scheduled job is a single `schedule` step, so there is
+ *  nothing here for a per-phase choice to differ about.
+ *
+ *  Everything about it is the New-spec form's own model field
+ *  (`new-spec-page.ts`), which is what "the same way as on the Specs
+ *  page" means: every model drawn and grouped by tool, the AI select
+ *  drawn only where there are two tools to tell apart, each AI option
+ *  carrying the model it fills in (worked out HERE, from the
+ *  configuration, never in the browser), and the select PRE-FILLED with
+ *  what the entry is actually on — its own saved pick, else what the
+ *  configuration would give the `schedule` step. */
+function modelFields(opts: ScheduleFormOptions): string {
+  const models = opts.modelChoices ?? [];
+  if (!models.length) return "";
+  const configured = opts.defaultModels?.schedule ?? opts.defaultModels?.default;
+  const chosen = resolveChosenModel(models, configured, opts.entry?.model);
+  const tools = Object.keys(TOOL_NAMES).filter((tool) => models.some((m) => (m.tool ?? "claude") === tool));
+  const restingTool = models.find((m) => m.name === chosen)?.tool ?? "claude";
+  const aiSelect =
+    tools.length > 1
+      ? `<noscript><style>[data-ai]{display:none}</style></noscript>` +
+        `<select data-ai="model" form="${SCHEDULE_FORM_ID}">` +
+        tools
+          .map(
+            (tool) =>
+              `<option value="${esc(tool)}"` +
+              ` data-default="${esc(defaultModelForTool(models, tool, configured) ?? "")}"` +
+              `${tool === restingTool ? " selected" : ""}>${esc(TOOL_NAMES[tool]!)}</option>`,
+          )
+          .join("") +
+        `</select>`
+      : "";
+  return (
+    (aiSelect ? field("AI", aiSelect) : "") +
+    field("Model", `<select name="model" form="${SCHEDULE_FORM_ID}">` + modelOptions(models, chosen) + `</select>`)
+  );
 }
 
 export const CRON_NEXT_HOOK = "cron-next";
@@ -31,8 +88,10 @@ export const CRON_NEXT_HOOK = "cron-next";
 export function renderScheduleForm(opts: ScheduleFormOptions): string {
   const e = opts.entry;
   const initialNext = e?.cron ? nextFireTime(e.cron, new Date()) : null;
+  const models = modelFields(opts);
   return (
-    `<form method="post" action="${esc(opts.action)}" class="scheduleform" data-cron-preview-url="/api/queue/schedule/cron-next">` +
+    `<form method="post" action="${esc(opts.action)}" class="scheduleform" id="${SCHEDULE_FORM_ID}" ` +
+    `data-cron-preview-url="/api/queue/schedule/cron-next">` +
     tokenField(opts.token) +
     `<p class="rowmsg warn scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
     `<div class="frow">` +
@@ -57,6 +116,10 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
       `<input type="text" name="prompt" required value="${esc(e?.prompt ?? "")}">`,
     ) +
     `</div>` +
+    // Its own row under Cron and Prompt, above the button: what a fire
+    // runs on is one statement about the whole entry, not a detail of
+    // either field over it.
+    (models ? `<div class="frow">${models}</div>` : "") +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}</div>` +
     `</form>`
   );

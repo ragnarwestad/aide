@@ -31,6 +31,15 @@ function readSchedule(dir: string, project: string) {
 const TOKEN = "s3cret-token";
 const asJson = { headers: { accept: "application/json", "x-aide-token": TOKEN } };
 
+/** A queue config with two models to choose between, for the tests about
+ *  an entry's own model pick. */
+const DEFAULTS = {
+  budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+  timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+  model: { default: "sonnet" },
+  modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+};
+
 describe("POST /api/queue/schedule — create, project read from the body (spec 278, criteria 5, 6, 7, 13, 14)", () => {
   test("a valid entry naming an allowed project is created in that project's manifest (criterion 13)", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
@@ -209,6 +218,53 @@ describe("POST /api/queue/schedule/<project>/<name>/enabled (criterion 8)", () =
   });
 });
 
+describe("the entry's model, over the wire", () => {
+  test("create stores the posted model on the entry", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" }),
+    });
+    expect(res.status).toBe(200);
+    expect(readSchedule(dir, "aide")[0]!.model).toBe("codex-fast");
+  });
+
+  test("editing an entry replaces its model", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
+    writeManifest(
+      dir, "aide",
+      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n    model: sonnet\n",
+    );
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" }),
+    });
+    expect(res.status).toBe(200);
+    expect(readSchedule(dir, "aide")[0]!.model).toBe("codex-fast");
+  });
+
+  test("a model the queue config does not grant is refused, and nothing is written", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeFileSync(join(dir, "root", "aide", "docs-nightly.md"), "# nightly\n");
+    writeManifest(dir, "aide", "name: aide\n");
+    const res = await fetch(`${base}/api/queue/schedule`, {
+      method: "POST",
+      ...asJson,
+      headers: { ...asJson.headers, "content-type": "application/json" },
+      body: JSON.stringify({ project: "aide", name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "retired" }),
+    });
+    expect(res.status).toBe(400);
+    expect(readSchedule(dir, "aide")).toHaveLength(0);
+  });
+});
+
 describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
   test("enqueues the schedule job under the entry's tracking key", async () => {
     const { base, dir } = harness.start({ extra: { queueToken: TOKEN } });
@@ -219,6 +275,36 @@ describe("POST /api/queue/schedule/<project>/<name>/run (criterion 9)", () => {
     expect(body.job.project).toBe("aide");
     expect(body.job.specFolder).toBe("schedule-nightly");
     expect(body.job.steps).toEqual(["schedule"]);
+  });
+
+  // Run now is this entry firing early, not a different job: it has to
+  // run on the model the entry names, or a person pressing it is testing
+  // something other than what the schedule does at 03:00.
+  test("the job runs on the model the entry names", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS },
+    });
+    writeManifest(
+      dir, "aide",
+      "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
+        "    model: codex-fast\n",
+    );
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.job.modelChoice).toBe("codex-fast");
+    expect(body.job.model.schedule).toBe("codex-fast");
+  });
+
+  test("an entry naming no model is enqueued without one — the configuration decides", async () => {
+    const { base, dir } = harness.start({
+      extra: { queueToken: TOKEN, queueDefaults: DEFAULTS },
+    });
+    writeManifest(dir, "aide", "name: aide\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n");
+    const res = await fetch(`${base}/api/queue/schedule/aide/nightly/run`, { method: "POST", ...asJson });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.job.modelChoice).toBeUndefined();
   });
 });
 

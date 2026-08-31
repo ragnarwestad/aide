@@ -115,6 +115,17 @@ describe("writeScheduleList (acceptance criteria 3, 4)", () => {
     expect(after).toBe(expected);
   });
 
+  test("an entry's model round-trips, and an entry without one never gains a model: line", () => {
+    const file = manifest("name: alpha\n");
+    writeScheduleList(file, [{ ...NIGHTLY, model: "claude-opus-5" }, WEEKLY]);
+    const text = readFileSync(file, "utf-8");
+    expect(text).toContain('    model: "claude-opus-5"\n');
+    expect(text.match(/model:/g)).toHaveLength(1);
+    const result = parseManifest(text);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.schedule).toEqual([{ ...NIGHTLY, model: "claude-opus-5" }, WEEKLY]);
+  });
+
   test("throws rather than write when the intended entries would not reparse (guard)", () => {
     // A name containing a double quote would break the always-quoted
     // serialization; the write-time guard must catch it before disk.

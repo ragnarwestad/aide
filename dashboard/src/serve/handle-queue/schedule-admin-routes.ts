@@ -4,6 +4,7 @@
 // refuse before any write, then either a JSON answer (script) or a
 // no-JS redirect back to the list.
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEnabled, updateScheduleEntry } from "../../project/project-admin.ts";
+import { resolveSchedule } from "../../project/discover.ts";
 import { nextFireTime, scheduleTrackingKey } from "../../queue/schedule.ts";
 import { deleteSchedulePath, SCHEDULE_ROUTE } from "../../render.ts";
 import { bodyToObject, json, readBounded, specsRedirect } from "../serve-helpers.ts";
@@ -12,6 +13,12 @@ import type { HandleQueueContext } from "../handle-queue.ts";
 const CRON_NEXT_ROUTE = "/api/queue/schedule/cron-next";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
+
+/** Every model name the queue config grants a budget to — what a
+ *  create/edit is validated against, so a name the queue would refuse at
+ *  fire time is refused here instead, while a person is looking at the
+ *  form. */
+const knownModels = (ctx: HandleQueueContext): string[] => Object.keys(ctx.queue.defaults.modelChoices ?? {});
 
 async function readJsonBody(req: Request): Promise<{ body: Record<string, unknown> } | { refusal: Response }> {
   const sent = await readBounded(req);
@@ -69,8 +76,15 @@ export async function handleScheduleAdminRoutes(
     const name = decodeURIComponent(runPost[2]!);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     // A thin wrapper over the same enqueue/tick pair `refreshSchedules`
-    // itself calls (acceptance criterion 9) — no new mechanism.
-    const result = ctx.queue.enqueue({ project, specFolder: scheduleTrackingKey(name), steps: ["schedule"] });
+    // itself calls (acceptance criterion 9) — no new mechanism. It reads
+    // the entry's own model for the same reason that tick does: "Run
+    // now" is this entry firing early, not a different job, and it may
+    // not quietly run on a different model than the schedule does.
+    const entry = resolveSchedule(ctx.machineryProjectDir(project)).find((e) => e.name === name);
+    const result = ctx.queue.enqueue({
+      project, specFolder: scheduleTrackingKey(name), steps: ["schedule"],
+      ...(entry?.model ? { model: entry.model } : {}),
+    });
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect({}, { error: result.error }, back);
     await ctx.tickRunner();
@@ -106,8 +120,8 @@ export async function handleScheduleAdminRoutes(
     if ("refusal" in sent) return sent.refusal;
     const body = sent.body;
     const result = updateScheduleEntry(ctx.machineryProjectDir(project), name, {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
-    });
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+    }, knownModels(ctx));
     const back = SCHEDULE_ROUTE;
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, back);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, back);
@@ -126,8 +140,8 @@ export async function handleScheduleAdminRoutes(
     const project = str(body.project);
     if (!ctx.allowed.has(project)) return json({ error: `"${project}" is not a project this dashboard knows` }, 400);
     const result = createScheduleEntry(ctx.machineryProjectDir(project), {
-      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt),
-    });
+      name: str(body.name), cron: str(body.cron), prompt: str(body.prompt), model: str(body.model),
+    }, knownModels(ctx));
     if (!result.ok) return wantsJson ? json({ error: result.error }, 400) : specsRedirect(body, { error: result.error }, SCHEDULE_ROUTE);
     return wantsJson ? json({ ok: true }) : specsRedirect(body, undefined, SCHEDULE_ROUTE);
   }

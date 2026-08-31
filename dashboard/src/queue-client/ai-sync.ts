@@ -25,8 +25,14 @@ import { chosen, selectKey } from "./state.ts";
 // it was ROW-WIDE and hid that a spec can run analyze on one CLI and
 // implement on another. This one is per PHASE LINE, where the AI select
 // lives now, so that capability is untouched.
+/** Every model select on a page, whichever page it is: a phase line's
+ *  `model.<step>`, and the schedule form's bare `model` — one choice for
+ *  the whole entry, since a scheduled job has a single step and no
+ *  phases to tell apart. */
+export const MODEL_SELECTS = 'select[name="model"], select[name^="model."]';
+
 export function offerEachToItsTool(root: ParentNode): void {
-  for (const el of root.querySelectorAll('select[name^="model."]')) {
+  for (const el of root.querySelectorAll(MODEL_SELECTS)) {
     const model = el as HTMLSelectElement;
     const tool = model.selectedOptions[0]?.dataset.tool;
     if (tool) offerOnly(model, tool);

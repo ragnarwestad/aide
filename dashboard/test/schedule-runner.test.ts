@@ -24,6 +24,7 @@ interface QueuedJob {
   project: string;
   specFolder: string;
   steps: string[];
+  modelChoice?: string;
 }
 
 async function jobs(base: string): Promise<QueuedJob[]> {
@@ -85,6 +86,26 @@ describe("refreshSchedules (spec 259)", () => {
     await new Promise((r) => setTimeout(r, 150));
     const list = await jobs(base);
     expect(list.some((j) => j.steps.includes("schedule"))).toBe(false);
+  });
+
+  // The whole point of the entry's own model field: a fire that ignored
+  // it would run every night on whatever the configuration says, with
+  // nobody watching to notice.
+  test("a due entry fires on the model it names", async () => {
+    const { base, dir } = harness.start({
+      extra: {
+        queueToken: TOKEN, driftPollMs: 0, specCachePollMs: 0, scheduleCheckMs: 30,
+        queueDefaults: {
+          budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+          timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+          model: { default: "sonnet" },
+          modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+        },
+      },
+    });
+    writeSchedule(dir, "aide", `${NIGHTLY}    model: codex-fast\n`);
+    const list = await jobsUntil(base, (l) => l.some((j) => j.specFolder === "schedule-nightly-report"));
+    expect(list.find((j) => j.specFolder === "schedule-nightly-report")?.modelChoice).toBe("codex-fast");
   });
 
   test("scheduleCheckMs: 0 turns the poll off entirely", async () => {

@@ -20,6 +20,13 @@ function writeSchedule(dir: string, project: string, yaml: string): void {
 }
 
 const NIGHTLY = 'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n';
+/** A queue config with two models, for the pages that draw the picker. */
+const DEFAULTS = {
+  budgetUsd: 3, jobCapUsd: 10, dailyCapUsd: 20,
+  timeoutSec: { default: 1200 }, permissionMode: { default: "acceptEdits" },
+  model: { default: "sonnet" },
+  modelChoices: { sonnet: { budgetUsd: 3 }, "codex-fast": { budgetUsd: 5, tool: "codex" as const } },
+};
 const TRAFFIC = 'name: other\nschedule:\n  - name: traffic-analysis\n    cron: "0 0 * * *"\n    prompt: docs/traffic.md\n';
 
 describe("GET /schedule (spec 272)", () => {
@@ -170,6 +177,18 @@ describe("GET /schedule/new (spec 278)", () => {
     expect(html).toContain('action="/api/queue/schedule"');
   });
 
+  // The route's own half of the model picker: the form can only draw
+  // what it is handed, and only this proves `page-routes.ts` hands the
+  // queue config's own model table to it.
+  test("the form offers the configured models", async () => {
+    const { base } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    const res = await fetch(`${base}/schedule/new`, { headers: { "x-aide-token": TOKEN } });
+    const html = await res.text();
+    expect(html).toContain('<select name="model"');
+    expect(html).toContain('value="codex-fast"');
+    expect(html).toContain('data-ai="model"');
+  });
+
   test("the old /schedule/<project>/new path is gone", async () => {
     const { base } = harness.start({ extra: { queueToken: TOKEN } });
     const res = await fetch(`${base}/schedule/aide/new`, { headers: { "x-aide-token": TOKEN } });
@@ -186,6 +205,25 @@ describe("GET /schedule/<project>/<name> (acceptance criterion 13)", () => {
     const html = await res.text();
     expect(html).toContain("0 3 * * *");
     expect(html).toContain("docs/nightly.md");
+  });
+
+  // Editing an entry has to offer the same choice creating it did, and
+  // show what the entry is actually on — otherwise a Save silently
+  // moves a job onto whatever the form happened to draw.
+  test("the Edit form shows the entry's own model, pre-selected", async () => {
+    const { base, dir } = harness.start({ extra: { queueToken: TOKEN, queueDefaults: DEFAULTS } });
+    writeSchedule(
+      dir, "aide",
+      'name: aide\nschedule:\n  - name: nightly-report\n    cron: "0 3 * * *"\n    prompt: docs/nightly.md\n' +
+        "    model: codex-fast\n",
+    );
+    const res = await fetch(`${base}/schedule/aide/nightly-report`, { headers: { "x-aide-token": TOKEN } });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('<select name="model"');
+    expect(html).toContain('value="codex-fast" data-tool="codex" title="$5 per step" selected');
+    // And stated above the form, beside the cron and the prompt file.
+    expect(html).toContain("<dt>Model</dt>");
   });
 
   test("an unknown entry is 404", async () => {

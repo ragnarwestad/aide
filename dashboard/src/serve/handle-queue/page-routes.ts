@@ -505,6 +505,10 @@ export async function handlePageRoutes(
       token: ctx.queueToken,
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
+      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
+        name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+      })),
+      defaultModels: ctx.queue.defaults.model,
     });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }
@@ -555,6 +559,10 @@ export async function handlePageRoutes(
       script: await queueClientScript(),
       error: url.searchParams.get("error") ?? undefined,
       backHref: resolveBackHref(req.headers.get("referer"), url.origin, SCHEDULE_ROUTE),
+      modelChoices: Object.entries(ctx.queue.defaults.modelChoices ?? {}).map(([name, choice]) => ({
+        name, budgetUsd: choice.budgetUsd, ...(choice.tool ? { tool: choice.tool } : {}),
+      })),
+      defaultModels: ctx.queue.defaults.model,
     });
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
   }

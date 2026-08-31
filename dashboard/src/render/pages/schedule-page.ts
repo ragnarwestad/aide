@@ -8,7 +8,7 @@ import type { ScheduleEntry } from "../../project/parse-manifest.ts";
 import { backLink, rowMessage, tokenField, typedConfirm } from "../ui/components.ts";
 import { esc } from "../ui/html.ts";
 import { pageShell, type NavEntry } from "../ui/shell.ts";
-import { renderScheduleForm } from "./schedule-page/form.ts";
+import { renderScheduleForm, type ScheduleFormOptions } from "./schedule-page/form.ts";
 import { renderScheduleHistory, type ScheduleHistoryRow } from "./schedule-page/history.ts";
 import { renderScheduleList, type ScheduleFilter, type SchedulePageRow } from "./schedule-page/list.ts";
 import { renderScheduleOverview } from "./schedule-page/overview.ts";
@@ -42,6 +42,10 @@ export function renderSchedulePage(nav: NavEntry[], generatedAt: string, opts: S
 export interface ScheduleDetailPageOptions {
   project: string;
   entry: ScheduleEntry;
+  /** The Edit form's own model picker — same two views the New-job form
+   *  below is given, and the same ones `new-spec-page.ts` takes. */
+  modelChoices?: ScheduleFormOptions["modelChoices"];
+  defaultModels?: ScheduleFormOptions["defaultModels"];
   tab?: string;
   history: readonly ScheduleHistoryRow[];
   token?: string;
@@ -61,7 +65,12 @@ export function renderScheduleDetailPage(
   const panel =
     tab === "history"
       ? renderScheduleHistory(opts.history)
-      : renderScheduleOverview(opts.project, opts.entry, { token: opts.token, error: opts.error });
+      : renderScheduleOverview(opts.project, opts.entry, {
+          token: opts.token,
+          error: opts.error,
+          modelChoices: opts.modelChoices,
+          defaultModels: opts.defaultModels,
+        });
   // `pageShell`'s own heading is hidden (below) so the Back link is the
   // first thing on the page — the name is drawn here instead, after
   // Back, not before it.
@@ -113,6 +122,10 @@ export interface NewSchedulePageOptions {
   token?: string;
   script?: string;
   error?: string;
+  /** The form's own model picker — the same two views `new-spec-page.ts`
+   *  takes, from the same helper in `serve.ts`. */
+  modelChoices?: ScheduleFormOptions["modelChoices"];
+  defaultModels?: ScheduleFormOptions["defaultModels"];
 }
 
 export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts: NewSchedulePageOptions): string {
@@ -127,6 +140,8 @@ export function renderNewSchedulePage(nav: NavEntry[], generatedAt: string, opts
           token: opts.token,
           error: opts.error,
           projects: opts.projects,
+          modelChoices: opts.modelChoices,
+          defaultModels: opts.defaultModels,
         })
       : `<p class="muted">No project on this machine may have a schedule entry made in it yet. ` +
         `Add one on the Projects page first.</p>`) +

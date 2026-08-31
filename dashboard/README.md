@@ -603,13 +603,20 @@ schedule:
   - name: nightly-report
     cron: "0 3 * * *"
     prompt: docs/nightly-report.md
+    model: claude-opus-5
 ```
 
 Each entry is a name (becomes the job's `schedule-<name>` tracking key, never a spec folder), a standard five-field cron
 expression, and a prompt file's path, relative to the project's own root. A background poll checks every project's
-entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses — on
-whichever AI the queue's own `modelChoices` picks for it — whenever an entry is due and nothing is already queued or
-running for it. The step sends the named file's contents to the model verbatim, with no aide skill or spec folder
+entries and enqueues a `schedule` step through the same queue, runner and worktree machinery every other step uses
+whenever an entry is due and nothing is already queued or running for it.
+
+`model:` is which of the queue's own `modelChoices` every fire of that entry runs on — one name for the whole entry,
+since a scheduled job is a single `schedule` step and has no phases to tell apart. It is picked on the New-job and Edit
+forms the same way a spec's model is picked on the Specs page, with the AI beside it deriving from it; a name the queue
+config does not grant is refused at the form rather than at 03:00. An entry that names no model is enqueued without one
+and the queue config's own `schedule` default decides, which is what every entry did before the field existed. "Run now"
+reads the same field, so pressing it tests what the schedule actually does. The step sends the named file's contents to the model verbatim, with no aide skill or spec folder
 involved at all; write it the way you would write a prompt by hand.
 
 **Due is computed from the most recent fire time alone — there is no backfill.** If the dashboard is down across a whole

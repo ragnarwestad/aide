@@ -209,4 +209,33 @@ describe("schedule (spec 259)", () => {
       expect(result.data.schedule?.[0].enabled).toBe(true);
     });
   });
+
+  describe("model", () => {
+    test("a named model is carried onto the entry", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n" +
+          "    model: claude-opus-5\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].model).toBe("claude-opus-5");
+    });
+
+    test("an entry that names none carries none — the configuration decides", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule?.[0].model).toBeUndefined();
+    });
+
+    test("an unusable model name drops the MODEL, never the entry — the fire is what the entry is for", () => {
+      const result = parseManifest(
+        "name: x\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n" +
+          "    model: \"not a model name\"\n",
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.data.schedule).toHaveLength(1);
+      expect(result.data.schedule?.[0].model).toBeUndefined();
+    });
+  });
 });

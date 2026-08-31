@@ -30,9 +30,16 @@ function readEntries(projectDir: string): ScheduleEntry[] {
  *  is never mistaken for a collision with itself. */
 export function scheduleEntryError(
   projectDir: string,
-  req: { name?: string; cron?: string; prompt?: string },
+  req: { name?: string; cron?: string; prompt?: string; model?: string },
   existing: readonly ScheduleEntry[],
   excludeName?: string,
+  /** Every model name the queue config grants a budget to. Passed by the
+   *  route, which is where that table is read; absent (a caller with no
+   *  config to hand) checks the name's SHAPE only. A model the queue
+   *  would refuse is refused here instead, while a person is looking at
+   *  the form — stored unchecked it would refuse every fire from then
+   *  on, at a time nobody is watching. */
+  knownModels?: readonly string[],
 ): string | null {
   const name = req.name?.trim();
   if (!name) return "a name is required";
@@ -55,18 +62,32 @@ export function scheduleEntryError(
   if (!existsSync(join(projectDir, prompt))) {
     return `${prompt} does not exist in this project's checkout`;
   }
+  // Empty means "the configuration decides" and is never refused — the
+  // same reading the queue's own request parser gives an empty model.
+  const model = req.model?.trim();
+  if (model) {
+    if (!SCHEDULE_NAME_RE.test(model)) return `"${model}" is not a usable model name`;
+    if (knownModels && !knownModels.includes(model)) {
+      return `"${model}" is not a model this dashboard offers`;
+    }
+  }
   return null;
 }
 
 /** Add a new entry, enabled by default (acceptance criteria 5, 6, 7). */
 export function createScheduleEntry(
   projectDir: string,
-  req: { name: string; cron: string; prompt: string },
+  req: { name: string; cron: string; prompt: string; model?: string },
+  knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = readEntries(projectDir);
-  const error = scheduleEntryError(projectDir, req, existing);
+  const error = scheduleEntryError(projectDir, req, existing, undefined, knownModels);
   if (error) return { ok: false, error };
-  const entry: ScheduleEntry = { name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true };
+  const model = req.model?.trim();
+  const entry: ScheduleEntry = {
+    name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: true,
+    ...(model ? { model } : {}),
+  };
   try {
     writeScheduleList(manifestPath(projectDir), [...existing, entry]);
   } catch (err) {
@@ -81,16 +102,27 @@ export function createScheduleEntry(
 export function updateScheduleEntry(
   projectDir: string,
   currentName: string,
-  req: { name: string; cron: string; prompt: string },
+  req: { name: string; cron: string; prompt: string; model?: string },
+  knownModels?: readonly string[],
 ): ScheduleAdminResult {
   const existing = readEntries(projectDir);
   const current = existing.find((e) => e.name === currentName);
   if (!current) return { ok: false, error: `no schedule entry named "${currentName}"` };
-  const error = scheduleEntryError(projectDir, req, existing, currentName);
+  const error = scheduleEntryError(projectDir, req, existing, currentName, knownModels);
   if (error) return { ok: false, error };
+  const model = req.model?.trim();
   const updated = existing.map((e) =>
     e.name === currentName
-      ? { name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: e.enabled }
+      ? {
+          name: req.name.trim(), cron: req.cron.trim(), prompt: req.prompt.trim(), enabled: e.enabled,
+          // An edit that posts no model at all CLEARS the entry's own
+          // pick, rather than keeping a value the form no longer shows:
+          // the form always posts the select it drew, so an absent field
+          // is a form with no model picker on it (a dashboard with no
+          // models configured), and pinning one there is a promise the
+          // page is not making.
+          ...(model ? { model } : {}),
+        }
       : e,
   );
   try {

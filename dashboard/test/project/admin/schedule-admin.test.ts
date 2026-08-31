@@ -100,9 +100,71 @@ describe("createScheduleEntry", () => {
       { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true },
     ]);
   });
+
+  test("the picked model is stored on the entry", () => {
+    const dir = projectDir();
+    const result = createScheduleEntry(
+      dir,
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "claude-opus-5" },
+      ["claude-opus-5", "codex-fast"],
+    );
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)[0]!.model).toBe("claude-opus-5");
+  });
+
+  test("a model the dashboard does not offer is refused before any file is written", () => {
+    const dir = projectDir();
+    const before = readFileSync(manifestOf(dir), "utf-8");
+    const result = createScheduleEntry(
+      dir,
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "retired-model" },
+      ["claude-opus-5"],
+    );
+    expect(result.ok).toBe(false);
+    expect(readFileSync(manifestOf(dir), "utf-8")).toBe(before);
+  });
+
+  test("no model at all is accepted — the configuration decides", () => {
+    const dir = projectDir();
+    const result = createScheduleEntry(dir, { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "" }, [
+      "claude-opus-5",
+    ]);
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)[0]!.model).toBeUndefined();
+  });
 });
 
 describe("updateScheduleEntry (including a rename, acceptance criterion 17)", () => {
+  test("editing the model replaces the entry's own pick and keeps everything else", () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n" +
+        "    model: claude-opus-5\n",
+    );
+    const result = updateScheduleEntry(
+      dir,
+      "nightly",
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "codex-fast" },
+      ["claude-opus-5", "codex-fast"],
+    );
+    expect(result.ok).toBe(true);
+    expect(schedule(dir)).toEqual([
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", enabled: true, model: "codex-fast" },
+    ]);
+  });
+
+  test("a model the dashboard does not offer is refused", () => {
+    const dir = projectDir(
+      "name: alpha\nschedule:\n  - name: nightly\n    cron: \"0 3 * * *\"\n    prompt: docs-nightly.md\n",
+    );
+    const result = updateScheduleEntry(
+      dir,
+      "nightly",
+      { name: "nightly", cron: "0 3 * * *", prompt: "docs-nightly.md", model: "retired-model" },
+      ["claude-opus-5"],
+    );
+    expect(result.ok).toBe(false);
+  });
+
   test("editing cron leaves the name and every other entry untouched", () => {
     const dir = projectDir(
       "name: alpha\nschedule:\n" +

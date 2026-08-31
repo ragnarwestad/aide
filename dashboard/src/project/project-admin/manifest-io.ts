@@ -139,6 +139,11 @@ function serializeScheduleEntry(entry: ScheduleEntry): string[] {
     `    prompt: "${entry.prompt}"`,
   ];
   if (entry.enabled === false) lines.push(`    enabled: false`);
+  // Written only when the entry names one, matching `ScheduleEntry.model`'s
+  // absent-means-the-configuration-decides contract: an entry left on the
+  // default never gains a line pinning it to whatever that default
+  // happened to be on the day it was saved.
+  if (entry.model) lines.push(`    model: "${entry.model}"`);
   return lines;
 }
 
@@ -177,7 +182,10 @@ export function writeScheduleList(file: string, entries: readonly ScheduleEntry[
   const output = next.join("\n") + (trailing !== undefined || next.length ? "\n" : "");
 
   const expected = entries.length > 0
-    ? entries.map((e) => ({ name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled !== false }))
+    ? entries.map((e) => ({
+        name: e.name, cron: e.cron, prompt: e.prompt, enabled: e.enabled !== false,
+        ...(e.model ? { model: e.model } : {}),
+      }))
     : undefined;
   const reparsed = parseManifest(output);
   if (!reparsed.ok || JSON.stringify(reparsed.data.schedule) !== JSON.stringify(expected)) {

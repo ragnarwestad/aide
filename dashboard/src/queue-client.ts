@@ -24,7 +24,7 @@
 // earlier one having already run (`syncDependsOn()` before the New-spec
 // form's own `change` listener is added, for instance).
 
-import { applyAiPick, offerEachToItsTool, syncAiToModel } from "./queue-client/ai-sync.ts";
+import { applyAiPick, MODEL_SELECTS, offerEachToItsTool, syncAiToModel } from "./queue-client/ai-sync.ts";
 import {
   bindProposals,
   bindTypedConfirm,
@@ -187,6 +187,18 @@ for (const el of document.querySelectorAll("form.scheduleform")) {
   const cronInput = form.querySelector('input[name="cron"]') as HTMLInputElement | null;
   const target = form.querySelector("[data-cron-next]") as HTMLElement | null;
   if (cronInput && target) cronInput.addEventListener("input", () => scheduleCronPreview(cronInput, target));
+  // The AI and model pair, exactly as the New-spec form binds its own:
+  // this page has no `#jobrows`, so the delegated listener further up
+  // cannot hear these two. Nothing is remembered across a redraw here —
+  // the schedule pages are not swapped from the server — so the pick
+  // lives in the select until the form is posted.
+  form.addEventListener("change", ((event: Event) => {
+    const target2 = event.target as Element | null;
+    const ai = target2?.closest?.("select[data-ai]") as HTMLSelectElement | null;
+    if (ai) return applyAiPick(ai);
+    const model = target2?.closest?.(MODEL_SELECTS) as HTMLSelectElement | null;
+    if (model) syncAiToModel(model);
+  }) as EventListener);
 }
 // The Delete confirmation (spec 277): button-disable only, exactly
 // like `form.scheduleform` above — the form is a plain POST with no

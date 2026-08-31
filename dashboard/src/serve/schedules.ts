@@ -227,7 +227,15 @@ export async function refreshSchedules(ctx: ScheduleContext): Promise<void> {
         .filter((j) => j.project === project && j.specFolder === key)
         .map((j) => ({ specFolder: j.specFolder, createdAt: j.createdAt, startedAt: j.startedAt }));
       if (!isDue(entry, now, jobs)) continue;
-      ctx.queue.enqueue({ project, specFolder: key, steps: ["schedule"] });
+      // The entry's own model, when it names one: a whole-job pick, which
+      // is what `parseJobRequest` copies onto every step of the job — and
+      // a scheduled job has exactly one. An entry that names none is
+      // enqueued byte for byte as before, and the config's own `schedule`
+      // default decides.
+      ctx.queue.enqueue({
+        project, specFolder: key, steps: ["schedule"],
+        ...(entry.model ? { model: entry.model } : {}),
+      });
     }
   }
 }
