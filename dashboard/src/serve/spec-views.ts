@@ -331,7 +331,10 @@ export async function specPageView(
   // came off the branch or off disk.
   const parsedStatus = parseStatus(checksText);
   const statusPhase = parsedStatus.phase;
-  const anyTickable = rows.some((row) => !row.done && row.phase === statusPhase);
+  const acceptancePhase = parsedStatus.acceptancePhase;
+  const anyTickable = rows.some(
+    (row) => !row.done && (row.phase === statusPhase || row.phase === acceptancePhase),
+  );
   // `branchBaseSha` is already the exact commit that last touched the
   // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
   // second git call needed. Off disk, read out of the DASHBOARD's own
@@ -393,7 +396,12 @@ export async function specPageView(
       const text = formDir ? descriptionText : f.text;
       return text === null ? { ...f, text } : { ...f, text: stripDependsOnLine(text) };
     }),
-    checks: { rows, phase: statusPhase ?? undefined, baseSha: statusCommit?.sha },
+    checks: {
+      rows,
+      phase: statusPhase ?? undefined,
+      acceptancePhase: acceptancePhase ?? undefined,
+      baseSha: statusCommit?.sha,
+    },
     // Ticked by what the LINE resolves to, not by what it says:
     // `resolve_dependency_folder` takes a bare number, and a
     // hand-written line usually is one — matching the raw string

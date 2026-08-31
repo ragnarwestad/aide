@@ -14,6 +14,16 @@ export interface Progress {
 export interface StatusInfo {
   progress: Progress | null;
   phase: string | null;
+  /** The `## Acceptance criteria` heading, when it has an open row (spec
+   *  299's follow-up). Computed separately from `phase`: those rows are
+   *  the spec's own person to judge, never `aide-implement`'s to tick,
+   *  so they must not sit behind every ordinary Phase section being
+   *  finished first — a run that reports "completed" while leaving one
+   *  of its own task rows unticked (a model compliance slip, not
+   *  something code can rule out) must not also lock the person out of
+   *  the one section that is genuinely theirs. `null` when there is no
+   *  such section, or it has nothing open. */
+  acceptancePhase: string | null;
   /** Which workflow steps this spec has HAD (spec 139), in workflow
    *  order. Empty when the file says nothing — never a guess. */
   workflowSteps: string[];
@@ -109,9 +119,15 @@ export function parseStatus(content: string): StatusInfo {
   }
   if (sawPhaseSection && phase === null) phase = "done";
 
+  // Independent of `phase` above (spec 299's follow-up): these rows are
+  // never `phase`'s own to gate behind — see the field's own doc comment.
+  const acceptanceCheck = checks.find((check) => /^acceptance\b/i.test(check.phase) && !check.done);
+  const acceptancePhase = acceptanceCheck?.phase ?? null;
+
   return {
     progress,
     phase,
+    acceptancePhase,
     workflowSteps: parseWorkflowSteps(content),
     reopenedAfter: parseReopenedAfter(content) ?? undefined,
     stepModels: parseStepModels(content),

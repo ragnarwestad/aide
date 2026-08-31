@@ -145,10 +145,16 @@ export function btn(o: {
   /** The override next to a disabled Merge: deliberately not a second
    *  button of the same size. */
   small?: boolean;
+  /** Submits a form the button does not live inside (spec 299's
+   *  follow-up): the Checks tab's own Save buttons sit in the list, one
+   *  per phase, while their forms hold only hidden fields further down
+   *  the page. */
+  form?: string;
 }): string {
   const cls = ["btn", o.variant || "", o.small ? "small" : ""].filter(Boolean).join(" ");
   const attrs =
     `type="${o.type ?? "submit"}" class="${cls}"` +
+    (o.form ? ` form="${esc(o.form)}"` : "") +
     (o.pending ? ` data-pending="${esc(o.pending)}"` : "") +
     (o.title ? ` title="${esc(o.title)}"` : "") +
     (o.disabled ? " disabled" : "");

@@ -31,6 +31,7 @@ import {
   PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE,
   CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, phaseSection,
   heldBack, statusPath, startWithChecks as start, tick, save, recording,
+  ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE,
 } from "./spec-checks-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
@@ -73,6 +74,21 @@ describe("the checks on the Overview tab", () => {
       const html = await overview(startWithChecks(savable("/host")).base);
       expect(html).toContain("Watch the first real run");
       expect(html.match(/name="tick"/g)!).toHaveLength(2);
+    });
+
+    // Spec 299's follow-up: Acceptance criteria are the spec's own
+    // person to judge, never `aide-implement`'s to tick — so a TDD
+    // phase implement left open (its own row, not ticked) must not also
+    // lock the person out of ticking their own REQ boxes. Both groups
+    // get their own box AND their own Save, independently.
+    test("Acceptance criteria are tickable even while an earlier TDD phase is still open", async () => {
+      const html = await overview(startWithChecks(savable("/host"), STATUS_WITH_OPEN_ACCEPTANCE).base);
+      expect(html).toContain("REQ-1: something testable");
+      expect(html.match(/name="tick"/g)!).toHaveLength(2);
+      expect(html.match(/name="checksPhase" value="([^"]*)"/g)).toEqual([
+        `name="checksPhase" value="${PHASE}"`,
+        `name="checksPhase" value="${ACCEPTANCE_PHASE}"`,
+      ]);
     });
 
     // Spec 190, criterion 1. With every open mark written in words the
@@ -143,6 +159,22 @@ describe("the checks on the Overview tab", () => {
       CHECKLIST_STATUS.replace(CHECKLIST_OPEN_ROW, ticked(CHECKLIST_OPEN_ROW)),
     );
     expect(git.calls.filter((c) => c[0] === "commit")).toHaveLength(1);
+  });
+
+  // Spec 299's follow-up, the real end-to-end route: ticking an
+  // Acceptance criteria row must work even while implement's own TDD
+  // phase still has open rows of its own.
+  test("an Acceptance criteria row ticks through the real /tick route while its TDD phase is still open", async () => {
+    const git = recording();
+    const { base, dir } = startWithChecks(git.run, STATUS_WITH_OPEN_ACCEPTANCE);
+    const res = await tick(base, { ticks: [ACCEPTANCE_OPEN_ROW], phase: ACCEPTANCE_PHASE });
+    expect(res.status).toBe(303);
+    expect(decodeURIComponent(res.headers.get("location")!)).not.toContain("error=");
+    expect(readFileSync(statusPath(dir), "utf-8")).toBe(
+      STATUS_WITH_OPEN_ACCEPTANCE.replace(ACCEPTANCE_OPEN_ROW, ticked(ACCEPTANCE_OPEN_ROW)),
+    );
+    // The TDD phase's own row is untouched — one tick, one row.
+    expect(readFileSync(statusPath(dir), "utf-8")).toContain(OPEN_ROW);
   });
 
   test("a queued matching job refuses a direct tick without changing 4-status.md", async () => {

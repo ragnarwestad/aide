@@ -137,6 +137,25 @@ describe("phase (criterion 3)", () => {
     const allEarlierDone = phaseThenAcceptance.replace("| d    | ⬜     |       |", "| d    | ✅     |       |");
     expect(parseStatus(allEarlierDone).phase).toBe("Acceptance criteria");
   });
+
+  // Spec 299's follow-up: unlike `phase`, `acceptancePhase` reads as
+  // open EVEN WHILE an earlier phase still has one too — those rows are
+  // the spec's own person to judge, never behind implement's own
+  // checklist.
+  test("acceptancePhase is set even while an earlier phase is still current (spec 299)", () => {
+    const info = parseStatus(phaseThenAcceptance);
+    expect(info.phase).toBe("Phase 4: REFACTOR");
+    expect(info.acceptancePhase).toBe("Acceptance criteria");
+  });
+
+  test("acceptancePhase is null once every Acceptance row is ticked", () => {
+    const allTicked = phaseThenAcceptance.replace("| REQ-1: does the thing | ⬜ | |", "| REQ-1: does the thing | ✅ | |");
+    expect(parseStatus(allTicked).acceptancePhase).toBeNull();
+  });
+
+  test("acceptancePhase is null when the file has no Acceptance criteria section", () => {
+    expect(parseStatus("# Status\n\n## Phase 1: RED\n\n| Task | Status | Notes |\n|---|---|---|\n| a | ⬜ | |\n").acceptancePhase).toBeNull();
+  });
 });
 
 // --- spec 108: an archive run that declined says so in the file --------------

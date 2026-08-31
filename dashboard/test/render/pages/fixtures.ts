@@ -49,6 +49,7 @@ export const healthy: ProjectView = {
       status: {
         progress: { percent: 50, done: 1, total: 2 },
         phase: "Phase 2: GREEN",
+        acceptancePhase: null,
         workflowSteps: ["create", "analyze", "implement"],
         stepModels: {},
       },
@@ -63,6 +64,7 @@ export const healthy: ProjectView = {
       status: {
         progress: { percent: 100, done: 4, total: 4 },
         phase: "done",
+        acceptancePhase: null,
         workflowSteps: ["create", "analyze", "implement", "archive"],
         stepModels: {},
       },

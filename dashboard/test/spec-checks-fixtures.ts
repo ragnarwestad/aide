@@ -38,6 +38,25 @@ export const STATUS = [
   phaseSection(LATER_PHASE, [LATER_ROW]),
 ].join("\n");
 
+/** Spec 299's follow-up: a TDD phase left open (implement's own row,
+ *  never the person's) alongside an open Acceptance criteria section
+ *  (always the person's). Two independent groups a person may tick,
+ *  neither behind the other. */
+export const ACCEPTANCE_PHASE = "Acceptance criteria";
+export const ACCEPTANCE_OPEN_ROW = "| REQ-1: something testable | ⬜ | |";
+export const STATUS_WITH_OPEN_ACCEPTANCE = [
+  "# Queue - Status",
+  "",
+  "## Tracking info",
+  "",
+  "- **Workflow steps completed:** create, analyze, implement",
+  "",
+  "---",
+  "",
+  phaseSection(PHASE, [OPEN_ROW]),
+  phaseSection(ACCEPTANCE_PHASE, [ACCEPTANCE_OPEN_ROW]),
+].join("\n");
+
 /** Spec 190: the same three phases, with every open mark spelled out
  *  the way a step actually wrote one — `Waiting`, not `⬜`. Nothing
  *  else differs. */

@@ -125,12 +125,17 @@ describe("the checks block (specs 182, 188, 212)", () => {
     expect(html.match(/name="tick"/g)!).toHaveLength(1);
   });
 
-  // Every box on the page is inside the ONE form that posts them: a box
-  // outside it posts nothing at all when Save is pressed.
-  test("no box sits outside the form that Save posts", () => {
+  // Every box reaches a real Save (spec 299's follow-up moved the boxes
+  // OUT of the `<form>` they submit with, so each one now names its
+  // form by id — `form="..."` — rather than sitting inside it): a box
+  // whose `form` names nothing on the page posts nothing at all when
+  // Save is pressed.
+  test("every box's form attribute names a form that actually exists", () => {
     const html = page(withChecks(), "checks");
     const checks = section(html);
-    expect(checks.indexOf('name="tick"')).toBeGreaterThan(checks.indexOf("<form"));
+    const formId = checks.match(/name="tick"[^>]*form="([^"]+)"/)?.[1];
+    expect(formId).toBeTruthy();
+    expect(checks).toContain(`<form id="${formId}"`);
   });
 
   // Spec 212: the Checks PANEL (Overview until spec 294 renamed it), not
