@@ -128,6 +128,13 @@ per entry:
 When the prompt states no such value, omit the `--depends-on` flag
 entirely. Never infer a dependency from the description.
 
+**A collision you can see is a question to ask, not a dependency to
+guess.** Before creating the spec, check whether an open spec already
+changes the same files, pages or behaviour. Where one does, ask the user
+about the dependency and create the spec with `--depends-on` set the
+moment they say yes. Raising it afterwards leaves them to hold one spec
+back by hand, which is what the field exists to avoid.
+
 The script creates `<specs-root>/NN-slug/` and its 5 files, refuses
 (non-zero exit, `terminalReason: "refused"`) rather than overwriting an
 existing folder at that path, and prints one JSON line:
