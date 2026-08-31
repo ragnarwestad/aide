@@ -62,7 +62,7 @@ project repo, by any tool (Edit, Write, Bash included). If Step 6's own
 "Recommended solution" reads as obviously correct and ready to apply,
 stop anyway: applying it is `/aide-implement`'s job, in its own turn, not
 something this skill does on its behalf because it happens to be
-possible in the same session (spec 288).
+possible in the same session.
 
 ### Step 2: Detect complexity
 

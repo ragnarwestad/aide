@@ -58,7 +58,15 @@ unbuildable), **should-fix** (weakness, worth fixing now), **notes**
 3. Add a review row to `4-status.md`, ticked ✅ at write time — the review
    the two steps above just finished is already-done work, not something
    left for a person to confirm later. Write it the same way, with
-   `aide-write-spec --file 4-status.md`.
+   `aide-write-spec --file 4-status.md`. The row goes in its OWN `##
+   Plan review` section — a `| Task | Status | Notes |` table, one row,
+   right after `## Tracking info` and before `## Phase 1`, added to the
+   Table of contents in the same position. Never fold this row into
+   Phase 1's own table: Phase 1's rows are what `implement` ticks, and
+   `aide-run-spec`'s analyze-scope guard (spec 268) refuses the whole
+   step the moment ANY Phase-table row's status changes during
+   analyze — ticking the review there, instead of in its own section,
+   trips that guard and fails the run.
 
 A review with zero findings is a review that happened, and is offered
 like any other. Say so plainly and record the verdict. Never invent
