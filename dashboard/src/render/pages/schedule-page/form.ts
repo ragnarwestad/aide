@@ -35,6 +35,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
     `<form method="post" action="${esc(opts.action)}" class="scheduleform" data-cron-preview-url="/api/queue/schedule/cron-next">` +
     tokenField(opts.token) +
     `<p class="rowmsg warn scheduleform-error" aria-live="polite">${opts.error ? esc(opts.error) : ""}</p>` +
+    `<div class="frow">` +
     (opts.projects
       ? field(
           "Project",
@@ -42,6 +43,8 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
         )
       : "") +
     field("Name", `<input type="text" name="name" required maxlength="64" value="${esc(e?.name ?? "")}">`) +
+    `</div>` +
+    `<div class="frow">` +
     field(
       "Cron",
       `<input type="text" name="cron" required class="cron-input" value="${esc(e?.cron ?? "")}">` +
@@ -53,6 +56,7 @@ export function renderScheduleForm(opts: ScheduleFormOptions): string {
       "Prompt file path",
       `<input type="text" name="prompt" required value="${esc(e?.prompt ?? "")}">`,
     ) +
+    `</div>` +
     `<div class="factions">${btn({ label: opts.entryName ? "Save" : "Create", variant: "primary" })}</div>` +
     `</form>`
   );

@@ -84,6 +84,11 @@ td form { margin: 0; display: inline-block; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
+/* Project+Name, then Cron+Prompt (schedule-page/form.ts): its own
+   `flex-wrap`, unlike the two rules above, since `.scheduleform` is
+   also used narrow (inline under a detail page's Edit heading) and
+   each pair needs to fall back to stacked there on its own. */
+.scheduleform .frow { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start; }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,

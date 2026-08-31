@@ -71,9 +71,12 @@ select[name^="model."] {
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
    edge with no rule of its own to space them apart — the gap every
    other form's OWN class supplies (`.newspecform`'s `flex`+`gap`).
-   Stacked, not a row, since this form is used both standalone (New job)
-   and inline under a detail page's Edit heading — a row of three wide
-   fields would not fit either place. */
+   Rows, not one long stack: Project+Name share a `.frow`, Cron+Prompt
+   share another (`schedule-page/form.ts`) — each row wraps its own
+   pair onto separate lines by itself (`.scheduleform .frow` in
+   rows-and-forms.css) when the form sits narrow, which covers both
+   this page's standalone use (New job, wide) and its inline use under
+   a detail page's Edit heading (narrow) without two different markups. */
 .scheduleform { display: flex; flex-direction: column; gap: var(--sp-3); align-items: flex-start; }
 .scheduleform .factions { margin-top: var(--sp-1); }
 .cron-input { font-family: var(--mono); }
