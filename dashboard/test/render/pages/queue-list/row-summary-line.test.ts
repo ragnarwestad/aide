@@ -5,6 +5,7 @@ import {
   type QueueTarget,
 } from "../../../../src/render.ts";
 import { row } from "../fixtures.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../src/project/parse-status.ts";
 
 // Split out of listing-and-units.test.ts by theme.
 describe("spec 101: one line per row for what is going on and what is next (criterion 11)", () => {
@@ -238,6 +239,22 @@ describe("spec 101: one line per row for what is going on and what is next (crit
     expect(html.match(/the Slack webhook/g)).toHaveLength(1);
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
       "archive held back — the Slack webhook",
+    );
+  });
+
+  // Spec 291's own fix (2026-08-31): unticked Acceptance criteria share
+  // the archiveHeldBack field a dependency-gated decline uses, but this
+  // one is the spec's own ordinary next step, not something waiting on
+  // the outside — so the badge reads "ready", not "waiting", while the
+  // panel below still spells out why a fresh archive attempt refuses.
+  test("unticked Acceptance criteria read as ready, not as a decline", () => {
+    const html = rows(
+      [row({ specFolder: "101-b", steps: ["archive"], state: "done" })],
+      [target("101-b", { archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
+    );
+    expect(chip(html)).toBe("ready");
+    expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(
+      ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
     );
   });
 

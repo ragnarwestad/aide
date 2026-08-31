@@ -210,6 +210,30 @@ export function archiveHeldBackReason(content: string): string | null {
   return section.split("\n")[0]?.replace(/^[-*]\s*/, "").trim() || null;
 }
 
+/** The reason archive keeps refusing while a person has not yet judged
+ *  the spec's own `## Acceptance criteria` rows (spec 285's gate).
+ *
+ *  `aide-run-spec`'s mechanical precheck already refuses cleanly here
+ *  (no AI spent, `terminalReason: "acceptance-criteria-unticked"`), but
+ *  that reason reaches nothing this page reads — the run emits no
+ *  `note` field for it, only a stderr line nobody but a log file sees.
+ *  Read from the same file the checklist itself renders from, the way
+ *  `archiveHeldBackReason` above already does for the (now largely
+ *  retired) dependency case, so a fresh archive attempt refusing again
+ *  says why instead of reading as an unexplained no-op. `undefined`,
+ *  not `null`, to match `archiveHeldBackReason`'s own call sites, which
+ *  already treat that field as "a reason, or nothing to say". */
+export function acceptanceCriteriaUnticked(content: string): boolean {
+  return parseStatusChecks(content).some((c) => /^acceptance\b/i.test(c.phase) && !c.done);
+}
+
+/** The one string this reason is always reported as. Shared so
+ *  `restingChip()` (job-state/resting.ts) can tell this ordinary,
+ *  expected wait apart from the dependency-gated `archiveHeldBack`
+ *  case sharing its field — a comparison, not a duplicate literal. */
+export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
+  "the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
+
 /** Spec 190 — `content` with every `## Archive held back` section
  *  removed, or `null` when there is none to remove.
  *

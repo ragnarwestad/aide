@@ -1,6 +1,7 @@
 // What a row's chip says when nothing is running on it.
 
 import { badge, stepLabel } from "../components.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../project/parse-status.ts";
 import { currentStep, stateChip } from "./format.ts";
 import type { QueueRowView } from "./types.ts";
 
@@ -57,6 +58,13 @@ export interface RestingState {
 // "nothing waiting on you" said nothing "done" does not. The colour
 // still tells the two apart at a glance.
 export function restingChip(resting: RestingState = {}): string {
+  // Two reasons share this one field (spec-lookup.ts): a dependency
+  // still open is genuinely waiting on something outside this spec,
+  // but unticked Acceptance criteria are this spec's own next step —
+  // exactly what "ready" already means everywhere else on this badge,
+  // so it reads that way here too. The notice panel below still says
+  // which of the two it is, in full.
+  if (resting.archiveHeldBack === ACCEPTANCE_CRITERIA_UNTICKED_NOTE) return badge("ready", "ready");
   if (resting.archiveHeldBack) return badge("waiting", "archive held back");
   if (resting.readyPhase) return badge("ready", "ready");
   return badge("done", "done");

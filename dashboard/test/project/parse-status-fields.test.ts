@@ -8,7 +8,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { archiveHeldBackReason, parseStatus } from "../../src/project/parse-status.ts";
+import { acceptanceCriteriaUnticked, archiveHeldBackReason, parseStatus } from "../../src/project/parse-status.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "..", "fixtures", "status", name), "utf-8");
@@ -196,6 +196,48 @@ describe("spec 108: the archive-held-back reason (criteria 9-11)", () => {
       "",
     ].join("\n");
     expect(archiveHeldBackReason(many)).toBe("the Slack webhook (Phase 4, still unchecked)");
+  });
+});
+
+// --- spec 285's gate, said plainly instead of read as "no real progress" ---
+//
+// `aide-run-spec`'s mechanical precheck already refuses cleanly on an
+// unticked Acceptance criteria row (no AI spent), but that reason never
+// reached this page: a fresh archive attempt refusing again showed a
+// "ready" row with nothing saying why a retry would refuse the same
+// way. `acceptanceCriteriaUnticked` is the read `spec-lookup.ts` feeds
+// into the same `archiveHeldBack` field `restingChip()` already reads,
+// so the row explains itself without a second field to thread through.
+describe("acceptance criteria left unticked (spec 291's fix, applied 2026-08-31)", () => {
+  const withAcceptance = (rows: string) =>
+    [
+      "# X - Status",
+      "",
+      "## Acceptance criteria",
+      "",
+      "| Task | Status | Notes |",
+      "|------|--------|-------|",
+      rows,
+      "",
+      "---",
+      "",
+    ].join("\n");
+
+  test("any unticked row under Acceptance criteria is true", () => {
+    expect(acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ⬜ | |"))).toBe(true);
+  });
+
+  test("every row ticked is false", () => {
+    expect(acceptanceCriteriaUnticked(withAcceptance("| REQ-1: … | ✅ | |"))).toBe(false);
+  });
+
+  test("no Acceptance criteria section at all is false, not a crash", () => {
+    expect(acceptanceCriteriaUnticked("# X - Status\n\n## Phase 1\n\n| Task | Status | Notes |\n")).toBe(false);
+  });
+
+  test("one ticked, one not, is still true — the row that matters is the open one", () => {
+    const rows = "| REQ-1: … | ✅ | |\n| REQ-2: … | ⬜ | |";
+    expect(acceptanceCriteriaUnticked(withAcceptance(rows))).toBe(true);
   });
 });
 

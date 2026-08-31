@@ -19,7 +19,9 @@ import { dashboardSpecDir, type DashboardCheckout } from "../git/dashboard-check
 import {
   discoverProjects, specDependsOn, type CodeLanding, type SpecRef,
 } from "../project/discover.ts";
-import { archiveHeldBackReason, parseStatus } from "../project/parse-status.ts";
+import {
+  ACCEPTANCE_CRITERIA_UNTICKED_NOTE, acceptanceCriteriaUnticked, archiveHeldBackReason, parseStatus,
+} from "../project/parse-status.ts";
 import type { QueueTarget } from "../render.ts";
 import { resolveDependencyFolder } from "./serve-helpers.ts";
 
@@ -105,7 +107,21 @@ export function targets(ctx: SpecLookupContext): QueueTarget[] {
         // Read from the SAME content, not a second pass over the file:
         // both answers come out of `4-status.md` and there is no
         // reason for the page to open it twice.
-        const heldBack = statusText ? archiveHeldBackReason(statusText) : null;
+        // The dependency-gated reason first (still checked, though
+        // largely retired by spec 268), then the far more common one
+        // today: archive's own acceptance-criteria gate (spec 285)
+        // refusing until a person ticks those rows — a healthy wait,
+        // not a failure, and one a bare "ready" row otherwise gives no
+        // reason for. `ACCEPTANCE_CRITERIA_UNTICKED_NOTE` is the one
+        // string `restingChip()` (job-state/resting.ts) checks for to
+        // keep this case's badge "ready" rather than the dependency
+        // case's "waiting" — the two share this field because both are
+        // archive declining to proceed, but only one of them is
+        // ordinary, expected progress.
+        const heldBack = statusText
+          ? (archiveHeldBackReason(statusText) ??
+              (acceptanceCriteriaUnticked(statusText) ? ACCEPTANCE_CRITERIA_UNTICKED_NOTE : null))
+          : null;
         found.push({
           project: p.name,
           specFolder: s.folder,
