@@ -7,9 +7,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import type { GitRunner } from "../src/git/branch-status.ts";
 import {
-  TOKEN, SPEC, EDIT, SAVE, DESCRIPTION_TAB, CHECKS_TAB, PAGE, FILE_SHA, DESCRIPTION, NEW_TEXT, auth,
+  TOKEN, SPEC, EDIT, SAVE, DESCRIPTION_TAB, CHECKS_TAB, ANALYSIS_TAB, SOLUTION_TAB, STATUS_TAB, PAGE,
+  FILE_SHA, DESCRIPTION, NEW_TEXT, auth,
   ARCHIVED, ARCHIVED_TEXT, createSpecSaveHarness, descriptionPath, archivedDescriptionPath,
-  savable, post,
+  fillAnalysisAndSolution, savable, post,
 } from "./spec-save-fixtures.ts";
 
 const { harness, start, startArchived } = createSpecSaveHarness();
@@ -83,6 +84,46 @@ describe("GET the edit page", () => {
     // tens of KB even minified — a difference this large is only
     // explained by the Description tab carrying it and Checks not.
     expect(descHtml.length - checksHtml.length).toBeGreaterThan(20_000);
+  });
+
+  // REQ-1: the render side (`spec-page.ts`) already defaulted a missing
+  // tab to "description"; the script-loading side did not, so a bare
+  // URL — the link every spec row and every "back to spec" link on this
+  // dashboard uses — rendered the mount markup with no script to fill
+  // it. `PAGE` (no `?tab=`) is the exact URL that bug lived on.
+  test("the bare spec page (no ?tab=) also carries the editor's client script and CSS", async () => {
+    const { base } = start(savable("/host"));
+    const html = await (await fetch(`${base}${PAGE}`, auth)).text();
+    expect(html).toContain("spec-editor-host");
+    expect(html).toContain(".toastui-editor-defaultUI");
+  });
+
+  // REQ-2/REQ-6: Analysis, Solution and Status render read-only text
+  // today, with no mount at all — the editor never appears on any of
+  // them, round trip or not. Each needs the same mount/raw pair the
+  // Description tab already carries, and the raw sibling must keep the
+  // `spec-editor-raw` class so field.css's existing fallback CSS still
+  // pairs the two (REQ-6) — proven by matching the exact markup shape
+  // `spec-page-description-and-depends.test.ts` already pins for
+  // Description.
+  describe("the Analysis, Solution and Status tabs", () => {
+    for (const [tab, path, needle] of [
+      ["analysis", ANALYSIS_TAB, "Seven files."],
+      ["solution", SOLUTION_TAB, "One must-fix."],
+      ["status", STATUS_TAB, "Workflow steps completed"],
+    ] as const) {
+      test(`the ${tab} tab shows its WYSIWYG mount on the first request`, async () => {
+        const { base, dir } = start(savable("/host"));
+        fillAnalysisAndSolution(dir);
+        const html = await (await fetch(`${base}${path}`, auth)).text();
+        expect(html).toContain("spec-editor-host");
+        expect(html).toContain(".toastui-editor-defaultUI");
+        expect(html).toContain(
+          '<div class="spec-editor-mount" id="spec-editor-host"></div><pre class="specfile spec-editor-raw">',
+        );
+        expect(html).toContain(needle);
+      });
+    }
   });
 
   // Criterion 11 (spec 163): an archived spec is a record. Hiding the

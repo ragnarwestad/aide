@@ -102,6 +102,8 @@ export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./r
 export {
   EDITABLE_SPEC_FILE,
   STATUS_SPEC_FILE,
+  resolveSpecTab,
+  TAB_FILES,
   renderSpecPage,
   renderResetSpecPage,
   specPagePath,

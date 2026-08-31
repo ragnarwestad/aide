@@ -5,7 +5,10 @@ import { pullFastForward, saveSpecFiles } from "../../git/specs-pull.ts";
 import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../git/branch-file.ts";
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { clearArchiveHeldBack, parseStatusChecks, tickStatusLine } from "../../project/parse-status.ts";
-import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, renderResetSpecPage, renderSpecPage, resolveBackHref, specPagePath, specTabPath } from "../../render.ts";
+import {
+  EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, TAB_FILES, renderResetSpecPage, renderSpecPage, resolveBackHref,
+  resolveSpecTab, specPagePath, specTabPath,
+} from "../../render.ts";
 import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specEditorClientScript, specsRedirect, tickMessage } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
@@ -74,11 +77,15 @@ export async function handleSpecEditRoutes(
       url.searchParams.get("tab") ?? undefined,
     );
     if (!view) return new Response("not found", { status: 404 });
-    // The editor bundle (heavier than any script this dashboard has
-    // shipped before, 2-analysis.md's own risk analysis) ships on the
-    // Description tab only — every other tab renders read-only text
-    // with nothing for it to enhance.
-    const tab = url.searchParams.get("tab") ?? undefined;
+    // REQ-1: resolved through the SAME function the render side uses
+    // (`spec-page.ts`), rather than each computing its own default —
+    // that mismatch was spec 303's actual bug: a bare URL rendered the
+    // Description panel while loading no editor script for it. REQ-2:
+    // the bundle ships for every document tab, not just Description
+    // (`TAB_FILES` names all four and no others) — the other two tabs,
+    // Checks and Steps, render read-only text with nothing for it to
+    // enhance.
+    const tab = resolveSpecTab(url.searchParams.get("tab") ?? undefined);
     const html = renderSpecPage(
       {
         ...view,
@@ -93,7 +100,7 @@ export async function handleSpecEditRoutes(
       {
         tab,
         step: url.searchParams.get("step") ?? undefined,
-        script: tab === "description" ? await specEditorClientScript() : undefined,
+        script: TAB_FILES[tab] ? await specEditorClientScript() : undefined,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
