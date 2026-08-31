@@ -125,11 +125,6 @@ table.list thead a { color: var(--muted); }
    and this row already tolerates the extra width by wrapping. */
 .specsearch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
   margin: var(--sp-2) 0 0; }
-/* The note saying what the field looks in belongs to the field, not to
-   the table under it — margin-top says so. margin-bottom (2026-08-25)
-   is a separate fact: without it the note sat flush against the table
-   right below it, cramped. */
-.specsearch + .listnote { margin-top: var(--sp-1); margin-bottom: var(--sp-2); }
 /* The clear control (spec 226) sits IN the field, at its right edge —
    where every search box a reader has used before puts it. The wrapper
    is what the absolute position is measured from; it takes the field's
@@ -241,7 +236,6 @@ table.list tr.subrow .modelcell > .row > [data-cap="model"] { min-width: 6.25rem
 .phasefold .foldphase { display: none; }
 .phasefold .foldchevron { display: none; }
 .empty { padding: var(--sp-5) var(--sp-3); }
-.listnote { margin: var(--sp-2) 0 0; color: var(--muted); font-size: var(--fs-s); }
 /* A real control: a 24px flat with a chevron, in front of the spec's
    name. Quiet at rest, obvious on hover, and the shut state turns the
    chevron rather than swapping a glyph. */

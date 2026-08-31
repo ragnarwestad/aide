@@ -409,53 +409,6 @@ export function typedConfirm(o: {
   );
 }
 
-// --- filter pill -------------------------------------------------------------------
-
-export interface FilterPill {
-  label: string;
-  /** Omitted where a count would say nothing — a tab that is simply
-   *  there does not need "(0)" after it. */
-  count?: number;
-  on: boolean;
-  href: string;
-  /** Detail on hover, not printed (spec 239). Omitted where nothing
-   *  needs to ride along; every other caller leaves it out. */
-  title?: string;
-}
-
-/** "Label (count)". Used to read "Label · count" — the count as part of
- *  the sentence rather than a badge sitting on it — until 2026-08-25,
- *  when the parenthesised form replaced it site-wide: more familiar as a
- *  count convention, and it reads the same way whether the count is a
- *  clause of its own or a plain annotation. The chosen one is marked with
- *  `aria-current` and styled off that — a class saying the same thing
- *  twice is a class that can disagree with itself. */
-export function filterPills(
-  name: string,
-  label: string,
-  entries: FilterPill[],
-  /** What `aria-current` says for the chosen one. `true` for a filter,
-   *  `page` for the job page's tabs, which really are pages. */
-  current: "true" | "page" = "true",
-): string {
-  // A page-level tab bar needs no group caption the way "Job" does for
-  // the job page's own tabs — and an empty caption is a real element
-  // with real padding, not nothing.
-  const caption = label ? `<span class="lbl">${esc(label)}</span>` : "";
-  return (
-    `<span class="filters" data-filter="${esc(name)}">${caption}` +
-    entries
-      .map(
-        (e) =>
-          `<a data-nav href="${e.href}"${e.on ? ` aria-current="${current}"` : ""}` +
-          `${e.title ? ` title="${esc(e.title)}"` : ""}>` +
-          `${esc(e.label)}${e.count === undefined ? "" : ` (${e.count})`}</a>`,
-      )
-      .join("") +
-    `</span>`
-  );
-}
-
 // --- progress pips -------------------------------------------------------------------
 
 /** The whole workflow in six millimetres, on the line you are already

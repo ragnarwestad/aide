@@ -262,7 +262,9 @@ describe("the front page after the panel moved", () => {
     expect(html).not.toContain('action="/api/queue/projects/aide/remove"');
   });
 
-  test("help rides before New spec at the right-hand end of either filter row", () => {
+  // Spec 289 folded the state chips into one dropdown inside
+  // `.specsearch`, so there is one filter row now, not "either" of two.
+  test("the state dropdown rides before New spec, inside the one search row", () => {
     const assertOrder = (html: string) => {
       // From the list container on, not from 0: the inlined stylesheet
       // mentions data-filter="state" too (the mobile filter-bar rules,
@@ -293,13 +295,18 @@ describe("the front page after the panel moved", () => {
   // Spec 261 moved the "?" and New spec onto the search field's own
   // row (`.specsearch`), so this is the scope the margin rule now has
   // to name — the old `#jobrows > .row:first-child` selector named the
-  // chips' row, which no longer holds either control.
+  // chips' row, which no longer holds either control. Spec 289 removed
+  // that row entirely, so `.specsearch` is `#jobrows`'s own first child
+  // now, and the clear-air margin rule (`filter-pill.css`) follows it
+  // there.
   test("help owns the automatic margin that keeps both controls at the right", () => {
     const html = page({ createProjects: ["aide"] });
     expect(html).toContain(".specsearch > details.intro { margin-left: auto;");
     expect(html).not.toContain(
       "#jobrows > .row:first-child > .btn { margin-left: auto; }",
     );
+    expect(html).toContain("#jobrows > .specsearch:first-child { margin: var(--sp-3) 0; }");
+    expect(html).not.toContain("#jobrows > .row:first-child { margin: var(--sp-3) 0; }");
   });
 
   test("the nav takes the reader to the page that manages them", () => {

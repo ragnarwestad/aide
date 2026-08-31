@@ -70,7 +70,9 @@ const STRUCTURE = [
   // "theme" is Theme's own sibling disclosure (spec 243, popup revision
   // 2026-08-25) — same trigger/panel look as "menu" via the shared
   // class, this one names which of the two a given "details.menu" is.
-  "menu", "menupanel", "theme", "about", "aboutpanel", "aboutclose", "listtop",
+  // "state" is the state-filter dropdown's own (spec 289, replacing the
+  // per-state chips) — a third "details.menu", named the same way.
+  "menu", "menupanel", "theme", "state", "about", "aboutpanel", "aboutclose", "listtop",
   // text roles — "u-usd"/"u-tok" are the two halves of every
   // consumption figure (spec 118): both are rendered, and one CSS rule
   // each shows exactly the one the reader asked for.

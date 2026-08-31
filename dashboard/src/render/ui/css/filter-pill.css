@@ -1,8 +1,11 @@
 /* --- filter pill ------------------------------------------------------ */
 
 .filters { display: inline-flex; flex-wrap: wrap; gap: var(--sp-1); align-items: center; }
-/* The whole controls line keeps clear air down to the table. */
-#jobrows > .row:first-child { margin: var(--sp-3) 0; }
+/* The whole controls line keeps clear air down to the table. Retargeted
+   from `#jobrows > .row:first-child` (spec 289): the state dropdown
+   folded the old chips row into `.specsearch`, which is `#jobrows`'s own
+   first child now. */
+#jobrows > .specsearch:first-child { margin: var(--sp-3) 0; }
 /* Two elements, one pill. A filter is a link because it goes somewhere;
    a theme choice is a button because it does something. That difference
    belongs in the markup, not in a second class that looks the same. */

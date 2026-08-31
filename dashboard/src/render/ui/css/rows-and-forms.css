@@ -130,6 +130,17 @@ td form { margin: 0; display: inline-block; }
    lost even though the stacking is fixed. */
 .menupanel > .row { display: flex; align-items: center; gap: var(--sp-2); }
 
+/* The state dropdown's own rows (spec 289): a checkbox-STYLED glyph
+   beside each option, though the control stays single-select underneath
+   — picking one replaces the other five, exactly as the chips it
+   replaced always did (2-analysis.md, REQ-3). `aria-current`, not
+   `aria-checked`, is what keeps assistive tech from announcing genuine
+   multi-select semantics the glyph does not have. */
+.menupanel.state a, .menu.state .menupanel a { display: flex; align-items: center; gap: var(--sp-2); }
+.menu.state .check { width: 14px; height: 14px; flex: 0 0 auto; border: 1px solid var(--line-strong);
+  border-radius: 3px; }
+.menu.state a[aria-current] .check { background: var(--text); border-color: var(--text); }
+
 /* The About dialog: opened from the menu, closed by the cross, Escape
    or a click on the backdrop. The panel carries the padding so a click
    inside it can never be mistaken for one outside (the script closes on

@@ -19,13 +19,6 @@
      button instead (design handoff, mobile-spec-row). */
   table.list tr.subrow [data-col="started"], table.list tr.subrow [data-col="cost"] { display: none; }
 
-  /* The filter bar, on a phone: no "Show" caption (the chips say what
-     they are), and the chips drop BELOW the "?" and New spec line —
-     order on the already-flex row, scoped by data-filter="state" so
-     other .lbl captions ("Repos:") and other pill groups keep theirs. */
-  .filters[data-filter="state"] > .lbl { display: none; }
-  .row:has(> .filters[data-filter="state"]) > .filters[data-filter="state"] {
-    order: 9; flex-basis: 100%; }
 
   /* The spec LIST leaves table layout entirely at this width — found
      with a 500px iframe walk (2026-08-24): a flex tr inside a table
