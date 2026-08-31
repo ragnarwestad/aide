@@ -6,6 +6,7 @@ Rules for how the AI assistant presents text in the conversation with the user.
 
 - [Plain Norwegian — no invented or stilted words](#plain-norwegian--no-invented-or-stilted-words)
 - [Answering "do we have anything outstanding?"](#answering-do-we-have-anything-outstanding)
+- [Who fixes it: the dashboard, or me](#who-fixes-it-the-dashboard-or-me)
 - [Suggested text the user will copy out](#suggested-text-the-user-will-copy-out)
 
 ---
@@ -80,6 +81,27 @@ If there is genuinely nothing outstanding, say that in one sentence — do not f
 recap.
 
 This rule applies to ALL projects and sessions.
+
+---
+
+## Who fixes it: the dashboard, or me
+
+Every proposed fix says, in its first sentence, which of the two it is.
+
+**It can be done in the dashboard.** Describe it in the dashboard's own
+words — the page, the row, the tab, the button — and stop there. No file
+paths, no function names, no git. The user does it, and wants to; an
+explanation loaded with implementation detail takes that away by making a
+button press look like an operation.
+
+**It cannot be done in the dashboard.** Say so plainly, say why in one
+line, and state that this one is mine to do. Then the details belong in
+the answer, because they describe work the user is not being asked to
+perform.
+
+Never blur the two. A fix described half in dashboard terms and half in
+git terms leaves the user unsure whether he is being handed a task or
+told what happened.
 
 ---
 
