@@ -153,3 +153,63 @@ describe("BranchStatusChecker.peekOpenSpecBranches", () => {
     expect(checker.peekOpenSpecBranches("/repos/aide-specs")).toEqual({ open: null, checkedAt: null });
   });
 });
+
+// Spec 298: `resolveOpenBranchTarget` is now called once per LIVE spec,
+// concurrently, inside `warmSpec`'s own `Promise.all` — a new call shape
+// this cache was never exercised against. Without de-duplication, N
+// specs sharing one cold root each fire their own `ls-remote` the same
+// tick; with it, the second caller onward awaits the first's own
+// in-flight promise instead.
+describe("BranchStatusChecker.openSpecBranches in-flight de-duplication", () => {
+  const LISTED = "a3f9c21deadbeef0000000000000000000000000\trefs/heads/aide/191-one-answer\n";
+
+  /** A fake whose `ls-remote` does not resolve until `release()` is
+   *  called — so two calls started before either resolves can be proven
+   *  to have shared one spawn. */
+  function gatedGit() {
+    const calls: string[][] = [];
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const run: GitRunner = async (_dir, args) => {
+      calls.push(args);
+      await gate;
+      return { code: 0, stdout: LISTED };
+    };
+    return { run, calls, release: () => release() };
+  }
+
+  test("two concurrent calls for the same root spawn exactly one ls-remote", async () => {
+    const git = gatedGit();
+    const checker = new BranchStatusChecker({ run: git.run });
+    const first = checker.openSpecBranches("/repos/aide", false);
+    const second = checker.openSpecBranches("/repos/aide", false);
+    git.release();
+    const [a, b] = await Promise.all([first, second]);
+    expect(git.calls.length).toBe(1);
+    expect([...a!]).toEqual([...b!]);
+  });
+
+  test("a third call after the first two settled, within the TTL, spawns nothing new", async () => {
+    const git = gatedGit();
+    const checker = new BranchStatusChecker({ run: git.run, ttlMs: 30_000, now: () => 1000 });
+    const first = checker.openSpecBranches("/repos/aide", false);
+    const second = checker.openSpecBranches("/repos/aide", false);
+    git.release();
+    await Promise.all([first, second]);
+    const before = git.calls.length;
+    await checker.openSpecBranches("/repos/aide", false);
+    expect(git.calls.length).toBe(before);
+  });
+
+  test("a fresh call is unaffected by an in-flight non-fresh call", async () => {
+    const git = gatedGit();
+    const checker = new BranchStatusChecker({ run: git.run });
+    const nonFresh = checker.openSpecBranches("/repos/aide", false);
+    const fresh = checker.openSpecBranches("/repos/aide", true);
+    git.release();
+    await Promise.all([nonFresh, fresh]);
+    expect(git.calls.length).toBe(2);
+  });
+});

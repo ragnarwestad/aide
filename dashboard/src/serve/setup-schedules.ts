@@ -14,7 +14,7 @@ import {
   SpecCreatedAtChecker,
   SpecFileCommitChecker,
 } from "../git/description-freshness.ts";
-import { WorkflowHistoryChecker } from "../git/workflow-history.ts";
+import { WorkflowHistoryChecker, BranchFileStepsChecker } from "../git/workflow-history.ts";
 import type { CheckoutEnsurer, DashboardCheckout } from "../git/dashboard-checkout.ts";
 import type { QueueStore } from "../queue/queue.ts";
 import type { QueueTarget } from "../render.ts";
@@ -47,12 +47,16 @@ export interface ScheduleSetupInputs {
   checkoutEnsurer: CheckoutEnsurer;
   gitRun: GitRunner;
   notifyQueueChanged: () => void;
+  /** Spec 298: the same resolver `LandContext.specsRoot` already gives
+   *  `resolveOpenBranchTarget` — what `warmSpec` needs to ask whether a
+   *  live spec's own `aide/<folder>` branch is still open. */
+  specsRoot: (dir: string) => Promise<string>;
 }
 
 export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, inputs: ScheduleSetupInputs) {
   const {
     machineryProjectDir, branchStatus, targets, allowed, ensureCheckout, queue, specRoots, checkoutEnsurer, gitRun,
-    notifyQueueChanged,
+    notifyQueueChanged, specsRoot,
   } = inputs;
 
   // How long ONE spec answer stands, and how often it is retaken, are
@@ -76,6 +80,10 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   const specCreatedAt = new SpecCreatedAtChecker({ run: gitRun, ttlMs: specCacheTtlMs });
   // And a sixth (spec 208): which commit last touched each spec file.
   const specFileCommits = new SpecFileCommitChecker({ run: gitRun, ttlMs: specCacheTtlMs });
+  // And a seventh (spec 298): the file half of the disagreement
+  // comparison, read from a spec's own open branch instead of the
+  // default-branch checkout's stale copy.
+  const branchFileSteps = new BranchFileStepsChecker({ run: gitRun, ttlMs: specCacheTtlMs });
 
   const scheduleCtx: ScheduleContext = {
     projectRoot: opts.projectRoot,
@@ -85,6 +93,8 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
     readFreshness: () => freshness,
     readSpecCreatedAt: () => specCreatedAt,
     readSpecFileCommits: () => specFileCommits,
+    specsRoot,
+    readBranchFileSteps: () => branchFileSteps,
     targets,
     readScan: () => state.scan,
     allowed,
@@ -153,7 +163,7 @@ export function setupSchedules(opts: ScheduleSetupOptions, state: ServerState, i
   scheduleTimer?.unref?.();
 
   return {
-    mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits,
+    mergeLock, freshness, workflowHistory, specCreatedAt, specFileCommits, branchFileSteps,
     refreshDrift, warmSpec, refreshSpecCaches, refreshSchedules, tickRunner,
     driftTimer, specCacheTimer, scheduleTimer,
   };

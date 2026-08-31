@@ -22,6 +22,8 @@
 // `aide/<spec-folder>` for as long as the spec takes.
 
 import type { GitRunner } from "./branch-status.ts";
+import { readStatusFromBranch, type OpenBranchTarget } from "./branch-file.ts";
+import { parseStatus } from "../project/parse-status.ts";
 
 const DEFAULT_TTL_MS = 30_000;
 
@@ -258,4 +260,67 @@ export function stepsFileDisagreesOn(fileSteps: string[], history: WorkflowHisto
   return HISTORY_STEPS.filter(
     (step) => step !== "create" && claimed.has(step) !== history.done.includes(step),
   );
+}
+
+export interface BranchFileStepsOptions {
+  run: GitRunner;
+  ttlMs?: number;
+  now?: () => number;
+}
+
+/** `4-status.md`'s workflow steps as committed on a spec's own open
+ *  `aide/<folder>` branch (spec 298) — the file half of
+ *  `stepsFileDisagreesOn`'s comparison, read from the same point in the
+ *  graph the history half (`WorkflowHistoryChecker`, `git log --all`)
+ *  already answers from, rather than from the default branch's stale
+ *  copy. Shaped exactly like `WorkflowHistoryChecker`: async `read`,
+ *  TTL-cached, and a `peekFileSteps` a render may call without ever
+ *  spawning git.
+ *
+ *  `null` means "no open branch, or the branch's copy could not be
+ *  read" — the caller's own cue to fall back to the disk read, which is
+ *  what every spec without an open branch keeps doing unchanged
+ *  (REQ-3). */
+export class BranchFileStepsChecker {
+  private readonly run: GitRunner;
+  private readonly ttlMs: number;
+  private readonly now: () => number;
+  private readonly cache = new Map<string, { at: number; steps: string[] | null }>();
+
+  constructor(opts: BranchFileStepsOptions) {
+    this.run = opts.run;
+    this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
+    this.now = opts.now ?? Date.now;
+  }
+
+  /** `target` is `null` for a spec with no open branch — the caller
+   *  (`warmSpec`) has already asked `resolveOpenBranchTarget`, so this
+   *  class never resolves a branch itself. */
+  async read(dir: string, specFolder: string, target: OpenBranchTarget | null): Promise<string[] | null> {
+    const key = JSON.stringify([dir, specFolder]);
+    const hit = this.cache.get(key);
+    const at = this.now();
+    if (hit && at - hit.at < this.ttlMs) return hit.steps;
+
+    let steps: string[] | null = null;
+    if (target) {
+      try {
+        const file = await readStatusFromBranch(this.run, target.root, target.branch, target.relPath);
+        steps = file ? parseStatus(file.text).workflowSteps : null;
+      } catch {
+        steps = null;
+      }
+    }
+    this.cache.set(key, { at, steps });
+    return steps;
+  }
+
+  /** No git spawn, ever — what `withFreshness` calls. `steps: null`
+   *  covers two different truths the caller does not need to tell
+   *  apart: no open branch, and "not warmed yet" — both mean "fall back
+   *  to the disk read" (REQ-3's own behavior, unchanged). */
+  peekFileSteps(dir: string, specFolder: string): { steps: string[] | null; checkedAt: number | null } {
+    const hit = this.cache.get(JSON.stringify([dir, specFolder]));
+    return hit ? { steps: hit.steps, checkedAt: hit.at } : { steps: null, checkedAt: null };
+  }
 }

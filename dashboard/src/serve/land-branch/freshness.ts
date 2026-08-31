@@ -46,7 +46,14 @@ export function withFreshness(ctx: LandContext, list: QueueTarget[]): QueueTarge
     // the row draws "checking…" rather than a false negative,
     // which is the class of bug spec 178's own plan review flagged.
     if (history === null || checkedAt === null) return { ...t, freshnessUnknown: true };
-    const fileSteps = t.fileSteps ?? [];
+    // Spec 298: the file half of the comparison follows the branch when
+    // one is open, the same point in the graph `history` already
+    // answers from. `branchSteps` is null for a spec with no open
+    // branch, or one the schedule has not warmed yet — both fall back
+    // to the disk read exactly as before (REQ-3). `peekFileSteps` never
+    // spawns git.
+    const branchSteps = ctx.branchFileSteps.peekFileSteps(t.dir, t.specFolder).steps;
+    const fileSteps = branchSteps ?? t.fileSteps ?? [];
     // `create` is settled by the folder being on disk, which is
     // what `t.dir` being set already proves — a stronger source
     // than the commit log, since a spec written by hand has no

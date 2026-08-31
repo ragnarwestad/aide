@@ -301,7 +301,12 @@ describe("two specs sharing one checkout", () => {
     const { base } = harness.start({
       description: DESCRIPTION,
       alsoSpecs: [OTHER],
-      extra: { queueToken: TOKEN, gitRun },
+      // Off (spec 298): the background schedule's own `warmSpec` asks
+      // `rev-parse --show-toplevel` for every live spec on its own
+      // timer, and this fake counts exactly two such calls per SAVE
+      // request to tell "key the lock" from "the sequence starts" apart
+      // — a third, unrelated caller would corrupt that count.
+      extra: { queueToken: TOKEN, gitRun, specCachePollMs: 0 },
     });
 
     const first = post(base, { text: NEW_TEXT, baseSha: FILE_SHA });

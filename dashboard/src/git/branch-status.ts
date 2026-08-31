@@ -144,6 +144,15 @@ export class BranchStatusChecker {
    *  field holding both would let either question be answered with the
    *  other's answer. */
   private readonly openCache = new Map<string, { at: number; open: Set<string> | null }>();
+  /** Spec 298: a cache miss used to mean "spawn ls-remote", full stop —
+   *  fine while every caller asked about a distinct root, one at a time.
+   *  `warmSpec` now asks about every LIVE spec's root inside one
+   *  `Promise.all`, and several specs sharing a root is the ordinary
+   *  case, not an edge one. Without this, N specs sharing a cold root
+   *  fire N concurrent `ls-remote` calls to origin the same tick; with
+   *  it, the second caller onward awaits the first's own in-flight
+   *  promise instead. */
+  private readonly openInFlight = new Map<string, Promise<Set<string> | null>>();
 
   constructor(opts: BranchStatusOptions) {
     this.run = opts.run;
@@ -307,27 +316,44 @@ export class BranchStatusChecker {
     const hit = this.openCache.get(root);
     if (!fresh && hit && at - hit.at < this.ttlMs) return hit.open;
 
-    let open: Set<string> | null = null;
-    try {
-      const listed = await this.run(root, lsRemoteSpecBranches());
-      if (listed.code === 0) {
-        // `<sha>\t<full ref>` per line. The ref is taken whole and the
-        // prefix stripped, so a branch whose name contains a tab in some
-        // future world still parses as one field.
-        open = new Set(
-          listed.stdout
-            .split("\n")
-            .map((line) => line.slice(line.indexOf("\t") + 1).trim())
-            .filter((ref) => ref.startsWith("refs/heads/"))
-            .map((ref) => ref.slice("refs/heads/".length)),
-        );
-      }
-    } catch {
-      open = null;
-    }
+    // A second caller for the same root, asking before the first's own
+    // spawn has resolved, awaits that spawn instead of starting a new
+    // one. `fresh` bypasses this exactly as it bypasses the TTL cache
+    // above — the landing path that uses it asks about one root, right
+    // after changing it, and must not be handed an answer some OTHER
+    // caller's stale in-flight request produced.
+    const existing = !fresh ? this.openInFlight.get(root) : undefined;
+    if (existing) return existing;
 
-    this.openCache.set(root, { at, open });
-    return open;
+    const promise = (async (): Promise<Set<string> | null> => {
+      let open: Set<string> | null = null;
+      try {
+        const listed = await this.run(root, lsRemoteSpecBranches());
+        if (listed.code === 0) {
+          // `<sha>\t<full ref>` per line. The ref is taken whole and the
+          // prefix stripped, so a branch whose name contains a tab in
+          // some future world still parses as one field.
+          open = new Set(
+            listed.stdout
+              .split("\n")
+              .map((line) => line.slice(line.indexOf("\t") + 1).trim())
+              .filter((ref) => ref.startsWith("refs/heads/"))
+              .map((ref) => ref.slice("refs/heads/".length)),
+          );
+        }
+      } catch {
+        open = null;
+      }
+      this.openCache.set(root, { at: this.now(), open });
+      return open;
+    })();
+
+    if (!fresh) this.openInFlight.set(root, promise);
+    try {
+      return await promise;
+    } finally {
+      this.openInFlight.delete(root);
+    }
   }
 
   /** The LAST answer this checker holds for `root`, without asking git
