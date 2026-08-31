@@ -69,16 +69,24 @@ select[name^="model."] {
 .newspecform textarea { overflow-x: auto; }
 .specform .factions { margin-top: var(--sp-1); }
 /* `.field` is inline-flex, so a bare form of them sits cramped edge to
-   edge with no rule of its own to space them apart — the gap every
-   other form's OWN class supplies (`.newspecform`'s `flex`+`gap`).
-   Rows, not one long stack: Project+Name share a `.frow`, Cron+Prompt
-   share another (`schedule-page/form.ts`) — each row wraps its own
-   pair onto separate lines by itself (`.scheduleform .frow` in
-   rows-and-forms.css) when the form sits narrow, which covers both
-   this page's standalone use (New job, wide) and its inline use under
-   a detail page's Edit heading (narrow) without two different markups. */
-.scheduleform { display: flex; flex-direction: column; gap: var(--sp-3); align-items: flex-start; }
-.scheduleform .factions { margin-top: var(--sp-1); }
+   edge with no rule of its own to space them apart. Project+Name share
+   a `.frow`, Cron+Prompt share another (`schedule-page/form.ts`) — a
+   real CSS Grid, not two independent flex rows: two flex rows each
+   size to their OWN content, so Project+Name (a select plus a short
+   input) and Cron+Prompt (two longer inputs) claim two different total
+   widths and the two rows' fields never land at the same x. Making
+   `.scheduleform` itself the (one, shared) grid and each `.frow` a
+   `display: contents` wrapper (rows-and-forms.css) puts all four
+   fields into ONE set of column tracks, so column two starts at the
+   same x in both rows without forcing either column wider than its
+   own content needs. `max-width: 100%` keeps a track from outgrowing
+   the form itself; the narrow breakpoint (narrow.css) collapses back
+   to one column, covering this page's standalone use (New job, wide)
+   and its inline use under a detail page's Edit heading (narrow)
+   without two different markups. */
+.scheduleform { display: grid; grid-template-columns: max-content max-content; gap: var(--sp-3) var(--sp-4); align-items: start; max-width: 100%; }
+.scheduleform .factions { grid-column: 1 / -1; margin-top: var(--sp-1); }
+.scheduleform .rowmsg { grid-column: 1 / -1; }
 .cron-input { font-family: var(--mono); }
 .field.wide { flex-basis: 100%; max-width: 48rem; }
 .field input[name="title"] { min-width: 18rem; }

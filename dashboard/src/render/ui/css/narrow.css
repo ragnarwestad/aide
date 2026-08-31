@@ -225,6 +225,11 @@
   /* Two fields side by side become two lines. */
   .newspecform .frow { flex-wrap: wrap; }
 
+  /* Same, for the schedule form's two-column grid (field.css):
+     one column, so Project/Cron and Name/Prompt file path each drop
+     onto their own line instead of cramming two fields into 20rem. */
+  .scheduleform { grid-template-columns: 1fr; }
+
   /* The search field crowds "Search" and "New spec" onto their own
      line at phone width (spec 263): 26rem does not fit beside two
      buttons under 40rem. Narrow it enough that all three share one

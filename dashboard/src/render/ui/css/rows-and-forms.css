@@ -84,26 +84,15 @@ td form { margin: 0; display: inline-block; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
-/* Project+Name, then Cron+Prompt (schedule-page/form.ts): its own
-   `flex-wrap`, unlike the two rules above, since `.scheduleform` is
-   also used narrow (inline under a detail page's Edit heading) and
-   each pair needs to fall back to stacked there on its own.
-   `.scheduleform` is a COLUMN flex container (field.css) with
-   `align-items: flex-start`, so a plain child sizes to its own
-   content's width, not the form's — each row then claims only the
-   width its own two fields need, and Project+Name (a select plus a
-   short input) comes out a different total width than Cron+Prompt
-   (two longer inputs). `align-self: stretch` opts this one child back
-   into the full-width sizing `align-items: flex-start` turned off, so
-   both rows share one width and their 50/50 splits land as one
-   shared column grid. */
-.scheduleform .frow { display: flex; flex-wrap: wrap; gap: var(--sp-4); align-items: flex-start;
-  align-self: stretch; }
-/* Both columns equal width within that now-shared row width, so
-   column one (Project/Cron) comes out exactly as wide as column two
-   (Name/Prompt) instead of however wide its own control happens to
-   be. */
-.scheduleform .frow > .field { flex: 1 1 0; }
+/* `display: contents` removes this wrapper from layout entirely, so
+   its two fields become direct items of `.scheduleform`'s own grid
+   (field.css) — one shared set of column tracks across both rows,
+   which is what actually lines Name up under Project and Prompt file
+   path up under Cron. Nothing left here to size or space: the grid's
+   own `gap` replaces this rule's old `gap`, and there is no box left
+   for a `flex-wrap` fallback to act on — narrow.css collapses the grid
+   itself to one column instead. */
+.scheduleform .frow { display: contents; }
 /* The Remove confirmation, on a page of its own since 2026-08-19 (the
    panel these rules used to scope under is gone). "addprojectform" and
    "removeform" are what queue-client.ts selects on — laid out here,
