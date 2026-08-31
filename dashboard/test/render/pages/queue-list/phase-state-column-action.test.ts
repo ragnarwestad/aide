@@ -299,9 +299,11 @@ describe("spec 157: the row's one action sits in the State column", () => {
 // exactly ONE control now, so there is no column to differentiate and
 // nothing for the colour to tell apart — it only has to say the action
 // is here. Cancel came along for the same reason plus one more: in dark
-// mode `--danger` (#E8836B) and `--accent` (#F0663F) sit close enough in
-// hue that an outlined Cancel and a filled button beside it said nothing
-// different to the eye (looked at live, 2026-08-21).
+// mode `--danger` and `--accent` sat close enough in hue that an
+// outlined Cancel and a filled button beside it said nothing different
+// to the eye (looked at live, 2026-08-21) — the accent tokens moved
+// since (2026-08-31), but the same hue-family closeness is the reason
+// this test still exists.
 describe("spec 161: the row's one action is primary", () => {
   const target = (specFolder: string, extra: Partial<QueueTarget> = {}): QueueTarget => ({
     project: "aide",
