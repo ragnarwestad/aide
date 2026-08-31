@@ -77,6 +77,18 @@
       "body": "## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n| REQ-1: one | ✅ | |\n| two columns only | ⬜ |\n",
       "done": 1,
       "total": 1
+    },
+    {
+      "name": "a-non-standard-header-is-still-recognized-by-position",
+      "body": "## Phase 1: RED\n\n| REQ | Criterion | Done |\n|------|--------|-------|\n| REQ-1: one | ✅ | |\n| REQ-2: two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
+    },
+    {
+      "name": "a-malformed-empty-task-row-after-a-counted-row-does-not-undo-it",
+      "body": "## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n| one | ✅ | |\n|  |  | |\n| two | ⬜ | |\n",
+      "done": 1,
+      "total": 2
     }
   ]
 }

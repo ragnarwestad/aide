@@ -378,6 +378,25 @@ def test_fully_ticked_acceptance_criteria_archives_normally(script, project, spe
     assert (specs / "archive" / "81-x").exists()
 
 
+def test_non_standard_header_acceptance_row_ticked_still_archives(script, project, specs):
+    """Spec 299/REQ-1: a header row named something other than `Task |
+    Status | Notes` must never count toward the acceptance gate's total
+    — only its position above the separator marks it as a header, not
+    its own column text."""
+    configure(project, specs)
+    body = status_md(
+        "create, analyze, implement",
+        phase("Phase 1: RED", ["| a | ✅ | |"]) + "\n".join([
+            "## Acceptance criteria", "", "| REQ | Criterion | Done |",
+            "|------|--------|-------|", "| REQ-1: does the thing | ✅ | |", "", "---", "",
+        ]),
+    )
+    add_spec(specs, "81-x", body)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
 def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
     """REQ-4: a spec with no `## Acceptance criteria` section behaves
     exactly as it did before this spec — implement present is enough."""

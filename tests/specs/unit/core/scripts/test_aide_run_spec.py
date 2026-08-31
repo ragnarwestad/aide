@@ -6031,6 +6031,46 @@ def test_an_analyze_claim_that_names_implement_on_the_line_is_downgraded(
     assert out["terminalReason"] == "scope-violation", out
 
 
+def analyze_claude_renaming_the_header(fake_claude, workspace):
+    """Spec 299: a stand-in analyze step that rewrites the Phase table's
+    header to non-standard column names, leaving its one row exactly
+    where it was (⬜) — nothing genuinely advanced, so the header itself
+    must never be counted as the row that did."""
+    folder = workspace["folder"]
+    body = (
+        "# Queue - Status\n\n## Tracking info\n\n"
+        f"- **Task:** `{folder}/`\n"
+        "- **Workflow steps completed:** create\n"
+        "- **Total progress:** 0% (0 of 1 completed)\n\n---\n\n"
+        "## Phase 1: RED\n\n"
+        "| REQ | Criterion | Done |\n|------|--------|-------|\n"
+        "| a | ⬜ | |\n"
+    )
+    return fake_claude(
+        "cat > /dev/null\n"
+        + READ_SPECS
+        + f'cat > "$specs/{folder}/4-status.md" <<\'STATUSEOF\'\n'
+        + body
+        + "STATUSEOF\n"
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_an_analyze_run_that_renames_the_header_columns_is_unaffected(
+    runner, workspace, fake_claude
+):
+    """REQ-1 regression (the description's own bug): renaming a Phase
+    table's header away from `Task | Status | Notes` must never itself
+    count as an advanced row, or a genuine no-op analyze run is wrongly
+    downgraded to scope-violation."""
+    status_with_phase(workspace, "create", ["| a | ⬜ | |"])
+    claude = analyze_claude_renaming_the_header(fake_claude, workspace)
+    rc, out, _ = run(runner, workspace, claude, command="analyze")
+    assert rc == 0, out
+    assert out["ok"] is True, out
+    assert out["terminalReason"] == "completed", out
+
+
 def test_completed_steps_for_ignores_a_step_the_current_sessions_own_edit_added(
     runner, workspace, fake_claude
 ):

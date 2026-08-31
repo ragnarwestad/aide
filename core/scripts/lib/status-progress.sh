@@ -32,23 +32,37 @@ status_progress_for() {   # sets $progress_done, $progress_total
         is_match = (tolower(keyword) == tolower(filter)) ? 1 : 0
       }
       in_phase = is_match
+      prev_counted = 0
       next
     }
     !in_phase { next }
     {
       line = $0
       gsub(/^[ \t]+|[ \t]+$/, "", line)
-      if (line !~ /^\|.*\|$/) next
+      if (line !~ /^\|.*\|$/) { prev_counted = 0; next }
       n = split(line, cells, "|")
-      if (n != 5) next
+      if (n != 5) { prev_counted = 0; next }
       task = cells[2]; mark = cells[3]
       gsub(/^[ \t]+|[ \t]+$/, "", task)
       gsub(/^[ \t]+|[ \t]+$/, "", mark)
-      if (task == "" || task ~ /^-+$/) next
-      if (mark == "" || length(mark) > 30 || mark ~ /,/ || tolower(mark) == "status") next
+      if (task == "") { prev_counted = 0; next }
+      if (task ~ /^-+$/) {
+        # The separator row proves the immediately preceding row-shaped
+        # line was the header, whatever its own cells said — undo its
+        # count. Only a TRUE separator (all dashes) reaches this
+        # branch; a merely malformed row (empty task, handled above)
+        # must never undo a real row count.
+        if (prev_counted) { total--; if (prev_done) done-- }
+        prev_counted = 0
+        next
+      }
+      if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
       total++
       low = tolower(mark)
-      if (mark == "✅" || low == "completed" || low == "✅ completed") done++
+      prev_done = (mark == "✅" || low == "completed" || low == "✅ completed") ? 1 : 0
+      if (prev_done) done++
+      prev_counted = 1
+      next
     }
     END { printf "%d %d\n", done+0, total+0 }
   ' "$file" 2>/dev/null)"
@@ -77,22 +91,30 @@ status_advanced_count_for() {   # sets $advanced_count
       sub(/^([Pp]hase|[Ff]ase|[Cc]hecklist|[Aa]cceptance)/, "", rest)
       is_match = (rest != heading && rest ~ /^([^A-Za-z0-9]|$)/) ? 1 : 0
       in_phase = is_match
+      prev_counted = 0
       next
     }
     !in_phase { next }
     {
       line = $0
       gsub(/^[ \t]+|[ \t]+$/, "", line)
-      if (line !~ /^\|.*\|$/) next
+      if (line !~ /^\|.*\|$/) { prev_counted = 0; next }
       n = split(line, cells, "|")
-      if (n != 5) next
+      if (n != 5) { prev_counted = 0; next }
       task = cells[2]; mark = cells[3]
       gsub(/^[ \t]+|[ \t]+$/, "", task)
       gsub(/^[ \t]+|[ \t]+$/, "", mark)
-      if (task == "" || task ~ /^-+$/) next
-      if (mark == "" || length(mark) > 30 || mark ~ /,/ || tolower(mark) == "status") next
+      if (task == "") { prev_counted = 0; next }
+      if (task ~ /^-+$/) {
+        if (prev_counted) advanced--
+        prev_counted = 0
+        next
+      }
+      if (mark == "" || length(mark) > 30 || mark ~ /,/) { prev_counted = 0; next }
       low = tolower(mark)
-      if (mark != "⬜" && low != "not started") advanced++
+      prev_counted = (mark != "⬜" && low != "not started") ? 1 : 0
+      if (prev_counted) advanced++
+      next
     }
     END { printf "%d\n", advanced+0 }
   ' "$file" 2>/dev/null)"
