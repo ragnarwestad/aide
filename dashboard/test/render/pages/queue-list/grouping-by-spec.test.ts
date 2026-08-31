@@ -198,7 +198,7 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
       ["create", "description"],
       ["analyze", "solution"],
       ["implement", "status"],
-      ["archive", "overview"],
+      ["archive", "checks"],
     ];
     for (const [step, tab] of expected) {
       expect([step, subRow(html, step).includes(`href="${GROUPED_HREF}?tab=${tab}"`)]).toEqual([step, true]);

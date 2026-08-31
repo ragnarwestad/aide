@@ -176,7 +176,6 @@ describe("GET /specs/<project>/<specFolder>", () => {
     for (const tab of ["description", "analysis", "solution", "status"]) {
       expect([tab, overview.includes(`?tab=${tab}`)]).toEqual([tab, true]);
     }
-    expect(overview).toContain("not started");
     expect(overview).not.toContain("Seven files.");
 
     const analysis = await (await fetch(`${base}${PATH}?tab=analysis`, auth)).text();
@@ -194,7 +193,7 @@ describe("GET /specs/<project>/<specFolder>", () => {
     expect(id).toBeTruthy();
     const html = await (await fetch(`${base}${PATH}?tab=steps`, auth)).text();
     expect(html).toContain("No step has finished yet");
-    expect(html).toContain(`href="${PATH}?tab=overview"`);
+    expect(html).toContain(`href="${PATH}?tab=checks"`);
   });
 
   test("a spec nobody has is a 404, not a blank page", async () => {

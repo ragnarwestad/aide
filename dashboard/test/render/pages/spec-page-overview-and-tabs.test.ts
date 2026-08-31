@@ -8,22 +8,24 @@ import { GENERATED, NAV, NOW, file, lead, page, view } from "./spec-page-fixture
 //
 // Four documents stacked on one tab is thousands of lines of
 // preformatted text before the reader reaches whatever they came for.
-// One tab each, and Overview carries no file text at all.
+// One tab each, and Checks (Overview until spec 294 renamed it and made
+// Description the front page instead) carries no file text at all.
 
-describe("spec 212: Overview is the front page, not the four files", () => {
-  test("no document's text is stacked on it any more", () => {
-    const html = page();
+describe("spec 212: one tab per document, and Checks is none of them", () => {
+  test("no document's text is stacked on the Checks tab", () => {
+    const html = page(view(), "checks");
     expect(html).not.toContain('class="specfile"');
     expect(html).not.toContain("The dashboard never shows a spec.");
     expect(html).not.toContain("Approach 1.");
   });
 
-  // What Overview IS for: where the spec stands and what is still
-  // holding it back. The state chip and the Update button sit in the
-  // banner above the tabs, and are on the page whichever tab is open.
-  test("the state chip, the Update button and the title are still there", () => {
+  // Spec 294: the phase-status chip is gone from the banner entirely —
+  // no badge, no state word, on any tab. The Update button and the
+  // title stay.
+  test("no chip/badge shows a state, but the Update button and the title are still there", () => {
     const html = page();
-    expect(html).toContain("not started");
+    expect(html).not.toContain('class="chip"');
+    expect(html).not.toContain("not started");
     expect(html).toContain("Update");
     expect(html).toContain("One page shows the whole spec");
   });
@@ -31,7 +33,7 @@ describe("spec 212: Overview is the front page, not the four files", () => {
   test("every document is offered as a tab of its own", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["overview", "description", "analysis", "solution", "status", "steps"]) {
+    for (const tab of ["checks", "description", "analysis", "solution", "status", "steps"]) {
       expect([tab, html.includes(`href="${base}?tab=${tab}"`)]).toEqual([tab, true]);
     }
   });
@@ -133,7 +135,7 @@ describe("spec 212: each document tab shows its own file and no other", () => {
 // runs and neither holds a form.
 
 describe("spec 212: which tabs reload themselves", () => {
-  for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
+  for (const tab of ["checks", "description", "analysis", "solution", "status"]) {
     test(`${tab} does not refresh itself under the reader`, () => {
       expect([tab, page(view(), tab).includes('http-equiv="refresh"')]).toEqual([tab, false]);
     });
@@ -145,9 +147,10 @@ describe("spec 212: which tabs reload themselves", () => {
     });
   }
 
-  // A tab name nobody offers falls back to Overview, and the fallback
-  // decides the reload too — not the raw string off the query.
-  test("a tab name nobody offers falls back to Overview, reload and all", () => {
+  // A tab name nobody offers falls back to Description (spec 294 — the
+  // new default), and the fallback decides the reload too — not the raw
+  // string off the query.
+  test("a tab name nobody offers falls back to Description, reload and all", () => {
     expect(page(view(), "../secrets")).not.toContain('http-equiv="refresh"');
   });
 });
@@ -155,9 +158,9 @@ describe("spec 212: which tabs reload themselves", () => {
 // --- criterion 2: a spec that has never run ---------------------------------
 
 describe("a spec with no job at all", () => {
-  test("renders, and says it has not started rather than pretending a state", () => {
+  test("renders, and the Description tab is reachable", () => {
     const html = page();
-    expect(html).toContain("not started");
+    expect(html).toContain("Update");
     expect(page(view(), "description")).toContain("The dashboard never shows a spec.");
   });
 
@@ -168,7 +171,7 @@ describe("a spec with no job at all", () => {
   test("its tabs are offered all the same — an empty tab is still a tab", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
-    for (const tab of ["overview", "description", "steps"]) {
+    for (const tab of ["checks", "description", "steps"]) {
       expect(html).toContain(`href="${base}?tab=${tab}"`);
     }
   });
@@ -176,11 +179,6 @@ describe("a spec with no job at all", () => {
 
 describe("a spec with a lead job", () => {
   const withLead = (extra: Partial<JobDetailView> = {}) => view({ lead: lead(extra) });
-
-  test("the banner shows the job's own state, not the not-started one", () => {
-    const html = page(withLead({ state: "running" }));
-    expect(html).not.toContain("not started");
-  });
 
   test("the Steps tab's running row is the lead job's, word for word", () => {
     const html = page(withLead({ runningStep: { step: "analyze", logs: ["Bash ls"] } }), "steps");
@@ -203,18 +201,13 @@ describe("a spec with a lead job", () => {
     expect(html).toMatch(/>Logs \(1\)</);
   });
 
-  // The page is about the SPEC, so it opens on the spec — even while a
-  // step is running. The job page keeps its own rule (a running job
-  // opens on the steps tab), because that page is about the run.
-  test("it opens on the Overview, running or not", () => {
+  // The page is about the SPEC, so it opens on the Description tab —
+  // even while a step is running. The job page keeps its own rule (a
+  // running job opens on the steps tab), because that page is about the
+  // run.
+  test("it opens on the Description tab, running or not", () => {
     const html = page(withLead({ state: "running" }));
-    expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
-  });
-
-  test("a stopped lead job's banner carries its reason on the state badge", () => {
-    const error = "seven day provider limit; resets 2026-08-24 12:00 UTC";
-    const html = page(withLead({ state: "stopped", stopReason: "timeout", error } as never));
-    expect(html).toContain(`title="${error}"`);
+    expect(html).toMatch(/aria-current="page"[^>]*>Description/);
   });
 });
 
@@ -249,10 +242,10 @@ describe("the spec page is a page of this site like any other", () => {
     expect(html).toMatch(/<nav[^>]*>[\s\S]*aria-current="page"[^>]*>Specs<\/a>/);
   });
 
-  test("a tab name nobody offers falls back to the Overview instead of a blank page", () => {
+  test("a tab name nobody offers falls back to the Description tab instead of a blank page", () => {
     const html = page(view(), "../secrets");
     expect(html).toContain("One page shows the whole spec");
-    expect(html).toMatch(/aria-current="page"[^>]*>Overview/);
+    expect(html).toMatch(/aria-current="page"[^>]*>Description/);
   });
 
   test("the open tab is marked, and it is the only one on the page proper", () => {
@@ -272,8 +265,9 @@ describe("the spec page is a page of this site like any other", () => {
     expect(html).not.toContain('<span class="lbl">Spec</span>');
     expect(html).not.toContain('<span class="lbl">Job</span>');
     expect(html).not.toContain('data-filter="tab"');
-    // The open one is marked the way the site's tabs mark theirs.
-    expect(html).toMatch(/<a class="tab" data-nav href="[^"]*\?tab=overview" aria-current="page">Overview<\/a>/);
+    // The open one is marked the way the site's tabs mark theirs — the
+    // Description tab, since it is the new default (spec 294).
+    expect(html).toMatch(/<a class="tab" data-nav href="[^"]*\?tab=description" aria-current="page">Description<\/a>/);
   });
 
   test("no Live right now panel exists here either", () => {
@@ -397,24 +391,11 @@ describe("spec 242: every attempt's steps in one flat list", () => {
     expect(html).toMatch(/>Logs \(2\)</);
   });
 
-  // The chip says what the SPEC is doing right now. An older, failed
-  // attempt's rows sitting on the same Steps tab must not change that —
-  // a chip that read the oldest row present would say the spec had
-  // failed while a step of it was running.
-  test("the banner reflects the lead job's state, not an older attempt's (AC5)", () => {
-    const older = dummyResults(1, 1);
-    const v = view({ lead: lead({ id: "newer", state: "running" }), steps: older });
-    const html = page(v, "steps");
-    const banner = html.slice(html.lastIndexOf('<div class="pagehead">'), html.indexOf('<nav class="tabbar subtabs"'));
-    expect(banner).toContain("running");
-    expect(banner).not.toContain("failed");
-  });
-
   test("no picker markup is drawn on any tab — the picker itself is gone", () => {
     const older = dummyResults(1, 1, 0);
     const newer = dummyResults(3, 2, 10);
     const v = view({ lead: lead({ id: "newer" }), steps: [...older, ...newer] });
-    for (const tab of ["overview", "description", "analysis", "solution", "status", "steps"]) {
+    for (const tab of ["checks", "description", "analysis", "solution", "status", "steps"]) {
       expect([tab, page(v, tab).includes('data-filter="attempt"')]).toEqual([tab, false]);
     }
   });

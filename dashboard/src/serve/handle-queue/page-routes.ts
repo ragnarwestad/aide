@@ -339,6 +339,7 @@ export async function handlePageRoutes(
         drift,
         deployError: url.searchParams.get("deployError") ?? undefined,
         serving,
+        tab: url.searchParams.get("tab") ?? undefined,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });

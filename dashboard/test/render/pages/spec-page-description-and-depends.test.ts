@@ -6,7 +6,7 @@ import { GENERATED, NAV, NOW, file, lead, page, view } from "./spec-page-fixture
 
 describe("spec 212: the Edit link that led to a second page is gone", () => {
   test("no tab offers one, and the page it led to is not linked anywhere", () => {
-    for (const tab of ["overview", "description", "analysis", "solution", "status"]) {
+    for (const tab of ["checks", "description", "analysis", "solution", "status"]) {
       expect([tab, page(view(), tab).includes("/edit")]).toEqual([tab, false]);
     }
   });
@@ -180,9 +180,13 @@ describe("the Description tab", () => {
   });
 });
 
-// --- spec 212: what the spec depends on, read-only, on the front page -------
+// --- spec 212: what the spec depends on, read-only, in the banner -----------
+//
+// Spec 294 moved this fact (and `archivedLine`) from the Overview panel
+// into the banner itself, so it renders on every tab, not just one — the
+// same visibility the removed state chip had.
 
-describe("spec 212: the Depends on line on Overview", () => {
+describe("spec 212: the Depends on line, in the banner on every tab", () => {
   test("names what the spec depends on, and posts nothing", () => {
     const html = page(view({ dependsOn: ["164-a-spec-can-depend", "09-ninth"] }));
     expect(html).toContain("<strong>Depends on</strong>");
@@ -191,6 +195,15 @@ describe("spec 212: the Depends on line on Overview", () => {
     // The read-only line, not the picker: the control that changes it
     // is on the Description tab, with the file the line is stored in.
     expect(html).not.toContain('name="dependsOn"');
+  });
+
+  // Criterion 7: the banner is built once, before the tab switch, and
+  // returned unconditionally — so a non-checks tab carries the same fact
+  // line rather than it being Checks-only as it was on the old Overview.
+  test("still renders on a non-checks tab, since the banner is unconditional (criterion 7)", () => {
+    const html = page(view({ dependsOn: ["164-a-spec-can-depend"] }), "description");
+    expect(html).toContain("<strong>Depends on</strong>");
+    expect(html).toContain("164-a-spec-can-depend");
   });
 
   // The same convention `dependsOnField` keeps for a project with

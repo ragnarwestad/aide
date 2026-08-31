@@ -249,7 +249,9 @@ export async function handleQueueAdminRoutes(
         ? json({ ok: false, error }, 400)
         : new Response(null, {
             status: 303,
-            headers: { location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(error)}` },
+            headers: {
+              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(error)}&tab=deploy`,
+            },
           });
     };
     if (!ctx.opts.projectRoot || !ctx.allowed.has(name)) {
@@ -275,13 +277,16 @@ export async function handleQueueAdminRoutes(
         : new Response(null, {
             status: 303,
             headers: {
-              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(result.installError)}`,
+              location: `/projects/${encodeURIComponent(name)}?deployError=${encodeURIComponent(result.installError)}&tab=deploy`,
             },
           });
     }
     return wantsJson
       ? json({ ok: true })
-      : new Response(null, { status: 303, headers: { location: `/projects/${encodeURIComponent(name)}` } });
+      : new Response(null, {
+          status: 303,
+          headers: { location: `/projects/${encodeURIComponent(name)}?tab=deploy` },
+        });
   }
 
   const removal = path.match(/^\/api\/queue\/projects\/([^/]+)\/remove$/);
