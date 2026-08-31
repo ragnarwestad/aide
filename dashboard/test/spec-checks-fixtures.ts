@@ -3,7 +3,7 @@
 // (split out of spec-save.test.ts by theme).
 
 import { join } from "node:path";
-import type { GitRunner } from "../src/git/branch-status.ts";
+import { specBranch, type GitRunner } from "../src/git/branch-status.ts";
 import { SPEC, TOKEN, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "./helpers/queue-server.ts";
 
@@ -127,3 +127,93 @@ export const messageOf = (calls: string[][]): string => {
   const commit = calls.find((c) => c[0] === "commit")!;
   return commit[commit.indexOf("-m") + 1]!;
 };
+
+// --- spec 291: an open `aide/<folder>` branch, for the Checks section's -----
+// --- branch-aware read and write --------------------------------------------
+
+/** Where a spec's own `4-status.md` sits, relative to the toplevel this
+ *  fixture's `rev-parse --show-toplevel` answers with (`dir/root`) —
+ *  what `resolveOpenBranchTarget` computes in real code via
+ *  `path.relative`. Kept in one place because both the fixture below
+ *  and any test asserting on the exact plumbing calls need the same
+ *  string. */
+export const relStatusPath = (folder = SPEC) => `aide/specs/${folder}/4-status.md`;
+
+const PAD = (sha: string) => sha.padEnd(40, "0");
+export const BRANCH_TIP_SHA = PAD("branchtip");
+export const BRANCH_FILE_SHA = PAD("branchfile");
+
+/** A `GitRunner` that answers every question `savable`'s does, PLUS the
+ *  branch-open question `resolveOpenBranchTarget` asks and the
+ *  read/write plumbing `readStatusFromBranch`/`writeStatusToBranch`
+ *  use — all intercepted BEFORE `savable`'s own generic `"log -1
+ *  --format="` entry can swallow them (that prefix matches a branch
+ *  read's own `log` call too, since it is a longer instance of the same
+ *  command).
+ *
+ *  Takes no directory of its own: it is built and handed to
+ *  `harness.start()` before the harness's temp directory even exists,
+ *  so the one call that DOES need a real filesystem path —
+ *  `"rev-parse --show-toplevel"` — computes it from whichever spec
+ *  folder the caller under test passed as `dir` (always
+ *  `<tmp>/root/aide/specs/<folder>`, three segments below the
+ *  toplevel), rather than from a value this fixture would have had to
+ *  know in advance. Every other call this fixture does not special-case
+ *  falls through to `savable`'s own fixed placeholder, exactly as
+ *  today's tests already tolerate (`specsRoot()`'s return value is a
+ *  merge-lock KEY everywhere except this feature's own new code). */
+export function branchAwareGitRunner(
+  opts: {
+    /** `false` models REQ-2: no open branch, the disk read/write is untouched. */
+    open?: boolean;
+    /** The branch's own `4-status.md` content (REQ-1's whole point). */
+    branchText?: string;
+    /** The last commit that touched the file ON THE BRANCH — what a
+     *  branch-aware page's `baseSha` names, and what a tick's
+     *  `statusBaseSha` has to match for the write to go through. */
+    branchFileSha?: string;
+    /** The branch's own HEAD, used to build the new commit on a write.
+     *  Defaults to `branchFileSha` — the ordinary case where the last
+     *  commit on the branch is also the one that touched the file. */
+    branchTipSha?: string;
+    folder?: string;
+    /** REQ-4b: the push is rejected — a headless run raced this write. */
+    pushFails?: boolean;
+    extra?: Record<string, { code: number; stdout?: string }>;
+  } = {},
+): { run: GitRunner; calls: { args: string[]; env?: Record<string, string> }[] } {
+  const folder = opts.folder ?? SPEC;
+  const branch = specBranch(folder);
+  const relPath = relStatusPath(folder);
+  const ref = `refs/remotes/origin/${branch}`;
+  const fileSha = opts.branchFileSha ?? BRANCH_FILE_SHA;
+  const tipSha = opts.branchTipSha ?? opts.branchFileSha ?? BRANCH_TIP_SHA;
+  const base = savable("unused-root", opts.extra);
+  const specFolderSuffix = join("aide", "specs", folder);
+  const calls: { args: string[]; env?: Record<string, string> }[] = [];
+  const run: GitRunner = async (d, args, timeoutMs, env) => {
+    calls.push({ args, env });
+    const line = args.join(" ");
+    if (line === "rev-parse --show-toplevel" && d.endsWith(specFolderSuffix)) {
+      return { code: 0, stdout: `${d.slice(0, d.length - specFolderSuffix.length - 1)}\n` };
+    }
+    if (line.startsWith("ls-remote --heads origin refs/heads/aide/*")) {
+      return { code: 0, stdout: opts.open === false ? "" : `${tipSha}\trefs/heads/${branch}\n` };
+    }
+    if (line === `rev-parse ${ref}`) return { code: 0, stdout: `${tipSha}\n` };
+    if (line === `rev-parse ${tipSha}^{tree}`) return { code: 0, stdout: `${PAD("tiptree")}\n` };
+    if (line === `log -1 --format=%H ${ref} -- ${relPath}`) return { code: 0, stdout: `${fileSha}\n` };
+    if (line === `show ${ref}:${relPath}`) return { code: 0, stdout: opts.branchText ?? "" };
+    if (line.startsWith("hash-object -w")) return { code: 0, stdout: `${PAD("newblob")}\n` };
+    if (line === `read-tree ${PAD("tiptree")}`) return { code: 0, stdout: "" };
+    if (line.startsWith("update-index --cacheinfo")) return { code: 0, stdout: "" };
+    if (line === "write-tree") return { code: 0, stdout: `${PAD("newtree")}\n` };
+    if (line.startsWith("commit-tree")) return { code: 0, stdout: `${PAD("newcommit")}\n` };
+    if (line.startsWith("push")) {
+      if (line.includes(`refs/heads/${branch}`)) return { code: opts.pushFails ? 1 : 0, stdout: "" };
+      return base(d, args, timeoutMs, env);
+    }
+    return base(d, args, timeoutMs, env);
+  };
+  return { run, calls };
+}

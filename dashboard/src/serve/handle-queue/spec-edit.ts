@@ -2,6 +2,7 @@
 // its POST, the spec page itself, and update/save/tick. Extracted
 // from handle-queue.ts (split of split serve.ts step 2).
 import { pullFastForward, saveSpecFiles } from "../../git/specs-pull.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } from "../../git/branch-file.ts";
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { clearArchiveHeldBack, parseStatusChecks, tickStatusLine } from "../../project/parse-status.ts";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, renderResetSpecPage, renderSpecPage, resolveBackHref, specPagePath, specTabPath } from "../../render.ts";
@@ -255,17 +256,33 @@ export async function handleSpecEditRoutes(
     if (typeof body.checksPhase !== "string") {
       return specsRedirect({}, { error: "no phase was submitted — nothing was saved" }, back);
     }
+    // REQ-1/REQ-4/REQ-6: the same "is this branch open" question the
+    // read side asks (`resolveOpenBranchTarget`) — but FRESH, never the
+    // cached answer. A branch opened moments ago by `create` or
+    // `analyze` must be seen by the very next Save press, or the write
+    // silently falls through to `saveSpecFiles`/`main` — the exact bug
+    // this spec fixes, reintroduced on the write side by a stale cache
+    // hit (see 3-solution.md's Plan review, Coherence's must-fix).
+    const branchTarget = await resolveOpenBranchTarget(ctx, dir, specFolder!, STATUS_SPEC_FILE, true);
     // The row-level guard, on top of the file-level `baseSha` one
     // below. A `null` is every way the page can be out of date at
     // once: no such phase, no such row inside it, or a row someone
     // has already ticked in the very commit the page was drawn from
     // — which a sha alone cannot tell from a fresh render.
     //
+    // Read fresh off the branch when one is open — never trusting the
+    // page's own copy, since a headless run may have moved the branch
+    // since the page was drawn — and off disk otherwise, exactly as
+    // before REQ-1.
+    //
     // Chained one row after another, which is safe because exactly
     // one character moves per tick and the cell keeps its padding:
     // a tick never reflows the table, so every other row's text is
     // still what it was.
-    let ticked = specFileText(dir, STATUS_SPEC_FILE) ?? "";
+    let ticked = branchTarget
+      ? ((await readStatusFromBranch(ctx.gitRun, branchTarget.root, branchTarget.branch, branchTarget.relPath))
+          ?.text ?? "")
+      : (specFileText(dir, STATUS_SPEC_FILE) ?? "");
     for (const line of ticks) {
       const next = tickStatusLine(ticked, body.checksPhase, line);
       // One row that is not there refuses the WHOLE press, the boxes
@@ -294,15 +311,32 @@ export async function handleSpecEditRoutes(
       if (cleared !== null) ticked = cleared;
     }
     const statusBaseSha = typeof body.statusBaseSha === "string" && body.statusBaseSha ? body.statusBaseSha : null;
-    const result = await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
-      saveSpecFiles(
-        ctx.gitRun,
-        dir,
-        (root) => ctx.branchStatus.defaultBranch(root),
-        [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }],
-        { specLabel: specFolder!, message: tickMessage(specFolder!) },
-      ),
-    );
+    // REQ-4: an open branch writes straight onto `refs/heads/aide/<folder>`
+    // at origin — never through `saveSpecFiles`, which structurally
+    // cannot target anything but the shared checkout's own `HEAD`
+    // (see 2-analysis.md's "The write side"). No open branch keeps the
+    // exact `saveSpecFiles` call this route has always made (REQ-2).
+    const result = branchTarget
+      ? await ctx.mergeLock.run(branchTarget.root, () =>
+          writeStatusToBranch(
+            ctx.gitRun,
+            branchTarget.root,
+            branchTarget.branch,
+            branchTarget.relPath,
+            ticked,
+            statusBaseSha,
+            tickMessage(specFolder!),
+          ),
+        )
+      : await ctx.mergeLock.run(await ctx.specsRoot(dir), () =>
+          saveSpecFiles(
+            ctx.gitRun,
+            dir,
+            (root) => ctx.branchStatus.defaultBranch(root),
+            [{ file: STATUS_SPEC_FILE, text: ticked, baseSha: statusBaseSha }],
+            { specLabel: specFolder!, message: tickMessage(specFolder!) },
+          ),
+        );
     if (!result.ok) {
       logRefusal("tick", `${project}/${specFolder}`, result.note);
       return specsRedirect({}, { error: result.note }, back);

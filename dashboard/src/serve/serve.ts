@@ -241,6 +241,8 @@ export function createServer(opts: ServerOptions) {
     jobRow: land.jobRow,
     queueToken,
     specFileCommits: schedules.specFileCommits,
+    branchStatus,
+    specsRoot: resolution.specsRoot,
   };
   function archivedSpecRows(state: string | undefined) {
     return archivedSpecRowsImpl(specViewsCtx, state);

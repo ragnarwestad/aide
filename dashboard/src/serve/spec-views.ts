@@ -17,7 +17,8 @@ import {
 } from "../render.ts";
 import { QueueStore, currentWorkRoundJobs, type Job } from "../queue/queue.ts";
 import { SpecFileCommitChecker, lastCommitOf } from "../git/description-freshness.ts";
-import type { GitRunner } from "../git/branch-status.ts";
+import type { BranchStatusChecker, GitRunner } from "../git/branch-status.ts";
+import { readStatusFromBranch, resolveOpenBranchTarget } from "../git/branch-file.ts";
 import { resolveStepModel, tailFile } from "./serve-helpers.ts";
 import { summarizeStream } from "../queue/parse-stream.ts";
 
@@ -46,6 +47,13 @@ export interface SpecViewsContext {
   jobRow: (job: Job) => Promise<QueueRowView>;
   queueToken: string | undefined;
   specFileCommits: SpecFileCommitChecker;
+  /** REQ-1/REQ-6: the same "is this branch open" primitive
+   *  `rootsStillHolding()` already calls, reused here so the Checks
+   *  section can read an active spec's real, already-committed
+   *  progress off its own `aide/<folder>` branch when one is open,
+   *  rather than off whatever `main`'s copy of `4-status.md` says. */
+  branchStatus: BranchStatusChecker;
+  specsRoot: (dir: string) => Promise<string>;
 }
 
 export function specFileViews(ctx: SpecViewsContext, dir: string): SpecFileView[] {
@@ -285,10 +293,32 @@ export async function specPageView(
   const leadJob = jobs.find(inFlight) ?? jobs[0];
   const files = specFileViews(ctx, dir);
   // Off the text `specFileViews` has already read, so the page makes
-  // no second git or disk read for the same file.
+  // no second git or disk read for the same file. This is the Status
+  // TAB's own text (out of REQ-1's scope, per 1-description.md) — the
+  // Checks section below may draw from a DIFFERENT source.
   const status = files.find((f) => f.label === STATUS_SPEC_FILE);
-  const statusText = status?.text ?? "";
-  const rows = parseStatusChecks(statusText);
+  const diskStatusText = status?.text ?? "";
+  // REQ-1/REQ-2: an active spec with its own OPEN `aide/<folder>`
+  // branch has its real, already-committed progress sitting there —
+  // `implement` never merges its own work, only `archive` does — so
+  // the Checks section reads THAT content instead of `main`'s, which
+  // is what makes archive's own human-approval gate reachable at all
+  // (see 1-description.md). An archived spec never has one; every
+  // other spec falls back to the disk read exactly as before REQ-1.
+  let checksText = diskStatusText;
+  let branchBaseSha: string | undefined;
+  if (!ref?.archived) {
+    // The ordinary CACHED call (never `fresh`): the same tolerance for
+    // a few seconds of staleness the Checks section already has for
+    // git answers generally (spec 212's own reasoning, above).
+    const target = await resolveOpenBranchTarget(ctx, dir, specFolder, STATUS_SPEC_FILE, false);
+    const branchRead = target ? await readStatusFromBranch(ctx.gitRun, target.root, target.branch, target.relPath) : null;
+    if (branchRead) {
+      checksText = branchRead.text;
+      branchBaseSha = branchRead.sha;
+    }
+  }
+  const rows = parseStatusChecks(checksText);
   // Which phase's open rows may be TICKED (spec 188, back on Overview
   // since spec 212): the CURRENT phase, which is the first phase
   // section still carrying an open mark — the same phase the spec
@@ -296,15 +326,23 @@ export async function specPageView(
   // sections at all (a spec never analysed — a LOW-complexity spec's
   // `## Checklist` heading counts as a phase section since spec 266)
   // and `"done"` when every section is clear; both leave nothing
-  // tickable, and the page then draws the rows with no form.
-  const parsedStatus = parseStatus(statusText);
+  // tickable, and the page then draws the rows with no form. REQ-3:
+  // this rule is untouched, and reads the same whether `checksText`
+  // came off the branch or off disk.
+  const parsedStatus = parseStatus(checksText);
   const statusPhase = parsedStatus.phase;
   const anyTickable = rows.some((row) => !row.done && row.phase === statusPhase);
-  // Read out of the DASHBOARD's own checkout, like the text beside it
-  // (spec 205): the commit stamp a form compares against and the text
-  // in the box have to be the same instant, or every save would refuse
-  // as "changed since you opened it".
-  const statusCommit = anyTickable ? await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE) : null;
+  // `branchBaseSha` is already the exact commit that last touched the
+  // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
+  // second git call needed. Off disk, read out of the DASHBOARD's own
+  // checkout, like the text beside it (spec 205): the commit stamp a
+  // form compares against and the text in the box have to be the same
+  // instant, or every save would refuse as "changed since you opened it".
+  const statusCommit = !anyTickable
+    ? null
+    : branchBaseSha !== undefined
+      ? { sha: branchBaseSha }
+      : await lastCommitOf(ctx.gitRun, dir, STATUS_SPEC_FILE);
   const formDir = tab === "description" ? await ctx.machinerySpecDir(project, found) : null;
   const descriptionCommit = formDir ? await lastCommitOf(ctx.gitRun, formDir, EDITABLE_SPEC_FILE) : null;
   const descriptionText = formDir ? specFileText(formDir, EDITABLE_SPEC_FILE) : null;
