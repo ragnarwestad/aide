@@ -336,6 +336,14 @@ function isDoneMark(mark: string): boolean {
   return trimmed === DONE_MARK || /^(?:✅\s*)?completed$/i.test(trimmed);
 }
 
+function splitRowCells(line: string): [string, string, string] | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return null;
+  const parts = trimmed.split("|");
+  if (parts.length !== 5) return null;
+  return [parts[1]!.trim(), parts[2]!.trim(), parts[3]!.trim()];
+}
+
 /** A well-formed three-column row's cells, or `null`.
  *
  *  Conservative on purpose (spec 182's risk analysis): anything that is
@@ -343,24 +351,45 @@ function isDoneMark(mark: string): boolean {
  *  guessed at, so a hand-formatted file loses a row from the list
  *  instead of offering a tick that would land on the wrong line. The
  *  Status cell has to look like a MARK — short, no comma — which keeps
- *  a separator row and free commentary out. The header row is excluded
- *  by its own cell text, `Status`, because since spec 190 a mark can be
- *  a WORD: the cell is free text and a step wrote `Waiting` and
- *  `Completed` into it, which the old "no spaces, at most 4 characters"
- *  shape guard dropped on the floor — the row did not read as open, it
- *  did not exist. The marks themselves are still never enumerated:
- *  `isDoneMark` says what done is and everything else is open, so a
- *  symbol added to the file's own Notation legend needs no change
- *  here. */
+ *  a separator row and free commentary out. The marks themselves are
+ *  never enumerated: `isDoneMark` says what done is and everything else
+ *  is open, so a symbol added to the file's own Notation legend needs
+ *  no change here.
+ *
+ *  The header row is NOT excluded here (spec 299): since spec 190 a
+ *  mark can be a WORD, so a header using non-standard column names
+ *  (e.g. `REQ | Criterion | Done`) reads no differently from a real
+ *  row at this level. `dataRowIndices` below excludes it instead, by
+ *  the structural fact both this function and `isSeparatorRow` already
+ *  agree the separator row is exempt from: the header is whichever row
+ *  sits directly above the separator. */
 function tableCells(line: string): [string, string, string] | null {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return null;
-  const parts = trimmed.split("|");
-  if (parts.length !== 5) return null;
-  const [task, mark, notes] = [parts[1]!.trim(), parts[2]!.trim(), parts[3]!.trim()];
+  const cells = splitRowCells(line);
+  if (!cells) return null;
+  const [task, mark] = cells;
   if (!task || /^-+$/.test(task)) return null;
-  if (!mark || mark.length > MAX_MARK_LENGTH || mark.includes(",") || /^status$/i.test(mark)) return null;
-  return [task, mark, notes];
+  if (!mark || mark.length > MAX_MARK_LENGTH || mark.includes(",")) return null;
+  return cells;
+}
+
+/** Whether `line` is a table's `|---|---|---|` separator row. */
+function isSeparatorRow(line: string): boolean {
+  const cells = splitRowCells(line);
+  return cells !== null && /^-+$/.test(cells[0]);
+}
+
+/** Every table-row-shaped line index in `section`, with the section's
+ *  own header row — the one immediately followed by the separator row —
+ *  already excluded. Shared by `parseStatusChecks` and `tickStatusLine`
+ *  so neither can drift from what "a task row" means. */
+function dataRowIndices(lines: string[], section: { from: number; to: number }): number[] {
+  const result: number[] = [];
+  for (let i = section.from; i < section.to; i++) {
+    if (!tableCells(lines[i]!)) continue;
+    if (i + 1 < section.to && isSeparatorRow(lines[i + 1]!)) continue;
+    result.push(i);
+  }
+  return result;
 }
 
 /** Every phase section, as line-index ranges over `lines`. The heading
@@ -389,9 +418,8 @@ export function parseStatusChecks(content: string): StatusCheck[] {
   const lines = content.split("\n");
   const checks: StatusCheck[] = [];
   for (const section of phaseSections(lines)) {
-    for (let i = section.from; i < section.to; i++) {
-      const cells = tableCells(lines[i]!);
-      if (!cells) continue;
+    for (const i of dataRowIndices(lines, section)) {
+      const cells = tableCells(lines[i]!)!;
       checks.push({ phase: section.heading, line: lines[i]!, task: cells[0], done: isDoneMark(cells[1]) });
     }
   }
@@ -416,7 +444,7 @@ export function tickStatusLine(content: string, phase: string, line: string): st
   const lines = content.split("\n");
   const section = phaseSections(lines).find((s) => s.heading === phase.trim());
   if (!section) return null;
-  for (let i = section.from; i < section.to; i++) {
+  for (const i of dataRowIndices(lines, section)) {
     if (lines[i] !== line) continue;
     const cells = tableCells(line);
     if (!cells || isDoneMark(cells[1])) return null;

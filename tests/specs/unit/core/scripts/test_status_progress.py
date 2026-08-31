@@ -61,3 +61,16 @@ def test_status_advanced_count_for_is_zero_on_a_fresh_skeleton(tmp_path):
 def test_status_advanced_count_for_is_zero_with_no_phase_rows_at_all(tmp_path):
     content = "# Queue - Status\n\n## Tracking info\n\n- **Task:** `x/`\n"
     assert advanced_count(tmp_path, content) == 0
+
+
+def test_status_advanced_count_for_excludes_a_non_standard_header_row(tmp_path):
+    """Spec 299: the header row is recognized by its position directly
+    above the separator, not by its own column text — a table headed
+    `REQ | Criterion | Done` must count only the one genuinely advanced
+    row, never the header itself."""
+    content = (
+        "# Queue - Status\n\n## Phase 1: RED\n\n"
+        "| REQ | Criterion | Done |\n|------|--------|-------|\n"
+        "| a | ✅ | |\n"
+    )
+    assert advanced_count(tmp_path, content) == 1
