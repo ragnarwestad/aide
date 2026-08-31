@@ -21,6 +21,7 @@ use judgment.
 
 - [Think before you code](#think-before-you-code)
 - [Surgical changes](#surgical-changes)
+- [Documentation describes now, not history](#documentation-describes-now-not-history)
 - [See also](#see-also)
 
 ---
@@ -56,6 +57,27 @@ When your changes leave orphaned code behind:
 
 Rule of thumb: every line you change should be directly traceable to what
 the user asked for.
+
+---
+
+## Documentation describes now, not history
+
+**A README, a CLAUDE.md, or any other living doc says how the system
+works TODAY — never a chronicle of how it got there.**
+
+- Never write "spec N did X because Y" or "on DATE, Z happened" as the
+  justification for a rule inside a living doc. Git history, blame and
+  commit messages are where that belongs — a reader of the doc wants
+  the current behavior, not its excavation.
+- State the rule and, if a reason genuinely helps, the ONE-LINE
+  invariant it protects — not the story of the incident that found it.
+- This applies whenever a change happens to touch documentation, not
+  only to a spec whose job is documentation — an implement step that
+  updates a README is bound by this exactly as a dedicated doc spec is.
+- A doc that keeps growing because every change appends its own
+  paragraph of justification is the failure mode this guards against:
+  size should track what the system does, not how many changes it took
+  to get there.
 
 ---
 
