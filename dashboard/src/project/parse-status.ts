@@ -250,6 +250,26 @@ export function acceptanceCriteriaUnticked(content: string): boolean {
 export const ACCEPTANCE_CRITERIA_UNTICKED_NOTE =
   "the Acceptance criteria are not all ticked yet — tick them on the Checks tab";
 
+/** Whether a held-back reason still means anything, given which workflow
+ *  steps are actually done.
+ *
+ *  The acceptance-criteria note above is the one reason that reads
+ *  straight off the file's own content, true or false whether archive
+ *  was ever attempted — so while implement is still running, the
+ *  Acceptance criteria are of course not all ticked yet, and that must
+ *  not read as archive being "held back" for something well before
+ *  archive is even next (reported live on spec 298, 2026-08-31). Every
+ *  other reason comes out of an ACTUAL declined archive run and needs
+ *  no such gate: archive cannot have been attempted, let alone
+ *  declined, before implement is done.
+ *
+ *  Owned here, next to the constant it compares against, so callers
+ *  (`heldBackFor` in queue-list/data-model/phases.ts) ask instead of
+ *  re-deriving the comparison themselves. */
+export function archiveHeldBackApplies(reason: string, doneSteps: string[]): boolean {
+  return reason !== ACCEPTANCE_CRITERIA_UNTICKED_NOTE || doneSteps.includes("implement");
+}
+
 /** Spec 190 — `content` with every `## Archive held back` section
  *  removed, or `null` when there is none to remove.
  *

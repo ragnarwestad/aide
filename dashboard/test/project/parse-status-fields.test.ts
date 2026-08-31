@@ -8,7 +8,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { acceptanceCriteriaUnticked, archiveHeldBackReason, parseStatus } from "../../src/project/parse-status.ts";
+import {
+  ACCEPTANCE_CRITERIA_UNTICKED_NOTE,
+  acceptanceCriteriaUnticked,
+  archiveHeldBackApplies,
+  archiveHeldBackReason,
+  parseStatus,
+} from "../../src/project/parse-status.ts";
 
 const fixture = (name: string) =>
   readFileSync(join(import.meta.dir, "..", "fixtures", "status", name), "utf-8");
@@ -257,6 +263,25 @@ describe("acceptance criteria left unticked (spec 291's fix, applied 2026-08-31)
   test("one ticked, one not, is still true — the row that matters is the open one", () => {
     const rows = "| REQ-1: … | ✅ | |\n| REQ-2: … | ⬜ | |";
     expect(acceptanceCriteriaUnticked(withAcceptance(rows))).toBe(true);
+  });
+});
+
+// The validity rule for a held-back reason lives HERE, next to the
+// constant it compares against, so the layer rendering it (`heldBackFor`
+// in queue-list/data-model/phases.ts) asks instead of re-deriving the
+// comparison itself — re-deriving it is how spec 299's follow-up and
+// spec 298's fix collided in the first place.
+describe("archiveHeldBackApplies", () => {
+  test("the acceptance-criteria note means nothing while implement is not done", () => {
+    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze"])).toBe(false);
+  });
+
+  test("the acceptance-criteria note applies once implement is done", () => {
+    expect(archiveHeldBackApplies(ACCEPTANCE_CRITERIA_UNTICKED_NOTE, ["analyze", "implement"])).toBe(true);
+  });
+
+  test("every other reason applies regardless — it came out of an actual declined run", () => {
+    expect(archiveHeldBackApplies("the Slack webhook (Phase 4, still unchecked)", [])).toBe(true);
   });
 });
 

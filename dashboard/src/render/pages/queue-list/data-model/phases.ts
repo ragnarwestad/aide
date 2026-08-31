@@ -4,7 +4,7 @@
 // in time — should read without counting rows.
 
 import { specPhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
-import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../project/parse-status.ts";
+import { archiveHeldBackApplies } from "../../../../project/parse-status.ts";
 import { currentStep, inFlight, type QueueRowView } from "../../../ui/job-state.ts";
 import { PHASE_LINES, type Phase, type QueueTarget } from "./types.ts";
 
@@ -200,23 +200,13 @@ function specPhases(all: QueueRowView[], dir?: string): Phase[] {
 }
 
 /** Archive's own file-side answer, on archive's line and nowhere else.
- *  Written once because both constructors build their phases.
- *
- *  The acceptance-criteria note (spec 291) is gated on `implement`
- *  already being done (spec 299's follow-up), and only that note: it
- *  reads straight off the file's own content, true or false whether
- *  archive was ever attempted, so a spec whose Acceptance criteria
- *  simply are not ticked yet — the ordinary state of any spec still
- *  being implemented — read archive as "held back" while implement was
- *  still running, well before archive was ever next in line. Every
- *  other held-back reason comes out of an ACTUAL declined archive run
- *  and needs no such gate: archive cannot have been attempted, let
- *  alone declined, before implement is done. */
+ *  Written once because both constructors build their phases. Which
+ *  reasons count as held back at all — and which are noise until
+ *  implement is done — is `archiveHeldBackApplies`'s rule, owned next
+ *  to the note it is about, not re-derived here. */
 const heldBackFor = (step: string, t: QueueTarget | undefined): { heldBack?: { reason: string } } => {
   if (step !== "archive" || !t?.archiveHeldBack) return {};
-  if (t.archiveHeldBack.reason === ACCEPTANCE_CRITERIA_UNTICKED_NOTE && !(t.done ?? []).includes("implement")) {
-    return {};
-  }
+  if (!archiveHeldBackApplies(t.archiveHeldBack.reason, t.done ?? [])) return {};
   return { heldBack: t.archiveHeldBack };
 };
 
