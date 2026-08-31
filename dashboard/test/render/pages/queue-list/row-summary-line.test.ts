@@ -250,7 +250,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   test("unticked Acceptance criteria read as ready, not as a decline", () => {
     const html = rows(
       [row({ specFolder: "101-b", steps: ["archive"], state: "done" })],
-      [target("101-b", { archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
+      [target("101-b", { done: ["implement"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
     );
     expect(chip(html)).toBe("ready");
     expect(html.match(/<tr class="specnotice"[\s\S]*?<\/tr>/)?.[0] ?? "").toContain(

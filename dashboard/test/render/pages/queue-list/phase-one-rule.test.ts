@@ -15,6 +15,7 @@ import {
   row,
   openKeys,
 } from "../fixtures.ts";
+import { ACCEPTANCE_CRITERIA_UNTICKED_NOTE } from "../../../../src/project/parse-status.ts";
 
 // --- spec 108: one rule for what a phase shows -------------------------------
 
@@ -128,6 +129,22 @@ describe("spec 108: one rule per phase", () => {
     // The one thing it must never read as, which is what it read as
     // before this spec: an ordinary finished step.
     expect(archive).not.toContain("b-done");
+  });
+
+  // Spec 291's acceptance-criteria note reads straight off the file,
+  // whether or not archive was ever attempted — so while implement is
+  // still running, the Acceptance criteria are of course not all
+  // ticked yet, and that must not read as archive being "held back"
+  // for something well before archive is even next (reported live on
+  // spec 298, 2026-08-31).
+  test("archive does not read held back while implement is still running", () => {
+    const html = rows(
+      [row({ id: "implementing", specFolder: "298-implementing", steps: ["implement"], state: "running" })],
+      [target("298-implementing", { done: ["analyze"], archiveHeldBack: { reason: ACCEPTANCE_CRITERIA_UNTICKED_NOTE } })],
+    );
+    const archive = subRow(html, "archive");
+    expect(archive).not.toContain("held back");
+    expect(archive).toContain("not run yet");
   });
 
   test("an archive run in flight outranks a stale held-back note (criterion 6)", () => {
