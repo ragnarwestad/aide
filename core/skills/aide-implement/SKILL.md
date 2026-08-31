@@ -106,6 +106,14 @@ resume it at the first unticked task if it found it in progress.
    without it having actually happened.
 9. Show a summary — ready for commit
 
+**Find a phase's table by its HEADING TEXT, never by its number.** This
+skill has three phases; `4-status.md` has four, because its GREEN work
+is split into implementing and verifying. So RED is `## Phase 1: RED`
+there, this skill's GREEN covers BOTH `## Phase 2: GREEN - Implement`
+and `## Phase 3: GREEN - Verify tests`, and REFACTOR is
+`## Phase 4: REFACTOR`. A tick placed by matching "Phase 3" to this
+skill's third phase lands in the wrong table.
+
 In a Tasks table's Status cell, write the SYMBOL its Notation section
 gives — `✅`, `⬜`, `🔄` — never the word beside it, and never both
 together (`✅ Completed` is wrong the same way `Completed` alone is
