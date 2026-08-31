@@ -36,7 +36,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).toContain("<h3>Settings</h3>");
+    expect(html).toContain("<h3>Config</h3>");
     // The manifest dump duplicated the live Specs tab, one click away
     // — a frozen copy of it here said nothing that page did not
     // (2026-08-25).
@@ -55,7 +55,7 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('<a class="backlink" href="/projects">← Back</a>');
-    expect(html).toContain("<h3>Settings</h3>");
+    expect(html).toContain("<h3>Config</h3>");
     expect(html).not.toContain("Manifest failed to parse");
   });
 
@@ -95,6 +95,17 @@ describe("GET /projects/<name> — the project's own page, served", () => {
     const root = projectsRoot({ aide: null });
     const res = await fetch(`${serve(root, settled(root, "aide"))}/projects/aide`);
     expect(res.status).toBe(401);
+  });
+
+  // Spec 293: the page now splits into tabs, and a plain GET with no
+  // ?tab= opens on Config, marked current in the bar — the same
+  // aria-current pattern the job and spec pages already assert on their
+  // own tabs.
+  test("a plain GET with no ?tab= opens on Config, marked current (AC1)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toMatch(/aria-current="page"[^>]*>Config/);
+    expect(html).toContain("<h3>Config</h3>");
   });
 });
 
@@ -221,17 +232,25 @@ describe("what the page says about its schedule (spec 259, acceptance criteria 6
       join(root, "aide", ".aide", "project.yaml"),
       "name: aide\nschedule:\n  - name: nightly-report\n    cron: \"0 3 * * *\"\n    prompt: docs/nightly.md\n",
     );
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    const html = await (await get(serve(root, settled(root, "aide")), "aide", "schedule")).text();
     expect(html).toContain("Schedule");
     expect(html).toContain("nightly-report");
     expect(html).toContain("0 3 * * *");
     expect(html).toContain("docs/nightly.md");
   });
 
-  test("a manifest with no schedule key renders no Schedule section (criterion 6)", async () => {
+  // Strengthened (spec 293): proves the tab itself is not offered, not
+  // merely that content built for a different (now-default) tab is
+  // absent — and that asking for it explicitly falls back to Config,
+  // the same silent-fallback `pickTab` already gives elsewhere.
+  test("a manifest with no schedule key offers no Schedule tab, and ?tab=schedule falls back to Config (criterion 6)", async () => {
     const root = projectsRoot({ aide: null });
-    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
-    expect(html).not.toContain("<h3>Schedule</h3>");
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await get(base, "aide")).text();
+    expect(html).not.toMatch(/>Schedule</);
+    const fallback = await (await get(base, "aide", "schedule")).text();
+    expect(fallback).not.toContain("<h3>Schedule</h3>");
+    expect(fallback).toContain("<h3>Config</h3>");
   });
 });
 

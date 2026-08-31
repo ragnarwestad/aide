@@ -83,8 +83,8 @@ export function serve(root: string, git: { run: GitRunner }, driftPollMs?: numbe
   }).base;
 }
 
-export const get = (base: string, name: string) =>
-  fetch(`${base}/projects/${encodeURIComponent(name)}`, { headers: AUTH });
+export const get = (base: string, name: string, tab?: string) =>
+  fetch(`${base}/projects/${encodeURIComponent(name)}${tab ? `?tab=${tab}` : ""}`, { headers: AUTH });
 
 /** What a checkout on its default branch, `n` commits behind origin,
  *  answers to every call the drift check and the readiness check make —
@@ -124,11 +124,17 @@ export const INSTALLS = "AIDE_INSTALL_CMD=deploy/install-after-merge.sh\n";
  *  arrives a moment after the server starts rather than during the
  *  first request. The same bounded-loop idiom `projects-route.test.ts`
  *  uses for its own background check. */
-export async function loadUntil(base: string, name: string, text: string, budgetMs = 2000): Promise<string> {
+export async function loadUntil(
+  base: string,
+  name: string,
+  text: string,
+  budgetMs = 2000,
+  tab?: string,
+): Promise<string> {
   const deadline = Date.now() + budgetMs;
   let html = "";
   while (Date.now() < deadline) {
-    html = await (await get(base, name)).text();
+    html = await (await get(base, name, tab)).text();
     if (html.includes(text)) return html;
     await new Promise((r) => setTimeout(r, 25));
   }

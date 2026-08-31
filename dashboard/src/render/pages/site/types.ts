@@ -56,4 +56,10 @@ export interface ProjectPageOptions {
    *  HEAD (spec 269) — undefined for every project except the one this
    *  server is actually running from. */
   serving?: { sha: string; checkoutHead: string; current: boolean };
+  /** Which tab is open, off the request's own `?tab=` (spec 293) — the
+   *  same URL-driven pattern `ScheduleDetailPageOptions.tab` already
+   *  uses, and for the same reason: this page reloads on a timer, so a
+   *  tab held only in client state would snap back to the default on
+   *  every reload. */
+  tab?: string;
 }
