@@ -59,13 +59,16 @@ hand-started process is not the service.
 
 ## Reading the documentation
 
-**Grep the long pages; do not read one whole.** `dashboard/README.md` is
-1100 lines and `docs/AI_NEWS_LOG.md` 650; both are written to be searched.
-Where to look:
+**Grep the long pages; do not read one whole.**
+`dashboard/docs/running-specs.md` is 980 lines and `docs/AI_NEWS_LOG.md`
+650; both are written to be searched. Where to look:
 
 | Question | Page |
 |---|---|
-| How the dashboard, the queue and the runner work | `dashboard/README.md` |
+| What the dashboard is, its URLs, live runs | `dashboard/README.md` |
+| How the queue, the runner, branches and landing work | `dashboard/docs/running-specs.md` |
+| Tokens, components and the CSS class vocabulary | `dashboard/docs/design-system.md` |
+| Serving it, HTTPS, moving it to another host | `dashboard/docs/deploying.md` |
 | Installation layout, what goes where, the gotchas | `.claude/rules/development.md` |
 | Where the project came from and what is next | `docs/ROADMAP.md` |
 | What each AI tool supports, verified | `docs/AI_SUPPORT_MATRIX.md` |

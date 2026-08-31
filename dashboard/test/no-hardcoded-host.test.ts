@@ -25,6 +25,10 @@ const FILES = [
   // pasted in "just to show what it looks like".
   ".env.deploy.example",
   ...[...new Bun.Glob("src/**/*.ts").scanSync(ROOT)],
+  // `docs/` is swept whole for the same reason `src/` is: the pages
+  // that carry a worked address are the ones a real host is pasted
+  // into, and naming them one by one rots the moment one is added.
+  ...[...new Bun.Glob("docs/**/*.md").scanSync(ROOT)],
 ];
 
 // The identifying values that were in the repo when this guard was

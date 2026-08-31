@@ -44,5 +44,8 @@ docs:
   - docs/AI_SUPPORT_MATRIX.md
   - docs/SKILL_GUIDE.md
   - dashboard/README.md
+  - dashboard/docs/running-specs.md
+  - dashboard/docs/design-system.md
+  - dashboard/docs/deploying.md
   - .claude/rules/development.md
   - .claude/rules/ai-tools-reference.md

@@ -21,6 +21,7 @@ import pytest
 # Every file that writes down where the dashboard answers.
 ADDRESS_FILES = (
     "dashboard/README.md",
+    "dashboard/docs/deploying.md",
     "docs/ROADMAP.md",
     ".aide/project.yaml",
     "implementations/claude-code/install.sh",
@@ -30,6 +31,7 @@ ADDRESS_FILES = (
 # HTTPS placeholder form. ROADMAP.md narrates the work instead.
 EXAMPLE_FILES = (
     "dashboard/README.md",
+    "dashboard/docs/deploying.md",
     ".aide/project.yaml",
     "implementations/claude-code/install.sh",
 )
@@ -118,16 +120,18 @@ class TestNoRealAddressInTheUnguardedFiles:
 
 @pytest.mark.validation
 class TestHttpsIsNoLongerDescribedAsUnfinished:
-    """The README narrated HTTPS as half-set-up while spec 172 was open."""
+    """The deploy page narrated HTTPS as half-set-up while spec 172 was open."""
 
-    def test_readme_does_not_call_https_half_done(self, workspace_root):
+    def test_the_deploy_page_does_not_call_https_half_done(self, workspace_root):
         # Arrange
-        text = (workspace_root / "dashboard" / "README.md").read_text(encoding="utf-8")
+        text = (workspace_root / "dashboard" / "docs" / "deploying.md").read_text(
+            encoding="utf-8"
+        )
 
         # Act & Assert
         for phrase in ("half-done", "Spec 172 is that work"):
             assert phrase not in text, (
-                f"dashboard/README.md still says {phrase!r}; HTTPS is set up "
-                f"by the deploy now, so the section describing it as pending "
-                f"is wrong"
+                f"dashboard/docs/deploying.md still says {phrase!r}; HTTPS is "
+                f"set up by the deploy now, so the section describing it as "
+                f"pending is wrong"
             )
