@@ -59,6 +59,28 @@ describe("GET the edit page", () => {
     expect((await fetch(`${base}/specs/aide/99-no-such-spec?tab=description`, auth)).status).toBe(404);
   });
 
+  // REQ-1/REQ-6: the Toast UI Editor bundle is heavy (~900 KB
+  // unminified — 2-analysis.md's own risk analysis) — it ships on the
+  // ONE tab that has an editable textarea and nowhere else, mirroring
+  // how queueClientScript() already scopes itself. REQ-5's own CSS-
+  // embedding check rides along: the bundle must carry the editor's
+  // stylesheet too, not just its JS (a known Toast UI selector proves
+  // it, since `minify: true` would otherwise make a literal-class grep
+  // fragile).
+  test("the Description tab carries the editor's client script and CSS; other tabs do not", async () => {
+    const { base } = start(savable("/host"));
+    const descHtml = await (await fetch(`${base}${DESCRIPTION_TAB}`, auth)).text();
+    expect(descHtml).toContain("spec-editor-host");
+    expect(descHtml).toContain(".toastui-editor-defaultUI");
+    const overviewHtml = await (await fetch(`${base}${PAGE}`, auth)).text();
+    expect(overviewHtml).not.toContain("spec-editor-host");
+    expect(overviewHtml).not.toContain(".toastui-editor-defaultUI");
+    // The bundle itself (Toast UI Editor + ProseMirror + its CSS) is
+    // tens of KB even minified — a difference this large is only
+    // explained by the Description tab carrying it and Overview not.
+    expect(descHtml.length - overviewHtml.length).toBeGreaterThan(20_000);
+  });
+
   // Criterion 11 (spec 163): an archived spec is a record. Hiding the
   // control is not the guard — the save endpoint is — but the tab must
   // not offer a box that only gets refused.
@@ -302,5 +324,23 @@ describe("POST the Save action against an archived spec", () => {
     expect(location).toContain("error=");
     expect(location).toContain("archived");
     expect(readFileSync(archivedDescriptionPath(dir), "utf-8")).toBe(ARCHIVED_TEXT);
+  });
+});
+
+// --- telemetry (2-analysis.md, Risk analysis: "Telemetry left on by accident") --
+//
+// `usageStatistics` defaults to `true` and, per the library's own
+// documentation, sends the page's hostname to Google Analytics on every
+// mount — a silent regression with no visible symptom in this dashboard
+// (including in tests, which run offline: the call just fails quietly)
+// unless something checks for it explicitly. A source-text assertion,
+// not a built-bundle grep: `minify: true` is free to rewrite the
+// literal `false` as `!1`, which would make a built-output check
+// fragile in a way a source-level one is not.
+
+describe("the editor client disables Toast UI Editor's telemetry", () => {
+  test("spec-editor-client.ts's own source sets usageStatistics: false", async () => {
+    const source = await Bun.file(new URL("../src/spec-editor-client.ts", import.meta.url)).text();
+    expect(source).toContain("usageStatistics: false");
   });
 });

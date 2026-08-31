@@ -6,7 +6,7 @@ import { readStatusFromBranch, resolveOpenBranchTarget, writeStatusToBranch } fr
 import { discoverProjects, specFileText, withDependsOnLine } from "../../project/discover.ts";
 import { clearArchiveHeldBack, parseStatusChecks, tickStatusLine } from "../../project/parse-status.ts";
 import { EDITABLE_SPEC_FILE, STATUS_SPEC_FILE, renderResetSpecPage, renderSpecPage, resolveBackHref, specPagePath, specTabPath } from "../../render.ts";
-import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specsRedirect, tickMessage } from "../serve-helpers.ts";
+import { ARCHIVED_REFUSAL, MAX_SAVE_BODY, bodyToObject, editMessage, json, logRefusal, queueClientScript, readBounded, resolveDependencyFolder, specEditorClientScript, specsRedirect, tickMessage } from "../serve-helpers.ts";
 import type { HandleQueueContext } from "../handle-queue.ts";
 
 export async function handleSpecEditRoutes(
@@ -74,6 +74,11 @@ export async function handleSpecEditRoutes(
       url.searchParams.get("tab") ?? undefined,
     );
     if (!view) return new Response("not found", { status: 404 });
+    // The editor bundle (heavier than any script this dashboard has
+    // shipped before, 2-analysis.md's own risk analysis) ships on the
+    // Description tab only — every other tab renders read-only text
+    // with nothing for it to enhance.
+    const tab = url.searchParams.get("tab") ?? undefined;
     const html = renderSpecPage(
       {
         ...view,
@@ -86,8 +91,9 @@ export async function handleSpecEditRoutes(
       new Date().toISOString(),
       ctx.nav(),
       {
-        tab: url.searchParams.get("tab") ?? undefined,
+        tab,
         step: url.searchParams.get("step") ?? undefined,
+        script: tab === "description" ? await specEditorClientScript() : undefined,
       },
     );
     return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
