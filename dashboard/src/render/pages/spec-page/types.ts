@@ -30,14 +30,10 @@ export interface SpecCheckView {
  *  guard the description's form carries. */
 export interface SpecChecksView {
   rows: SpecCheckView[];
+  /** The file's own current phase. Carried for a reader of the view;
+   *  which rows are BOXES no longer follows from it — only the
+   *  `## Acceptance criteria` rows are ever tickable (see `checklist`). */
   phase?: string;
-  /** The `## Acceptance criteria` section's own heading, when it has an
-   *  open row (spec 299's follow-up) — tickable on top of `phase`, never
-   *  behind it: those rows are the spec's own person to judge, and a
-   *  run that left one of ITS OWN rows unticked before reporting done
-   *  must not also lock the person out of the one section that was
-   *  always theirs. Renders as a second, independent form. */
-  acceptancePhase?: string;
   baseSha?: string;
 }
 

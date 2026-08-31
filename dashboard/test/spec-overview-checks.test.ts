@@ -31,7 +31,7 @@ import {
   PHASE, OPEN_ROW, SECOND_OPEN_ROW, DONE_ROW, EARLIER_DONE_ROW, WORDED, CHECKLIST_PHASE,
   CHECKLIST_OPEN_ROW, CHECKLIST_STATUS, STATUS, HELD_BACK_REASON, ticked, phaseSection,
   heldBack, statusPath, startWithChecks as start, tick, save, recording,
-  ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE,
+  ACCEPTANCE_PHASE, ACCEPTANCE_OPEN_ROW, STATUS_WITH_OPEN_ACCEPTANCE, TDD_OPEN_ROW,
 } from "./spec-checks-fixtures.ts";
 
 const { harness } = createSpecSaveHarness();
@@ -43,6 +43,24 @@ describe("the checks on the Overview tab", () => {
 
   describe("GET the Overview tab", () => {
     const overview = (base: string) => fetch(`${base}${PAGE}?tab=checks`, auth).then((r) => r.text());
+
+    // The Phase tables are the implement RUN's own record, not a
+    // person's to tick: nothing anywhere gates on them (archive's only
+    // gate is the Acceptance section, and has been since spec 268), so
+    // drawing them as boxes with a Save invited work that changed
+    // nothing and made the page look like it was holding the spec back.
+    // They stay in the file, and the Status tab is where they are read.
+    test("a Phase row is not offered as a box at all — only Acceptance criteria are", async () => {
+      const { base } = startWithChecks(savable("/host"), STATUS_WITH_OPEN_ACCEPTANCE);
+      const html = await overview(base);
+      expect(html).toContain("REQ-1: something testable");
+      expect(html).not.toContain("Re-read the whole diff once");
+      // One Save for the one section that is the person's, never one
+      // per phase heading.
+      expect(html.match(/name="tick"/g)?.length).toBe(1);
+      expect(html.match(/<form[^>]+\/tick"/g)?.length).toBe(1);
+      expect(html).toContain(ACCEPTANCE_PHASE);
+    });
 
     test("the current phase's open rows are boxes in a form of their own", async () => {
       const { base } = startWithChecks(savable("/host"));
@@ -68,27 +86,12 @@ describe("the checks on the Overview tab", () => {
       expect(html.match(/name="tick"/g)!).toHaveLength(2);
     });
 
-    // "A check nothing is waiting on" — the second exclusion: a phase
-    // the workflow has not reached is sitting at its template default.
-    test("an open row in a later phase is shown but is not a box", async () => {
+    // A Phase section the workflow has not reached carries the run's own
+    // rows, so it is not on this page at all.
+    test("an open row in a later phase is not on the page", async () => {
       const html = await overview(startWithChecks(savable("/host")).base);
-      expect(html).toContain("Watch the first real run");
+      expect(html).not.toContain("Watch the first real run");
       expect(html.match(/name="tick"/g)!).toHaveLength(2);
-    });
-
-    // Spec 299's follow-up: Acceptance criteria are the spec's own
-    // person to judge, never `aide-implement`'s to tick — so a TDD
-    // phase implement left open (its own row, not ticked) must not also
-    // lock the person out of ticking their own REQ boxes. Both groups
-    // get their own box AND their own Save, independently.
-    test("Acceptance criteria are tickable even while an earlier TDD phase is still open", async () => {
-      const html = await overview(startWithChecks(savable("/host"), STATUS_WITH_OPEN_ACCEPTANCE).base);
-      expect(html).toContain("REQ-1: something testable");
-      expect(html.match(/name="tick"/g)!).toHaveLength(2);
-      expect(html.match(/name="checksPhase" value="([^"]*)"/g)).toEqual([
-        `name="checksPhase" value="${PHASE}"`,
-        `name="checksPhase" value="${ACCEPTANCE_PHASE}"`,
-      ]);
     });
 
     // Spec 190, criterion 1. With every open mark written in words the
@@ -119,15 +122,13 @@ describe("the checks on the Overview tab", () => {
       expect(await res.text()).not.toContain('name="tick"');
     });
 
-    // Spec 266: a LOW-complexity spec's `## Checklist` heading used to
-    // fold into the "no phase sections at all" case above and render
-    // "no checks yet" — it must now offer the same box a `## Phase`
-    // section's open row already gets.
-    test("a ## Checklist row is offered as a box, same as a ## Phase row", async () => {
+    // Spec 266 gave a LOW-complexity spec's `## Checklist` the same box a
+    // `## Phase` row got. It loses it for the same reason they all did:
+    // it is the run's own record, and archive never asks about it.
+    test("a ## Checklist row is not a box either — it is the run's own record", async () => {
       const html = await overview(startWithChecks(savable("/host"), CHECKLIST_STATUS).base);
-      expect(html).toContain("Run the manual browser check");
-      expect(html).toContain('name="tick"');
-      expect(html).toContain(`value="${CHECKLIST_PHASE}"`);
+      expect(html).not.toContain('name="tick"');
+      expect(html).toContain("No acceptance criteria to tick.");
     });
   });
 
@@ -174,7 +175,7 @@ describe("the checks on the Overview tab", () => {
       STATUS_WITH_OPEN_ACCEPTANCE.replace(ACCEPTANCE_OPEN_ROW, ticked(ACCEPTANCE_OPEN_ROW)),
     );
     // The TDD phase's own row is untouched — one tick, one row.
-    expect(readFileSync(statusPath(dir), "utf-8")).toContain(OPEN_ROW);
+    expect(readFileSync(statusPath(dir), "utf-8")).toContain(TDD_OPEN_ROW);
   });
 
   test("a queued matching job refuses a direct tick without changing 4-status.md", async () => {

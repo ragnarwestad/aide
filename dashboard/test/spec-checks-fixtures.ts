@@ -7,7 +7,11 @@ import { specBranch, type GitRunner } from "../src/git/branch-status.ts";
 import { SPEC, TOKEN, TICK, DESCRIPTION, FILE_SHA, savable, post } from "./spec-save-fixtures.ts";
 import type { QueueHarness } from "./helpers/queue-server.ts";
 
-export const PHASE = "Phase 4: REFACTOR - Test suite";
+/** The one section a person ticks, and so the only one the Checks tab
+ *  draws as boxes: the Phase tables below are the implement RUN's own
+ *  record and gate nothing (archive's only gate has been the Acceptance
+ *  section since spec 268). */
+export const PHASE = "Acceptance criteria";
 export const EARLIER_PHASE = "Phase 3: GREEN - Implement";
 export const LATER_PHASE = "Phase 5: SHIP - After the merge";
 export const OPEN_ROW = "| Manual check at 375px in a real browser | ⬜ | still outstanding |";
@@ -38,12 +42,13 @@ export const STATUS = [
   phaseSection(LATER_PHASE, [LATER_ROW]),
 ].join("\n");
 
-/** Spec 299's follow-up: a TDD phase left open (implement's own row,
- *  never the person's) alongside an open Acceptance criteria section
- *  (always the person's). Two independent groups a person may tick,
- *  neither behind the other. */
-export const ACCEPTANCE_PHASE = "Acceptance criteria";
+/** A TDD phase left open (implement's own row, never the person's)
+ *  alongside an open Acceptance criteria section (always the person's).
+ *  The Checks tab draws the second and not the first. */
+export const ACCEPTANCE_PHASE = PHASE;
 export const ACCEPTANCE_OPEN_ROW = "| REQ-1: something testable | ⬜ | |";
+export const TDD_PHASE = "Phase 4: REFACTOR - Test suite";
+export const TDD_OPEN_ROW = "| Re-read the whole diff once | ⬜ | |";
 export const STATUS_WITH_OPEN_ACCEPTANCE = [
   "# Queue - Status",
   "",
@@ -53,7 +58,7 @@ export const STATUS_WITH_OPEN_ACCEPTANCE = [
   "",
   "---",
   "",
-  phaseSection(PHASE, [OPEN_ROW]),
+  phaseSection(TDD_PHASE, [TDD_OPEN_ROW]),
   phaseSection(ACCEPTANCE_PHASE, [ACCEPTANCE_OPEN_ROW]),
 ].join("\n");
 

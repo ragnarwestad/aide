@@ -66,12 +66,12 @@ describe("the Checks section reads an open branch's own progress (REQ-1/REQ-2)",
   });
 });
 
-// REQ-3: the sequential tick-gating rule (`checklist()`'s `tickable`
-// predicate — untouched by this spec) still holds when its input comes
-// off a branch instead of disk: an earlier phase still open blocks a
-// later phase's own rows from being offered as boxes, done or not.
-describe("the sequential tick-gating rule still holds for a branch read (REQ-3)", () => {
-  test("only the earlier, still-open phase's row is a real checkbox", async () => {
+// REQ-3: which rows `checklist()` offers as boxes is decided the same
+// way whether its input came off a branch or off disk — and what it
+// decides is that the `## Acceptance criteria` rows are the person's
+// and the Phase tables are the implement run's own record.
+describe("the Acceptance-only rule still holds for a branch read (REQ-3)", () => {
+  test("an open Phase row on the branch is not a box, and not on the page", async () => {
     const branchStatus = [
       "# Queue - Status",
       "",
@@ -81,10 +81,12 @@ describe("the sequential tick-gating rule still holds for a branch read (REQ-3)"
     const { run } = branchAwareGitRunner({ open: true, branchText: branchStatus });
     const { base } = harness.start({ description: "# d\n", status: MAIN_ONLY_STATUS, extra: { queueToken: TOKEN, gitRun: run } });
     const html = await overview(base);
-    // Exactly one real checkbox — the earlier phase's own open row.
-    expect(html.match(/name="tick"/g)!).toHaveLength(1);
-    expect(html).toContain("Manual check at 375px in a real browser");
-    // The Acceptance-criteria row is shown, but as a plain mark.
+    // The Phase section's own open row is the run's record: no box, and
+    // not drawn here at all.
+    expect(html).not.toContain('name="tick"');
+    expect(html).not.toContain("Manual check at 375px in a real browser");
+    // The Acceptance row is the one this page carries — already done
+    // here, so a plain mark rather than a box.
     expect(html).toContain("Write the code");
   });
 });

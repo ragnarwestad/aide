@@ -25,11 +25,11 @@ const FOLDER = "81-queue-and-runner";
 const PATH = `/specs/aide/${FOLDER}`;
 const auth = { headers: { "x-aide-token": TOKEN } };
 
-/** A `4-status.md` with one open Phase 1 row, naming `task` — enough for
- *  `parseStatusChecks` to produce a tickable row and `parseStatus` to
- *  resolve `phase` to "Phase 1: RED". */
+/** A `4-status.md` with one open Acceptance row, naming `task` — the
+ *  Acceptance section because that is the one the Checks tab draws as
+ *  boxes, the Phase tables being the implement run's own record. */
 const statusWithOpenRow = (task: string): string =>
-  "# Status\n\n## Phase 1: RED\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
+  "# Status\n\n## Acceptance criteria\n\n| Task | Status | Notes |\n|------|--------|-------|\n" +
   `| ${task} | ⬜ | |\n`;
 
 /** Real git for everything except the branch-read calls

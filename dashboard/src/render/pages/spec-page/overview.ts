@@ -72,34 +72,29 @@ export function archivedLine(view: SpecPageView): string {
  *
  *  Done rows are shown too, dimmed: the list is what is left AND what
  *  has been settled, and a list that only ever shrinks says nothing
- *  about how far the spec got. They are not boxes, and neither are the
- *  open rows of a phase the workflow has not reached — a check already
- *  made and a check nothing is waiting on are both answers, not
- *  questions.
+ *  about how far the spec got — a check already made is an answer, not
+ *  a question, so it is not a box.
  *
- *  The phase leads its own group heading rather than repeating on every
- *  row: the rows under `Phase 4: REFACTOR` are all Phase 4's. */
-// A stable HTML id for one phase's own Save form, so its checkboxes can
-// live inside the ONE flowing `<ul>` below and still submit with the
-// right form via `form="..."` — the same decoupling the row controls
-// elsewhere on this dashboard already use for the same reason: the
-// control's place in the markup and the form it submits with are two
-// different questions.
-const formIdFor = (phase: string): string => `checks-${phase.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
-
-/** Which phases have open rows a person may tick right now (spec 299's
- *  follow-up). Ordinarily just `phase` — the current TDD phase — but
- *  `acceptancePhase` is tickable ALONGSIDE it, never behind it: seeing
- *  the two independently is the whole point (see `SpecChecksView`'s own
- *  doc comment). At most two entries, and never a duplicate: a file
- *  where the acceptance section IS the current phase names it once. */
-const tickablePhases = (view: SpecPageView): string[] =>
-  [...new Set([view.checks?.phase, view.checks?.acceptancePhase].filter((p): p is string => !!p))];
+ *  The section leads its own group heading rather than repeating on
+ *  every row. */
+/** This page shows ONE section: `## Acceptance criteria`.
+ *
+ *  The Phase tables (RED/GREEN/REFACTOR, and a LOW spec's `## Checklist`)
+ *  are the implement RUN's own record of its work, and nothing anywhere
+ *  gates on them — archive's only gate is the Acceptance section, and
+ *  has been since spec 268. Drawing them as boxes therefore asked a
+ *  person to do work that changed nothing, while making the page look
+ *  like it was holding the spec back; a run that forgets to tick its own
+ *  row is the run's record to fix, never a person's clicking. They stay
+ *  in the file, where the Status tab reads them.
+ *
+ *  So there is one group, one form and one Save — never one per phase. */
+const isAcceptance = (phase: string): boolean => /^acceptance\b/i.test(phase);
 
 export function checklist(view: SpecPageView): string {
-  const rows = view.checks?.rows ?? [];
+  const rows = (view.checks?.rows ?? []).filter((row) => isAcceptance(row.phase));
   if (rows.length === 0) {
-    return `<p class="muted">No checks yet.</p>`;
+    return `<p class="muted">No acceptance criteria to tick.</p>`;
   }
   const open = rows.filter((r) => !r.done).length;
   const groups: { phase: string; rows: SpecCheckView[] }[] = [];
@@ -112,52 +107,47 @@ export function checklist(view: SpecPageView): string {
   // commit and push into `archive/`. The rows stay — they are a fact
   // about the spec — and nothing on them presses.
   const activeJob = view.lead?.state === "queued" || view.lead?.state === "running";
-  // Empty outright when nothing may press at all (archived, or a job
-  // running) — the same gate `tickable` below applies per row, applied
-  // here too so an inconsistent view (a `phase` naming a row that turns
-  // out to be done) draws no orphaned form either.
-  const tickablePhasesHere =
-    !view.archived && !activeJob
-      ? tickablePhases(view).filter((phase) => rows.some((r) => !r.done && r.phase === phase))
-      : [];
-  const tickable = (row: SpecCheckView): boolean => !row.done && tickablePhasesHere.includes(row.phase);
+  // Spec 163: an archived spec's rows stay, and nothing on them presses.
+  // A job in flight is writing the file this form would commit onto.
+  //
+  // The section a tick is scoped to is the rows' OWN heading, taken from
+  // the first of them rather than passed in: one heading covers every
+  // row here, and a file pathological enough to carry a second
+  // `Acceptance` section leaves its rows read-only rather than ticking
+  // them against the wrong one.
+  const phase = rows[0]!.phase;
+  const canTick = !view.archived && !activeJob && rows.some((r) => !r.done && r.phase === phase);
+  const tickable = (row: SpecCheckView): boolean => canTick && !row.done && row.phase === phase;
   const control = (row: SpecCheckView): string =>
     tickable(row)
       // The row's verbatim line is the value: the server finds the row
       // by it and refuses one that has moved, so a stale page can never
-      // flip the wrong line. `form` sends it to ITS OWN phase's Save,
-      // never whichever form happens to be open elsewhere on the page.
-      ? `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}" form="${formIdFor(row.phase)}"></label>`
+      // flip the wrong line.
+      ? `<label class="checkbox"><input type="checkbox" name="tick" value="${esc(row.line)}"></label>`
       : `<span class="checkbox" aria-hidden="true">${row.done ? "✅" : "☐"}</span>`;
   const item = (row: SpecCheckView): string =>
     `<li class="check ${row.done ? "done" : "open"}">${control(row)}` +
     `<span class="checktask">${esc(row.task)}</span></li>`;
   const group = (g: { phase: string; rows: SpecCheckView[] }): string =>
-    `<li class="checkphase">${esc(g.phase)}${
-      tickablePhasesHere.includes(g.phase)
-        ? `<span class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…", form: formIdFor(g.phase) })}</span>`
-        : ""
-    }</li>` + g.rows.map(item).join("");
+    `<li class="checkphase">${esc(g.phase)}</li>` + g.rows.map(item).join("");
   const list = `<ul class="checklist">${groups.map(group).join("")}</ul>`;
   const head =
     `<p class="checkshead"><strong>Checks</strong> ` +
     `<span class="small muted">${open === 0 ? "all done" : `${open} of ${rows.length} still open`}</span></p>`;
-  // One empty `<form>` per tickable phase, holding only the hidden
-  // fields a Save needs — every actual checkbox lives up in the list
-  // and reaches its form by id, exactly as `control` above wires it.
-  const forms = tickablePhasesHere
-    .map(
-      (phase) =>
-        `<form id="${formIdFor(phase)}" class="specform" method="post" action="${esc(view.tickAction)}">` +
-        tokenField(view.token) +
-        `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
-        // Empty rather than absent for a file git has never committed —
-        // the same answer the description's own field gives.
-        `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
-        `</form>`,
-    )
-    .join("");
-  return `<section class="checks">${head}${list}${forms}</section>`;
+  // The boxes sit INSIDE the one form, and the Save closes it — no id
+  // plumbing, because there is only ever one form to belong to.
+  const body = canTick
+    ? `<form class="specform" method="post" action="${esc(view.tickAction)}">` +
+      tokenField(view.token) +
+      `<input type="hidden" name="checksPhase" value="${esc(phase)}">` +
+      // Empty rather than absent for a file git has never committed —
+      // the same answer the description's own field gives.
+      `<input type="hidden" name="statusBaseSha" value="${esc(view.checks?.baseSha ?? "")}">` +
+      list +
+      `<p class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}</p>` +
+      `</form>`
+    : list;
+  return `<section class="checks">${head}${body}</section>`;
 }
 
 /** The one action an archived spec offers (spec 198).

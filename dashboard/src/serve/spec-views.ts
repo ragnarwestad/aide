@@ -358,9 +358,11 @@ export async function specPageView(
     acceptancePhase: parsedStatus.acceptancePhase ?? undefined,
   };
   const rows = parsedStatus.checks;
-  const anyTickable = rows.some(
-    (row) => !row.done && (row.phase === target.phase || row.phase === target.acceptancePhase),
-  );
+  // The Acceptance section alone: the Phase tables are the implement
+  // run's own record and the Checks tab no longer offers them (see
+  // `checklist`'s own comment), so a spec whose only open rows are
+  // Phase rows has nothing to save and needs no form or commit stamp.
+  const anyTickable = rows.some((row) => !row.done && row.phase === target.acceptancePhase);
   // `branchBaseSha` is already the exact commit that last touched the
   // file ON THE BRANCH (`readStatusFromBranch`'s own answer) — no
   // second git call needed. Off disk, read out of the DASHBOARD's own
@@ -411,7 +413,6 @@ export async function specPageView(
     checks: {
       rows,
       phase: target.phase,
-      acceptancePhase: target.acceptancePhase,
       baseSha: statusCommit?.sha,
     },
     // Ticked by what the LINE resolves to, not by what it says:
