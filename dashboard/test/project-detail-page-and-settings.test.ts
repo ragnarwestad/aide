@@ -268,6 +268,25 @@ describe("editing the unified settings table (spec 255)", () => {
     expect(html).toContain('<a class="btn" href="/projects/aide">Cancel</a>');
   });
 
+  // Spec 301: the button row holds two buttons at all times, right-aligned
+  // — Edit and a disabled Cancel while reading, Save and a working Cancel
+  // while editing. Neither button appears nor disappears between the two.
+  test("read mode shows Edit and a disabled Cancel, both inside .configactions (REQ-1, REQ-2, REQ-3)", async () => {
+    const root = projectsRoot({ aide: null });
+    const html = await (await get(serve(root, settled(root, "aide")), "aide")).text();
+    expect(html).toContain(
+      '<div class="configactions"><a class="btn primary" href="/projects/aide?edit=1">Edit</a>' +
+        '<button type="button" class="btn" disabled>Cancel</button></div>',
+    );
+  });
+
+  test("edit mode shows Save and Cancel inside .configactions (REQ-1, REQ-2)", async () => {
+    const root = projectsRoot({ aide: null });
+    const base = serve(root, settled(root, "aide"));
+    const html = await (await fetch(`${base}/projects/aide?edit=1`, { headers: AUTH })).text();
+    expect(html).toMatch(/<div class="configactions">.*Save.*<a class="btn" href="\/projects\/aide">Cancel<\/a><\/div>/s);
+  });
+
   test("saving a changed AIDE_INSTALL_CMD writes .aide/config and the redirect target shows it in view mode (criterion 5)", async () => {
     const root = projectsRoot({ aide: null });
     const project = join(root, "aide");

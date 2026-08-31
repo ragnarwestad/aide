@@ -125,19 +125,25 @@ export function unifiedSettingsTable(
     `<div class="tablewrap"><table class="list"><thead><tr><th>Name</th><th>Value</th>` +
     `<th>Comment</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   if (!editing) {
-    return `<a class="btn primary" href="${esc(path)}?edit=1">Edit</a>` + table;
+    // Two buttons even while reading (spec 301): Cancel sits here too,
+    // visibly disabled, so pressing Edit only swaps the two labels and
+    // enables the second button — nothing appears or disappears.
+    return (
+      `<div class="configactions"><a class="btn primary" href="${esc(path)}?edit=1">Edit</a>` +
+      btn({ label: "Cancel", type: "button", disabled: true }) +
+      `</div>` +
+      table
+    );
   }
   return (
     `<form method="post" action="/api/queue/projects/${esc(encodeURIComponent(name))}/settings" class="newspecform">` +
     tokenField(opts.token) +
     (opts.error ? rowMessage("err", opts.error, { hook: "refusal", tag: "p" }) : "") +
-    // Each on its own `.frow`, the way every other `.newspecform` field
-    // row is (`.newspecform .frow { flex-basis: 100% }`) — `.newspecform`
-    // itself is a flex row, so a bare `<span class="factions">` or the
-    // table's `<div>` as a DIRECT child would flex-flow beside each
-    // other instead of stacking.
-    `<span class="frow"><span class="factions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
-    `<a class="btn" href="${esc(path)}">Cancel</a></span></span>` +
+    // `.configactions` carries its own `flex-basis: 100%`, so it stacks
+    // above the table the same way `.frow` does without needing that
+    // wrapper itself (spec 301).
+    `<div class="configactions">${btn({ label: "Save", variant: "primary", pending: "saving…" })}` +
+    `<a class="btn" href="${esc(path)}">Cancel</a></div>` +
     `<span class="frow">${table}</span>` +
     messageSlot("refused") +
     `</form>`

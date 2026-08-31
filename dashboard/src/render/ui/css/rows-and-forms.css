@@ -84,6 +84,14 @@ td form { margin: 0; display: inline-block; }
   flex-basis: 100%; }
 .newspecform .frow .field.wide { flex: 1 1 0; }
 .newspecform .factions { display: flex; gap: var(--sp-2); align-self: flex-end; }
+/* The Config tab's button row (spec 301): always two buttons, right-
+   aligned, with a deliberate gap to the table below. `flex-basis: 100%`
+   forces it onto its own line inside `.newspecform`'s flex-wrap layout
+   in edit mode, exactly as `.frow`'s does for the table beside it; in
+   view mode the row sits in ordinary block flow, where the property has
+   no effect and the div is already full width. */
+.configactions { display: flex; justify-content: flex-end; gap: var(--sp-2);
+  flex-basis: 100%; margin-bottom: var(--sp-3); }
 /* `display: contents` removes this wrapper from layout entirely, so
    its two fields become direct items of `.scheduleform`'s own grid
    (field.css) — one shared set of column tracks across both rows,

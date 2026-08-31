@@ -86,6 +86,17 @@ describe("the row's action wraps rather than widening a column", () => {
   });
 });
 
+// --- the Config tab's button row sits at the right, with a real gap
+// below it (spec 301) --------------------------------------------------
+
+describe("the Config tab's button row is right-aligned with a deliberate margin", () => {
+  test(".configactions is right-aligned and its gap to the table below is a token, not a literal", () => {
+    const rule = CSS.match(/\.configactions \{([^}]*)\}/)?.[1] ?? "";
+    expect(rule).toContain("justify-content: flex-end");
+    expect(rule).toMatch(/margin-bottom:\s*var\(--sp-\d\)/);
+  });
+});
+
 // --- the unit a reader chose (spec 118) -------------------------------------
 //
 // The same trick as the theme, applied to text instead of colour: every

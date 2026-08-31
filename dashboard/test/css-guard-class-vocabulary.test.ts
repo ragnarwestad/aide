@@ -172,6 +172,9 @@ const STRUCTURE = [
   // create/edit form's error line, and the Cron field's input and its
   // live "Next run" preview span.
   "schedulenewlink", "kv", "scheduleform-error", "cron-input", "cron-next",
+  // the Config tab's button row (spec 301): always two buttons, right-
+  // aligned, with its own margin to the table below.
+  "configactions",
 ];
 
 const ALLOWED = new Set([...COMPONENTS, ...JS_HOOKS, ...STRUCTURE]);

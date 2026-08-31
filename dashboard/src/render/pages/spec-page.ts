@@ -73,7 +73,7 @@ export function renderSpecPage(
   const lead = view.lead;
 
   const banner =
-    (view.title ? `<p class="desc"><strong>${esc(view.title)}</strong></p>` : "") +
+    (view.title ? `<p class="desc"><span class="label">Title:</span><strong>${esc(view.title)}</strong></p>` : "") +
     // Where the description's editor would have been, in words: a
     // reader who came looking for it should not have to work out from a
     // missing textarea that the spec is closed.

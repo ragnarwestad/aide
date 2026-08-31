@@ -30,6 +30,14 @@ describe("spec 212: one tab per document, and Checks is none of them", () => {
     expect(html).toContain("One page shows the whole spec");
   });
 
+  // Spec 301: a reader meeting the page for the first time should not
+  // have to work out from position alone that the bold sentence is the
+  // spec's title.
+  test('the title is preceded by a "Title:" label (REQ-5)', () => {
+    const html = page();
+    expect(html).toContain('<span class="label">Title:</span><strong>One page shows the whole spec</strong>');
+  });
+
   test("every document is offered as a tab of its own", () => {
     const html = page();
     const base = "/specs/aide/150-one-page-shows-the-whole-spec";
