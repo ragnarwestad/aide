@@ -18,12 +18,22 @@
    Steps table and the settings table wear the same class, and nobody
    asked for either of them to be given a height.
 
-   Unconditional, like the horizontal rule above it — the wrapper is
-   present in the phone layout too, where .speclist is stacked blocks
-   rather than a table, and a box that scrolled only on a desktop would
-   be a page that ran off the bottom on a phone. 70vh leaves the row of
-   controls and the page's own header in view above it. */
-#jobrows .tablewrap { overflow-y: auto; max-height: 70vh; }
+   #jobrows is a flex column (spec 320): .specsearch (the filter row)
+   keeps its own natural height, and .tablewrap is flex: 1 1 auto — it
+   grows to fill whatever page.css's body/main chain actually has left,
+   never a guessed fraction of the viewport (the old 70vh, replaced here,
+   summed with the page's fixed chrome to more than the window below
+   about 1043px of window height, which is what drew the page's own
+   second scrollbar). min-height: 0 on both levels is what lets that
+   growth also SHRINK below content size — without it a nested flex box
+   grows to fit its content instead of capping there and leaving the
+   overflow to be scrolled.
+
+   Undone entirely at phone width (narrow.css) instead of being made
+   phone-safe here: REQ-4 wants no box at all there, not a differently
+   sized one — see that file's own comment. */
+#jobrows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+#jobrows .tablewrap { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: var(--sp-2) var(--sp-3) var(--sp-2) 0;
