@@ -73,11 +73,17 @@ describe("the Archived chip", () => {
 // --- criterion 5: All means all, in ONE order ------------------------------
 
 describe("the All chip", () => {
+  // Pinned to the "spec" sort explicitly: the list's own default
+  // changed to Created (spec 317), and this fixture's synthetic git
+  // answers no spec's real creation date — every row would tie there,
+  // which proves nothing about interleaving. Folder number is still a
+  // real, distinct value per row, live or archived, so it is what
+  // proves the point this criterion is actually about.
   test("interleaves live and archived by the same sort key (criterion 5)", async () => {
-    const rows = order(await specsList(start().base, ALL_VIEW));
-    // Folder number, the list's own default, descending: 150, 92, 81,
-    // 60, 31, 05. The live spec sits BETWEEN two archived ones, which a
-    // list that concatenated the two sets could not produce.
+    const rows = order(await specsList(start().base, `${ALL_VIEW}&sort=spec`));
+    // Folder number, descending: 150, 92, 81, 60, 31, 05, 01. The live
+    // spec sits BETWEEN two archived ones, which a list that
+    // concatenated the two sets could not produce.
     expect(rows).toEqual([STAMPED, UNSTAMPED, LIVE, SAME_DAY, UNDATED, OTHER, LIVE_OTHER]);
   });
 

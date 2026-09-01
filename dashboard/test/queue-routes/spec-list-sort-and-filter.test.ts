@@ -3,6 +3,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
   renderQueuePage,
+  type ArchivedSpecView,
   type QueuePageOptions,
   type QueueRowView,
   type QueueTarget,
@@ -60,12 +61,27 @@ describe("the job list sorts and filters", () => {
     // neither git nor a job can date (below), so tests about that still
     // need a target to give one on.
     targets: QueueTarget[] = [],
+    archivedSpecs?: ArchivedSpecView[],
   ) =>
     renderQueuePage(rows, "2026-08-16T00:00:00Z", [{ label: "Overview", path: "projects.html" }], {
       runnerAvailable: true,
       targets,
       filter,
+      archivedSpecs,
+      archived: archivedSpecs?.map((s) => `${s.project}/${s.folder}`),
     });
+
+  /** The minimum an `ArchivedSpecView` needs to render a row — every
+   *  field the row markup or the sort touches, and nothing else. */
+  const archived = (folder: string, extra: Partial<ArchivedSpecView> = {}): ArchivedSpecView => ({
+    project: "aide",
+    folder,
+    archivedAt: "2026-08-01",
+    done: [],
+    models: {},
+    phaseOutcomes: {},
+    ...extra,
+  });
 
   test("one table holds every job — no fixed section above it", () => {
     const html = page([row("a", { state: "running" }), row("b")]);
@@ -107,22 +123,64 @@ describe("the job list sorts and filters", () => {
     expect(html).toContain("b-spec");
   });
 
-  // The default view is the newest SPEC at the top — by number, not by
-  // last activity (chosen 2026-08-19: activity order put a spec that
-  // had just been created at the bottom, under everything that had
-  // ever run). Started is still one click away.
-  test("newest spec first is the default order", () => {
-    const html = page([
-      row("104", { startedAt: "2026-08-16T11:00:00Z" }),
-      row("109", { startedAt: "2026-08-16T09:00:00Z" }),
+  // Spec 317 (REQ-3): the default view is the newest spec MADE at the
+  // top — by its own creation date, not by folder number (which was the
+  // default from 2026-08-19 until this changed it: activity order put a
+  // spec that had just been created at the bottom, under everything
+  // that had ever run; folder order sorted the same way for as long as
+  // numbers kept increasing, until a spec's folder was renumbered on
+  // reopen and the two stopped agreeing). Folder order is still one
+  // click away on the Spec column.
+  test("newest CREATED spec first is the default order (REQ-3)", () => {
+    const html = page([], undefined, [
+      target("104-first", { createdAt: "2026-08-10T09:00:00Z" }),
+      target("109-second", { createdAt: "2026-08-16T09:00:00Z" }),
     ]);
-    expect(html.indexOf("109-spec")).toBeLessThan(html.indexOf("104-spec"));
-    // The Spec heading spans two columns since spec 165 — the phase
-    // name's and the row's AI — which is why the attribute is not
-    // pinned to sitting straight after the class.
+    expect(html.indexOf("109-second")).toBeLessThan(html.indexOf("104-first"));
     expect(html).toMatch(
-      /<th class="[^"]*" colspan="2" aria-sort="descending"><a class="sortlink on"[^>]*>Spec<svg/,
+      /<th class="" data-col="created" aria-sort="descending"><a class="sortlink on"[^>]*>Created<svg/,
     );
+  });
+
+  // REQ-2: the Created column sorts like every other — a click turns it
+  // round. Folder numbers run the OPPOSITE way from creation date here,
+  // so a sort that silently fell back to folder order would fail this
+  // exactly as it would pass the default-order test above by accident.
+  test("the Created column sorts ascending on request, oldest first", () => {
+    const html = page([], { sort: "created", dir: "asc" }, [
+      target("109-earlier", { createdAt: "2026-08-10T09:00:00Z" }),
+      target("104-later", { createdAt: "2026-08-16T09:00:00Z" }),
+    ]);
+    expect(html.indexOf("109-earlier")).toBeLessThan(html.indexOf("104-later"));
+  });
+
+  // REQ-5: a spec git could not date sorts as the OLDEST possible date —
+  // never floating to the top of a newest-first list, and never
+  // crashing the sort.
+  test("a spec with no creation date sorts as the oldest, not the newest (REQ-5)", () => {
+    const html = page([], { sort: "created" }, [
+      target("50-dated", { createdAt: "2026-08-10T09:00:00Z" }),
+      target("51-undated"),
+    ]);
+    expect(html.indexOf("50-dated")).toBeLessThan(html.indexOf("51-undated"));
+  });
+
+  // REQ-2/REQ-6, the exact gap plan review's must-fix 1 found: an
+  // archived row's `createdAt` has to reach the same sort key a live
+  // row's does, or every archived row ties at "unknown" regardless of
+  // its real date. Folder numbers again run the opposite way from the
+  // real dates, so a sort reading the wrong field (or none) fails this.
+  test("an archived row sorts by its own real creation date, not always as unknown", () => {
+    const html = page(
+      [],
+      { sort: "created" },
+      [],
+      [
+        archived("61-older-archive", { createdAt: "2026-08-01T09:00:00Z" }),
+        archived("60-newer-archive", { createdAt: "2026-08-20T09:00:00Z" }),
+      ],
+    );
+    expect(html.indexOf("60-newer-archive")).toBeLessThan(html.indexOf("61-older-archive"));
   });
 
   // Spec 199 put the sort on when the spec was MADE, so a spec re-run an

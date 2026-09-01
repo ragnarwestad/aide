@@ -1,9 +1,10 @@
 // Split out of archived-specs.test.ts by theme.
 
 import { afterEach, describe, expect, test } from "bun:test";
+import type { GitRunner } from "../src/git/branch-status.ts";
 import {
-  ARCHIVED_VIEW, LONG_TAIL, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED, UNSTAMPED,
-  blockFor, described, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
+  ARCHIVED_VIEW, LONG_TAIL, SAME_DAY, STAMPED, STAMPED_COST_LABEL, STAMPED_TIME_SPENT, TWO_TOOLS, UNDATED,
+  UNSTAMPED, blockFor, described, gitDated, harness, noStamp, opened, outcome, rowFor, specsList, stamp, start,
 } from "./archived-specs-fixtures.ts";
 
 afterEach(() => harness.cleanup());
@@ -210,5 +211,37 @@ describe("an archived spec's row", () => {
     const withoutDescription = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
     expect(withoutDescription).not.toContain("archive-desc");
     expect(withoutDescription).not.toContain("—");
+  });
+
+  // --- spec 317, REQ-6: an archived row's own Created date -------------------
+
+  // SAME_DAY has no recorded phase duration, so its Time cell falls
+  // back to the archive stamp itself ("2026-08-13") — the exact case
+  // REQ-6 rules out for Created: the new cell must show the spec's TRUE
+  // beginning, not a second copy of the date already beside it.
+  test("carries its own creation date, distinct from the archive date beside it (REQ-6)", async () => {
+    const gitRun: GitRunner = async (dir, args) => {
+      if (args.join(" ").startsWith("log --follow --format=%aI") && dir.includes(SAME_DAY)) {
+        return { code: 0, stdout: "2026-07-01T09:00:00+02:00\n" };
+      }
+      return gitDated({ [UNSTAMPED]: "2026-07-30T11:02:00+02:00" })(dir, args);
+    };
+    const { base } = start({ gitRun });
+    const row = rowFor(await specsList(base, ARCHIVED_VIEW), SAME_DAY);
+    const timeCell = row.slice(row.indexOf('data-col="started"'));
+    expect(timeCell.slice(0, timeCell.indexOf("</td>"))).toContain("2026-08-13");
+    const createdCell = row.slice(row.indexOf('data-col="created"'));
+    const body = createdCell.slice(0, createdCell.indexOf("</td>"));
+    expect(body).toContain("2026-07-01");
+    expect(body).not.toContain("2026-08-13");
+  });
+
+  // A spec with nothing for the rename-aware lookup to find (no
+  // 0-README.md history) is a real, honest "cannot date" — the same
+  // dash convention every other undatable spec on this page shows.
+  test("shows the dash convention when the rename-aware lookup cannot date it (REQ-5)", async () => {
+    const row = rowFor(await specsList(start().base, ARCHIVED_VIEW), UNDATED);
+    const createdCell = row.slice(row.indexOf('data-col="created"'));
+    expect(createdCell.slice(0, createdCell.indexOf("</td>"))).toContain("date unknown");
   });
 });

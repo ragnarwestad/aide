@@ -131,17 +131,23 @@ describe("refreshSpecCaches — the one schedule that feeds every peek", () => {
       archivedSpecs: { "77-old-thing": {} },
     });
     await until(() => lsRemotes(git.calls).length > 0);
-    await new Promise((r) => setTimeout(r, 80));
+    await until(() => git.calls.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI")));
     // The per-spec sweep walks `targets()`, which is the LIVE list. An
-    // archived spec is asked ONE question — the date it was archived,
-    // and only where its `4-status.md` carries no stamp — and none of
-    // the four the live sweep asks. Warming every spec that ever
+    // archived spec is asked only its OWN two questions — the archive
+    // date (only where `4-status.md` carries no stamp) and, since spec
+    // 317, its own creation date via the rename-aware lookup — and
+    // never the four the live sweep asks. Warming every spec that ever
     // existed, forever, is the cost spec 178's own plan review
     // rejected.
     const inArchive = git.calls.filter((c) => c.dir.includes("archive"));
     expect(inArchive.some((c) => c.args.join(" ").startsWith("log --all"))).toBe(false);
     expect(inArchive.some((c) => c.args.join(" ").includes("-- 1-description.md"))).toBe(false);
-    expect(inArchive.some((c) => c.args.join(" ").startsWith("log --format=%aI"))).toBe(false);
+    // Not the LIVE creation-date lookup (a directory pathspec) — the
+    // rename-aware one, which is a different call entirely.
+    expect(inArchive.some((c) => c.args.join(" ") === "log --format=%aI -- .")).toBe(false);
+    expect(
+      inArchive.some((c) => c.args.join(" ").startsWith("log --follow --format=%aI -- 0-README.md")),
+    ).toBe(true);
   });
 
   // Criterion 7: the roots are asked together. The sequential `for`

@@ -120,6 +120,12 @@
      this margin was blamed and pulled in that round, and put back once
      the real culprits were gone. */
   table.list tr.spechead [data-col="started"] { display: block; margin-left: auto; }
+  /* Spec 317, REQ-8: dropped rather than reflowed onto this already-
+     crowded line (fold, name, pips, badge, action, duration, cost) — a
+     phone reader here is oriented to state and how long it took, not
+     when it began. The sort itself is unaffected; only the cell is
+     hidden. */
+  table.list tr.spechead [data-col="created"] { display: none; }
   /* No "· " separator before the cost (removed 2026-08-24): it read
      fine while date and cost sat side by side, and as a stray leading
      dot every time the cost wrapped alone or the date showed the

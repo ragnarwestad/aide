@@ -62,6 +62,7 @@ function fromTarget(
   | "dependsOn"
   | "analyzeStale"
   | "createdAt"
+  | "createdAtChecking"
   | "freshnessUnknown"
 > {
   return {
@@ -79,6 +80,7 @@ function fromTarget(
     // fallback would leave the row jumping for exactly the specs git
     // cannot date.
     createdAt: t?.createdAt,
+    createdAtChecking: t?.createdAtChecking,
   };
 }
 
@@ -215,6 +217,13 @@ function readerGroup(s: ArchivedSpecView): SpecGroup {
     description: s.description,
     dependsOn: [],
     analyzeStale: false,
+    // Copied onto the same top-level fields `fromTarget()` populates for
+    // a live row (spec 317, plan review's must-fix 1): the sort key and
+    // the Created cell both read `SpecGroup.createdAt` alone, whichever
+    // kind of row it is, and a `readerGroup()` that left it unset would
+    // sort every archived row as "unknown" regardless of its real date.
+    createdAt: s.createdAt,
+    createdAtChecking: s.createdAtChecking,
     archive: s,
   };
 }

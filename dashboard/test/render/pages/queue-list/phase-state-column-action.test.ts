@@ -194,8 +194,9 @@ describe("spec 157: the row's one action sits in the State column", () => {
       ]);
       // The same count on EVERY phase line since spec 179 put a picker
       // on each of them: no line borrows a slot from a `rowspan` on
-      // the line above it any more.
-      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 5]);
+      // the line above it any more. Six since Created's blank
+      // placeholder cell joined the other five (spec 317).
+      expect([sub.slice(0, 60), cells(sub).length]).toEqual([sub.slice(0, 60), 6]);
     }
   });
 
@@ -215,11 +216,12 @@ describe("spec 157: the row's one action sits in the State column", () => {
   // A shut row's action left the last column for the State column in
   // spec 157, and nothing took its place: the column stood blank on
   // every row for as long as the header declared it, and went on
-  // 2026-08-23. The row ends on Cost now, whatever the state.
+  // 2026-08-23. The row ends on Cost now, whatever the state. Five
+  // cells since Created joined between State and Time (spec 317).
   test("the head row ends on the cost cell whatever the state", () => {
     for (const r of [[], [lead()], [lead({ state: "running" })], [lead({ errorReason: "conflict" })]]) {
       const row = headRow(rows(r as QueueRowView[]));
-      expect(cells(row)).toHaveLength(4);
+      expect(cells(row)).toHaveLength(5);
       expect(row).toMatch(/data-col="cost">[\s\S]*<\/td><\/tr>$/);
     }
   });

@@ -63,6 +63,13 @@ export interface QueueTarget {
    *  git could not answer, and then the cell shows a dash — never a
    *  job's time, which would put the movement straight back. */
   createdAt?: string;
+  /** Nobody has yet asked git for this spec's creation date (spec 317)
+   *  — `SpecCreatedAtChecker.peekCreatedAt`'s own `checkedAt === null`,
+   *  carried onto the target rather than lost the moment `createdAt`
+   *  collapses "never asked" and "asked, unanswerable" into the same
+   *  `undefined`. The Created cell draws "checking…" for this, and a
+   *  dash for a real, timestamped `null`. */
+  createdAtChecking?: boolean;
   /** Nothing has yet asked git anything about this spec (spec 208).
    *  Not "no step has run" — that is a real answer — and the row says
    *  "checking…" rather than draw a done-set, a Started date and a
@@ -129,6 +136,18 @@ export interface ArchivedSpecView {
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
+  /** When the spec was made, from BEFORE the archive step's own `git
+   *  mv` (spec 317, REQ-6) — distinct from `archivedAt` above, which is
+   *  when the folder was moved. Off `firstCommitAtFollowingRenames`,
+   *  never off a plain directory pathspec against the post-move path:
+   *  that would answer with the archive date a second time, which is
+   *  exactly the repeat REQ-6 rules out. Absent for a spec git could
+   *  not date this way either. */
+  createdAt?: string;
+  /** Nobody has yet asked git for this spec's creation date (spec 317)
+   *  — the same "checking…" distinction `dateChecking` draws for the
+   *  archive date, over the separate question. */
+  createdAtChecking?: boolean;
   /** Nobody has yet asked git when this spec was archived (spec 208).
    *  Only a spec whose `4-status.md` carries no `Archived:` stamp can
    *  reach git at all, so this is the shrinking minority of a shrinking
@@ -314,8 +333,20 @@ export interface SpecGroup {
   spentTokens?: number;
   /** When the spec was made, off its target and therefore off git
    *  (spec 199). Absent for a spec git could not date, and for a create
-   *  job whose folder is not on disk yet. */
+   *  job whose folder is not on disk yet.
+   *
+   *  For a LOCKED row this is copied up from `archive.createdAt` (spec
+   *  317) by `readerGroup()`, onto this same top-level field — the sort
+   *  key and the Created cell both read it from here, whichever kind of
+   *  row it is, rather than branching on `archive?.createdAt` at each
+   *  call site. */
   createdAt?: string;
+  /** Spec 317: nobody has yet asked git for this date — the Created
+   *  cell then draws "checking…" rather than a dash, the same
+   *  distinction `freshnessUnknown` draws for the done-set. Copied up
+   *  from `archive.createdAtChecking` for a locked row, on the same
+   *  terms as `createdAt` above. */
+  createdAtChecking?: boolean;
   /** How long the spec's phases took, added together — the work, not
    *  the calendar (spec 199). A spec that waited three days between two
    *  phases did not take three days, which is why this is a SUM of
