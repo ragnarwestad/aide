@@ -10,7 +10,28 @@ import { CSS } from "./css.ts";
 import { ICON_LINKS, WORDMARK } from "./brand.ts";
 import { PWA_LINKS } from "./pwa.ts";
 import { esc } from "./html.ts";
-import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT } from "./components.ts";
+import { ICON_THEME_AUTO, ICON_THEME_DARK, ICON_THEME_LIGHT, rowMessage } from "./components.ts";
+
+const DEFAULT_INSTALL_LOG = () => join(process.env.HOME ?? "", "Library/Logs/aide-dashboard/install.log");
+
+// A tool the installer could not declare (spec 334) is otherwise
+// visible only in a log file nobody has a reason to open — read here so
+// it reaches every ordinary dashboard visit instead (REQ-5). Only the
+// LAST run's block matters: an old warning a later run already cleared
+// must not keep showing.
+function lastInstallWarning(): string | undefined {
+  const path = process.env.AIDE_INSTALL_LOG ?? DEFAULT_INSTALL_LOG();
+  let text: string;
+  try {
+    text = readFileSync(path, "utf-8");
+  } catch {
+    return undefined;
+  }
+  const lastBlock = text.split(/^--- .* ---$/m).pop() ?? "";
+  return lastBlock.includes("⚠️")
+    ? `aide's last install found a problem — see ${path}`
+    : undefined;
+}
 
 export interface NavEntry {
   label: string;
@@ -270,6 +291,8 @@ export function pageShell(
   // parsed — and waits for DOMContentLoaded before touching an element.
   const script = opts.script ? `\n<script>${opts.script}</script>` : "";
   const scriptSrc = opts.scriptSrc ? `\n<script src="${esc(opts.scriptSrc)}"></script>` : "";
+  const installWarning = lastInstallWarning();
+  const installBanner = installWarning ? rowMessage("warn", installWarning, { tag: "p" }) : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -283,6 +306,7 @@ ${PWA_LINKS}
 </head>
 <body>
 ${pageHeader()}
+${installBanner}
 ${aboutDialog(opts.buildStamp)}
 ${tabBar(entries, currentPath)}
 <main>

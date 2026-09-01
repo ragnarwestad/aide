@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -310,6 +311,169 @@ class TestMiseDeclaredToolsStayInStepWithUpgrade:
             f"{missing} are declared in MISE_DECLARED_TOOLS but never upgraded by "
             f"upgrade-ai-tools: {upgrade_line}"
         )
+
+
+@pytest.mark.validation
+class TestMiseDeclaredToolsCoversTheSixNamedTools:
+    """Spec 334's own measurement: jq, gh, bun, pandoc and md-to-pdf join
+    markdownlint-cli2 (spec 332) as tools aide's installer declares on
+    every machine, not tools that happen to already be there by hand."""
+
+    SIX_TOOLS = ("markdownlint-cli2", "jq", "gh", "bun", "pandoc", "md-to-pdf")
+
+    def test_all_six_tools_present(self, workspace_root):
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        text = installer.read_text()
+        match = re.search(r'^MISE_DECLARED_TOOLS="([^"]*)"', text, re.MULTILINE)
+        assert match, "MISE_DECLARED_TOOLS is missing from _install-bin.sh"
+        declared = match.group(1)
+        missing = [tool for tool in self.SIX_TOOLS if tool not in declared]
+        assert not missing, f"{missing} missing from MISE_DECLARED_TOOLS: {declared}"
+
+    def test_declares_all_six_via_fake_mise(self, workspace_root, tmp_path):
+        calls = tmp_path / "mise-calls.txt"
+        # Prepended ahead of the ambient PATH — this machine has a real
+        # mise, and the point is to never let it attempt a real network
+        # install as a side effect of running the tests.
+        fake_bin = _fake_mise(tmp_path, f'printf "%s\\n" "$*" >> {calls}\nexit 0')
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_mise_declared_tools'],
+            capture_output=True,
+            text=True,
+            env={"PATH": f"{fake_bin}:{os.environ['PATH']}", "HOME": str(tmp_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        logged = calls.read_text() if calls.exists() else ""
+
+        text = installer.read_text()
+        match = re.search(r'^MISE_DECLARED_TOOLS="([^"]*)"', text, re.MULTILINE)
+        assert match, "MISE_DECLARED_TOOLS is missing from _install-bin.sh"
+        for pkg in match.group(1).split():
+            assert f"use -g {pkg}@latest" in logged, \
+                f"mise was never asked to declare {pkg}: {logged}"
+
+
+# The literal `command -v <bareword>` form every check in the repo uses
+# today (REQ-9's own scope, per spec 334's Risk 4) — a `"$var"` or `$var`
+# form after `command -v` does not match, by construction: neither `"`
+# nor `$` is in the character class.
+_BAREWORD_COMMAND_V = re.compile(r"command -v ([A-Za-z][A-Za-z0-9_.-]*)\b")
+
+# Tools with no mise-manageable backend, or checked for a reason unrelated
+# to aide's own installer (the editor Copilot's installer looks for).
+_DECLARED_TOOL_EXCLUDE = {"mise", "claude", "codex", "code", "curl"}
+
+
+@pytest.mark.validation
+class TestRequiredToolsAreDeclared:
+    """A script or installer that starts checking for a new external tool
+    must add it to MISE_DECLARED_TOOLS too, or the machine that lacks it
+    stays silently broken (REQ-9)."""
+
+    def test_every_command_v_check_is_declared_or_excluded(self, workspace_root):
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        match = re.search(
+            r'^MISE_DECLARED_TOOLS="([^"]*)"', installer.read_text(), re.MULTILINE
+        )
+        assert match, "MISE_DECLARED_TOOLS is missing from _install-bin.sh"
+        declared_tools = match.group(1)
+
+        files = _scripts(workspace_root)
+        for tool in ("claude-code", "copilot", "codex"):
+            files.append(workspace_root / "implementations" / tool / "install.sh")
+
+        undeclared = []
+        for f in files:
+            for name in _BAREWORD_COMMAND_V.findall(f.read_text()):
+                if name in _DECLARED_TOOL_EXCLUDE:
+                    continue
+                if name not in declared_tools:
+                    undeclared.append((f.name, name))
+        assert not undeclared, (
+            f"tool(s) checked with `command -v` but missing from "
+            f"MISE_DECLARED_TOOLS (or the documented exclude set): {undeclared}"
+        )
+
+
+@pytest.mark.validation
+class TestInstalledVersionStamp:
+    """install_common_bin records which repo checkout and commit produced
+    this ~/.local/bin copy, so aide-preflight can later tell it apart from
+    the repo's current HEAD (REQ-7)."""
+
+    def test_install_common_bin_writes_a_stamp(self, workspace_root, tmp_path):
+        installer = workspace_root / "core" / "scripts" / "_install-bin.sh"
+        result = subprocess.run(
+            ["bash", "-c", f'source "{installer}"; install_common_bin'],
+            capture_output=True,
+            text=True,
+            env={"PATH": os.environ["PATH"], "HOME": str(tmp_path)},
+        )
+        assert result.returncode == 0, result.stderr
+        stamp = tmp_path / ".local" / "bin" / ".aide-installed-version"
+        assert stamp.is_file(), "install_common_bin did not write a version stamp"
+        lines = stamp.read_text().splitlines()
+        expected_sha = subprocess.run(
+            ["git", "-C", str(workspace_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        assert len(lines) >= 2, f"stamp has too few lines: {lines}"
+        assert lines[1] == expected_sha, (
+            f"stamp's second line should be the repo's HEAD SHA "
+            f"({expected_sha}), got: {lines}"
+        )
+
+
+@pytest.mark.validation
+class TestJqRequiredContractStaysConsistent:
+    """Every script that refuses to run without jq must say so in the same
+    JSON shape (REQ-6) — widened to five scripts after plan review found
+    aide-run-spec's own check was weaker than the other four."""
+
+    JQ_REQUIRING_SCRIPTS = (
+        "aide-write-spec", "aide-create-spec", "aide-archive-spec",
+        "aide-record-test-run", "aide-run-spec",
+    )
+
+    def test_all_five_jq_scripts_share_the_same_error_shape(self, workspace_root, tmp_path):
+        import json
+
+        # A scratch PATH that mirrors every real system bin directory
+        # MINUS jq — never plain /usr/bin:/bin, which still resolves a
+        # real jq on this development machine (plan review, feasibility
+        # should-fix 2). A truly jq-less-but-otherwise-empty PATH is not
+        # enough either: these scripts reach for ordinary utilities
+        # (mktemp, dirname, ...) before their own jq check runs, and env's
+        # own "#!/usr/bin/env bash" shebang resolution needs bash on PATH
+        # too — so this copies everything else through and omits only jq.
+        empty_bin = tmp_path / "empty-bin"
+        empty_bin.mkdir()
+        for real_dir in dict.fromkeys(os.environ["PATH"].split(":")):
+            real_path = Path(real_dir)
+            if not real_path.is_dir():
+                continue
+            for entry in real_path.iterdir():
+                if entry.name == "jq" or (empty_bin / entry.name).exists():
+                    continue
+                try:
+                    (empty_bin / entry.name).symlink_to(entry)
+                except OSError:
+                    pass
+        for name in self.JQ_REQUIRING_SCRIPTS:
+            script = workspace_root / "core" / "scripts" / name
+            result = subprocess.run(
+                [str(script)],
+                capture_output=True,
+                text=True,
+                env={"PATH": str(empty_bin), "HOME": str(tmp_path)},
+            )
+            assert result.returncode == 2, f"{name}: expected exit 2, got {result.returncode}"
+            payload = json.loads(result.stdout.strip().splitlines()[0])
+            assert payload.get("ok") is False, f"{name}: {payload}"
+            assert payload.get("exitCode") == 2, f"{name}: {payload}"
+            assert payload.get("terminalReason") == "refused", f"{name}: {payload}"
+            assert "jq" in payload.get("error", ""), f"{name}: {payload}"
 
 
 # Codex reads at most project_doc_max_bytes of AGENTS.md and appends

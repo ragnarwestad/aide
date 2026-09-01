@@ -94,3 +94,43 @@ class TestPreflightIsWiredIn:
         install = workspace_root / "implementations" / ai / "install.sh"
         assert "aide-preflight" in install.read_text(), \
             f"{ai}/install.sh does not run the preflight"
+
+
+@pytest.mark.validation
+class TestPreflightDrift:
+    """aide-preflight names when the installed ~/.local/bin copy is behind
+    the repo it was installed from (REQ-7), via the version stamp
+    install_common_bin writes."""
+
+    @staticmethod
+    def _write_stamp(home, repo_root, sha):
+        stamp_dir = home / ".local" / "bin"
+        stamp_dir.mkdir(parents=True, exist_ok=True)
+        (stamp_dir / ".aide-installed-version").write_text(
+            f"{repo_root}\n{sha}\n2026-09-01T00:00:00Z\n"
+        )
+
+    def test_reports_match_when_stamp_equals_head(self, workspace_root, tmp_path):
+        head = subprocess.run(
+            ["git", "-C", str(workspace_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        self._write_stamp(tmp_path, workspace_root, head)
+        result = _run(workspace_root, ["claude"], home=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "match" in result.stdout.lower(), result.stdout
+        assert head in result.stdout, result.stdout
+
+    def test_reports_behind_when_stamp_is_stale(self, workspace_root, tmp_path):
+        fake_sha = "0000000000000000000000000000000000dead"
+        self._write_stamp(tmp_path, workspace_root, fake_sha)
+        result = _run(workspace_root, ["claude"], home=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "behind" in result.stdout.lower(), result.stdout
+        assert fake_sha in result.stdout, result.stdout
+
+    def test_no_stamp_is_silent(self, workspace_root, tmp_path):
+        result = _run(workspace_root, ["claude"], home=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "match" not in result.stdout.lower()
+        assert "behind" not in result.stdout.lower()

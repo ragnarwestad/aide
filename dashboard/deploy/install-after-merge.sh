@@ -8,15 +8,23 @@
 # just this repo — before killing the process running it.
 set -e
 cd "$(dirname "$0")/../.."
-./implementations/claude-code/install.sh >/dev/null 2>&1
-# Codex too, or its copy of the skills and AGENTS.md drifts silently:
-# both tools read the SAME shared sources, but each has its own
-# installer, and only Claude Code's ran here. Found 2026-08-19, when
-# Codex created a spec on the four-file layout that spec 82 replaced —
-# it had been reading its 16 August copy ever since. Copilot is parked
-# (no subscription), and `~/.agents/skills/` — the directory Copilot
-# reads too — is refreshed by this installer anyway.
-./implementations/codex/install.sh >/dev/null 2>&1
+# A tool the installer could not declare (spec 334) used to vanish into
+# /dev/null on a headless merge nobody is watching. It now reaches a log
+# file the dashboard's own shell.ts reads a warning banner from.
+LOG="${AIDE_INSTALL_LOG:-$HOME/Library/Logs/aide-dashboard/install.log}"
+mkdir -p "$(dirname "$LOG")"
+{
+  echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) ---"
+  ./implementations/claude-code/install.sh
+  # Codex too, or its copy of the skills and AGENTS.md drifts silently:
+  # both tools read the SAME shared sources, but each has its own
+  # installer, and only Claude Code's ran here. Found 2026-08-19, when
+  # Codex created a spec on the four-file layout that spec 82 replaced —
+  # it had been reading its 16 August copy ever since. Copilot is parked
+  # (no subscription), and `~/.agents/skills/` — the directory Copilot
+  # reads too — is refreshed by this installer anyway.
+  ./implementations/codex/install.sh
+} >> "$LOG" 2>&1
 BUN="${AIDE_DASH_BUN:-$HOME/.local/share/mise/shims/bun}"
 if [ -x "$BUN" ]; then
   ( cd dashboard && "$BUN" install --silent )

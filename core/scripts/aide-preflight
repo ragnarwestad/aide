@@ -76,6 +76,30 @@ preflight_optional_deps() {
   echo ""
 }
 
+# Whether this machine's ~/.local/bin copy of aide's scripts is behind
+# the repo it was installed from (spec 334, REQ-7). Silent when
+# install_common_bin has never stamped one — an old install, or a
+# machine that has not installed aide at all — so this never claims
+# drift it cannot actually measure.
+preflight_drift() {
+  local stamp="$HOME/.local/bin/.aide-installed-version"
+  [ -f "$stamp" ] || return 0
+  local repo_root installed_sha current_sha
+  repo_root="$(sed -n '1p' "$stamp")"
+  installed_sha="$(sed -n '2p' "$stamp")"
+  # rev-parse (not `[ -d "$repo_root/.git" ]`) so this still works from
+  # a git worktree checkout, where .git is a FILE pointing at the real
+  # gitdir rather than a directory.
+  git -C "$repo_root" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  current_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || echo unknown)"
+  if [ "$installed_sha" = "$current_sha" ]; then
+    echo -e "${GREEN}✅ Installed files match the repo${NC} ($current_sha)"
+  else
+    echo -e "${YELLOW}⚠️  Installed files are behind the repo${NC} (installed $installed_sha, repo now at $current_sha) — re-run the installer"
+  fi
+  echo ""
+}
+
 TOOL="${1:-all}"
 
 echo "🔎 aide preflight"
@@ -83,14 +107,15 @@ echo "================="
 echo ""
 
 case "$TOOL" in
-  claude)  preflight_claude ;;
-  copilot) preflight_copilot ;;
-  codex)   preflight_codex ;;
+  claude)  preflight_claude; preflight_drift ;;
+  copilot) preflight_copilot; preflight_drift ;;
+  codex)   preflight_codex; preflight_drift ;;
   all)
     preflight_claude
     preflight_copilot
     preflight_codex
     preflight_optional_deps
+    preflight_drift
     ;;
   *)
     echo "❌ Unknown tool: $TOOL (use claude, copilot, codex or all)"
