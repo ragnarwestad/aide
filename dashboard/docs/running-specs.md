@@ -774,9 +774,9 @@ timer from a stopped test's server would fire into the next one.
 
 ## A spec's date does not move, and a phase says how long it took
 
-The "Started" column holds **when the spec was made**, and a run does not move it. Holding the most recently active
-job's own start instead would throw a row to the top of a list sorted by it every time a phase started, so a spec made
-months ago and re-run an hour ago would outrank one made this morning.
+The **Created** column holds when the spec was made, and a run does not move it. Holding the most recently active job's
+own start instead would throw a row to the top of a list sorted by it every time a phase started, so a spec made months
+ago and re-run an hour ago would outrank one made this morning. The list opens sorted by this column, newest first.
 
 The date comes from **git, never from the queue**. `QueueStore` is an LRU of 200 jobs, so a spec older than that has no
 `Job` record of its own beginning left; the specs repo still has the first commit that touched the folder, years on.
@@ -794,6 +794,12 @@ Two traps worth knowing before touching this:
 - **A spec git cannot date shows a dash, and deliberately no fallback to a job's own time.** A `Job`-backed fallback
   would put the jumping straight back for exactly the specs that cannot be dated. The never-run tie-break in
   `sortGroups` therefore asks two things now, not one: neither spec has a job AND neither has a date.
+- **An archived spec's folder has moved, and a plain path-filtered log only sees the move.** Once `aide-archive-spec`
+  has `git mv`'d a spec's folder into `archive/<folder>`, `git log -- .` on the new path only shows the move commit and
+  anything after it — every earlier commit touched the old path and is invisible to that query. `--follow` crosses
+  exactly this kind of rename, but only for a single-file pathspec, not a directory — so an archived row's Created date
+  is read with `firstCommitAtFollowingRenames()` against `0-README.md` (written once by `/aide-create`, never
+  independently edited or renamed), not the plain directory lookup live rows use.
 
 The other half is duration. **Nothing stores one.** A job carries a single `startedAt` however many steps it ran, so `finishedAt -
 startedAt` is the whole job's span and belongs to no one step of it — reaching for that is the mistake `phaseDuration`
