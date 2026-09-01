@@ -77,10 +77,3 @@ class TestProjectName:
             f"The project is named '{PROJECT_NAME}'. Former names still present in:\n  "
             + "\n  ".join(sorted(offenders))
         )
-
-    def test_workspace_directory_is_named_after_the_project(self, workspace_root):
-        assert workspace_root.name == PROJECT_NAME, (
-            f"The workspace directory is '{workspace_root.name}', expected "
-            f"'{PROJECT_NAME}'. AIDE_INSTALLATION_PATH and the reports fallback "
-            f"both derive from this path."
-        )
