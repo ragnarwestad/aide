@@ -310,8 +310,17 @@ export async function assessProjectReadiness(
           // Said all the same, because it is silent otherwise.
           ok: false,
           blocking: false,
+          // Names the destination, not only the gap: this is the one
+          // readiness answer a person closes out themselves, and a note
+          // that describes what is missing without saying where to put
+          // it leaves them hunting. The label comes from the shared
+          // table (spec 318) so it is the same words the Config row
+          // shows.
           detail:
-            `no ${SETTING_LABELS.AIDE_WORKTREE_LINKS.toLowerCase()} are configured — a run's worktree carries tracked files only, so name any gitignored path the project's own commands need (node_modules, .venv)`,
+            `no ${SETTING_LABELS.AIDE_WORKTREE_LINKS.toLowerCase()} are configured — a run's ` +
+            "worktree carries tracked files only, so name any gitignored path the project's " +
+            `own commands need (node_modules, .venv) in ${SETTING_LABELS.AIDE_WORKTREE_LINKS} ` +
+            "on the Config tab",
         }
       : linkError
         ? { check: "worktreeLinks", subject: projectDir, ok: false, blocking: true, detail: linkError }
