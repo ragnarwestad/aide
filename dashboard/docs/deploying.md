@@ -86,7 +86,7 @@ into and runs
 restart reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. The path is written once in the Makefile (`MINI_REPO`) and once in
 `src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
-`test/install-serve-paths.test.ts` reads both and fails if they disagree.
+`test/git/install-serve-paths.test.ts` reads both and fails if they disagree.
 
 `install-serve` creates that checkout itself, with plain `git clone`
 over ssh, so a fresh host needs neither the checkout nor a running service beforehand. Once the service boots from it,

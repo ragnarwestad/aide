@@ -101,7 +101,7 @@ Three fields say something the state alone does not, and each is read by the pag
   `stopped` is deliberately not `failed`: under tight caps a cap-stop is a common, healthy outcome.
 - **`errorReason`** is `conflict` or `unlanded`, set with `failed` when a person can act on the cause — re-running
   `archive` resolves both. It is declared in `src/queue/types.ts` and again in `src/render/ui/job-state/types.ts`,
-  which do not import each other; `test/queue.test.ts` reads both as text and asserts they agree. `error` beside it is
+  which do not import each other; `test/queue/parsing-schedule-and-errors.test.ts` reads both as text and asserts they agree. `error` beside it is
   the sentence for a reader, present on `stopped`, `failed` and `interrupted`, and on a `queued` job that is held back.
 
 ## What the page makes of it

@@ -367,7 +367,7 @@ the redraw rule above holds.
 
 **`formatElapsed` there is HAND-PAIRED with `durationLabel` in
 `src/render/ui/job-state.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
-so the wording rule exists twice. `test/queue-client.test.ts`'s "the page words a duration exactly as the server does"
+so the wording rule exists twice. `test/queue-client/live-redraw.test.ts`'s "the page words a duration exactly as the server does"
 runs a tick against the imported
 `durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the
 first time the clock ticks over the figure the server drew.
