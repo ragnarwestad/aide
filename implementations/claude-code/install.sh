@@ -32,6 +32,7 @@ IMPL_DIR="$SCRIPT_DIR"
 echo "1️⃣  Installing scripts to ~/.local/bin/..."
 source "$WORKSPACE_ROOT/core/scripts/_install-bin.sh"
 install_common_bin
+install_mise_declared_tools
 install_shell_path
 # Claude Code has its own skills location and its own copy step below,
 # but the pruning half is shared with the other two installers — one
