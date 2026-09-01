@@ -72,14 +72,14 @@ changing anything here:
   in the result blob, and a line on stderr). This is a FOURTH hand-paired
   bash/TypeScript pair after `WORKFLOW_STEPS`, `DEPENDENCY_GATED_STEPS`
   and project readiness: `aide_manifest_get` + `aide-run-spec` on one
-  side, `resolveWorktreeLinks` in `dashboard/src/discover.ts` on the
+  side, `resolveWorktreeLinks` in `dashboard/src/project/discover/config.ts` on the
   other, pinned to each other by
   `tests/fixtures/worktree-links-precedence.json` — one table, four
   combinations, read by a test on each side.
 
 **`WORKFLOW_STEPS` is duplicated with no shared source — a new step
 needs both copies.** `core/scripts/aide-run-spec`'s bash list and
-`dashboard/src/queue.ts`'s TypeScript array must name the same steps or
+`dashboard/src/queue/steps.ts`'s TypeScript array must name the same steps or
 the dashboard offers a step the script refuses (or the reverse). A
 regression test (`test_aide_run_spec.py`) reads both lists and asserts
 they match — add a step to only one and that test catches it, but the
@@ -107,7 +107,7 @@ an unmerged dependency holds back; the other steps run
 regardless. Since spec 149 "merged" means ARCHIVED: the dependency's
 code lands when its `archive` step runs, so that is when a dependent
 spec's held-back steps are released. The bash string in `core/scripts/aide-run-spec` and the
-TypeScript array in `dashboard/src/serve.ts` are pinned to each other by
+TypeScript array in `dashboard/src/serve/serve-helpers/config.ts` are pinned to each other by
 `test_the_two_copies_of_the_dependency_gate_agree`, and are edited by
 hand together exactly as `WORKFLOW_STEPS` is. The dashboard's copy is
 what decides whether a queued job is PARKED (left `queued` with the
@@ -123,7 +123,7 @@ about (specs first, code last), runs `AIDE_INSTALL_CMD`
 after a code root, and then archives. There is no Merge or Approve button, no `gateAfter` and
 no `awaiting-approval` state; a landing refused for a conflict leaves
 the branch and records `errorReason: "conflict"` on the job.
-`landBranch` in `dashboard/src/serve.ts` is the one place all of this
+`landBranch` in `dashboard/src/serve/land-branch/merge.ts` is the one place all of this
 happens, under `mergeLock` per repo root.
 
 **An `onLanded` callback runs before the runner clears its own job's
@@ -132,14 +132,13 @@ happens, under `mergeLock` per repo root.
 work (`onStepDone`, e.g. `landArchivedSpec` for `archive`), writes
 `landing: true` onto the job's own store row, and only clears that flag
 in a `.then()` once the WHOLE landing promise settles — including
-whatever `onLanded` itself does. So a callback like
-`stampTotalDuration` (`serve.ts`), which reads `queue.list()` to sum up
-a spec's jobs, sees its own triggering job still marked `landing: true`
-even though the landing that is calling it has already succeeded. Code
+whatever `onLanded` itself does. So a callback that
+reads `queue.list()` to sum up a spec's jobs sees its own triggering job
+still marked `landing: true` even though the landing that is calling it
+has already succeeded. Code
 in an `onLanded` callback that needs to know whether ITS OWN job is
 still in flight cannot trust the stored `landing` flag for that one row
-and must treat it as settled by hand, the way `stampTotalDuration` now
-does — every other row's `landing`/`inFlight` state is still exactly as
+and must treat it as settled by hand — every other row's `landing`/`inFlight` state is still exactly as
 trustworthy as ever.
 
 **"Every repo the spec's branch still exists in" was the intent, never
@@ -167,17 +166,16 @@ it is a landing that did not finish. Four things not to get backwards:
   The same fail-open rule `isMerged` keeps.
 - **`errorReason` is a FIFTH hand-paired pair** after `WORKFLOW_STEPS`,
   `DEPENDENCY_GATED_STEPS`, project readiness and `worktreeLinks`:
-  `"conflict" | "unlanded"` is declared in `dashboard/src/queue.ts` and
-  again in `dashboard/src/render/job-state.ts`, which do not import each
+  `"conflict" | "unlanded"` is declared in `dashboard/src/queue/types.ts` and
+  again in `dashboard/src/render/ui/job-state/types.ts`, which do not import each
   other. `dashboard/test/queue.test.ts` reads both declarations as text
   and asserts they name the same members.
 
 The visible half is one set — archived specs whose own branch is still
-on origin — and since spec 221 it has ONE reader:
-`dashboard/src/render/queue-list.ts` draws every archived spec as a
+on origin — and it has ONE reader:
+`dashboard/src/render/pages/queue-list.ts` draws every archived spec as a
 reader row on the specs list, and such a spec's row carries the "not
-landed" mark. `dashboard/src/render/archive-page.ts` was the second
-reader and is gone with the `/archive` page it drew. The row is the
+landed" mark. The row is the
 reason the set is still built on the DEFAULT view, where the rest of
 the archive is not: a spec whose work never landed has not finished,
 and the reading view is where that has to be seen. It is filtered on
@@ -200,7 +198,7 @@ backwards:
 
 - **It is a SIXTH hand-paired pair**, after `WORKFLOW_STEPS`,
   `DEPENDENCY_GATED_STEPS`, project readiness, `worktreeLinks` and
-  `errorReason`: `resolveCodeLanding` in `dashboard/src/discover.ts`
+  `errorReason`: `resolveCodeLanding` in `dashboard/src/project/discover/config.ts`
   reads the key with `parseManifest`, and `core/scripts/aide-run-spec`
   reads it with one anchored `sed` to default its own `--push`.
   `tests/fixtures/code-landing-precedence.json` is the table both sides
@@ -228,10 +226,10 @@ backwards:
 - **`errorReason` did NOT grow a member for this.** A branch left open
   on purpose is a success; that pair classifies failures a person can
   act on. What splits instead is the WORDING of the one branch-still-on-
-  origin set above: `prOpen` in `dashboard/src/serve.ts` is the subset
+  origin set above: `prOpen` in `dashboard/src/serve/serve.ts` is the subset
   that is open deliberately, and `PR_OPEN` in
-  `dashboard/src/render/archive-page.ts` is what such a row says instead
-  of `NOT_LANDED`. The set itself is unchanged, so the row stays on the
+  `dashboard/src/render/pages/queue-list/row-shared.ts` is what such a row
+  says instead of `NOT_LANDED`. The set itself is unchanged, so the row stays on the
   list and `archive` stays enqueueable for it exactly as before.
   `assessProjectReadiness` is deliberately untouched: every value of
   `codeLanding` is valid to run with, so it is never a reason to refuse
@@ -280,10 +278,10 @@ subagents are still separate Agent invocations blind to the analyst's
 own reasoning — that property doesn't depend on which skill file
 triggers the review. `WORKFLOW_STEPS` (the bash string in
 `core/scripts/aide-run-spec`, the TypeScript array in
-`dashboard/src/queue.ts`) lost `review-plan`, and so did the
+`dashboard/src/queue/steps.ts`) lost `review-plan`, and so did the
 workflow arc it feeds — `WORKFLOW_ARC` in `core/scripts/aide-run-spec`,
-`HISTORY_STEPS` in `dashboard/src/workflow-history.ts`, `WORKFLOW_STEPS`
-in `dashboard/src/parse-status.ts` — all three trimmed from five stages
+`HISTORY_STEPS` in `dashboard/src/git/workflow-history.ts`, `WORKFLOW_STEPS`
+in `dashboard/src/project/parse-status.ts` — all three trimmed from five stages
 to four: `create`, `analyze`, `implement`, `archive`.
 
 **`archive` is therefore the one step that can touch the worktree and

@@ -79,14 +79,6 @@ There is no form above the table with a spec dropdown of its own. The row does e
 dropdown could not stay current: the row refresh deliberately replaces the ROWS alone, so a half-set control is never
 wiped — and a spec created since the page loaded would be in the list and not in the dropdown.
 
-
-A spec's row is collapsed by default: name, title, one status line, the five phase pips, and at most one action button.
-The four phase lines and every control — phase checkboxes, model dropdown, the also-touches field, Run, Cancel — sit
-behind the same chevron in front of the name. Expanding is a link and lives in the query string
-(`?open=<project>/<folder>,…`), which is what makes it survive the table's own row refresh, what makes it work with
-JavaScript switched off, and what keeps the row a person just acted on open across the swap/redirect that follows their
-own submit.
-
 Every control here is a plain form first: ticking phases and pressing Run works with JavaScript switched off, and so do
 Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `queue-client.ts` is a
 layer ABOVE that floor, never the mechanism (see
@@ -109,7 +101,9 @@ name, `?open=…`)
 reveals the workflow phases underneath, always in that order, so how far a spec has got is readable without counting
 rows, plus the run controls (phase checkboxes, model, the also-touches field after it, Run, Cancel). A phase never run
 shows a muted "not run yet". A phase run more than once shows its LATEST attempt with the count beside it, because a
-re-run is ordinary.
+re-run is ordinary. Expanding is a link and lives in the query string (`?open=<project>/<folder>,…`), which is what
+makes it survive the table's own row refresh, work with JavaScript switched off, and keep the row a person just acted
+on open across the redirect that follows their own submit.
 
 The first line is `create` — history, not a control. It reads done once `4-status.md` records it, which is
 what `/aide-create`
@@ -142,6 +136,10 @@ The header carries what belongs to the spec rather than to one run, unconditiona
 cost, one link per repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the
 most recent outcome. A collapsed row's single action button — the way out of a conflict, where the refusal is — sits
 there too, once per spec instead of once per job; Cancel is only offered once the row is expanded.
+
+Filtering and sorting work on the spec's grouped jobs. "Active" means the spec has something in flight; sorting by
+cost sorts on the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer)
+is appended after them rather than dropped, so a run is never invisible.
 
 ## Filtering and searching the list
 
@@ -302,7 +300,7 @@ rewrites the TEXT of the running-phase elapsed marks, see "A spec's date does no
 below — fetches nothing, swaps no rows and touches nothing that could move the page, so the rule this section states
 holds: the rows redraw when the server says something moved, and at no other time. A `changed` event redraws the
 rows unless a press is in flight — the same `inFlight`
-guard the tick had, for the same reason: the server still shows the pre-press state until the press answers. The `open`
+guard a press already uses, for the same reason: the server still shows the pre-press state until the press answers. The `open`
 event redraws too, and that is what makes a dropped network or a restarted server heal itself: `EventSource` reconnects
 on its own, `open` fires again, and the resync picks up whatever was missed. A hidden tab closes its connection and
 opens a fresh one when it comes back, which is the
@@ -313,7 +311,7 @@ must issue no requests and redraw not at all, which is the whole point — so a 
 dashboard leaves its staleness badge behind until some real change happens nearby. And the runner's own two-second poll
 is untouched: "about a second" means about a second after the SERVER notices, not after the step really moved.
 
-The one server-side timer this adds is a `: ping\n\n` comment every 45 seconds. `Bun.serve` cuts a connection quiet for
+The one server-side timer here is a `: ping\n\n` comment every 45 seconds. `Bun.serve` cuts a connection quiet for
 `idleTimeout` (120 seconds here, set for slow git work), and a page watching a quiet queue is exactly that. It is
 `.unref()`'d like the runner's timer and cleared in `stop()` besides — `bun test` runs many suites in one process, and a
 timer from a stopped test's server would fire into the next one.
@@ -327,7 +325,7 @@ ago and re-run an hour ago would outrank one made this morning. The list opens s
 The date comes from **git, never from the queue**. `QueueStore` is an LRU of 200 jobs, so a spec older than that has no
 `Job` record of its own beginning left; the specs repo still has the first commit that touched the folder, years on.
 `firstCommitAt` in
-`src/description-freshness.ts` asks for it and
+`src/git/description-freshness.ts` asks for it and
 `SpecCreatedAtChecker` caches the answer, both shaped exactly like
 `DescriptionFreshnessChecker` beside them — same TTL, same key, same fail-to-nothing. `withFreshness` attaches it to
 each `QueueTarget`.
@@ -339,7 +337,7 @@ Two traps worth knowing before touching this:
   the last line of the unlimited log.
 - **A spec git cannot date shows a dash, and deliberately no fallback to a job's own time.** A `Job`-backed fallback
   would put the jumping straight back for exactly the specs that cannot be dated. The never-run tie-break in
-  `sortGroups` therefore asks two things now, not one: neither spec has a job AND neither has a date.
+  `sortGroups` therefore asks two things, not one: neither spec has a job AND neither has a date.
 - **An archived spec's folder has moved, and a plain path-filtered log only sees the move.** Once `aide-archive-spec`
   has `git mv`'d a spec's folder into `archive/<folder>`, `git log -- .` on the new path only shows the move commit and
   anything after it — every earlier commit touched the old path and is invisible to that query. `--follow` crosses
@@ -368,7 +366,7 @@ lets it survive
 the redraw rule above holds.
 
 **`formatElapsed` there is HAND-PAIRED with `durationLabel` in
-`src/render/job-state.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
+`src/render/ui/job-state.ts`** — the client file is transpiled into an inline `<script>` and can neither import nor export,
 so the wording rule exists twice. `test/queue-client.test.ts`'s "the page words a duration exactly as the server does"
 runs a tick against the imported
 `durationLabel` over a table of spans and pins them; change one and change the other, or a phase changes its wording the

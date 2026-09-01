@@ -16,7 +16,7 @@ origin decides whether a landing finished. The queue that makes the branches is 
 A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard` exists
 in the project and in the specs repo, with different contents and two separate compare pages. Merging one does nothing
 for the other: each repo's branch is landed independently, asked of that repo's own checkout. A project whose specs
-live inside it (`paceup`, `atlasaurus`) has one repo to land, not two — the same code path, not a special case.
+live inside it has one repo to land, not two — the same code path, not a special case.
 
 The badge says what the reader needs, not merely what git answered. A flat "not merged" is a fact about the BRANCH
 that reads as a verdict on the spec, and in the same amber while the step writing that branch
@@ -66,10 +66,9 @@ A landing merges the spec branch into each repo's default branch and pushes, one
   reported beside the merge rather than turning a completed merge into a failed one. Without the key nothing runs and
   the result says plainly that deploying is still a hand step. Either way the sentence reaches the page — in the same
   banner a refusal uses, whether the merge was posted from the page or by a plain form.
-- **More conflicts than before are expected, not a regression.** Two branches touching the same file conflict at merge
-  time, and running several specs side by side means it happens more often. Both sides refuse and name the repo rather
-  than corrupting anything, which is what turns this into a merge to do by hand — or into one more
-  queue step (below).
+- **Conflicts are expected.** Two branches touching the same file conflict at merge time, and running several specs
+  side by side makes it happen more often. Both sides refuse and name the repo rather than corrupting anything, and
+  `archive` settles most of them itself (below).
 - **The report is per repo, never one collective "ok".** Several repos cannot be merged atomically, and one succeeding
   while another fails is exactly what has to be readable.
 - **Nothing is deleted.** A merged branch is still worth reading, and deleting is the one step that cannot be undone
@@ -89,13 +88,11 @@ not to, finish the merge with `git commit --no-edit`, run the project's own test
 archive the spec. The default branch is never touched by the step itself; the dashboard lands the resolved branch
 afterwards, the way it lands any other step's work.
 
-There is no `resolve` step and no Resolve button: `resolve` is not in `WORKFLOW_STEPS`, so a post that names it is
-refused as an invalid entry in `steps`, and no
-control on the page draws off
-`errorReason`.
+There is no `resolve` step and no Resolve button: a post naming `resolve` is refused as an invalid entry in `steps`,
+and no control on the page draws off `errorReason`.
 
 - **The condition is the literal string `archive`, never a denylist.**
-  A step this got backwards would carry conflict markers into a commit, which is worse than the refusal it replaced.
+  A step this got backwards would carry conflict markers into a commit, which is worse than a refusal.
 - **It either finishes or puts the branch back.** Tests red, or a conflict the skill will not decide, and the merge is
   undone to the commit the branch started on. `aide-run-spec` pushes a repo only when its `HEAD` moved, so a branch put
   back never reaches origin — no new rollback machinery, the gate that already exists. A run interrupted mid-merge is
@@ -105,16 +102,14 @@ control on the page draws off
 - **A conflict that still reaches a reader is one no machine could settle.** The row shows it as the failure's own
   text — which names the branch — beside the ordinary re-run control every other failed step offers. Understanding it is
   a person's job, with the diff in front of them.
-- **Archive's cost and duration are variable now.** It was a short, cheap step; a run that meets a conflict is as big a
-  piece of work as a resolution ever was. No timeout change was needed — `resolve` used the same `timeoutSec.default`
-  (1200s) and the same model archive already falls to.
+- **Archive's cost and duration vary.** A run that meets no conflict is short and cheap; one that does is as big a
+  piece of work as the resolution, under the same `timeoutSec.default` and model.
 
 ## Origin decides whether a landing finished
 
-Three specs reached the archive with their code still sitting on a branch, and every row said done. The archive STEP had
-succeeded, so the job was `done` and the folder was already under `archive/` — the folder moves before the code merge is
-even attempted. The landing that failed after it stored a sentence and a reason on the job, and nothing was drawing
-either. **A spec whose code did not land is not finished, and its row has to say so.**
+The archive STEP can succeed while its landing fails: the folder moves into `archive/` before the code merge is even
+attempted, so the job is `done` and the folder is archived with the code still on a branch. **A spec whose code did not
+land is not finished, and its row has to say so.**
 
 - **The archive landing asks origin, after merging.** One
   `git ls-remote --heads origin 'refs/heads/aide/*'` per repo root, cached for 30 seconds, asked fresh at the end of a
@@ -129,7 +124,7 @@ either. **A spec whose code did not land is not finished, and its row has to say
   a landing must not overwrite a job that has moved on.
 - **`errorReason` is `"conflict" | "unlanded"`.** The class, beside the sentence a person reads — the sentence is joined
   across repos before any page sees it, so nothing may match on it. Declared twice, in
-  `src/queue.ts` and `src/render/job-state.ts`, and pinned to each other by a test in `test/queue.test.ts` the way
+  `src/queue/types.ts` and `src/render/ui/job-state/types.ts`, and pinned to each other by a test in `test/queue.test.ts` the way
   `PHASE_STEPS` is pinned to
   `QUEUE_STEPS`.
 - **An unanswerable question invents nothing.** `ls-remote` that fails is `null`, and `null` claims neither that the
@@ -150,7 +145,3 @@ either. **A spec whose code did not land is not finished, and its row has to say
   second between
   `complete()` writing `done` and the landing settling still reads
   `done`; the correction arrives a moment later.
-
-Filtering and sorting work on those groups. "Active" means the spec has something in flight; sorting by cost sorts on
-the sum. A step outside the four (`explore`, `create`, `manifest` — valid steps the form does not offer) is appended
-after them rather than dropped, so a run is never invisible.

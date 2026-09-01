@@ -57,7 +57,7 @@ it with `?token=` once.
 
 Five routes make it work, and none of them is a file:
 `/manifest.webmanifest`, `/sw.js`, `/icon-512.svg`,
-`/icon-512-maskable.svg` and `/apple-touch-icon.png` are all computed in `src/render/pwa.ts` and answered from memory,
+`/icon-512-maskable.svg` and `/apple-touch-icon.png` are all computed in `src/render/ui/pwa.ts` and answered from memory,
 so nothing has to be kept in sync with the mark by hand and nothing is published by rsync. They are the only things on
 this site a page fetches rather than carries inline — a browser will not install a page whose manifest is a data URI —
 and they are outside the token, because a manifest fetch that answers 401 is a page the browser will not offer to
@@ -85,7 +85,7 @@ into and runs
 `AIDE_INSTALL_CMD` in, and the landing restarts the launchd job afterwards. Point the job anywhere else and the
 restart reloads code the landing never touched — the served page then sits on old code with every row reporting
 success. The path is written once in the Makefile (`MINI_REPO`) and once in
-`src/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
+`src/git/dashboard-checkout.ts` (`dashboardCheckoutRoot`), and
 `test/install-serve-paths.test.ts` reads both and fails if they disagree.
 
 `install-serve` creates that checkout itself, with plain `git clone`

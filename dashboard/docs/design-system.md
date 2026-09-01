@@ -21,7 +21,7 @@ through a variable, and a control has one class wherever it appears — never a 
 
 ## Tokens
 
-`src/render/css.ts` declares every colour, type size, space and radius ONCE, as CSS custom properties, between the
+`src/render/ui/css.ts` declares every colour, type size, space and radius ONCE, as CSS custom properties, between the
 `tokens:start` and
 `tokens:end` sentinels — and again inside
 `@media (prefers-color-scheme: dark)`, where the same ramp is read from the other end. Every rule below the block uses
@@ -35,7 +35,7 @@ the row that carries it carries a `.rowmsg.err` with a warning mark beside the r
 
 ## Components
 
-`src/render/components.ts` is the one place markup for them is built:
+`src/render/ui/components.ts` is the one place markup for them is built:
 
 | Component       | Variants                                                               |
 |-----------------|------------------------------------------------------------------------|
@@ -50,7 +50,7 @@ the row that carries it carries a `.rowmsg.err` with a warning mark beside the r
 `data-phase`, the checkbox
 `value`, the queue step and the skill all keep the technical name regardless. It is empty today — no step's technical name needs a friendlier one.
 
-The brand is `src/render/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs, because the
+The brand is `src/render/ui/brand.ts` — the mark, the wordmark and the favicons, all inline SVG and data URIs, because the
 generated site is published as plain files and has to work opened from a folder.
 
 ## The guard
@@ -125,9 +125,9 @@ set falls straight through to the existing OS-driven CSS.
 
 **This is the one deliberate exception to "generated pages carry no page code."** Applying the stored choice before
 first paint (no flash)
-needs a script that runs before body content, on every page — served and generated alike — so `src/render/shell.ts`'s
+needs a script that runs before body content, on every page — served and generated alike — so `src/render/ui/shell.ts`'s
 `pageShell()` emits exactly one shared, unconditional `<script>` in `<head>`:
-`src/render/theme-script.ts`, inlined the same way `serve.ts` inlines
+`src/render/scripts/theme-script.ts`, inlined the same way `serve.ts` inlines
 `queue-client.ts` for the served `/` page, and tested the same way (transpile the file and run it against a fake DOM —
 `theme-script.ts`
 cannot `import`/`export`, for the same reason `queue-client.ts` can't). This is a separate mechanism from `opts.script`

@@ -118,7 +118,7 @@ queue config (`--queue-config`), so a wrong number costs a config edit and a res
   "concurrency": 2,
   "projects": [
     "aide",
-    "aide-dashboard"
+    "<another-project>"
   ],
   "notifyCommand": [
     "/Users/<you>/aide-dashboard/notify-slack.sh"
@@ -190,7 +190,7 @@ in an
 Nothing is hidden and nothing is filtered, so a row can run analyze on one CLI and implement on another; the runner
 allows exactly that, reading
 `job.model[step]` for each step on its own and deriving both `--model`
-and `--tool` from that one entry (`runnerArgv`, `src/serve.ts`). There is no row-wide AI select: one that filtered the
+and `--tool` from that one entry (`runnerArgv`, `src/serve/serve-helpers/runner-argv.ts`). There is no row-wide AI select: one that filtered the
 other tool's models out of all five phase selects is what would keep anyone from discovering the per-phase choice.
 
 **Every phase line has an AI picker beside its model picker.** In the column between the phase's name and its
@@ -355,10 +355,6 @@ line says so, so the one project where a run and a person's editing can still
 meet is named rather than silent.
 
 ## Notifications
-
-There is no stop between steps and no way to ask for one. Every step lands its own work, so there is nothing between
-two steps for anyone to weigh, and no form on the page can park a job for approval. A
-request naming `gateAfter` is accepted and the field ignored, like any other unknown key.
 
 `notifyCommand` is an argv ARRAY, run with **no shell**, given one line of JSON on stdin (claude-usage's contract,
 copied so one wrapper can serve both). It is spawn-and-forget, SIGTERM at 10 s and SIGKILL a second later, and absent
