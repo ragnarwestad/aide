@@ -218,3 +218,53 @@ describe("mergeBranchIntoDefault: a push that does not reach origin", () => {
     expect(ran(git.calls, "merge --abort")).toBe(false);
   });
 });
+
+// A landing merges several repos and joins their refusals into ONE
+// sentence on the row. A message naming only the repo, or only the
+// branch, leaves the reader with a failure and nothing to go and open —
+// which is exactly how a lost specs merge read on the Specs list. So
+// every refusal this function can produce names both, and this walks
+// each one rather than pinning any single wording.
+describe("every refusal names the repo AND the branch", () => {
+  const paths: Record<string, Record<string, { code: number; stdout?: string }>> = {
+    "the branch is gone from origin": { "ls-remote": { code: 2, stdout: "" } },
+    "the checkout cannot switch to the base": { switch: { code: 1 } },
+    "the base will not fast-forward": {
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 1 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    },
+    "the merge conflicts": {
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 1 },
+      "merge -q --no-edit": { code: 1 },
+      "merge --abort": { code: 0 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    },
+    "the push of the base fails": {
+      "rev-parse --abbrev-ref @{u}": { code: 0, stdout: "origin/master\n" },
+      pull: { code: 0 },
+      "merge -q --ff-only": { code: 0 },
+      push: { code: 1 },
+      switch: { code: 0 },
+      fetch: { code: 0 },
+    },
+  };
+
+  for (const [what, overrides] of Object.entries(paths)) {
+    test(`when ${what}`, async () => {
+      const git = fakeGit({ ...CLEAN_MASTER, ...overrides });
+      const result = await mergeBranchIntoDefault(git.run, ROOT, BRANCH, "master");
+      expect(result.ok).toBe(false);
+      expect(result.error).toContain(ROOT);
+      expect(result.error).toContain(BRANCH);
+    });
+  }
+
+  // The one non-fatal report — the merge landed and only the cleanup
+  // failed — names the branch here and gets its repo where `landBranch`
+  // composes it for the row (spec 319). Covered there, not here.
+});

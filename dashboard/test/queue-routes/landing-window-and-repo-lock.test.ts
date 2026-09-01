@@ -461,8 +461,10 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
 
   // Criterion 4 (REQ-2): a failed install must skip the restart entirely,
   // matching `set -e`'s old behavior of never reaching the restart block
-  // on an earlier failure.
-  test("installAfterMerge skips the restart when the install itself fails (criterion 4)", async () => {
+  // on an earlier failure. It says so by ANSWERING "no restart" — the
+  // firing itself belongs to the caller now, so that the loop landing
+  // several repos is not killed between two of them.
+  test("installAfterMerge answers no-restart when the install itself fails (criterion 4)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-fail-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -478,9 +480,10 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     } as unknown as LandContext;
     const result: RepoMergeResult = { root: dir, ok: true };
 
-    await installAfterMerge(ctx, result);
+    const wantsRestart = await installAfterMerge(ctx, result);
 
     expect(result.installError).toBeTruthy();
+    expect(wantsRestart).toBe(false);
     expect(count()).toBe(0);
   });
 
@@ -507,7 +510,11 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     expect(result.installError).not.toContain("AIDE_INSTALL_CMD");
   });
 
-  test("installAfterMerge restarts once a successful install clears (companion to criterion 4)", async () => {
+  // The companion to criterion 4, rewritten around the ownership move:
+  // a successful install ASKS for the restart and never fires one. It
+  // used to fire here, from inside `landBranch`'s per-repo loop, which
+  // killed the process before archive's specs root was merged.
+  test("installAfterMerge asks for a restart on success, and fires none itself", async () => {
     const dir = mkdtempSync(join(tmpdir(), "aide-287-install-ok-"));
     ownDirs.push(dir);
     mkdirSync(join(dir, ".aide"), { recursive: true });
@@ -523,10 +530,11 @@ describe("the restart waits for landings elsewhere to clear (spec 287)", () => {
     } as unknown as LandContext;
     const result: RepoMergeResult = { root: dir, ok: true };
 
-    await installAfterMerge(ctx, result);
+    const wantsRestart = await installAfterMerge(ctx, result);
 
     expect(result.installError).toBeUndefined();
-    expect(count()).toBe(1);
+    expect(wantsRestart).toBe(true);
+    expect(count()).toBe(0);
   });
 });
 

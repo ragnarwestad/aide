@@ -65,7 +65,18 @@ export interface RepoMergeResult {
   reason?: "conflict" | "gone";
 }
 
-const refuse = (root: string, why: string): RepoMergeResult => ({ root, ok: false, error: why });
+/** Every refusal names the repo AND the branch. A landing merges
+ *  several repos and reports them in one joined sentence, so a message
+ *  that names only one of the two leaves the reader with the failure
+ *  but not the thing to go and look at. `why` says what went wrong;
+ *  this says where: the branch being merged, or — on the deploy path,
+ *  which has no feature branch — the default branch it is bringing up
+ *  to date. */
+const refuse = (root: string, ref: string, why: string): RepoMergeResult => ({
+  root,
+  ok: false,
+  error: `${why} (${ref} in ${root})`,
+});
 
 /** git's own words when another process is holding the index. A run
  *  starting in the same second pulls the same checkout as a courtesy,
@@ -123,7 +134,7 @@ export async function mergeBranchIntoDefault(
     const onOrigin = await run(root, lsRemoteBranch(branch));
     if (onOrigin.code === LS_REMOTE_NO_MATCH) {
       return {
-        ...refuse(root, `${branch} is not on origin in ${root} — there is nothing left to merge`),
+        ...refuse(root, branch, "there is nothing left to merge — the branch is not on origin"),
         reason: "gone",
       };
     }
@@ -136,7 +147,7 @@ export async function mergeBranchIntoDefault(
     //    push from a base that is behind would be rejected anyway, and
     //    a merge onto a stale base is a merge nobody reviewed.
     const switched = await run(root, ["switch", "-q", base]);
-    if (switched.code !== 0) return refuse(root, `cannot switch to ${base} in ${root}`);
+    if (switched.code !== 0) return refuse(root, branch, `cannot switch to ${base}`);
     const upstream = await run(root, ["rev-parse", "--abbrev-ref", "@{u}"]);
     if (upstream.code === 0) {
       let pulled = await run(root, ["pull", "-q", "--ff-only"]);
@@ -147,7 +158,7 @@ export async function mergeBranchIntoDefault(
         await wait(LOCK_WAIT_MS);
         pulled = await run(root, ["pull", "-q", "--ff-only"]);
       }
-      if (pulled.code !== 0) return refuse(root, `cannot fast-forward ${base} in ${root} — merge it by hand`);
+      if (pulled.code !== 0) return refuse(root, branch, `cannot fast-forward ${base} — merge it by hand`);
     }
 
     // 4-5. `refs/remotes/origin/<branch>`, never a local `<branch>`.
@@ -162,7 +173,7 @@ export async function mergeBranchIntoDefault(
       if (real.code !== 0) {
         await run(root, ["merge", "--abort"]);
         return {
-          ...refuse(root, `cannot merge ${branch} into ${base} in ${root} (conflict — merge it by hand)`),
+          ...refuse(root, branch, `cannot merge into ${base} — conflict, merge it by hand`),
           reason: "conflict",
         };
       }
@@ -175,7 +186,7 @@ export async function mergeBranchIntoDefault(
     //    push problem is not a reason to undo committed work.
     const pushed = await run(root, ["push", "-q", "origin", base]);
     if (pushed.code !== 0) {
-      return refuse(root, `merged locally in ${root}, but the push of ${base} failed`);
+      return refuse(root, branch, `merged locally, but the push of ${base} failed`);
     }
 
     // 7. A merged branch left on origin is what made spec 92's
@@ -190,6 +201,9 @@ export async function mergeBranchIntoDefault(
     const deleted = await run(root, ["push", "-q", "origin", "--delete", branch]);
     if (deleted.code !== 0) {
       const why = (deleted.stderr ?? "").trim().slice(-200) || "unknown reason";
+      // Names the branch; the ROOT is added where this is composed for
+      // the row (`landBranch`, spec 319), which is the one place that
+      // knows whether several repos are being reported at once.
       return { root, ok: true, branchDeleteError: `merged, but deleting ${branch} on origin failed: ${why}` };
     }
 
@@ -209,7 +223,7 @@ export async function mergeBranchIntoDefault(
     await run(root, ["branch", "-d", branch]);
     return { root, ok: true };
   } catch (err) {
-    return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(root, base, `git could not be run: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -233,7 +247,7 @@ export async function fastForwardToOrigin(
     const current = await run(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
     const on = current.stdout.trim();
     if (current.code !== 0 || on !== base) {
-      return refuse(root, `${root} is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first`);
+      return refuse(root, base, `the checkout is on ${on || "an unknown branch"}, not ${base} — bring it there by hand first`);
     }
     await run(root, ["fetch", "--quiet", "origin", base]);
     let pulled = await run(root, ["pull", "-q", "--ff-only"]);
@@ -242,10 +256,10 @@ export async function fastForwardToOrigin(
       pulled = await run(root, ["pull", "-q", "--ff-only"]);
     }
     if (pulled.code !== 0) {
-      return refuse(root, `cannot fast-forward ${base} in ${root} — bring it up to date by hand`);
+      return refuse(root, base, "cannot fast-forward it — bring it up to date by hand");
     }
     return { root, ok: true };
   } catch (err) {
-    return refuse(root, `git could not be run in ${root}: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(root, base, `git could not be run: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

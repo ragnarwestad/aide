@@ -135,6 +135,52 @@ describe("every step lands its own work (spec 149)", () => {
     expect(existsSync(marker)).toBe(true);
   });
 
+  // The restart is what killed this process, and it used to fire from
+  // inside the per-repo loop the moment the code root's install was
+  // through — with archive's specs root, which carries the folder move
+  // to `archive/`, still ahead in that loop. The spec then stayed on
+  // the active list with no error anywhere, because the code that would
+  // have written one was killed too. So: every repo merges BEFORE the
+  // restart is allowed to fire.
+  test("the restart waits until every repo in the landing has merged", async () => {
+    const dir = own("aide-restart-order-");
+    const paths = repos(dir);
+    const git = gitFor();
+    let specsMergesAtFire: number | null = null;
+    const { base } = serverWithHarness(dir, paths, git, {
+      restart: {
+        registered: async () => true,
+        fire: () => {
+          specsMergesAtFire = merges(git.calls, paths.specs).length;
+        },
+      },
+    });
+    installs(paths.project);
+
+    await stepWithResult(
+      base,
+      dir,
+      "implement",
+      {
+        branchUrls: [
+          { root: paths.project, url: "https://example.test/aide" },
+          { root: paths.specs, url: "https://example.test/aide-specs" },
+        ],
+      },
+      (j) => j.state === "done",
+    );
+    const landed = await stepWithResult(base, dir, "archive", {
+      branchUrls: [{ root: paths.specs, url: "https://example.test/aide-specs" }],
+    });
+
+    expect(landed.error).toBeFalsy();
+    for (let i = 0; i < 40 && specsMergesAtFire === null; i++) await Bun.sleep(25);
+    // Fired at all — otherwise this passes for the wrong reason.
+    expect(specsMergesAtFire).not.toBeNull();
+    // And the specs root was already merged when it did.
+    expect(specsMergesAtFire).toBeGreaterThan(0);
+  });
+
   // Criterion 5. A code merge that cannot be made stops the step: nothing
   // is left half-merged, the reason names the repo, and the spec stays in
   // the active list. `errorReason` is what makes the way out survive —

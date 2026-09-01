@@ -28,6 +28,7 @@ import {
   landStoppedStepBranch as landStoppedStepBranchImpl,
   landArchivedSpec as landArchivedSpecImpl,
   installAfterMerge as installAfterMergeImpl,
+  restartAfterLanding,
   withFreshness as withFreshnessImpl,
   type LandContext,
   type RestartHook,
@@ -110,8 +111,12 @@ export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   function landArchivedSpec(job: Job, outcome: Partial<StepOutcome>) {
     return landArchivedSpecImpl(landCtx, job, outcome);
   }
-  function installAfterMerge(result: RepoMergeResult) {
-    return installAfterMergeImpl(landCtx, result);
+  /** The deploy button's install, which owns its restart the way it
+   *  always has: there is no repo loop behind it to be killed in the
+   *  middle of. `landBranch` calls the implementation directly and
+   *  fires the restart itself, once its own loop is through. */
+  async function installAfterMerge(result: RepoMergeResult) {
+    if (await installAfterMergeImpl(landCtx, result)) await restartAfterLanding(landCtx);
   }
   function withFreshness(list: QueueTarget[]) {
     return withFreshnessImpl(landCtx, list);

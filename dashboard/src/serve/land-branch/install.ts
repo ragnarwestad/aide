@@ -6,21 +6,27 @@ import { SETTING_LABELS } from "../../project/setting-labels.ts";
 import type { RepoMergeResult } from "../../git/branch-merge.ts";
 import { INSTALL_TIMEOUT_MS } from "../serve-helpers.ts";
 import type { LandContext } from "./types.ts";
-import { restartAfterLanding } from "./restart.ts";
 
 /** Run the project's own install, once its code has landed. Bounded by
  *  a timeout of its own — never trusting the server's idle timeout to
  *  bound it — and never fatal: the merge already happened, and a
  *  failed install is reported beside it rather than retroactively
- *  turning a successful merge into a failure. */
-export async function installAfterMerge(ctx: LandContext, result: RepoMergeResult): Promise<void> {
+ *  turning a successful merge into a failure.
+ *
+ *  Returns whether the dashboard should be restarted afterwards — it
+ *  does NOT restart. Firing the restart from here killed the process
+ *  in the middle of `landBranch`'s own repo loop, so an archive's
+ *  specs root was never merged and nothing was left alive to say so.
+ *  `landBranch` owns the restart now and fires it once the whole
+ *  landing is reported. */
+export async function installAfterMerge(ctx: LandContext, result: RepoMergeResult): Promise<boolean> {
   const cmd = configValue(result.root, "AIDE_INSTALL_CMD");
   if (!cmd) {
     // Said out loud for every project that has not configured one:
     // the alternative is a page that reads as "deployed" when nothing
     // was deployed, which is the whole complaint.
     result.installError = `merged, not installed — no ${SETTING_LABELS.AIDE_INSTALL_CMD.toLowerCase()} configured; deploying is a hand step`;
-    return;
+    return false;
   }
   const timeoutMs = ctx.queueInstallTimeoutMs ?? INSTALL_TIMEOUT_MS;
   let failed = false;
@@ -51,8 +57,7 @@ export async function installAfterMerge(ctx: LandContext, result: RepoMergeResul
     result.installError = `merged, but the install could not be run: ${err instanceof Error ? err.message : String(err)}`;
     failed = true;
   }
-  // The restart moved here from install-after-merge.sh (spec 287): a
-  // failed install skips it, exactly as `set -e` used to skip the
-  // script's own restart block on any earlier failure.
-  if (!failed) await restartAfterLanding(ctx);
+  // A failed install wants no restart, exactly as `set -e` used to skip
+  // install-after-merge.sh's own restart block on any earlier failure.
+  return !failed;
 }
