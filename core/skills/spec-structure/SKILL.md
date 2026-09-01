@@ -326,7 +326,14 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 **Key points:**
 - Scope, complexity, estimate and risk analysis live here: they judge the
   solution we intend to build, not what the investigation found
-- Approaches with pros/cons
+- Approaches with pros/cons. The RECOMMENDED one is the spec: everything
+  below it — Recommended solution, Behavior delta, Acceptance criteria,
+  Risk analysis and the Implementation plan — describes that approach
+  and no other, and `/aide-implement` builds the plan it finds. The
+  alternatives are the record of what was weighed and why, not options a
+  later step chooses between. Wanting a different one means saying so in
+  `1-description.md` and analysing again (`/aide-reset`, then
+  `/aide-analyze`), because the plan for it does not exist yet
 - Before/After in SEPARATE code blocks (avoids redeclaration errors)
 - Behavior delta: what the solution ADDS / MODIFIES / REMOVES relative to
   current behavior — not just which files change
