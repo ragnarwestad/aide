@@ -111,26 +111,6 @@ describe("the queue list groups by spec (criteria 1-7, 12)", () => {
     expect(head).toContain("$2.00");
   });
 
-  test("the repo list appears once, on the header (criterion 7)", () => {
-    const html = rows([
-      job("j1", "analyze", {
-        startedAt: "2026-08-16T09:00:00Z",
-        branchUrls: [{ label: "aide", url: "https://example.test/old" }],
-      }),
-      job("j2", "implement", {
-        startedAt: "2026-08-16T11:00:00Z",
-        branchUrls: [{ label: "aide", url: "https://example.test/compare" }],
-      }),
-    ]);
-    // One entry per REPO, on the spec's header and not on each job.
-    expect(html.split('class="branch"').length - 1).toBe(1);
-    // The link comes from the most recently active job, not an older one.
-    expect(html).toContain("https://example.test/compare");
-    expect(html).not.toContain("https://example.test/old");
-    const head = html.slice(html.indexOf('<tr class="'), html.indexOf('<tr class="subrow'));
-    expect(head).toContain('class="branchlist"');
-  });
-
   test("the action sits once on the header, never on a phase line (criterion 12)", () => {
     const html = rows([
       job("j1", "analyze", { state: "done", startedAt: "2026-08-16T09:00:00Z" }),

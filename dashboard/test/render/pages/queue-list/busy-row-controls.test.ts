@@ -72,18 +72,8 @@ describe("spec 105: a busy row offers only what its state allows", () => {
   /** The Run button itself, with whatever attributes it carries. */
   const runBtn = (line: string) => line.match(/<button [^>]*>(?:<[^>]*>)*Run(?: again)?<\/button>/)?.[0] ?? "";
 
-  /** A spec with a job in the given state AND a branch an earlier job
-   *  left unmerged — the shape that makes "and nothing else" testable:
-   *  there is something to merge, and the row must still not offer it. */
   const spec = (state: QueueRowView["state"], folder = "105-busy") =>
-    row({
-      id: "j1",
-      specFolder: folder,
-      steps: ["implement"],
-      stepIndex: 0,
-      state,
-      branchUrls: [{ label: "aide", url: "https://example.test/c" }],
-    });
+    row({ id: "j1", specFolder: folder, steps: ["implement"], stepIndex: 0, state });
 
   /** The same open row's controls line — where every lockable control
    *  on it lives (spec 109). */

@@ -422,11 +422,9 @@ export function renderJobDetailPage(
     progress +
     (job.title ? `<p class="desc"><strong>${esc(job.title)}</strong></p>` : "");
 
-  // Three facts, and only three (spec 150). Project and Spec are in the
-  // heading, Step is in the pips beside the state chip, and Work — one
-  // line per repo, with its compare and preview links — is on the row
-  // this page was opened from. What is left is what this page is the
-  // only place for.
+  // Two facts, and only two (spec 150). Project and Spec are in the
+  // heading, and Step is in the pips beside the state chip. What is left
+  // is what this page is the only place for.
   //
   // "Live right now" was under them and is gone outright. It existed for
   // the one moment a step is running and answered `State not-live ·

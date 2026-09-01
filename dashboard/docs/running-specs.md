@@ -832,9 +832,8 @@ first time the clock ticks over the figure the server drew.
 
 A job that touches two repositories makes a branch of the same name in both — `aide/89-merge-from-the-dashboard` exists
 in the project and in the specs repo, with different contents and two separate compare pages. Merging one does nothing
-for the other, and a header naming one repo hides the other. So the header names **every** repo the spec pushed to,
-each with its own compare link and its own badge, each asked of that repo's own checkout. A project whose specs live
-inside it (`paceup`, `atlasaurus`) has one repo and reads as a list of one — the same code, not a special case.
+for the other: each repo's branch is landed independently, asked of that repo's own checkout. A project whose specs
+live inside it (`paceup`, `atlasaurus`) has one repo to land, not two — the same code path, not a special case.
 
 The badge says what the reader needs, not merely what git answered. A flat "not merged" is a fact about the BRANCH
 that reads as a verdict on the spec, and in the same amber while the step writing that branch

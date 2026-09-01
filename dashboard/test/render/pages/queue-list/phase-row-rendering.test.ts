@@ -351,19 +351,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
     const cells = [...head.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1] ?? "");
     return cells[cells.length - 1] ?? "";
   };
-  const at = (label: string) => ({ label, url: `https://example.test/${label}` });
-  const done = (branchUrls: { label: string; url: string }[]) =>
-    row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done", branchUrls });
-
-  // Criterion 10 was about telling the per-repo badge apart from the
-  // State chip, which had the same three words in it. The badge is
-  // gone; the branch line carries links only.
-  test("the branch line carries no badge at all", () => {
-    const html = rows([done([at("aide")])], [target("132-a")]);
-    const branchLine = html.match(/<span class="branchlist">[\s\S]*?<\/span><\/span>/)?.[0] ?? "";
-    expect(branchLine).not.toContain('class="badge');
-    expect(branchLine).toContain("aide");
-  });
+  const done = () => row({ id: "j1", specFolder: "132-a", steps: ["implement"], state: "done" });
 
   // Criteria 8, 9: a queued row said one word and nothing else, while
   // the step it was waiting to run was known all along.
@@ -377,7 +365,7 @@ describe("spec 132: the State line says what is happening, or what is next", () 
 
   // Criterion 1: the one action that used to live outside the panel.
   test("a row whose only offer was Merge now has an empty action cell", () => {
-    const cell = actionCell(rows([done([at("aide")])], [target("132-a")]));
+    const cell = actionCell(rows([done()], [target("132-a")]));
     expect(cell).not.toContain("<form");
     expect(cell).not.toContain("/merge");
     expect(cell).not.toContain("<button");

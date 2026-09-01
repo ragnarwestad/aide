@@ -4,7 +4,7 @@
 // everything else on this page is built from.
 
 import { type PhaseOutcome } from "../../../../project/parse-phase-outcome.ts";
-import { type BranchView, type QueueRowView } from "../../../ui/job-state.ts";
+import { type QueueRowView } from "../../../ui/job-state.ts";
 
 export interface QueueTarget {
   project: string;
@@ -371,11 +371,6 @@ export interface SpecGroup {
    *  (2-analysis.md, spec 281's "REQ-2" finding). `activeDurationCell()`
    *  and `archiveDateCell()` are the two readers. */
   totalDurationMs?: number;
-  /** Every repo this SPEC has a branch in, however many jobs made them.
-   *  Folded by label from rows already on the page — the server folds
-   *  the same thing by root when the Merge button posts back, and that
-   *  one is the authority. Nothing here decides where git runs. */
-  branches: BranchView[];
   /** The pull request a `pr`-mode run opened for this spec's code branch
    *  (spec 220), off the most recently active job that reported one. A
    *  project whose code is reviewed archives with that branch still on

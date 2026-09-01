@@ -92,7 +92,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   };
 
   const CHOICES = [{ name: "sonnet", budgetUsd: 3 }];
-  const branch = [{ label: "aide", url: "https://example.test/c" }];
 
   // --- the structural invariant, before any behaviour ------------------------
 
@@ -102,7 +101,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   // it shifts every column after it, on some rows and not others.
   test("every row kind declares the same five columns, and none is blank", () => {
     const html = renderQueuePage(
-      [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })],
+      [row({ id: "j1", specFolder: "124-stack", state: "done" })],
       "2026-08-19T00:00:00Z",
       [{ label: "Overview", path: "projects.html" }],
       {
@@ -324,7 +323,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   test("no row draws a Merge or an Approve, in any state (spec 149)", () => {
     for (const state of ["queued", "running", "done", "failed", "stopped", "cancelled", "interrupted"] as const) {
       const html = rows(
-        [row({ id: "j1", specFolder: "124-stack", state, branchUrls: branch })],
+        [row({ id: "j1", specFolder: "124-stack", state })],
         [target("124-stack")],
       );
       expect(`${state}: ${html.includes(">Merge</button>")}`).toBe(`${state}: false`);
@@ -340,7 +339,7 @@ describe("spec 124: one phase list, and one action beside the state", () => {
   });
 
   test("a job with no stored reason offers the ordinary next phase", () => {
-    const clean = [row({ id: "j1", specFolder: "124-stack", state: "done", branchUrls: branch })];
+    const clean = [row({ id: "j1", specFolder: "124-stack", state: "done" })];
     const cleanCell = actionCell(group(rows(clean, [target("124-stack")]), "124-stack"));
     // One phase, not the fresh spec's pair: this spec HAS a job.
     expect(cleanCell).toContain(">Analyze</button>");
@@ -358,7 +357,6 @@ describe("spec 124: one phase list, and one action beside the state", () => {
           id: "j1",
           specFolder: "124-stack",
           state,
-          branchUrls: branch,
           error: "cannot bring aide/124-stack up to date with origin/main in /repos/aide (conflict — merge it by hand)",
           errorReason: "conflict",
         }),

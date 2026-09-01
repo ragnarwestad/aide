@@ -91,16 +91,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // button it was for: the badge says what can HAPPEN next instead, and
   // for a branch left open that is the archive step which lands it.
   test("a finished spec with a branch still out says which phase is next", () => {
-    const html = rows(
-      [
-        row({
-          specFolder: "101-a",
-          state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
-        }),
-      ],
-      [target("101-a")],
-    );
+    const html = rows([row({ specFolder: "101-a", state: "done" })], [target("101-a")]);
     expect(chip(html)).toBe("ready");
     expect(html).toContain(">Analyze</button>");
     expect(hint(html)).toBe("");
@@ -157,14 +148,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // phase that lands it IS the next phase — so the badge says that.
   test("an open branch does not displace the phase that is ready", () => {
     const html = rows(
-      [
-        row({
-          specFolder: "101-a",
-          steps: ["analyze"],
-          state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
-        }),
-      ],
+      [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
     expect(chip(html)).toBe("ready");
@@ -191,14 +175,7 @@ describe("spec 101: one line per row for what is going on and what is next (crit
   // while implement had never been started.
   test("a merged plan branch with implement still to run says implement is ready", () => {
     const html = rows(
-      [
-        row({
-          specFolder: "101-a",
-          steps: ["analyze"],
-          state: "done",
-          branchUrls: [{ label: "aide", url: "https://example.test/aide" }],
-        }),
-      ],
+      [row({ specFolder: "101-a", steps: ["analyze"], state: "done" })],
       [target("101-a", { done: ["analyze"] })],
     );
     expect(chip(html)).toBe("ready");

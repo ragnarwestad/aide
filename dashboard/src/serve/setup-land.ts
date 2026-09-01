@@ -61,8 +61,6 @@ export interface LandSetupInputs {
 
 export function setupLand(state: ServerState, inputs: LandSetupInputs) {
   const jobRowCtx: JobRowContext = {
-    machineryProjectDir: inputs.machineryProjectDir,
-    displayProjectDir: inputs.displayProjectDir,
     queue: inputs.queue,
     store: inputs.store,
   };

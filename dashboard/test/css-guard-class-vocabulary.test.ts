@@ -149,7 +149,6 @@ const STRUCTURE = [
   // of running off the right edge of a cell sized for a word.
   "specnotice",
   "empty", "listnote", "fold", "shut", "sortlink", "on", "asc",
-  "branchlist", "branch",
   "pipwrap", "pipletters", "pips", "pip", "now", "past", "todo",
   // a spec row's own state — deliberately NOT `active`/`archived`,
   // which `site.ts` uses for the unrelated question of whether a spec

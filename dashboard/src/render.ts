@@ -91,7 +91,7 @@ export type {
   ArchivedSpecView, Phase, QueueFilter, QueuePageOptions, QueueTarget,
 } from "./render/pages/queue-list.ts";
 
-export type { BranchView, QueueRowView } from "./render/ui/job-state.ts";
+export type { QueueRowView } from "./render/ui/job-state.ts";
 
 export { renderJobDetailPage } from "./render/pages/job-page.ts";
 export type { JobDetailView, JobStepResultView, JobTab, SpecFileView } from "./render/pages/job-page.ts";

@@ -351,10 +351,7 @@ describe("the Overview's facts table (criterion 10)", () => {
 
   test("the four facts said elsewhere are gone, branch list included", () => {
     const html = renderJobDetailPage(
-      detail({
-        state: "done",
-        branchUrls: [{ label: "aide", url: "https://example.test/compare" }],
-      }),
+      detail({ state: "done" }),
       "2026-08-21T10:05:00Z",
       NAV,
       { tab: "overview" },
@@ -363,7 +360,6 @@ describe("the Overview's facts table (criterion 10)", () => {
     expect(facts(html)).not.toContain("Spec");
     expect(facts(html)).not.toContain("Step");
     expect(facts(html)).not.toContain("Work");
-    expect(html).not.toContain("https://example.test/compare");
   });
 
   // The heading is where the spec is named, and it stays: whichever tab

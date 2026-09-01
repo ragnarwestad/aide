@@ -18,7 +18,7 @@ import {
   prOpenMark,
   stateCell,
 } from "./cell-helpers.ts";
-import { branchList, foldControl, stateAction } from "./row-controls.ts";
+import { foldControl, stateAction } from "./row-controls.ts";
 import { nextPhase, rowAnchorId, specNumber } from "./row-state.ts";
 import { BRANCH_LEFT_BEHIND, NOT_LANDED } from "./row-shared.ts";
 
@@ -132,15 +132,10 @@ export function specHeadRow(
         : g.archive.notLanded
           ? ` ${badge("refused", NOT_LANDED, notLandedTitle(g.archive.notLandedCheckedAt, now))}`
           : "";
-  // The mark beside each link is about the BRANCH alone (spec 174):
-  // whether it landed, and what lands it. What the row's lead job is
-  // doing is the State column's answer, said there once.
-  const diff = g.branches.length ? ` ${branchList(g.branches)}` : "";
-  // Spec 220: where the review is. Beside the branch list because it is
-  // about the same branch — the code is on it and stays on it until
-  // somebody merges the request. A `gh` that opened none says so
-  // instead, and says it as a refusal: an open branch with nothing
-  // describing it is the one outcome nobody is waiting for.
+  // Spec 220: where the review is — the code is on the branch and stays
+  // on it until somebody merges the request. A `gh` that opened none
+  // says so instead, and says it as a refusal: an open branch with
+  // nothing describing it is the one outcome nobody is waiting for.
   const review = g.prUrl
     ? ` <a class="small" href="${esc(g.prUrl)}" title="the pull request this spec's code is waiting on">pull request</a>`
     : g.prError
@@ -215,10 +210,6 @@ export function specHeadRow(
     archiveMark +
     `<span class="pipslot">${progress}</span></div>` +
     under +
-    // The repo marks on a line of their own: beside the name they took
-    // the width the name needed, and clamping it to "124-…" told the
-    // reader nothing (2026-08-19).
-    diff +
     review +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
