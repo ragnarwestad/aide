@@ -85,15 +85,28 @@ Examples:
 
 ### Step 4: Create the directory and 5 files
 
-**TODO mode, before composing the description below:** attempt to
-formulate the user's loose description as a `## Requirements` section
-with `REQ-n` SHALL statements (format: spec-structure rule §
-1-description). If the description is too thin for confident SHALL
-statements, ask the user for the necessary clarifications now, before
-creating the spec — never write a Requirements section you had to
-guess at. JIRA mode: skip this entirely — the Problem text is external
-and verbatim, and formalizing someone else's issue puts words in their
-mouth.
+**TODO mode, before composing the description below:** if the incoming
+description already contains a `## Requirements` section whose lines
+already match `^- \*\*REQ-\d+:\*\*` (spec-structure rule §
+1-description), pass it through into `--description` exactly as
+given — do not reformulate it, renumber it, or append a second
+Requirements section. Only a description with no such matching section
+reaches the step below.
+
+Otherwise, attempt to formulate the user's loose description as a
+`## Requirements` section with `REQ-n` SHALL statements (format:
+spec-structure rule § 1-description) — every line exactly
+`- **REQ-n:** ...`, bold included. If the description is too thin for
+confident SHALL statements, ask the user for the necessary
+clarifications now, before creating the spec — never write a
+Requirements section you had to guess at. JIRA mode: skip this
+entirely — the Problem text is external and verbatim, and formalizing
+someone else's issue puts words in their mouth.
+
+`aide-create-spec` refuses when a Requirements-looking line does not
+match the bold format exactly. If it refuses for that reason, fix the
+offending line's formatting and call it again — never work around the
+refusal by dropping the line instead.
 
 Call the script — never the Write tool — so file creation stays on a
 Bash-only path (this is what lets a Write/Edit permission rule be

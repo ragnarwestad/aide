@@ -239,6 +239,23 @@ describe("spec 121: New spec is a link, and the form is its own page", () => {
     expect(html).toContain("No project on this machine");
   });
 
+  // Spec 309: nothing on this page said requirements would be drafted
+  // from the text, or that a Requirements section written here is left
+  // alone — the only hint lived in a job log a headless run never shows.
+  test("the Description field carries a hint about drafted requirements", () => {
+    const html = newPage();
+    expect(html).toContain(
+      '<small class="muted small">Requirements will be drafted from this ' +
+        'text — a "## Requirements" section you write here is left as it ' +
+        "stands.</small>",
+    );
+    const field = html.slice(
+      html.indexOf('<textarea name="description"'),
+      html.indexOf("</label>", html.indexOf('<textarea name="description"')),
+    );
+    expect(field).toContain("<small");
+  });
+
   test("a refusal carried back in the query string is shown above the form", () => {
     const html = newPage({ error: "no such project: nope" });
     expect(html).toContain("no such project: nope");

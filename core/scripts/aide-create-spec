@@ -139,6 +139,28 @@ fi
 [ -n "$title" ] || refuse "missing --title"
 [ -n "$description" ] || refuse "missing --description"
 
+# REQ-1: the rule's own definition of a requirement line
+# (core/rules/spec-structure.md § 1-description) is
+# `^- \*\*REQ-\d+:\*\*`. Detected by stripping every `*` from the line
+# and checking for a bare "- REQ-n:" shape underneath — this catches
+# any placement of the bold markers (missing entirely, as spec 306's
+# bug produced, or just misplaced), not only the one exact shape
+# already seen once. A line that survives stripping unmatched is
+# ordinary text and is never touched.
+while IFS= read -r req_line; do
+  stripped="${req_line//\*/}"
+  case "$stripped" in
+    "- REQ-"[0-9]*":"*)
+      case "$req_line" in
+        "- **REQ-"[0-9]*":**"*) : ;;
+        *) refuse "Requirements line does not match the required '- **REQ-n:** ...' format: \"$req_line\"" ;;
+      esac
+      ;;
+  esac
+done <<REQ_CHECK_EOF
+$description
+REQ_CHECK_EOF
+
 folder="${number}-${slug}"
 dest="$specs_root/$folder"
 [ -d "$dest" ] && refuse "spec folder already exists: $dest"

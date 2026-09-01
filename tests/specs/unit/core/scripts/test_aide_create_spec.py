@@ -211,6 +211,41 @@ def test_status_opens_with_placeholder_progress_and_no_workflow_steps_line(scrip
     assert "Workflow steps completed" not in status
 
 
+# --- Requirements line format (spec 309, REQ-1) ----------------------------
+
+
+def test_refuses_when_a_requirements_line_has_no_bold(script, specs_root):
+    description = "Problem: X.\n\n## Requirements\n\n- REQ-1: The system SHALL do a thing.\n"
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert "REQ-1" in out["error"]
+    assert not (specs_root / "42-do-a-thing").exists()
+
+
+def test_refuses_when_a_requirements_line_has_misplaced_bold(script, specs_root):
+    description = "Problem: X.\n\n## Requirements\n\n- **REQ-1**: The system SHALL do a thing.\n"
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    assert rc != 0
+    assert out["ok"] is False
+    assert out["terminalReason"] == "refused"
+    assert not (specs_root / "42-do-a-thing").exists()
+
+
+def test_accepts_and_preserves_correctly_bolded_requirements_lines(script, specs_root):
+    description = (
+        "Problem: X.\n\n## Requirements\n\n"
+        "- **REQ-1:** The system SHALL do a thing.\n"
+        "- **REQ-2:** The system SHALL do another thing.\n"
+    )
+    rc, out, _ = run(script, specs_root, "42", "do-a-thing", "Do a thing", description)
+    assert rc == 0, out
+    desc = (specs_root / "42-do-a-thing" / "1-description.md").read_text()
+    assert "- **REQ-1:** The system SHALL do a thing." in desc
+    assert "- **REQ-2:** The system SHALL do another thing." in desc
+
+
 # --- multi-line / special-character description (risk analysis) ------------
 
 

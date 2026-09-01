@@ -137,6 +137,13 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
   authors the Problem text from scratch, so it also attempts the
   Requirements section as part of that same authoring step — see the
   aide-create skill
+- A description already carrying a `## Requirements` section whose
+  lines already match the definition above is passed through
+  unchanged — no rewriting, no renumbering, no second section appended.
+  Only a description with no such matching section gets one authored
+  from scratch. `aide-create-spec` refuses to create a spec whose
+  description contains a `REQ-n:` bullet that does not match the bold
+  format exactly, so a malformed section never reaches disk
 - `/aide-analyze` never retrofits a Requirements section into an
   existing `1-description.md` on its own initiative — only original
   authoring (via `/aide-create`) adds one
