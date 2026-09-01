@@ -3,3 +3,8 @@ AIDE_SPECS_PATH=/Users/ragnarwestad/develop/aide-specs/aide
 # Run by the dashboard after a code merge (spec 96): install the scripts,
 # refresh the dashboard's deps and restart its server where one runs.
 AIDE_INSTALL_CMD=dashboard/deploy/install-after-merge.sh
+# Both toolchains, because both can reach main: the root is pytest and
+# dashboard/ is bun + TypeScript (.claude/rules/development.md). `make test`
+# runs tsc --noEmit before bun test — a green `bun test` alone type-checks
+# nothing, which is the whole reason that target exists.
+AIDE_TEST_CMD=.venv/bin/pytest -q && cd dashboard && make test
