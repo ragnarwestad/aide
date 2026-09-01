@@ -9,6 +9,7 @@ step's branch is landed.
 - [The token](#the-token)
 - [Caps](#caps)
 - [Which AI runs a step](#which-ai-runs-a-step)
+- [Global defaults for the AI and model](#global-defaults-for-the-ai-and-model)
 - [Running a job on a schedule](#running-a-job-on-a-schedule)
 - [Adding and removing a project](#adding-and-removing-a-project)
     - [Whether a run can start there](#whether-a-run-can-start-there)
@@ -20,6 +21,10 @@ step's branch is landed.
 - [Telling claude-usage a branch landed](#telling-claude-usage-a-branch-landed)
 - [What a finished step publishes](#what-a-finished-step-publishes)
 - [How the list reads](#how-the-list-reads)
+- [Filtering and searching the list](#filtering-and-searching-the-list)
+- [Changing a running job's tail](#changing-a-running-jobs-tail)
+- [The spec page](#the-spec-page)
+    - [Saving from the page](#saving-from-the-page)
 - [What the script adds](#what-the-script-adds)
 - [The page changes when something changes](#the-page-changes-when-something-changes)
 - [A spec's date does not move, and a phase says how long it took](#a-specs-date-does-not-move-and-a-phase-says-how-long-it-took)
@@ -340,6 +345,13 @@ non-interactive and has no
 `--ask-for-approval` flag at all — that one belongs to the interactive command — so the sandbox mode is the whole of
 what there is to say.)
 
+## Global defaults for the AI and model
+
+`/settings` holds the default AI and model per step — Explore, Create, Analyze, Implement, Archive, Manifest and
+Reopen. Saving posts to `POST /api/queue/settings`, which validates all seven model names against `modelChoices`,
+updates `queue-config.json` atomically while retaining comments and unrelated values, and changes the live defaults
+only after the write succeeds. Later jobs use them immediately; jobs already accepted keep their stored choices.
+
 ## Running a job on a schedule
 
 A project can name recurring work of its own — a periodic analysis or report — in a `schedule:` list in its committed
@@ -512,6 +524,18 @@ projects already added lay theirs out — at least two sharing a `<parent>/<proj
 `<parent>/<newName>`, and fewer than two is an example rather than a pattern. Anything that cannot be worked out is left
 blank, never guessed. With exactly one checkout on offer the answer is unambiguous and goes straight into the fields, so
 a browser with no script gets the help too; with several, the proposals ride on the form and the pick fills them in.
+
+**The project's own page, `/projects/<name>`, answers the two things a generated file could not:** what its
+`.aide/config` says, and whether a run could start there at all. The manifest itself is not repeated — a frozen copy
+of a file nothing on the page can act on, and a manifest that fails to parse already says so on the project's
+`/projects` row, which is the live view of the same thing. Each of the seven recognized config keys is marked
+configured, worked out (naming the lockfile that decided it, hedged as a default rather than a verified command) or
+not set; a checkout with no `.aide/config` says so in as many words, because "no file" and "a file setting nothing"
+are different states and the first is what a project cloned onto a second machine is in. Below that, the same checks
+`assessProjectReadiness` runs at Add time, on every load rather than once in a notice gone by the next page. Nothing
+is executed and nothing is moved: a git that cannot answer leaves the settings standing, with no readiness section.
+The generated `/<slug>.html` page shows the manifest and the specs only: it is generated after a merge lands somewhere
+in the queue, and a config file edited between merges would be described there as it stood days ago.
 
 **A project's settings can be changed after it is added.** Its own
 `/projects/<name>` page keeps the current values and the read-only settings overview visible while Edit opens Specs
@@ -700,6 +724,110 @@ The header carries what belongs to the spec rather than to one run, unconditiona
 cost, one link per repo the spec pushed to, and the state that matters most right now — whatever is in flight, else the
 most recent outcome. A collapsed row's single action button — the way out of a conflict, where the refusal is — sits
 there too, once per spec instead of once per job; Cancel is only offered once the row is expanded.
+
+## Filtering and searching the list
+
+The chips are one axis, and `?state=` is where it lives: "Not archived" (the default, and the reading view), "All",
+"Not started", "Active", "Done", "Problems" and "Archived". The default is `STATE_FILTERS[0]` and nothing else — moving
+an entry to the front changes the default for every reader — and it travels as no `state=` value at all, so `/` stays
+a clean link.
+
+**An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
+row: the link to its own `/specs/<project>/<spec>` page, its whole description behind a two-line clamp, the date it was
+archived, what it cost in time, the "not landed" mark, and Reopen. No model select, no tick box and no Run — the server
+refuses every step but `reopen` for an archived spec (`ARCHIVE_ONLY_STEP`), and a control that would be refused is a
+control that should not be drawn. The date is the `**Archived:**` stamp in `4-status.md`, or, where a folder carries no
+stamp, the commit that last touched it; a spec neither can date reads "date unknown" rather than leaving the column
+blank, and one with no `## Description` section reads as a dash.
+
+**What that row says a spec cost, in time,** is read the way Cost is: a live `reduce` in `readerGroup()`
+(`data-model/group-builders.ts`) over each phase's own `timeSpentMs`, off the per-phase Tracking info — never a figure
+worked out once, at archive-landing time, off the queue's own job records. The queue keeps 200 jobs while the archive
+holds more and grows, so a figure stamped at landing time is unwritable for any spec whose jobs the queue has already
+forgotten. A total of `0` across every phase draws a bare date with no duration span, the same "nothing recorded" rule
+the Cost cell gives an all-zero `spentUsd`.
+
+**Building archived rows is gated on the chip** (`filterShowsArchived` in `data-model/filter-sort.ts`, beside the
+chips, so the gate and the chips cannot disagree). A row costs two small file reads, aide alone has archived well over
+a hundred specs, and this page rebuilds itself on every change event on every open tab — so a view whose chip cannot
+show an archived row builds nothing for one. ONE exception: an archived spec whose own branch is still on origin is
+built whatever the chip, because it has NOT finished and the reading view is where that has to be seen. That is also
+why there are two archived pseudo-states, `archived` and `archived-unlanded`: the second is archived to the Archived
+chip, a problem to the Problems chip, and not-archived to the chip defined by excluding archived specs, and all three
+fall out of the chip tables rather than out of an exception inside the filter.
+
+**`?q=` is a plain search**, a GET form carrying the rest of the view as hidden fields, matching the folder, the title
+and the WHOLE description — including the part the clamp does not show, which the note under the field says out loud.
+It reads live and archived rows alike, because they are rows on one list.
+
+## Changing a running job's tail
+
+`POST /api/queue/<id>/steps` edits a RUNNING job's tail: `step` plus a `checked` flag adds a phase the run has not
+reached yet, or removes one it has not started. The running step and everything behind it are refused by name, as is
+any job that is not running — the decision is made against the job as it stands when the request arrives, never
+against what the page believed. This is deliberately NOT `POST /api/queue`: that route creates a job, and for a spec
+with one in flight it answers with the clash refusal.
+
+## The spec page
+
+`/specs/<project>/<spec>` is the whole SPEC, as it stands now, in seven tabs: Overview, one tab per document
+(Description, Analysis, Solution, Status — each stamped with the commit that last changed it), and Activity and Steps
+for one of its runs. Overview carries no file text at all — stacking four files in full there put thousands of lines
+of preformatted text between the reader and what they came for. It is where the spec STANDS: the state chip, the
+Update button that pulls the specs checkout (`POST /api/queue/specs/<project>/<spec>/update`), the title, what the
+spec depends on (read-only — the picker that CHANGES it is on the Description tab, with the file the line is stored
+in), and the checks, as real boxes with a Save of their own.
+
+**A phase line on the spec list opens the tab that shows what that phase MADE**: create → Description, analyze →
+Solution, implement → Status, archive → Overview, since archive writes no file of its own. `PHASE_TAB` in
+`render/pages/spec-page/tabs.ts` is the one place that mapping is written; the list imports it. A step outside those
+four — `explore`, or anything not in the fixed workflow — has no tab that speaks for it and keeps linking to its own
+job page, `/specs/<id>`. Such a link is live whether or not the phase has ever run: the tab belongs to the spec, not
+to the run.
+
+**The Logs tab lists every step from every attempt in one flat list, no picker.** A spec with more than one job for
+the same work round tags each row `Attempt N` (oldest = 1); a single-attempt spec shows no marker at all. There is no
+`?job=`: the tab's own count is the true total across every attempt, not just the latest one's. **Only the Logs tab
+reloads itself** (`<meta refresh>`, ten seconds): it is the one that moves while a step runs, and every other tab
+carries a form a timer would wipe. The price is a state chip only as fresh as the last time the page was asked for,
+with Update beside it.
+
+**An archived spec has this page too** — the scan records every spec's directory before it drops the archived ones
+from the list. It says it is archived, and its Description tab is read-only with no box to tick anywhere: the spec is
+a record.
+
+**The Description tab** is `1-description.md` in a textarea with its own Save, plus the `Depends on` picker (also the
+New-spec page's own control — the line it writes is a line of this very file, and leaving it in the textarea too would
+mean two writers for one fact). It is the one of the four files a person owns: the other three are written by a step,
+and a hand edit there is overwritten the next time that step runs.
+
+**The checks on Overview** are `4-status.md`'s Tasks rows, every one of them — a list that only ever shrinks says
+nothing about how far the spec got. The ones that are BOXES are the open rows of the CURRENT phase alone (the first
+phase section still carrying an open mark, the same one the spec list's column shows): a row already ticked is a check
+already made, and a row in a phase the workflow has not reached is a check nothing is waiting on. Both are shown,
+neither presses. `4-status.md` is otherwise the runner's, and this is the narrow exception — one existing row's Status
+mark, never its prose.
+
+### Saving from the page
+
+`POST /api/queue/specs/<project>/<spec>/save` writes, commits and pushes what the Description tab's form carried
+(`1-description.md`, the `Depends on` line included), on the specs repo's default branch, then returns to that tab.
+ONE commit, ONE file.
+
+`POST /api/queue/specs/<project>/<spec>/tick` is the same for the checks form: `4-status.md` alone, its own commit,
+back to Overview. It is a route of its own so that ticking a box does not mean opening the description's editor. A
+tick's new text is computed on the server from the row it verified against the file on disk and never taken from the
+body, so no byte of `4-status.md` outside a Status cell can move. Two guards, not one: the file's `baseSha` as it was
+read at, and each ticked row's own exact text posted back — a row that no longer reads as it did is refused even when
+the sha still matches, which is what tells a second press apart from a first. One bad row refuses every box in the
+same press; a `text` field posted to `/tick` is read by nothing, and `tick` fields posted to `/save` are read by
+nothing.
+
+Both routes refuse, with nothing written, when the checkout is dirty, on another branch, diverged or unreachable; a
+commit whose push fails is reset away, because an unpushed commit in the one shared specs checkout breaks the next
+fast-forward for every project in it. Both refuse an ARCHIVED spec, whose files are history — server-side, not by
+hiding a control. `/save` is the only route that accepts a body over 4096 bytes — a description is not an action post
+— and its own cap is 64 KiB.
 
 ## What the script adds
 
