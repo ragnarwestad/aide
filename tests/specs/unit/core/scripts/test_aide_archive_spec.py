@@ -561,6 +561,47 @@ def test_no_test_run_record_at_all_blocks_archive(script, project, specs):
     assert (specs / "81-x").exists(), "no record means archive must not move the folder"
 
 
+def test_no_record_and_no_test_command_says_so(script, project, specs):
+    """A project with no test command cannot have a record made for it,
+    and is told that rather than being sent to re-run implement."""
+    configure(project, specs)
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert "no test command" in out["note"], out
+    assert (specs / "81-x").exists()
+
+
+def test_no_record_runs_the_tests_and_archives_when_they_pass(script, project, specs):
+    """The gate makes the record it is missing. `implement` writes it
+    normally, but an implement step locks once it is done — so a spec
+    whose implement predates the gate could never satisfy it. Archive
+    runs the command itself rather than refusing for the lack of a file
+    nobody is able to produce any more."""
+    configure(project, specs)
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=true\n")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+    record = json.loads((specs / "archive" / "81-x" / "test-run.json").read_text())
+    assert record["exitCode"] == 0
+    assert record["commit"] == git(project, "rev-parse", "HEAD")
+
+
+def test_no_record_refuses_when_the_tests_it_runs_fail(script, project, specs):
+    """Still a gate: it refuses when the tests actually fail, which is
+    the only thing it was ever meant to stop."""
+    configure(project, specs)
+    (project / ".aide" / "config").write_text(
+        f"AIDE_SPECS_PATH={specs}\nAIDE_TEST_CMD=false\n")
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert (specs / "81-x").exists()
+
+
 def test_a_passing_record_at_exact_head_archives(script, project, specs):
     configure(project, specs)
     add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))

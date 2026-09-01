@@ -236,7 +236,30 @@ if [ -f "$record_file" ]; then
   fi
 fi
 if [ "$record_ok" = "no" ]; then
-  emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record for this commit — run /aide-implement'"'"'s REFACTOR phase before archiving"}'
+  # The gate MAKES the record it is missing rather than refusing for the
+  # lack of one. It demanded a file only /aide-implement writes, and an
+  # implement step locks once it is done — so a spec whose implement ran
+  # before this gate existed could never satisfy it, however many times
+  # archive was run. Three had to be merged and archived by hand the day
+  # the gate shipped. A gate that can demand something nobody is able to
+  # produce is a trap, not a gate; this one still refuses, but only when
+  # the tests actually fail.
+  test_cmd=""
+  [ -f "$project_dir/.aide/config" ] \
+    && test_cmd="$(sed -n 's/^AIDE_TEST_CMD=//p' "$project_dir/.aide/config" | tail -1)"
+  if [ -z "$test_cmd" ]; then
+    emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record, and this project has no test command configured — set the test command in .aide/config before archiving"}'
+  fi
+  "$SCRIPT_DIR/aide-record-test-run" --project-dir "$project_dir" \
+    --specs-root "$specs_root" --folder "$spec_folder" --cmd "$test_cmd" >/dev/null 2>&1 || true
+  if [ -f "$record_file" ]; then
+    record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"
+    record_exit="$(jq -r '.exitCode // empty' "$record_file" 2>/dev/null)"
+    [ "$record_exit" = "0" ] && [ "$record_commit" = "$head_commit" ] && record_ok="yes"
+  fi
+fi
+if [ "$record_ok" = "no" ]; then
+  emit_ok '{"terminalReason":"no-passing-test-record","note":"the project'"'"'s tests did not pass for this commit — fix them before archiving"}'
 fi
 
 # --- the acceptance-criteria gate (spec 285) --------------------------------
