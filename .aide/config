@@ -7,4 +7,9 @@ AIDE_INSTALL_CMD=dashboard/deploy/install-after-merge.sh
 # dashboard/ is bun + TypeScript (.claude/rules/development.md). `make test`
 # runs tsc --noEmit before bun test — a green `bun test` alone type-checks
 # nothing, which is the whole reason that target exists.
-AIDE_TEST_CMD=.venv/bin/pytest -q && cd dashboard && make test
+# The PATH prefix is not decoration: the gate runs this through `bash -c`
+# from the project root, and a non-login shell there has no mise shims —
+# `make test` then fails on a missing `bun` rather than on a test, which
+# would turn the gate into a refusal of everything. Same resolution
+# dashboard/deploy/install-after-merge.sh already hardcodes for AIDE_DASH_BUN.
+AIDE_TEST_CMD=export PATH="$HOME/.local/share/mise/shims:$PATH"; .venv/bin/pytest -q && cd dashboard && make test
