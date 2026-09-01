@@ -129,6 +129,13 @@ export interface ArchivedSpecView {
    *  count. Absent for a row carrying no mark, and for one whose answer
    *  has never been taken. */
   notLandedCheckedAt?: number;
+  /** A landing merged this spec's branch but left it on origin because
+   *  the delete failed (spec 319) — the reason `notLanded` is true, when
+   *  it is known. `undefined` means either the branch is not open at all,
+   *  or it is open for a reason no landing recorded (a spec whose branch
+   *  genuinely never merged). Takes precedence over the bare `NOT_LANDED`
+   *  wording for the same reason `prOpen` takes precedence over it. */
+  branchDeleteError?: string;
   /** Nobody has yet asked git when this spec was archived (spec 208).
    *  Only a spec whose `4-status.md` carries no `Archived:` stamp can
    *  reach git at all, so this is the shrinking minority of a shrinking

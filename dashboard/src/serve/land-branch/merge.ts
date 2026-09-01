@@ -80,6 +80,13 @@ export async function landBranch(
     // Which refusal it was, when it is one the row can offer a way out
     // of. A conflict is the only one a `resolve` step could finish.
     let reason: Job["errorReason"];
+    // Spec 319: a merge that succeeded but whose delete failed, per
+    // repo. `leftBehindRoots` is what stops the post-loop check below
+    // from re-flagging a root THIS loop already knows the story of;
+    // `deleteErrors` is what the row reads afterwards instead of the
+    // generic "not landed".
+    const deleteErrors: string[] = [];
+    const leftBehindRoots = new Set<string>();
     for (const repo of repos) {
       if (leaveOpen(repo.root)) {
         // Nothing merged, nothing deleted, nothing installed: the code
@@ -153,6 +160,8 @@ export async function landBranch(
         }
         if (result.branchDeleteError) {
           console.error(`queue: landing ${job.project}/${job.specFolder} in ${repo.root} — ${result.branchDeleteError}`);
+          leftBehindRoots.add(repo.root);
+          deleteErrors.push(`${repo.root}: ${result.branchDeleteError}`);
         }
       } else if (result.reason === "gone") {
         // Nothing to land in this repo, and not a failure of this
@@ -202,6 +211,12 @@ export async function landBranch(
         // knowledge of which ones the landing skipped, and in `pr`
         // mode the code root always still holds the branch, by design.
         if (leaveOpen(root)) continue;
+        // This loop already knows WHY this root still holds the branch:
+        // its own merge just succeeded and only the delete failed (spec
+        // 319). Not a second, contradicting "not landed" — `deleteErrors`
+        // above already carries the sentence that says what actually
+        // happened, and the row reads it from there.
+        if (leftBehindRoots.has(root)) continue;
         failures.push(
           // The sentence carries the move as well as the state: the
           // way out is the step that just ran, and the row's own
@@ -257,6 +272,7 @@ export async function landBranch(
       branchUrls: stillOpen,
       prUrl: review.prUrl,
       prError: review.prError,
+      branchDeleteError: deleteErrors.length ? deleteErrors.join("; ") : undefined,
       error: undefined,
       errorReason: undefined,
     });

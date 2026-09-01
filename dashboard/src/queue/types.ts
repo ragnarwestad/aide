@@ -145,6 +145,13 @@ export interface Job {
    *  it, which for a project whose landing deliberately leaves that
    *  branch open is exactly the thing a reader has to be told. */
   prError?: string;
+  /** A landing merged this job's branch but could not delete it on
+   *  origin (spec 319): `mergeBranchIntoDefault`'s own `branchDeleteError`,
+   *  carried forward so a row built long after this job ran can still
+   *  say what actually happened, rather than a generic "not landed".
+   *  Cleared, like `error`, the moment a later landing for the same spec
+   *  deletes the branch cleanly. */
+  branchDeleteError?: string;
   stopReason?: StopReason;
   error?: string;
   /** The one machine-readable class of refusal: a merge that failed on a

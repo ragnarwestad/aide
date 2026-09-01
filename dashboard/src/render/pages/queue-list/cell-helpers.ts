@@ -14,7 +14,7 @@ import {
   type RestingState,
 } from "../../ui/job-state.ts";
 import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { NO_DATE, PR_OPEN } from "./row-shared.ts";
+import { BRANCH_LEFT_BEHIND, NO_DATE, PR_OPEN } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -219,4 +219,14 @@ export function prOpenMark(s: ArchivedSpecView): string {
       : "its code is on a branch and no pull request was opened for it",
   );
   return s.prUrl ? `<a href="${esc(s.prUrl)}">${mark}</a>` : mark;
+}
+
+/** The left-behind mark (spec 319): the reason is already a whole
+ *  sentence naming the branch and origin's own words
+ *  (`branchDeleteError`), so it is the badge's TITLE attribute verbatim
+ *  — the visible label stays the short `BRANCH_LEFT_BEHIND` constant,
+ *  exactly the split `prOpenMark` already uses between its label and its
+ *  title. */
+export function branchLeftBehindMark(s: ArchivedSpecView): string {
+  return badge("refused", BRANCH_LEFT_BEHIND, s.branchDeleteError ?? "");
 }
