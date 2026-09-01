@@ -80,6 +80,27 @@ dropdown could not stay current: the row refresh deliberately replaces the ROWS 
 wiped — and a spec created since the page loaded would be in the list and not in the dropdown.
 
 
+A spec's row is collapsed by default: name, title, one status line, the five phase pips, and at most one action button.
+The four phase lines and every control — phase checkboxes, model dropdown, the also-touches field, Run, Cancel — sit
+behind the same chevron in front of the name. Expanding is a link and lives in the query string
+(`?open=<project>/<folder>,…`), which is what makes it survive the table's own row refresh, what makes it work with
+JavaScript switched off, and what keeps the row a person just acted on open across the swap/redirect that follows their
+own submit.
+
+Every control here is a plain form first: ticking phases and pressing Run works with JavaScript switched off, and so do
+Cancel, Create and expanding a row — each posts its form and follows a 303 back to the list. `queue-client.ts` is a
+layer ABOVE that floor, never the mechanism (see
+[what the script adds](#what-the-script-adds)). It cannot `import` anything: `queueClientScript()` runs
+`Bun.Transpiler.transformSync` over it and inlines the result into a plain `<script>` tag — that transpiles, it does not
+bundle. An
+`import` survives as an ESM import inside a classic inline script (a 404, since this server does not serve that path),
+and an `export` is a syntax error. Any shared, unit-testable browser module needs a bundle step or a `type="module"` tag
+first; the expand/collapse link was built to need neither.
+
+The page is called Specs, not Queue. That a queue orders the runs is an implementation detail — `QueueStore`,
+`/api/queue`, `QUEUE_PROJECTS`
+and the rest keep the name; what a reader reads does not.
+
 ## How the list reads
 
 One row per spec, not per job, and collapsed by default:

@@ -11,6 +11,7 @@ Longer pages of their own:
 
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
+- [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard
 - [Deploying](docs/deploying.md) — HTTPS, the serving host, installing it as an app
@@ -39,7 +40,7 @@ Pages:
   `?state=` picks a chip and `?q=` searches;
   see [Filtering and searching the list](docs/the-specs-list.md#filtering-and-searching-the-list).
 - `/new` — the form that makes a spec. Create queues the job and returns to the list; Cancel returns having done nothing.
-- `/projects` — every project with its spec counts, plus the panel that adds and removes them.
+- `/projects` — every project with its spec counts, plus the panel that adds and removes them; see [Projects](docs/projects.md).
 - `/projects/<name>` — one project: what its `.aide/config` says, whether a run could start there, and the settings
   that can be edited inline.
 - `/settings` — the default AI and model per step.
