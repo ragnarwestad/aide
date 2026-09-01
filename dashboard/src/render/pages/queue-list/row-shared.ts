@@ -16,14 +16,11 @@ export const NO_DATE = "date unknown";
  *  is not a different kind of problem from the other. */
 export const NOT_LANDED = "not landed";
 
-/** The mark an archived row carries instead, when its branch is open
- *  BECAUSE THE PROJECT ASKED FOR THAT (spec 220): `codeLanding: pr` in
- *  its manifest, so the code waits on a pull request for as long as the
- *  review takes. Same fact from origin — the branch is there — and the
- *  opposite meaning, which is the whole reason it is worded apart:
- *  `NOT_LANDED` reads as an instruction to run archive again, and this
- *  one is an instruction to go and review something. */
-export const PR_OPEN = "PR open";
+/** The mark a row carries — live or archived — when its code is on a
+ *  branch waiting on a pull request (spec 220, spec 335): the same word
+ *  either way, since it is the same fact from a reader's chair — code is
+ *  on a branch, and a request describes it. */
+export const PULL_REQUEST = "pull request";
 
 /** The mark an archived row carries instead of `NOT_LANDED`, when its
  *  branch is open because a landing merged it and only failed to delete
@@ -37,6 +34,16 @@ export const BRANCH_LEFT_BEHIND = "branch left behind";
  *  of the same job has resolved it (spec 327) — independent of
  *  `state`, which a later step's own start already overwrites. */
 export const LANDING_FAILED = "landing failed";
+
+/** The mark a LIVE row carries when a step's push never reached origin
+ *  (spec 328). */
+export const NOT_PUSHED = "not pushed";
+
+/** The mark a LIVE row carries when no pull request could be opened for
+ *  its branch (spec 220). The more urgent half of the same answer
+ *  `PULL_REQUEST` gives — a branch left open with nothing describing it,
+ *  which no amount of waiting resolves. */
+export const NO_PULL_REQUEST = "no pull request";
 
 /** How many columns the list has. Two rows span the whole table — the
  *  "no spec matches" line and a row's message panel — and a count

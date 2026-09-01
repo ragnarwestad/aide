@@ -1,7 +1,7 @@
 // The small cells a spec's header row and phase lines share: state,
 // duration, cost, and the marks an archived row's date cell carries.
 
-import { CHECKING, badge, pips, stepLabel } from "../../ui/components.ts";
+import { CHECKING, badge, pips, stepLabel, type BadgeVariant } from "../../ui/components.ts";
 import { esc, relTimeLabel, usdOrTokens } from "../../ui/html.ts";
 import {
   completedThirds,
@@ -13,8 +13,8 @@ import {
   type QueueRowView,
   type RestingState,
 } from "../../ui/job-state.ts";
-import { phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
-import { BRANCH_LEFT_BEHIND, LANDING_FAILED, NO_DATE, PR_OPEN } from "./row-shared.ts";
+import { isArchivedRow, phaseDuration, type ArchivedSpecView, type Phase, type SpecGroup } from "./data-model.ts";
+import { LANDING_FAILED, NO_DATE, NO_PULL_REQUEST, NOT_PUSHED, PULL_REQUEST } from "./row-shared.ts";
 
 // The two cells the header line and the phase lines fill the same way.
 // A spec's state and a phase's state are the same question asked at two
@@ -218,35 +218,115 @@ export function notLandedTitle(checkedAt: number | undefined, now: number): stri
   return `${why}, checked ${relTimeLabel(new Date(checkedAt).toISOString(), now)}`;
 }
 
-/** The waiting-on-review mark, wrapped in a link to the request when
- *  there is one to link to — the mark is a reason to go somewhere, and
- *  the place is the pull request. Without a URL it is the bare badge,
- *  saying the branch is open and nothing describes it. */
-export function prOpenMark(s: ArchivedSpecView): string {
-  const mark = badge(
-    "waiting",
-    PR_OPEN,
-    s.prUrl
-      ? "its code is waiting on a pull request — open it to review"
-      : "its code is on a branch and no pull request was opened for it",
-  );
-  return s.prUrl ? `<a href="${esc(s.prUrl)}">${mark}</a>` : mark;
+/** The waiting-on-review sentence (spec 220, spec 335): the branch is
+ *  there, and a request describes it — worded for both a live row's
+ *  `prUrl` and an archived row's `archive.prOpen`, which are the same
+ *  fact from a reader's chair. */
+const WAITING_ON_REVIEW_SENTENCE = "its code is waiting on a pull request — open it to review";
+
+/** The sentence a LIVE row carries when a push never reached origin
+ *  (spec 328, spec 335). Fixed prose, not `pushError`'s own text: that
+ *  text is git's raw stderr with its `hint:` lines flattened onto one
+ *  line before it ever reaches the dashboard (`aide-run-spec`'s own `tr
+ *  '\n' ' '`), which is not a string a person should be asked to read as
+ *  an instruction. */
+const PUSH_ERROR_SENTENCE = "A step's push did not reach origin. Pull the branch locally, then push it again.";
+
+/** The sentence a LIVE row carries when no pull request could be opened
+ *  for its branch (spec 220, spec 335). Fixed prose for the same reason
+ *  as `PUSH_ERROR_SENTENCE` — one of `prError`'s four cases is raw `gh
+ *  pr create` stderr, and the other three are already custom text this
+ *  sentence now stands in for uniformly. */
+const PR_ERROR_SENTENCE = "No pull request could be opened for this branch. Open one by hand.";
+
+/** The sentence an ARCHIVED row carries when a landing merged its branch
+ *  but left it on origin because the delete failed (spec 319, spec
+ *  335). Fixed prose, not `branchDeleteError`'s own text: that text is
+ *  raw `git push --delete` stderr, tail 200 chars. */
+const BRANCH_LEFT_BEHIND_SENTENCE =
+  "This spec merged, but its branch could not be deleted on origin. Delete it by hand.";
+
+/** One mark this row's own live-job fields carry, before it is chosen
+ *  between (`rowActionMark`, below). */
+interface LiveMark {
+  variant: BadgeVariant;
+  label: string;
+  sentence: string;
+  href?: string;
 }
 
-/** The left-behind mark (spec 319): the reason is already a whole
- *  sentence naming the branch and origin's own words
- *  (`branchDeleteError`), so it is the badge's TITLE attribute verbatim
- *  — the visible label stays the short `BRANCH_LEFT_BEHIND` constant,
- *  exactly the split `prOpenMark` already uses between its label and its
- *  title. */
-export function branchLeftBehindMark(s: ArchivedSpecView): string {
-  return badge("refused", BRANCH_LEFT_BEHIND, s.branchDeleteError ?? "");
+/** Every mark a LIVE row's own fields carry right now, highest priority
+ *  first. More than one can be true at once — `pushError`, `landingError`,
+ *  `prError` and `prUrl` are independent booleans, set from different job
+ *  records — and the order is the row's own: a push that never reached
+ *  origin means nothing downstream can be trusted yet, so it outranks a
+ *  landing failure, which itself means a completed step's merge never
+ *  finished and so outranks the two review-related marks, which are
+ *  about process, not correctness, and least urgent of the four. */
+function liveMarks(g: SpecGroup): LiveMark[] {
+  const marks: LiveMark[] = [];
+  if (g.pushError) marks.push({ variant: "refused", label: NOT_PUSHED, sentence: PUSH_ERROR_SENTENCE });
+  if (g.landingError) marks.push({ variant: "refused", label: LANDING_FAILED, sentence: g.landingError });
+  if (g.prError) marks.push({ variant: "refused", label: NO_PULL_REQUEST, sentence: PR_ERROR_SENTENCE });
+  if (g.prUrl) {
+    marks.push({ variant: "waiting", label: PULL_REQUEST, sentence: WAITING_ON_REVIEW_SENTENCE, href: g.prUrl });
+  }
+  return marks;
 }
 
-/** The landing-failed mark (spec 327): the message already names the
- *  step and, via `refuse()`'s convention, the repo and branch — so, like
- *  `branchLeftBehindMark`, the badge's title carries it whole and the
- *  visible label stays the short constant. */
-export function landingFailedMark(g: { landingError?: string }): string {
-  return badge("refused", LANDING_FAILED, g.landingError ?? "");
+/** The one small badge the State column draws beside its own running/
+ *  resting word, when the row has an action of its own to report — REQ-2:
+ *  every status this list reports comes from the State column now, never
+ *  from beside the spec's name. `undefined` where there is nothing to
+ *  add, which is most rows. */
+export interface RowMark {
+  variant: BadgeVariant;
+  label: string;
+  title: string;
+  href?: string;
+}
+
+/** `isArchivedRow(g)` is enough to pick the right group: `readerGroup`
+ *  never sets `pushError`/`landingError`/`prError`/`prUrl`, and
+ *  `jobGroup` never sets `archive` — so the two groups never both apply
+ *  to the same row and there is no ordering between them to invent.
+ *
+ *  An archived row's `notLanded`/`branchDeleteError` are mutually
+ *  exclusive with `prOpen` at the SOURCE (`spec-views.ts`), and already
+ *  folded into `stateBadge`'s own text (`lockedStateTitle`, below) —
+ *  `prOpen` is the one Archive fact that text never covered, so it is
+ *  the only one this function draws as a second badge.
+ *
+ *  A live row's four fields are NOT mutually exclusive (`liveMarks`,
+ *  above): the top one is this badge's label, and the REST are not
+ *  dropped — every applicable mark's own sentence is folded into this
+ *  SAME badge's title, so a reader reaches all of them by hovering the
+ *  one badge the row draws, with no second page to follow. */
+export function rowActionMark(g: SpecGroup): RowMark | undefined {
+  if (isArchivedRow(g)) {
+    if (!g.archive?.prOpen) return undefined;
+    return {
+      variant: "waiting",
+      label: PULL_REQUEST,
+      title: g.archive.prUrl
+        ? WAITING_ON_REVIEW_SENTENCE
+        : "its code is on a branch and no pull request was opened for it",
+      href: g.archive.prUrl,
+    };
+  }
+  const [top, ...rest] = liveMarks(g);
+  if (!top) return undefined;
+  const title = rest.length ? [top, ...rest].map((m) => `${m.label}: ${m.sentence}`).join(" · ") : top.sentence;
+  return { variant: top.variant, label: top.label, title, href: top.href };
+}
+
+/** The sentence a locked row's own `stateBadge` carries as its `title` —
+ *  the explanation the removed Spec-column badge used to hold (spec 335),
+ *  now on the one badge the State column draws instead of a second one.
+ *  `branchDeleteError`/`notLanded` stay folded into `stateBadge`'s own
+ *  visible text, unchanged (`head-row.ts`); this is only their title. */
+export function lockedStateTitle(a: ArchivedSpecView | undefined, now: number): string | undefined {
+  if (a?.branchDeleteError) return BRANCH_LEFT_BEHIND_SENTENCE;
+  if (a?.notLanded) return notLandedTitle(a.notLandedCheckedAt, now);
+  return undefined;
 }

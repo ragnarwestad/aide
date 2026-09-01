@@ -64,12 +64,15 @@ nothing about which step is waiting, while both facts are known.
 There is no second line telling a reader to press the button beside it. The row's
 button stands next to the badge and NAMES the phase it would run. The page says what IS; the controls say what can be
 done.
-The pips, the chip and the branch marks each answer their own narrower question beside it.
+The pips answer their own narrower question beside it.
 
-The branch marks answer WHERE the work is and whether it landed, and nothing else. An unmerged repo reads "waiting for
-archive" — one answer, whether or not a step is running for that spec, because the branch is open either way and
-`archive` is what lands it. It never echoes the running job's verb: the State column beside it says that already, and
-on a row with two repos the verb would appear three times.
+Every status the list reports lives in the State column, and nowhere else on the row — the spec's name carries only
+its name, its project, the pips and the fold control. A push that never reached origin, a landing that did not finish,
+a pull request the code is waiting on, or an archived branch left open (whether because a landing's own delete failed,
+or because nothing has landed it at all) each draw a second, small badge beside the running/resting word — one badge,
+the one that needs a person first, when more than one applies. Its title carries a sentence written for a person, what
+happened and what to do, never git's own stderr; and when more than one condition applies, every one of their
+sentences rides on that SAME title, so hovering the one badge reaches all of them rather than only the winner.
 
 The four sentences about how runs work on this machine sit behind a shut "How runs work here" disclosure, like the
 New-spec panel and for the same reason: the list is what people come here for. The runner-unavailable notice is NOT

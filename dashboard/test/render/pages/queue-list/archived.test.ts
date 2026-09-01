@@ -166,7 +166,9 @@ describe("an archived spec whose branch is still on origin (spec 193)", () => {
   // mark carries, in words, rather than leaving the mark to stand alone
   // against an unqualified "archived".
   test("the State cell echoes the mark instead of contradicting it (criterion 4)", () => {
-    expect(listed(true)).toContain('<span class="badge b-done">archived, not landed</span>');
+    expect(listed(true)).toContain(
+      '<span class="badge b-done" title="its branch is still on origin — re-run archive">archived, not landed</span>',
+    );
   });
 
   test("and reverts to the bare word once the branch is gone (criterion 5)", () => {
@@ -291,6 +293,23 @@ describe("spec 221: archived specs on the spec list", () => {
       filter: { state: "archived" },
     });
     expect(html).toContain("not landed");
+  });
+
+  // Spec 335, REQ-2/REQ-4: `archive.prOpen` had no coverage anywhere —
+  // and no State-column mark at all, since `g.state` reads `notLanded`
+  // alone (spec-views.ts) and `prOpen` is mutually exclusive with it.
+  // The State column now shows a `pull request` badge for this fact,
+  // same as it does for a live row's own `prUrl`.
+  test("and carries the pull-request mark when its branch is open for review", () => {
+    const html = rows({
+      archivedSpecs: [
+        archivedSpec("50-archived", { prOpen: true, prUrl: "https://github.test/aide/pull/9" }),
+      ],
+      filter: { state: "archived" },
+    });
+    expect(html.toLowerCase()).toContain("pull request");
+    expect(html).toContain('href="https://github.test/aide/pull/9"');
+    expect(html).not.toContain("not landed");
   });
 
   test("a date nobody could find is said in words, not left blank", () => {
