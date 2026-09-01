@@ -178,4 +178,23 @@ describe("a project can leave its code for a pull request (spec 220)", () => {
     // where PR mode wanted it. What is missing is the request.
     expect(landed.state).toBe("done");
   }, 20000);
+
+  // Spec 328: `pushError` is `prError`'s sibling — `aide-run-spec` has
+  // reported it in its result JSON since before this spec, but nothing
+  // on the dashboard side ever read it, so a step whose push failed
+  // reported `completed` with nothing on the row to explain why.
+  test("a push failure is reported on the step's own job", async () => {
+    const dir = own("aide-328-pusherror-");
+    const paths = repos(dir);
+    const git = gitFor({ openOn: [paths.project, paths.specs] });
+    const { base } = serverWithHarness(dir, paths, git);
+
+    const landed = await implemented(base, dir, paths, {
+      pushError: "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward",
+    });
+
+    expect(landed.pushError).toBe(
+      "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward",
+    );
+  }, 20000);
 });

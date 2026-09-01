@@ -55,6 +55,13 @@ export interface StepOutcome {
    *  gives that failure teeth: a project whose code is deliberately left
    *  unmerged has nothing describing the branch when this is set. */
   prError?: string;
+  /** Why the branch itself did not reach origin (spec 328). `aide-run-spec`
+   *  never fails a run over this — the step's own work is already
+   *  committed — so a step can report `completed` with its branch
+   *  stranded on the machine that ran it. `prError`'s sibling: same
+   *  best-effort shape, its own field rather than folded into `error`
+   *  for the same reason. */
+  pushError?: string;
   /** The branch this step's work is on. `aide-run-spec` has emitted it
    *  in every result since spec 81 and nothing read it until spec 93 —
    *  a create job's branch is named after a provisional key, so it

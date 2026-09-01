@@ -245,6 +245,7 @@ function jobGroup(all: QueueRowView[], target: QueueTarget | undefined): SpecGro
     // Newest-first, so the first job that reported one wins.
     prUrl: recent.find((r) => r.prUrl)?.prUrl,
     prError: recent.find((r) => r.prError)?.prError,
+    pushError: recent.find((r) => r.pushError)?.pushError,
     landingError: lead.landingError,
     phases,
     // The same roll-up shape as `spentUsd` above, over time instead of

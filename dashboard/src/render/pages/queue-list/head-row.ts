@@ -149,6 +149,13 @@ export function specHeadRow(
   // for an archived row (only `jobGroup()` does), so this simply never
   // fires there — no separate check is needed to keep the two apart.
   const landingFailure = g.landingError ? ` ${landingFailedMark(g)}` : "";
+  // Spec 328: independent of every mark above — a step's own work is
+  // already committed by the time its push fails, so `aide-run-spec`
+  // reports the step `completed` regardless. Without this the row said
+  // nothing until a LATER step (reusing the same branch) refused as
+  // diverged, two steps and possibly days after the push that actually
+  // failed.
+  const pushFailure = g.pushError ? ` ${badge("refused", "not pushed", g.pushError)}` : "";
   // The whole workflow in six millimetres, on the line you are already
   // reading — shared with the spec page's Overview tab since spec 239.
   const progress = phasePips(g.phases, g.done);
@@ -220,6 +227,7 @@ export function specHeadRow(
     under +
     review +
     landingFailure +
+    pushFailure +
     `</td>` +
     // The badge says what is happening, or — once nothing is — the
     // resting state and what can happen next (spec 132). A sentence

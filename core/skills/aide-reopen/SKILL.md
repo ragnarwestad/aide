@@ -112,8 +112,9 @@ none to write about.
 
 ### Step 7: Commit
 
-A headless run gets its commit for free. Working interactively, ASK
-whether to commit, and suggest this message:
+A headless run gets its commit for free — this session does not run
+`git commit` or `git push` itself, headless or not. Working
+interactively, ASK whether to commit, and suggest this message:
 
 ```text
 Run /aide-reopen for <spec-folder>

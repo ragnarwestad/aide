@@ -189,9 +189,11 @@ authoritative write.
 script's JSON reported — the specs root is a working directory the
 skill can operate in, whether or not it sits inside the project root.
 
-A headless run gets its commit for free. Working interactively, commit
-and push RIGHT AWAY, with this message so the step is recognised the
-same way:
+A headless run gets its commit for free — this session does not run
+`git commit` or `git push` itself, headless or not, whatever the
+paragraph below says about the interactive case. Working interactively,
+commit and push RIGHT AWAY, with this message so the step is recognised
+the same way:
 
 ```text
 Run /aide-create for <spec-folder> (model: <tool> <model>)

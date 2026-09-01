@@ -50,6 +50,7 @@ export async function jobRow(ctx: JobRowContext, job: Job): Promise<QueueRowView
     // the URL, and there is nothing on this machine to work it out from.
     prUrl: job.prUrl,
     prError: job.prError,
+    pushError: job.pushError,
     stopReason: job.stopReason,
     error: job.error,
     // Why the landing was refused, when it was refused for something

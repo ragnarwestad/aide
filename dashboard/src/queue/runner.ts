@@ -335,6 +335,7 @@ export class Runner {
       // the step that opened it.
       prUrl: outcome.prUrl ?? job.prUrl,
       prError: outcome.prError ?? job.prError,
+      pushError: outcome.pushError ?? job.pushError,
       // Accumulated BY ROOT, never replaced: a step that pushed to one
       // repo must not erase the repo an earlier step pushed to.
       branchUrls: mergeBranchRefs(job.branchUrls, outcome.branchUrls),
