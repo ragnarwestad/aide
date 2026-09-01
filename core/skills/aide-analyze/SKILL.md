@@ -197,9 +197,10 @@ commits — leave that line exactly as you found it. The same script
 writes this phase's `Repo`/`Model`/`Result`/`Time spent`/`Cost` block
 into `2-analysis.md`'s own Tracking info — leave those lines alone too.
 
-A headless run gets its commit for free. Working interactively, ASK
-whether to commit the analysis, and suggest this message so the step is
-recognised the same way:
+A headless run gets its commit for free — this session does not run
+`git commit` or `git push` itself, headless or not. Working
+interactively, ASK whether to commit the analysis, and suggest this
+message so the step is recognised the same way:
 
 ```text
 Run /aide-analyze for <spec-folder> (model: <tool> <model>)

@@ -337,3 +337,24 @@ describe("a row shows an unresolved landing failure (spec 327)", () => {
     expect(html).not.toContain("landing failed");
   });
 });
+
+// --- spec 328: a push that never reached origin ------------------------------
+//
+// `aide-run-spec` never fails a run over a push that could not land —
+// the step's own work is already committed, so it reports `completed`
+// regardless. `pushError` is the field that says the branch itself did
+// not make it, and REQ-3 is that the row shows it rather than leaving a
+// reader to find out two steps later, the way spec 327 did.
+describe("a row shows a push that never reached origin (spec 328)", () => {
+  const MESSAGE = "cannot push aide/81-queue-and-runner in /repos/aide: non-fast-forward";
+
+  test("the failure is on the row", () => {
+    const html = renderQueueRows([row({ pushError: MESSAGE })], { runnerAvailable: true, targets: [] });
+    expect(html).toContain(MESSAGE);
+  });
+
+  test("a row with no push failure carries no mark", () => {
+    const html = renderQueueRows([row({})], { runnerAvailable: true, targets: [] });
+    expect(html).not.toContain(MESSAGE);
+  });
+});

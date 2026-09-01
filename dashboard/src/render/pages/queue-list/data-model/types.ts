@@ -382,6 +382,11 @@ export interface SpecGroup {
    *  more urgent one: this is a branch left unmerged with nothing
    *  describing it, which no amount of waiting will resolve. */
   prError?: string;
+  /** Why a step's push did not reach origin (spec 328), off the most
+   *  recently active job that reported one — same aggregation as
+   *  `prError`, its nearest sibling. The step still succeeded; only the
+   *  branch itself was left stranded. */
+  pushError?: string;
   /** REQ-4 (spec 327): the lead job's own unresolved landing failure,
    *  read straight off `lead` rather than scanned across every job for
    *  this spec the way `prError` is — see Risk analysis for why a

@@ -1071,6 +1071,22 @@ sync_branch_with_origin() {
   refuse "$br has diverged from origin's copy in $root (each has commits the other has not — reconcile them by hand)"
 }
 
+# True when $sha is already what origin's $branch points at — the only
+# case amending it would rewrite public history (REQ-1, spec 328).
+# Best-effort, like sync_branch_with_origin: an origin nobody can reach
+# answers "no", which sends this root down the existing plain-commit
+# path rather than blocking the run on a network call. A plain
+# sha-equality check against origin's tip, not sync_branch_with_origin's
+# ancestry walk — the question here is narrower ("is this one commit
+# already public"), not "has the branch diverged", so it does not need
+# merge-base at all.
+commit_already_on_origin() {
+  local root="$1" sha="$2" remote_sha=""
+  git -C "$root" remote get-url origin >/dev/null 2>&1 || return 1
+  remote_sha="$(git -C "$root" ls-remote --heads origin "$branch" 2>/dev/null | cut -f1)"
+  [ -n "$remote_sha" ] && [ "$remote_sha" = "$sha" ]
+}
+
 # True when $br's local tip is already contained in origin's $base — the
 # mark of work that landed and was never cleaned up in this checkout
 # (spec 197). The landing deletes the branch on origin; this copy was
@@ -2258,6 +2274,10 @@ repos_json="[]"
 # decision below reads THIS, never `changed`, which only ever counted
 # the files this loop found uncommitted.
 head_after_per_root=()
+# Parallel to roots too: the pre-amend sha, set only when this loop
+# actually amends a root's commit — the push section below needs it,
+# scoped, to retry a rejected push with --force-with-lease (REQ-2).
+amend_source=()
 i=0
 for root in "${roots[@]}"; do
   wt="${work_roots[$i]}"
@@ -2265,10 +2285,15 @@ for root in "${roots[@]}"; do
   if [ "$changed" -gt 0 ]; then
     git -C "$wt" add -A -- . ${git_add_excludes[@]+"${git_add_excludes[@]}"} >/dev/null 2>&1
     head_now="$(git -C "$wt" rev-parse HEAD 2>/dev/null || echo "")"
-    if [ -n "$head_now" ] && [ "$head_now" != "${head_before[$i]}" ]; then
+    if [ -n "$head_now" ] && [ "$head_now" != "${head_before[$i]}" ] \
+       && ! commit_already_on_origin "$root" "$head_now"; then
       # The step already committed part of its own work under a written
       # message (spec 146) — fold the leftover into THAT commit rather
-      # than opening a second one under the generic subject.
+      # than opening a second one under the generic subject. Only when
+      # that commit is not already public (REQ-1): amending a commit
+      # origin already has is what stranded spec 327's stamp on the
+      # machine that ran it.
+      amend_source[$i]="$head_now"
       if [ -n "$amend_note" ]; then
         # The step's own message can have a body, so gluing the note
         # onto the raw %B would land it mid-paragraph: give it a line of
@@ -2319,6 +2344,23 @@ note_push_error() {
 }
 
 branch_urls_json="[]"
+
+# Shared by both push paths below (a plain push and REQ-2's retried
+# force-with-lease): the compare link and, for the reader who wants one
+# link, $branch_url — the project's own when the project changed,
+# otherwise whichever repo did.
+record_branch_url() {
+  local root="$1" web="" url=""
+  web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
+  [ -n "$web" ] || return 0
+  url="$web/compare/$(default_branch "$root")...$branch"
+  branch_urls_json="$(jq -c --arg root "$root" --arg url "$url" \
+    '. + [{root:$root, url:$url}]' <<<"$branch_urls_json")"
+  if [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; then
+    branch_url="$url"
+  fi
+}
+
 if [ "$push_mode" != "none" ]; then
   # A repo is pushed when its HEAD MOVED during the run — whether the
   # commit loop above moved it or the step committed on its own. An
@@ -2334,6 +2376,10 @@ if [ "$push_mode" != "none" ]; then
     wt="${work_roots[$i]}"
     head_was="${head_before[$i]}"
     head_is="${head_after_per_root[$i]}"
+    # Captured here, before $i advances for the next root — reading
+    # amend_source[$i] after the increment below would read the NEXT
+    # root's slot, the same way head_was/head_is already avoid that.
+    amended_sha="${amend_source[$i]:-}"
     i=$(( i + 1 ))
     [ "$head_was" != "$head_is" ] || continue
     if ! git -C "$root" remote get-url origin >/dev/null 2>&1; then
@@ -2341,16 +2387,15 @@ if [ "$push_mode" != "none" ]; then
       continue
     fi
     if err="$(git -C "$wt" push -q -u origin "$branch" 2>&1)"; then
-      web="$(github_web_url "$(git -C "$root" remote get-url origin 2>/dev/null)")"
-      [ -n "$web" ] || continue
-      url="$web/compare/$(default_branch "$root")...$branch"
-      branch_urls_json="$(jq -c --arg root "$root" --arg url "$url" \
-        '. + [{root:$root, url:$url}]' <<<"$branch_urls_json")"
-      # One link for a reader who wants one: the project's when the
-      # project changed, otherwise the repo that did.
-      if [ "$root" = "$project_root" ] || [ -z "$branch_url" ]; then
-        branch_url="$url"
-      fi
+      record_branch_url "$root"
+    elif [ -n "$amended_sha" ] && \
+         err="$(git -C "$wt" push -q --force-with-lease="$branch:$amended_sha" origin "$branch" 2>&1)"; then
+      # REQ-2: this run amended a commit that turned out to already be
+      # public (the pre-amend check missed it, or origin moved between
+      # the check and here) — the lease only succeeds if origin still
+      # holds exactly the commit this run rewrote, so it cannot force
+      # over anyone else's work.
+      record_branch_url "$root"
     else
       note_push_error "cannot push $branch in $root: $(printf '%s' "$err" | tr '\n' ' ' | tail -c 200)"
     fi

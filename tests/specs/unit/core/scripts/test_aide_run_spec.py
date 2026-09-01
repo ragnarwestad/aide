@@ -1233,6 +1233,98 @@ def test_a_branch_that_has_diverged_from_origin_refuses_by_name(
     assert not fake_claude.calls.exists()
 
 
+# --- spec 328: a step that both commits and pushes its own work --------------
+# A step that commits under its own message (spec 146) can also push that
+# commit itself before the run's own tracking-stamp write leaves anything
+# else to fold in. Spec 327's own analyze run did exactly that, headless,
+# and the generic commit loop then amended a commit that had already
+# reached origin — the amend never did, and the branch was left diverged
+# from itself two steps later.
+
+
+def self_pushing_claude(fake_claude, workspace, sha_marker, then=""):
+    """Commits part of its own work under a written message AND pushes
+    that commit to origin itself, then leaves more on disk — spec 146's
+    `partially_committing_claude` shape, plus the push spec 327's run
+    actually did. `sha_marker` records the step's own commit sha so a
+    test can tell an amend (a new sha) from a second commit (this sha
+    kept as an ancestor) after the run has torn the worktree down.
+    """
+    return fake_claude(
+        "cat > /dev/null\n"
+        + 'echo "committed by the step" > "$PWD/self-committed.txt"\n'
+        + "git add self-committed.txt\n"
+        + "git commit -q -m 'The step wrote this itself'\n"
+        + f"git rev-parse HEAD > {sha_marker}\n"
+        + 'git push -q origin "$(git rev-parse --abbrev-ref HEAD)"\n'
+        + 'echo "left behind by the step" > "$PWD/left-behind.txt"\n'
+        + then
+        + f"echo '{json.dumps(RESULT_OK)}'"
+    )
+
+
+def test_a_step_that_pushed_its_own_commit_is_not_amended(
+    runner, workspace, fake_claude, fetchable_origin, tmp_path
+):
+    """REQ-1. `fetchable_origin` answers both fetch and push, so the
+    pre-amend check can reach it and must catch the commit already being
+    public — the leftover then belongs in a NEW commit, and the step's
+    own commit must stay an ancestor of the branch tip, not get rewritten
+    into a sibling of it."""
+    sha_marker = tmp_path / "pushed-sha.txt"
+    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+    branch = "aide/81-queue-and-runner"
+    project = workspace["project"]
+    pushed_sha = sha_marker.read_text().strip()
+    assert is_ancestor(project, pushed_sha, branch), (
+        "the step's own pushed commit must still be an ancestor of the "
+        "branch tip, not rewritten away by an amend"
+    )
+    assert git(project, "log", "-1", "--pretty=%s", pushed_sha) == "The step wrote this itself"
+
+
+def test_the_leftover_after_a_self_pushed_commit_still_reaches_origin(
+    runner, workspace, fake_claude, origin, tmp_path
+):
+    """REQ-2/REQ-6, black-box. `origin` (unlike `fetchable_origin`) points
+    the fetch url at an address nothing here can reach, so the pre-amend
+    check cannot tell the step's commit is already public and misses it —
+    the same best-effort shape `sync_branch_with_origin` already has. The
+    commit loop then amends anyway, same as before this fix; what must be
+    different is that the amended commit still reaches origin (a
+    retried, scoped force-with-lease) rather than being silently rejected
+    the way spec 327's run was."""
+    sha_marker = tmp_path / "pushed-sha.txt"
+    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    rc, out, _ = run(runner, workspace, claude, push="branch")
+    assert rc == 0, out
+    assert out["ok"] is True
+    branch = "aide/81-queue-and-runner"
+    local_tip = git(workspace["project"], "rev-parse", branch)
+    origin_tip = git(origin["project"], "rev-parse", branch)
+    assert origin_tip == local_tip, "nothing may be stranded between local and origin"
+
+
+def test_a_second_run_after_a_self_pushing_step_does_not_see_a_diverged_branch(
+    runner, workspace, fake_claude, fetchable_origin, tmp_path
+):
+    """REQ-6, reusing `test_a_branch_that_has_diverged_from_origin_refuses_by_name`'s
+    own oracle: a branch this fix left consistent between local and
+    origin must not refuse a later run as diverged from itself."""
+    sha_marker = tmp_path / "pushed-sha.txt"
+    claude = self_pushing_claude(fake_claude, workspace, sha_marker)
+    rc, out, _ = run(runner, workspace, claude)
+    assert rc == 0, out
+
+    claude2 = fake_claude("cat > /dev/null\n" f"echo '{json.dumps(RESULT_OK)}'")
+    rc2, out2, _ = run(runner, workspace, claude2)
+    assert rc2 == 0, out2
+    assert out2["terminalReason"] != "refused"
+    assert "diverged" not in (out2.get("error") or "")
+
+
 def test_a_branch_that_cannot_be_updated_refuses_rather_than_running(runner, workspace, fake_claude):
     """A conflict between the branch and main is a human's problem. Running
     the step anyway would spend money producing work on a tree nobody can

@@ -48,6 +48,10 @@ export interface QueueRowView {
    *  for a project whose landing deliberately leaves that branch open is
    *  the whole difference between waiting on a review and an orphan. */
   prError?: string;
+  /** Why the branch itself did not reach origin (spec 328). Shown beside
+   *  the branch like `prError`, and for the same reason: the step
+   *  succeeded and its work is committed, only the push failed. */
+  pushError?: string;
   error?: string;
   /** Why the job's own landing was refused, when it was refused for
    *  something the row can offer a way out of. Stored on the job since

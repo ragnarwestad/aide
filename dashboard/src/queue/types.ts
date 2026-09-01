@@ -145,6 +145,11 @@ export interface Job {
    *  it, which for a project whose landing deliberately leaves that
    *  branch open is exactly the thing a reader has to be told. */
   prError?: string;
+  /** Why the branch itself did not reach origin (spec 328). Not an
+   *  `error`: the step succeeded and its work is committed, only the
+   *  push failed — `prError`'s sibling, same shape, its own field for
+   *  the same reason. */
+  pushError?: string;
   /** A landing merged this job's branch but could not delete it on
    *  origin (spec 319): `mergeBranchIntoDefault`'s own `branchDeleteError`,
    *  carried forward so a row built long after this job ran can still

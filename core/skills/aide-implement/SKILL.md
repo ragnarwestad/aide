@@ -148,9 +148,10 @@ into `3-solution.md`'s own Tracking info — leave those lines alone too.
 The percentage above it is still yours: it says how far
 the TDD phases got, which is the field for partial work.
 
-A headless run gets its commit for free. Working interactively, ASK
-whether to commit the work, and suggest this message so the step is
-recognised the same way:
+A headless run gets its commit for free — this session does not run
+`git commit` or `git push` itself, headless or not. Working
+interactively, ASK whether to commit the work, and suggest this message
+so the step is recognised the same way:
 
 ```text
 Run /aide-implement for <spec-folder> (model: <tool> <model>)
