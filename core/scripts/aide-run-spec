@@ -1462,7 +1462,7 @@ if [ "$command_name" = "archive" ]; then
   archive_note="$(jq -r '.note // empty' <<<"$archive_check" 2>/dev/null)"
   [ -n "$archive_note" ] && echo "aide-run-spec: $archive_note" >&2
   case "$archive_terminal_reason" in
-    not-implemented-yet|held-back|acceptance-criteria-unticked) skip_ai="yes" ;;
+    not-implemented-yet|held-back|acceptance-criteria-unticked|no-passing-test-record) skip_ai="yes" ;;
   esac
 fi
 

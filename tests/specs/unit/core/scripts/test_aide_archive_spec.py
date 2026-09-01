@@ -49,6 +49,18 @@ def configure(project, specs):
     (project / ".aide" / "config").write_text(f"AIDE_SPECS_PATH={specs}\n")
 
 
+def write_test_run(specs, folder, commit, exit_code, command="pytest"):
+    """Writes test-run.json the way `aide-record-test-run` does, then
+    commits it — by the time archive runs, an earlier `implement` step
+    has already committed its own record, exactly like the other spec
+    files `add_spec` commits above."""
+    (specs / folder / "test-run.json").write_text(json.dumps({
+        "command": command, "exitCode": exit_code, "commit": commit, "note": None,
+    }))
+    subprocess.run(["git", "-C", str(specs), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(specs), "commit", "-qm", "record test run"], check=True)
+
+
 def add_spec(specs, folder, status_body=None, archived=False):
     parent = specs / "archive" if archived else specs
     parent.mkdir(exist_ok=True)
@@ -255,6 +267,7 @@ def test_every_row_done_archives_the_spec(script, project, specs):
         phase("Phase 1: RED", ["| a | ✅ | |"]) + phase("Phase 2: GREEN", ["| b | Completed | |"]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert rc == 0, out
     assert out["terminalReason"] == "archived", out
@@ -273,6 +286,7 @@ def test_checklist_every_row_done_archives_the_spec(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze, implement", checklist(["| a | ✅ | |", "| b | Completed | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert rc == 0, out
     assert out["terminalReason"] == "archived", out
@@ -299,6 +313,7 @@ def test_implement_present_with_every_row_unstarted_archives_the_spec(script, pr
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert rc == 0, out
     assert out["terminalReason"] == "archived", out
@@ -312,6 +327,7 @@ def test_implement_present_with_an_open_in_progress_row_archives_the_spec(script
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | 🔄 | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     assert not (specs / "81-x").exists()
@@ -323,6 +339,7 @@ def test_checklist_implement_present_with_an_unstarted_row_archives_the_spec(scr
     configure(project, specs)
     body = status_md("create, analyze, implement", checklist(["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     assert not (specs / "81-x").exists()
@@ -336,6 +353,7 @@ def test_archiving_removes_a_stale_held_back_section(script, project, specs):
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"])) + \
         "\n## Archive held back\n\n- a (Phase 1: RED) — tick it on the spec's page\n\n---\n"
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     text = (specs / "archive" / "81-x" / "4-status.md").read_text()
@@ -360,6 +378,7 @@ def test_unticked_acceptance_criteria_row_blocks_archive(script, project, specs)
         phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "acceptance-criteria-unticked", out
     assert (specs / "81-x").exists(), "an unticked acceptance-criteria row must block the move"
@@ -372,6 +391,7 @@ def test_fully_ticked_acceptance_criteria_archives_normally(script, project, spe
         phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ✅ | |"]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     assert not (specs / "81-x").exists()
@@ -392,6 +412,7 @@ def test_non_standard_header_acceptance_row_ticked_still_archives(script, projec
         ]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
     assert not (specs / "81-x").exists()
@@ -403,6 +424,7 @@ def test_no_acceptance_criteria_section_is_unaffected(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ⬜ | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert out["terminalReason"] == "archived", out
 
@@ -417,6 +439,7 @@ def test_unticked_acceptance_criteria_note_names_the_checks_tab(script, project,
         phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc, out, _ = run(script, project, "81-x")
     assert "Checks tab" in out["note"], out
     assert "Overview tab" not in out["note"], out
@@ -432,6 +455,7 @@ def test_acceptance_criteria_gate_keeps_refusing_on_every_run(script, project, s
         phase("Phase 1: RED", ["| a | ✅ | |"]) + acceptance(["| REQ-1: does the thing | ⬜ | |"]),
     )
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc1, out1, _ = run(script, project, "81-x")
     rc2, out2, _ = run(script, project, "81-x")
     assert out1["terminalReason"] == "acceptance-criteria-unticked", out1
@@ -469,6 +493,7 @@ def test_specs_dir_is_read_from_not_just_conflict_checked(project, specs, script
     worktree_specs = init_repo(tmp_path / "worktree-specs")
     done = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
     add_spec(worktree_specs, "81-x", done)
+    write_test_run(worktree_specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
 
     rc, out, _ = run(script, project, "81-x", specs_dir=worktree_specs)
     assert out["terminalReason"] == "archived", out
@@ -482,6 +507,7 @@ def test_the_move_uses_git_mv_when_the_specs_root_is_tracked(script, project, sp
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     run(script, project, "81-x")
     # git mv STAGES the rename ("R"), rather than leaving it as an
     # untracked/deleted pair the way a plain `mv` in a tracked repo would.
@@ -494,6 +520,7 @@ def test_running_twice_after_archiving_is_idempotent(script, project, specs):
     configure(project, specs)
     body = status_md("create, analyze, implement", phase("Phase 1: RED", ["| a | ✅ | |"]))
     add_spec(specs, "81-x", body)
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
     rc1, out1, _ = run(script, project, "81-x")
     assert out1["terminalReason"] == "archived", out1
 
@@ -512,3 +539,104 @@ def test_the_result_file_carries_the_same_json_as_stdout(script, project, specs,
     result_file = tmp_path / "result.json"
     rc, out, _ = run(script, project, "81-x", result_file=result_file)
     assert json.loads(result_file.read_text()) == out
+
+
+# --- the test-record gate (spec 329) --------------------------------------
+#
+# REQ-4: archive refuses without a passing test-run.json record for the
+# exact commit being merged — or, only when that commit is a genuine
+# two-parent base-catch-up merge, its first parent. A record for any
+# OTHER earlier commit (real, untested work added afterward) must still
+# refuse — the must-fix regression case from the plan review.
+
+
+DONE_BODY = phase("Phase 1: RED", ["| a | ✅ | |"])
+
+
+def test_no_test_run_record_at_all_blocks_archive(script, project, specs):
+    configure(project, specs)
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert (specs / "81-x").exists(), "no record means archive must not move the folder"
+
+
+def test_a_passing_record_at_exact_head_archives(script, project, specs):
+    configure(project, specs)
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
+def test_a_record_with_nonzero_exit_code_blocks_archive(script, project, specs):
+    configure(project, specs)
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    write_test_run(specs, "81-x", git(project, "rev-parse", "HEAD"), 1)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert (specs / "81-x").exists()
+
+
+def test_a_passing_record_at_head_first_parent_of_a_genuine_merge_archives(script, project, specs):
+    """The ordinary case on any active project: update_branch_to_base
+    merges the base into the spec branch, so HEAD at archive time is a
+    real two-parent merge commit whose first parent is the spec branch's
+    own last (tested) commit."""
+    configure(project, specs)
+    tested = git(project, "rev-parse", "HEAD")
+    git(project, "switch", "-q", "-c", "feature")
+    (project / "feature.txt").write_text("feature work\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-qm", "feature work")
+    tested = git(project, "rev-parse", "HEAD")
+
+    git(project, "switch", "-q", "main")
+    (project / "base.txt").write_text("base moved on\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-qm", "base moved on")
+
+    git(project, "switch", "-q", "feature")
+    git(project, "merge", "-q", "--no-edit", "main")
+
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    write_test_run(specs, "81-x", tested, 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "archived", out
+    assert not (specs / "81-x").exists()
+
+
+def test_a_record_at_head_first_parent_of_an_ordinary_single_parent_commit_blocks_archive(
+    script, project, specs,
+):
+    """The must-fix regression the plan review found: an ordinary
+    single-parent commit added to the branch AFTER the recorded one —
+    real, untested work — must not slip through just because its own
+    parent happens to be the recorded commit."""
+    configure(project, specs)
+    tested = git(project, "rev-parse", "HEAD")
+    (project / "untested.txt").write_text("untested work\n")
+    git(project, "add", "-A")
+    git(project, "commit", "-qm", "untested work")
+
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    write_test_run(specs, "81-x", tested, 0)
+    rc, out, _ = run(script, project, "81-x")
+    assert out["terminalReason"] == "no-passing-test-record", out
+    assert (specs / "81-x").exists()
+
+
+def test_the_gate_never_runs_the_recorded_command_itself(script, project, specs, tmp_path):
+    """REQ-5: archive only ever READS test-run.json. A fixture whose
+    'command' would drop a marker file if ever executed proves the gate
+    never shells out to it."""
+    configure(project, specs)
+    marker = tmp_path / "marker"
+    add_spec(specs, "81-x", status_md("create, analyze, implement", DONE_BODY))
+    write_test_run(
+        specs, "81-x", git(project, "rev-parse", "HEAD"), 0,
+        command=f"touch {marker}",
+    )
+    run(script, project, "81-x")
+    assert not marker.exists(), "aide-archive-spec must never execute the recorded command"

@@ -85,16 +85,29 @@ resume it at the first unticked task if it found it in progress.
 ### Phase 3: REFACTOR — Quality check
 
 1. Run `aide-emit-run --phase refactor --spec <ID>`
-2. Full test suite (no regressions) — the command(s) covering the files
-   this run ACTUALLY changed, worked out from the project's `testScopes`
-   (see [Quality check](#quality-check)), never the whole project's
-   command by habit
+2. Resolve the full-suite command(s) exactly as before (testScopes-aware,
+   joined with `&&` when more than one scope is touched by this run, or
+   the single root command when the project has none — see
+   [Quality check](#quality-check)). Hand that string to the script that
+   runs and records it — never run it directly and self-report the result:
+
+   ```bash
+   aide-record-test-run --project-dir . --specs-root <specs-root> \
+     --folder <NN-slug> --cmd "<resolved command(s)>"
+   ```
+
+   A missing command (nothing configured, nothing detected) is passed as
+   `--cmd ""` — the script still writes a record, naming the gap in
+   plain words rather than silently passing, and the step reports that
+   gap to whoever is watching.
 3. TypeScript check
 4. ESLint
 5. Build
 6. Tick this phase's task rows in `4-status.md` as each check above
-   passes. Write the result with `aide-write-spec --file 4-status.md`
-   (never Write/Edit)
+   passes — the full-suite row ticks ✅ only once
+   `aide-record-test-run`'s own exit code is 0, never because the model
+   believes the suite passed. Write the result with `aide-write-spec
+   --file 4-status.md` (never Write/Edit)
 7. Update 4-status.md — the "Run the full test suite" row's Notes cell
    names the command(s) that ran, and, when the project has `testScopes`
    naming a scope nothing changed in, says that scope was left untested.

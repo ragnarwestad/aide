@@ -42,6 +42,12 @@ specs/<NN>-slug/          # flat structure, same for JIRA and TODO
 3. **3-solution.md** - Scope, behavior delta, acceptance criteria, risk and implementation plan with a TDD approach
 4. **4-status.md** - Living document: Progress and status
 
+`/aide-implement`'s REFACTOR phase adds a fifth, non-markdown file next
+to these four: `test-run.json`, written by `core/scripts/aide-record-test-run`
+and read by `core/scripts/aide-archive-spec`'s test-record gate — never
+written or read by a model. `aide-archive-spec`'s move step already
+`git mv`s the whole folder, so it needs no special handling of its own.
+
 ---
 
 ## File structure

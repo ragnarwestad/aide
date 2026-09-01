@@ -25,7 +25,7 @@
 #
 # terminalReason, checked in this order:
 #   refused | already-archived | conflict-open | not-implemented-yet
-#   | acceptance-criteria-unticked | archived
+#   | no-passing-test-record | acceptance-criteria-unticked | archived
 #
 # Usage:
 #   aide-archive-spec --project-dir <path> --spec <arg>
@@ -204,6 +204,39 @@ remove_held_back_section() {
 if [ "$implement_present" = "no" ]; then
   [ -f "$status_file" ] && remove_held_back_section
   emit_ok '{"terminalReason":"not-implemented-yet","note":"the spec has not reached implement yet — run /aide-implement next"}'
+fi
+
+# --- the test-record gate (spec 329) ----------------------------------------
+# `$project_dir` is already past update_branch_to_base by the time this
+# script runs (both call sites — aide-run-spec's pre-check and a
+# person's own /aide-archive — pass it after that step), so HEAD here IS
+# the commit about to be merged.
+#
+# The ONLY "earlier commit" this gate ever accepts is the automatic
+# base-catch-up merge `update_branch_to_base` itself produces — verified
+# by requiring HEAD to genuinely be a two-parent commit (`HEAD^2` must
+# resolve) whose FIRST parent is the recorded one. A plain, single-parent
+# commit added to the branch afterward (real, untested work) has no
+# second parent, so `HEAD^2` fails to resolve and the record is refused.
+record_file="$specs_root/$spec_folder/test-run.json"
+head_commit="$(git -C "$project_dir" rev-parse HEAD 2>/dev/null || true)"
+parent_commit="$(git -C "$project_dir" rev-parse HEAD^1 2>/dev/null || true)"
+head_is_merge="no"
+git -C "$project_dir" rev-parse --verify -q HEAD^2 >/dev/null 2>&1 && head_is_merge="yes"
+record_ok="no"
+if [ -f "$record_file" ]; then
+  record_commit="$(jq -r '.commit // empty' "$record_file" 2>/dev/null)"
+  record_exit="$(jq -r '.exitCode // empty' "$record_file" 2>/dev/null)"
+  if [ "$record_exit" = "0" ] && [ -n "$record_commit" ]; then
+    if [ "$record_commit" = "$head_commit" ]; then
+      record_ok="yes"
+    elif [ "$head_is_merge" = "yes" ] && [ "$record_commit" = "$parent_commit" ]; then
+      record_ok="yes"
+    fi
+  fi
+fi
+if [ "$record_ok" = "no" ]; then
+  emit_ok '{"terminalReason":"no-passing-test-record","note":"no passing test run is on record for this commit — run /aide-implement'"'"'s REFACTOR phase before archiving"}'
 fi
 
 # --- the acceptance-criteria gate (spec 285) --------------------------------
