@@ -21,20 +21,15 @@ import { NOT_LANDED } from "./row-shared.ts";
 function specSummary(g: SpecGroup): string {
   const bits: string[] = [];
   // NOT the title, and NOT the phase (2026-08-21), and NOT the
-  // percentage (spec 167). The folder name above IS the title in slug
-  // form and said it twice; the phase is what the pips and the State
-  // column are for. The percentage counted the checkbox rows the
-  // implement step ticks, and implement is ONE step — so it read 0
-  // until implement finished and 90-something after, never anything
-  // between. Two specs on the same day both read "0% done", one with
-  // 21 task rows behind it and one with 4. What is left is what
-  // neither the pips nor the badge carries.
-  //
-  // ONE exception, and it is the reason `named` exists: a create job's
-  // spec has no folder yet, so the name above is a provisional key that
-  // says nothing to anyone. There the title is the only readable thing
-  // the row has, and it stays until the spec lands.
-  if (!g.named && g.title) bits.push(esc(g.title));
+  // percentage (spec 167). The folder name above IS the title — in slug
+  // form once landed, in the form's own words while it is not
+  // (`specHeadRow`'s `spec` constant, spec 307) — and said it twice; the
+  // phase is what the pips and the State column are for. The percentage
+  // counted the checkbox rows the implement step ticks, and implement is
+  // ONE step — so it read 0 until implement finished and 90-something
+  // after, never anything between. Two specs on the same day both read
+  // "0% done", one with 21 task rows behind it and one with 4. What is
+  // left is what neither the pips nor the badge carries.
   // Spec 208. Whatever git knows about this spec is not in yet — the
   // schedule that fills the caches has not reached it. Said out loud
   // rather than drawn as "nothing has run": that false negative is the
@@ -98,10 +93,16 @@ export function specHeadRow(
   // browser is left to get on with it. Without it the reader saw the
   // old page, unchanged, for however long `specPageView` took, and a
   // click that changes nothing reads as a click that did not register.
-  const spec =
-    `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
-    `title="${esc(g.project)}:${esc(g.specFolder)}">` +
-    `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`;
+  // A create job's spec has no folder yet (REQ-1/REQ-2, spec 307): the
+  // row names itself after the title given on the New spec form, drawn
+  // as plain text rather than a link, because there is no page for it
+  // to open yet. `g.named` flips true, and this goes back to the link
+  // above, the moment the folder lands.
+  const spec = g.named
+    ? `<a class="label" data-goto href="${esc(specPagePath(g.project, g.specFolder))}" ` +
+      `title="${esc(g.project)}:${esc(g.specFolder)}">` +
+      `<span class="muted">${esc(g.project)}:</span>${esc(g.specFolder)}</a>`
+    : `<span class="label">${esc(g.title ?? g.specFolder)}</span>`;
   // Spec 193's mark, on the row it belongs to (spec 224 moved it here
   // from the flat reader row `archivedHeadRow` drew). Beside the link a
   // reader would follow, because the mark is a reason to follow it: the

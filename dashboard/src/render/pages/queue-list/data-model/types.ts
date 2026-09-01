@@ -281,9 +281,10 @@ export interface SpecGroup {
   project: string;
   specFolder: string;
   /** Whether `specFolder` is a real folder or a create job's provisional
-   *  key. The key says nothing to anyone, which is why the row keeps the
-   *  title while it stands (`specSummary`, 2026-08-21) and drops it once
-   *  the spec has landed and the folder name IS the title. */
+   *  key. The key says nothing to anyone, which is why the row's own
+   *  name reads the title instead while this is false (`specHeadRow`'s
+   *  `spec` constant) and goes back to the folder name, as a link, once
+   *  the spec has landed. */
   named: boolean;
   /** The job the header speaks for: whatever is in flight, or failing
    *  that the most recently active one. Absent for a spec nothing has
