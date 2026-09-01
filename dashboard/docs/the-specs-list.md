@@ -143,10 +143,10 @@ is appended after them rather than dropped, so a run is never invisible.
 
 ## Filtering and searching the list
 
-The chips are one axis, and `?state=` is where it lives: "Not archived" (the default, and the reading view), "All",
-"Not started", "Active", "Done", "Problems" and "Archived". The default is `STATE_FILTERS[0]` and nothing else — moving
-an entry to the front changes the default for every reader — and it travels as no `state=` value at all, so `/` stays
-a clean link.
+The chips are one axis, and `?state=` is where it lives: "All" (the default), "Active" (everything not archived),
+"Running", "Done", "Problems" and "Archived". The default is `STATE_FILTERS[0]` and nothing else — moving an entry to
+the front changes the default for every reader — and it travels as no `state=` value at all, so `/` stays a clean
+link.
 
 **An archived spec is a row on this list**, and nowhere else — there is no separate archive page. Its row is a READER
 row: the link to its own `/specs/<project>/<spec>` page, its whole description behind a two-line clamp, the date it was

@@ -1,7 +1,8 @@
 # Running specs
 
 How a spec becomes a run: the queue, the runner, the checkouts it works in, and what each step publishes.
-Four pages sit beside this one: [A job's states](job-states.md) — the state machine, in one place —
+Five pages sit beside this one: [A spec's lifecycle](spec-lifecycle.md) — the four phases and what moves a spec
+between them — [A job's states](job-states.md) — the job's state machine, in one place —
 [The specs list and the spec page](the-specs-list.md) — what a row says and what its controls do —
 [Projects](projects.md) — adding one, and whether a run can start there — and
 [Branches and landing](landing.md) — how each step's branch is merged, and what stops one from landing.

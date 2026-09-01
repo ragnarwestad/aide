@@ -12,6 +12,7 @@ Longer pages of their own:
 - [Running specs](docs/running-specs.md) — the queue, the runner, the checkouts, what a step publishes
 - [The specs list and the spec page](docs/the-specs-list.md) — what a row says, what its controls do, the spec's own page
 - [Projects](docs/projects.md) — adding one, whether a run can start there, the project page
+- [A spec's lifecycle](docs/spec-lifecycle.md) — the four phases, what moves a spec between them, what holds one back
 - [A job's states](docs/job-states.md) — the queue's state machine: the seven states, who moves a job, the flags beside it
 - [Branches and landing](docs/landing.md) — how a step's branch is merged, conflicts, what stops a landing
 - [How it looks](docs/design-system.md) — tokens, components, the class vocabulary guard

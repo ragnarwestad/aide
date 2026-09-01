@@ -69,6 +69,7 @@ pages run to 450; they are written to be searched. Where to look:
 | What a row on the specs list says, the spec page | `dashboard/docs/the-specs-list.md` |
 | Adding a project, whether a run can start there | `dashboard/docs/projects.md` |
 | A job's states and every transition between them | `dashboard/docs/job-states.md` |
+| The four phases, what moves a spec between them | `dashboard/docs/spec-lifecycle.md` |
 | How a step's branch is merged, conflicts, unlanded work | `dashboard/docs/landing.md` |
 | Tokens, components and the CSS class vocabulary | `dashboard/docs/design-system.md` |
 | Serving it, HTTPS, moving it to another host | `dashboard/docs/deploying.md` |
